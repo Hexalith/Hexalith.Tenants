@@ -60,9 +60,7 @@ public sealed partial class TenantDetailSurfaceTests : BunitContext
     public TenantDetailSurfaceTests()
     {
         Services.AddLocalization();
-#if HFC_ROUTE_OPTIONS
         Services.AddScoped<Hexalith.FrontComposer.Shell.Services.NavigationFailureNotifier>();
-#endif
         Services.AddScoped<TenantSearchPagingState>();
         Services.AddScoped<TenantAggregateCommandAdmissionGate>();
         Services.AddScoped<TenantCreateAttemptTracker>();

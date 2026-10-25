@@ -190,9 +190,7 @@ public sealed class StatusFilterLabelRenderingTests : BunitContext
         Services.AddLocalization();
         Services.AddFluentUIComponents();
         Services.AddScoped<TenantSearchPagingState>();
-#if HFC_ROUTE_OPTIONS
         Services.AddScoped<Hexalith.FrontComposer.Shell.Services.NavigationFailureNotifier>();
-#endif
         var factory = new ResourceManagerStringLocalizerFactory(
             Options.Create(new LocalizationOptions()), NullLoggerFactory.Instance);
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new CultureBoundTenantsLocalizer(

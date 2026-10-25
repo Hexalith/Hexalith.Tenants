@@ -23,6 +23,7 @@ using Hexalith.EventStore.Contracts.Queries;
 
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Win32.SafeHandles;
 using Microsoft.Extensions.Logging;
 
 using NSubstitute;
@@ -121,6 +122,7 @@ public sealed partial class TenantDetailSurfaceTests
         int detailReads = 0;
         int memberReads = 0;
         CancellationToken initialToken = default;
+        SafeWaitHandle? initialHandle = null;
         gateway.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
             .Returns(async call =>
             {
@@ -128,6 +130,8 @@ public sealed partial class TenantDetailSurfaceTests
                 if (read == 1)
                 {
                     initialToken = call.ArgAt<CancellationToken>(2);
+                    initialHandle = initialToken.WaitHandle.SafeWaitHandle;
+                    initialHandle.IsClosed.ShouldBeFalse();
                     TenantDetailSnapshot result = await initialDetail.Task;
                     initialReadReturned.TrySetResult();
                     return result;
@@ -195,7 +199,7 @@ public sealed partial class TenantDetailSurfaceTests
             // The superseded initial response deliberately ignores cancellation and arrives last.
             initialDetail.SetResult(ReadyWithSafeConfiguration(baseline, ProjectionLifecycleState.Current, "tenant-sequence:1"));
             await initialReadReturned.Task.WaitAsync(DefaultWaitTimeout);
-            await WaitForEarlyMembershipTokenDisposalAsync(initialToken);
+            await WaitForEarlyMembershipTokenDisposalAsync(initialHandle.ShouldNotBeNull());
             ((TenantDetailSnapshot)DetailField(cut, "_snapshot")!).Detail!.Name.ShouldBe(refreshed.Name);
             cut.FindComponent<MemberAccessReview>().Instance.Detail.Name.ShouldBe(refreshed.Name);
             EarlyMembershipState(cut, kind).State.ShouldBe(expected);
@@ -235,6 +239,7 @@ public sealed partial class TenantDetailSurfaceTests
         var authorityEntered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var authorityReturned = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         CancellationToken authorityToken = default;
+        SafeWaitHandle? authorityHandle = null;
         var composition = new StubTenantsBffComposition
         {
             MutationResolver = (tenantId, _, token) => tenantId == TenantId
@@ -263,6 +268,7 @@ public sealed partial class TenantDetailSurfaceTests
         TenantDetail refreshed = EarlyMembershipResult(baseline, kind);
         int alphaReads = 0;
         CancellationToken initialToken = default;
+        SafeWaitHandle? initialHandle = null;
         gateway.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
             .Returns(async call =>
             {
@@ -270,6 +276,8 @@ public sealed partial class TenantDetailSurfaceTests
                 if (tenantId == TenantId && Interlocked.Increment(ref alphaReads) == 1)
                 {
                     initialToken = call.ArgAt<CancellationToken>(2);
+                    initialHandle = initialToken.WaitHandle.SafeWaitHandle;
+                    initialHandle.IsClosed.ShouldBeFalse();
                     TenantDetailSnapshot result = await initialDetail.Task;
                     initialReadReturned.TrySetResult();
                     return result;
@@ -322,10 +330,10 @@ public sealed partial class TenantDetailSurfaceTests
             authority.SetResult(new(TenantLifecycleAuthorizationReflectionState.Authorized,
                 TenantLifecycleAuthorizationReflectionState.Authorized));
             await authorityReturned.Task.WaitAsync(DefaultWaitTimeout);
-            await WaitForEarlyMembershipTokenDisposalAsync(authorityToken);
+            await WaitForEarlyMembershipTokenDisposalAsync(authorityHandle.ShouldNotBeNull());
             initialDetail.SetResult(ReadyWithSafeConfiguration(baseline, ProjectionLifecycleState.Current, "tenant-sequence:1"));
             await initialReadReturned.Task.WaitAsync(DefaultWaitTimeout);
-            await WaitForEarlyMembershipTokenDisposalAsync(initialToken);
+            await WaitForEarlyMembershipTokenDisposalAsync(initialHandle.ShouldNotBeNull());
             await Renderer.Dispatcher.InvokeAsync(() => { });
 
             EarlyMembershipTrackedIdentity(tracker, kind, TenantId)
@@ -358,6 +366,8 @@ public sealed partial class TenantDetailSurfaceTests
         async Task<TenantMutationAuthorizationReflection> HoldAuthorityAsync(CancellationToken token)
         {
             authorityToken = token;
+            authorityHandle = token.WaitHandle.SafeWaitHandle;
+            authorityHandle.IsClosed.ShouldBeFalse();
             authorityEntered.TrySetResult();
             TenantMutationAuthorizationReflection result = await authority.Task;
             authorityReturned.TrySetResult();
@@ -407,6 +417,7 @@ public sealed partial class TenantDetailSurfaceTests
         TenantDetail refreshed = EarlyMembershipResult(baseline, "add");
         int detailReads = 0;
         CancellationToken initialToken = default;
+        SafeWaitHandle? initialHandle = null;
         gateway.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
             .Returns(async call =>
             {
@@ -414,6 +425,8 @@ public sealed partial class TenantDetailSurfaceTests
                 if (read == 1)
                 {
                     initialToken = call.ArgAt<CancellationToken>(2);
+                    initialHandle = initialToken.WaitHandle.SafeWaitHandle;
+                    initialHandle.IsClosed.ShouldBeFalse();
                     TenantDetailSnapshot result = await initialDetail.Task;
                     initialReadReturned.TrySetResult();
                     return result;
@@ -460,7 +473,7 @@ public sealed partial class TenantDetailSurfaceTests
 
             initialDetail.SetResult(ReadyWithSafeConfiguration(baseline, ProjectionLifecycleState.Current, "tenant-sequence:1"));
             await initialReadReturned.Task.WaitAsync(DefaultWaitTimeout);
-            await WaitForEarlyMembershipTokenDisposalAsync(initialToken);
+            await WaitForEarlyMembershipTokenDisposalAsync(initialHandle.ShouldNotBeNull());
             int rendersBefore = cut.RenderCount;
             TenantHighImpactViewportObservation viewport = Services.GetRequiredService<TenantHighImpactViewportObservation>();
             await cut.InvokeAsync(() => viewport.Observe(ViewportTier.Phone));
@@ -607,17 +620,13 @@ public sealed partial class TenantDetailSurfaceTests
             _ => tracker.Find<TenantRemoveMemberCommandSnapshot>(tenantId)!,
         });
 
-    /// <summary>Observes completion cleanup even when obsolete work produces no render event.</summary>
-    private static async Task WaitForEarlyMembershipTokenDisposalAsync(CancellationToken token)
+    /// <summary>Observes owner cleanup through the pre-captured borrowed handle without racing token-source disposal.</summary>
+    private static async Task WaitForEarlyMembershipTokenDisposalAsync(SafeWaitHandle handle)
     {
         Stopwatch elapsed = Stopwatch.StartNew();
         while (elapsed.Elapsed < DefaultWaitTimeout)
         {
-            try
-            {
-                _ = token.WaitHandle;
-            }
-            catch (ObjectDisposedException)
+            if (handle.IsClosed)
             {
                 return;
             }

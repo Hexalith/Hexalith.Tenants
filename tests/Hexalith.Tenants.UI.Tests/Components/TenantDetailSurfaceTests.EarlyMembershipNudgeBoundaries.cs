@@ -18,6 +18,7 @@ using Hexalith.EventStore.Contracts.Queries;
 
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Win32.SafeHandles;
 
 using NSubstitute;
 
@@ -64,12 +65,15 @@ public sealed partial class TenantDetailSurfaceTests
         TenantDetail refreshed = EarlyMembershipResult(baseline, kind);
         int detailReads = 0;
         CancellationToken initialToken = default;
+        SafeWaitHandle? initialHandle = null;
         services.Gateway.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
             .Returns(async call =>
             {
                 if (Interlocked.Increment(ref detailReads) == 1)
                 {
                     initialToken = call.ArgAt<CancellationToken>(2);
+                    initialHandle = initialToken.WaitHandle.SafeWaitHandle;
+                    initialHandle.IsClosed.ShouldBeFalse();
                     TenantDetailSnapshot result = await initial.Task;
                     initialReturned.TrySetResult();
                     return result;
@@ -118,7 +122,7 @@ public sealed partial class TenantDetailSurfaceTests
 
             initial.SetResult(ReadyWithSafeConfiguration(baseline, ProjectionLifecycleState.Current, "tenant-sequence:1"));
             await initialReturned.Task.WaitAsync(DefaultWaitTimeout);
-            await AwaitEarlyNudgeBoundaryDisposalAsync(initialToken);
+            await AwaitEarlyNudgeBoundaryDisposalAsync(initialHandle.ShouldNotBeNull());
             ((TenantDetailSnapshot)DetailField(cut, "_snapshot")!).Detail!.Members.ShouldBe(refreshed.Members);
             commands.StatusCallCount.ShouldBe(0);
             Renderer.UnhandledException.IsCompleted.ShouldBeFalse();
@@ -148,6 +152,7 @@ public sealed partial class TenantDetailSurfaceTests
         var authorityEntered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var authorityReturned = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         CancellationToken oldAuthorityToken = default;
+        SafeWaitHandle? oldAuthorityHandle = null;
         var composition = new StubTenantsBffComposition
         {
             MutationResolver = (_, detail, token) => detail.Name == "Replacement caller detail"
@@ -170,12 +175,15 @@ public sealed partial class TenantDetailSurfaceTests
         bool replacementCaller = false;
         int detailReads = 0;
         CancellationToken initialToken = default;
+        SafeWaitHandle? initialHandle = null;
         services.Gateway.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
             .Returns(async call =>
             {
                 if (Interlocked.Increment(ref detailReads) == 1)
                 {
                     initialToken = call.ArgAt<CancellationToken>(2);
+                    initialHandle = initialToken.WaitHandle.SafeWaitHandle;
+                    initialHandle.IsClosed.ShouldBeFalse();
                     TenantDetailSnapshot result = await initial.Task;
                     initialReturned.TrySetResult();
                     return result;
@@ -219,10 +227,10 @@ public sealed partial class TenantDetailSurfaceTests
             oldAuthority.SetResult(new(TenantLifecycleAuthorizationReflectionState.Authorized,
                 TenantLifecycleAuthorizationReflectionState.Authorized));
             await authorityReturned.Task.WaitAsync(DefaultWaitTimeout);
-            await AwaitEarlyNudgeBoundaryDisposalAsync(oldAuthorityToken);
+            await AwaitEarlyNudgeBoundaryDisposalAsync(oldAuthorityHandle.ShouldNotBeNull());
             initial.SetResult(ReadyWithSafeConfiguration(baseline, ProjectionLifecycleState.Current, "tenant-sequence:1"));
             await initialReturned.Task.WaitAsync(DefaultWaitTimeout);
-            await AwaitEarlyNudgeBoundaryDisposalAsync(initialToken);
+            await AwaitEarlyNudgeBoundaryDisposalAsync(initialHandle.ShouldNotBeNull());
             await Renderer.Dispatcher.InvokeAsync(() => { });
 
             TenantDetailSnapshot current = (TenantDetailSnapshot)DetailField(cut, "_snapshot")!;
@@ -251,6 +259,8 @@ public sealed partial class TenantDetailSurfaceTests
         async Task<TenantMutationAuthorizationReflection> HoldPreviousAuthorityAsync(CancellationToken token)
         {
             oldAuthorityToken = token;
+            oldAuthorityHandle = token.WaitHandle.SafeWaitHandle;
+            oldAuthorityHandle.IsClosed.ShouldBeFalse();
             authorityEntered.TrySetResult();
             TenantMutationAuthorizationReflection result = await oldAuthority.Task;
             authorityReturned.TrySetResult();
@@ -296,6 +306,7 @@ public sealed partial class TenantDetailSurfaceTests
         TenantDetail refreshed = EarlyMembershipResult(baseline, "add");
         int alphaReads = 0;
         CancellationToken initialToken = default;
+        SafeWaitHandle? initialHandle = null;
         services.Gateway.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
             .Returns(async call =>
             {
@@ -308,6 +319,8 @@ public sealed partial class TenantDetailSurfaceTests
                 if (read == 1)
                 {
                     initialToken = call.ArgAt<CancellationToken>(2);
+                    initialHandle = initialToken.WaitHandle.SafeWaitHandle;
+                    initialHandle.IsClosed.ShouldBeFalse();
                     TenantDetailSnapshot result = await initial.Task;
                     initialReturned.TrySetResult();
                     return result;
@@ -371,7 +384,7 @@ public sealed partial class TenantDetailSurfaceTests
             await replayCompletion.WaitAsync(DefaultWaitTimeout);
             initial.SetResult(ReadyWithSafeConfiguration(baseline, ProjectionLifecycleState.Current, "tenant-sequence:1"));
             await initialReturned.Task.WaitAsync(DefaultWaitTimeout);
-            await AwaitEarlyNudgeBoundaryDisposalAsync(initialToken);
+            await AwaitEarlyNudgeBoundaryDisposalAsync(initialHandle.ShouldNotBeNull());
             await Renderer.Dispatcher.InvokeAsync(() => { });
 
             var retained = EarlyMembershipTrackedIdentity(services.Tracker, "add", baseline.TenantId);
@@ -458,16 +471,13 @@ public sealed partial class TenantDetailSurfaceTests
             or nameof(ITenantCommandGateway.ChangeUserRoleAsync)
             or nameof(ITenantCommandGateway.RemoveUserFromTenantAsync)).ShouldBeEmpty();
 
-    private static async Task AwaitEarlyNudgeBoundaryDisposalAsync(CancellationToken token)
+    /// <summary>Observes owner cleanup through the pre-captured borrowed handle without racing token-source disposal.</summary>
+    private static async Task AwaitEarlyNudgeBoundaryDisposalAsync(SafeWaitHandle handle)
     {
         using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(5));
         while (true)
         {
-            try
-            {
-                _ = token.WaitHandle;
-            }
-            catch (ObjectDisposedException)
+            if (handle.IsClosed)
             {
                 return;
             }

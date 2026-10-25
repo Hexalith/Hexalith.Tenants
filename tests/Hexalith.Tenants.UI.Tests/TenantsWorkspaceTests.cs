@@ -62,9 +62,7 @@ public sealed partial class TenantsWorkspaceTests : BunitContext
         caller.UserId.Returns("operator.alpha");
         Services.AddSingleton(caller);
 
-#if HFC_ROUTE_OPTIONS
         Services.AddScoped<NavigationFailureNotifier>();
-#endif
     }
 
     [Theory]

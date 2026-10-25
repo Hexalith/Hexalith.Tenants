@@ -1,0 +1,104 @@
+{
+  "version": "3.128.2",
+  "comparison": "Every package entry except the registry signature is compared byte-for-byte between official GitHub release assets and public NuGet flat-container downloads.",
+  "packages": [
+    {
+      "package": "Hexalith.EventStore.Admin.Abstractions.3.128.2.nupkg",
+      "nugetUrl": "https://api.nuget.org/v3-flatcontainer/hexalith.eventstore.admin.abstractions/3.128.2/hexalith.eventstore.admin.abstractions.3.128.2.nupkg",
+      "releaseAssetSha256": "555ff54098fa615df9b10e86a680cec73a0d6c18bdfdab148476e28dbaee778e",
+      "nugetSha256": "0171166c8b2543285d3a70a3b7061e680ba51e80346adfcd84d2394404bfe37f",
+      "allNonSignatureEntriesEqual": true
+    },
+    {
+      "package": "Hexalith.EventStore.Admin.Cli.3.128.2.nupkg",
+      "nugetUrl": "https://api.nuget.org/v3-flatcontainer/hexalith.eventstore.admin.cli/3.128.2/hexalith.eventstore.admin.cli.3.128.2.nupkg",
+      "releaseAssetSha256": "0f7316216295f649d9d2e6c10fed88aa872deeab7874e71968696f971fdd3914",
+      "nugetSha256": "f5feda3f8275826851d0af31fc8ba07fef9e400d7e603caaa4b533c29bb8d390",
+      "allNonSignatureEntriesEqual": true
+    },
+    {
+      "package": "Hexalith.EventStore.Admin.Server.3.128.2.nupkg",
+      "nugetUrl": "https://api.nuget.org/v3-flatcontainer/hexalith.eventstore.admin.server/3.128.2/hexalith.eventstore.admin.server.3.128.2.nupkg",
+      "releaseAssetSha256": "72f1e0fdcee37cd023edbe836e5c1caebb3e3af9e6c5264ab00a800f6f8eaa7c",
+      "nugetSha256": "71c0986a7399de493701d9ccf2239d135a3cb4da2142fb59f453a6def3a86aad",
+      "allNonSignatureEntriesEqual": true
+    },
+    {
+      "package": "Hexalith.EventStore.Aspire.3.128.2.nupkg",
+      "nugetUrl": "https://api.nuget.org/v3-flatcontainer/hexalith.eventstore.aspire/3.128.2/hexalith.eventstore.aspire.3.128.2.nupkg",
+      "releaseAssetSha256": "751a1f2d4370a43d4e431dc539a2fad278f5dc502f4bc3d5e34a4064b3ebf4c4",
+      "nugetSha256": "04883b02e696e349badac14f78a712dbb8a6341951c3fab090cd3ebdd5fafe74",
+      "allNonSignatureEntriesEqual": true
+    },
+    {
+      "package": "Hexalith.EventStore.Client.3.128.2.nupkg",
+      "nugetUrl": "https://api.nuget.org/v3-flatcontainer/hexalith.eventstore.client/3.128.2/hexalith.eventstore.client.3.128.2.nupkg",
+      "releaseAssetSha256": "d0ae8ce232996070f7810768f462b52755b83eb33eb896220dfbfba57af77ff6",
+      "nugetSha256": "cf3f5d5aaa37bc866c27df4e8e9320887ff54a772954cf56038f4612a6434962",
+      "allNonSignatureEntriesEqual": true
+    },
+    {
+      "package": "Hexalith.EventStore.Contracts.3.128.2.nupkg",
+      "nugetUrl": "https://api.nuget.org/v3-flatcontainer/hexalith.eventstore.contracts/3.128.2/hexalith.eventstore.contracts.3.128.2.nupkg",
+      "releaseAssetSha256": "9a188b4c422962ecb7cf4aa4ae5d8ec7d4fbfcc44670b1f8701dd28cf7d35fac",
+      "nugetSha256": "a22f7aed62441677069fac46699e59967fdeb22177963de218aa40ce87a61be5",
+      "allNonSignatureEntriesEqual": true
+    },
+    {
+      "package": "Hexalith.EventStore.DomainService.3.128.2.nupkg",
+      "nugetUrl": "https://api.nuget.org/v3-flatcontainer/hexalith.eventstore.domainservice/3.128.2/hexalith.eventstore.domainservice.3.128.2.nupkg",
+      "releaseAssetSha256": "2089b56f0a8629d35ef8bec9cd35b33cb53f87266123063d3bece6fc1e2d410a",
+      "nugetSha256": "39537eb69be4f6c8b985df3defd1acbb60bda5776a4ce94eafc2c85759c6d875",
+      "allNonSignatureEntriesEqual": true
+    },
+    {
+      "package": "Hexalith.EventStore.Gateway.3.128.2.nupkg",
+      "nugetUrl": "https://api.nuget.org/v3-flatcontainer/hexalith.eventstore.gateway/3.128.2/hexalith.eventstore.gateway.3.128.2.nupkg",
+      "releaseAssetSha256": "85ccd1eec596b1837d40c4539f76d44ab03fd7bca438995da141d5934d1af225",
+      "nugetSha256": "d0a49ea4103665c94943a1d3d61cc9137bde0eb3cec53bbbb70f0d0efa8203eb",
+      "allNonSignatureEntriesEqual": true
+    },
+    {
+      "package": "Hexalith.EventStore.RestApi.Generators.3.128.2.nupkg",
+      "nugetUrl": "https://api.nuget.org/v3-flatcontainer/hexalith.eventstore.restapi.generators/3.128.2/hexalith.eventstore.restapi.generators.3.128.2.nupkg",
+      "releaseAssetSha256": "7dc430374292b7861c5d7af4a56bf7b50cd288050083870975ee3fbf7a9f2e9a",
+      "nugetSha256": "9795487337d81bc2605acb4c067ae48f41a6125f504d975d439d64e73e975536",
+      "allNonSignatureEntriesEqual": true
+    },
+    {
+      "package": "Hexalith.EventStore.Server.3.128.2.nupkg",
+      "nugetUrl": "https://api.nuget.org/v3-flatcontainer/hexalith.eventstore.server/3.128.2/hexalith.eventstore.server.3.128.2.nupkg",
+      "releaseAssetSha256": "5cded8828d253b80822b0d167fc2e0f8e1125389f9ad4874e8459ea94c25facd",
+      "nugetSha256": "9bb24d0ba3e0c5f51e1f7f6f4409c4a0ab41a96edaaa9a3def70ea6545ae6572",
+      "allNonSignatureEntriesEqual": true
+    },
+    {
+      "package": "Hexalith.EventStore.ServiceDefaults.3.128.2.nupkg",
+      "nugetUrl": "https://api.nuget.org/v3-flatcontainer/hexalith.eventstore.servicedefaults/3.128.2/hexalith.eventstore.servicedefaults.3.128.2.nupkg",
+      "releaseAssetSha256": "3343b9a8a215979f8c538dc43f78e1cb0e35fa7d691e4e1bc0c3e2f830736e1e",
+      "nugetSha256": "d1aa819a0cf990b0cbeaa4735a467cbc329cf089d08f399b27e22ce0e7fbe1fd",
+      "allNonSignatureEntriesEqual": true
+    },
+    {
+      "package": "Hexalith.EventStore.SignalR.3.128.2.nupkg",
+      "nugetUrl": "https://api.nuget.org/v3-flatcontainer/hexalith.eventstore.signalr/3.128.2/hexalith.eventstore.signalr.3.128.2.nupkg",
+      "releaseAssetSha256": "da70d61ad7201a8369e4236f37206d17faa598481d38278e63c73a60ea3b55c0",
+      "nugetSha256": "7bda79300a16ae966c6c467a89b111ab4dbfd4d4a7ec62cc1493251a66aae863",
+      "allNonSignatureEntriesEqual": true
+    },
+    {
+      "package": "Hexalith.EventStore.Testing.3.128.2.nupkg",
+      "nugetUrl": "https://api.nuget.org/v3-flatcontainer/hexalith.eventstore.testing/3.128.2/hexalith.eventstore.testing.3.128.2.nupkg",
+      "releaseAssetSha256": "d57ce0cd2413208347be5f837cccbf60191830edac9d9116d846230211833990",
+      "nugetSha256": "b6d28bcf7eebf3ff62833ad6ad84598603ccfa63f7c1bacb4d9d2dfdcd785fc8",
+      "allNonSignatureEntriesEqual": true
+    },
+    {
+      "package": "Hexalith.EventStore.Testing.Integration.3.128.2.nupkg",
+      "nugetUrl": "https://api.nuget.org/v3-flatcontainer/hexalith.eventstore.testing.integration/3.128.2/hexalith.eventstore.testing.integration.3.128.2.nupkg",
+      "releaseAssetSha256": "8d2df5ca67d4c1ea9ea3ab321fb2890171bdaa802a4a3ea1f2c17538704e89e9",
+      "nugetSha256": "ab3a7b34a02a853460bc2336b9ef5e67ce55e8c141191c871043344b34cbc454",
+      "allNonSignatureEntriesEqual": true
+    }
+  ]
+}

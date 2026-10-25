@@ -19,7 +19,7 @@ Complete DW-104, DW-161, DW-432, DW-436 and DW-594: qualify authenticated UI con
 
 **Always:** Validate caller/current-tenant scope. Use production controllers/client, command-seeded isolated state and persisted projection assertions. Preserve lifecycle distinctions, safe evidence, historical fields and unrelated records. Require zero acceptance skips; keep unfulfilled items open.
 
-**Never:** Disable TLS validation, substitute canned responses for live proof, mutate stored events/projections, expose credentials, expand API contracts, change Dapr identities/policy, update dependencies or close unrelated decisions.
+**Never:** Disable TLS validation, substitute canned responses for live proof, mutate stored events/projections, expose credentials, expand API contracts, change Dapr identities/policy, update dependencies beyond the approved EventStore repair or close unrelated decisions.
 
 ## I/O & Edge-Case Matrix
 
@@ -77,6 +77,8 @@ The conditional proof targets version-backed tenant detail. All six routes asser
 Post-review patches are implemented. Focused model10/10 and TLS5/5 pass without skips; final IntegrationTests build has zero warnings/errors. Browser source is syntax-checked; live matrix acceptance remains pending. A temporary validation branch will obtain clean hosted execution before main is updated. The root also makes token-leak assertions boolean so failure messages cannot echo the actual fixture token.
 
 ## Spec Change Log
+
+- 2026-10-25, explicit user approval after the four-record closure: the user approved the proposed shared EventStore conditional-read fix and dependency update for DW-161. The frozen dependency prohibition now has that single exception. Preserve the completed four records, all unrelated dependencies and every remaining runtime/release hold. The focused continuation is spec-dw-161-shared-conditional-authority.md. No new approval checkpoint is needed for this already authorized scope.
 
 ## Review Triage Log
 
@@ -197,3 +199,36 @@ Fresh hosted24fb584b qualifies cold-bootstrap sequence1, six ordinary REST reads
 Source c3697ed23dc1aa896bef1f42d3fc1a0f79356d65 passes the fresh hosted authenticated UI3/3, all25 physical browser cases, exact historical persisted-state1/1, anonymous6/6 and the complete HTTP-contract lane, all without acceptance skips. All six ordinary REST reads and cursor recovery pass. Only conditional detail returns200 instead of304; the assertion remains blocking and unskipped. The hosted packet is retained as dw-104-161-432-436-594-live-browser-hosted.json with matching validator and clean source/dependency captures.
 
 DW-104, DW-432, DW-436 and DW-594 close. DW-161 remains open under the approved dependency freeze and required shared-module ownership. All657 IDs remain,609 done/48 open across43 rows, with all652 unselected record bodies byte-identical and every selected historical line preserved. The five-item acceptance is incomplete, so status remains in-review. Completing DW-161 requires approval to repair shared EventStore conditional/304 authority behavior and consume updated packages. The broader package-consumer range mismatch and previously recorded runtime/release holds remain independent failures.
+
+
+## File List
+
+- `references/Hexalith.EventStore`
+- `Directory.Build.props`
+- `tests/Hexalith.Tenants.IntegrationTests/AuditStreamPersistenceTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.EarlyMembershipNudge.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.EarlyMembershipNudgeBoundaries.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Components/MyTenantsSurfaceTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Components/TenantDomIdentityRenderingTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Components/StatusFilterLabelRenderingTests.cs`
+- `_bmad-output/implementation-artifacts/dw-161-shared-conditional-authority-validation-evidence.md`
+- `_bmad-output/implementation-artifacts/dw-161-consumer-binding-local.json`
+- `_bmad-output/implementation-artifacts/dw-161-published-package-comparison.json`
+- `_bmad-output/implementation-artifacts/dw-161-live-browser-local.json`
+
+## Completion Notes List
+
+Historical initial repair checkpoint: the approved shared fix is `656f2771761f48060657bb7485cd5f369f6b7b81`, based on current main `a5f1aaa08cf466f26a06cf8719138043f22cfde7` after a clean rebase over five upstream documentation/dependency commits. All six reviewed source/test file byte hashes remained identical. The source push was accepted through the authenticated main-push override; publication still requires exact-source CI/commitlint and the existing protected production review. Consumer package integration and live closure remain pending.
+
+| Path | Baseline | Current target |
+| --- | --- | --- |
+| `references/Hexalith.EventStore` | `4e905980a58c9641d800be062667cac24a50d0b3` | `935c21ac5ebc5e50738ae6ee79dc661acd2fd5a8` |
+
+
+Current publication: EventStore3.128.2, tag/source935c21ac5ebc5e50738ae6ee79dc661acd2fd5a8, released2026-10-25T23:03:01Z through successful source CI40240634704, commitlint40240634709 and protected release40242204827. Tenants consumes that actual version. Final hosted consumer qualification remains pending; the initial3.128.1 statements above are historical checkpoints.
+
+
+Final local consumer verification on actual3.128.2 passes seven Debug/package builds with zero warnings/errors; REST4/4, UI3/3 with browser25/25, historical1/1, anonymous6/6, HTTP44/44, audit117/117, fixture guards80/80, full AppHost13/13 and full UI7705/7705, all zero skips. Safe packet, resolved-package/output receipt, all14 registry-versus-release package comparisons and canonical reproduction commands are retained in the continuation evidence. Mandatory source-reference Memories compilation remains a separately tracked baseline/current failure. All consumer review patches are verified; final hosted normal-NuGet Release/package qualification remains required before DW-161 closes.

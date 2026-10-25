@@ -42,9 +42,7 @@ public sealed class TenantDomIdentityRenderingTests : BunitContext
         Services.AddLocalization();
         Services.AddFluentUIComponents();
         Services.AddScoped<TenantSearchPagingState>();
-#if HFC_ROUTE_OPTIONS
         Services.AddScoped<Hexalith.FrontComposer.Shell.Services.NavigationFailureNotifier>();
-#endif
         ITenantsBffComposition composition = Substitute.For<ITenantsBffComposition>();
         composition.IsReadSurfaceConnected.Returns(true);
         Services.AddSingleton(composition);
