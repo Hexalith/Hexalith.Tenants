@@ -2,7 +2,7 @@
 title: 'Resolve five deferred workflow and status diagnostics records'
 type: 'bugfix'
 created: '2026-10-25'
-status: 'in-progress'
+status: 'done'
 route: 'oneshot'
 review_loop_iteration: 0
 baseline_commit: 'b52747d8ebb23455a7d4323b871fcc167cfd9a85'
@@ -63,3 +63,13 @@ Independent recheck accepts all four patches and reports no remaining findings o
 | references/Hexalith.EventStore | f4df781cb7247c6a5f7549106b90d3748151edba | 38393a15659eeb8a979764a97d185e868c2b33e6 |
 
 The EventStore target includes independently synchronized upstream history already recorded by parent `f364406dcfb7501c93db109d1ab99db562520fb2`; this task's owning correction is `38393a15659eeb8a979764a97d185e868c2b33e6` on its integrated parent. The Builds correction is `1783c0a377615063f3222c1d28f3ab513af4e72f`. Other root gitlinks remain unchanged from the recorded baseline.
+
+
+## Completion Notes List
+
+- `references/Hexalith.Builds`
+- `references/Hexalith.EventStore`
+
+The Builds pointer adopts the two release-input/evidence-mode fixes. The EventStore pointer adopts the three status metadata/runtime/catalog fixes. Both owning commits are published on main. The independently reviewed ledger/evidence audit preserves exactly five closures and every unrelated record.
+
+Concurrent user synchronization recorded the complete batch in parent `93fa7a7890f9a44d175b58e5de9f146bc97a232c` before this final workflow-state update. That commit is preserved; this follow-up finalizes the done state and records exact successful validation of its actual commit message and this completion message.

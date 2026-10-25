@@ -93,5 +93,6 @@
     "Hexalith.EventStore": "21.1.0",
     "Hexalith.Tenants": "21.2.3"
   },
-  "logs_sha256": "056a40618c88fb9e80ad14c0edb7a0d2c726ba1a288502246e3a9b77f2be57c3"
+  "logs_sha256": "fc0e6334ea31f3ddf6dc0198f8329d6338af115de4e3a9544ee986f6f781a882",
+  "parent_recorded_batch": "93fa7a7890f9a44d175b58e5de9f146bc97a232c"
 }
