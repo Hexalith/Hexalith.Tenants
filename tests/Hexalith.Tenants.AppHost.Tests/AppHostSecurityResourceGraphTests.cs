@@ -14,6 +14,26 @@ public sealed class AppHostSecurityResourceGraphTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
+    public async Task MemoriesIsIncludedByDefaultAndCanBeExplicitlyExcluded(bool includeMemories)
+    {
+        string[] args = includeMemories ? ["--EnableKeycloak=true"] : ["--EnableKeycloak=true", "--EnableMemories=false"];
+        await using IDistributedApplicationTestingBuilder builder = await DistributedApplicationTestingBuilder
+            .CreateAsync<Projects.Hexalith_Tenants_AppHost>(args);
+        foreach (string name in new[] { "memories", "memories-vectors", "memories-graphs", "memories-secretstore" })
+        {
+            builder.Resources.Any(resource => resource.Name == name).ShouldBe(includeMemories);
+        }
+
+        IResource ui = builder.Resources.Single(static resource => resource.Name == "tenants-ui");
+        IReadOnlyDictionary<string, object> environment = await GetEnvironmentAsync(ui, builder.ExecutionContext);
+        environment.ContainsKey("Memories__BaseAddress").ShouldBe(includeMemories);
+        environment.Keys.Any(static key => key.StartsWith("services__memories__", StringComparison.OrdinalIgnoreCase)).ShouldBe(includeMemories);
+        builder.Resources.Any(static resource => resource.Name == "tenants-api").ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
     public async Task UiReadsResolveToTenantsApiHttpsInBothAuthenticationModes(bool enableKeycloak)
     {
         await using IDistributedApplicationTestingBuilder builder = await DistributedApplicationTestingBuilder
@@ -118,6 +138,13 @@ public sealed class AppHostSecurityResourceGraphTests
         ParameterResource eventStoreToken = await GetAppChannelTokenAsync(eventStore, builder.ExecutionContext);
         ParameterResource tenantsToken = await GetAppChannelTokenAsync(tenants, builder.ExecutionContext);
         ParameterResource sampleToken = await GetAppChannelTokenAsync(sample, builder.ExecutionContext);
+        builder.Resources.OfType<ParameterResource>()
+            .Where(static resource => resource.Name == "eventstore-app-api-token")
+            .ShouldHaveSingleItem().ShouldBeSameAs(eventStoreToken);
+        builder.Resources.OfType<ParameterResource>()
+            .Where(static resource => resource.Name.EndsWith("-app-api-token", StringComparison.Ordinal))
+            .Select(static resource => resource.Name).Distinct(StringComparer.Ordinal)
+            .Count().ShouldBe(3);
         eventStoreToken.ShouldNotBeSameAs(tenantsToken);
         eventStoreToken.ShouldNotBeSameAs(sampleToken);
         tenantsToken.ShouldNotBeSameAs(sampleToken);

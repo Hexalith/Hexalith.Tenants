@@ -10,7 +10,7 @@ namespace Hexalith.Tenants.IntegrationTests.Fixtures;
 /// base <see cref="AspireTopologyFixtureBase{TAppHost}"/>. This fixture supplies only the Tenants
 /// AppHost type, the resources to wait on, and the typed client accessors used by the tests.
 /// </remarks>
-public sealed class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith_Tenants_AppHost> {
+public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith_Tenants_AppHost> {
     internal const string DemoSigningKey = "DevOnlySigningKey-AtLeast32Chars!";
     private static readonly TimeSpan CommandApiHealthTimeout = TimeSpan.FromMinutes(4);
     private static readonly TimeSpan TenantsApiHealthTimeout = TimeSpan.FromMinutes(4);
@@ -18,6 +18,41 @@ public sealed class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.H
     private static readonly TimeSpan CommandApiClientTimeout = TimeSpan.FromSeconds(60);
     private static readonly TimeSpan TenantsApiClientTimeout = TimeSpan.FromSeconds(60);
     private static readonly TimeSpan SampleClientTimeout = TimeSpan.FromSeconds(30);
+
+    /// <summary>Uses the SDK's trusted development certificate directory without changing TLS validation.</summary>
+    public AspireTopologyFixture()
+    {
+        ConfigureCertificateTrust();
+    }
+
+    /// <summary>Includes the SDK's user trust store alongside the system OpenSSL certificate directories.</summary>
+    internal static void ConfigureCertificateTrust()
+    {
+        string userTrust = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".aspnet", "dev-certs", "trust");
+        string configured = Environment.GetEnvironmentVariable("SSL_CERT_DIR") ?? "/usr/lib/ssl/certs";
+        string[] directories = [userTrust, .. configured.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)];
+        Environment.SetEnvironmentVariable("SSL_CERT_DIR", string.Join(Path.PathSeparator, directories.Distinct(StringComparer.Ordinal)));
+    }
+
+    /// <summary>Describes bounded transport categories without copying exception messages, URLs, or credentials.</summary>
+    internal static string DescribeTransportFailure(HttpRequestException exception)
+    {
+        var categories = new List<string> { exception.HttpRequestError.ToString() };
+        Exception? current = exception;
+        for (int depth = 0; current is not null && depth < 4; depth++, current = current.InnerException)
+        {
+            categories.Add(current.GetType().Name);
+            foreach (string cause in new[] { "UntrustedRoot", "PartialChain", "RemoteCertificateNameMismatch", "NotTimeValid" })
+            {
+                if (current.Message.Contains(cause, StringComparison.Ordinal))
+                {
+                    categories.Add(cause);
+                }
+            }
+        }
+
+        return string.Join(" / ", categories.Distinct(StringComparer.Ordinal));
+    }
 
     /// <inheritdoc/>
     protected override IReadOnlyList<AspireResource> Resources =>
@@ -36,6 +71,7 @@ public sealed class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.H
     protected override IReadOnlyList<string> ExtraAppArgs =>
     [
         "--EnableKeycloak=false",
+        "--EnableMemories=false",
         $"--Authentication:JwtBearer:SigningKey={DemoSigningKey}",
     ];
 

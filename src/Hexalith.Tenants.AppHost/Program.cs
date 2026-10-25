@@ -74,9 +74,8 @@ HexalithEventStoreResources eventStoreResources = builder.AddHexalithEventStore(
     daprSchedulerHostAddress: daprSchedulerHostAddress,
     pubSubComponentPath: pubSubComponentPath);
 
-// The helper has now attached EventStore's sidecar. Protect its internal callbacks with a
-// per-application secret shared only by EventStore and that sidecar in either authentication mode.
-_ = eventStore.WithGeneratedEventStoreAppChannelToken();
+// The pinned platform helper owns EventStore's run-mode app-channel token and shares it with
+// its sidecar. Registering it here again creates a duplicate resource before the topology starts.
 
 // Add the Tenants domain service runtime via the Tenants platform Aspire helper. Gateway-side tenants /
 // global-administrators routing remains explicit AppHost composition above; the helper adds the server project
@@ -120,48 +119,53 @@ IResourceBuilder<ProjectResource> tenantsApi = builder.AddProject<HexalithTenant
 // Hexalith.Memories.Aspire platform library; this AppHost owns only the component YAML paths and the
 // Tenants-specific source->index routing.
 // End-to-end ingestion/search is gated on the Memories handoff (memories-search-index-handoff-2026-06-21.md).
-string memoriesSecretStorePath = ResolveDaprConfigPath(builder.AppHostDirectory, "secretstore.memories.yaml");
-string memoriesLlmConfigPath = ResolveDaprConfigPath(builder.AppHostDirectory, "llm.memories.yaml");
+IResourceBuilder<ProjectResource>? memoriesService = null;
+if (!string.Equals(builder.Configuration["EnableMemories"], "false", StringComparison.OrdinalIgnoreCase)) {
+    string memoriesSecretStorePath = ResolveDaprConfigPath(builder.AppHostDirectory, "secretstore.memories.yaml");
+    string memoriesLlmConfigPath = ResolveDaprConfigPath(builder.AppHostDirectory, "llm.memories.yaml");
 
-// Hexalith.Memories.Aspire 2.25.0 and current source builds require the consumer-owned secret-store resource.
-IResourceBuilder<IDaprComponentResource> memoriesSecretStore = builder.AddDaprComponent(
-    "memories-secretstore",
-    "secretstores.local.file",
-    new DaprComponentOptions { LocalPath = memoriesSecretStorePath });
+    // Hexalith.Memories.Aspire 2.25.0 and current source builds require the consumer-owned secret-store resource.
+    IResourceBuilder<IDaprComponentResource> memoriesSecretStore = builder.AddDaprComponent(
+        "memories-secretstore",
+        "secretstores.local.file",
+        new DaprComponentOptions { LocalPath = memoriesSecretStorePath });
 
-HexalithMemoriesSearchIndexServerResources memories = builder.AddHexalithMemoriesSearchIndexServer(
-    eventStoreResources.StateStore,
-    eventStoreResources.PubSub,
-    memoriesSecretStore,
-    memoriesLlmConfigPath,
-    serverName: "memories",
-    daprPlacementHostAddress: daprPlacementHostAddress,
-    daprSchedulerHostAddress: daprSchedulerHostAddress);
-IResourceBuilder<ProjectResource> memoriesService = memories.Server
-    // Route the Tenants producer's CloudEvents (source "hexalith-tenants") into the curated tenants-index
-    // partition, and auto-provision that index tenant at startup so it is Active before the first event
-    // arrives (otherwise the router drops SearchIndexEntryChanged as TenantNotFound). Memories handoff §3.1.
-    .WithEnvironment("EventStoreIntegration__Routing__SourceToTenantMap__hexalith-tenants", "tenants-index")
-    .WithEnvironment("EventStoreIntegration__Routing__AutoProvisionRoutedTenants", "true");
+    HexalithMemoriesSearchIndexServerResources memories = builder.AddHexalithMemoriesSearchIndexServer(
+        eventStoreResources.StateStore,
+        eventStoreResources.PubSub,
+        memoriesSecretStore,
+        memoriesLlmConfigPath,
+        serverName: "memories",
+        daprPlacementHostAddress: daprPlacementHostAddress,
+        daprSchedulerHostAddress: daprSchedulerHostAddress);
+    memoriesService = memories.Server
+        // Route the Tenants producer's CloudEvents (source "hexalith-tenants") into the curated tenants-index
+        // partition, and auto-provision that index tenant at startup so it is Active before the first event
+        // arrives (otherwise the router drops SearchIndexEntryChanged as TenantNotFound). Memories handoff §3.1.
+        .WithEnvironment("EventStoreIntegration__Routing__SourceToTenantMap__hexalith-tenants", "tenants-index")
+        .WithEnvironment("EventStoreIntegration__Routing__AutoProvisionRoutedTenants", "true");
+}
 
 IResourceBuilder<ProjectResource> tenantsUI = builder.AddProject<HexalithTenantsUI>("tenants-ui")
     .WithReference(eventStore)
-    .WithReference(memoriesService)
     // Story 1.10: the BFF's six canonical reads go direct to the generated Tenants REST API, not through
     // the EventStore query gateway. Without this reference and base address every read resolves
     // UnavailableTenantQueryGateway, so the read surfaces render fail-closed. This closes HOST-REF-1.
     .WithReference(tenantsApi)
     .WaitFor(eventStore)
-    .WaitFor(memoriesService)
     .WaitFor(tenantsApi)
     .WithEnvironment("EventStore__BaseAddress", eventStoreHttps)
     // Commands/status stay on EventStore; reads resolve independently from Tenants__BaseAddress. A missing
     // reference must fail closed on its own side -- neither side falls back to the other.
     .WithEnvironment("Tenants__BaseAddress", tenantsApi.GetEndpoint("https"))
-    // Aspire service discovery (not a hardcoded :5000); the BFF reads Memories:BaseAddress and calls
-    // AddMemoriesClient. Memories.Server exposes only an http endpoint.
-    .WithEnvironment("Memories__BaseAddress", memoriesService.GetEndpoint("http"))
     .WithExternalHttpEndpoints();
+
+// Search is optional for focused REST-route qualification; the ordinary topology retains it by default.
+if (memoriesService is not null) {
+    _ = tenantsUI.WithReference(memoriesService)
+        .WaitFor(memoriesService)
+        .WithEnvironment("Memories__BaseAddress", memoriesService.GetEndpoint("http"));
+}
 
 // Add the Sample consuming service (a pub/sub subscriber) via the platform domain-module extension.
 // It subscribes tenants.events, so it shares the pub/sub component (no isolated resources path).

@@ -154,10 +154,6 @@ public class AspireTopologyTests : IDisposable {
                 new CreateTenant(tenantId, tenantName, tenantDescription)),
             token,
             timeout.Token);
-        if (createStatus.Status == "PublishFailed") {
-            Assert.Skip($"Aspire pub/sub publication is unavailable: {createStatus.FailureReason ?? "unknown reason"}");
-        }
-
         createStatus.Status.ShouldBe("Completed");
         createStatus.TenantId.ShouldBe("system");
         createStatus.Domain.ShouldBe("tenants");
@@ -474,7 +470,8 @@ public class AspireTopologyTests : IDisposable {
     private static Dictionary<string, string> GlobalAdminExtensions()
         => new(StringComparer.OrdinalIgnoreCase) { [GlobalAdminExtensionKey] = "true" };
 
-    private static Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest CreateCommand<TPayload>(
+    /// <summary>Creates an isolated command for the live topology proofs.</summary>
+    internal static Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest CreateCommand<TPayload>(
         string domain,
         string aggregateId,
         string commandType,
@@ -491,7 +488,8 @@ public class AspireTopologyTests : IDisposable {
             JsonSerializer.SerializeToElement(payload, CommandPayloadJsonOptions));
     }
 
-    private static async Task<CommandStatusResponse> SubmitAndWaitForTerminalStatusAsync(
+    /// <summary>Submits a command and waits for its terminal gateway status.</summary>
+    internal static async Task<CommandStatusResponse> SubmitAndWaitForTerminalStatusAsync(
         HttpClient client,
         Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request,
         string token,
@@ -529,7 +527,8 @@ public class AspireTopologyTests : IDisposable {
         return status;
     }
 
-    private static async Task<TenantReadModel> WaitForPersistedTenantAsync(
+    /// <summary>Waits for the expected persisted tenant projection without changing stored state.</summary>
+    internal static async Task<TenantReadModel> WaitForPersistedTenantAsync(
         string tenantId,
         string? expectedProjectionVersion,
         CancellationToken cancellationToken) {
@@ -754,7 +753,8 @@ public class AspireTopologyTests : IDisposable {
         return null;
     }
 
-    private static string CreateDemoJwt() {
+    /// <summary>Creates the development caller's short-lived signed test token.</summary>
+    internal static string CreateDemoJwt() {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(AspireTopologyFixture.DemoSigningKey));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
         Claim[] claims =
@@ -883,7 +883,7 @@ public class AspireTopologyTests : IDisposable {
                 }
             }
             catch (HttpRequestException ex) {
-                lastError = ex.Message;
+                lastError = AspireTopologyFixture.DescribeTransportFailure(ex);
             }
             catch (TaskCanceledException) when (timeout.IsCancellationRequested) {
                 break;
@@ -905,7 +905,8 @@ public class AspireTopologyTests : IDisposable {
             + $"Last status: {lastStatus?.ToString() ?? "n/a"}, Last error: {lastError ?? "n/a"}.");
     }
 
-    private static HttpClient CreateIsolatedTenantsApiClient(
+    /// <summary>Relays authenticated requests without changing shared fixture headers.</summary>
+    internal static HttpClient CreateIsolatedTenantsApiClient(
         HttpClient shared,
         string token,
         Action<EntityTagHeaderValue?> observeETag) {
