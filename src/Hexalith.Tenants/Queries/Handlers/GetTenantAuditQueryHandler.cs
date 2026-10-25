@@ -22,6 +22,9 @@ public sealed class GetTenantAuditQueryHandler(
     IOptions<ReadModelFreshnessOptions>? freshnessOptions = null,
     TimeProvider? timeProvider = null)
     : TenantQueryHandlerBase(store, cursorCodec, telemetry, logger, freshnessOptions, timeProvider) {
+    // Stable EventStore wire value: the current source symbol is absent from the pinned package.
+    private const string ResponseMismatch = "actor-response-mismatch";
+
     /// <inheritdoc/>
     public override string QueryType => GetTenantAuditQuery.QueryType;
 
@@ -67,7 +70,7 @@ public sealed class GetTenantAuditQueryHandler(
                 ReadModelStore, StateStoreName, query.Stream, cancellationToken).ConfigureAwait(false);
             if (!available)
             {
-                return new QueryResult(false, default, ErrorMessage: QueryAdapterFailureReason.ResponseMismatch);
+                return new QueryResult(false, default, ErrorMessage: ResponseMismatch);
             }
         }
         else
