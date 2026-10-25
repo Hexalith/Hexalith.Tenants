@@ -107,6 +107,7 @@ Post-review corrections pass controller103/103, real Kestrel persistence4/4, gat
 - `tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs`
 - `tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.EarlyMembershipNudge.cs`
 - `tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.EarlyMembershipNudgeBoundaries.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Browser/tenant-identity-browser-validation.html`
 - `tests/Hexalith.Tenants.UI.Tests/Components/MyTenantsSurfaceTests.cs`
 - `tests/Hexalith.Tenants.UI.Tests/Components/TenantDomIdentityRenderingTests.cs`
 - `tests/Hexalith.Tenants.UI.Tests/Components/StatusFilterLabelRenderingTests.cs`
@@ -114,6 +115,7 @@ Post-review corrections pass controller103/103, real Kestrel persistence4/4, gat
 - `_bmad-output/implementation-artifacts/dw-161-consumer-binding-local.json`
 - `_bmad-output/implementation-artifacts/dw-161-published-package-comparison.json`
 - `_bmad-output/implementation-artifacts/dw-161-live-browser-local.json`
+- `_bmad-output/implementation-artifacts/dw-161-live-browser-hosted.json`
 
 ## Completion Notes List
 
@@ -156,3 +158,18 @@ Current publication: EventStore3.128.2, tag/source935c21ac5ebc5e50738ae6ee79dc66
 
 
 Final local consumer verification on actual3.128.2 passes seven Debug/package builds with zero warnings/errors; REST4/4, UI3/3 with browser25/25, historical1/1, anonymous6/6, HTTP44/44, audit117/117, fixture guards80/80, full AppHost13/13 and full UI7705/7705, all zero skips. Safe packet, resolved-package/output receipt, all14 registry-versus-release package comparisons and canonical reproduction commands are retained in the continuation evidence. Mandatory source-reference Memories compilation remains a separately tracked baseline/current failure. All consumer review patches are verified; final hosted normal-NuGet Release/package qualification remains required before DW-161 closes.
+
+
+### Hosted guard follow-up triage
+
+| Finding | Verdict / evidence | Route |
+| --- | --- | --- |
+| CI1: identity harness counts responsive duplicates as extra identities | medium: original responsive repair60f9dfd28e7b134785cb00a30bb8acb8889e4b2e renders desktop/mobile tenant controls. C# exporter correctly verifies both markers, but unchanged HTML requires only four raw anchors and fails before navigation. The original8804 baseline Chromium job passed; the continuation692c baseline already contains this regression. | patch HTML fixture; preserve8raw/4visible identities |
+| CI2: expected restored focus selects a hidden responsive copy | medium: row query selects its first launcher even when compiled1024px CSS hides that branch, yielding a false focus failure after count repair. | patch visible expected launcher |
+| CI3: wrong-row mutation can select the same identity's other copy | medium: raw duplicate indexing modulo4 does not guarantee a different identity and invalidates the mutation oracle. | patch visible distinct-identity control |
+
+This is a demonstrated test-fixture regression from the original five-item responsive implementation. Preserve all production markup, both responsive copies, all12 actual audit-navigation/focus returns, user/return guards, detail cases and negative controls. The same implementation agent owns the smallest HTML-only patch; no new public surface or dependency change.
+
+The CI1/CI2/CI3 HTML fixture patch passes the complete existing Debug Chrome guard (Chrome154.0.8037.57):33 exotic anchors,12 actual audit returns,4 actual detail returns and wrong-row rejection. Raw8/raw4, visible4, responsive-pair equivalence and measured1024 assertions pass. HTML hashacad9475bfb3a2e6ce265cbe88cdf725893cca35378ab3aa67cbaf1fdc661058; production sources/compiled assets and all deadlines remain unchanged. Hosted Chrome153 qualification will confirm the source-profile fixture.
+
+Current hosted runtime acceptance: consumera569b48531d1567a12baab4d423f5426ce5c9c25 passes normal-NuGet Release/package live106/106 and HTTP245/245, zero skips, including fresh cold-bootstrap REST4/4, unchanged conditional304 authority, historical1/1, anonymous6/6 and authenticated UI3/3 with browser25/25. The clean hosted packet is retained. Only the original responsive HTML fixture's hosted Chrome153 follow-up remains; production/configuration/dependencies are unchanged from this qualified consumer. DW-161 stays open until that final guard is verified.

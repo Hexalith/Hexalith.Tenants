@@ -19,11 +19,16 @@
             require(response.ok, 'Rendered fixture missing: ' + name);
             return await response.text();
         };
+        const auditSelector = 'fluent-anchor-button[data-testid="tenants-audit-entrypoint"]';
+        const visibleAuditLinks = () => Array.from(surface.querySelectorAll(auditSelector))
+            .filter(link => link.getClientRects().length > 0 && getComputedStyle(link).visibility === 'visible');
+        const returnAnchor = link => new URL(link.getAttribute('href'), location.origin).searchParams.get('returnFocus');
         try {
             const fluent = await import('./fluent-ui.js');
             fluent.beforeStart(document, 'web');
             await customElements.whenDefined('fluent-anchor-button');
             const focus = await import('./tenantsFocus.js');
+            require(innerWidth === 1024, 'Measured identity viewport must be 1024px');
             const wrongRowControl = new URL(location.href).searchParams.get('mutation') === 'wrong-row';
             let auditReturns = 0;
             let detailReturns = 0;
@@ -48,11 +53,27 @@
 
                 const rendered = await markup(prefix);
                 surface.innerHTML = rendered;
-                const links = Array.from(surface.querySelectorAll('fluent-anchor-button[data-testid="tenants-audit-entrypoint"]'));
-                require(links.length === 4, 'Actual audit navigation missing');
-                for (let index = 0; index < links.length; index++) {
+                const links = Array.from(surface.querySelectorAll(auditSelector));
+                require(links.length === (prefix === 'tenant' ? 8 : 4), 'Actual audit navigation missing');
+                const visibleLinks = visibleAuditLinks();
+                require(visibleLinks.length === 4 && new Set(visibleLinks.map(returnAnchor)).size === 4
+                    && new Set(visibleLinks.map(link => decodeURIComponent(new URL(link.getAttribute('href'), location.origin).pathname.split('/')[2]))).size === 4,
+                    'Four distinct visible audit identities required');
+                if (prefix === 'tenant') {
+                    for (const link of visibleLinks) {
+                        const anchor = returnAnchor(link);
+                        const copies = Array.from(document.getElementById(anchor).closest('[role="row"]').querySelectorAll(auditSelector));
+                        require(copies.length === 2
+                            && copies.filter(copy => copy.querySelector('[data-testid="tenants-list-audit-entrypoint"]')).length === 1
+                            && copies.filter(copy => copy.querySelector('[data-testid="tenants-list-mobile-audit-entrypoint"]')).length === 1,
+                            'Desktop and mobile audit copies required for each identity');
+                        require(copies.every(copy => copy.getAttribute('href') === link.getAttribute('href') && returnAnchor(copy) === anchor),
+                            'Responsive audit copies changed navigation or return identity');
+                    }
+                }
+                for (let index = 0; index < visibleLinks.length; index++) {
                     surface.innerHTML = rendered;
-                    const launcher = surface.querySelectorAll('fluent-anchor-button[data-testid="tenants-audit-entrypoint"]')[index];
+                    const launcher = visibleAuditLinks()[index];
                     let clickedHref;
                     launcher.addEventListener('click', event => { event.preventDefault(); clickedHref = launcher.getAttribute('href'); }, { once: true });
                     launcher.click();
@@ -74,11 +95,13 @@
                     returnUrl.searchParams.set('auditFocus', anchor);
                     history.replaceState(null, '', returnUrl.pathname + returnUrl.search);
                     surface.innerHTML = rendered;
-                    const expected = document.getElementById(anchor).closest('[role="row"]').querySelector('[data-testid="tenants-audit-entrypoint"]');
+                    const expectedLinks = visibleAuditLinks().filter(link => returnAnchor(link) === anchor);
+                    require(expectedLinks.length === 1, 'One visible return launcher required for the exact identity');
+                    const expected = expectedLinks[0];
                     document.getElementById('identity-heading').focus();
-                    const requestedAnchor = wrongRowControl
-                        ? new URL(surface.querySelectorAll('[data-testid="tenants-audit-entrypoint"]')[(index + 1) % 4].getAttribute('href'), location.origin).searchParams.get('returnFocus')
-                        : anchor;
+                    const wrongRow = wrongRowControl ? visibleAuditLinks().find(link => returnAnchor(link) !== anchor) : null;
+                    if (wrongRowControl) require(wrongRow && returnAnchor(wrongRow) !== anchor, 'Wrong-row control must select another visible identity');
+                    const requestedAnchor = wrongRowControl ? returnAnchor(wrongRow) : anchor;
                     const outcome = await focus.restoreAuditFocus(requestedAnchor, 'identity-origin', 'identity-heading', expectedUserId);
                     require(outcome === 'found' && document.activeElement === expected, 'Focus did not return to the correct row launcher');
                     if (expectedUserId !== null) {
@@ -94,6 +117,7 @@
                     auditReturns++;
                 }
             }
+            require(auditReturns === 12, 'All twelve distinct audit return cases must complete');
             for (const branch of ['standalone', 'workspace']) {
                 const rendered = await markup('my-detail-' + branch);
                 for (let index = 0; index < 2; index++) {

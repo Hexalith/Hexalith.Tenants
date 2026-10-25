@@ -211,6 +211,7 @@ DW-104, DW-432, DW-436 and DW-594 close. DW-161 remains open under the approved 
 - `tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs`
 - `tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.EarlyMembershipNudge.cs`
 - `tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.EarlyMembershipNudgeBoundaries.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Browser/tenant-identity-browser-validation.html`
 - `tests/Hexalith.Tenants.UI.Tests/Components/MyTenantsSurfaceTests.cs`
 - `tests/Hexalith.Tenants.UI.Tests/Components/TenantDomIdentityRenderingTests.cs`
 - `tests/Hexalith.Tenants.UI.Tests/Components/StatusFilterLabelRenderingTests.cs`
@@ -218,6 +219,7 @@ DW-104, DW-432, DW-436 and DW-594 close. DW-161 remains open under the approved 
 - `_bmad-output/implementation-artifacts/dw-161-consumer-binding-local.json`
 - `_bmad-output/implementation-artifacts/dw-161-published-package-comparison.json`
 - `_bmad-output/implementation-artifacts/dw-161-live-browser-local.json`
+- `_bmad-output/implementation-artifacts/dw-161-live-browser-hosted.json`
 
 ## Completion Notes List
 
@@ -232,3 +234,5 @@ Current publication: EventStore3.128.2, tag/source935c21ac5ebc5e50738ae6ee79dc66
 
 
 Final local consumer verification on actual3.128.2 passes seven Debug/package builds with zero warnings/errors; REST4/4, UI3/3 with browser25/25, historical1/1, anonymous6/6, HTTP44/44, audit117/117, fixture guards80/80, full AppHost13/13 and full UI7705/7705, all zero skips. Safe packet, resolved-package/output receipt, all14 registry-versus-release package comparisons and canonical reproduction commands are retained in the continuation evidence. Mandatory source-reference Memories compilation remains a separately tracked baseline/current failure. All consumer review patches are verified; final hosted normal-NuGet Release/package qualification remains required before DW-161 closes.
+
+Current hosted runtime acceptance: consumera569b48531d1567a12baab4d423f5426ce5c9c25 passes normal-NuGet Release/package live106/106 and HTTP245/245, zero skips, including fresh cold-bootstrap REST4/4, unchanged conditional304 authority, historical1/1, anonymous6/6 and authenticated UI3/3 with browser25/25. The clean hosted packet is retained. Only the original responsive HTML fixture's hosted Chrome153 follow-up remains; production/configuration/dependencies are unchanged from this qualified consumer. DW-161 stays open until that final guard is verified.

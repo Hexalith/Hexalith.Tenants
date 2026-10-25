@@ -1,0 +1,320 @@
+{
+  "startedUtc": "2026-10-25T23:23:44.635Z",
+  "mode": "Authenticated live Aspire topology; command-seeded persisted projections",
+  "bindingScope": {
+    "artifacts": "On-disk UI/Shell binaries, validator, and Tenants/FrontComposer working sources",
+    "runningBackendBinaries": "Not verified by this browser artifact; qualify through the separate integration results",
+    "otherDependencyWorkingSources": "Gitlink state only; source contents are not bound by this artifact"
+  },
+  "cases": [
+    {
+      "name": "protected-route-1",
+      "passed": true
+    },
+    {
+      "name": "protected-route-2",
+      "passed": true
+    },
+    {
+      "name": "protected-route-3",
+      "passed": true
+    },
+    {
+      "name": "protected-route-4",
+      "passed": true
+    },
+    {
+      "name": "protected-route-5",
+      "passed": true
+    },
+    {
+      "name": "protected-route-6",
+      "passed": true
+    },
+    {
+      "name": "interactive-circuit",
+      "passed": true
+    },
+    {
+      "name": "audit-layout-390-none",
+      "width": 390,
+      "documentWidth": 390,
+      "forcedColors": false,
+      "passed": true
+    },
+    {
+      "name": "tenant-list-layout-390-none",
+      "width": 390,
+      "documentWidth": 390,
+      "clientWidth": 350,
+      "scrollWidth": 1100,
+      "scrollBefore": 0,
+      "scrollAfter": 750,
+      "forcedColors": false,
+      "pinned": true,
+      "keyboardFocus": true,
+      "copyAccessible": true,
+      "overflowAccessible": true,
+      "passed": true
+    },
+    {
+      "name": "audit-layout-390-active",
+      "width": 390,
+      "documentWidth": 390,
+      "forcedColors": true,
+      "passed": true
+    },
+    {
+      "name": "tenant-list-layout-390-active",
+      "width": 390,
+      "documentWidth": 390,
+      "clientWidth": 350,
+      "scrollWidth": 1100,
+      "scrollBefore": 0,
+      "scrollAfter": 750,
+      "forcedColors": true,
+      "pinned": true,
+      "keyboardFocus": true,
+      "copyAccessible": true,
+      "overflowAccessible": true,
+      "passed": true
+    },
+    {
+      "name": "audit-layout-768-none",
+      "width": 768,
+      "documentWidth": 768,
+      "forcedColors": false,
+      "passed": true
+    },
+    {
+      "name": "tenant-list-layout-768-none",
+      "width": 768,
+      "documentWidth": 768,
+      "clientWidth": 728,
+      "scrollWidth": 1270,
+      "scrollBefore": 0,
+      "scrollAfter": 542,
+      "forcedColors": false,
+      "pinned": true,
+      "keyboardFocus": true,
+      "copyAccessible": true,
+      "overflowAccessible": true,
+      "passed": true
+    },
+    {
+      "name": "audit-layout-768-active",
+      "width": 768,
+      "documentWidth": 768,
+      "forcedColors": true,
+      "passed": true
+    },
+    {
+      "name": "tenant-list-layout-768-active",
+      "width": 768,
+      "documentWidth": 768,
+      "clientWidth": 728,
+      "scrollWidth": 1270,
+      "scrollBefore": 0,
+      "scrollAfter": 542,
+      "forcedColors": true,
+      "pinned": true,
+      "keyboardFocus": true,
+      "copyAccessible": true,
+      "overflowAccessible": true,
+      "passed": true
+    },
+    {
+      "name": "audit-layout-1440-none",
+      "width": 1440,
+      "documentWidth": 1440,
+      "forcedColors": false,
+      "passed": true
+    },
+    {
+      "name": "tenant-list-layout-1440-none",
+      "width": 1440,
+      "documentWidth": 1440,
+      "clientWidth": 1328,
+      "scrollWidth": 1328,
+      "scrollBefore": 0,
+      "scrollAfter": 0,
+      "forcedColors": false,
+      "pinned": true,
+      "keyboardFocus": true,
+      "copyAccessible": true,
+      "overflowAccessible": true,
+      "passed": true
+    },
+    {
+      "name": "audit-layout-1440-active",
+      "width": 1440,
+      "documentWidth": 1440,
+      "forcedColors": true,
+      "passed": true
+    },
+    {
+      "name": "tenant-list-layout-1440-active",
+      "width": 1440,
+      "documentWidth": 1440,
+      "clientWidth": 1328,
+      "scrollWidth": 1328,
+      "scrollBefore": 0,
+      "scrollAfter": 0,
+      "forcedColors": true,
+      "pinned": true,
+      "keyboardFocus": true,
+      "copyAccessible": true,
+      "overflowAccessible": true,
+      "passed": true
+    },
+    {
+      "name": "contextual-audit-back-tenant-detail",
+      "targetPreserved": true,
+      "safeReturn": true,
+      "focusRestored": true,
+      "passed": true
+    },
+    {
+      "name": "contextual-audit-back-member-row",
+      "targetPreserved": true,
+      "safeReturn": true,
+      "focusRestored": true,
+      "passed": true
+    },
+    {
+      "name": "contextual-audit-back-tenant-list-390",
+      "width": 390,
+      "readyScopedRows": true,
+      "safeReturn": true,
+      "focusRestored": true,
+      "passed": true
+    },
+    {
+      "name": "contextual-audit-back-tenant-list-768",
+      "width": 768,
+      "readyScopedRows": true,
+      "safeReturn": true,
+      "focusRestored": true,
+      "passed": true
+    },
+    {
+      "name": "contextual-audit-back-tenant-list-1440",
+      "width": 1440,
+      "readyScopedRows": true,
+      "safeReturn": true,
+      "focusRestored": true,
+      "passed": true
+    },
+    {
+      "name": "external-audit-return",
+      "passed": true
+    }
+  ],
+  "passed": true,
+  "playwrightVersion": "1.63.0",
+  "sourceRevision": "a569b48531d1567a12baab4d423f5426ce5c9c25",
+  "sourceDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "untrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "validatorSha256": "6e5eb274151adf59ae6a2503dc1c00fc3e7d70e2e625fa3537fc3adabb8147ab",
+  "uiBinarySha256": "68345ff32b40a38f8d8734424956407c847440ce229e4a827bb9d9e287ce9773",
+  "shellBinarySha256": "bfec1ca1de0650d80a9a5e98f8557c1e890d7ec15732e25eaf7338fd3ac91f42",
+  "frontComposerRevision": "25e8a07198987b33cef052bdbc745f836cb6cbbf",
+  "frontComposerDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "frontComposerUntrackedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "dependencyGitlinksSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "playwrightPackageSha256": "5587f932b8979b6889654b60e3c28aeb7ca0abbac00eec8c176c939a16149536",
+  "lastListMeasurement": {
+    "width": 1440,
+    "documentWidth": 1440,
+    "clientWidth": 1328,
+    "scrollWidth": 1328,
+    "scrollBefore": 0,
+    "scrollAfter": 0,
+    "forcedColors": true,
+    "leftBefore": [
+      110,
+      330,
+      460
+    ],
+    "leftAfter": [
+      110,
+      330,
+      460
+    ],
+    "cells": [
+      {
+        "tag": "TD",
+        "left": 92,
+        "right": 312,
+        "position": "sticky",
+        "inset": "0px"
+      },
+      {
+        "tag": "TD",
+        "left": 312,
+        "right": 442,
+        "position": "sticky",
+        "inset": "220px"
+      },
+      {
+        "tag": "TD",
+        "left": 442,
+        "right": 602,
+        "position": "sticky",
+        "inset": "350px"
+      }
+    ]
+  },
+  "lastListContentHits": [
+    {
+      "id": "tenants-list-tenant-id",
+      "left": 110,
+      "right": 294,
+      "top": 873.171875,
+      "bottom": 955.5625,
+      "hit": true
+    },
+    {
+      "id": "tenants-list-status",
+      "left": 330,
+      "right": 398.03125,
+      "top": 873.171875,
+      "bottom": 893.171875,
+      "hit": true
+    },
+    {
+      "id": "tenants-list-truth-state",
+      "left": 460,
+      "right": 535.34375,
+      "top": 873.171875,
+      "bottom": 893.171875,
+      "hit": true
+    }
+  ],
+  "lastListCopyMeasurement": {
+    "left": 252.40625,
+    "right": 290,
+    "top": 887.171875,
+    "bottom": 919.171875,
+    "cellLeft": 92,
+    "cellRight": 312,
+    "cellTop": 873.171875,
+    "cellBottom": 956.5625,
+    "contained": true,
+    "outlineWidth": 2,
+    "outlineStyle": "solid"
+  },
+  "lastListActionMeasurement": {
+    "left": 1205,
+    "right": 1333,
+    "top": 864.171875,
+    "bottom": 896.171875,
+    "containerLeft": 92,
+    "containerRight": 1420,
+    "scrollLeft": 0,
+    "width": "128px",
+    "minWidth": "128px",
+    "visible": true
+  },
+  "finishedUtc": "2026-10-25T23:24:15.406Z"
+}
