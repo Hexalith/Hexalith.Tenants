@@ -25,7 +25,11 @@ public sealed class GetTenantQueryHandler(
     TimeProvider? timeProvider = null)
     : TenantQueryHandlerBase(store, cursorCodec, telemetry, logger, freshnessOptions, timeProvider) {
     /// <inheritdoc/>
-    public override string QueryType => GetTenantQuery.QueryType;
+    /// <summary>Gets the offline route declaration from the same owner metadata as runtime dispatch.</summary>
+    public static Hexalith.EventStore.Contracts.Routing.RouteContractDeclaration CatalogDeclaration =>
+        Hexalith.Tenants.Server.Routing.TenantCatalogCapabilities.HandlerQueries.Single(route => route.MessageType == GetTenantQuery.QueryType);
+
+    public override string QueryType => CatalogDeclaration.MessageType!;
 
     /// <inheritdoc/>
     protected override async Task<QueryResult> ExecuteCoreAsync(QueryEnvelope envelope, CancellationToken cancellationToken) {

@@ -58,6 +58,7 @@ builder.Services.AddHealthChecks()
 // Persisted multi-read-model store for the tenant /project build path (platform A8 abstraction,
 // replacing the hand-rolled DaprTenantProjectionStateStore + TenantProjectionWritePolicy).
 builder.Services.AddEventStoreReadModelStore();
+builder.Services.AddSingleton(ProjectionDispatcher.CatalogRegistration);
 builder.Services.TryAddSingleton(TimeProvider.System);
 // Current TenantOwner evidence is rebuilt from the authoritative tenant stream on every request.
 string ownerDaprEndpoint = Environment.GetEnvironmentVariable("DAPR_HTTP_ENDPOINT")

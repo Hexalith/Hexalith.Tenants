@@ -29,7 +29,11 @@ public sealed class TenantOwnerAuthorityQueryHandler(IAuthoritativeEventStreamRe
 
     public string Domain => "tenants";
 
-    public string QueryType => ResolveTenantOwnerAuthority.QueryType;
+    /// <summary>Gets the offline route declaration from the same owner metadata as runtime dispatch.</summary>
+    public static Hexalith.EventStore.Contracts.Routing.RouteContractDeclaration CatalogDeclaration =>
+        Hexalith.Tenants.Server.Routing.TenantCatalogCapabilities.HandlerQueries.Single(route => route.MessageType == ResolveTenantOwnerAuthority.QueryType);
+
+    public string QueryType => CatalogDeclaration.MessageType!;
 
     public async Task<QueryResult> ExecuteAsync(QueryEnvelope envelope, CancellationToken cancellationToken)
     {

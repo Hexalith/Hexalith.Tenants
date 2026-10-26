@@ -1,6 +1,5 @@
 <Project>
     <PropertyGroup>
-        <HexalithEventStoreVersion>3.128.2</HexalithEventStoreVersion>
         <HexalithBuildPackageVersions1>$(MSBuildThisFileDirectory)references/Hexalith.Builds/Props/Directory.Packages.props</HexalithBuildPackageVersions1>
         <HexalithBuildPackageVersions2>$(MSBuildThisFileDirectory)../Hexalith.Builds/Props/Directory.Packages.props</HexalithBuildPackageVersions2>
         <HexalithBuildPackageVersions3>$(MSBuildThisFileDirectory)../../Hexalith.Builds/Props/Directory.Packages.props</HexalithBuildPackageVersions3>
@@ -10,6 +9,10 @@
     <Import Project="$(HexalithBuildPackageVersions3)" Condition="Exists('$(HexalithBuildPackageVersions3)') And '$(HexalithVersionsLoaded)' != 'true'" />
 
     <PropertyGroup>
+        <!-- Source builds follow the centralized EventStore source identity; packaged dependencies
+             retain this repository's existing 3.128.2 pin. Restore does not propagate every edge override. -->
+        <HexalithEventStoreSourceVersion>$(HexalithEventStoreVersion)</HexalithEventStoreSourceVersion>
+        <HexalithEventStoreVersion>3.128.2</HexalithEventStoreVersion>
         <!-- Auto-detect Hexalith.EventStore location:
              1. Tenants is a submodule inside Hexalith.EventStore
              2. EventStore is a references/ submodule inside Tenants (standalone) — prioritized over sibling
@@ -73,6 +76,7 @@
         <UseNuGetDeps Condition="'$(UseNuGetDeps)' == ''">true</UseNuGetDeps>
         <HexalithCommonsFromSource Condition="'$(UseHexalithProjectReferences)' == 'true' and Exists('$(HexalithCommonsRoot)\src\libraries\Hexalith.Commons.ServiceDefaults\Hexalith.Commons.ServiceDefaults.csproj')">true</HexalithCommonsFromSource>
         <HexalithEventStoreFromSource Condition="'$(UseHexalithProjectReferences)' == 'true' and Exists('$(HexalithEventStoreRoot)\src\Hexalith.EventStore.Contracts\Hexalith.EventStore.Contracts.csproj')">true</HexalithEventStoreFromSource>
+        <HexalithEventStoreVersion Condition="'$(HexalithEventStoreFromSource)' == 'true'">$(HexalithEventStoreSourceVersion)</HexalithEventStoreVersion>
         <HexalithFrontComposerSourceConsumer Condition="'$(MSBuildProjectName)' == 'Hexalith.Tenants.UI' or '$(MSBuildProjectName)' == 'Hexalith.Tenants.UI.Tests'">true</HexalithFrontComposerSourceConsumer>
         <HexalithFrontComposerSourceAvailable Condition="'$(HexalithFrontComposerSourceAvailable)' == '' and Exists('$(HexalithFrontComposerRoot)\src\Hexalith.FrontComposer.Contracts\Hexalith.FrontComposer.Contracts.csproj') and Exists('$(HexalithFrontComposerRoot)\src\Hexalith.FrontComposer.Shell\Hexalith.FrontComposer.Shell.csproj') and Exists('$(HexalithFrontComposerRoot)\src\Hexalith.FrontComposer.Testing\Hexalith.FrontComposer.Testing.csproj')">true</HexalithFrontComposerSourceAvailable>
         <HexalithFrontComposerSourceAvailable Condition="'$(HexalithFrontComposerSourceAvailable)' == ''">false</HexalithFrontComposerSourceAvailable>
@@ -84,6 +88,11 @@
         <HexalithMemoriesFromSource Condition="'$(HexalithMemoriesFromSource)' == '' and '$(HexalithFrontComposerSourceConsumer)' == 'true' and '$(HexalithFrontComposerFromSource)' == 'true' and Exists('$(HexalithMemoriesRoot)\src\Hexalith.Memories.Contracts\Hexalith.Memories.Contracts.csproj') and Exists('$(HexalithMemoriesRoot)\src\Hexalith.Memories.Client.Rest\Hexalith.Memories.Client.Rest.csproj')">true</HexalithMemoriesFromSource>
         <HexalithMcpCliFromSource Condition="'$(UseHexalithProjectReferences)' == 'true' and Exists('$(HexalithMcpCliRoot)\src\Hexalith.McpCli.Abstractions\Hexalith.McpCli.Abstractions.csproj')">true</HexalithMcpCliFromSource>
     </PropertyGroup>
+
+    <ItemGroup>
+        <!-- Preserve the effective published package pin after the centralized import above. -->
+        <PackageVersion Update="Hexalith.EventStore.*" Version="$(HexalithEventStoreVersion)" />
+    </ItemGroup>
 
     <!-- Deliberate exception to the "centralized build config" convention: this module
          imports only Directory.Packages.props from Hexalith.Builds. Hexalith.Build.props is

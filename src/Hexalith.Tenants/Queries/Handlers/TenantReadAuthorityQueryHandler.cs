@@ -24,7 +24,11 @@ public sealed class TenantReadAuthorityQueryHandler([FromKeyedServices("native-t
     /// <inheritdoc/>
     public string Domain => "tenants";
     /// <inheritdoc/>
-    public string QueryType => ResolveTenantReadAuthority.QueryType;
+    /// <summary>Gets the offline route declaration from the same owner metadata as runtime dispatch.</summary>
+    public static Hexalith.EventStore.Contracts.Routing.RouteContractDeclaration CatalogDeclaration =>
+        Hexalith.Tenants.Server.Routing.TenantCatalogCapabilities.HandlerQueries.Single(route => route.MessageType == ResolveTenantReadAuthority.QueryType);
+
+    public string QueryType => CatalogDeclaration.MessageType!;
 
     /// <inheritdoc/>
     public async Task<QueryResult> ExecuteAsync(QueryEnvelope query, CancellationToken cancellationToken)

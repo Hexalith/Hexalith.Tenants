@@ -1,5 +1,13 @@
 <Project>
 
+  <!-- Carry the owning EventStore source identity through every local project edge, including
+       indirect source graphs. Published package versions remain pinned in Directory.Build.props. -->
+  <ItemGroup Condition="'$(HexalithEventStoreFromSource)' == 'true'">
+    <ProjectReference Update="@(ProjectReference)">
+      <AdditionalProperties>%(ProjectReference.AdditionalProperties);HexalithEventStoreVersion=$(HexalithEventStoreVersion)</AdditionalProperties>
+    </ProjectReference>
+  </ItemGroup>
+
   <!--
     Container image defaults (.NET SDK container support).
     Opt-in per project with:

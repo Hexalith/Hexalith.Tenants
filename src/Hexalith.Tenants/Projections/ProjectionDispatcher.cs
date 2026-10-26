@@ -19,6 +19,10 @@ public sealed partial class ProjectionDispatcher(
     TenantTelemetry telemetry,
     ILoggerFactory? loggerFactory = null,
     TimeProvider? timeProvider = null) {
+    /// <summary>Gets metadata for this custom dispatcher, including secondary outputs without granting independent dispatch.</summary>
+    public static Hexalith.EventStore.DomainService.LegacyProjectionCatalogRegistration CatalogRegistration { get; } =
+        Hexalith.Tenants.Server.Routing.TenantCatalogCapabilities.Projections;
+
     public const string TenantsDomain = "tenants";
     public const string GlobalAdministratorsDomain = "global-administrators";
 
