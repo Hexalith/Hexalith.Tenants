@@ -1,0 +1,36 @@
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:07.71
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:01.44
+xUnit.net v3 In-Process Runner v4.0.2+0c7aa4991f (64-bit .NET 10.0.13)
+  Discovering: Hexalith.Tenants.UI.Tests
+  Discovered:  Hexalith.Tenants.UI.Tests
+  Starting:    Hexalith.Tenants.UI.Tests
+    Hexalith.Tenants.UI.Tests.Components.GlobalAdministratorsPageTests.WorkerResetCannotClearCursorHistoryWhileRendererOwnsIt [FAIL]
+      Shouldly.ShouldAssertException : history
+          should have single item but had
+      0
+          items and was
+      [] (System.Collections.Generic.Stack`1[System.String])
+      Stack Trace:
+        tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTeardownTests.cs(51,0): at Hexalith.Tenants.UI.Tests.Components.GlobalAdministratorsPageTests.WorkerResetCannotClearCursorHistoryWhileRendererOwnsIt()
+           at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+        tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTeardownTests.cs(59,0): at Hexalith.Tenants.UI.Tests.Components.GlobalAdministratorsPageTests.WorkerResetCannotClearCursorHistoryWhileRendererOwnsIt()
+           at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+           at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
+           at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)
+        --- End of stack trace from previous location ---
+           at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+           at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
+           at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)
+  Finished:    Hexalith.Tenants.UI.Tests (ID = 'ebdcd5ef4d4208b1f7bffe68a07b7c3b73336a0f9a7665a5af5a18fe6557b4fa')
+=== TEST EXECUTION SUMMARY ===
+   Hexalith.Tenants.UI.Tests  Total: 1, Errors: 0, Failed: 1, Skipped: 0, Not Run: 0, Time: 0.495s

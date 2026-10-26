@@ -631,6 +631,7 @@ public sealed partial class GlobalAdministratorsPageTests : FluentBunitContext
         TenantAggregateCommandLease lease = PrivateField<TenantAggregateCommandLease>(page.Instance, "_removeAdmissionLease");
         object owner = PrivateField<object>(page.Instance, "_fixedAggregateOwner");
         lease.TryMarkDispatched(owner).ShouldBeTrue();
+        lease.RecoveryCallerSubject = "operator";
         GlobalAdministratorRemoveCommandSnapshot preview = PrivateField<GlobalAdministratorRemoveCommandSnapshot>(page.Instance, "_removeSnapshot");
         GlobalAdministratorRemoveCommandSnapshot pending = preview
             .RequestSent().ApplySubmission(TenantCommandSubmissionResult.Accepted(preview.MessageId!, "correlation-remove"))
@@ -1372,6 +1373,7 @@ public sealed partial class GlobalAdministratorsPageTests : FluentBunitContext
             replacementOwner,
             out TenantAggregateCommandLease? leaseB).ShouldBeTrue();
         leaseB.ShouldNotBeNull().TryMarkDispatched(replacementOwner).ShouldBeTrue();
+        leaseB.RecoveryCallerSubject = "operator";
         if (replaceSnapshot)
         {
             typeof(GlobalAdministratorsPage).GetField(
@@ -3637,14 +3639,18 @@ public sealed partial class GlobalAdministratorsPageTests : FluentBunitContext
         commandGateway.SetGlobalAdministratorCalls.ShouldBe(0);
     }
 
-    [Fact]
-    public async Task IdentityDisplayEscapesPresentationSurfacesWhileCopyAndDispatchKeepOriginalTargets()
+    [Theory]
+    [InlineData("\u200D", "U+200D")]
+    [InlineData("\u00A0", "U+00A0")]
+    [InlineData("\u202F", "U+202F")]
+    [InlineData("\u2009", "U+2009")]
+    public async Task IdentityDisplayEscapesPresentationSurfacesWhileCopyAndDispatchKeepOriginalTargets(string scalar, string token)
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
-        const string formatIdentity = "listed\u200Duser";
-        const string literalEscapeIdentity = @"listed\{U+200D}user";
-        const string grantTarget = "target\u200Duser";
-        const string encodedFormatIdentity = @"listed\{U+200D}user";
+        string formatIdentity = "listed" + scalar + "user";
+        string literalEscapeIdentity = "listed\\{" + token + "}user";
+        string grantTarget = "target" + scalar + "user";
+        string encodedFormatIdentity = "listed\\{" + token + "}user";
         var queryGateway = new StubTenantQueryGateway(
             ComponentReady("projection-v1", formatIdentity, literalEscapeIdentity))
         {
@@ -3667,7 +3673,7 @@ public sealed partial class GlobalAdministratorsPageTests : FluentBunitContext
         IReadOnlyList<IElement> renderedIdentities = cut.FindAll("[data-testid='tenants-global-admins-user-id']");
         renderedIdentities
             .Select(static element => element.TextContent)
-            .ShouldBe([encodedFormatIdentity, @"listed\\{U+200D}user"], ignoreOrder: true);
+            .ShouldBe([encodedFormatIdentity, GlobalAdministratorIdentityDisplay.Encode(literalEscapeIdentity)], ignoreOrder: true);
         IElement encodedRowIdentity = renderedIdentities.Single(element => element.TextContent == encodedFormatIdentity);
         encodedRowIdentity.GetAttribute("title").ShouldBe(encodedFormatIdentity);
         encodedRowIdentity.GetAttribute("aria-label")
@@ -3683,7 +3689,7 @@ public sealed partial class GlobalAdministratorsPageTests : FluentBunitContext
         cut.Find("[data-testid='tenants-global-admin-grant-user-id']").Change(grantTarget);
         OpenGrantPreview(cut);
         cut.Find("[data-testid='tenants-global-admin-grant-preview-target']")
-            .TextContent.ShouldContain(@"target\{U+200D}user");
+            .TextContent.ShouldContain(GlobalAdministratorIdentityDisplay.Encode(grantTarget));
         cut.Find("[data-testid='tenants-global-admin-grant-acknowledge']").Change(true);
         cut.Find("[data-testid='tenants-global-admin-grant-confirm']").Click();
 
@@ -6805,6 +6811,7 @@ public sealed partial class GlobalAdministratorsPageTests : FluentBunitContext
         gate.TryAcquireLease(TenantCommandAggregateLock.ForGlobalAdministrators(), owner,
             out TenantAggregateCommandLease? lease).ShouldBeTrue();
         lease!.TryMarkDispatched(owner).ShouldBeTrue();
+        lease.RecoveryCallerSubject = "operator";
         lease.TryAdvanceReconciliation(owner, reconciliation).ShouldBeTrue();
 
         string prefix = action is GlobalAdministratorActionKind.Grant ? "Grant" : "Remove";
@@ -6858,6 +6865,7 @@ public sealed partial class GlobalAdministratorsPageTests : FluentBunitContext
         gate.TryAcquireLease(TenantCommandAggregateLock.ForGlobalAdministrators(), owner,
             out TenantAggregateCommandLease? lease).ShouldBeTrue();
         lease!.TryMarkDispatched(owner).ShouldBeTrue();
+        lease.RecoveryCallerSubject = "operator";
         GlobalAdministratorsSnapshot before = action is GlobalAdministratorActionKind.Grant
             ? ComponentReady("tenant-sequence:1", "other-admin")
             : ComponentReady("tenant-sequence:1", "target-admin", "other-admin");
@@ -6943,6 +6951,7 @@ public sealed partial class GlobalAdministratorsPageTests : FluentBunitContext
         gate.TryAcquireLease(TenantCommandAggregateLock.ForGlobalAdministrators(), owner,
             out TenantAggregateCommandLease? lease).ShouldBeTrue();
         lease!.TryMarkDispatched(owner).ShouldBeTrue();
+        lease.RecoveryCallerSubject = "operator";
         DateTimeOffset sourceTime = new(2026, 6, 1, 10, 0, 0, TimeSpan.Zero);
         lease.TryRetainReconciliation(owner, new GlobalAdministratorReconciliationState(
             action, "target-admin", "message-safe", "correlation-safe", TenantCommandLifecycleState.Accepted,
@@ -7117,6 +7126,7 @@ public sealed partial class GlobalAdministratorsPageTests : FluentBunitContext
         var owner = new object();
         gate.TryAcquireLease(TenantCommandAggregateLock.ForGlobalAdministrators(), owner, out TenantAggregateCommandLease? lease).ShouldBeTrue();
         lease!.TryMarkDispatched(owner).ShouldBeTrue();
+        lease.RecoveryCallerSubject = "operator";
         DateTimeOffset sourceTime = new(2026, 6, 1, 10, 0, 0, TimeSpan.Zero);
         lease.TryRetainReconciliation(owner, new GlobalAdministratorReconciliationState(
             action, "target-admin", "message-safe", "correlation-safe", TenantCommandLifecycleState.Accepted,
@@ -7159,6 +7169,7 @@ public sealed partial class GlobalAdministratorsPageTests : FluentBunitContext
         gate.TryAcquireLease(TenantCommandAggregateLock.ForGlobalAdministrators(), owner,
             out TenantAggregateCommandLease? lease).ShouldBeTrue();
         lease!.TryMarkDispatched(owner).ShouldBeTrue();
+        lease.RecoveryCallerSubject = "operator";
         GlobalAdministratorGrantPreview? grantPreview = action is GlobalAdministratorActionKind.Grant
             ? GlobalAdministratorGrantPreview.Create("target-admin", before, isAuthorized: true) : null;
         GlobalAdministratorRemovePreview? removePreview = action is GlobalAdministratorActionKind.Remove
@@ -7260,6 +7271,7 @@ public sealed partial class GlobalAdministratorsPageTests : FluentBunitContext
         gate.TryAcquireLease(TenantCommandAggregateLock.ForGlobalAdministrators(), owner,
             out TenantAggregateCommandLease? lease).ShouldBeTrue();
         lease!.TryMarkDispatched(owner).ShouldBeTrue();
+        lease.RecoveryCallerSubject = "operator";
         GlobalAdministratorGrantPreview? grantPreview = action is GlobalAdministratorActionKind.Grant
             ? GlobalAdministratorGrantPreview.Create("target-admin", before, isAuthorized: true) : null;
         GlobalAdministratorRemovePreview? removePreview = action is GlobalAdministratorActionKind.Remove
@@ -7347,6 +7359,7 @@ public sealed partial class GlobalAdministratorsPageTests : FluentBunitContext
         gate.TryAcquireLease(TenantCommandAggregateLock.ForGlobalAdministrators(), owner,
             out TenantAggregateCommandLease? lease).ShouldBeTrue();
         lease!.TryMarkDispatched(owner).ShouldBeTrue();
+        lease.RecoveryCallerSubject = "operator";
         GlobalAdministratorGrantPreview? grantPreview = action is GlobalAdministratorActionKind.Grant
             ? GlobalAdministratorGrantPreview.Create("target-admin", before, isAuthorized: true) : null;
         GlobalAdministratorRemovePreview? removePreview = action is GlobalAdministratorActionKind.Remove
@@ -7412,6 +7425,7 @@ public sealed partial class GlobalAdministratorsPageTests : FluentBunitContext
         gate.TryAcquireLease(TenantCommandAggregateLock.ForGlobalAdministrators(), owner,
             out TenantAggregateCommandLease? lease).ShouldBeTrue();
         lease!.TryMarkDispatched(owner).ShouldBeTrue();
+        lease.RecoveryCallerSubject = "operator";
         lease.TryRetainReconciliation(owner, new GlobalAdministratorReconciliationState(
             GlobalAdministratorActionKind.Remove, "target-admin", "message-safe", "correlation-safe",
             TenantCommandLifecycleState.Accepted,
@@ -8029,6 +8043,7 @@ public sealed partial class GlobalAdministratorsPageTests : FluentBunitContext
             pageOwner,
             out TenantAggregateCommandLease? leaseB).ShouldBeTrue();
         leaseB.ShouldNotBeNull().TryMarkDispatched(pageOwner).ShouldBeTrue();
+        leaseB.RecoveryCallerSubject = "operator";
 
         leaseA.Reconciliation = leaseA.Reconciliation.ShouldNotBeNull() with
         {
@@ -8106,6 +8121,7 @@ public sealed partial class GlobalAdministratorsPageTests : FluentBunitContext
             pageOwner,
             out TenantAggregateCommandLease? replacementLease).ShouldBeTrue();
         replacementLease.ShouldNotBeNull().TryMarkDispatched(pageOwner).ShouldBeTrue();
+        replacementLease.RecoveryCallerSubject = "operator";
         await cut.InvokeAsync(() => typeof(GlobalAdministratorsPage).GetField(
             "_removeAdmissionLease",
             BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(cut.Instance, replacementLease));
@@ -8166,6 +8182,7 @@ public sealed partial class GlobalAdministratorsPageTests : FluentBunitContext
             pageOwner,
             out TenantAggregateCommandLease? replacementLease).ShouldBeTrue();
         replacementLease.ShouldNotBeNull().TryMarkDispatched(pageOwner).ShouldBeTrue();
+        replacementLease.RecoveryCallerSubject = "operator";
         await cut.InvokeAsync(() => typeof(GlobalAdministratorsPage).GetField(
             "_grantAdmissionLease",
             BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(cut.Instance, replacementLease));
@@ -8285,6 +8302,7 @@ public sealed partial class GlobalAdministratorsPageTests : FluentBunitContext
             pageOwner,
             out TenantAggregateCommandLease? replacementLease).ShouldBeTrue();
         replacementLease.ShouldNotBeNull().TryMarkDispatched(pageOwner).ShouldBeTrue();
+        replacementLease.RecoveryCallerSubject = "operator";
         await cut.InvokeAsync(() => typeof(GlobalAdministratorsPage).GetField(
             "_removeAdmissionLease",
             BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(cut.Instance, replacementLease));
@@ -9395,6 +9413,16 @@ public sealed partial class GlobalAdministratorsPageTests : FluentBunitContext
         public TenantLifecycleAuthorizationReflectionState GlobalAdministratorsAuthorizationReflection
             => TenantLifecycleAuthorizationReflectionState.Indeterminate;
 
+        public Func<CancellationToken, ValueTask<string?>>? RecoveryCallerResolver { get; set; }
+        private int _recoveryCallerResolutions;
+        public TaskCompletionSource RecoveryCallerRechecked { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public ValueTask<string?> ResolveGlobalAdministratorRecoveryCallerAsync(CancellationToken cancellationToken = default)
+        {
+            string result = CallerSubject;
+            if (Interlocked.Increment(ref _recoveryCallerResolutions) == 3) RecoveryCallerRechecked.TrySetResult();
+            return RecoveryCallerResolver?.Invoke(cancellationToken) ?? ValueTask.FromResult<string?>(result);
+        }
+
         public async ValueTask<TenantLifecycleAuthorizationReflectionState> ResolveGlobalAdministratorsAuthorizationAsync(
             CancellationToken cancellationToken = default)
         {
@@ -9950,6 +9978,18 @@ public sealed partial class GlobalAdministratorsPageTests : FluentBunitContext
             string messageId,
             CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
+
+        public TenantCommandStatusResult RecoveryResult { get; set; } = new(CommandStatus.Received, HasVerifiedCommandIdentity: true)
+        { RecoveredCorrelationId = "recovered-correlation" };
+        public List<string> RecoveryMessageIds { get; } = [];
+        public Task<TenantCommandStatusResult>? RecoveryTask { get; set; }
+        public TaskCompletionSource RecoveryEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public async Task<TenantCommandStatusResult> RecoverGlobalAdministratorStatusAsync(string messageId, CancellationToken cancellationToken = default)
+        {
+            RecoveryMessageIds.Add(messageId);
+            RecoveryEntered.TrySetResult();
+            return RecoveryTask is null ? RecoveryResult : await RecoveryTask.ConfigureAwait(false);
+        }
 
         public async Task<TenantCommandStatusResult> GetStatusAsync(
             TenantCommandTrackingHandle handle,

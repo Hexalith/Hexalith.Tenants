@@ -109,6 +109,12 @@ public interface ITenantsBffComposition {
         CancellationToken cancellationToken = default)
         => ValueTask.FromResult(TenantLifecycleAuthorizationReflectionState.Indeterminate);
 
+    /// <summary>Resolves the authorized caller to bind retained command recovery inside this circuit.</summary>
+    /// <param name="cancellationToken">Principal resolution cancellation.</param>
+    /// <returns>The exact authoritative subject, or no recovery authority.</returns>
+    ValueTask<string?> ResolveGlobalAdministratorRecoveryCallerAsync(CancellationToken cancellationToken = default)
+        => ValueTask.FromResult<string?>(null);
+
     /// <summary>Composes the complete, fixed-scope consequence preview for one literal grant target.</summary>
     /// <param name="targetUserId">Literal target identifier; no normalization is permitted.</param>
     /// <param name="completeSnapshot">Complete current fixed-scope projection evidence.</param>

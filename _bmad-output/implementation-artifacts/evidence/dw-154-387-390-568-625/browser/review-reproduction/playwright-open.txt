@@ -1,0 +1,10 @@
+### Browser `dw390-20954` opened with pid 21360.
+- dw390-20954:
+  - browser-type: chrome
+  - user-data-dir: <in-memory>
+  - headed: false
+---
+### Page
+- Page URL: about:blank
+### Snapshot
+- [Snapshot](.playwright-cli/page-2026-10-26T15-50-22-926Z.yml)

@@ -1,0 +1,1 @@
+Exact-failure validator rejects infrastructure, filters, crashes and unrelated failures.

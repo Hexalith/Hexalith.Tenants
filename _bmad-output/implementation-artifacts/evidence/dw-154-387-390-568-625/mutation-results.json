@@ -1,0 +1,27 @@
+{
+  "run_id": "e555608da59e48cbb7ab454d6c7ca5bd",
+  "mutations": [
+    {
+      "mutation": "reset",
+      "test": "Hexalith.Tenants.UI.Tests.Components.GlobalAdministratorsPageTests.WorkerResetCannotClearCursorHistoryWhileRendererOwnsIt",
+      "exit_code": 1,
+      "log": "mutation-runs/e555608da59e48cbb7ab454d6c7ca5bd/mutation-reset.txt",
+      "executed": 1,
+      "failed": 1,
+      "expected_failure_verified": true
+    },
+    {
+      "mutation": "notification",
+      "test": "Hexalith.Tenants.UI.Tests.Components.GlobalAdministratorsPageTests.NotificationFinalizationContainsDisposalAfterAliveCheckBeforeDispatch",
+      "exit_code": 1,
+      "log": "mutation-runs/e555608da59e48cbb7ab454d6c7ca5bd/mutation-notification.txt",
+      "executed": 1,
+      "failed": 1,
+      "expected_failure_verified": true
+    }
+  ],
+  "restored_source": true,
+  "restored_binaries": true,
+  "errors": [],
+  "restored_log": "mutation-runs/e555608da59e48cbb7ab454d6c7ca5bd/mutation-restored-output.txt"
+}

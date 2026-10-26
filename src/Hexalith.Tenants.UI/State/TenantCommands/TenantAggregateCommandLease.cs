@@ -33,6 +33,9 @@ public sealed class TenantAggregateCommandLease
 
     internal GlobalAdministratorReconciliationState? Reconciliation { get; set; }
 
+    /// <summary>Gets or sets the original authoritative caller retained only inside this circuit.</summary>
+    internal string? RecoveryCallerSubject { get; set; }
+
     internal long ActiveReconciliationDispatchToken { get; set; }
 
     /// <summary>Gets whether an exact same-command recovery dispatch is awaiting its delivery result.</summary>

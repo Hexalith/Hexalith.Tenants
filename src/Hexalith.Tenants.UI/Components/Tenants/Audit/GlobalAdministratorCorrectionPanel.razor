@@ -164,6 +164,13 @@
                         @RefreshActionText
                     </FluentButton>
                 }
+                @if (IsAmbiguousCorrectionDeliveryRetry)
+                {
+                    <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-correction-recover"
+                                  Disabled="@(!CanRecoverCommand)" OnClick="RecoverStatusAsync">
+                        @Localizer["Tenants.GlobalAdministrators.Recovery.Lookup"]
+                    </FluentButton>
+                }
                 <FluentButton Appearance="ButtonAppearance.Outline"
                               data-testid="tenants-correction-cancel"
                               Disabled="@(!CanClose)"
@@ -246,7 +253,9 @@
             && (snapshot.IsRestoreAccessAction || snapshot.RemovePreview?.IsComplete == true)
             && availability.IsAvailable)
         {
-            return new(IsConfirmDisabled: false, canRefresh, Reason: null, Recovery: null);
+            return new(IsConfirmDisabled: false, canRefresh,
+                Reason: snapshot.SafeMessageKey == "Tenants.GlobalAdministrators.Recovery.CallerUnavailable" ? Localizer[snapshot.SafeMessageKey].Value : null,
+                Recovery: snapshot.SafeMessageKey == "Tenants.GlobalAdministrators.Recovery.CallerUnavailable" ? Localizer["Tenants.GlobalAdministrators.Recovery.CallerRetry"].Value : null);
         }
 
         if (snapshot.LifecycleState is TenantCommandLifecycleState.AlreadyApplied)
@@ -1149,6 +1158,34 @@
             return;
         }
 
+        bool ownsUndispatchedLease = false;
+        _ = await InvokeRendererSafelyAsync(() =>
+        {
+            if (CanApplyOperation(generation))
+            {
+                _admissionLease = acquiredLease;
+                ownsUndispatchedLease = true;
+            }
+        }).ConfigureAwait(false);
+        if (!ownsUndispatchedLease)
+        {
+            _ = acquiredLease.TryAbandonBeforeDispatch(_admissionOwner);
+            return;
+        }
+        acquiredLease.RecoveryCallerSubject = await ResolveRecoveryCallerSafelyAsync().ConfigureAwait(false);
+        if (string.IsNullOrWhiteSpace(acquiredLease.RecoveryCallerSubject))
+        {
+            _ = acquiredLease.TryAbandonBeforeDispatch(_admissionOwner);
+            _ = await InvokeRendererSafelyAsync(() =>
+            {
+                if (!CanApplyOperation(generation) || !ReferenceEquals(_admissionLease, acquiredLease) || _snapshot is null) return;
+                _admissionLease = null;
+                SetSnapshot(_snapshot with { SafeMessageKey = "Tenants.GlobalAdministrators.Recovery.CallerUnavailable",
+                    SafeRecoveryKey = "Tenants.GlobalAdministrators.Recovery.CallerRetry" }, focusTerminalState: true);
+                StateHasChanged();
+            }).ConfigureAwait(false);
+            return;
+        }
         string messageId = NUlid.Ulid.NewUlid().ToString();
         GlobalAdministratorCorrectionSnapshot? requestSentSnapshot = null;
         TenantAggregateCommandLease? submissionLease = null;
@@ -1487,6 +1524,13 @@
                 ? !gateway.SupportsTrackedGlobalAdministratorDispatch
                 : !gateway.SupportsTrackedGlobalAdministratorRemoveDispatch))
         {
+            return;
+        }
+
+        if (_admissionLease.RecoveryCallerSubject is not { Length: > 0 } originalCaller
+            || !string.Equals(originalCaller, await ResolveRecoveryCallerSafelyAsync().ConfigureAwait(false), StringComparison.Ordinal))
+        {
+            await SurfaceRecoveryRefusalAsync(deliveryBasis, _admissionLease).ConfigureAwait(false);
             return;
         }
 
@@ -2277,6 +2321,7 @@
 
     private void InvalidateOperation()
     {
+        CancelRecoveryCallerReads();
         Interlocked.Increment(ref _operationGeneration);
         _isSubmitting = false;
     }
@@ -2403,6 +2448,7 @@
     public void Dispose()
     {
         _disposed = true;
+        CancelRecoveryCallerReads();
         Interlocked.Increment(ref _operationGeneration);
         Interlocked.Increment(ref _authorizationGeneration);
         if (_admissionGate is not null)

@@ -1,0 +1,41 @@
+[
+  {
+    "check": "focused-rest-build",
+    "command": [
+      "dotnet",
+      "build",
+      "tests/Hexalith.Tenants.IntegrationTests/OwnedFocused.csproj",
+      "-c",
+      "Debug",
+      "-m:1",
+      "-p:UseHexalithProjectReferences=true",
+      "-p:HexalithEventStoreVersion=3.128.2",
+      "-v:q"
+    ],
+    "exit_code": 0,
+    "log": "focused-rest-build.txt",
+    "sha256": "4c4f7caf05dcd0e9793f3b22a53eda81bbe5777a65dd02acf92d988ceccb6c17"
+  },
+  {
+    "check": "focused-rest-tests",
+    "command": [
+      "dotnet",
+      "tests/Hexalith.Tenants.IntegrationTests/bin/owned-focused/net10.0/Hexalith.Tenants.IntegrationTests.dll",
+      "-class",
+      "*TenantsApiGeneratedControllerTests"
+    ],
+    "exit_code": 0,
+    "log": "focused-rest-tests.txt",
+    "sha256": "409837b8910b58bf1a5164f06c5575cc005a04fbe1e092066b0539f98ed3a8b6"
+  },
+  {
+    "check": "maintained-browser",
+    "command": [
+      "bash",
+      "tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh"
+    ],
+    "exit_code": 0,
+    "log": "maintained-browser.txt",
+    "sha256": "5a10dffde91c82a5beba3c343dd0a894597e36a0033e2e142e7d8ef587392245"
+  }
+]

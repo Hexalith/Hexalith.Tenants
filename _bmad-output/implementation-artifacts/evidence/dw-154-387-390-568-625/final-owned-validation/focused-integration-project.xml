@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Hexalith.Tenants\Hexalith.Tenants.csproj" />
+    <ProjectReference Include="..\..\src\Hexalith.Tenants.Api\Hexalith.Tenants.Api.csproj" Aliases="TenantsApi" />
+    <ProjectReference Include="..\..\src\Hexalith.Tenants.UI\Hexalith.Tenants.UI.csproj" />
+    <PackageReference Include="Hexalith.EventStore.Testing" Condition="'$(HexalithEventStoreFromSource)' != 'true'" />
+    <PackageReference Include="Hexalith.EventStore.Testing.Integration" Condition="'$(HexalithEventStoreFromSource)' != 'true'" />
+    <ProjectReference Include="$(HexalithEventStoreRoot)\src\Hexalith.EventStore\Hexalith.EventStore.csproj" AdditionalProperties="Version=$(HexalithEventStoreVersion)" Condition="'$(HexalithEventStoreFromSource)' == 'true'" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="StackExchange.Redis" />
+  </ItemGroup>
+  <ItemGroup>
+
+    </ItemGroup>
+  <ItemGroup>
+    <PackageReference Update="Microsoft.Testing.Extensions.CodeCoverage">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>compile; runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Update="testconfig.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <PropertyGroup>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <AssemblyName>Hexalith.Tenants.IntegrationTests</AssemblyName>
+    <RootNamespace>Hexalith.Tenants.IntegrationTests</RootNamespace>
+    <OutputPath>bin/owned-focused/</OutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="TenantsApiGeneratedControllerTests.cs" />
+  </ItemGroup>
+</Project>

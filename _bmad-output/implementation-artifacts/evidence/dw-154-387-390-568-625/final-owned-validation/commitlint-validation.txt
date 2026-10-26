@@ -1,0 +1,8 @@
+@commitlint/cli@21.2.3
+Command: node node_modules/@commitlint/cli/cli.js --edit /tmp/tenants-five-deferred-commit-message.txt --verbose
+⧗   --- input ---
+fix(tenants): close five deferred recovery and authority gaps
+
+Resolve DW-154, DW-387, DW-390, DW-568, and DW-625.
+Retain the documented baseline Integration and release holds.
+✔   found 0 problems, 0 warnings

@@ -319,6 +319,13 @@
                               OnClick="RefreshGrantStatusAsync">
                     @GrantRefreshActionText
                 </FluentButton>
+                @if (IsAmbiguousGrantDeliveryRetry)
+                {
+                    <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-global-admin-grant-recover"
+                                  Disabled="@(!CanRecoverCommand(_grantAdmissionLease))" OnClick="RecoverGrantStatusAsync">
+                        @Localizer["Tenants.GlobalAdministrators.Recovery.Lookup"]
+                    </FluentButton>
+                }
             </div>
         </EditForm>
 
@@ -416,6 +423,13 @@
                           Disabled="@(!CanRefreshRemoveStatus)"
                           OnClick="RefreshRemoveStatusAsync">
                 @RemoveRefreshActionText
+            </FluentButton>
+        }
+        @if (IsAmbiguousRemoveDeliveryRetry)
+        {
+            <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-global-admin-remove-recover"
+                          Disabled="@(!CanRecoverCommand(_removeAdmissionLease))" OnClick="RecoverRemoveStatusAsync">
+                @Localizer["Tenants.GlobalAdministrators.Recovery.Lookup"]
             </FluentButton>
         }
             </section>
@@ -2146,23 +2160,28 @@
         }
         finally
         {
-            if (!_disposed)
+            await FinalizeNotificationRefreshAsync().ConfigureAwait(false);
+        }
+    }
+
+    private async Task FinalizeNotificationRefreshAsync()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        try
+        {
+            await InvokeAsync(() =>
             {
-                try
-                {
-                    await InvokeAsync(() =>
-                    {
-                        _isNotificationRefreshing = false;
-                        StateHasChanged();
-                    });
-                }
-                catch (ObjectDisposedException)
-                {
-                    // Disposed between the check above and the dispatch; nothing left to update. Without
-                    // this the throw escaped an unobserved fire-and-forget path, leaving
-                    // _isNotificationRefreshing set and the surface announcing "refreshing" for good.
-                }
-            }
+                _isNotificationRefreshing = false;
+                StateHasChanged();
+            }).ConfigureAwait(false);
+        }
+        catch (ObjectDisposedException)
+        {
+            // Disposal can land after the alive check and before the renderer accepts this notification.
         }
     }
 
@@ -3612,6 +3631,24 @@
             return;
         }
 
+        if (!isRedispatch)
+        {
+            expectedLease.RecoveryCallerSubject = await ResolveRecoveryCallerSafelyAsync(cancellationToken).ConfigureAwait(false);
+            if (string.IsNullOrWhiteSpace(expectedLease.RecoveryCallerSubject))
+            {
+                _ = expectedLease.TryAbandonBeforeDispatch(_fixedAggregateOwner);
+                await InvokeRendererSafelyAsync(() =>
+                {
+                    if (!ReferenceEquals(_grantSnapshot, expectedSnapshot) || !ReferenceEquals(_grantAdmissionLease, expectedLease)) return;
+                    _grantAdmissionLease = null;
+                    _grantAcknowledged = false;
+                    SetGrantSnapshot(expectedSnapshot.InvalidatePreview("Tenants.GlobalAdministrators.Recovery.CallerUnavailable"));
+                    StateHasChanged();
+                }).ConfigureAwait(false);
+                return;
+            }
+        }
+
         bool grantRequestArmed = false;
         GlobalAdministratorGrantCommandSnapshot? requestSentSnapshot = null;
         long completionToken = 0;
@@ -3799,6 +3836,13 @@
                 return;
             }
 
+            if (activationLease?.RecoveryCallerSubject is not { Length: > 0 } originalCaller
+                || !string.Equals(originalCaller, await ResolveRecoveryCallerSafelyAsync().ConfigureAwait(false), StringComparison.Ordinal))
+            {
+                await SurfaceRecoveryRefusalAsync(isGrant: true, activationLease).ConfigureAwait(false);
+                return;
+            }
+
             if (activationPreview?.IsComplete != true
                 || activationLease?.IsDispatchMarked != true
                 || !MatchesGrantPreviewAttempt(
@@ -3826,10 +3870,17 @@
                 return;
             }
 
-            // This is delivery recovery, not a new authorization decision. Rebuilding the preview here
-            // would reject a safe same-id retry precisely when the first delivery already advanced the
-            // projection but lost its response. The retained preview, baseline, lock, and ULID remain the
-            // only admissible retry basis.
+            GlobalAdministratorsSnapshot retryProjection = await LoadCompletePopulationSafelyAsync(CancellationToken.None).ConfigureAwait(false);
+            GlobalAdministratorGrantPreview retryPreview = await ComposeGrantPreviewSafelyAsync(
+                activationPreview.TargetUserId, retryProjection, CancellationToken.None).ConfigureAwait(false);
+            if (!activationPreview.Matches(retryPreview))
+            {
+                await InvokeRendererSafelyAsync(() => SurfaceAmbiguousGrantRetryUnavailable(
+                    activationSnapshot, activationLease)).ConfigureAwait(false);
+                await RecoverGrantStatusAsync().ConfigureAwait(false);
+                return;
+            }
+
             using PendingOperation deliveryOperation = BeginGrantMutation();
             await DispatchGrantAsync(
                     isRedispatch: true,
@@ -4453,6 +4504,19 @@
                 return;
             }
 
+            submissionLease.RecoveryCallerSubject = await ResolveRecoveryCallerSafelyAsync(cancellationToken).ConfigureAwait(false);
+            if (string.IsNullOrWhiteSpace(submissionLease.RecoveryCallerSubject))
+            {
+                _ = submissionLease.TryAbandonBeforeDispatch(_fixedAggregateOwner);
+                await InvokeRendererSafelyAsync(() =>
+                {
+                    if (!ReferenceEquals(_removeSnapshot, expectedSnapshot) || !ReferenceEquals(_removeAdmissionLease, submissionLease)) return;
+                    _removeAdmissionLease = null;
+                    SetRemoveSnapshot(expectedSnapshot.InvalidatePreview("Tenants.GlobalAdministrators.Recovery.CallerUnavailable", "Tenants.GlobalAdministrators.Recovery.CallerRetry"));
+                    StateHasChanged();
+                }).ConfigureAwait(false);
+                return;
+            }
             bool armed = false;
             _ = await InvokeRendererSafelyAsync(() =>
             {
@@ -4683,6 +4747,13 @@
         {
             if (!await ReauthorizeAsync(cancellationToken).ConfigureAwait(false))
             {
+                return;
+            }
+
+            if (lease.RecoveryCallerSubject is not { Length: > 0 } originalCaller
+                || !string.Equals(originalCaller, await ResolveRecoveryCallerSafelyAsync().ConfigureAwait(false), StringComparison.Ordinal))
+            {
+                await SurfaceRecoveryRefusalAsync(isGrant: false, lease).ConfigureAwait(false);
                 return;
             }
 

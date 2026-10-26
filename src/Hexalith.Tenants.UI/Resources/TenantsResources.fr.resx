@@ -4571,4 +4571,9 @@
   <data name="Tenants.Create.Action.OpenExisting" xml:space="preserve">
     <value>Ouvrir le locataire existant</value>
   </data>
+  <data name="Tenants.GlobalAdministrators.Recovery.Lookup" xml:space="preserve"><value>Retrouver le statut de la commande initiale</value></data>
+  <data name="Tenants.GlobalAdministrators.Recovery.Unverified" xml:space="preserve"><value>La commande initiale n’a pas pu être vérifiée. Son identité et sa réservation restent conservées.</value></data>
+  <data name="Tenants.GlobalAdministrators.Recovery.Retained" xml:space="preserve"><value>Réessayez la vérification du statut avec l’auteur initial autorisé. Un changement de projection ne prouve pas la réussite.</value></data>
+  <data name="Tenants.GlobalAdministrators.Recovery.CallerUnavailable" xml:space="preserve"><value>L’auteur initial n’a pas pu être vérifié. Aucune commande n’a été envoyée.</value></data>
+  <data name="Tenants.GlobalAdministrators.Recovery.CallerRetry" xml:space="preserve"><value>Vérifiez et confirmez à nouveau l’aperçu lorsque l’autorité de l’auteur est disponible.</value></data>
 </root>

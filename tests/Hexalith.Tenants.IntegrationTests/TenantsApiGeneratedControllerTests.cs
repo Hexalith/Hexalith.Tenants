@@ -355,18 +355,20 @@ public sealed class TenantsApiGeneratedControllerTests
         snapshot.Rows.Select(static row => row.UserId).ShouldBe(["admin.current", "target.user"]);
     }
 
-    [Fact]
-    public async Task PersistedRemovalProofSurvivesRealProjectionHandlerQueryRouterRestAndUiGateway()
+    [Theory]
+    [InlineData("stored-validator")]
+    [InlineData(null)]
+    public async Task PersistedRemovalProofSurvivesRealProjectionHandlerQueryRouterRestAndUiGateway(string? storeTag)
     {
         DateTimeOffset now = new(2026, 10, 13, 12, 0, 0, TimeSpan.Zero);
         const string tenantId = "tenant.alpha";
         const string correlation = "exact-removal-attempt";
         IReadModelStore store = Substitute.For<IReadModelStore>();
         var persisted = new Dictionary<string, object>(StringComparer.Ordinal);
-        ConfigurePersistedModel<TenantReadModel>(store, persisted);
-        ConfigurePersistedModel<TenantAuditReadModel>(store, persisted);
-        ConfigurePersistedModel<TenantIndexReadModel>(store, persisted);
-        ConfigurePersistedModel<GlobalAdministratorReadModel>(store, persisted);
+        ConfigurePersistedModel<TenantReadModel>(store, persisted, storeTag);
+        ConfigurePersistedModel<TenantAuditReadModel>(store, persisted, storeTag);
+        ConfigurePersistedModel<TenantIndexReadModel>(store, persisted, storeTag);
+        ConfigurePersistedModel<GlobalAdministratorReadModel>(store, persisted, storeTag);
         persisted["projection:global-administrators:singleton"] = new GlobalAdministratorReadModel
         {
             Administrators = ["admin.current"], ProjectedAt = now, ProjectionVersion = "tenant-sequence:1",
@@ -402,7 +404,7 @@ public sealed class TenantsApiGeneratedControllerTests
         response.Headers.GetValues("X-Hexalith-Projection-Lifecycle").ShouldHaveSingleItem().ShouldBe("Current");
         // The complete persisted replay certifies producer authority independently of the store ETag.
         response.Headers.GetValues("X-Hexalith-Projection-Version").ShouldHaveSingleItem().ShouldBe(audit.ProjectionVersion);
-        response.Headers.ETag.ShouldBe(new EntityTagHeaderValue("\"stored-validator\""));
+        response.Headers.ETag.ShouldBe(new EntityTagHeaderValue($"\"{storeTag ?? audit.ProjectionVersion}\""));
         using var replayClient = new HttpClient(new ReplayHandler(response)) { BaseAddress = new Uri("https://tenants.invalid") };
         var memoriesClient = new MemoriesClient(new HttpClient { BaseAddress = new Uri("https://memories.invalid") },
             Options.Create(new MemoriesClientOptions()), NullLogger<MemoriesClient>.Instance);
@@ -413,7 +415,7 @@ public sealed class TenantsApiGeneratedControllerTests
         snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Current);
         snapshot.Lifecycle.ShouldBe(ProjectionLifecycleState.Current);
         snapshot.ProjectionVersion.ShouldBe(audit.ProjectionVersion);
-        snapshot.ETag.ShouldBe("stored-validator");
+        snapshot.ETag.ShouldBe(storeTag ?? audit.ProjectionVersion);
         TenantAuditRow row = snapshot.Rows.Single(entry => entry.EventType == nameof(UserRemovedFromTenant));
         row.CommandCorrelationId.ShouldBe(correlation);
         row.AggregateSequence.ShouldBe(3);
@@ -423,6 +425,51 @@ public sealed class TenantsApiGeneratedControllerTests
         TenantAuditReceipt receipt = TenantAuditReceipt.FromRow(row);
         receipt.State.ShouldBe(TenantAuditReceiptState.Ready);
         receipt.ToString().ShouldNotContain(correlation);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("stored-validator")]
+    public async Task PersistedIndexAuthoritySurvivesProjectionRestAndUiWithoutStoreTags(string? storeTag)
+    {
+        DateTimeOffset now = new(2026, 10, 26, 12, 0, 0, TimeSpan.Zero);
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        var persisted = new Dictionary<string, object>(StringComparer.Ordinal);
+        ConfigurePersistedModel<TenantReadModel>(store, persisted, storeTag);
+        ConfigurePersistedModel<TenantAuditReadModel>(store, persisted, storeTag);
+        ConfigurePersistedModel<TenantIndexReadModel>(store, persisted, storeTag);
+        ConfigurePersistedModel<GlobalAdministratorReadModel>(store, persisted, storeTag);
+        persisted["projection:global-administrators:singleton"] = new GlobalAdministratorReadModel { Administrators = ["admin.current"] };
+        _ = await new TenantProjectionHandler(store, NullLogger<TenantProjectionHandler>.Instance, new FixedTimeProvider(now))
+            .ProjectAsync(new("system", "tenants", "tenant.alpha",
+            [ProjectionEvent(new TenantCreated("tenant.alpha", "Alpha", null, now), "created", 1, now),
+             ProjectionEvent(new UserAddedToTenant("tenant.alpha", "reader", TenantRole.TenantReader), "reader", 2, now)]));
+        TenantIndexReadModel index = persisted["projection:tenant-index:singleton"].ShouldBeOfType<TenantIndexReadModel>();
+        index.AggregateSequences["tenant.alpha"].ShouldBe(2);
+        index.ProjectionVersion.ShouldBe(TenantIndexProjectionVersion.Create(index));
+        index.ProjectionVersion.ShouldNotBeNull();
+        using var diagnostics = new EventStoreDomainDiagnostics("tenants");
+        var handler = new GetUserTenantsQueryHandler(store,
+            new QueryCursorCodec(new EphemeralDataProtectionProvider(), "index-authority"),
+            new TenantTelemetry(diagnostics), NullLogger<GetUserTenantsQueryHandler>.Instance, timeProvider: new FixedTimeProvider(now));
+        using var gateway = new HandlerRoutedEventStoreGatewayClient(handler);
+        await using var factory = new TenantsApiWebApplicationFactory(gateway);
+        using HttpClient serviceClient = CreateAuthenticatedClient(factory);
+        using HttpResponseMessage response = await serviceClient.GetAsync("/api/users/reader/tenants");
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        response.Headers.ETag.ShouldBe(new EntityTagHeaderValue($"\"{storeTag ?? index.ProjectionVersion}\""));
+        response.Headers.GetValues("X-Hexalith-Projection-Version").ShouldHaveSingleItem().ShouldBe(index.ProjectionVersion);
+        using var replayClient = new HttpClient(new ReplayHandler(response)) { BaseAddress = new Uri("https://tenants.invalid") };
+        var memoriesClient = new MemoriesClient(new HttpClient { BaseAddress = new Uri("https://memories.invalid") },
+            Options.Create(new MemoriesClientOptions()), NullLogger<MemoriesClient>.Instance);
+        var snapshot = await new TenantQueryGateway(new TenantsRestQueryClient(replayClient),
+            new FixedUserContextAccessor("admin.current"), memoriesClient,
+            new TenantSearchCursorCodec(new EphemeralDataProtectionProvider())).GetUserTenantsAsync(new("reader"), null);
+        snapshot.ProjectionVersion.ShouldBe(index.ProjectionVersion);
+        snapshot.ETag.ShouldBe(storeTag ?? index.ProjectionVersion);
+        snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Current);
+        snapshot.Lifecycle.ShouldBe(ProjectionLifecycleState.Current);
+        snapshot.Rows.ShouldHaveSingleItem().TenantId.ShouldBe("tenant.alpha");
     }
 
     private static ProjectionEventDto ProjectionEvent(IEventPayload payload, string eventId, long sequence, DateTimeOffset timestamp)
@@ -491,10 +538,10 @@ public sealed class TenantsApiGeneratedControllerTests
         snapshot.ProjectionVersion.ShouldBeNull();
     }
 
-    private static void ConfigurePersistedModel<T>(IReadModelStore store, Dictionary<string, object> persisted) where T : class
+    private static void ConfigurePersistedModel<T>(IReadModelStore store, Dictionary<string, object> persisted, string? storeTag = "stored-validator") where T : class
     {
         store.GetAsync<T>(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(call => new ReadModelEntry<T>(persisted.TryGetValue(call.ArgAt<string>(1), out object? value) ? (T)value : null, "stored-validator"));
+            .Returns(call => new ReadModelEntry<T>(persisted.TryGetValue(call.ArgAt<string>(1), out object? value) ? (T)value : null, storeTag));
         store.TrySaveAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<T>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(call => { persisted[call.ArgAt<string>(1)] = call.ArgAt<T>(2); return true; });
     }

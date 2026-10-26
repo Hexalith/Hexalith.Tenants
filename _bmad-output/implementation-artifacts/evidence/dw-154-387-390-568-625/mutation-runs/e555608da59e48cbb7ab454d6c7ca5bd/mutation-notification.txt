@@ -1,0 +1,26 @@
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:15.78
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:02.35
+xUnit.net v3 In-Process Runner v4.0.2+0c7aa4991f (64-bit .NET 10.0.13)
+  Discovering: Hexalith.Tenants.UI.Tests
+  Discovered:  Hexalith.Tenants.UI.Tests
+  Starting:    Hexalith.Tenants.UI.Tests
+    Hexalith.Tenants.UI.Tests.Components.GlobalAdministratorsPageTests.NotificationFinalizationContainsDisposalAfterAliveCheckBeforeDispatch [FAIL]
+      System.ObjectDisposedException : Cannot access a disposed object.
+      Object name: 'renderer'.
+      Stack Trace:
+        src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor(2176,0): at Hexalith.Tenants.UI.Components.Pages.GlobalAdministratorsPage.FinalizeNotificationRefreshAsync()
+        tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTeardownTests.cs(80,0): at Hexalith.Tenants.UI.Tests.Components.GlobalAdministratorsPageTests.NotificationFinalizationContainsDisposalAfterAliveCheckBeforeDispatch()
+        --- End of stack trace from previous location ---
+  Finished:    Hexalith.Tenants.UI.Tests (ID = 'ebdcd5ef4d4208b1f7bffe68a07b7c3b73336a0f9a7665a5af5a18fe6557b4fa')
+=== TEST EXECUTION SUMMARY ===
+   Hexalith.Tenants.UI.Tests  Total: 1, Errors: 0, Failed: 1, Skipped: 0, Not Run: 0, Time: 0.585s

@@ -63,6 +63,32 @@ public sealed class TenantQueryHandlerETagTests
         metadata.Lifecycle.ShouldBe(ProjectionLifecycleState.Current);
     }
 
+    [Theory]
+    [InlineData("list-tenants")]
+    [InlineData("get-user-tenants")]
+    [InlineData("get-tenant-audit")]
+    public async Task NoStoreTagUsesProducerAuthorityAndIncompleteLegacyDoesNotInventIt(string queryType)
+    {
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        SetupTenantIndex(store, null!);
+        SetupTenantAudit(store, null!);
+        SetupGlobalAdministrators(store, "admin-tag", "admin-user");
+        TenantIndexReadModel index = (await store.GetAsync<TenantIndexReadModel>("statestore", TenantQueryHandlerBase.TenantIndexProjectionKey)).Value!;
+        foreach (string owner in index.Tenants.Keys) index.AggregateSequences[owner] = 1;
+        index.ProjectionVersion = TenantIndexProjectionVersion.Create(index);
+        TenantAuditReadModel audit = (await store.GetAsync<TenantAuditReadModel>("statestore", "audit:tenant.alpha")).Value!;
+        audit.ProjectionVersion = "tenant-sequence:1";
+        string? expected = queryType == "get-tenant-audit" ? audit.ProjectionVersion : index.ProjectionVersion;
+        QueryResult result = await TenantQueryTestHarness.ExecuteAsync(store, CreateCursorCodec(), CreateEnvelope(queryType), timeProvider: new FixedTimeProvider(Now));
+        result.Metadata.ShouldNotBeNull().ETag.ShouldBe(expected);
+        result.Metadata.ProjectionVersion.ShouldBe(expected);
+        result.Metadata.Provenance.ShouldBe(QueryResponseProvenance.ProjectionBacked);
+        index.ProjectionVersion = null;
+        audit.ProjectionVersion = null;
+        QueryResult legacy = await TenantQueryTestHarness.ExecuteAsync(store, CreateCursorCodec(), CreateEnvelope(queryType), timeProvider: new FixedTimeProvider(Now));
+        legacy.Metadata.ShouldBeNull();
+    }
+
     private static QueryEnvelope CreateEnvelope(string queryType)
     {
         if (string.Equals(queryType, ListTenantsQuery.QueryType, StringComparison.Ordinal))

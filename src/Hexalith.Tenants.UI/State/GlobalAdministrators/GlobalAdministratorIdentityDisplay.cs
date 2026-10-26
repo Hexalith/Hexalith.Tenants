@@ -42,7 +42,7 @@ public static class GlobalAdministratorIdentityDisplay
                 continue;
             }
 
-            if (ShouldTokenize(rune) || tokenizeWhitespace && Rune.IsWhiteSpace(rune))
+            if (ShouldTokenize(rune) || Rune.IsWhiteSpace(rune) && (tokenizeWhitespace || rune.Value != 0x20))
             {
                 AppendScalarToken(result, rune.Value);
             }

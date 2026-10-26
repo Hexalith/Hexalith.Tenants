@@ -17,7 +17,7 @@ using Shouldly;
 
 namespace Hexalith.Tenants.Server.Tests.Projections;
 
-public class TenantProjectionHandlerTests {
+public partial class TenantProjectionHandlerTests {
     private const string StateStoreName = "statestore";
     private const string TenantAuditProjectionKey = "audit:tenant-1";
     private const string TenantIndexKey = "projection:tenant-index:singleton";
@@ -509,6 +509,7 @@ public class TenantProjectionHandlerTests {
         savedIndex.Tenants.ShouldContainKey("tenant-1");
         savedIndex.Tenants.ShouldNotContainKey("tenant-a");
         savedIndex.Tenants["tenant-1"].Name.ShouldBe("Acme");
+        savedIndex.ProjectionVersion.ShouldBe(TenantIndexProjectionVersion.Create(savedIndex));
     }
 
     [Fact]
@@ -842,7 +843,7 @@ public class TenantProjectionHandlerTests {
         ((TenantReadModel)store.TrySaveAttempts.Single(attempt => attempt.Key == TenantProjectionKey).Value)
             .ProjectionVersion.ShouldBe("tenant-sequence:11");
         ((TenantIndexReadModel)store.TrySaveAttempts.Single(attempt => attempt.Key == TenantIndexKey).Value)
-            .ProjectionVersion.ShouldBeNull();
+            .ProjectionVersion.ShouldStartWith("tenant-index:sha256:");
     }
 
     [Theory]

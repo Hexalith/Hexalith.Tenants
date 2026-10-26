@@ -1,0 +1,2 @@
+Expected refusal exit: 1
+Use a fresh empty output directory so previous screenshots/results cannot authorize this run.

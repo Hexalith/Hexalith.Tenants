@@ -1,0 +1,99 @@
+{
+  "root": "/tmp/tenants-owned-validation.YmVpME",
+  "baseline": "bd9b458bf80a4defbd80dea769b9ffb39f84e4f6",
+  "results": [
+    {
+      "check": "ui-build",
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj",
+        "-c",
+        "Debug",
+        "-m:1",
+        "-p:UseHexalithProjectReferences=true",
+        "-p:HexalithEventStoreVersion=3.128.2",
+        "-v:q"
+      ],
+      "exit_code": 0,
+      "seconds": 59.555,
+      "log": "ui-build.txt",
+      "sha256": "87bd3e4654f1122fc105d7ce113867c539447eacd8690ddf4ae1a75d785dd9b4"
+    },
+    {
+      "check": "ui-tests",
+      "command": [
+        "dotnet",
+        "tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll"
+      ],
+      "exit_code": 0,
+      "seconds": 114.921,
+      "log": "ui-tests.txt",
+      "sha256": "93d42ca2ec14f391b9bda864ab729fdcbc225205cc226b95d823c19fd563d2f2"
+    },
+    {
+      "check": "server-build",
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj",
+        "-c",
+        "Debug",
+        "-m:1",
+        "-p:UseHexalithProjectReferences=true",
+        "-p:HexalithEventStoreVersion=3.128.2",
+        "-v:q"
+      ],
+      "exit_code": 0,
+      "seconds": 42.618,
+      "log": "server-build.txt",
+      "sha256": "f6a51425f7935b4696d8f3d0cb703ec95c8482c23418cbfff1b6a20b992df9e3"
+    },
+    {
+      "check": "server-tests",
+      "command": [
+        "dotnet",
+        "tests/Hexalith.Tenants.Server.Tests/bin/Debug/net10.0/Hexalith.Tenants.Server.Tests.dll"
+      ],
+      "exit_code": 0,
+      "seconds": 3.765,
+      "log": "server-tests.txt",
+      "sha256": "978fc50e093742af7f86ebae19212409de54c6043920a9fb5735ab61ad183103"
+    },
+    {
+      "check": "integration-restore",
+      "command": [
+        "dotnet",
+        "restore",
+        "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+        "-p:UseHexalithProjectReferences=true",
+        "-p:HexalithEventStoreVersion=3.128.2",
+        "-v:q"
+      ],
+      "exit_code": 0,
+      "seconds": 2.354,
+      "log": "integration-restore.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "check": "integration-build",
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+        "-c",
+        "Debug",
+        "-m:1",
+        "-p:UseHexalithProjectReferences=true",
+        "-p:HexalithEventStoreVersion=3.128.2",
+        "-v:q",
+        "--no-restore",
+        "-p:BuildProjectReferences=false"
+      ],
+      "exit_code": 1,
+      "seconds": 1.881,
+      "log": "integration-build.txt",
+      "sha256": "4d77f086bdefbb546031e9e7934562aa643a25b7e76efe4462b8d3032c7175db"
+    }
+  ]
+}

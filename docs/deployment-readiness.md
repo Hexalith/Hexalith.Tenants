@@ -16,7 +16,7 @@ For deterministic-local runs, this guide and its tests prove that the published 
 
 Static documentation checks do not prove live deployment readiness. A skipped DAPR/AppHost test is an evidence boundary, not a pass. Live proof still requires a prepared environment with the selected IdP, EventStore, Tenants host, DAPR sidecars, state store, pub/sub, placement, scheduler, and operator-approved networking.
 
-The EventStore operational evidence validator currently supports query and SignalR operational-evidence schemas only. Do not claim this Tenants deployment readiness template is validated by that script.
+The pinned EventStore checkout does not provide `scripts/validate-operational-evidence.py`. No automated validator support is established for this Tenants deployment readiness template. Do not claim this Tenants deployment readiness template is validated by that script.
 
 ## Production IdP Readiness
 

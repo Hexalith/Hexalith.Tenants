@@ -1,0 +1,26 @@
+127.0.0.1 - - [26/Oct/2026 16:50:23] "GET /annotated.html?culture=en HTTP/1.1" 200 -
+127.0.0.1 - - [26/Oct/2026 16:50:23] "GET /fluent-ui.css HTTP/1.1" 200 -
+127.0.0.1 - - [26/Oct/2026 16:50:23] "GET /correction.css HTTP/1.1" 200 -
+127.0.0.1 - - [26/Oct/2026 16:50:23] "GET /fluent-ui.js HTTP/1.1" 200 -
+127.0.0.1 - - [26/Oct/2026 16:50:23] "GET /global-correction-identities-en.html HTTP/1.1" 200 -
+127.0.0.1 - - [26/Oct/2026 16:50:23] code 404, message File not found
+127.0.0.1 - - [26/Oct/2026 16:50:23] "GET /favicon.ico HTTP/1.1" 404 -
+127.0.0.1 - - [26/Oct/2026 16:50:24] "GET /annotated.html?culture=en HTTP/1.1" 304 -
+127.0.0.1 - - [26/Oct/2026 16:50:24] "GET /fluent-ui.css HTTP/1.1" 304 -
+127.0.0.1 - - [26/Oct/2026 16:50:24] "GET /correction.css HTTP/1.1" 304 -
+127.0.0.1 - - [26/Oct/2026 16:50:24] "GET /fluent-ui.js HTTP/1.1" 304 -
+127.0.0.1 - - [26/Oct/2026 16:50:24] "GET /global-correction-identities-en.html HTTP/1.1" 304 -
+127.0.0.1 - - [26/Oct/2026 16:50:26] "GET /annotated.html?culture=fr HTTP/1.1" 200 -
+127.0.0.1 - - [26/Oct/2026 16:50:26] "GET /fluent-ui.css HTTP/1.1" 304 -
+127.0.0.1 - - [26/Oct/2026 16:50:26] "GET /correction.css HTTP/1.1" 304 -
+127.0.0.1 - - [26/Oct/2026 16:50:26] "GET /fluent-ui.js HTTP/1.1" 304 -
+127.0.0.1 - - [26/Oct/2026 16:50:26] "GET /global-correction-identities-fr.html HTTP/1.1" 200 -
+127.0.0.1 - - [26/Oct/2026 16:50:28] "GET /annotated.html?culture=fr HTTP/1.1" 304 -
+127.0.0.1 - - [26/Oct/2026 16:50:28] "GET /fluent-ui.css HTTP/1.1" 304 -
+127.0.0.1 - - [26/Oct/2026 16:50:28] "GET /correction.css HTTP/1.1" 304 -
+127.0.0.1 - - [26/Oct/2026 16:50:28] "GET /fluent-ui.js HTTP/1.1" 304 -
+127.0.0.1 - - [26/Oct/2026 16:50:28] "GET /global-correction-identities-fr.html HTTP/1.1" 304 -
+127.0.0.1 - - [26/Oct/2026 16:50:28] "GET /annotated.html?culture=en&mutation=literal HTTP/1.1" 200 -
+127.0.0.1 - - [26/Oct/2026 16:50:28] "GET /global-correction-identities-en.html HTTP/1.1" 304 -
+PASS: eight annotated groups have five distinct decoded pixel crops; the identical visual check rejects literal collisions.
+Reproduction artifacts: /tmp/tenants-dw390-review-reproduction

@@ -221,12 +221,21 @@ public class DeploymentReadinessDocumentationTests {
     [Fact]
     public void Deployment_readiness_guide_does_not_claim_EventStore_validator_support_for_Tenants_evidence() {
         string guide = ReadGuide();
-        string validator = File.ReadAllText(RepositoryPath("references", "Hexalith.EventStore", "scripts", "validate-operational-evidence.py"));
+        string validatorPath = RepositoryPath("references", "Hexalith.EventStore", "scripts", "validate-operational-evidence.py");
+        const string missingValidator = "The pinned EventStore checkout does not provide `scripts/validate-operational-evidence.py`.";
+        if (File.Exists(validatorPath))
+        {
+            string validator = File.ReadAllText(validatorPath);
+            validator.ShouldNotContain("tenants-deployment-readiness");
+            guide.ShouldNotContain(missingValidator, Case.Sensitive, "An available validator requires refreshing the documented capability assessment.");
+        }
+        else
+        {
+            guide.ShouldContain(missingValidator);
+        }
 
-        validator.ShouldContain("query-operational-evidence/v1");
-        validator.ShouldContain("signalr-operational-evidence/v1");
-        validator.ShouldNotContain("tenants-deployment-readiness");
-        guide.ShouldContain("The EventStore operational evidence validator currently supports query and SignalR operational-evidence schemas only.");
+        guide.ShouldNotContain("The EventStore operational evidence validator currently supports query and SignalR operational-evidence schemas only.");
+        guide.ShouldContain("No automated validator support is established for this Tenants deployment readiness template.");
         guide.ShouldContain("Do not claim this Tenants deployment readiness template is validated by that script.");
     }
 

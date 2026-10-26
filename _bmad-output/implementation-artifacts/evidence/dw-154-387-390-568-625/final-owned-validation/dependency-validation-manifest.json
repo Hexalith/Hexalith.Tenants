@@ -1,0 +1,63 @@
+[
+  {
+    "path": "references/Hexalith.EventStore",
+    "commit": "935c21ac5ebc5e50738ae6ee79dc661acd2fd5a8",
+    "mode": "isolated-worktree",
+    "source_inspected": true,
+    "source_changed_paths": 0
+  },
+  {
+    "path": "references/Hexalith.Commons",
+    "commit": "1663028fb6d9f46a0bf17919edeb21bb99be1587",
+    "mode": "isolated-worktree",
+    "source_inspected": true,
+    "source_changed_paths": 0
+  },
+  {
+    "path": "references/Hexalith.AI.Tools",
+    "commit": "3f194e17174994d308ec84af9ee2b5aa68674d0d",
+    "mode": "isolated-worktree",
+    "source_inspected": true,
+    "source_changed_paths": 0
+  },
+  {
+    "path": "references/Hexalith.FrontComposer",
+    "commit": "25e8a07198987b33cef052bdbc745f836cb6cbbf",
+    "mode": "isolated-worktree"
+  },
+  {
+    "path": "references/Hexalith.Builds",
+    "commit": "1783c0a377615063f3222c1d28f3ab513af4e72f",
+    "mode": "isolated-worktree",
+    "source_inspected": true,
+    "source_changed_paths": 0
+  },
+  {
+    "path": "references/Hexalith.PolymorphicSerializations",
+    "commit": "221ac4592ba908ae7661ba1fa9e2d1fcc23baee0",
+    "mode": "isolated-worktree",
+    "source_inspected": true,
+    "source_changed_paths": 0
+  },
+  {
+    "path": "references/Hexalith.Memories",
+    "commit": "cdd73d7361f67781a523f63f04853491a687f426",
+    "mode": "isolated-worktree",
+    "source_inspected": true,
+    "source_changed_paths": 0
+  },
+  {
+    "path": "references/Hexalith.McpCli",
+    "commit": "aabc03c68c56ac8085ee1b145654576f5fd201a4",
+    "mode": "isolated-worktree",
+    "source_inspected": true,
+    "source_changed_paths": 0
+  },
+  {
+    "path": "references/Hexalith.Platform",
+    "commit": "eecea3fa467d27226ef6173c19f853add36bb26c",
+    "mode": "isolated-worktree",
+    "source_inspected": true,
+    "source_changed_paths": 0
+  }
+]

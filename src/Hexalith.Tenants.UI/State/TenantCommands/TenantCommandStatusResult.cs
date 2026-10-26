@@ -15,6 +15,9 @@ public sealed record TenantCommandStatusResult(
     /// <summary>Gets server-only command-specific commit proof after identity and aggregate scope validation.</summary>
     internal long? CommittedEventSequence { get; init; }
 
+    /// <summary>Gets correlation recovered only from a complete exact MessageId and fixed-scope match.</summary>
+    internal string? RecoveredCorrelationId { get; init; }
+
     /// <summary>Omits tracking and aggregate proof from copied diagnostics.</summary>
     public override string ToString()
         => $"{nameof(TenantCommandStatusResult)} {{ Status = {Status}, IsPending = {IsPending}, IsRetryableFailure = {IsRetryableFailure} }}";

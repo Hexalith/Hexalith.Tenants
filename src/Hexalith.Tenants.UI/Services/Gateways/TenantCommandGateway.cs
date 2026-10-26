@@ -513,9 +513,24 @@ internal sealed class TenantCommandGateway(
         }
     }
 
-    public async Task<TenantCommandStatusResult> GetStatusAsync(
+    public Task<TenantCommandStatusResult> GetStatusAsync(
         TenantCommandTrackingHandle handle,
         CancellationToken cancellationToken = default)
+        => GetStatusCoreAsync(handle, recoverCorrelation: false, cancellationToken);
+
+    public Task<TenantCommandStatusResult> RecoverGlobalAdministratorStatusAsync(
+        string messageId,
+        CancellationToken cancellationToken = default)
+        => TryValidateCallerMessageId(messageId)
+            ? GetStatusCoreAsync(new(messageId, string.Empty, GlobalAdministratorsAggregateId),
+                recoverCorrelation: true, cancellationToken)
+            : Task.FromResult(TenantCommandStatusResult.UnknownWithKey(
+                "Tenants.GlobalAdministrators.Recovery.Unverified"));
+
+    private async Task<TenantCommandStatusResult> GetStatusCoreAsync(
+        TenantCommandTrackingHandle handle,
+        bool recoverCorrelation,
+        CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(handle);
         string expectedDomain = handle.ExpectedDomain
@@ -571,11 +586,17 @@ internal sealed class TenantCommandGateway(
             }
 
             if (string.IsNullOrWhiteSpace(status.CorrelationId)
-                || !string.Equals(status.CorrelationId, handle.CorrelationId, StringComparison.Ordinal))
+                || (!recoverCorrelation && !string.Equals(status.CorrelationId, handle.CorrelationId, StringComparison.Ordinal))
+                || recoverCorrelation && (!string.Equals(status.MessageId, handle.MessageId, StringComparison.Ordinal)
+                    || !string.Equals(status.TenantId, SystemTenant, StringComparison.Ordinal)
+                    || !string.Equals(status.Domain, GlobalAdministratorsDomain, StringComparison.Ordinal)
+                    || !string.Equals(status.AggregateId, GlobalAdministratorsAggregateId, StringComparison.Ordinal)))
             {
                 return TenantCommandStatusResult.Unknown("Command status response did not match the tracked command.") with
                 {
-                    SafeMessageKey = globalAdministratorStatus
+                    SafeMessageKey = recoverCorrelation
+                        ? "Tenants.GlobalAdministrators.Recovery.Unverified"
+                        : globalAdministratorStatus
                         ? "Tenants.GlobalAdministrators.Grant.UnableToVerify.TrackingMismatch"
                         : "Tenants.Commands.Status.TrackingMismatch",
                 };
@@ -648,7 +669,8 @@ internal sealed class TenantCommandGateway(
                         _ => safeMessageKey,
                     }
                     : safeMessageKey) {
-                        CommittedEventSequence = hasVerifiedCommandIdentity
+                RecoveredCorrelationId = recoverCorrelation ? status.CorrelationId : null,
+                CommittedEventSequence = hasVerifiedCommandIdentity
                             && parsedStatus is CommandStatus.Completed && status.StatusCode == (int)parsedStatus
                             && status.EventCount is > 0 && status.CommittedEventSequence is > 0
                             && status.EventCount <= status.CommittedEventSequence

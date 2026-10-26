@@ -1,0 +1,44 @@
+[
+  {
+    "check": "format-ui",
+    "command": [
+      "dotnet",
+      "format",
+      "whitespace",
+      "tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj",
+      "--no-restore",
+      "--verify-no-changes",
+      "--include",
+      "src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.Recovery.cs",
+      "src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.Recovery.cs",
+      "tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorCorrectionPanelIdentityTests.cs",
+      "tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorCorrectionPanelRecoveryTests.cs",
+      "tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageRecoveryTests.cs",
+      "tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTeardownTests.cs",
+      "tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayRecoveryTests.cs",
+      "--verbosity",
+      "quiet"
+    ],
+    "exit_code": 2,
+    "log": "format-ui.txt"
+  },
+  {
+    "check": "format-server",
+    "command": [
+      "dotnet",
+      "format",
+      "whitespace",
+      "tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj",
+      "--no-restore",
+      "--verify-no-changes",
+      "--include",
+      "src/Hexalith.Tenants.Server/Projections/TenantIndexProjectionVersion.cs",
+      "tests/Hexalith.Tenants.Server.Tests/Projections/TenantIndexProjectionVersionTests.cs",
+      "tests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionIndexAuthorityTests.cs",
+      "--verbosity",
+      "quiet"
+    ],
+    "exit_code": 0,
+    "log": "format-server.txt"
+  }
+]

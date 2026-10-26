@@ -1,0 +1,24 @@
+{
+  "original_baseline": "bd9b458bf80a4defbd80dea769b9ffb39f84e4f6",
+  "preserved_concurrent_main": "19f95ae8d57c6899d2af6aaff57b0334d68cbb85",
+  "qualification_scope": "Exact owned source/test changes over approved original baseline and its nine dependency gitlinks; concurrent routing/catalog work preserved on main.",
+  "ui": {
+    "passed": 7835,
+    "failed": 0,
+    "skipped": 0
+  },
+  "server": {
+    "passed": 1527,
+    "failed": 0,
+    "skipped": 0
+  },
+  "generated_controller": {
+    "passed": 47,
+    "failed": 0,
+    "skipped": 0
+  },
+  "maintained_browser": "passed",
+  "new_file_formatting": "passed; two test files received whitespace-only corrections after test execution, non-whitespace bytes verified unchanged",
+  "independent_review": "All16 findings triaged and corrected; edge-case and verification-gap rechecks report no unresolved defects/gaps.",
+  "combined_main_limit": "Concurrent catalog commit requires Routing APIs absent from pinned EventStore source. Full current-main source build remains blocked separately; no shared dependency or concurrent owner code changed."
+}

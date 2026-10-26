@@ -143,4 +143,14 @@ public interface ITenantCommandGateway {
     Task<TenantCommandStatusResult> GetStatusAsync(
         TenantCommandTrackingHandle handle,
         CancellationToken cancellationToken = default);
+
+    /// <summary>Looks up an original global-administrator command whose acceptance response was lost.</summary>
+    /// <param name="messageId">The retained caller-owned canonical ULID.</param>
+    /// <param name="cancellationToken">Caller cancellation token.</param>
+    /// <returns>Status with correlation only after complete fixed-scope identity validation.</returns>
+    Task<TenantCommandStatusResult> RecoverGlobalAdministratorStatusAsync(
+        string messageId,
+        CancellationToken cancellationToken = default)
+        => Task.FromResult(TenantCommandStatusResult.UnknownWithKey(
+            "Tenants.GlobalAdministrators.Recovery.Unverified"));
 }

@@ -1,0 +1,157 @@
+[
+  {
+    "record": "initial-suite-results/ui-all",
+    "source_path": "/tmp/tenants-five-ui-all.log",
+    "expected_sha256": "1cc1aadb3cba28bbc28473566488eb65ff5e207dac7db8f8db12a50bbc49deb0",
+    "availability": "matching raw bytes archived",
+    "archive_member": "raw-logs/initial-suite-results-ui-all.txt"
+  },
+  {
+    "record": "initial-suite-results/server-all",
+    "source_path": "/tmp/tenants-five-server-all.log",
+    "expected_sha256": "65e215792ef2bb2a71c21407c97c524fd9c803c5e06d7a80119a27a11b6d94d2",
+    "availability": "matching raw bytes archived",
+    "archive_member": "raw-logs/initial-suite-results-server-all.txt"
+  },
+  {
+    "record": "initial-suite-results/integration-all",
+    "source_path": "/tmp/tenants-five-integration-all.log",
+    "expected_sha256": "60c7d1b1169865d2803b3c15bc6320c479ca569aa02f903599a9fde19b1e8b35",
+    "availability": "matching raw bytes archived",
+    "archive_member": "raw-logs/initial-suite-results-integration-all.txt"
+  },
+  {
+    "record": "initial-suite-results/integration-focused",
+    "source_path": "/tmp/tenants-five-integration-focused.log",
+    "expected_sha256": "ddf3eaff6cab41ea2bba0edfd543c58c2695358d40558785d9c4400cd65cee15",
+    "availability": "matching raw bytes archived",
+    "archive_member": "raw-logs/initial-suite-results-integration-focused.txt"
+  },
+  {
+    "record": "final-checks/ui",
+    "source_path": "/tmp/tenants-five-ui-final-all.log",
+    "expected_sha256": "9efafd26b4cab891b9aae7fb732d5ba8dd5ec7151f9c36578cfd0200f7cc9104",
+    "availability": "matching raw bytes archived",
+    "archive_member": "raw-logs/final-checks-ui.txt"
+  },
+  {
+    "record": "final-checks/server",
+    "source_path": "/tmp/tenants-five-server-final-all.log",
+    "expected_sha256": "5833e4a2079e8292d2e148a072c8000283a388eaa366cbbdc895cbf01ca23cde",
+    "availability": "matching raw bytes archived",
+    "archive_member": "raw-logs/final-checks-server.txt"
+  },
+  {
+    "record": "final-checks/generated-rest-ui",
+    "source_path": "/tmp/tenants-five-integration-final-focused.log",
+    "expected_sha256": "8f38807d599aa6ef700e5fda41dd3e60ed453f40ab55517a6e007f618f58ee01",
+    "availability": "matching raw bytes archived",
+    "archive_member": "raw-logs/final-checks-generated-rest-ui.txt"
+  },
+  {
+    "record": "final-checks/governance-components",
+    "source_path": "/tmp/tenants-five-ui-governance-all.log",
+    "expected_sha256": "be4e1eb56cbd6ae597f5d81456adafb12ab46a7eb3323b45129efc6af14db19f",
+    "availability": "matching raw bytes archived",
+    "archive_member": "raw-logs/final-checks-governance-components.txt"
+  },
+  {
+    "record": "server-repaired-build.txt",
+    "availability": "available copy retained as portable text",
+    "sha256": "8036aff85e5ff05341ee939009f0f38da7109c51996032a3173be421c08afa82",
+    "kind": "available full output"
+  },
+  {
+    "record": "generated-rest-ui-summary.txt",
+    "availability": "available copy retained as portable text",
+    "sha256": "6c53d5984b924dbafce6976758c178f5db9016f8a08d57a1ac54118d42114f72",
+    "kind": "summary tail"
+  },
+  {
+    "record": "mutation-notification.txt",
+    "availability": "available copy retained as portable text",
+    "sha256": "320148dea486dd364e2120055ab4acdac8b83197a334898277cb1d8dccb6bd3f",
+    "kind": "available full output"
+  },
+  {
+    "record": "ui-summary.txt",
+    "availability": "available copy retained as portable text",
+    "sha256": "600d0696e7d0194bf9ab96a1a46e1457eb35e7b96810b41fa9aedc6baa8fd98a",
+    "kind": "summary tail"
+  },
+  {
+    "record": "ui-caller-build.txt",
+    "availability": "available copy retained as portable text",
+    "sha256": "c488f4671e5aac599a9fe194c7b9dbb929ae52f73b3275e570eb4f46ecf8fb2c",
+    "kind": "available full output"
+  },
+  {
+    "record": "integration-final-build.txt",
+    "availability": "available copy retained as portable text",
+    "sha256": "2b576f9684fb659c309cfca402c218b1a4b8252bfa460d5697c622d1d76d663e",
+    "kind": "available full output"
+  },
+  {
+    "record": "server-focused.txt",
+    "availability": "available copy retained as portable text",
+    "sha256": "b4f6ece50f1109accb8848c6b599d78e043a4037dcb2afc74835847ba82d1e8e",
+    "kind": "available full output"
+  },
+  {
+    "record": "ui-edge-focused.txt",
+    "availability": "available copy retained as portable text",
+    "sha256": "0cdb06cc80eae742ab4aa48458acbd19a3414327ff4eeda1b6546b0e2b9119b5",
+    "kind": "available full output"
+  },
+  {
+    "record": "ui-caller-tests-build.txt",
+    "availability": "available copy retained as portable text",
+    "sha256": "310cde39c34b30693f68f4e56896ec4e1808fe6da0c93b8517bfc3b8225e2011",
+    "kind": "available full output"
+  },
+  {
+    "record": "maintained-focus-browser.txt",
+    "availability": "Portable display copy has trailing whitespace normalized; exact original bytes retained in raw_archive.",
+    "sha256": "391f104f1462d875d47ef6e585332fb4d9143047c0e150fb18dc985c8bd7846b",
+    "kind": "available full output",
+    "raw_sha256": "9cebb95a75255f67e6916fa100c3011d7588da1aa19b0a5455d9eaaa88c72937",
+    "raw_archive": "final-owned-validation/unmodified-browser-output.tar.gz",
+    "raw_archive_member": "maintained-focus-browser.txt"
+  },
+  {
+    "record": "governance-components-summary.txt",
+    "availability": "available copy retained as portable text",
+    "sha256": "fcaf1faadcff0214ed399c5ab3099bffe5fae9848393ec7a4408002a88c2e793",
+    "kind": "summary tail"
+  },
+  {
+    "record": "server-summary.txt",
+    "availability": "available copy retained as portable text",
+    "sha256": "e094ad23c6737fdda45893210a8933512b89b905228c4e44d289d0f92e1184c5",
+    "kind": "summary tail"
+  },
+  {
+    "record": "mutation-reset.txt",
+    "availability": "available copy retained as portable text",
+    "sha256": "ba3af95d5945838f7238cea380ff39ea3643e4c6d03f579a4f01e47130581169",
+    "kind": "available full output"
+  },
+  {
+    "record": "ui-governance-all.txt",
+    "availability": "available copy retained as portable text",
+    "sha256": "be4e1eb56cbd6ae597f5d81456adafb12ab46a7eb3323b45129efc6af14db19f",
+    "kind": "available full output"
+  },
+  {
+    "record": "earliest unpinned UI build and loader/fixture failures",
+    "availability": "initial raw invocations were overwritten before portable retention; only historical narrative remains; current reused paths are not claimed as those original logs"
+  },
+  {
+    "record": "coordinating post-review full UI run",
+    "source_path": "/tmp/tenants-five-postreview-1wi6k_ps/ui-tests.txt",
+    "availability": "matching raw bytes archived",
+    "archive_member": "raw-logs/postreview-ui-7835-four-fixture-failures.txt",
+    "sha256": "6e9a32d584505c5f152054dbc504672a653d3ca16b6419e2d0b0fa861297c3c3",
+    "qualification": "7835 total, four failed fixture tests; preserved as failed evidence, not a passing full gate"
+  }
+]

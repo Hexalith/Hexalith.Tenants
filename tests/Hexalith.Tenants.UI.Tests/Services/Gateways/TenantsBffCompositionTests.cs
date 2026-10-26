@@ -36,6 +36,24 @@ namespace Hexalith.Tenants.UI.Tests.Services.Gateways;
 public sealed class TenantsBffCompositionTests
 {
     [Fact]
+    public async Task RecoveryCallerUsesExactCurrentProductionPrincipalEvidence()
+    {
+        const string exactSubject = " Operator\u00a0alpha ";
+        var resolver = new StubPrincipalResolver(TenantConfigurationPrincipalEvidence.GlobalAdministrator(exactSubject));
+        var composition = new TenantsBffComposition(Substitute.For<ITenantCommandGateway>(), principalResolver: resolver);
+        (await composition.ResolveGlobalAdministratorRecoveryCallerAsync()).ShouldBe(exactSubject);
+        resolver.Evidence = TenantConfigurationPrincipalEvidence.GlobalAdministrator("operator.beta");
+        (await composition.ResolveGlobalAdministratorRecoveryCallerAsync()).ShouldBe("operator.beta");
+        resolver.Evidence = TenantConfigurationPrincipalEvidence.NonAdministrator("operator.beta");
+        (await composition.ResolveGlobalAdministratorRecoveryCallerAsync()).ShouldBeNull();
+        resolver.Evidence = TenantConfigurationPrincipalEvidence.Indeterminate();
+        (await composition.ResolveGlobalAdministratorRecoveryCallerAsync()).ShouldBeNull();
+        resolver.ResolutionCount.ShouldBe(4);
+        (await new TenantsBffComposition(Substitute.For<ITenantCommandGateway>())
+            .ResolveGlobalAdministratorRecoveryCallerAsync()).ShouldBeNull();
+    }
+
+    [Fact]
     public void Audit_recovery_destinations_are_absent_until_explicitly_configured()
     {
         ITenantCommandGateway gateway = Substitute.For<ITenantCommandGateway>();

@@ -1,0 +1,103 @@
+{
+  "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+  "fonts": [
+    {
+      "fonts": [
+        {
+          "familyName": "Liberation Sans",
+          "postScriptName": "LiberationSans",
+          "isCustomFont": false,
+          "glyphCount": 9
+        }
+      ]
+    },
+    {
+      "fonts": [
+        {
+          "familyName": "Liberation Sans",
+          "postScriptName": "LiberationSans",
+          "isCustomFont": false,
+          "glyphCount": 9
+        }
+      ]
+    }
+  ],
+  "measurements": [
+    {
+      "id": "identity-0",
+      "literal": "ops admin",
+      "text": "ops admin",
+      "font": "16px / 38px \"Segoe UI\", sans-serif",
+      "whiteSpace": "pre-wrap"
+    },
+    {
+      "id": "identity-1",
+      "literal": "ops admin",
+      "text": "ops admin",
+      "font": "16px / 38px \"Segoe UI\", sans-serif",
+      "whiteSpace": "pre-wrap"
+    },
+    {
+      "id": "identity-2",
+      "literal": "ops admin",
+      "text": "ops admin",
+      "font": "16px / 38px \"Segoe UI\", sans-serif",
+      "whiteSpace": "pre-wrap"
+    },
+    {
+      "id": "identity-3",
+      "literal": "ops admin",
+      "text": "ops admin",
+      "font": "16px / 38px \"Segoe UI\", sans-serif",
+      "whiteSpace": "pre-wrap"
+    },
+    {
+      "id": "identity-4",
+      "literal": "ops admin",
+      "text": "ops admin",
+      "font": "16px / 38px \"Segoe UI\", sans-serif",
+      "whiteSpace": "pre-wrap"
+    },
+    {
+      "id": "identity-5",
+      "literal": "ops admin",
+      "text": "ops admin",
+      "font": "16px / 38px \"Segoe UI\", sans-serif",
+      "whiteSpace": "pre-wrap"
+    },
+    {
+      "id": "identity-6",
+      "literal": " ops",
+      "text": " ops",
+      "font": "16px / 38px \"Segoe UI\", sans-serif",
+      "whiteSpace": "pre-wrap"
+    },
+    {
+      "id": "identity-7",
+      "literal": "ops ",
+      "text": "ops ",
+      "font": "16px / 38px \"Segoe UI\", sans-serif",
+      "whiteSpace": "pre-wrap"
+    },
+    {
+      "id": "identity-8",
+      "literal": "ops  admin",
+      "text": "ops  admin",
+      "font": "16px / 38px \"Segoe UI\", sans-serif",
+      "whiteSpace": "pre-wrap"
+    }
+  ],
+  "screenshotSha256": {
+    "literal-0.png": "9ff01dc8b64446da8d3af5f4037887925cfb933bd88eaa4458a2bdb9d91649bd",
+    "literal-1.png": "9ff01dc8b64446da8d3af5f4037887925cfb933bd88eaa4458a2bdb9d91649bd",
+    "literal-2.png": "3b1db7ee744f83e2e5cd36a59377aac2265592074c21f59d4dba6a0a6cf66075",
+    "literal-3.png": "f32bfef96a4c93fc776915313b2590ff679ee15d467b50037cb43afe588f5cd4",
+    "literal-4.png": "757a02a6397c25fd96108dd3231fd75ba62126d005e23dca3390e02772dc6c24",
+    "literal-5.png": "3b1db7ee744f83e2e5cd36a59377aac2265592074c21f59d4dba6a0a6cf66075",
+    "literal-6.png": "045ea6afeab744034e3768591a0d364af3d421bd7d7603bb87befca6a6a091d1",
+    "literal-7.png": "4fd21435a0360022e2b23a20a62ccfb8be60b3fb277f284ad828e399f5df1e11",
+    "literal-8.png": "edf6da5376a9f1795d317418f71981877a573f821f0c829da4e030ef0c24cbb8",
+    "literal-pairs.png": "c00f077d03656c896fa4499344bd5a45ab7986c037fecdbead55c2fb7acc232e"
+  },
+  "fixtureOrigin": "Actual rendered correction target dd and scoped CSS, DOM-substituted identity literals; declared Segoe UI/sans-serif typography at controlled 16px. This is an initial glyph probe, not production end-to-end qualification."
+}

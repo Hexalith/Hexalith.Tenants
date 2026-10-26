@@ -23,7 +23,7 @@ using Shouldly;
 
 namespace Hexalith.Tenants.UI.Tests.Services.Gateways;
 
-public sealed class TenantCommandGatewayTests
+public sealed partial class TenantCommandGatewayTests
 {
     [Theory]
     [InlineData(TenantLifecycleOperation.EnableTenant)]

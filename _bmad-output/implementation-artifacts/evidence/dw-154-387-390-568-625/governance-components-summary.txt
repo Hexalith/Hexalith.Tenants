@@ -1,0 +1,3 @@
+  Finished:    Hexalith.Tenants.UI.Tests (ID = 'ebdcd5ef4d4208b1f7bffe68a07b7c3b73336a0f9a7665a5af5a18fe6557b4fa')
+=== TEST EXECUTION SUMMARY ===
+   Hexalith.Tenants.UI.Tests  Total: 541, Errors: 0, Failed: 0, Skipped: 0, Not Run: 0, Time: 14.590s

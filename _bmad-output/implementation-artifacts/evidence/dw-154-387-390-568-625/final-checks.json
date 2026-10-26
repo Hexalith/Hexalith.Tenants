@@ -1,0 +1,50 @@
+{
+  "ui": {
+    "summary": "   Hexalith.Tenants.UI.Tests  Total: 7809, Errors: 0, Failed: 0, Skipped: 0, Not Run: 0, Time: 112.809s",
+    "failures": [],
+    "sha256": "9efafd26b4cab891b9aae7fb732d5ba8dd5ec7151f9c36578cfd0200f7cc9104",
+    "full_log": "/tmp/tenants-five-ui-final-all.log",
+    "portable_raw_log": {
+      "archive": "raw-logs.tar.gz",
+      "member": "raw-logs/final-checks-ui.txt",
+      "sha256": "9efafd26b4cab891b9aae7fb732d5ba8dd5ec7151f9c36578cfd0200f7cc9104"
+    },
+    "qualification_scope": "Pre-review implementation history; does not certify the review corrections."
+  },
+  "server": {
+    "summary": "   Hexalith.Tenants.Server.Tests  Total: 1525, Errors: 0, Failed: 0, Skipped: 0, Not Run: 0, Time: 3.756s",
+    "failures": [],
+    "sha256": "5833e4a2079e8292d2e148a072c8000283a388eaa366cbbdc895cbf01ca23cde",
+    "full_log": "/tmp/tenants-five-server-final-all.log",
+    "portable_raw_log": {
+      "archive": "raw-logs.tar.gz",
+      "member": "raw-logs/final-checks-server.txt",
+      "sha256": "5833e4a2079e8292d2e148a072c8000283a388eaa366cbbdc895cbf01ca23cde"
+    },
+    "qualification_scope": "Pre-review implementation history; does not certify the review corrections."
+  },
+  "generated-rest-ui": {
+    "summary": "   Hexalith.Tenants.IntegrationTests  Total: 47, Errors: 0, Failed: 0, Skipped: 0, Not Run: 0, Time: 1.948s",
+    "failures": [],
+    "sha256": "8f38807d599aa6ef700e5fda41dd3e60ed453f40ab55517a6e007f618f58ee01",
+    "full_log": "/tmp/tenants-five-integration-final-focused.log",
+    "portable_raw_log": {
+      "archive": "raw-logs.tar.gz",
+      "member": "raw-logs/final-checks-generated-rest-ui.txt",
+      "sha256": "8f38807d599aa6ef700e5fda41dd3e60ed453f40ab55517a6e007f618f58ee01"
+    },
+    "qualification_scope": "Pre-review implementation history; does not certify the review corrections."
+  },
+  "governance-components": {
+    "summary": "   Hexalith.Tenants.UI.Tests  Total: 541, Errors: 0, Failed: 0, Skipped: 0, Not Run: 0, Time: 14.590s",
+    "failures": [],
+    "sha256": "be4e1eb56cbd6ae597f5d81456adafb12ab46a7eb3323b45129efc6af14db19f",
+    "full_log": "/tmp/tenants-five-ui-governance-all.log",
+    "portable_raw_log": {
+      "archive": "raw-logs.tar.gz",
+      "member": "raw-logs/final-checks-governance-components.txt",
+      "sha256": "be4e1eb56cbd6ae597f5d81456adafb12ab46a7eb3323b45129efc6af14db19f"
+    },
+    "qualification_scope": "Pre-review implementation history; does not certify the review corrections."
+  }
+}

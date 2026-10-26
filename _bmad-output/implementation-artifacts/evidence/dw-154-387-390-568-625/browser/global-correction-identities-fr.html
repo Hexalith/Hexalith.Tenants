@@ -1,0 +1,290 @@
+<section class="ga-correction-panel ga-correction-panel--previewed" role="region" aria-labelledby="tenants-correction-title" data-testid="tenants-correction-panel" blazor:onkeydown="1" b-xuatfcoy3y><div class="fluent-stack-vertical" style="justify-content: start; align-items: start; row-gap: 0.75rem; width: 100%;" data-testid="tenants-correction-preview"><header class="ga-correction-panel__header" b-xuatfcoy3y><div class="fluent-stack-vertical" style="justify-content: start; align-items: start; row-gap: 0.25rem; width: 100%;"><h3 id="tenants-correction-title" tabindex="-1" b-xuatfcoy3y>Démarrer la correction</h3>
+                    <p class="ga-correction-panel__live" data-testid="tenants-correction-live-region" aria-live="polite" aria-atomic="true" b-xuatfcoy3y>L'aperçu est prêt pour une confirmation explicite.</p></div>
+                <fluent-button appearance="outline" blazor:onclick="2" data-testid="tenants-correction-close" blazor:elementReference="37a3fe09-89d3-4a49-8387-00293ad256c9">
+        Fermer le démarrage de correction</fluent-button></header><dl class="ga-correction-panel__fields" b-xuatfcoy3y><dt b-xuatfcoy3y>Preuve d'origine</dt>
+                <dd data-testid="tenants-correction-original-evidence" b-xuatfcoy3y>event-safe-reference</dd>
+
+                <dt b-xuatfcoy3y>Heure de la preuve d’origine (UTC)</dt>
+                <dd data-testid="tenants-correction-original-time" b-xuatfcoy3y>2026-06-01 10:00:00 UTC</dd>
+
+                <dt b-xuatfcoy3y>Domaine de commande</dt>
+                <dd data-testid="tenants-correction-domain" b-xuatfcoy3y>Administrateurs globaux</dd>
+
+                <dt b-xuatfcoy3y>Commande prévue</dt>
+                <dd data-testid="tenants-correction-command" b-xuatfcoy3y>Définir l'administrateur global</dd>
+
+                <dt b-xuatfcoy3y>Portée d'autorité de la plateforme</dt>
+                <dd data-testid="tenants-correction-scope" b-xuatfcoy3y>system / global-administrators / global-administrators</dd>
+
+                <dt b-xuatfcoy3y>Utilisateur</dt>
+                <dd class="ga-correction-panel__literal-identity" data-testid="tenants-correction-target-user" b-xuatfcoy3y>ops admin</dd>
+
+                <dt b-xuatfcoy3y>Nombre actuel d'administrateurs globaux</dt>
+                <dd data-testid="tenants-correction-admin-count" b-xuatfcoy3y>1</dd>
+
+                <dt b-xuatfcoy3y>Nombre d’administrateurs après la commande</dt>
+                <dd data-testid="tenants-correction-resulting-count" b-xuatfcoy3y>2</dd>
+
+                <dt b-xuatfcoy3y>Cible dans la projection courante</dt>
+                <dd data-testid="tenants-correction-current-state" b-xuatfcoy3y>Absent de la projection courante d'autorité de la plateforme.</dd>
+
+                <dt b-xuatfcoy3y>Preuve de projection</dt>
+                <dd data-testid="tenants-correction-provenance" b-xuatfcoy3y>Projection système complète et actuelle avec une version ordonnée.</dd>
+
+                <dt b-xuatfcoy3y>Autorité et admission de commande actuelles</dt>
+                <dd data-testid="tenants-correction-authority-admission" b-xuatfcoy3y>L’autorité de plateforme et l’admission de commande sont prêtes. La confirmation les vérifie à nouveau.</dd></dl>
+
+            <fluent-accordion expand-mode="multi" blazor:onaccordionchange="3"><fluent-accordion-item id="f225a563" heading-level="4" expanded block><span slot="heading">Données requises pour l'aperçu
+            </span><section class="ga-correction-panel__preview" aria-label="Données requises pour l'aperçu" b-xuatfcoy3y><dl data-testid="tenants-correction-preview-data" b-xuatfcoy3y><dt b-xuatfcoy3y>Conséquences connues</dt>
+                            <dd b-xuatfcoy3y>Un nouvel événement d'octroi d'autorité de la plateforme peut être ajouté lorsque la projection fixe confirme que la cible est absente.</dd>
+
+                            <dt b-xuatfcoy3y>Impact sur le dernier administrateur</dt>
+                            <dd b-xuatfcoy3y>Le dernier administrateur global ne peut pas être retiré ; au moins un administrateur global doit subsister.</dd>
+
+                            <dt b-xuatfcoy3y>Inconnues connues</dt>
+                            <dd b-xuatfcoy3y>La consultation de statut et les notifications en direct peuvent déclencher une nouvelle requête mais ne prouvent jamais un changement d'autorité de la plateforme sans la vérité de la projection fixe.</dd>
+
+                            <dt b-xuatfcoy3y>Attente d'audit</dt>
+                            <dd b-xuatfcoy3y>Une preuve d'audit de portée système est attendue après l'acceptation de la commande et la confirmation de l'état prévu par la projection fixe.</dd>
+
+                            <dt b-xuatfcoy3y>Chemin de récupération</dt>
+                            <dd b-xuatfcoy3y>Relancer la consultation de statut, inspecter l'audit, continuer en lecture seule ou escalader à l'aide de références sûres pour le support. Un rechargement complet ou une nouvelle session fait perdre le suivi de la tentative en cours et les liens entre reçus d'audit.</dd></dl></section></fluent-accordion-item>
+                <fluent-accordion-item id="f331e090" heading-level="4" expanded block><span slot="heading">Cycle de vie de la correction
+            </span><section class="ga-correction-panel__lifecycle" tabindex="-1" data-testid="tenants-correction-lifecycle" aria-label="Cycle de vie de la correction" b-xuatfcoy3y blazor:elementReference="541acdbb-e361-48f9-9827-8e08b581d248"><p class="ga-correction-panel__state ga-correction-panel__state--previewed" data-testid="tenants-correction-state" b-xuatfcoy3y>L'aperçu est prêt pour une confirmation explicite.</p></section></fluent-accordion-item></fluent-accordion>
+
+            <div class="fluent-stack-horizontal ga-correction-panel__actions" style="justify-content: start; align-items: start; column-gap: 0.5rem; width: 100%; flex-wrap: wrap;"><fluent-button appearance="primary" blazor:onclick="4" data-testid="tenants-correction-confirm" blazor:elementReference="11d3ead2-8c0c-4cd3-b64a-ab53af35c732">
+        Soumettre la commande corrective</fluent-button><fluent-button disabled appearance="outline" blazor:onclick="5" data-testid="tenants-correction-refresh" data-recovery-kind="status" blazor:elementReference="73651202-cec0-4694-a77b-87bb952332ca">
+        Actualiser l'état</fluent-button><fluent-button appearance="outline" blazor:onclick="6" data-testid="tenants-correction-cancel" blazor:elementReference="2955f4e6-46ea-4680-94ee-5733b0f8632c">
+        Annuler</fluent-button></div></div></section>
+<section class="ga-correction-panel ga-correction-panel--previewed" role="region" aria-labelledby="tenants-correction-title" data-testid="tenants-correction-panel" blazor:onkeydown="7" b-xuatfcoy3y><div class="fluent-stack-vertical" style="justify-content: start; align-items: start; row-gap: 0.75rem; width: 100%;" data-testid="tenants-correction-preview"><header class="ga-correction-panel__header" b-xuatfcoy3y><div class="fluent-stack-vertical" style="justify-content: start; align-items: start; row-gap: 0.25rem; width: 100%;"><h3 id="tenants-correction-title" tabindex="-1" b-xuatfcoy3y>Démarrer la correction</h3>
+                    <p class="ga-correction-panel__live" data-testid="tenants-correction-live-region" aria-live="polite" aria-atomic="true" b-xuatfcoy3y>L'aperçu est prêt pour une confirmation explicite.</p></div>
+                <fluent-button appearance="outline" blazor:onclick="8" data-testid="tenants-correction-close" blazor:elementReference="d9ac3473-fc49-465b-bee0-6f62cbf641f4">
+        Fermer le démarrage de correction</fluent-button></header><dl class="ga-correction-panel__fields" b-xuatfcoy3y><dt b-xuatfcoy3y>Preuve d'origine</dt>
+                <dd data-testid="tenants-correction-original-evidence" b-xuatfcoy3y>event-safe-reference</dd>
+
+                <dt b-xuatfcoy3y>Heure de la preuve d’origine (UTC)</dt>
+                <dd data-testid="tenants-correction-original-time" b-xuatfcoy3y>2026-06-01 10:00:00 UTC</dd>
+
+                <dt b-xuatfcoy3y>Domaine de commande</dt>
+                <dd data-testid="tenants-correction-domain" b-xuatfcoy3y>Administrateurs globaux</dd>
+
+                <dt b-xuatfcoy3y>Commande prévue</dt>
+                <dd data-testid="tenants-correction-command" b-xuatfcoy3y>Définir l'administrateur global</dd>
+
+                <dt b-xuatfcoy3y>Portée d'autorité de la plateforme</dt>
+                <dd data-testid="tenants-correction-scope" b-xuatfcoy3y>system / global-administrators / global-administrators</dd>
+
+                <dt b-xuatfcoy3y>Utilisateur</dt>
+                <dd class="ga-correction-panel__literal-identity" data-testid="tenants-correction-target-user" b-xuatfcoy3y>ops\{U+00A0}admin</dd>
+
+                <dt b-xuatfcoy3y>Nombre actuel d'administrateurs globaux</dt>
+                <dd data-testid="tenants-correction-admin-count" b-xuatfcoy3y>1</dd>
+
+                <dt b-xuatfcoy3y>Nombre d’administrateurs après la commande</dt>
+                <dd data-testid="tenants-correction-resulting-count" b-xuatfcoy3y>2</dd>
+
+                <dt b-xuatfcoy3y>Cible dans la projection courante</dt>
+                <dd data-testid="tenants-correction-current-state" b-xuatfcoy3y>Absent de la projection courante d'autorité de la plateforme.</dd>
+
+                <dt b-xuatfcoy3y>Preuve de projection</dt>
+                <dd data-testid="tenants-correction-provenance" b-xuatfcoy3y>Projection système complète et actuelle avec une version ordonnée.</dd>
+
+                <dt b-xuatfcoy3y>Autorité et admission de commande actuelles</dt>
+                <dd data-testid="tenants-correction-authority-admission" b-xuatfcoy3y>L’autorité de plateforme et l’admission de commande sont prêtes. La confirmation les vérifie à nouveau.</dd></dl>
+
+            <fluent-accordion expand-mode="multi" blazor:onaccordionchange="9"><fluent-accordion-item id="f4029e87" heading-level="4" expanded block><span slot="heading">Données requises pour l'aperçu
+            </span><section class="ga-correction-panel__preview" aria-label="Données requises pour l'aperçu" b-xuatfcoy3y><dl data-testid="tenants-correction-preview-data" b-xuatfcoy3y><dt b-xuatfcoy3y>Conséquences connues</dt>
+                            <dd b-xuatfcoy3y>Un nouvel événement d'octroi d'autorité de la plateforme peut être ajouté lorsque la projection fixe confirme que la cible est absente.</dd>
+
+                            <dt b-xuatfcoy3y>Impact sur le dernier administrateur</dt>
+                            <dd b-xuatfcoy3y>Le dernier administrateur global ne peut pas être retiré ; au moins un administrateur global doit subsister.</dd>
+
+                            <dt b-xuatfcoy3y>Inconnues connues</dt>
+                            <dd b-xuatfcoy3y>La consultation de statut et les notifications en direct peuvent déclencher une nouvelle requête mais ne prouvent jamais un changement d'autorité de la plateforme sans la vérité de la projection fixe.</dd>
+
+                            <dt b-xuatfcoy3y>Attente d'audit</dt>
+                            <dd b-xuatfcoy3y>Une preuve d'audit de portée système est attendue après l'acceptation de la commande et la confirmation de l'état prévu par la projection fixe.</dd>
+
+                            <dt b-xuatfcoy3y>Chemin de récupération</dt>
+                            <dd b-xuatfcoy3y>Relancer la consultation de statut, inspecter l'audit, continuer en lecture seule ou escalader à l'aide de références sûres pour le support. Un rechargement complet ou une nouvelle session fait perdre le suivi de la tentative en cours et les liens entre reçus d'audit.</dd></dl></section></fluent-accordion-item>
+                <fluent-accordion-item id="f7146675" heading-level="4" expanded block><span slot="heading">Cycle de vie de la correction
+            </span><section class="ga-correction-panel__lifecycle" tabindex="-1" data-testid="tenants-correction-lifecycle" aria-label="Cycle de vie de la correction" b-xuatfcoy3y blazor:elementReference="64e98df0-b76c-4932-9768-6208087481fa"><p class="ga-correction-panel__state ga-correction-panel__state--previewed" data-testid="tenants-correction-state" b-xuatfcoy3y>L'aperçu est prêt pour une confirmation explicite.</p></section></fluent-accordion-item></fluent-accordion>
+
+            <div class="fluent-stack-horizontal ga-correction-panel__actions" style="justify-content: start; align-items: start; column-gap: 0.5rem; width: 100%; flex-wrap: wrap;"><fluent-button appearance="primary" blazor:onclick="10" data-testid="tenants-correction-confirm" blazor:elementReference="3044ee58-895f-4332-b6a5-4da1d3e0956a">
+        Soumettre la commande corrective</fluent-button><fluent-button disabled appearance="outline" blazor:onclick="11" data-testid="tenants-correction-refresh" data-recovery-kind="status" blazor:elementReference="f2b477d5-98c9-424b-bf57-e9f738063744">
+        Actualiser l'état</fluent-button><fluent-button appearance="outline" blazor:onclick="12" data-testid="tenants-correction-cancel" blazor:elementReference="e6997924-33e7-43d5-9759-74cdab271ece">
+        Annuler</fluent-button></div></div></section>
+<section class="ga-correction-panel ga-correction-panel--previewed" role="region" aria-labelledby="tenants-correction-title" data-testid="tenants-correction-panel" blazor:onkeydown="13" b-xuatfcoy3y><div class="fluent-stack-vertical" style="justify-content: start; align-items: start; row-gap: 0.75rem; width: 100%;" data-testid="tenants-correction-preview"><header class="ga-correction-panel__header" b-xuatfcoy3y><div class="fluent-stack-vertical" style="justify-content: start; align-items: start; row-gap: 0.25rem; width: 100%;"><h3 id="tenants-correction-title" tabindex="-1" b-xuatfcoy3y>Démarrer la correction</h3>
+                    <p class="ga-correction-panel__live" data-testid="tenants-correction-live-region" aria-live="polite" aria-atomic="true" b-xuatfcoy3y>L'aperçu est prêt pour une confirmation explicite.</p></div>
+                <fluent-button appearance="outline" blazor:onclick="14" data-testid="tenants-correction-close" blazor:elementReference="dbda1e99-97fc-408f-8983-012435fdb9d9">
+        Fermer le démarrage de correction</fluent-button></header><dl class="ga-correction-panel__fields" b-xuatfcoy3y><dt b-xuatfcoy3y>Preuve d'origine</dt>
+                <dd data-testid="tenants-correction-original-evidence" b-xuatfcoy3y>event-safe-reference</dd>
+
+                <dt b-xuatfcoy3y>Heure de la preuve d’origine (UTC)</dt>
+                <dd data-testid="tenants-correction-original-time" b-xuatfcoy3y>2026-06-01 10:00:00 UTC</dd>
+
+                <dt b-xuatfcoy3y>Domaine de commande</dt>
+                <dd data-testid="tenants-correction-domain" b-xuatfcoy3y>Administrateurs globaux</dd>
+
+                <dt b-xuatfcoy3y>Commande prévue</dt>
+                <dd data-testid="tenants-correction-command" b-xuatfcoy3y>Définir l'administrateur global</dd>
+
+                <dt b-xuatfcoy3y>Portée d'autorité de la plateforme</dt>
+                <dd data-testid="tenants-correction-scope" b-xuatfcoy3y>system / global-administrators / global-administrators</dd>
+
+                <dt b-xuatfcoy3y>Utilisateur</dt>
+                <dd class="ga-correction-panel__literal-identity" data-testid="tenants-correction-target-user" b-xuatfcoy3y>ops\{U+202F}admin</dd>
+
+                <dt b-xuatfcoy3y>Nombre actuel d'administrateurs globaux</dt>
+                <dd data-testid="tenants-correction-admin-count" b-xuatfcoy3y>1</dd>
+
+                <dt b-xuatfcoy3y>Nombre d’administrateurs après la commande</dt>
+                <dd data-testid="tenants-correction-resulting-count" b-xuatfcoy3y>2</dd>
+
+                <dt b-xuatfcoy3y>Cible dans la projection courante</dt>
+                <dd data-testid="tenants-correction-current-state" b-xuatfcoy3y>Absent de la projection courante d'autorité de la plateforme.</dd>
+
+                <dt b-xuatfcoy3y>Preuve de projection</dt>
+                <dd data-testid="tenants-correction-provenance" b-xuatfcoy3y>Projection système complète et actuelle avec une version ordonnée.</dd>
+
+                <dt b-xuatfcoy3y>Autorité et admission de commande actuelles</dt>
+                <dd data-testid="tenants-correction-authority-admission" b-xuatfcoy3y>L’autorité de plateforme et l’admission de commande sont prêtes. La confirmation les vérifie à nouveau.</dd></dl>
+
+            <fluent-accordion expand-mode="multi" blazor:onaccordionchange="15"><fluent-accordion-item id="f287b78f" heading-level="4" expanded block><span slot="heading">Données requises pour l'aperçu
+            </span><section class="ga-correction-panel__preview" aria-label="Données requises pour l'aperçu" b-xuatfcoy3y><dl data-testid="tenants-correction-preview-data" b-xuatfcoy3y><dt b-xuatfcoy3y>Conséquences connues</dt>
+                            <dd b-xuatfcoy3y>Un nouvel événement d'octroi d'autorité de la plateforme peut être ajouté lorsque la projection fixe confirme que la cible est absente.</dd>
+
+                            <dt b-xuatfcoy3y>Impact sur le dernier administrateur</dt>
+                            <dd b-xuatfcoy3y>Le dernier administrateur global ne peut pas être retiré ; au moins un administrateur global doit subsister.</dd>
+
+                            <dt b-xuatfcoy3y>Inconnues connues</dt>
+                            <dd b-xuatfcoy3y>La consultation de statut et les notifications en direct peuvent déclencher une nouvelle requête mais ne prouvent jamais un changement d'autorité de la plateforme sans la vérité de la projection fixe.</dd>
+
+                            <dt b-xuatfcoy3y>Attente d'audit</dt>
+                            <dd b-xuatfcoy3y>Une preuve d'audit de portée système est attendue après l'acceptation de la commande et la confirmation de l'état prévu par la projection fixe.</dd>
+
+                            <dt b-xuatfcoy3y>Chemin de récupération</dt>
+                            <dd b-xuatfcoy3y>Relancer la consultation de statut, inspecter l'audit, continuer en lecture seule ou escalader à l'aide de références sûres pour le support. Un rechargement complet ou une nouvelle session fait perdre le suivi de la tentative en cours et les liens entre reçus d'audit.</dd></dl></section></fluent-accordion-item>
+                <fluent-accordion-item id="f7cfdb06" heading-level="4" expanded block><span slot="heading">Cycle de vie de la correction
+            </span><section class="ga-correction-panel__lifecycle" tabindex="-1" data-testid="tenants-correction-lifecycle" aria-label="Cycle de vie de la correction" b-xuatfcoy3y blazor:elementReference="e6ada5ea-a23a-468c-bddc-5636437a4dbc"><p class="ga-correction-panel__state ga-correction-panel__state--previewed" data-testid="tenants-correction-state" b-xuatfcoy3y>L'aperçu est prêt pour une confirmation explicite.</p></section></fluent-accordion-item></fluent-accordion>
+
+            <div class="fluent-stack-horizontal ga-correction-panel__actions" style="justify-content: start; align-items: start; column-gap: 0.5rem; width: 100%; flex-wrap: wrap;"><fluent-button appearance="primary" blazor:onclick="16" data-testid="tenants-correction-confirm" blazor:elementReference="6529c612-a731-4a28-b696-0d134819be99">
+        Soumettre la commande corrective</fluent-button><fluent-button disabled appearance="outline" blazor:onclick="17" data-testid="tenants-correction-refresh" data-recovery-kind="status" blazor:elementReference="07bc2e95-5578-4e90-808c-6032994d11d9">
+        Actualiser l'état</fluent-button><fluent-button appearance="outline" blazor:onclick="18" data-testid="tenants-correction-cancel" blazor:elementReference="3130671b-0268-4059-ab8a-a33176d39adc">
+        Annuler</fluent-button></div></div></section>
+<section class="ga-correction-panel ga-correction-panel--previewed" role="region" aria-labelledby="tenants-correction-title" data-testid="tenants-correction-panel" blazor:onkeydown="19" b-xuatfcoy3y><div class="fluent-stack-vertical" style="justify-content: start; align-items: start; row-gap: 0.75rem; width: 100%;" data-testid="tenants-correction-preview"><header class="ga-correction-panel__header" b-xuatfcoy3y><div class="fluent-stack-vertical" style="justify-content: start; align-items: start; row-gap: 0.25rem; width: 100%;"><h3 id="tenants-correction-title" tabindex="-1" b-xuatfcoy3y>Démarrer la correction</h3>
+                    <p class="ga-correction-panel__live" data-testid="tenants-correction-live-region" aria-live="polite" aria-atomic="true" b-xuatfcoy3y>L'aperçu est prêt pour une confirmation explicite.</p></div>
+                <fluent-button appearance="outline" blazor:onclick="20" data-testid="tenants-correction-close" blazor:elementReference="26fd3052-6d29-4f1f-8db1-c86ed035e15e">
+        Fermer le démarrage de correction</fluent-button></header><dl class="ga-correction-panel__fields" b-xuatfcoy3y><dt b-xuatfcoy3y>Preuve d'origine</dt>
+                <dd data-testid="tenants-correction-original-evidence" b-xuatfcoy3y>event-safe-reference</dd>
+
+                <dt b-xuatfcoy3y>Heure de la preuve d’origine (UTC)</dt>
+                <dd data-testid="tenants-correction-original-time" b-xuatfcoy3y>2026-06-01 10:00:00 UTC</dd>
+
+                <dt b-xuatfcoy3y>Domaine de commande</dt>
+                <dd data-testid="tenants-correction-domain" b-xuatfcoy3y>Administrateurs globaux</dd>
+
+                <dt b-xuatfcoy3y>Commande prévue</dt>
+                <dd data-testid="tenants-correction-command" b-xuatfcoy3y>Définir l'administrateur global</dd>
+
+                <dt b-xuatfcoy3y>Portée d'autorité de la plateforme</dt>
+                <dd data-testid="tenants-correction-scope" b-xuatfcoy3y>system / global-administrators / global-administrators</dd>
+
+                <dt b-xuatfcoy3y>Utilisateur</dt>
+                <dd class="ga-correction-panel__literal-identity" data-testid="tenants-correction-target-user" b-xuatfcoy3y>ops\{U+2009}admin</dd>
+
+                <dt b-xuatfcoy3y>Nombre actuel d'administrateurs globaux</dt>
+                <dd data-testid="tenants-correction-admin-count" b-xuatfcoy3y>1</dd>
+
+                <dt b-xuatfcoy3y>Nombre d’administrateurs après la commande</dt>
+                <dd data-testid="tenants-correction-resulting-count" b-xuatfcoy3y>2</dd>
+
+                <dt b-xuatfcoy3y>Cible dans la projection courante</dt>
+                <dd data-testid="tenants-correction-current-state" b-xuatfcoy3y>Absent de la projection courante d'autorité de la plateforme.</dd>
+
+                <dt b-xuatfcoy3y>Preuve de projection</dt>
+                <dd data-testid="tenants-correction-provenance" b-xuatfcoy3y>Projection système complète et actuelle avec une version ordonnée.</dd>
+
+                <dt b-xuatfcoy3y>Autorité et admission de commande actuelles</dt>
+                <dd data-testid="tenants-correction-authority-admission" b-xuatfcoy3y>L’autorité de plateforme et l’admission de commande sont prêtes. La confirmation les vérifie à nouveau.</dd></dl>
+
+            <fluent-accordion expand-mode="multi" blazor:onaccordionchange="21"><fluent-accordion-item id="f66a6cf0" heading-level="4" expanded block><span slot="heading">Données requises pour l'aperçu
+            </span><section class="ga-correction-panel__preview" aria-label="Données requises pour l'aperçu" b-xuatfcoy3y><dl data-testid="tenants-correction-preview-data" b-xuatfcoy3y><dt b-xuatfcoy3y>Conséquences connues</dt>
+                            <dd b-xuatfcoy3y>Un nouvel événement d'octroi d'autorité de la plateforme peut être ajouté lorsque la projection fixe confirme que la cible est absente.</dd>
+
+                            <dt b-xuatfcoy3y>Impact sur le dernier administrateur</dt>
+                            <dd b-xuatfcoy3y>Le dernier administrateur global ne peut pas être retiré ; au moins un administrateur global doit subsister.</dd>
+
+                            <dt b-xuatfcoy3y>Inconnues connues</dt>
+                            <dd b-xuatfcoy3y>La consultation de statut et les notifications en direct peuvent déclencher une nouvelle requête mais ne prouvent jamais un changement d'autorité de la plateforme sans la vérité de la projection fixe.</dd>
+
+                            <dt b-xuatfcoy3y>Attente d'audit</dt>
+                            <dd b-xuatfcoy3y>Une preuve d'audit de portée système est attendue après l'acceptation de la commande et la confirmation de l'état prévu par la projection fixe.</dd>
+
+                            <dt b-xuatfcoy3y>Chemin de récupération</dt>
+                            <dd b-xuatfcoy3y>Relancer la consultation de statut, inspecter l'audit, continuer en lecture seule ou escalader à l'aide de références sûres pour le support. Un rechargement complet ou une nouvelle session fait perdre le suivi de la tentative en cours et les liens entre reçus d'audit.</dd></dl></section></fluent-accordion-item>
+                <fluent-accordion-item id="f4467d2f" heading-level="4" expanded block><span slot="heading">Cycle de vie de la correction
+            </span><section class="ga-correction-panel__lifecycle" tabindex="-1" data-testid="tenants-correction-lifecycle" aria-label="Cycle de vie de la correction" b-xuatfcoy3y blazor:elementReference="01f854ce-5bf7-4949-ba6d-60f8382f51d4"><p class="ga-correction-panel__state ga-correction-panel__state--previewed" data-testid="tenants-correction-state" b-xuatfcoy3y>L'aperçu est prêt pour une confirmation explicite.</p></section></fluent-accordion-item></fluent-accordion>
+
+            <div class="fluent-stack-horizontal ga-correction-panel__actions" style="justify-content: start; align-items: start; column-gap: 0.5rem; width: 100%; flex-wrap: wrap;"><fluent-button appearance="primary" blazor:onclick="22" data-testid="tenants-correction-confirm" blazor:elementReference="9a38c22d-2326-468d-a05c-0a5edbebaa9e">
+        Soumettre la commande corrective</fluent-button><fluent-button disabled appearance="outline" blazor:onclick="23" data-testid="tenants-correction-refresh" data-recovery-kind="status" blazor:elementReference="f9e778b1-b712-46be-b940-038a58ba682c">
+        Actualiser l'état</fluent-button><fluent-button appearance="outline" blazor:onclick="24" data-testid="tenants-correction-cancel" blazor:elementReference="5e85e1a4-2795-4806-8201-edff704afaaf">
+        Annuler</fluent-button></div></div></section>
+<section class="ga-correction-panel ga-correction-panel--previewed" role="region" aria-labelledby="tenants-correction-title" data-testid="tenants-correction-panel" blazor:onkeydown="25" b-xuatfcoy3y><div class="fluent-stack-vertical" style="justify-content: start; align-items: start; row-gap: 0.75rem; width: 100%;" data-testid="tenants-correction-preview"><header class="ga-correction-panel__header" b-xuatfcoy3y><div class="fluent-stack-vertical" style="justify-content: start; align-items: start; row-gap: 0.25rem; width: 100%;"><h3 id="tenants-correction-title" tabindex="-1" b-xuatfcoy3y>Démarrer la correction</h3>
+                    <p class="ga-correction-panel__live" data-testid="tenants-correction-live-region" aria-live="polite" aria-atomic="true" b-xuatfcoy3y>L'aperçu est prêt pour une confirmation explicite.</p></div>
+                <fluent-button appearance="outline" blazor:onclick="26" data-testid="tenants-correction-close" blazor:elementReference="faab7c3d-893f-4ffd-a424-6a861a7406c1">
+        Fermer le démarrage de correction</fluent-button></header><dl class="ga-correction-panel__fields" b-xuatfcoy3y><dt b-xuatfcoy3y>Preuve d'origine</dt>
+                <dd data-testid="tenants-correction-original-evidence" b-xuatfcoy3y>event-safe-reference</dd>
+
+                <dt b-xuatfcoy3y>Heure de la preuve d’origine (UTC)</dt>
+                <dd data-testid="tenants-correction-original-time" b-xuatfcoy3y>2026-06-01 10:00:00 UTC</dd>
+
+                <dt b-xuatfcoy3y>Domaine de commande</dt>
+                <dd data-testid="tenants-correction-domain" b-xuatfcoy3y>Administrateurs globaux</dd>
+
+                <dt b-xuatfcoy3y>Commande prévue</dt>
+                <dd data-testid="tenants-correction-command" b-xuatfcoy3y>Définir l'administrateur global</dd>
+
+                <dt b-xuatfcoy3y>Portée d'autorité de la plateforme</dt>
+                <dd data-testid="tenants-correction-scope" b-xuatfcoy3y>system / global-administrators / global-administrators</dd>
+
+                <dt b-xuatfcoy3y>Utilisateur</dt>
+                <dd class="ga-correction-panel__literal-identity" data-testid="tenants-correction-target-user" b-xuatfcoy3y>ops\\{U+00A0}admin</dd>
+
+                <dt b-xuatfcoy3y>Nombre actuel d'administrateurs globaux</dt>
+                <dd data-testid="tenants-correction-admin-count" b-xuatfcoy3y>1</dd>
+
+                <dt b-xuatfcoy3y>Nombre d’administrateurs après la commande</dt>
+                <dd data-testid="tenants-correction-resulting-count" b-xuatfcoy3y>2</dd>
+
+                <dt b-xuatfcoy3y>Cible dans la projection courante</dt>
+                <dd data-testid="tenants-correction-current-state" b-xuatfcoy3y>Absent de la projection courante d'autorité de la plateforme.</dd>
+
+                <dt b-xuatfcoy3y>Preuve de projection</dt>
+                <dd data-testid="tenants-correction-provenance" b-xuatfcoy3y>Projection système complète et actuelle avec une version ordonnée.</dd>
+
+                <dt b-xuatfcoy3y>Autorité et admission de commande actuelles</dt>
+                <dd data-testid="tenants-correction-authority-admission" b-xuatfcoy3y>L’autorité de plateforme et l’admission de commande sont prêtes. La confirmation les vérifie à nouveau.</dd></dl>
+
+            <fluent-accordion expand-mode="multi" blazor:onaccordionchange="27"><fluent-accordion-item id="f51a73f8" heading-level="4" expanded block><span slot="heading">Données requises pour l'aperçu
+            </span><section class="ga-correction-panel__preview" aria-label="Données requises pour l'aperçu" b-xuatfcoy3y><dl data-testid="tenants-correction-preview-data" b-xuatfcoy3y><dt b-xuatfcoy3y>Conséquences connues</dt>
+                            <dd b-xuatfcoy3y>Un nouvel événement d'octroi d'autorité de la plateforme peut être ajouté lorsque la projection fixe confirme que la cible est absente.</dd>
+
+                            <dt b-xuatfcoy3y>Impact sur le dernier administrateur</dt>
+                            <dd b-xuatfcoy3y>Le dernier administrateur global ne peut pas être retiré ; au moins un administrateur global doit subsister.</dd>
+
+                            <dt b-xuatfcoy3y>Inconnues connues</dt>
+                            <dd b-xuatfcoy3y>La consultation de statut et les notifications en direct peuvent déclencher une nouvelle requête mais ne prouvent jamais un changement d'autorité de la plateforme sans la vérité de la projection fixe.</dd>
+
+                            <dt b-xuatfcoy3y>Attente d'audit</dt>
+                            <dd b-xuatfcoy3y>Une preuve d'audit de portée système est attendue après l'acceptation de la commande et la confirmation de l'état prévu par la projection fixe.</dd>
+
+                            <dt b-xuatfcoy3y>Chemin de récupération</dt>
+                            <dd b-xuatfcoy3y>Relancer la consultation de statut, inspecter l'audit, continuer en lecture seule ou escalader à l'aide de références sûres pour le support. Un rechargement complet ou une nouvelle session fait perdre le suivi de la tentative en cours et les liens entre reçus d'audit.</dd></dl></section></fluent-accordion-item>
+                <fluent-accordion-item id="f464c223" heading-level="4" expanded block><span slot="heading">Cycle de vie de la correction
+            </span><section class="ga-correction-panel__lifecycle" tabindex="-1" data-testid="tenants-correction-lifecycle" aria-label="Cycle de vie de la correction" b-xuatfcoy3y blazor:elementReference="188b68f6-5c5b-43ea-8b63-c1025f9557d6"><p class="ga-correction-panel__state ga-correction-panel__state--previewed" data-testid="tenants-correction-state" b-xuatfcoy3y>L'aperçu est prêt pour une confirmation explicite.</p></section></fluent-accordion-item></fluent-accordion>
+
+            <div class="fluent-stack-horizontal ga-correction-panel__actions" style="justify-content: start; align-items: start; column-gap: 0.5rem; width: 100%; flex-wrap: wrap;"><fluent-button appearance="primary" blazor:onclick="28" data-testid="tenants-correction-confirm" blazor:elementReference="92b99720-6de7-4f44-a44f-3f6e1bccbbe3">
+        Soumettre la commande corrective</fluent-button><fluent-button disabled appearance="outline" blazor:onclick="29" data-testid="tenants-correction-refresh" data-recovery-kind="status" blazor:elementReference="b90d1441-1186-400c-bf0b-8c893af7d965">
+        Actualiser l'état</fluent-button><fluent-button appearance="outline" blazor:onclick="30" data-testid="tenants-correction-cancel" blazor:elementReference="7cbde921-70a1-4d66-a4da-3bd23f70eb14">
+        Annuler</fluent-button></div></div></section>

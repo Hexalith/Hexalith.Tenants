@@ -5699,6 +5699,15 @@ public sealed class TenantAuditPageTests : BunitContext
                 ? TenantLifecycleAuthorizationReflectionState.Authorized
                 : TenantLifecycleAuthorizationReflectionState.Indeterminate;
 
+        public async ValueTask<string?> ResolveGlobalAdministratorRecoveryCallerAsync(CancellationToken cancellationToken = default)
+        {
+            if (!Authorized || GlobalAuthorizationFault is not null) return null;
+            if (GlobalAuthorizationTask is { } pending
+                && await pending.WaitAsync(cancellationToken).ConfigureAwait(false) is not TenantLifecycleAuthorizationReflectionState.Authorized)
+                return null;
+            return Authorized ? "operator" : null;
+        }
+
         public ValueTask<TenantLifecycleAuthorizationReflectionState> ResolveGlobalAdministratorsAuthorizationAsync(
             CancellationToken cancellationToken = default)
         {

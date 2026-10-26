@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-154/DW-387/DW-390/DW-568/DW-625 acceptance (2026-10-26):** Original-caller-bound MessageId recovery, distinguishing teardown controls, browser-qualified whitespace annotations and opaque index authority satisfy the selected five records. Debug/source UI 7,835/7,835, Server 1,527/1,527, focused generated-controller Integration 47/47, both teardown mutations and maintained/targeted Chromium checks pass. All 657 IDs remain: 620 done/37 open across 33 maintenance rows; all 652 unselected record bodies and original selected fields remain preserved. Broader Integration/runtime/release holds remain. See [validation evidence](validation-dw-154-387-390-568-625.md).
+
 **DW-408/DW-440/DW-450/DW-460/DW-474 closure (2026-10-26):** Approved audit compatibility, invariant UTC timestamps, shared badge anatomy and explicit receipt authority are implemented and independently reviewed. Final Debug source build has zero warnings/errors; all 7,762 UI tests and the maintained EN/FR Chromium normal/forced-color checks pass, including 16 targeted badge rejection controls. Exactly five records close: all 657 IDs remain, 615 done/42 open across 38 maintenance rows. Original findings, historical fields, all 652 other numbered records, dependencies and broader release/assistive-technology holds remain preserved. See [validation evidence](dw-408-440-450-460-474-validation-evidence.md).
 
 **DW-104/DW-432/DW-436/DW-594 closure (2026-10-25):** Fresh hosted production REST/UI and command-seeded persisted-state checks, 25 physical browser cases, measured layouts at 390, 768 and 1440 pixels with forced colors off/on and contextual audit Back qualify exactly four records. DW-161 remains open: pinned EventStore returns 200 instead of 304 and requires an approved shared-module/dependency change. All 657 IDs remain: 609 done/48 open across 43 maintenance rows. Historical fields, all 652 unselected records, accepted limitations and dependency pointers remain preserved. Broader CI/release holds remain. See [validation evidence](dw-104-161-432-436-594-validation-evidence.md).
@@ -1344,16 +1346,24 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-1-10-di
 location: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:997
 reason: The legacy ledger defers this issue: Two global-administrator teardown paths are knowingly unverified. Original context is preserved in legacy-detail.
 legacy-detail: - **Two global-administrator teardown paths are knowingly unverified** — un-marshalling the `ResetPagingAsync` cursor-history clear off the dispatcher, and neutering the `ObjectDisposedException` catch filter on the notification-refresh teardown, both survived the full UI suite. Reason for deferral: bUnit's single-threaded renderer cannot reproduce either race, so these are untestable at the current harness level rather than merely uncovered. Revisit if: a concurrency-capable component harness lands, or either path produces a live defect. Until then the code comments should say "unverified" rather than implying coverage. [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:997]
-status: open
-disposition: blocked
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor retains dispatcher-sensitive reset/notification teardown paths. Original mutation evidence says bUnit remains green without those guards; no concurrent teardown proof supersedes it.
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor
-evidence-kind: verified-gap
+pre-recovery-authority-status: open
+status: done 2026-10-26
+pre-recovery-authority-disposition: blocked
+disposition: done
+pre-recovery-authority-verification-date: 2026-10-12
+verification-date: 2026-10-26
+pre-recovery-authority-verification: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor retains dispatcher-sensitive reset/notification teardown paths. Original mutation evidence says bUnit remains green without those guards; no concurrent teardown proof supersedes it.
+verification: Deterministic worker/blocked-renderer reset and post-alive-check notification disposal tests distinguish both guards; both targeted mutations are rejected and exact source restoration is verified. Acceptance: UI 7835/7835, Server 1527/1527, generated-controller Integration 47/47 and maintained browser pass. Formal workflow review is recorded in validation-dw-154-387-390-568-625.md; broader Integration/runtime/release holds remain.
+pre-recovery-authority-verification-files: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor
+verification-files: _bmad-output/implementation-artifacts/validation-dw-154-387-390-568-625.md; _bmad-output/implementation-artifacts/spec-dw-154-387-390-568-625-recovery-and-evidence.md
+pre-recovery-authority-evidence-kind: verified-gap
+evidence-kind: verified-resolution
 priority: P2
 owner: unassigned
-dependencies: concurrent teardown harness
-next-action: Use a concurrency-capable renderer/browser harness to pin reset and disposed-notification behavior.
+pre-recovery-authority-dependencies: concurrent teardown harness
+dependencies: Satisfied for this selected scope; broader upstream/runtime/release and assistive-technology holds remain.
+pre-recovery-authority-next-action: Use a concurrency-capable renderer/browser harness to pin reset and disposed-notification behavior.
+next-action: None for this selected record; retain original findings, policy history and qualification limits.
 related: none
 
 ### DW-155: Paging guards widened to `internal` for direct test access
@@ -3277,22 +3287,31 @@ priority: P3
 archived: 2026-10-22
 
 ### DW-387: Correct ambiguous removal retry preflight and its blocked-state copy.
+decision: 2026-10-26 User approved recommended MessageId status lookup and conditional visible whitespace annotations on 2026-10-26.
 
 origin: migrated from unnumbered ledger ("Deferred from: code review of spec-4-2-grant-global-administrator-with-projection-confirmation.md (2026-09-22)"), 2026-10-12
 location: src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation.md`\n  summary: Correct ambiguous removal retry preflight and its blocked-state copy.\n  evidence: A response-lost successful removal can make the target absent, causing normal preview validation to strand same-id redispatch; other mismatch branches can display affirmative availability copy as the failure reason."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: GlobalAdministratorCorrectionPanel.razor::RetryAmbiguousDeliveryAsync re-composes normal removal preview and requires the old preview and current population to match (:1501-1527). A response-lost successful removal makes the target absent and fails these checks, retaining RequestSent/UnableToVerify before a same-id retry can reach server idempotency. Some failure branches now use explicit evidence copy, but the retry-preflight availability problem remains.
-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor
-evidence-kind: verified-defect
+pre-recovery-authority-status: open
+status: done 2026-10-26
+pre-recovery-authority-disposition: actionable
+disposition: done
+pre-recovery-authority-verification-date: 2026-10-12
+verification-date: 2026-10-26
+pre-recovery-authority-verification: GlobalAdministratorCorrectionPanel.razor::RetryAmbiguousDeliveryAsync re-composes normal removal preview and requires the old preview and current population to match (:1501-1527). A response-lost successful removal makes the target absent and fails these checks, retaining RequestSent/UnableToVerify before a same-id retry can reach server idempotency. Some failure branches now use explicit evidence copy, but the retry-preflight availability problem remains.
+verification: Approved MessageId status recovery resolves an ambiguous removal after target disappearance while retaining the original caller/ULID/lease, strict initial-removal safeguards and honest refusal evidence; no fresh removal is dispatched. Acceptance: UI 7835/7835, Server 1527/1527, generated-controller Integration 47/47 and maintained browser pass. Formal workflow review is recorded in validation-dw-154-387-390-568-625.md; broader Integration/runtime/release holds remain.
+pre-recovery-authority-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor
+verification-files: _bmad-output/implementation-artifacts/validation-dw-154-387-390-568-625.md; _bmad-output/implementation-artifacts/spec-dw-154-387-390-568-625-recovery-and-evidence.md
+pre-recovery-authority-evidence-kind: verified-defect
+evidence-kind: verified-resolution
 priority: P2
 owner: unassigned
-dependencies: Same-id idempotency/recovery contract
-next-action: Specify and test same-id removal recovery when the post-dispatch target is absent, preserving original ownership and complete last-administrator safeguards.
+pre-recovery-authority-dependencies: Same-id idempotency/recovery contract
+dependencies: Satisfied for this selected scope; broader upstream/runtime/release and assistive-technology holds remain.
+pre-recovery-authority-next-action: Specify and test same-id removal recovery when the post-dispatch target is absent, preserving original ownership and complete last-administrator safeguards.
+next-action: None for this selected record; retain original findings, policy history and qualification limits.
 related: DW-373
 
 
@@ -3313,21 +3332,30 @@ priority: P2
 archived: 2026-10-12
 
 ### DW-390: Verify visual distinctness for accepted identities containing non-ASCII whitespace.
+decision: 2026-10-26 User approved recommended MessageId status lookup and conditional visible whitespace annotations on 2026-10-26.
+verification-files: _bmad-output/implementation-artifacts/validation-dw-154-387-390-568-625.md; _bmad-output/implementation-artifacts/spec-dw-154-387-390-568-625-recovery-and-evidence.md
 
 origin: migrated from unnumbered ledger ("Deferred from: code review of spec-4-2-grant-global-administrator-with-projection-confirmation.md (2026-09-22)"), 2026-10-12
 location: n/a
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation.md`\n  summary: Verify visual distinctness for accepted identities containing non-ASCII whitespace.\n  evidence: This is maybe-false; compare accepted whitespace identities in supported browser/font combinations to determine whether literal visual rendering collides even though accessible names tokenize whitespace."
-status: open
-disposition: uncertain
-verification-date: 2026-10-12
-verification: GlobalAdministratorIdentityDisplay.Encode preserves literal whitespace while EncodeAccessible tokenizes it; GlobalAdministratorIdentityDisplayTests::Encode_PreservesLiteralWhitespaceAndDistinguishesFormatScalars and ::AccessibleEncodingTokenizesRepeatedAndEdgeWhitespaceWithoutChangingVisualEncoding confirm this intentional distinction. No retained supported-browser/font screenshot comparison proves whether distinct non-ASCII whitespace identities collide visually.
-evidence-kind: unverified-risk
+pre-recovery-authority-status: open
+status: done 2026-10-26
+pre-recovery-authority-disposition: uncertain
+disposition: done
+pre-recovery-authority-verification-date: 2026-10-12
+verification-date: 2026-10-26
+pre-recovery-authority-verification: GlobalAdministratorIdentityDisplay.Encode preserves literal whitespace while EncodeAccessible tokenizes it; GlobalAdministratorIdentityDisplayTests::Encode_PreservesLiteralWhitespaceAndDistinguishesFormatScalars and ::AccessibleEncodingTokenizesRepeatedAndEdgeWhitespaceWithoutChangingVisualEncoding confirm this intentional distinction. No retained supported-browser/font screenshot comparison proves whether distinct non-ASCII whitespace identities collide visually.
+verification: Observed literal-whitespace pixel collisions are resolved with visible non-ASCII Unicode scalar annotations. Eight actual-rendered EN/FR Chromium/Linux normal/forced-color cases prove five distinct identities; original command/clipboard values remain exact. No Windows-font, other-browser or human assistive-technology claim. Acceptance: UI 7835/7835, Server 1527/1527, generated-controller Integration 47/47 and maintained browser pass. Formal workflow review is recorded in validation-dw-154-387-390-568-625.md; broader Integration/runtime/release holds remain.
+pre-recovery-authority-evidence-kind: unverified-risk
+evidence-kind: verified-resolution
 priority: P2
 owner: unassigned
-dependencies: none
-next-action: Capture side-by-side supported-browser/font rendering of accepted whitespace identities and compare visible distinction with accessible names.
+pre-recovery-authority-dependencies: none
+dependencies: Satisfied for this selected scope; broader upstream/runtime/release and assistive-technology holds remain.
+pre-recovery-authority-next-action: Capture side-by-side supported-browser/font rendering of accepted whitespace identities and compare visible distinction with accessible names.
+next-action: None for this selected record; retain original findings, policy history and qualification limits.
 related: DW-391
 
 
@@ -5255,21 +5283,29 @@ archived: 2026-10-13
 Diff reviewed: Tenants `96cc6f11..cdd0c80c` (the pass-29 fix pass); input `/tmp/tenants-56-pass31-diff-IbVNh1.patch`, 89,787 bytes, SHA-256 `f726d22b3611a2146a432c1924104405e3279ab02e80d5612b3dd25ad585b923`, not archived. Triage: 41 findings, 2 decisions (both resolved to option (a), adding 2 patches), 6 patches, 1 defer (new), 14 rejected.
 
 ### DW-568: medium if true (unverified, maybe-false); the version-derived producer ETag cannot reach audit, index or global-administrator reads, because only `TenantReadModel` is stamped with a `ProjectionVersion`.
+verification-files: _bmad-output/implementation-artifacts/validation-dw-154-387-390-568-625.md; _bmad-output/implementation-artifacts/spec-dw-154-387-390-568-625-recovery-and-evidence.md
 
 origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 31 (2026-10-09)"), 2026-10-12
 location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: medium if true (unverified, maybe-false); the version-derived producer ETag cannot reach audit, index or global-administrator reads, because only `TenantReadModel` is stamped with a `ProjectionVersion`.\n  evidence: `src/Hexalith.Tenants/Queries/TenantQueryResult.cs:50` falls back to `readModel?.ProjectionVersion` when the store ETag is absent. Only `TenantProjectionHandler.cs:236-250` assigns a version (`tenant-sequence:N`). `TenantIndexReadModel`, `TenantAuditReadModel` and `GlobalAdministratorReadModel` declare `ProjectionVersion`, but nothing in Tenants or EventStore assigns it. When their store ETag is absent, metadata is null and those surfaces fail closed under Story 4.2's rule, which blocks audit evidence and global-administrator grant/remove previews. Pass 29's rationale (\"all four read models carry a `ProjectionVersion`\") was wrong. To settle: probe whether live audit or global-administrator reads ever lack a store ETag. Pass 27 reported none for tenant detail; pass 30 observed `1`; the live audit test asserts `ProjectionBacked`. If they do, stamp sequence versions in those three projections."
-status: open
-disposition: uncertain
-verification-date: 2026-10-12
-verification: Original blanket no-version assertion is partly superseded: GlobalAdministratorProjectionHandler now stamps singleton and audit:system sequence versions. TenantIndexReadModel and tenant audit merge still lack producer versions. Missing evidence: live index/tenant-audit reads without store ETags and the intended cross-aggregate index validator.
-evidence-kind: unverified-risk
+pre-recovery-authority-status: open
+status: done 2026-10-26
+pre-recovery-authority-disposition: uncertain
+disposition: done
+pre-recovery-authority-verification-date: 2026-10-12
+verification-date: 2026-10-26
+pre-recovery-authority-verification: Original blanket no-version assertion is partly superseded: GlobalAdministratorProjectionHandler now stamps singleton and audit:system sequence versions. TenantIndexReadModel and tenant audit merge still lack producer versions. Missing evidence: live index/tenant-audit reads without store ETags and the intended cross-aggregate index validator.
+verification: A domain-owned opaque SHA-256 index validator fingerprints sorted committed semantics and all positive owner watermarks inside the retry transform. Incomplete legacy coverage remains uncertified; persisted projection-to-REST-to-UI no-store-ETag checks qualify index and existing audit authority with store-tag precedence. Acceptance: UI 7835/7835, Server 1527/1527, generated-controller Integration 47/47 and maintained browser pass. Formal workflow review is recorded in validation-dw-154-387-390-568-625.md; broader Integration/runtime/release holds remain.
+pre-recovery-authority-evidence-kind: unverified-risk
+evidence-kind: verified-resolution
 priority: P2
 owner: unassigned
-dependencies: Live store ETag behavior and index-version contract
-next-action: Capture safe metadata for index and tenant-audit reads with absent store ETags before deciding remaining stamping work.
+pre-recovery-authority-dependencies: Live store ETag behavior and index-version contract
+dependencies: Satisfied for this selected scope; broader upstream/runtime/release and assistive-technology holds remain.
+pre-recovery-authority-next-action: Capture safe metadata for index and tenant-audit reads with absent store ETags before deciding remaining stamping work.
+next-action: None for this selected record; retain original findings, policy history and qualification limits.
 related: DW-624
 
 
@@ -5899,21 +5935,30 @@ priority: P2
 archived: 2026-10-12
 
 ### DW-625: medium; an ambiguous global-administrator delivery that actually committed can never be redelivered or resolved in the same circuit. Owner: global-administrator command lifecycle (Stories 4.2/4.3 policy, reused by 5.7).
+decision: 2026-10-26 User approved recommended MessageId status lookup and conditional visible whitespace annotations on 2026-10-26.
+verification-files: _bmad-output/implementation-artifacts/validation-dw-154-387-390-568-625.md; _bmad-output/implementation-artifacts/spec-dw-154-387-390-568-625-recovery-and-evidence.md
 
 origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-7-correct-global-administrator-authority-from-audit-evidence.md (2026-10-11)"), 2026-10-12
 location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`\n  summary: medium; an ambiguous global-administrator delivery that actually committed can never be redelivered or resolved in the same circuit. Owner: global-administrator command lifecycle (Stories 4.2/4.3 policy, reused by 5.7).\n  evidence:\n  - **Code:** `GlobalAdministratorCorrectionPanel.RetryAmbiguousDeliveryAsync` (`:1349-1383` restore, `:1384-1420` removal) and `GlobalAdministratorsPage` `WithdrawDeliveryRetry` withdraw same-ULID redelivery once the projection no longer matches the preview.\n  - **Consequence:** a POST that committed but returned an ambiguous result changes that projection. The attempt then stays ambiguous without a correlation, and the fixed-aggregate admission lease stays held until a new circuit.\n  - **To settle:** choose between two fixes: (a) idempotent same-MessageId redelivery that is allowed after preconditions change, or (b) a MessageId-keyed status lookup. Either must keep the \"never dispatch already-applied work\" boundary."
-status: open
-disposition: awaiting-decision
-verification-date: 2026-10-12
-verification: GlobalAdministratorCorrectionPanel.RetryAmbiguousDeliveryAsync still requires the original grant/removal preview to match current projection; GlobalAdministratorsPage similarly withdraws delivery retries. An actually committed ambiguous request can change that projection while lacking correlation. Existing no-already-applied-dispatch policy is preserved.
-evidence-kind: verified-defect
+pre-recovery-authority-status: open
+status: done 2026-10-26
+pre-recovery-authority-disposition: awaiting-decision
+disposition: done
+pre-recovery-authority-verification-date: 2026-10-12
+verification-date: 2026-10-26
+pre-recovery-authority-verification: GlobalAdministratorCorrectionPanel.RetryAmbiguousDeliveryAsync still requires the original grant/removal preview to match current projection; GlobalAdministratorsPage similarly withdraws delivery retries. An actually committed ambiguous request can change that projection while lacking correlation. Existing no-already-applied-dispatch policy is preserved.
+verification: User approved exact MessageId status recovery rather than changed-precondition redispatch. Both main-page and correction grant/removal flows recover correlation only after complete scope/original-caller validation, reject queued caller changes and retain late/remounted evidence without weakening exact confirmation or self-demotion redaction. Acceptance: UI 7835/7835, Server 1527/1527, generated-controller Integration 47/47 and maintained browser pass. Formal workflow review is recorded in validation-dw-154-387-390-568-625.md; broader Integration/runtime/release holds remain.
+pre-recovery-authority-evidence-kind: verified-defect
+evidence-kind: verified-resolution
 priority: P2
 owner: global-administrator command lifecycle (Stories 4.2/4.3 policy, reused by 5.7)
-dependencies: Platform MessageId lookup/idempotent redelivery capability
-next-action: Choose an authorized MessageId status lookup or compatible same-ID resolution route that preserves the settled dispatch boundary.
+pre-recovery-authority-dependencies: Platform MessageId lookup/idempotent redelivery capability
+dependencies: Satisfied for this selected scope; broader upstream/runtime/release and assistive-technology holds remain.
+pre-recovery-authority-next-action: Choose an authorized MessageId status lookup or compatible same-ID resolution route that preserves the settled dispatch boundary.
+next-action: None for this selected record; retain original findings, policy history and qualification limits.
 related: none
 
 

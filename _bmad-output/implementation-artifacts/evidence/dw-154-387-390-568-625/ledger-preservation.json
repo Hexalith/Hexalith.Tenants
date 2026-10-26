@@ -1,0 +1,18 @@
+{
+  "baseline": "bd9b458bf80a4defbd80dea769b9ffb39f84e4f6",
+  "selected": [
+    154,
+    387,
+    390,
+    568,
+    625
+  ],
+  "preserved_unselected_records": 652,
+  "total": 657,
+  "counts": {
+    "done": 620,
+    "open": 37
+  },
+  "index_rows": 33,
+  "index_exact_coverage": true
+}

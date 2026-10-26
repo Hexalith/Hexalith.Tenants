@@ -1,0 +1,456 @@
+{
+  "normalization": "PNG decode/unfilter, 8-bit RGB; alpha composited over white; dimensions included; PNG metadata ignored",
+  "positive_groups": [
+    {
+      "distinct": true,
+      "collisions": [],
+      "crops": [
+        {
+          "file": "annotated-en-1440-none-0.png",
+          "dimensions": [
+            273,
+            18
+          ],
+          "rgb_sha256": "74c7c2aa47dc2908312b0b0b0683ba44ec7b36dd269e51c2c853d9d3608dc489"
+        },
+        {
+          "file": "annotated-en-1440-none-1.png",
+          "dimensions": [
+            273,
+            18
+          ],
+          "rgb_sha256": "560fd994f5cf2dd75d48865951893833a1b01b9082febfe3b3c48dd38ba691cc"
+        },
+        {
+          "file": "annotated-en-1440-none-2.png",
+          "dimensions": [
+            273,
+            18
+          ],
+          "rgb_sha256": "9c9081bb0986dc93c471c75f0989e77f6b9857a314dff17c8c91d67bd0811a1f"
+        },
+        {
+          "file": "annotated-en-1440-none-3.png",
+          "dimensions": [
+            273,
+            18
+          ],
+          "rgb_sha256": "1e13b7792aade836ae9a81dd2fa34aba43b7a6753724fe1486d81143a7f8401f"
+        },
+        {
+          "file": "annotated-en-1440-none-4.png",
+          "dimensions": [
+            273,
+            18
+          ],
+          "rgb_sha256": "2d5e0974b0ffe32910381e43e66db61fdee752b0fe65913c8a29df0433f09f94"
+        }
+      ]
+    },
+    {
+      "distinct": true,
+      "collisions": [],
+      "crops": [
+        {
+          "file": "annotated-en-1440-active-0.png",
+          "dimensions": [
+            273,
+            18
+          ],
+          "rgb_sha256": "74c7c2aa47dc2908312b0b0b0683ba44ec7b36dd269e51c2c853d9d3608dc489"
+        },
+        {
+          "file": "annotated-en-1440-active-1.png",
+          "dimensions": [
+            273,
+            18
+          ],
+          "rgb_sha256": "560fd994f5cf2dd75d48865951893833a1b01b9082febfe3b3c48dd38ba691cc"
+        },
+        {
+          "file": "annotated-en-1440-active-2.png",
+          "dimensions": [
+            273,
+            18
+          ],
+          "rgb_sha256": "9c9081bb0986dc93c471c75f0989e77f6b9857a314dff17c8c91d67bd0811a1f"
+        },
+        {
+          "file": "annotated-en-1440-active-3.png",
+          "dimensions": [
+            273,
+            18
+          ],
+          "rgb_sha256": "1e13b7792aade836ae9a81dd2fa34aba43b7a6753724fe1486d81143a7f8401f"
+        },
+        {
+          "file": "annotated-en-1440-active-4.png",
+          "dimensions": [
+            273,
+            18
+          ],
+          "rgb_sha256": "2d5e0974b0ffe32910381e43e66db61fdee752b0fe65913c8a29df0433f09f94"
+        }
+      ]
+    },
+    {
+      "distinct": true,
+      "collisions": [],
+      "crops": [
+        {
+          "file": "annotated-en-390-none-0.png",
+          "dimensions": [
+            348,
+            18
+          ],
+          "rgb_sha256": "45f3ae8e9a82f94b9cc5a181567c3e04e02fd1a9def916d51badfa1c41379b1b"
+        },
+        {
+          "file": "annotated-en-390-none-1.png",
+          "dimensions": [
+            348,
+            18
+          ],
+          "rgb_sha256": "2d15d8226c8c749655d14b779835b90e3720d15a8d0da39b6dc0bb7742c9daab"
+        },
+        {
+          "file": "annotated-en-390-none-2.png",
+          "dimensions": [
+            348,
+            18
+          ],
+          "rgb_sha256": "57b334668a59fb41a0fae630a2713cbe2305c18468b8aee1aaea4f2dbb433419"
+        },
+        {
+          "file": "annotated-en-390-none-3.png",
+          "dimensions": [
+            348,
+            18
+          ],
+          "rgb_sha256": "a08adc8ef121ff1551ce2c1448a0e86834e58dc67f745ac01d876d021cd6ee83"
+        },
+        {
+          "file": "annotated-en-390-none-4.png",
+          "dimensions": [
+            348,
+            18
+          ],
+          "rgb_sha256": "c22482edcb6b8f7f74463460749dfcf874e9f12cdf9be6ed49589b2a61b54670"
+        }
+      ]
+    },
+    {
+      "distinct": true,
+      "collisions": [],
+      "crops": [
+        {
+          "file": "annotated-en-390-active-0.png",
+          "dimensions": [
+            348,
+            18
+          ],
+          "rgb_sha256": "45f3ae8e9a82f94b9cc5a181567c3e04e02fd1a9def916d51badfa1c41379b1b"
+        },
+        {
+          "file": "annotated-en-390-active-1.png",
+          "dimensions": [
+            348,
+            18
+          ],
+          "rgb_sha256": "2d15d8226c8c749655d14b779835b90e3720d15a8d0da39b6dc0bb7742c9daab"
+        },
+        {
+          "file": "annotated-en-390-active-2.png",
+          "dimensions": [
+            348,
+            18
+          ],
+          "rgb_sha256": "57b334668a59fb41a0fae630a2713cbe2305c18468b8aee1aaea4f2dbb433419"
+        },
+        {
+          "file": "annotated-en-390-active-3.png",
+          "dimensions": [
+            348,
+            18
+          ],
+          "rgb_sha256": "a08adc8ef121ff1551ce2c1448a0e86834e58dc67f745ac01d876d021cd6ee83"
+        },
+        {
+          "file": "annotated-en-390-active-4.png",
+          "dimensions": [
+            348,
+            18
+          ],
+          "rgb_sha256": "c22482edcb6b8f7f74463460749dfcf874e9f12cdf9be6ed49589b2a61b54670"
+        }
+      ]
+    },
+    {
+      "distinct": true,
+      "collisions": [],
+      "crops": [
+        {
+          "file": "annotated-fr-1440-none-0.png",
+          "dimensions": [
+            239,
+            36
+          ],
+          "rgb_sha256": "8df81ba61a224400dfc9ea0fa8c8e7277a54f45bd20368a990116ff97246407c"
+        },
+        {
+          "file": "annotated-fr-1440-none-1.png",
+          "dimensions": [
+            239,
+            36
+          ],
+          "rgb_sha256": "188a63975ac347000d6fb11c1cc1fc1aad1bc52452e4cabf2e5797f0de8eac42"
+        },
+        {
+          "file": "annotated-fr-1440-none-2.png",
+          "dimensions": [
+            239,
+            36
+          ],
+          "rgb_sha256": "e9c91f3c2e6f61d2ed55e0c53462f3d22aeb4c73d4a653306e71d06bd9b53bd8"
+        },
+        {
+          "file": "annotated-fr-1440-none-3.png",
+          "dimensions": [
+            239,
+            36
+          ],
+          "rgb_sha256": "b7753c69d9740644149e4ab7fc8fa49b4b1342bfb2115274538ba226fcc56b04"
+        },
+        {
+          "file": "annotated-fr-1440-none-4.png",
+          "dimensions": [
+            239,
+            36
+          ],
+          "rgb_sha256": "a68b13d04823a65bea389820c8fd6f7a5b0882fb65e6b86eaaa0b43536881cad"
+        }
+      ]
+    },
+    {
+      "distinct": true,
+      "collisions": [],
+      "crops": [
+        {
+          "file": "annotated-fr-1440-active-0.png",
+          "dimensions": [
+            239,
+            36
+          ],
+          "rgb_sha256": "8df81ba61a224400dfc9ea0fa8c8e7277a54f45bd20368a990116ff97246407c"
+        },
+        {
+          "file": "annotated-fr-1440-active-1.png",
+          "dimensions": [
+            239,
+            36
+          ],
+          "rgb_sha256": "188a63975ac347000d6fb11c1cc1fc1aad1bc52452e4cabf2e5797f0de8eac42"
+        },
+        {
+          "file": "annotated-fr-1440-active-2.png",
+          "dimensions": [
+            239,
+            36
+          ],
+          "rgb_sha256": "e9c91f3c2e6f61d2ed55e0c53462f3d22aeb4c73d4a653306e71d06bd9b53bd8"
+        },
+        {
+          "file": "annotated-fr-1440-active-3.png",
+          "dimensions": [
+            239,
+            36
+          ],
+          "rgb_sha256": "b7753c69d9740644149e4ab7fc8fa49b4b1342bfb2115274538ba226fcc56b04"
+        },
+        {
+          "file": "annotated-fr-1440-active-4.png",
+          "dimensions": [
+            239,
+            36
+          ],
+          "rgb_sha256": "a68b13d04823a65bea389820c8fd6f7a5b0882fb65e6b86eaaa0b43536881cad"
+        }
+      ]
+    },
+    {
+      "distinct": true,
+      "collisions": [],
+      "crops": [
+        {
+          "file": "annotated-fr-390-none-0.png",
+          "dimensions": [
+            348,
+            18
+          ],
+          "rgb_sha256": "45f3ae8e9a82f94b9cc5a181567c3e04e02fd1a9def916d51badfa1c41379b1b"
+        },
+        {
+          "file": "annotated-fr-390-none-1.png",
+          "dimensions": [
+            348,
+            18
+          ],
+          "rgb_sha256": "2d15d8226c8c749655d14b779835b90e3720d15a8d0da39b6dc0bb7742c9daab"
+        },
+        {
+          "file": "annotated-fr-390-none-2.png",
+          "dimensions": [
+            348,
+            18
+          ],
+          "rgb_sha256": "57b334668a59fb41a0fae630a2713cbe2305c18468b8aee1aaea4f2dbb433419"
+        },
+        {
+          "file": "annotated-fr-390-none-3.png",
+          "dimensions": [
+            348,
+            18
+          ],
+          "rgb_sha256": "a08adc8ef121ff1551ce2c1448a0e86834e58dc67f745ac01d876d021cd6ee83"
+        },
+        {
+          "file": "annotated-fr-390-none-4.png",
+          "dimensions": [
+            348,
+            18
+          ],
+          "rgb_sha256": "c22482edcb6b8f7f74463460749dfcf874e9f12cdf9be6ed49589b2a61b54670"
+        }
+      ]
+    },
+    {
+      "distinct": true,
+      "collisions": [],
+      "crops": [
+        {
+          "file": "annotated-fr-390-active-0.png",
+          "dimensions": [
+            348,
+            18
+          ],
+          "rgb_sha256": "45f3ae8e9a82f94b9cc5a181567c3e04e02fd1a9def916d51badfa1c41379b1b"
+        },
+        {
+          "file": "annotated-fr-390-active-1.png",
+          "dimensions": [
+            348,
+            18
+          ],
+          "rgb_sha256": "2d15d8226c8c749655d14b779835b90e3720d15a8d0da39b6dc0bb7742c9daab"
+        },
+        {
+          "file": "annotated-fr-390-active-2.png",
+          "dimensions": [
+            348,
+            18
+          ],
+          "rgb_sha256": "57b334668a59fb41a0fae630a2713cbe2305c18468b8aee1aaea4f2dbb433419"
+        },
+        {
+          "file": "annotated-fr-390-active-3.png",
+          "dimensions": [
+            348,
+            18
+          ],
+          "rgb_sha256": "a08adc8ef121ff1551ce2c1448a0e86834e58dc67f745ac01d876d021cd6ee83"
+        },
+        {
+          "file": "annotated-fr-390-active-4.png",
+          "dimensions": [
+            348,
+            18
+          ],
+          "rgb_sha256": "c22482edcb6b8f7f74463460749dfcf874e9f12cdf9be6ed49589b2a61b54670"
+        }
+      ]
+    }
+  ],
+  "literal_fixture_mutation": {
+    "distinct": false,
+    "collisions": [
+      [
+        "literal-mutation-0.png",
+        "literal-mutation-1.png"
+      ],
+      [
+        "literal-mutation-2.png",
+        "literal-mutation-3.png"
+      ]
+    ],
+    "crops": [
+      {
+        "file": "literal-mutation-0.png",
+        "dimensions": [
+          348,
+          18
+        ],
+        "rgb_sha256": "45f3ae8e9a82f94b9cc5a181567c3e04e02fd1a9def916d51badfa1c41379b1b"
+      },
+      {
+        "file": "literal-mutation-1.png",
+        "dimensions": [
+          348,
+          18
+        ],
+        "rgb_sha256": "45f3ae8e9a82f94b9cc5a181567c3e04e02fd1a9def916d51badfa1c41379b1b"
+      },
+      {
+        "file": "literal-mutation-2.png",
+        "dimensions": [
+          348,
+          18
+        ],
+        "rgb_sha256": "4a75f7c8347bd8acd29e0b9cd682f453a824f807fc6ab89edc2eecb73ff0c3d1"
+      },
+      {
+        "file": "literal-mutation-3.png",
+        "dimensions": [
+          348,
+          18
+        ],
+        "rgb_sha256": "4a75f7c8347bd8acd29e0b9cd682f453a824f807fc6ab89edc2eecb73ff0c3d1"
+      },
+      {
+        "file": "literal-mutation-4.png",
+        "dimensions": [
+          348,
+          18
+        ],
+        "rgb_sha256": "2d15d8226c8c749655d14b779835b90e3720d15a8d0da39b6dc0bb7742c9daab"
+      }
+    ]
+  },
+  "initial_known_collision": {
+    "distinct": false,
+    "collisions": [
+      [
+        "literal-0.png",
+        "literal-1.png"
+      ]
+    ],
+    "crops": [
+      {
+        "file": "literal-0.png",
+        "dimensions": [
+          340,
+          39
+        ],
+        "rgb_sha256": "793b1b7483fd22a7038e2d9d829337b258e1a725ab402e676b2ddd4899c5ceba"
+      },
+      {
+        "file": "literal-1.png",
+        "dimensions": [
+          340,
+          39
+        ],
+        "rgb_sha256": "793b1b7483fd22a7038e2d9d829337b258e1a725ab402e676b2ddd4899c5ceba"
+      }
+    ]
+  },
+  "literal_mutation_rejected_by_positive_visual_check": true
+}

@@ -1,0 +1,834 @@
+{
+  "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+  "cases": [
+    {
+      "culture": "en",
+      "width": 1440,
+      "forcedColors": "none",
+      "status": "passed",
+      "report": "PASS en five exact annotated identities",
+      "expected": [
+        "ops admin",
+        "ops\\{U+00A0}admin",
+        "ops\\{U+202F}admin",
+        "ops\\{U+2009}admin",
+        "ops\\\\{U+00A0}admin"
+      ],
+      "identities": [
+        {
+          "display": "ops admin",
+          "fonts": [
+            {
+              "familyName": "Liberation Sans",
+              "postScriptName": "LiberationSans",
+              "isCustomFont": false,
+              "glyphCount": 9
+            }
+          ],
+          "accessibleNames": [
+            "ops admin",
+            "Start correction",
+            "DW-390 actual annotated identity fixtures"
+          ]
+        },
+        {
+          "display": "ops\\{U+00A0}admin",
+          "fonts": [
+            {
+              "familyName": "Liberation Sans",
+              "postScriptName": "LiberationSans",
+              "isCustomFont": false,
+              "glyphCount": 17
+            }
+          ],
+          "accessibleNames": [
+            "ops\\{U+00A0}admin",
+            "Start correction",
+            "DW-390 actual annotated identity fixtures"
+          ]
+        },
+        {
+          "display": "ops\\{U+202F}admin",
+          "fonts": [
+            {
+              "familyName": "Liberation Sans",
+              "postScriptName": "LiberationSans",
+              "isCustomFont": false,
+              "glyphCount": 17
+            }
+          ],
+          "accessibleNames": [
+            "ops\\{U+202F}admin",
+            "Start correction",
+            "DW-390 actual annotated identity fixtures"
+          ]
+        },
+        {
+          "display": "ops\\{U+2009}admin",
+          "fonts": [
+            {
+              "familyName": "Liberation Sans",
+              "postScriptName": "LiberationSans",
+              "isCustomFont": false,
+              "glyphCount": 17
+            }
+          ],
+          "accessibleNames": [
+            "ops\\{U+2009}admin",
+            "Start correction",
+            "DW-390 actual annotated identity fixtures"
+          ]
+        },
+        {
+          "display": "ops\\\\{U+00A0}admin",
+          "fonts": [
+            {
+              "familyName": "Liberation Sans",
+              "postScriptName": "LiberationSans",
+              "isCustomFont": false,
+              "glyphCount": 18
+            }
+          ],
+          "accessibleNames": [
+            "ops\\\\{U+00A0}admin",
+            "Start correction",
+            "DW-390 actual annotated identity fixtures"
+          ]
+        }
+      ],
+      "identityScreenshotSha256": [
+        "49c466d947d0fc8395ff4887db807bb35f8f1907ae17fa3438e9babb4038cb5d",
+        "0ac43e5344a8cbcc09255303ae2cae04f08dfd289dc79ab1e3932c0932980bfd",
+        "e1d0c7dd11a538695195395652c5c39257eb5b352cdfbd6fe5fc79af7befde38",
+        "6b5c87b56e1bc63511e0c9f4151e8558a6163acbab683b3633e307f44faf6d5f",
+        "6b8f751e73294786a2f1c64e3c56aeffad21cd5b9ab9f7d28d35f9355d4a8871"
+      ]
+    },
+    {
+      "culture": "en",
+      "width": 1440,
+      "forcedColors": "active",
+      "status": "passed",
+      "report": "PASS en five exact annotated identities",
+      "expected": [
+        "ops admin",
+        "ops\\{U+00A0}admin",
+        "ops\\{U+202F}admin",
+        "ops\\{U+2009}admin",
+        "ops\\\\{U+00A0}admin"
+      ],
+      "identities": [
+        {
+          "display": "ops admin",
+          "fonts": [
+            {
+              "familyName": "Liberation Sans",
+              "postScriptName": "LiberationSans",
+              "isCustomFont": false,
+              "glyphCount": 9
+            }
+          ],
+          "accessibleNames": [
+            "ops admin",
+            "Start correction",
+            "DW-390 actual annotated identity fixtures"
+          ]
+        },
+        {
+          "display": "ops\\{U+00A0}admin",
+          "fonts": [
+            {
+              "familyName": "Liberation Sans",
+              "postScriptName": "LiberationSans",
+              "isCustomFont": false,
+              "glyphCount": 17
+            }
+          ],
+          "accessibleNames": [
+            "ops\\{U+00A0}admin",
+            "Start correction",
+            "DW-390 actual annotated identity fixtures"
+          ]
+        },
+        {
+          "display": "ops\\{U+202F}admin",
+          "fonts": [
+            {
+              "familyName": "Liberation Sans",
+              "postScriptName": "LiberationSans",
+              "isCustomFont": false,
+              "glyphCount": 17
+            }
+          ],
+          "accessibleNames": [
+            "ops\\{U+202F}admin",
+            "Start correction",
+            "DW-390 actual annotated identity fixtures"
+          ]
+        },
+        {
+          "display": "ops\\{U+2009}admin",
+          "fonts": [
+            {
+              "familyName": "Liberation Sans",
+              "postScriptName": "LiberationSans",
+              "isCustomFont": false,
+              "glyphCount": 17
+            }
+          ],
+          "accessibleNames": [
+            "ops\\{U+2009}admin",
+            "Start correction",
+            "DW-390 actual annotated identity fixtures"
+          ]
+        },
+        {
+          "display": "ops\\\\{U+00A0}admin",
+          "fonts": [
+            {
+              "familyName": "Liberation Sans",
+              "postScriptName": "LiberationSans",
+              "isCustomFont": false,
+              "glyphCount": 18
+            }
+          ],
+          "accessibleNames": [
+            "ops\\\\{U+00A0}admin",
+            "Start correction",
+            "DW-390 actual annotated identity fixtures"
+          ]
+        }
+      ],
+      "identityScreenshotSha256": [
+        "49c466d947d0fc8395ff4887db807bb35f8f1907ae17fa3438e9babb4038cb5d",
+        "0ac43e5344a8cbcc09255303ae2cae04f08dfd289dc79ab1e3932c0932980bfd",
+        "e1d0c7dd11a538695195395652c5c39257eb5b352cdfbd6fe5fc79af7befde38",
+        "6b5c87b56e1bc63511e0c9f4151e8558a6163acbab683b3633e307f44faf6d5f",
+        "6b8f751e73294786a2f1c64e3c56aeffad21cd5b9ab9f7d28d35f9355d4a8871"
+      ]
+    },
+    {
+      "culture": "en",
+      "width": 390,
+      "forcedColors": "none",
+      "status": "passed",
+      "report": "PASS en five exact annotated identities",
+      "expected": [
+        "ops admin",
+        "ops\\{U+00A0}admin",
+        "ops\\{U+202F}admin",
+        "ops\\{U+2009}admin",
+        "ops\\\\{U+00A0}admin"
+      ],
+      "identities": [
+        {
+          "display": "ops admin",
+          "fonts": [
+            {
+              "familyName": "Liberation Sans",
+              "postScriptName": "LiberationSans",
+              "isCustomFont": false,
+              "glyphCount": 9
+            }
+          ],
+          "accessibleNames": [
+            "ops admin",
+            "Start correction",
+            "DW-390 actual annotated identity fixtures"
+          ]
+        },
+        {
+          "display": "ops\\{U+00A0}admin",
+          "fonts": [
+            {
+              "familyName": "Liberation Sans",
+              "postScriptName": "LiberationSans",
+              "isCustomFont": false,
+              "glyphCount": 17
+            }
+          ],
+          "accessibleNames": [
+            "ops\\{U+00A0}admin",
+            "Start correction",
+            "DW-390 actual annotated identity fixtures"
+          ]
+        },
+        {
+          "display": "ops\\{U+202F}admin",
+          "fonts": [
+            {
+              "familyName": "Liberation Sans",
+              "postScriptName": "LiberationSans",
+              "isCustomFont": false,
+              "glyphCount": 17
+            }
+          ],
+          "accessibleNames": [
+            "ops\\{U+202F}admin",
+            "Start correction",
+            "DW-390 actual annotated identity fixtures"
+          ]
+        },
+        {
+          "display": "ops\\{U+2009}admin",
+          "fonts": [
+            {
+              "familyName": "Liberation Sans",
+              "postScriptName": "LiberationSans",
+              "isCustomFont": false,
+              "glyphCount": 17
+            }
+          ],
+          "accessibleNames": [
+            "ops\\{U+2009}admin",
+            "Start correction",
+            "DW-390 actual annotated identity fixtures"
+          ]
+        },
+        {
+          "display": "ops\\\\{U+00A0}admin",
+          "fonts": [
+            {
+              "familyName": "Liberation Sans",
+              "postScriptName": "LiberationSans",
+              "isCustomFont": false,
+              "glyphCount": 18
+            }
+          ],
+          "accessibleNames": [
+            "ops\\\\{U+00A0}admin",
+            "Start correction",
+            "DW-390 actual annotated identity fixtures"
+          ]
+        }
+      ],
+      "identityScreenshotSha256": [
+        "3fa3381f2408bb27c2f96976bf0439cb2bd617c2d888bdbb0880f7d6130d08e1",
+        "735d9b46444e326f2caec0560021f1bcc53360119c5c345f32e9d50f45f02b80",
+        "79dd3910b83349728ee998b17f6fbf351b949d6e07240a33de62d26c69b51ae4",
+        "e536c7b651fcabe3ef87ad3c5fb21b0b888c244a04c7980b1d01c15c2976ca8f",
+        "2112b604f54215be9521fc1627286f770ae662e75a53bd415ebed63106c23b22"
+      ]
+    },
+    {
+      "culture": "en",
+      "width": 390,
+      "forcedColors": "active",
+      "status": "passed",
+      "report": "PASS en five exact annotated identities",
+      "expected": [
+        "ops admin",
+        "ops\\{U+00A0}admin",
+        "ops\\{U+202F}admin",
+        "ops\\{U+2009}admin",
+        "ops\\\\{U+00A0}admin"
+      ],
+      "identities": [
+        {
+          "display": "ops admin",
+          "fonts": [
+            {
+              "familyName": "Liberation Sans",
+              "postScriptName": "LiberationSans",
+              "isCustomFont": false,
+              "glyphCount": 9
+            }
+          ],
+          "accessibleNames": [
+            "ops admin",
+            "Start correction",
+            "DW-390 actual annotated identity fixtures"
+          ]
+        },
+        {
+          "display": "ops\\{U+00A0}admin",
+          "fonts": [
+            {
+              "familyName": "Liberation Sans",
+              "postScriptName": "LiberationSans",
+              "isCustomFont": false,
+              "glyphCount": 17
+            }
+          ],
+          "accessibleNames": [
+            "ops\\{U+00A0}admin",
+            "Start correction",
+            "DW-390 actual annotated identity fixtures"
+          ]
+        },
+        {
+          "display": "ops\\{U+202F}admin",
+          "fonts": [
+            {
+              "familyName": "Liberation Sans",
+              "postScriptName": "LiberationSans",
+              "isCustomFont": false,
+              "glyphCount": 17
+            }
+          ],
+          "accessibleNames": [
+            "ops\\{U+202F}admin",
+            "Start correction",
+            "DW-390 actual annotated identity fixtures"
+          ]
+        },
+        {
+          "display": "ops\\{U+2009}admin",
+          "fonts": [
+            {
+              "familyName": "Liberation Sans",
+              "postScriptName": "LiberationSans",
+              "isCustomFont": false,
+              "glyphCount": 17
+            }
+          ],
+          "accessibleNames": [
+            "ops\\{U+2009}admin",
+            "Start correction",
+            "DW-390 actual annotated identity fixtures"
+          ]
+        },
+        {
+          "display": "ops\\\\{U+00A0}admin",
+          "fonts": [
+            {
+              "familyName": "Liberation Sans",
+              "postScriptName": "LiberationSans",
+              "isCustomFont": false,
+              "glyphCount": 18
+            }
+          ],
+          "accessibleNames": [
+            "ops\\\\{U+00A0}admin",
+            "Start correction",
+            "DW-390 actual annotated identity fixtures"
+          ]
+        }
+      ],
+      "identityScreenshotSha256": [
+        "3fa3381f2408bb27c2f96976bf0439cb2bd617c2d888bdbb0880f7d6130d08e1",
+        "735d9b46444e326f2caec0560021f1bcc53360119c5c345f32e9d50f45f02b80",
+        "79dd3910b83349728ee998b17f6fbf351b949d6e07240a33de62d26c69b51ae4",
+        "e536c7b651fcabe3ef87ad3c5fb21b0b888c244a04c7980b1d01c15c2976ca8f",
+        "2112b604f54215be9521fc1627286f770ae662e75a53bd415ebed63106c23b22"
+      ]
+    },
+    {
+      "culture": "fr",
+      "width": 1440,
+      "forcedColors": "none",
+      "status": "passed",
+      "report": "PASS fr five exact annotated identities",
+      "expected": [
+        "ops admin",
+        "ops\\{U+00A0}admin",
+        "ops\\{U+202F}admin",
+        "ops\\{U+2009}admin",
+        "ops\\\\{U+00A0}admin"
+      ],
+      "identities": [
+        {
+          "display": "ops admin",
+          "fonts": [
+            {
+              "familyName": "Liberation Sans",
+              "postScriptName": "LiberationSans",
+              "isCustomFont": false,
+              "glyphCount": 9
+            }
+          ],
+          "accessibleNames": [
+            "ops admin",
+            "Démarrer la correction",
+            "DW-390 actual annotated identity fixtures"
+          ]
+        },
+        {
+          "display": "ops\\{U+00A0}admin",
+          "fonts": [
+            {
+              "familyName": "Liberation Sans",
+              "postScriptName": "LiberationSans",
+              "isCustomFont": false,
+              "glyphCount": 17
+            }
+          ],
+          "accessibleNames": [
+            "ops\\{U+00A0}admin",
+            "Démarrer la correction",
+            "DW-390 actual annotated identity fixtures"
+          ]
+        },
+        {
+          "display": "ops\\{U+202F}admin",
+          "fonts": [
+            {
+              "familyName": "Liberation Sans",
+              "postScriptName": "LiberationSans",
+              "isCustomFont": false,
+              "glyphCount": 17
+            }
+          ],
+          "accessibleNames": [
+            "ops\\{U+202F}admin",
+            "Démarrer la correction",
+            "DW-390 actual annotated identity fixtures"
+          ]
+        },
+        {
+          "display": "ops\\{U+2009}admin",
+          "fonts": [
+            {
+              "familyName": "Liberation Sans",
+              "postScriptName": "LiberationSans",
+              "isCustomFont": false,
+              "glyphCount": 17
+            }
+          ],
+          "accessibleNames": [
+            "ops\\{U+2009}admin",
+            "Démarrer la correction",
+            "DW-390 actual annotated identity fixtures"
+          ]
+        },
+        {
+          "display": "ops\\\\{U+00A0}admin",
+          "fonts": [
+            {
+              "familyName": "Liberation Sans",
+              "postScriptName": "LiberationSans",
+              "isCustomFont": false,
+              "glyphCount": 18
+            }
+          ],
+          "accessibleNames": [
+            "ops\\\\{U+00A0}admin",
+            "Démarrer la correction",
+            "DW-390 actual annotated identity fixtures"
+          ]
+        }
+      ],
+      "identityScreenshotSha256": [
+        "9937beedf0f2dc1ea64f33d49dbf2d92218fcf5b4e112cefcb3178d73d83b594",
+        "ada643d8c89d5f9a2ed8a90bf87823919d80371ec34a97f0596c95e7c79f1510",
+        "9c659151fe0e1b6655e503dd0f46742f34aaf1cc76477377bd95ba25ceb45764",
+        "defc1d0cca0273172335e82aa483cb1502a61e1a69f8f5805ce0acc8b33086ac",
+        "a0377b95cfed15aef14081da6b829de66e126f997645bfe17b08858c9b531eb3"
+      ]
+    },
+    {
+      "culture": "fr",
+      "width": 1440,
+      "forcedColors": "active",
+      "status": "passed",
+      "report": "PASS fr five exact annotated identities",
+      "expected": [
+        "ops admin",
+        "ops\\{U+00A0}admin",
+        "ops\\{U+202F}admin",
+        "ops\\{U+2009}admin",
+        "ops\\\\{U+00A0}admin"
+      ],
+      "identities": [
+        {
+          "display": "ops admin",
+          "fonts": [
+            {
+              "familyName": "Liberation Sans",
+              "postScriptName": "LiberationSans",
+              "isCustomFont": false,
+              "glyphCount": 9
+            }
+          ],
+          "accessibleNames": [
+            "ops admin",
+            "Démarrer la correction",
+            "DW-390 actual annotated identity fixtures"
+          ]
+        },
+        {
+          "display": "ops\\{U+00A0}admin",
+          "fonts": [
+            {
+              "familyName": "Liberation Sans",
+              "postScriptName": "LiberationSans",
+              "isCustomFont": false,
+              "glyphCount": 17
+            }
+          ],
+          "accessibleNames": [
+            "ops\\{U+00A0}admin",
+            "Démarrer la correction",
+            "DW-390 actual annotated identity fixtures"
+          ]
+        },
+        {
+          "display": "ops\\{U+202F}admin",
+          "fonts": [
+            {
+              "familyName": "Liberation Sans",
+              "postScriptName": "LiberationSans",
+              "isCustomFont": false,
+              "glyphCount": 17
+            }
+          ],
+          "accessibleNames": [
+            "ops\\{U+202F}admin",
+            "Démarrer la correction",
+            "DW-390 actual annotated identity fixtures"
+          ]
+        },
+        {
+          "display": "ops\\{U+2009}admin",
+          "fonts": [
+            {
+              "familyName": "Liberation Sans",
+              "postScriptName": "LiberationSans",
+              "isCustomFont": false,
+              "glyphCount": 17
+            }
+          ],
+          "accessibleNames": [
+            "ops\\{U+2009}admin",
+            "Démarrer la correction",
+            "DW-390 actual annotated identity fixtures"
+          ]
+        },
+        {
+          "display": "ops\\\\{U+00A0}admin",
+          "fonts": [
+            {
+              "familyName": "Liberation Sans",
+              "postScriptName": "LiberationSans",
+              "isCustomFont": false,
+              "glyphCount": 18
+            }
+          ],
+          "accessibleNames": [
+            "ops\\\\{U+00A0}admin",
+            "Démarrer la correction",
+            "DW-390 actual annotated identity fixtures"
+          ]
+        }
+      ],
+      "identityScreenshotSha256": [
+        "9937beedf0f2dc1ea64f33d49dbf2d92218fcf5b4e112cefcb3178d73d83b594",
+        "ada643d8c89d5f9a2ed8a90bf87823919d80371ec34a97f0596c95e7c79f1510",
+        "9c659151fe0e1b6655e503dd0f46742f34aaf1cc76477377bd95ba25ceb45764",
+        "defc1d0cca0273172335e82aa483cb1502a61e1a69f8f5805ce0acc8b33086ac",
+        "a0377b95cfed15aef14081da6b829de66e126f997645bfe17b08858c9b531eb3"
+      ]
+    },
+    {
+      "culture": "fr",
+      "width": 390,
+      "forcedColors": "none",
+      "status": "passed",
+      "report": "PASS fr five exact annotated identities",
+      "expected": [
+        "ops admin",
+        "ops\\{U+00A0}admin",
+        "ops\\{U+202F}admin",
+        "ops\\{U+2009}admin",
+        "ops\\\\{U+00A0}admin"
+      ],
+      "identities": [
+        {
+          "display": "ops admin",
+          "fonts": [
+            {
+              "familyName": "Liberation Sans",
+              "postScriptName": "LiberationSans",
+              "isCustomFont": false,
+              "glyphCount": 9
+            }
+          ],
+          "accessibleNames": [
+            "ops admin",
+            "Démarrer la correction",
+            "DW-390 actual annotated identity fixtures"
+          ]
+        },
+        {
+          "display": "ops\\{U+00A0}admin",
+          "fonts": [
+            {
+              "familyName": "Liberation Sans",
+              "postScriptName": "LiberationSans",
+              "isCustomFont": false,
+              "glyphCount": 17
+            }
+          ],
+          "accessibleNames": [
+            "ops\\{U+00A0}admin",
+            "Démarrer la correction",
+            "DW-390 actual annotated identity fixtures"
+          ]
+        },
+        {
+          "display": "ops\\{U+202F}admin",
+          "fonts": [
+            {
+              "familyName": "Liberation Sans",
+              "postScriptName": "LiberationSans",
+              "isCustomFont": false,
+              "glyphCount": 17
+            }
+          ],
+          "accessibleNames": [
+            "ops\\{U+202F}admin",
+            "Démarrer la correction",
+            "DW-390 actual annotated identity fixtures"
+          ]
+        },
+        {
+          "display": "ops\\{U+2009}admin",
+          "fonts": [
+            {
+              "familyName": "Liberation Sans",
+              "postScriptName": "LiberationSans",
+              "isCustomFont": false,
+              "glyphCount": 17
+            }
+          ],
+          "accessibleNames": [
+            "ops\\{U+2009}admin",
+            "Démarrer la correction",
+            "DW-390 actual annotated identity fixtures"
+          ]
+        },
+        {
+          "display": "ops\\\\{U+00A0}admin",
+          "fonts": [
+            {
+              "familyName": "Liberation Sans",
+              "postScriptName": "LiberationSans",
+              "isCustomFont": false,
+              "glyphCount": 18
+            }
+          ],
+          "accessibleNames": [
+            "ops\\\\{U+00A0}admin",
+            "Démarrer la correction",
+            "DW-390 actual annotated identity fixtures"
+          ]
+        }
+      ],
+      "identityScreenshotSha256": [
+        "3fa3381f2408bb27c2f96976bf0439cb2bd617c2d888bdbb0880f7d6130d08e1",
+        "735d9b46444e326f2caec0560021f1bcc53360119c5c345f32e9d50f45f02b80",
+        "79dd3910b83349728ee998b17f6fbf351b949d6e07240a33de62d26c69b51ae4",
+        "e536c7b651fcabe3ef87ad3c5fb21b0b888c244a04c7980b1d01c15c2976ca8f",
+        "2112b604f54215be9521fc1627286f770ae662e75a53bd415ebed63106c23b22"
+      ]
+    },
+    {
+      "culture": "fr",
+      "width": 390,
+      "forcedColors": "active",
+      "status": "passed",
+      "report": "PASS fr five exact annotated identities",
+      "expected": [
+        "ops admin",
+        "ops\\{U+00A0}admin",
+        "ops\\{U+202F}admin",
+        "ops\\{U+2009}admin",
+        "ops\\\\{U+00A0}admin"
+      ],
+      "identities": [
+        {
+          "display": "ops admin",
+          "fonts": [
+            {
+              "familyName": "Liberation Sans",
+              "postScriptName": "LiberationSans",
+              "isCustomFont": false,
+              "glyphCount": 9
+            }
+          ],
+          "accessibleNames": [
+            "ops admin",
+            "Démarrer la correction",
+            "DW-390 actual annotated identity fixtures"
+          ]
+        },
+        {
+          "display": "ops\\{U+00A0}admin",
+          "fonts": [
+            {
+              "familyName": "Liberation Sans",
+              "postScriptName": "LiberationSans",
+              "isCustomFont": false,
+              "glyphCount": 17
+            }
+          ],
+          "accessibleNames": [
+            "ops\\{U+00A0}admin",
+            "Démarrer la correction",
+            "DW-390 actual annotated identity fixtures"
+          ]
+        },
+        {
+          "display": "ops\\{U+202F}admin",
+          "fonts": [
+            {
+              "familyName": "Liberation Sans",
+              "postScriptName": "LiberationSans",
+              "isCustomFont": false,
+              "glyphCount": 17
+            }
+          ],
+          "accessibleNames": [
+            "ops\\{U+202F}admin",
+            "Démarrer la correction",
+            "DW-390 actual annotated identity fixtures"
+          ]
+        },
+        {
+          "display": "ops\\{U+2009}admin",
+          "fonts": [
+            {
+              "familyName": "Liberation Sans",
+              "postScriptName": "LiberationSans",
+              "isCustomFont": false,
+              "glyphCount": 17
+            }
+          ],
+          "accessibleNames": [
+            "ops\\{U+2009}admin",
+            "Démarrer la correction",
+            "DW-390 actual annotated identity fixtures"
+          ]
+        },
+        {
+          "display": "ops\\\\{U+00A0}admin",
+          "fonts": [
+            {
+              "familyName": "Liberation Sans",
+              "postScriptName": "LiberationSans",
+              "isCustomFont": false,
+              "glyphCount": 18
+            }
+          ],
+          "accessibleNames": [
+            "ops\\\\{U+00A0}admin",
+            "Démarrer la correction",
+            "DW-390 actual annotated identity fixtures"
+          ]
+        }
+      ],
+      "identityScreenshotSha256": [
+        "3fa3381f2408bb27c2f96976bf0439cb2bd617c2d888bdbb0880f7d6130d08e1",
+        "735d9b46444e326f2caec0560021f1bcc53360119c5c345f32e9d50f45f02b80",
+        "79dd3910b83349728ee998b17f6fbf351b949d6e07240a33de62d26c69b51ae4",
+        "e536c7b651fcabe3ef87ad3c5fb21b0b888c244a04c7980b1d01c15c2976ca8f",
+        "2112b604f54215be9521fc1627286f770ae662e75a53bd415ebed63106c23b22"
+      ]
+    }
+  ],
+  "mutation": {
+    "status": "failed",
+    "report": "FAIL Wrong display scalar at 1"
+  },
+  "provenance": "Unmodified bUnit-rendered correction identity fixtures from current Debug source test assembly. Production Fluent module and compiled scoped stylesheet. Prescribed Segoe UI/sans-serif test typography; CDP records actual platform fonts. No live command egress or human assistive-technology qualification is claimed."
+}

@@ -208,6 +208,7 @@ public sealed class TenantProjectionHandler {
                         model.AggregateSequences[request.AggregateId] = batchHighWatermark.Value;
                     }
 
+                    model.ProjectionVersion = TenantIndexProjectionVersion.Create(model);
                     return model;
                 },
                 new ReadModelWriteContext(TenantIndexKeyCategory, nameof(TenantIndexReadModel)).WithEventDiagnostics(events),

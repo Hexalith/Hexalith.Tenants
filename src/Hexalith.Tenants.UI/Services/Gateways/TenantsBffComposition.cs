@@ -359,6 +359,18 @@ internal sealed class TenantsBffComposition(
                 "Tenants.GlobalAdministrators.Grant.Preview.Recovery.Localization");
     }
 
+    public async ValueTask<string?> ResolveGlobalAdministratorRecoveryCallerAsync(CancellationToken cancellationToken = default)
+    {
+        if (principalResolver is null)
+        {
+            return null;
+        }
+
+        TenantConfigurationPrincipalEvidence evidence = await principalResolver.ResolveAsync(cancellationToken).ConfigureAwait(false);
+        return evidence.State is TenantConfigurationPrincipalEvidenceState.GlobalAdministrator
+            && !string.IsNullOrWhiteSpace(evidence.Subject) ? evidence.Subject : null;
+    }
+
     public async ValueTask<GlobalAdministratorRemovePreview> ComposeGlobalAdministratorRemovePreviewAsync(
         string targetUserId,
         GlobalAdministratorsSnapshot completeSnapshot,

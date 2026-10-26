@@ -1,0 +1,46 @@
+{
+  "ui-source-build": {
+    "raw_log": "review-ui-source-build.txt",
+    "sha256": "4c1bfae5e37393f01d841b10519f5adbd5c8ceecf5a7778f7664e5059bd01004"
+  },
+  "ui-tests-build": {
+    "raw_log": "review-ui-tests-build.txt",
+    "sha256": "76ccaf2c2eabe0e66c7791ac5ba7fdf64c1a7599a3eaec13ab121cbc30556e66"
+  },
+  "ui-focused": {
+    "raw_log": "review-ui-focused.txt",
+    "sha256": "85b6d79b25cbc28b96f87dbaf942da5266a0b076972d49579c4db5856365aeaf",
+    "summary": "   Hexalith.Tenants.UI.Tests  Total: 679, Errors: 0, Failed: 0, Skipped: 0, Not Run: 0, Time: 20.764s"
+  },
+  "server-source-build": {
+    "raw_log": "review-server-source-build.txt",
+    "sha256": "9f0741962d155cfa403cec7660cb57b192b8f78292ebe195e237cefa7b5a9f21"
+  },
+  "server-tests-build": {
+    "raw_log": "review-server-tests-build.txt",
+    "sha256": "3da277edd16d4a5c28bb99e250fe600501058e3bad6d904d6b0f0d4b29a17c52"
+  },
+  "server-projection-tests": {
+    "raw_log": "review-server-projection-tests.txt",
+    "sha256": "f35af79a0bb109b654084b6f294fb1ebf6b30fb1ad7cc5e24606815f54713156",
+    "summary": "   Hexalith.Tenants.Server.Tests  Total: 83, Errors: 0, Failed: 0, Skipped: 0, Not Run: 0, Time: 0.296s"
+  },
+  "server-documentation-test": {
+    "raw_log": "review-server-documentation-test.txt",
+    "sha256": "69f2250f8b3aadf4a10f659d82378d0bb0ffbe082aec35b3ee3e0da35a2fa7b2",
+    "summary": "   Hexalith.Tenants.Server.Tests  Total: 1, Errors: 0, Failed: 0, Skipped: 0, Not Run: 0, Time: 0.086s"
+  },
+  "browser-reproduction": {
+    "raw_log": "review-browser-reproduction.txt",
+    "sha256": "9b266d798b1b226eddeb4abba9fdda9bf6d9d74a3c58ba1d6107a46f9c3548f7"
+  },
+  "audit-fixture-build": {
+    "raw_log": "review-audit-fixture-build.txt",
+    "sha256": "b05ca6cf1c606dd02f36b70879f1accfda807273c536bed2f3ab8c52d4d6e15a"
+  },
+  "audit-fixture-tests": {
+    "raw_log": "review-audit-fixture-tests.txt",
+    "sha256": "9ad475fdeefb9955c45668e3e9a37d30e3ff3e856131d4d1536c61ec1e9e9d50",
+    "summary": "   Hexalith.Tenants.UI.Tests  Total: 270, Errors: 0, Failed: 0, Skipped: 0, Not Run: 0, Time: 9.674s"
+  }
+}

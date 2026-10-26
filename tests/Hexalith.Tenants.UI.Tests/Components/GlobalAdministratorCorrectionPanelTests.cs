@@ -31,7 +31,7 @@ using Shouldly;
 
 namespace Hexalith.Tenants.UI.Tests.Components;
 
-public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
+public sealed partial class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
 {
     [Theory]
     [InlineData("en", "desktop")]
@@ -1967,6 +1967,7 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
             owner,
             out TenantAggregateCommandLease? lease).ShouldBeTrue();
         lease!.TryMarkDispatched(owner).ShouldBeTrue();
+        lease.RecoveryCallerSubject = "operator";
         if (snapshot.ToReconciliation() is { } reconciliation)
         {
             lease.TryAdvanceReconciliation(owner, reconciliation).ShouldBeTrue();
@@ -2033,6 +2034,7 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
             owner,
             out TenantAggregateCommandLease? lease).ShouldBeTrue();
         lease.ShouldNotBeNull().TryMarkDispatched(owner).ShouldBeTrue();
+        lease.RecoveryCallerSubject = "operator";
         if (snapshot.ToReconciliation() is { } reconciliation)
         {
             lease.TryAdvanceReconciliation(owner, reconciliation).ShouldBeTrue();
@@ -2080,6 +2082,7 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
             owner,
             out TenantAggregateCommandLease? lease).ShouldBeTrue();
         lease.ShouldNotBeNull().TryMarkDispatched(owner).ShouldBeTrue();
+        lease.RecoveryCallerSubject = "operator";
         if (snapshot.ToReconciliation() is { } reconciliation)
         {
             lease.TryAdvanceReconciliation(owner, reconciliation).ShouldBeTrue();
@@ -2492,6 +2495,7 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
             originalOwner,
             out TenantAggregateCommandLease? lease).ShouldBeTrue();
         lease!.TryMarkDispatched(originalOwner).ShouldBeTrue();
+        lease.RecoveryCallerSubject = "operator";
         GlobalAdministratorGrantPreview preview = GlobalAdministratorGrantPreview.Create(
             "admin-user",
             Projection("other-admin"),
@@ -2638,7 +2642,11 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
         int submitStart = source.IndexOf("private async Task SubmitAsync()", StringComparison.Ordinal);
         int submitEnd = source.IndexOf("private async Task RefreshStatusAsync()", submitStart, StringComparison.Ordinal);
         string submit = source[submitStart..submitEnd];
-        int assignment = submit.IndexOf("_admissionLease = acquiredLease", StringComparison.Ordinal);
+        int retainedBeforeRead = submit.IndexOf("_admissionLease = acquiredLease", StringComparison.Ordinal);
+        int callerRead = submit.IndexOf("acquiredLease.RecoveryCallerSubject = await", StringComparison.Ordinal);
+        retainedBeforeRead.ShouldBeGreaterThan(-1);
+        callerRead.ShouldBeGreaterThan(retainedBeforeRead);
+        int assignment = submit.LastIndexOf("_admissionLease = acquiredLease", StringComparison.Ordinal);
         int callback = submit.LastIndexOf("await InvokeRendererSafelyAsync(() =>", assignment, StringComparison.Ordinal);
         int operationGuard = submit.IndexOf("CanApplyOperation(generation)", callback, StringComparison.Ordinal);
         int dispatchGuard = submit.IndexOf("acquiredLease.TryBeginInitialReconciliationDispatch(", callback, StringComparison.Ordinal);
@@ -2767,6 +2775,7 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
             originalOwner,
             out TenantAggregateCommandLease? lease).ShouldBeTrue();
         lease!.TryMarkDispatched(originalOwner).ShouldBeTrue();
+        lease.RecoveryCallerSubject = "operator";
         GlobalAdministratorGrantPreview preview = GlobalAdministratorGrantPreview.Create(
             "admin-user",
             Projection("other-admin"),
@@ -2973,6 +2982,7 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
             out TenantAggregateCommandLease? lease).ShouldBeTrue();
         lease.ShouldNotBeNull();
         lease.TryMarkDispatched(originalOwner).ShouldBeTrue();
+        lease.RecoveryCallerSubject = "operator";
         lease.TryRetainReconciliation(
             originalOwner,
             new(
@@ -3503,6 +3513,7 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
             out TenantAggregateCommandLease? lease).ShouldBeTrue();
         lease.ShouldNotBeNull();
         lease.TryMarkDispatched(owner).ShouldBeTrue();
+        lease.RecoveryCallerSubject = "operator";
         GlobalAdministratorGrantPreview? preview = actionKind is GlobalAdministratorActionKind.Grant
             ? GlobalAdministratorGrantPreview.Create(
                 targetUserId,
@@ -3783,6 +3794,18 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
             return ReturnConfiguredTrackedIdentity ? result : result with { MessageId = messageId };
         }
 
+        public TenantCommandStatusResult RecoveryResult { get; set; } = new(CommandStatus.Received, HasVerifiedCommandIdentity: true)
+        { RecoveredCorrelationId = "tracking-safe" };
+        public List<string> RecoveryMessageIds { get; } = [];
+        public Task<TenantCommandStatusResult>? RecoveryTask { get; set; }
+        public TaskCompletionSource RecoveryEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public async Task<TenantCommandStatusResult> RecoverGlobalAdministratorStatusAsync(string messageId, CancellationToken cancellationToken = default)
+        {
+            RecoveryMessageIds.Add(messageId);
+            RecoveryEntered.TrySetResult();
+            return RecoveryTask is null ? RecoveryResult : await RecoveryTask.ConfigureAwait(false);
+        }
+
         public async Task<TenantCommandStatusResult> GetStatusAsync(
             TenantCommandTrackingHandle handle,
             CancellationToken cancellationToken = default)
@@ -3872,6 +3895,18 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
 
         public TenantLifecycleAuthorizationReflectionState GlobalAdministratorsAuthorizationReflection
             => SynchronousReflection;
+
+        public string? RecoveryCaller { get; set; } = "operator";
+
+        public Func<CancellationToken, ValueTask<string?>>? RecoveryCallerResolver { get; set; }
+        private int _recoveryCallerResolutions;
+        public TaskCompletionSource RecoveryCallerRechecked { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public ValueTask<string?> ResolveGlobalAdministratorRecoveryCallerAsync(CancellationToken cancellationToken = default)
+        {
+            string? result = RecoveryCaller;
+            if (Interlocked.Increment(ref _recoveryCallerResolutions) == 3) RecoveryCallerRechecked.TrySetResult();
+            return RecoveryCallerResolver?.Invoke(cancellationToken) ?? ValueTask.FromResult(result);
+        }
 
         public ValueTask<TenantLifecycleAuthorizationReflectionState> ResolveGlobalAdministratorsAuthorizationAsync(
             CancellationToken cancellationToken = default)

@@ -1,0 +1,82 @@
+{
+  "ui-all": {
+    "summary": [
+      "   Hexalith.Tenants.UI.Tests  Total: 7791, Errors: 0, Failed: 0, Skipped: 0, Not Run: 0, Time: 110.664s"
+    ],
+    "failures": [],
+    "sha256": "1cc1aadb3cba28bbc28473566488eb65ff5e207dac7db8f8db12a50bbc49deb0",
+    "full_log": "/tmp/tenants-five-ui-all.log",
+    "portable_raw_log": {
+      "archive": "raw-logs.tar.gz",
+      "member": "raw-logs/initial-suite-results-ui-all.txt",
+      "sha256": "1cc1aadb3cba28bbc28473566488eb65ff5e207dac7db8f8db12a50bbc49deb0"
+    },
+    "qualification_scope": "Pre-review implementation history; does not certify the review corrections."
+  },
+  "server-all": {
+    "summary": [
+      "   Hexalith.Tenants.Server.Tests  Total: 1525, Errors: 0, Failed: 1, Skipped: 0, Not Run: 0, Time: 3.461s"
+    ],
+    "failures": [
+      "Hexalith.Tenants.Server.Tests.Documentation.DeploymentReadinessDocumentationTests.Deployment_readiness_guide_does_not_claim_EventStore_validator_support_for_Tenants_evidence"
+    ],
+    "sha256": "65e215792ef2bb2a71c21407c97c524fd9c803c5e06d7a80119a27a11b6d94d2",
+    "full_log": "/tmp/tenants-five-server-all.log",
+    "portable_raw_log": {
+      "archive": "raw-logs.tar.gz",
+      "member": "raw-logs/initial-suite-results-server-all.txt",
+      "sha256": "65e215792ef2bb2a71c21407c97c524fd9c803c5e06d7a80119a27a11b6d94d2"
+    },
+    "qualification_scope": "Pre-review implementation history; does not certify the review corrections."
+  },
+  "integration-all": {
+    "summary": [
+      "   Hexalith.Tenants.IntegrationTests  Total: 493, Errors: 0, Failed: 21, Skipped: 1, Not Run: 0, Time: 71.363s"
+    ],
+    "failures": [
+      "Hexalith.Tenants.IntegrationTests.TenantsApiStructuralTests.TenantsSources_DelegateDaprRoutingHeaderOwnershipToThePlatformHandlerOnly",
+      "Hexalith.Tenants.IntegrationTests.AspireTopologyTests.CommandApi_resource_starts_and_is_alive",
+      "Hexalith.Tenants.IntegrationTests.AspireTopologyTests.Tenants_resource_starts_and_is_alive",
+      "Hexalith.Tenants.IntegrationTests.AspireTopologyTests.Tenants_resource_reports_ready_only_after_prepared_dependencies_are_available",
+      "Hexalith.Tenants.IntegrationTests.AspireTopologyTests.Sample_resource_starts_and_is_alive",
+      "Hexalith.Tenants.IntegrationTests.AspireTopologyTests.Generated_tenants_api_get_tenant_reads_verified_redis_state_with_projection_authority",
+      "Hexalith.Tenants.IntegrationTests.AspireTopologyTests.DomainServiceProcessRejectsUnauthenticatedDirectRequest",
+      "Hexalith.Tenants.IntegrationTests.AspireTopologyTests.Aha_moment_demo_revokes_sample_access_from_tenant_events",
+      "Hexalith.Tenants.IntegrationTests.AuthenticatedTenantsRouteTests.SixAuthenticatedRestReadsMatchPersistedState",
+      "Hexalith.Tenants.IntegrationTests.AuthenticatedTenantsRouteTests.ConditionalDetailReadRecognizesPersistedAuthority",
+      "Hexalith.Tenants.IntegrationTests.AuthenticatedTenantsRouteTests.InvalidProtectedCursorHasRealSentinelAndRecoversPageOneThroughProductionGateway",
+      "Hexalith.Tenants.IntegrationTests.AuthenticatedTenantsRouteTests.AnonymousRestRequestCannotReadCommandSeededTenant",
+      "Hexalith.Tenants.IntegrationTests.TenantsUiRouteSmokeTests.TenantsWorkspaceRouteBlocksAnonymousScope",
+      "Hexalith.Tenants.IntegrationTests.TenantsUiRouteSmokeTests.TenantDetailRouteBlocksAnonymousScope",
+      "Hexalith.Tenants.IntegrationTests.TenantsUiRouteSmokeTests.TenantAuditRouteBlocksAnonymousScope",
+      "Hexalith.Tenants.IntegrationTests.TenantsUiRouteSmokeTests.MyTenantsRouteBlocksAnonymousScope",
+      "Hexalith.Tenants.IntegrationTests.TenantsUiRouteSmokeTests.UserLookupRouteBlocksAnonymousScope",
+      "Hexalith.Tenants.IntegrationTests.TenantsUiRouteSmokeTests.GlobalAdministratorsRouteBlocksAnonymousScope",
+      "Hexalith.Tenants.IntegrationTests.AuthenticatedTenantsUiRouteTests.ProtectedRoutesRenderForValidatedCallerAndCurrentTenant",
+      "Hexalith.Tenants.IntegrationTests.AuthenticatedTenantsUiRouteTests.AmbiguousCurrentTenantDeniesProtectedContent",
+      "Hexalith.Tenants.IntegrationTests.AuthenticatedTenantsUiRouteTests.LiveBrowserMeasuresResponsiveForcedColorsAndRestoresContextualAuditBackFocus"
+    ],
+    "sha256": "60c7d1b1169865d2803b3c15bc6320c479ca569aa02f903599a9fde19b1e8b35",
+    "full_log": "/tmp/tenants-five-integration-all.log",
+    "portable_raw_log": {
+      "archive": "raw-logs.tar.gz",
+      "member": "raw-logs/initial-suite-results-integration-all.txt",
+      "sha256": "60c7d1b1169865d2803b3c15bc6320c479ca569aa02f903599a9fde19b1e8b35"
+    },
+    "qualification_scope": "Pre-review implementation history; does not certify the review corrections."
+  },
+  "integration-focused": {
+    "summary": [
+      "   Hexalith.Tenants.IntegrationTests  Total: 47, Errors: 0, Failed: 0, Skipped: 0, Not Run: 0, Time: 1.874s"
+    ],
+    "failures": [],
+    "sha256": "ddf3eaff6cab41ea2bba0edfd543c58c2695358d40558785d9c4400cd65cee15",
+    "full_log": "/tmp/tenants-five-integration-focused.log",
+    "portable_raw_log": {
+      "archive": "raw-logs.tar.gz",
+      "member": "raw-logs/initial-suite-results-integration-focused.txt",
+      "sha256": "ddf3eaff6cab41ea2bba0edfd543c58c2695358d40558785d9c4400cd65cee15"
+    },
+    "qualification_scope": "Pre-review implementation history; does not certify the review corrections."
+  }
+}

@@ -1,0 +1,17 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DW-390 actual annotated identity fixtures</title><link rel="stylesheet" href="fluent-ui.css"><link rel="stylesheet" href="correction.css"><style>body{font-family:"Segoe UI",sans-serif}</style></head><body><output id="report">RUNNING</output><main></main><script type="module">
+const culture=new URL(location.href).searchParams.get('culture')||'en';
+document.documentElement.lang=culture;
+window.expected=["ops admin", "ops\\{U+00A0}admin", "ops\\{U+202F}admin", "ops\\{U+2009}admin", "ops\\\\{U+00A0}admin"];window.literal=["ops admin", "ops\u00a0admin", "ops\u202fadmin", "ops\u2009admin", "ops\\{U+00A0}admin"];
+try{
+ const fluent=await import('./fluent-ui.js');fluent.beforeStart(document,'web');await customElements.whenDefined('fluent-button');
+ const response=await fetch('./global-correction-identities-'+culture+'.html');if(!response.ok)throw Error('Actual fixture unavailable');
+ document.querySelector('main').innerHTML=await response.text();
+ const nodes=[...document.querySelectorAll('[data-testid="tenants-correction-target-user"]')];
+ if(new URL(location.href).searchParams.has('mutation'))nodes.forEach((n,i)=>n.textContent=window.literal[i]);
+ if(nodes.length!==window.expected.length)throw Error('Missing actual identity fixtures');
+ nodes.forEach((n,i)=>{if(n.textContent!==window.expected[i])throw Error('Wrong display scalar at '+i);const s=getComputedStyle(n);if(s.visibility==='hidden'||s.display==='none'||n.getBoundingClientRect().width===0)throw Error('Hidden display');if(n.scrollWidth>n.clientWidth+1)throw Error('Clipped identity');});
+ if(new Set(nodes.map(n=>n.textContent)).size!==nodes.length)throw Error('Display identities collapsed');
+ document.body.dataset.validationStatus='passed';document.querySelector('#report').textContent='PASS '+culture+' five exact annotated identities';
+}catch(error){document.body.dataset.validationStatus='failed';document.querySelector('#report').textContent='FAIL '+error.message;}
+window.ready=true;
+</script></body></html>
