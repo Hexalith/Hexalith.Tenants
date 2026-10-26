@@ -1,0 +1,228 @@
+{
+  "reason": "Git normalizes text to LF; compiler/fixture/raw-log working bytes used CRLF or mixed native line endings. Exact validated bytes are retained, and both raw and committed hashes are explicit.",
+  "raw_archive": "validated-working-tree-bytes.tar.gz",
+  "entries": [
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/dw-154-387-390-568-625/browser/global-correction-identities-en.html",
+      "validated_working_tree_sha256": "53a833f35d018b26322f6bea832c08d7f53070577e0be1ef9cec1fea5aa86786",
+      "committed_lf_blob_sha256": "77a988fa76f570ec21439c52a3709176c9f4b1c5e72e6ce6d163cc4a86a456af",
+      "archive_member": "_bmad-output/implementation-artifacts/evidence/dw-154-387-390-568-625/browser/global-correction-identities-en.html"
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/dw-154-387-390-568-625/browser/global-correction-identities-fr.html",
+      "validated_working_tree_sha256": "64a8e64a3117fe00c2a0cf8b85659ded7b7444211eb622f3c0a9f7c8fe8d8a1d",
+      "committed_lf_blob_sha256": "47e3c20b52dd2a746dba67daa9f509cfcb7413921b54cdcb2739f053d7364d4b",
+      "archive_member": "_bmad-output/implementation-artifacts/evidence/dw-154-387-390-568-625/browser/global-correction-identities-fr.html"
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/dw-154-387-390-568-625/browser/review-reproduction/global-correction-identities-en.html",
+      "validated_working_tree_sha256": "91f92e6cc8f8b180cecd04d52a66f698a37680da34d88795e65333625ab6a9a1",
+      "committed_lf_blob_sha256": "65e22b135f65c07572fe782670a19027f4dc297f6292863b0acbb3d820514039",
+      "archive_member": "_bmad-output/implementation-artifacts/evidence/dw-154-387-390-568-625/browser/review-reproduction/global-correction-identities-en.html"
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/dw-154-387-390-568-625/browser/review-reproduction/global-correction-identities-fr.html",
+      "validated_working_tree_sha256": "b2ba04d4ef83329850ad8a1c7758da5480ae23b9c39a77be1b724a85ef2380a8",
+      "committed_lf_blob_sha256": "c977dcacc6bfcb0f342889122b50ca17eddccce337fcd22f33f6087bbdf9f790",
+      "archive_member": "_bmad-output/implementation-artifacts/evidence/dw-154-387-390-568-625/browser/review-reproduction/global-correction-identities-fr.html"
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/dw-154-387-390-568-625/mutation-reset.txt",
+      "validated_working_tree_sha256": "ba3af95d5945838f7238cea380ff39ea3643e4c6d03f579a4f01e47130581169",
+      "committed_lf_blob_sha256": "e72ca2470c16c847d9af1cfaac019ea96d863984cfd01ade36c6c49b82bac117",
+      "archive_member": "_bmad-output/implementation-artifacts/evidence/dw-154-387-390-568-625/mutation-reset.txt"
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/dw-154-387-390-568-625/mutation-runs/e555608da59e48cbb7ab454d6c7ca5bd/mutation-reset.txt",
+      "validated_working_tree_sha256": "1953b1ed3dd1d3221fba391d891fd49ae8ee208da8ef661d5edbc52334848eb4",
+      "committed_lf_blob_sha256": "d2210f0f994a34cf1802b4e9ca82541030e1c41d2c20c19f877f985f1f9e28bf",
+      "archive_member": "_bmad-output/implementation-artifacts/evidence/dw-154-387-390-568-625/mutation-runs/e555608da59e48cbb7ab454d6c7ca5bd/mutation-reset.txt"
+    },
+    {
+      "path": "src/Hexalith.Tenants.Server/Projections/TenantIndexProjectionVersion.cs",
+      "validated_working_tree_sha256": "e56772a301293bb2e5939cc1517770e821a873d4ead86794d88e629036bd07fa",
+      "committed_lf_blob_sha256": "24302003dca805341ff4dcda096910b32278098e5ae17d7adf6d03822f57f2ca",
+      "archive_member": "src/Hexalith.Tenants.Server/Projections/TenantIndexProjectionVersion.cs"
+    },
+    {
+      "path": "src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.Recovery.cs",
+      "validated_working_tree_sha256": "b44f5233e63456fabe9a40510ea4c2aa8dbfa3c46ef0ad2fba6426c39888461c",
+      "committed_lf_blob_sha256": "3b70a35d43643b524df68790ede24979235cfe14274bcd8b89a062a744ce95dd",
+      "archive_member": "src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.Recovery.cs"
+    },
+    {
+      "path": "src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor",
+      "validated_working_tree_sha256": "6072a7a7f88d4ee3494b458a413b71dcbf2798560bbf7d9b0fafe531c40c489a",
+      "committed_lf_blob_sha256": "9c22a3902b83fe059ffcc43c2dfe0cf1bcd7fc5af81f5709cc6463235530b3c3",
+      "archive_member": "src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor"
+    },
+    {
+      "path": "src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.Recovery.cs",
+      "validated_working_tree_sha256": "25b9f5a40487fcef1c6fc8dbf5a91c51e73f10b343da9985490cfc80d9794e4f",
+      "committed_lf_blob_sha256": "8e19c3eae376415f1b53d8b52a951395815e623ca65f3fc90040d88847f1ecef",
+      "archive_member": "src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.Recovery.cs"
+    },
+    {
+      "path": "src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor",
+      "validated_working_tree_sha256": "897bd06c87e58c9bb8de1dd4813264f30d2dc06688a65b7554b1c8b963757008",
+      "committed_lf_blob_sha256": "bdee71b8e6aa6bf7f1dd52f62f04643407af35e0860eb1b402958f0f51a0804d",
+      "archive_member": "src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor"
+    },
+    {
+      "path": "src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx",
+      "validated_working_tree_sha256": "7bacdee46f3a928510fe918326b64aa32a907c01c67c2711268db58ca8a2dcfa",
+      "committed_lf_blob_sha256": "0258a2445d86265f8c97c4504980490c956840199fd29620e1f28b86d094b9b4",
+      "archive_member": "src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx"
+    },
+    {
+      "path": "src/Hexalith.Tenants.UI/Resources/TenantsResources.resx",
+      "validated_working_tree_sha256": "fcbaf7dcfb25f45c3023fe3fec71878fdf60402a30c12a647b5a8774f06c8606",
+      "committed_lf_blob_sha256": "ed7aec3946c0d5cb311be4c23159189e3eeebf5cddf1d8e87c827e5e3feda000",
+      "archive_member": "src/Hexalith.Tenants.UI/Resources/TenantsResources.resx"
+    },
+    {
+      "path": "src/Hexalith.Tenants.UI/Services/Gateways/ITenantCommandGateway.cs",
+      "validated_working_tree_sha256": "c6bdc85ec51e55aff299ce70c63551d822ed47faeb186ae1ed2f1ebf1e3d80b7",
+      "committed_lf_blob_sha256": "1aa6bad1f6b59385edfb538a5c1fb9dce801b84304e8e3d64893268bf31f6153",
+      "archive_member": "src/Hexalith.Tenants.UI/Services/Gateways/ITenantCommandGateway.cs"
+    },
+    {
+      "path": "src/Hexalith.Tenants.UI/Services/Gateways/ITenantsBffComposition.cs",
+      "validated_working_tree_sha256": "9cead5026a69bf30f2b167132b5bd8c2ea0f6b978d3704543b4d253cb0f91f00",
+      "committed_lf_blob_sha256": "2477165e1bef0b4101b28565595d69e380bf529a5529b5fb4a19ba760e7d4062",
+      "archive_member": "src/Hexalith.Tenants.UI/Services/Gateways/ITenantsBffComposition.cs"
+    },
+    {
+      "path": "src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs",
+      "validated_working_tree_sha256": "3065afc80ec8ff0fcfaf4e1a19e4591c7d47c3050933c7599512b37e4b782fa8",
+      "committed_lf_blob_sha256": "0b61300db2759b33eb9353273ed90d257dc8981f413832ace69883b6b3da32bb",
+      "archive_member": "src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs"
+    },
+    {
+      "path": "src/Hexalith.Tenants.UI/Services/Gateways/TenantsBffComposition.cs",
+      "validated_working_tree_sha256": "2ed83606169f20079dac7d2d4af3dab12d3828b47f9d48b648c992316796bc22",
+      "committed_lf_blob_sha256": "f14077a5bc8a810e95c9c32dcb4948aee4be208a9f30db29c8efa0e39e2543c6",
+      "archive_member": "src/Hexalith.Tenants.UI/Services/Gateways/TenantsBffComposition.cs"
+    },
+    {
+      "path": "src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorIdentityDisplay.cs",
+      "validated_working_tree_sha256": "0a9e92777ecd4e4efa3fa4ddc7e07acb394d8b9944dfa7026b40614bd25ccd9c",
+      "committed_lf_blob_sha256": "9f3cd9be2921de6faee045806545252e8306ae1bbb529a96040ea4bf18f684df",
+      "archive_member": "src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorIdentityDisplay.cs"
+    },
+    {
+      "path": "src/Hexalith.Tenants.UI/State/TenantCommands/TenantAggregateCommandLease.cs",
+      "validated_working_tree_sha256": "32ee4373f53d7f798a6144b5b2df640de2009610e83907825d8e1099bb9dbbe0",
+      "committed_lf_blob_sha256": "5a803e9206fa0ec1b521933b55c4ead4f433fc74a010a779496ff3009a1ff9fb",
+      "archive_member": "src/Hexalith.Tenants.UI/State/TenantCommands/TenantAggregateCommandLease.cs"
+    },
+    {
+      "path": "src/Hexalith.Tenants.UI/State/TenantCommands/TenantCommandStatusResult.cs",
+      "validated_working_tree_sha256": "c1e66203e90a0d26eba6992668ff5ba9136e7b849a6246def600707d34ac7bd9",
+      "committed_lf_blob_sha256": "587ebe6988a758187d8347187de162741aa769eb08f1136ed4fcf831ed005ba8",
+      "archive_member": "src/Hexalith.Tenants.UI/State/TenantCommands/TenantCommandStatusResult.cs"
+    },
+    {
+      "path": "src/Hexalith.Tenants/Projections/TenantProjectionHandler.cs",
+      "validated_working_tree_sha256": "60931342a095b032e9cf1f4a8b2e3b88c9034535ef4fa4155c0f7627f904ed2d",
+      "committed_lf_blob_sha256": "d85fa7c634258572d71b575b1955a7bf246faa1e306cb3f18c34745f3674db78",
+      "archive_member": "src/Hexalith.Tenants/Projections/TenantProjectionHandler.cs"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.IntegrationTests/TenantsApiGeneratedControllerTests.cs",
+      "validated_working_tree_sha256": "1816bddeda202ca3549168e93479da901377e683b89888252be1e9a4a49e6522",
+      "committed_lf_blob_sha256": "81013516e4b9ff33252e236698195493469fddab518792c7bfb83ebdb945c30d",
+      "archive_member": "tests/Hexalith.Tenants.IntegrationTests/TenantsApiGeneratedControllerTests.cs"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.Server.Tests/Documentation/DeploymentReadinessDocumentationTests.cs",
+      "validated_working_tree_sha256": "c02bbe14256b5b5d1b8186ecf40cb742ff71bf011d746c195dd481c1d0f8135f",
+      "committed_lf_blob_sha256": "fa0ca17f202b525aa27c17940313c842ac4bfb75fe823c24faef5ab5bdfe7881",
+      "archive_member": "tests/Hexalith.Tenants.Server.Tests/Documentation/DeploymentReadinessDocumentationTests.cs"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.Server.Tests/Projections/TenantIndexProjectionVersionTests.cs",
+      "validated_working_tree_sha256": "9aee0c5e66dc87770448365537688931de6646ab5114d922d20887258c93664b",
+      "committed_lf_blob_sha256": "22dc784d31910d2f65f46a473651f55e022b2dac3e077d16455fc0bfe58de0cd",
+      "archive_member": "tests/Hexalith.Tenants.Server.Tests/Projections/TenantIndexProjectionVersionTests.cs"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionHandlerTests.cs",
+      "validated_working_tree_sha256": "bb35f31f91c05376bfec35f545db336f971c50c12625f4ec34a130061abcfb28",
+      "committed_lf_blob_sha256": "1f62abf3bae9186e3e3846ce6dd85ce776fd859e82f1be9fd4c8e7b8377d0839",
+      "archive_member": "tests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionHandlerTests.cs"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionIndexAuthorityTests.cs",
+      "validated_working_tree_sha256": "daf97b7b132911dc4428f98ed1d6c1e6e649b2ac130bc92d3720cf96c155fe8e",
+      "committed_lf_blob_sha256": "ad62f223052bb88b84c2c4464333ed54017c54362c41080a94ea9b96edf46a86",
+      "archive_member": "tests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionIndexAuthorityTests.cs"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.Server.Tests/Queries/TenantQueryHandlerETagTests.cs",
+      "validated_working_tree_sha256": "d4c7b1888e267bac611ea857500014251fdc969ec8fc080abfd2541d573c59ec",
+      "committed_lf_blob_sha256": "f19c64b747b42136b09d8f85f81f0033ea9f2529b590a3e65448d8019263dab8",
+      "archive_member": "tests/Hexalith.Tenants.Server.Tests/Queries/TenantQueryHandlerETagTests.cs"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorCorrectionPanelIdentityTests.cs",
+      "validated_working_tree_sha256": "80dd265ddbc7736e3ad73ac010c284fd340835250a9e6a775370604f72fe6ccc",
+      "committed_lf_blob_sha256": "7de7acd4d056ebc2936153139c1548adbafaa8d8147e97403f8949a0cec0be4f",
+      "archive_member": "tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorCorrectionPanelIdentityTests.cs"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorCorrectionPanelRecoveryTests.cs",
+      "validated_working_tree_sha256": "578fd2f57fdbe6e47a6f6c741c943da8ae42696d18075e3ca45d583eae3c226b",
+      "committed_lf_blob_sha256": "3d686c429d5c4e5c1a443194bbe29854f990bd8de35117788d7688d6cd1b14dc",
+      "archive_member": "tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorCorrectionPanelRecoveryTests.cs"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorCorrectionPanelTests.cs",
+      "validated_working_tree_sha256": "5e49875320e02a7b557ebe2e0fdcd2acfd30ec96bc04a84ba70d4363efe963f7",
+      "committed_lf_blob_sha256": "df88ea86a7350aadf9b6eb5f571d9b96ebaa3e74b42cfcc56a51d71fafd98ec5",
+      "archive_member": "tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorCorrectionPanelTests.cs"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageRecoveryTests.cs",
+      "validated_working_tree_sha256": "60fff0f2c25e710be3c778ecd2cc4484a0333563c0c9d92e1130a5fece3359a4",
+      "committed_lf_blob_sha256": "b6c330c2813c122fa51b1197077c09dd0975f1ba24870d335219016a42180d65",
+      "archive_member": "tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageRecoveryTests.cs"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTeardownTests.cs",
+      "validated_working_tree_sha256": "cdf364599de6524cedc3e9f78e62bcd477a11e0dd9ff731ffaa4a83990b90b62",
+      "committed_lf_blob_sha256": "152b22de2042a2e255fe18ec5344cc83cb5868ac207aa2d7381264aca916e8e3",
+      "archive_member": "tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTeardownTests.cs"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs",
+      "validated_working_tree_sha256": "331f04a89fa19f1a586136c95b98edc34166babff08d80afd4708a5180ee3637",
+      "committed_lf_blob_sha256": "5c41278f3a9872a61f319c937fb3a6def25f587a48ccab65848988fa43ad01c4",
+      "archive_member": "tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs",
+      "validated_working_tree_sha256": "8309312b1d9fd6ce5abd5aa4a276de93c3a3e73d139d4f3996bc51c6cc8bd4d3",
+      "committed_lf_blob_sha256": "3864ecaba0ba1b4b2ff51b148ce8fe0c47b5fc779b32264621840b6a284730e0",
+      "archive_member": "tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayRecoveryTests.cs",
+      "validated_working_tree_sha256": "20129a7460aab54fe2b6c65dc0217a37a8bc7b5369cbd302e5c85bc4ad104c87",
+      "committed_lf_blob_sha256": "9d330c39f47d5e8af86437073d98ee1ec1d05d2a39835da74fc235496ff4265c",
+      "archive_member": "tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayRecoveryTests.cs"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayTests.cs",
+      "validated_working_tree_sha256": "e7816e306acac45682361387180407d76cace0167f291fc6e0af5e18b8853c1a",
+      "committed_lf_blob_sha256": "0f1cec8450c1c0bdba8d9da864db8787b258bf5bb643ae5fd1df95df431cd6df",
+      "archive_member": "tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayTests.cs"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantsBffCompositionTests.cs",
+      "validated_working_tree_sha256": "c2d80074f521480178850d42289eba9982791269bdc7f00230d2342699dc51c7",
+      "committed_lf_blob_sha256": "a9fca57b2108df39aad41dce8967b6ecdb2c781cffaaeb1b8bd973196e24cebe",
+      "archive_member": "tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantsBffCompositionTests.cs"
+    }
+  ]
+}
