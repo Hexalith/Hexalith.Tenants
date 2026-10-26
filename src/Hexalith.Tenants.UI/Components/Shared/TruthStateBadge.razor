@@ -1,15 +1,23 @@
 @using Hexalith.Tenants.UI.State.TenantList
 @inject IStringLocalizer<TenantsResources> Localizer
 
-<FluentBadge Appearance="BadgeAppearance.Tint"
-             Color="@FreshnessBadgeColor"
-             IconStart="@StateIcon"
-             Class="@($"truth-state-badge truth-state-badge--{CssClass}")"
-             role="@(IsRefreshing ? "status" : null)"
-             aria-label="@Label"
-             data-testid="@TestId">
-    @Label
-</FluentBadge>
+@* FluentBadge labels its SVG but exposes no icon aria-hidden parameter. The named FluentText
+   owns accessibility/live semantics while the inner badge retains the localized visual anatomy. *@
+<FluentText As="TextTag.Span" role="img" aria-label="@Label" data-status-badge="true"
+            aria-live="@(IsRefreshing ? "polite" : null)"
+            aria-atomic="@(IsRefreshing ? "true" : null)">
+    <FluentBadge aria-hidden="true" Appearance="@(FreshnessBadgeColor is BadgeColor.Danger or BadgeColor.Severe ? BadgeAppearance.Filled : BadgeAppearance.Tint)"
+                 Shape="BadgeShape.Rounded"
+                 Color="@FreshnessBadgeColor"
+                 IconStart="@StateIcon"
+                 IconLabel="@Label"
+                 Class="@($"truth-state-badge truth-state-badge--{CssClass}")"
+                 role="img"
+                 aria-label="@Label"
+                 data-testid="@TestId">
+        @Label
+    </FluentBadge>
+</FluentText>
 
 @code {
     [Parameter]

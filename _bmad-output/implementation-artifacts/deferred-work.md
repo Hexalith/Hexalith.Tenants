@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-408/DW-440/DW-450/DW-460/DW-474 closure (2026-10-26):** Approved audit compatibility, invariant UTC timestamps, shared badge anatomy and explicit receipt authority are implemented and independently reviewed. Final Debug source build has zero warnings/errors; all 7,762 UI tests and the maintained EN/FR Chromium normal/forced-color checks pass, including 16 targeted badge rejection controls. Exactly five records close: all 657 IDs remain, 615 done/42 open across 38 maintenance rows. Original findings, historical fields, all 652 other numbered records, dependencies and broader release/assistive-technology holds remain preserved. See [validation evidence](dw-408-440-450-460-474-validation-evidence.md).
+
 **DW-104/DW-432/DW-436/DW-594 closure (2026-10-25):** Fresh hosted production REST/UI and command-seeded persisted-state checks, 25 physical browser cases, measured layouts at 390, 768 and 1440 pixels with forced colors off/on and contextual audit Back qualify exactly four records. DW-161 remains open: pinned EventStore returns 200 instead of 304 and requires an approved shared-module/dependency change. All 657 IDs remain: 609 done/48 open across 43 maintenance rows. Historical fields, all 652 unselected records, accepted limitations and dependency pointers remain preserved. Broader CI/release holds remain. See [validation evidence](dw-104-161-432-436-594-validation-evidence.md).
 
 **DW-194/DW-201/DW-221/DW-267/DW-609 closure (2026-10-25):** Native removal-modal containment, measured create/conflict recovery, optional configuration shape metadata, shared command activity/refresh plumbing and permission-bound retained reads close exactly five records after independent review and verification. All 657 IDs remain: 605 done/52 open across 47 maintenance rows. Original fields and all 652 other numbered records remain preserved; accepted limitations stay open. Two review follow-ups (unverified focus failure and an observed pinned-grid disposal fault) are appended separately and excluded from numbered totals. See [validation evidence](dw-194-201-221-267-609-validation-evidence.md).
@@ -3476,16 +3478,25 @@ location: src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`\n  summary: Decide how the tenant-audit payload allowlist handles server event types it does not know.\n  evidence: `TenantQueryGateway.IsSupportedAuditEvent` hard-codes eleven event types, so one new server event type fails `IsValidTenantAuditPayload` for the whole page and signals `InvalidPayload`, the same signal as tampering. Story 5.1 code (`281e3c3c`)."
-status: open
-disposition: awaiting-decision
-verification-date: 2026-10-12
-verification: TenantQueryGateway.cs::IsSupportedAuditEvent:2825 retains an eleven-event/category allowlist and IsValidTenantAuditPayload rejects the entire page when an event is unknown. The server currently projects those supported tenant events; no new unsupported production event is established. A versioning/product decision is needed on fail-closed unknown-event handling versus safe forward-compatible placeholders.
-verification-files: src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs
-evidence-kind: recommendation
+pre-audit-contract-status: open
+status: done 2026-10-26
+decision: 2026-10-26 User approved the recommended audit contract; Approved whole-page rejection is retained and qualified for unknown/category-mismatched events, mixed order and both explicit/combined streams; coordinated UI-before-server rollout is documented.
+pre-audit-contract-disposition: awaiting-decision
+disposition: done
+pre-audit-contract-verification-date: 2026-10-12
+verification-date: 2026-10-26
+pre-audit-contract-verification: TenantQueryGateway.cs::IsSupportedAuditEvent:2825 retains an eleven-event/category allowlist and IsValidTenantAuditPayload rejects the entire page when an event is unknown. The server currently projects those supported tenant events; no new unsupported production event is established. A versioning/product decision is needed on fail-closed unknown-event handling versus safe forward-compatible placeholders.
+verification: Approved whole-page rejection is retained and qualified for unknown/category-mismatched events, mixed order and both explicit/combined streams; coordinated UI-before-server rollout is documented. Final reviewed Debug build: 0 warnings/errors; maintained UI 7762/7762, zero failures/skips; Chromium EN/FR normal/forced-color checks and 16 badge mutations pass. See dw-408-440-450-460-474-validation-evidence.md.
+pre-audit-contract-verification-files: src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs
+verification-files: _bmad-output/implementation-artifacts/dw-408-440-450-460-474-validation-evidence.md; _bmad-output/implementation-artifacts/spec-dw-408-440-450-460-474-audit-contracts.md; src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditReceipt.cs; tests/Hexalith.Tenants.UI.Tests/Components/StatusBadgeContractTests.cs
+pre-audit-contract-evidence-kind: recommendation
+evidence-kind: verified-resolution
 priority: P2
 owner: unassigned
-dependencies: Audit contract/versioning decision
-next-action: Decide the unknown audit event compatibility contract, then update gateway behavior/tests and documentation to that single policy.
+pre-audit-contract-dependencies: Audit contract/versioning decision
+dependencies: None for this selected approved contract; unrelated dependencies and broader release holds remain.
+pre-audit-contract-next-action: Decide the unknown audit event compatibility contract, then update gateway behavior/tests and documentation to that single policy.
+next-action: None for this selected record; retain historical evidence and unrelated release holds.
 related: none
 
 
@@ -3811,16 +3822,25 @@ location: src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditReceipt.cs
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-3-view-a-support-safe-audit-evidence-receipt.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-3-view-a-support-safe-audit-evidence-receipt.md`\n  summary: Decide whether the absolute audit timestamp should be culture-formatted, as the epic's \"culture-aware\" wording suggests.\n  evidence: `TenantAuditReceipt.TimestampLabel` and the grid both use the fixed `yyyy-MM-dd HH:mm:ss 'UTC'` pattern from the Story 5.1 UTC correction; the French receipt renders the same string."
-status: open
-disposition: awaiting-decision
-verification-date: 2026-10-12
-verification: State/TenantAudit/TenantAuditReceipt.cs::TimestampLabel and AuditDataGrid use ToString("yyyy-MM-dd HH:mm:ss 'UTC'", CultureInfo.CurrentCulture). The timezone is honest UTC, but this fixed numeric pattern retains the same arrangement under French culture. The requested culture-aware date arrangement versus stable support timestamp policy remains unspecified.
-verification-files: src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditReceipt.cs
-evidence-kind: recommendation
+pre-audit-contract-status: open
+status: done 2026-10-26
+decision: 2026-10-26 User approved the recommended audit contract; Approved invariant UTC grid/receipt formatting is qualified in EN/FR and a non-Gregorian culture, with localized labels, offset normalization and absent-time controls.
+pre-audit-contract-disposition: awaiting-decision
+disposition: done
+pre-audit-contract-verification-date: 2026-10-12
+verification-date: 2026-10-26
+pre-audit-contract-verification: State/TenantAudit/TenantAuditReceipt.cs::TimestampLabel and AuditDataGrid use ToString("yyyy-MM-dd HH:mm:ss 'UTC'", CultureInfo.CurrentCulture). The timezone is honest UTC, but this fixed numeric pattern retains the same arrangement under French culture. The requested culture-aware date arrangement versus stable support timestamp policy remains unspecified.
+verification: Approved invariant UTC grid/receipt formatting is qualified in EN/FR and a non-Gregorian culture, with localized labels, offset normalization and absent-time controls. Final reviewed Debug build: 0 warnings/errors; maintained UI 7762/7762, zero failures/skips; Chromium EN/FR normal/forced-color checks and 16 badge mutations pass. See dw-408-440-450-460-474-validation-evidence.md.
+pre-audit-contract-verification-files: src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditReceipt.cs
+verification-files: _bmad-output/implementation-artifacts/dw-408-440-450-460-474-validation-evidence.md; _bmad-output/implementation-artifacts/spec-dw-408-440-450-460-474-audit-contracts.md; src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditReceipt.cs; tests/Hexalith.Tenants.UI.Tests/Components/StatusBadgeContractTests.cs
+pre-audit-contract-evidence-kind: recommendation
+evidence-kind: verified-resolution
 priority: P3
 owner: unassigned
-dependencies: UX/support timestamp formatting decision
-next-action: Choose culture-formatted absolute dates or the stable UTC pattern for both grid and receipt, then align the UX wording/tests.
+pre-audit-contract-dependencies: UX/support timestamp formatting decision
+dependencies: None for this selected approved contract; unrelated dependencies and broader release holds remain.
+pre-audit-contract-next-action: Choose culture-formatted absolute dates or the stable UTC pattern for both grid and receipt, then align the UX wording/tests.
+next-action: None for this selected record; retain historical evidence and unrelated release holds.
 related: DW-450
 
 
@@ -3930,16 +3950,25 @@ location: _bmad-output/planning-artifacts/ux-designs/ux-tenants-2026-06-02/DESIG
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`\n  summary: Decide once for the whole repo whether Severe (and Danger) status badges use `BadgeAppearance.Filled`, as DESIGN.md specifies.\n  evidence: DESIGN.md `truth-state-badge` says \"Tint (default) · Filled (Danger + Severe)\". `AuditAvailabilityState.razor:27` and `TruthStateBadge.razor` both render Severe with `Tint`, and Story 5.4's spec asked for Tint. Changing only the audit badge would make it diverge from the freshness badge."
-status: open
-disposition: awaiting-decision
-verification-date: 2026-10-12
-verification: _bmad-output/planning-artifacts/ux-designs/ux-tenants-2026-06-02/DESIGN.md:58 specifies Filled for Danger/Severe. Components/Tenants/Audit/AuditAvailabilityState.razor and Components/Shared/TruthStateBadge.razor hard-code Tint; the completed availability story specifically requested Tint. A repo-wide design precedence decision remains needed before treating one badge as a defect.
-verification-files: _bmad-output/planning-artifacts/ux-designs/ux-tenants-2026-06-02/DESIGN.md; src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditAvailabilityState.razor; src/Hexalith.Tenants.UI/Components/Shared/TruthStateBadge.razor
-evidence-kind: recommendation
+pre-audit-contract-status: open
+status: done 2026-10-26
+decision: 2026-10-26 User approved the recommended audit contract; Approved DESIGN precedence is applied across all seven component files: Rounded badges, Filled for Danger/Severe, Tint otherwise, localized icon labels and one accessible state owner.
+pre-audit-contract-disposition: awaiting-decision
+disposition: done
+pre-audit-contract-verification-date: 2026-10-12
+verification-date: 2026-10-26
+pre-audit-contract-verification: _bmad-output/planning-artifacts/ux-designs/ux-tenants-2026-06-02/DESIGN.md:58 specifies Filled for Danger/Severe. Components/Tenants/Audit/AuditAvailabilityState.razor and Components/Shared/TruthStateBadge.razor hard-code Tint; the completed availability story specifically requested Tint. A repo-wide design precedence decision remains needed before treating one badge as a defect.
+verification: Approved DESIGN precedence is applied across all seven component files: Rounded badges, Filled for Danger/Severe, Tint otherwise, localized icon labels and one accessible state owner. Final reviewed Debug build: 0 warnings/errors; maintained UI 7762/7762, zero failures/skips; Chromium EN/FR normal/forced-color checks and 16 badge mutations pass. See dw-408-440-450-460-474-validation-evidence.md.
+pre-audit-contract-verification-files: _bmad-output/planning-artifacts/ux-designs/ux-tenants-2026-06-02/DESIGN.md; src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditAvailabilityState.razor; src/Hexalith.Tenants.UI/Components/Shared/TruthStateBadge.razor
+verification-files: _bmad-output/implementation-artifacts/dw-408-440-450-460-474-validation-evidence.md; _bmad-output/implementation-artifacts/spec-dw-408-440-450-460-474-audit-contracts.md; src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditReceipt.cs; tests/Hexalith.Tenants.UI.Tests/Components/StatusBadgeContractTests.cs
+pre-audit-contract-evidence-kind: recommendation
+evidence-kind: verified-resolution
 priority: P3
 owner: unassigned
-dependencies: Repo-wide UX/design precedence decision
-next-action: Decide the shared Danger/Severe badge appearance, then align both components and DESIGN.md together.
+pre-audit-contract-dependencies: Repo-wide UX/design precedence decision
+dependencies: None for this selected approved contract; unrelated dependencies and broader release holds remain.
+pre-audit-contract-next-action: Decide the shared Danger/Severe badge appearance, then align both components and DESIGN.md together.
+next-action: None for this selected record; retain historical evidence and unrelated release holds.
 related: DW-440
 
 
@@ -4052,16 +4081,25 @@ location: src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditReceipt.cs; src/H
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/5-4-audit-availability-state-recovery.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/5-4-audit-availability-state-recovery.md`\n  summary: Decide whether `TenantAuditReceipt.FromEntry` should accept authoritative lifecycle/provenance or be removed.\n  evidence: Pre-existing to the current Story 5.4 refinement. `TenantAuditRow.FromEntry` defaults lifecycle and provenance to `Unknown`, while receipt completeness requires `Current` and `ProjectionBacked`, so the public factory cannot produce `Ready`. Resolution requires deciding whether callers may supply authoritative metadata or whether the misleading factory should be retired."
-status: open
-disposition: awaiting-decision
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditReceipt.cs:39-46 FromEntry still delegates to TenantAuditRow.FromEntry; TenantAuditRow.cs:38-39 defaults Lifecycle/Provenance to Unknown, while receipt completeness requires Current/ProjectionBacked at TenantAuditReceipt.cs:73-76. The public factory still cannot produce Ready.
-verification-files: src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditReceipt.cs; src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditRow.cs
-evidence-kind: verified-gap
+pre-audit-contract-status: open
+status: done 2026-10-26
+decision: 2026-10-26 User approved the recommended audit contract; Explicit lifecycle/provenance overloads reuse safe mapping and completeness checks; metadata-free callers remain conservative. Global category/user evidence and configuration safe-key/typed-target completeness are qualified, preserving existing typed-user precedence.
+pre-audit-contract-disposition: awaiting-decision
+disposition: done
+pre-audit-contract-verification-date: 2026-10-12
+verification-date: 2026-10-26
+pre-audit-contract-verification: src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditReceipt.cs:39-46 FromEntry still delegates to TenantAuditRow.FromEntry; TenantAuditRow.cs:38-39 defaults Lifecycle/Provenance to Unknown, while receipt completeness requires Current/ProjectionBacked at TenantAuditReceipt.cs:73-76. The public factory still cannot produce Ready.
+verification: Explicit lifecycle/provenance overloads reuse safe mapping and completeness checks; metadata-free callers remain conservative. Global category/user evidence and configuration safe-key/typed-target completeness are qualified, preserving existing typed-user precedence. Final reviewed Debug build: 0 warnings/errors; maintained UI 7762/7762, zero failures/skips; Chromium EN/FR normal/forced-color checks and 16 badge mutations pass. See dw-408-440-450-460-474-validation-evidence.md.
+pre-audit-contract-verification-files: src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditReceipt.cs; src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditRow.cs
+verification-files: _bmad-output/implementation-artifacts/dw-408-440-450-460-474-validation-evidence.md; _bmad-output/implementation-artifacts/spec-dw-408-440-450-460-474-audit-contracts.md; src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditReceipt.cs; tests/Hexalith.Tenants.UI.Tests/Components/StatusBadgeContractTests.cs
+pre-audit-contract-evidence-kind: verified-gap
+evidence-kind: verified-resolution
 priority: P2
 owner: unassigned
-dependencies: Public receipt API decision
-next-action: Choose an authoritative-metadata overload or deprecate the misleading FromEntry factory, preserving provenance checks.
+pre-audit-contract-dependencies: Public receipt API decision
+dependencies: None for this selected approved contract; unrelated dependencies and broader release holds remain.
+pre-audit-contract-next-action: Choose an authoritative-metadata overload or deprecate the misleading FromEntry factory, preserving provenance checks.
+next-action: None for this selected record; retain historical evidence and unrelated release holds.
 related: none
 
 
@@ -4231,16 +4269,25 @@ location: src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditAvailabilityStat
 source_spec: `_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`\n  summary: Give the audit availability badge `Shape=\"BadgeShape.Rounded\"` and an `IconLabel`, as DESIGN.md's truth-state-badge anatomy requires, as part of the repo-wide badge alignment decision.\n  evidence: `AuditAvailabilityState.razor:27-34` sets neither, so the Fluent default shape applies. It follows `Components/Shared/TruthStateBadge.razor`, as the spec's Code Map directs, and no badge in the repo sets a shape (DESIGN.md:59-60, 178, 188). The visible text and `aria-label` already carry the state name, so this is visual conformance only. Decide it together with the open Review 2 Tint vs Filled deferral, so every badge changes at once."
-status: open
-disposition: awaiting-decision
-verification-date: 2026-10-12
-verification: AuditAvailabilityState.razor:27-34 still has Tint with no Shape or IconLabel. _bmad-output/planning-artifacts/ux-designs/ux-tenants-2026-06-02/DESIGN.md:58-60,178,188 specifies Rounded/IconLabel and Filled for Danger/Severe. Visible state text and aria-label already provide the accessible name; this is a visual/conformance recommendation, not a demonstrated accessibility defect.
-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditAvailabilityState.razor; _bmad-output/planning-artifacts/ux-designs/ux-tenants-2026-06-02/DESIGN.md
-evidence-kind: recommendation
+pre-audit-contract-status: open
+status: done 2026-10-26
+decision: 2026-10-26 User approved the recommended audit contract; Approved badge anatomy includes Rounded and localized IconLabel with a single accessible wrapper. All 34 explicit site/state cases pass EN/FR, normal/forced colors, production styles and targeted rejection controls.
+pre-audit-contract-disposition: awaiting-decision
+disposition: done
+pre-audit-contract-verification-date: 2026-10-12
+verification-date: 2026-10-26
+pre-audit-contract-verification: AuditAvailabilityState.razor:27-34 still has Tint with no Shape or IconLabel. _bmad-output/planning-artifacts/ux-designs/ux-tenants-2026-06-02/DESIGN.md:58-60,178,188 specifies Rounded/IconLabel and Filled for Danger/Severe. Visible state text and aria-label already provide the accessible name; this is a visual/conformance recommendation, not a demonstrated accessibility defect.
+verification: Approved badge anatomy includes Rounded and localized IconLabel with a single accessible wrapper. All 34 explicit site/state cases pass EN/FR, normal/forced colors, production styles and targeted rejection controls. Final reviewed Debug build: 0 warnings/errors; maintained UI 7762/7762, zero failures/skips; Chromium EN/FR normal/forced-color checks and 16 badge mutations pass. See dw-408-440-450-460-474-validation-evidence.md.
+pre-audit-contract-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditAvailabilityState.razor; _bmad-output/planning-artifacts/ux-designs/ux-tenants-2026-06-02/DESIGN.md
+verification-files: _bmad-output/implementation-artifacts/dw-408-440-450-460-474-validation-evidence.md; _bmad-output/implementation-artifacts/spec-dw-408-440-450-460-474-audit-contracts.md; src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditReceipt.cs; tests/Hexalith.Tenants.UI.Tests/Components/StatusBadgeContractTests.cs
+pre-audit-contract-evidence-kind: recommendation
+evidence-kind: verified-resolution
 priority: P3
 owner: unassigned
-dependencies: Existing Tint-versus-Filled badge decision
-next-action: Settle the existing repo-wide badge anatomy/appearance decision and apply the resulting shared convention together.
+pre-audit-contract-dependencies: Existing Tint-versus-Filled badge decision
+dependencies: None for this selected approved contract; unrelated dependencies and broader release holds remain.
+pre-audit-contract-next-action: Settle the existing repo-wide badge anatomy/appearance decision and apply the resulting shared convention together.
+next-action: None for this selected record; retain historical evidence and unrelated release holds.
 related: none
 
 

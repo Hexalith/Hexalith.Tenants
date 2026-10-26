@@ -139,6 +139,45 @@ while (!status) {
     }
 }
 
+// Opt-in production badge fixture: use Chromium's computed accessibility tree, not DOM assumptions.
+if (status === 'passed' && await evaluate('window.__validateNamedBadges === true')) {
+    try {
+        await cdp('Accessibility.enable');
+        const { nodes: accessibilityNodes } = await cdp('Accessibility.getFullAXTree');
+        const accessibilityById = new Map(accessibilityNodes.map(node => [node.nodeId, node]));
+        const hasExposedDescendant = node => (node.childIds || []).some(id => {
+            const child = accessibilityById.get(id);
+            return child && (!child.ignored || hasExposedDescendant(child));
+        });
+        const { root } = await cdp('DOM.getDocument');
+        const { nodeIds } = await cdp('DOM.querySelectorAll', { nodeId: root.nodeId, selector: '[data-status-badge]' });
+        let refreshing = 0;
+        for (const nodeId of nodeIds) {
+            const { node } = await cdp('DOM.describeNode', { nodeId });
+            const attributes = Object.fromEntries(node.attributes.reduce((pairs, value, index, values) =>
+                index % 2 === 0 ? [...pairs, [value, values[index + 1]]] : pairs, []));
+            const badge = accessibilityNodes.find(item => item.backendDOMNodeId === node.backendNodeId && !item.ignored);
+            if (!badge || badge.role?.value !== 'image' || badge.name?.value !== attributes['aria-label'])
+                throw new Error('Computed badge name/role differs from its localized state');
+            // Ignored intermediary hosts can still contain exposed descendants. Inspect the full
+            // subtree, without treating ignored raw CDP nodes as announced children.
+            if (hasExposedDescendant(badge))
+                throw new Error('Badge icon/text produces duplicate accessible children');
+            if (attributes['aria-live'] === 'polite') {
+                const properties = Object.fromEntries(badge.properties.map(property => [property.name, property.value.value]));
+                if (properties.live !== 'polite' || properties.atomic !== true)
+                    throw new Error('Refreshing badge lost polite atomic live semantics');
+                refreshing++;
+            }
+        }
+        if (refreshing !== 1) throw new Error('Refreshing accessibility evidence missing');
+        await evaluate("document.documentElement.dataset.badgeAccessibility = 'passed'");
+    } catch (error) {
+        await evaluate(`document.documentElement.dataset.validationStatus = 'failed';
+            document.getElementById('validation-report').textContent = ${JSON.stringify('Accessibility: ')} + ${JSON.stringify(error.message)}`);
+    }
+}
+
 process.stdout.write(await evaluate('document.documentElement.outerHTML'));
 socket.close();
 chrome.kill('SIGKILL');

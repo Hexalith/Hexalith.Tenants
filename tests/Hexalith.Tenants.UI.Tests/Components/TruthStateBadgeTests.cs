@@ -39,15 +39,18 @@ public sealed class TruthStateBadgeTests : FluentBunitContext
         badge.Color.ShouldBe(expectedColor);
         badge.IconStart.ShouldNotBeNull().GetType().Name.ShouldBe(expectedIconType);
         badge.IconStart.Size.ShouldBe(IconSize.Size20);
-        badge.IconLabel.ShouldBeNull();
+        badge.IconLabel.ShouldBe(expectedLabel);
+        badge.Shape.ShouldBe(BadgeShape.Rounded);
+        badge.Appearance.ShouldBe(expectedColor is BadgeColor.Severe ? BadgeAppearance.Filled : BadgeAppearance.Tint);
         var badgeElement = cut.Find("[data-testid='tenants-list-truth-state']");
         string? accessibleName = badgeElement.GetAttribute("aria-label");
         badgeElement.TextContent.Trim().ShouldBe(expectedLabel);
         accessibleName.ShouldBe(expectedLabel);
         accessibleName.ShouldNotBeNullOrWhiteSpace();
         accessibleName.ShouldBe(badgeElement.TextContent.Trim());
-        AssertDecorativeIcon(badgeElement);
-        badgeElement.GetAttribute("role").ShouldBeNull();
+        AssertNamedBadgeIcon(badgeElement);
+        badgeElement.GetAttribute("role").ShouldBe("img");
+        badgeElement.GetAttribute("aria-live").ShouldBeNull();
     }
 
     [Fact]
@@ -68,12 +71,42 @@ public sealed class TruthStateBadgeTests : FluentBunitContext
         fluentBadge.Color.ShouldBe(BadgeColor.Informative);
         fluentBadge.IconStart.ShouldNotBeNull().GetType().Name.ShouldBe("ArrowClockwise");
         fluentBadge.IconStart.Size.ShouldBe(IconSize.Size20);
-        fluentBadge.IconLabel.ShouldBeNull();
+        fluentBadge.IconLabel.ShouldBe("Refreshing");
+        fluentBadge.Shape.ShouldBe(BadgeShape.Rounded);
+        fluentBadge.Appearance.ShouldBe(BadgeAppearance.Tint);
         string? accessibleName = badge.GetAttribute("aria-label");
         accessibleName.ShouldNotBeNullOrWhiteSpace();
         accessibleName.ShouldBe(badge.TextContent.Trim());
-        AssertDecorativeIcon(badge);
-        badge.GetAttribute("role").ShouldBe("status");
+        AssertNamedBadgeIcon(badge);
+        badge.GetAttribute("role").ShouldBe("img");
+        badge.Closest("[data-status-badge]").ShouldNotBeNull().GetAttribute("aria-live").ShouldBe("polite");
+        badge.Closest("[data-status-badge]").ShouldNotBeNull().GetAttribute("aria-atomic").ShouldBe("true");
+    }
+
+    [Fact]
+    public void CurrentRefreshingCurrentTransitionKeepsOneNamedOwnerAndRestoresStaticSemantics()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        var cut = Render<TruthStateBadge>(parameters => parameters.Add(badge => badge.Freshness, ReadModelFreshnessState.Current));
+        AssertState("Current", refreshing: false);
+        cut.Render(parameters => parameters.Add(badge => badge.IsRefreshing, true));
+        AssertState("Refreshing", refreshing: true);
+        cut.Render(parameters => parameters.Add(badge => badge.IsRefreshing, false));
+        AssertState("Current", refreshing: false);
+
+        void AssertState(string label, bool refreshing)
+        {
+            IElement owner = cut.FindAll("[data-status-badge]").ShouldHaveSingleItem();
+            owner.GetAttribute("role").ShouldBe("img");
+            owner.GetAttribute("aria-label").ShouldBe(label);
+            owner.GetAttribute("aria-live").ShouldBe(refreshing ? "polite" : null);
+            owner.GetAttribute("aria-atomic").ShouldBe(refreshing ? "true" : null);
+            cut.FindAll("[aria-live]").Count.ShouldBe(refreshing ? 1 : 0);
+            IElement visual = owner.QuerySelector("fluent-badge").ShouldNotBeNull();
+            visual.GetAttribute("aria-hidden").ShouldBe("true");
+            visual.TextContent.Trim().ShouldBe(label);
+            visual.QuerySelector("svg").ShouldNotBeNull().GetAttribute("aria-label").ShouldBe(label);
+        }
     }
 
     [Theory]
@@ -104,6 +137,9 @@ public sealed class TruthStateBadgeTests : FluentBunitContext
         fluentBadge.IconStart.ShouldNotBeNull().GetType().Name.ShouldBe(expectedIconType);
         fluentBadge.IconStart.Size.ShouldBe(IconSize.Size20);
         fluentBadge.IconLabel.ShouldBe(expectedLabel);
+        fluentBadge.Shape.ShouldBe(BadgeShape.Rounded);
+        fluentBadge.Appearance.ShouldBe(expectedColor is BadgeColor.Severe ? BadgeAppearance.Filled : BadgeAppearance.Tint);
+        AssertNamedBadgeIcon(badge);
     }
 
     [Fact]
@@ -122,11 +158,13 @@ public sealed class TruthStateBadgeTests : FluentBunitContext
         lifecycle.FindComponent<FluentBadge>().Instance.Color.ShouldBe(BadgeColor.Severe);
     }
 
-    private static void AssertDecorativeIcon(IElement badge)
+    private static void AssertNamedBadgeIcon(IElement badge)
     {
         IElement icon = badge.QuerySelectorAll("svg").ShouldHaveSingleItem();
-        icon.GetAttribute("aria-hidden").ShouldBe("true");
-        icon.HasAttribute("aria-label").ShouldBeFalse();
+        badge.GetAttribute("role").ShouldBe("img");
+        badge.GetAttribute("aria-hidden").ShouldBe("true");
+        badge.Closest("[data-status-badge]").ShouldNotBeNull().GetAttribute("aria-label").ShouldBe(badge.GetAttribute("aria-label"));
+        icon.GetAttribute("aria-label").ShouldBe(badge.GetAttribute("aria-label"));
         icon.QuerySelector("title").ShouldBeNull();
     }
 

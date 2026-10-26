@@ -54,7 +54,9 @@ public sealed class AuditAvailabilityStateTests : FluentBunitContext
         root.HasAttribute("aria-live").ShouldBeFalse();
 
         FluentBadge badge = cut.FindComponent<FluentBadge>().Instance;
-        badge.Appearance.ShouldBe(BadgeAppearance.Tint);
+        badge.Appearance.ShouldBe(expectedColor is BadgeColor.Severe ? BadgeAppearance.Filled : BadgeAppearance.Tint);
+        badge.Shape.ShouldBe(BadgeShape.Rounded);
+        badge.IconLabel.ShouldBe(expectedLabel);
         badge.Color.ShouldBe(expectedColor);
         badge.Color.ShouldNotBe(BadgeColor.Success);
         badge.IconStart.ShouldNotBeNull().GetType().Name.ShouldBe(expectedIcon);
@@ -63,7 +65,10 @@ public sealed class AuditAvailabilityStateTests : FluentBunitContext
         IElement badgeElement = cut.Find("[data-testid='tenants-audit-availability-badge']");
         badgeElement.TextContent.Trim().ShouldBe(expectedLabel);
         badgeElement.GetAttribute("aria-label").ShouldBe(expectedLabel);
-        badgeElement.QuerySelectorAll("svg").ShouldHaveSingleItem().GetAttribute("aria-hidden").ShouldBe("true");
+        badgeElement.GetAttribute("role").ShouldBe("img");
+        badgeElement.HasAttribute("aria-live").ShouldBeFalse();
+        badgeElement.QuerySelectorAll("svg").ShouldHaveSingleItem().GetAttribute("aria-label").ShouldBe(expectedLabel);
+        cut.FindAll("[aria-live]").Count.ShouldBe(1);
 
         cut.Find("[data-testid='tenants-audit-availability-announcement']").GetAttribute("aria-live")
             .ShouldBe(expectedLiveRegion);
@@ -83,6 +88,9 @@ public sealed class AuditAvailabilityStateTests : FluentBunitContext
 
         FluentBadge badge = cut.FindComponent<FluentBadge>().Instance;
         badge.Color.ShouldBe(BadgeColor.Success);
+        badge.Shape.ShouldBe(BadgeShape.Rounded);
+        badge.Appearance.ShouldBe(BadgeAppearance.Tint);
+        badge.IconLabel.ShouldBe("Audit available");
         badge.IconStart.ShouldNotBeNull().GetType().Name.ShouldBe("DocumentCheckmark");
         cut.Find("[data-testid='tenants-audit-availability']").GetAttribute("data-state").ShouldBe("available");
         cut.Find("[data-testid='tenants-audit-availability-announcement']").GetAttribute("aria-live").ShouldBe("polite");

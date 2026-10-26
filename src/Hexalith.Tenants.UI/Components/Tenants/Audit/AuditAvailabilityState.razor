@@ -24,14 +24,19 @@
                tabindex="-1"
                aria-describedby="@(IsRetryLimitReached ? _retryLimitId : null)"
                @ref="_stateLineElement">
-                <FluentBadge Appearance="BadgeAppearance.Tint"
-                             Color="@StateBadgeColor"
-                             IconStart="@StateIcon"
-                             Class="@($"tenants-audit-availability__badge tenants-audit-availability__badge--{StateCss}")"
-                             aria-label="@StateLabel"
-                             data-testid="tenants-audit-availability-badge">
-                    @StateLabel
-                </FluentBadge>
+                <FluentText As="TextTag.Span" role="img" aria-label="@StateLabel" data-status-badge="true">
+                    <FluentBadge aria-hidden="true" Appearance="@(StateBadgeColor is BadgeColor.Danger or BadgeColor.Severe ? BadgeAppearance.Filled : BadgeAppearance.Tint)"
+                                 Shape="BadgeShape.Rounded"
+                                 Color="@StateBadgeColor"
+                                 IconStart="@StateIcon"
+                                 IconLabel="@StateLabel"
+                                 role="img"
+                                 Class="@($"tenants-audit-availability__badge tenants-audit-availability__badge--{StateCss}")"
+                                 aria-label="@StateLabel"
+                                 data-testid="tenants-audit-availability-badge">
+                        @StateLabel
+                    </FluentBadge>
+                </FluentText>
             </p>
             @if (!string.IsNullOrWhiteSpace(ExplanationText))
             {

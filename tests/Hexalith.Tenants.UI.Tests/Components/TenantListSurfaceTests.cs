@@ -176,7 +176,7 @@ public sealed class TenantListSurfaceTests : BunitContext
         statusBadge.Color.ShouldBe(BadgeColor.Severe);
         statusBadge.IconStart.ShouldNotBeNull().GetType().Name.ShouldBe("Power");
         statusBadge.IconStart.Size.ShouldBe(IconSize.Size20);
-        AssertDecorativeBadge(statusBadge, cut.Find("[data-testid='tenants-list-status']"), "Disabled");
+        AssertNamedBadge(statusBadge, cut.Find("[data-testid='tenants-list-status']"), "Disabled");
 
         FluentBadge pendingBadge = cut.FindComponents<FluentBadge>()
             .Select(component => component.Instance)
@@ -184,7 +184,7 @@ public sealed class TenantListSurfaceTests : BunitContext
         pendingBadge.Color.ShouldBe(BadgeColor.Important);
         pendingBadge.IconStart.ShouldNotBeNull().GetType().Name.ShouldBe("QuestionCircle");
         pendingBadge.IconStart.Size.ShouldBe(IconSize.Size20);
-        AssertDecorativeBadge(pendingBadge, cut.Find("[data-testid='tenants-list-pending']"), "Pending state unknown");
+        AssertNamedBadge(pendingBadge, cut.Find("[data-testid='tenants-list-pending']"), "Pending state unknown");
         cut.FindAll("[data-testid='tenants-list-audit-entrypoint']").Count.ShouldBe(1);
     }
 
@@ -210,12 +210,12 @@ public sealed class TenantListSurfaceTests : BunitContext
         FluentBadge statusBadge = cut.FindComponents<FluentBadge>()
             .Select(component => component.Instance)
             .Single(badge => badge.Class?.Contains("tenant-data-grid__status", StringComparison.Ordinal) == true);
-        AssertDecorativeBadge(statusBadge, cut.Find("[data-testid='tenants-list-status']"), expectedStatus);
+        AssertNamedBadge(statusBadge, cut.Find("[data-testid='tenants-list-status']"), expectedStatus);
 
         FluentBadge pendingBadge = cut.FindComponents<FluentBadge>()
             .Select(component => component.Instance)
             .Single(badge => badge.Class?.Contains("tenant-data-grid__pending", StringComparison.Ordinal) == true);
-        AssertDecorativeBadge(pendingBadge, cut.Find("[data-testid='tenants-list-pending']"), expectedPendingState);
+        AssertNamedBadge(pendingBadge, cut.Find("[data-testid='tenants-list-pending']"), expectedPendingState);
     }
 
     [Fact]
@@ -2811,14 +2811,16 @@ public sealed class TenantListSurfaceTests : BunitContext
     private void RegisterServices(TenantListSnapshot snapshot)
         => RegisterServices(_ => Task.FromResult(snapshot));
 
-    private static void AssertDecorativeBadge(FluentBadge fluentBadge, IElement badge, string expectedLabel)
+    private static void AssertNamedBadge(FluentBadge fluentBadge, IElement badge, string expectedLabel)
     {
-        fluentBadge.IconLabel.ShouldBeNull();
+        fluentBadge.IconLabel.ShouldBe(expectedLabel);
+        fluentBadge.Shape.ShouldBe(BadgeShape.Rounded);
+        fluentBadge.Appearance.ShouldBe(fluentBadge.Color is BadgeColor.Danger or BadgeColor.Severe ? BadgeAppearance.Filled : BadgeAppearance.Tint);
+        badge.GetAttribute("role").ShouldBe("img");
         badge.TextContent.Trim().ShouldBe(expectedLabel);
         badge.GetAttribute("aria-label").ShouldBe(expectedLabel);
         IElement icon = badge.QuerySelectorAll("svg").ShouldHaveSingleItem();
-        icon.GetAttribute("aria-hidden").ShouldBe("true");
-        icon.HasAttribute("aria-label").ShouldBeFalse();
+        icon.GetAttribute("aria-label").ShouldBe(expectedLabel);
         icon.QuerySelector("title").ShouldBeNull();
     }
 

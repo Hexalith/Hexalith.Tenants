@@ -44,7 +44,7 @@
              style="justify-content: start; align-items: start; row-gap: 0.5rem; width: 100%;"
              aria-live="assertive" aria-atomic="true">
             <p id="availability-state" class="tenants-audit-availability__state" tabindex="-1">
-                <fluent-badge id="availability-badge" class="tenants-audit-availability__badge tenants-audit-availability__badge--unavailable" appearance="tint" color="severe" aria-label="Audit indisponible"><svg style="width: 20px;" focusable="false" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 4h12v12H4z"/></svg><span>Audit indisponible</span></fluent-badge>
+                <span role="img" aria-label="Audit indisponible"><fluent-badge aria-hidden="true" id="availability-badge" class="tenants-audit-availability__badge tenants-audit-availability__badge--unavailable" appearance="filled" shape="rounded" color="severe" role="img" aria-label="Audit indisponible"><svg style="width: 20px;" focusable="false" viewBox="0 0 20 20" aria-label="Audit indisponible"><path d="M4 4h12v12H4z"/></svg><span>Audit indisponible</span></fluent-badge></span>
             </p>
             <p class="tenants-audit-availability__reason">Le statut d’audit n’a pas pu être lu ni vérifié après l’envoi de la commande. Cela ne signifie pas que l’enregistrement n’existe pas, et aucune preuve n’est revendiquée.</p>
         </div>
@@ -410,7 +410,7 @@
             const availabilityBadge = document.getElementById("availability-badge");
             const badgeBounds = availabilityBadge.getBoundingClientRect();
             if (badgeBounds.width <= 0 || badgeBounds.right > availabilityBounds.right + 1
-                || !availabilityBadge.querySelector("svg[aria-hidden='true']")
+                || !availabilityBadge.querySelector("svg[aria-label='Audit indisponible']")
                 || !availabilityBadge.textContent.includes("Audit indisponible")) {
                 throw new Error("availability-style: badge must show its icon and full accented label inside the card");
             }

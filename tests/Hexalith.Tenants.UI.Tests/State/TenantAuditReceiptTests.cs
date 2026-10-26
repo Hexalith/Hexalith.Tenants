@@ -262,6 +262,182 @@ public sealed class TenantAuditReceiptTests
         source.ShouldNotContain("CopyableReferenceText");
     }
 
+    [Theory]
+    [InlineData(ReadModelFreshnessState.Current, ProjectionLifecycleState.Current, QueryResponseProvenance.ProjectionBacked, TenantAuditReceiptState.Ready)]
+    [InlineData(ReadModelFreshnessState.Unknown, ProjectionLifecycleState.Current, QueryResponseProvenance.ProjectionBacked, TenantAuditReceiptState.Partial)]
+    [InlineData(ReadModelFreshnessState.Aging, ProjectionLifecycleState.Current, QueryResponseProvenance.ProjectionBacked, TenantAuditReceiptState.Partial)]
+    [InlineData(ReadModelFreshnessState.Stale, ProjectionLifecycleState.Current, QueryResponseProvenance.ProjectionBacked, TenantAuditReceiptState.Stale)]
+    [InlineData(ReadModelFreshnessState.Current, ProjectionLifecycleState.Unknown, QueryResponseProvenance.ProjectionBacked, TenantAuditReceiptState.Partial)]
+    [InlineData(ReadModelFreshnessState.Current, ProjectionLifecycleState.Rebuilding, QueryResponseProvenance.ProjectionBacked, TenantAuditReceiptState.Partial)]
+    [InlineData(ReadModelFreshnessState.Current, ProjectionLifecycleState.Current, QueryResponseProvenance.Unknown, TenantAuditReceiptState.Partial)]
+    public void ExplicitAuthorityEntryFactoryRequiresEveryAuthorityDimension(
+        ReadModelFreshnessState freshness, ProjectionLifecycleState lifecycle,
+        QueryResponseProvenance provenance, TenantAuditReceiptState expected)
+    {
+        TenantAuditEntry entry = Entry(new Dictionary<string, string> { ["userId"] = "target-user" });
+        TenantAuditReceipt receipt = TenantAuditReceipt.FromEntry(entry, freshness, lifecycle, provenance);
+
+        receipt.State.ShouldBe(expected);
+        receipt.CommandReference.ShouldBeNull();
+        TenantAuditRow row = TenantAuditRow.FromEntry(entry, freshness, lifecycle, provenance);
+        row.Lifecycle.ShouldBe(lifecycle);
+        row.Provenance.ShouldBe(provenance);
+        TenantAuditReceipt.FromRow(row).ShouldBe(receipt);
+        TenantAuditReceipt.FromEntry(entry, ReadModelFreshnessState.Current).State.ShouldBe(TenantAuditReceiptState.Partial);
+        TenantAuditRow.FromEntry(entry, freshness).Lifecycle.ShouldBe(ProjectionLifecycleState.Unknown);
+        TenantAuditRow.FromEntry(entry, freshness).Provenance.ShouldBe(QueryResponseProvenance.Unknown);
+    }
+
+    [Theory]
+    [InlineData("GlobalAdministratorSet")]
+    [InlineData("GlobalAdministratorRemoved")]
+    public void ExplicitAuthorityRequiresAccessCategoryAndUserTargetForGlobalEvents(string eventType)
+    {
+        foreach (AuditEventCategory category in Enum.GetValues<AuditEventCategory>())
+        {
+            foreach (bool hasUser in new[] { false, true })
+            {
+                TenantAuditEntry entry = Entry(hasUser
+                    ? new Dictionary<string, string> { ["userId"] = "target-user" }
+                    : new Dictionary<string, string>()) with { EventType = eventType, Category = category };
+                TenantAuditReceipt receipt = TenantAuditReceipt.FromEntry(entry, ReadModelFreshnessState.Current,
+                    ProjectionLifecycleState.Current, QueryResponseProvenance.ProjectionBacked);
+                receipt.State.ShouldBe(category is AuditEventCategory.Access && hasUser
+                    ? TenantAuditReceiptState.Ready : TenantAuditReceiptState.Partial);
+                receipt.Outcome.ShouldBe(category is AuditEventCategory.Access ? eventType : string.Empty);
+                receipt.CommandReference.ShouldBeNull();
+            }
+        }
+    }
+
+    [Theory]
+    [InlineData("TenantConfigurationSet")]
+    [InlineData("TenantConfigurationRemoved")]
+    public void ConfigurationEvidenceRequiresASafeKeyAndTheMappedTypedTarget(string eventType)
+    {
+        TenantAuditEntry entry = Entry(new Dictionary<string, string> { ["key"] = "billing.mode" }) with
+        {
+            EventType = eventType,
+            Category = AuditEventCategory.Administrative,
+        };
+        TenantAuditReceipt Receipt(TenantAuditEntry value) => TenantAuditReceipt.FromEntry(value,
+            ReadModelFreshnessState.Current, ProjectionLifecycleState.Current, QueryResponseProvenance.ProjectionBacked);
+        Receipt(entry).State.ShouldBe(TenantAuditReceiptState.Ready);
+        Receipt(entry).Target.ShouldBe("billing.mode");
+
+        foreach (Dictionary<string, string> payload in new Dictionary<string, string>[]
+        {
+            new(),
+            new() { ["key"] = "Bearer raw-token" },
+            new() { ["userId"] = "target-user" },
+            new() { ["key"] = "Bearer raw-token", ["userId"] = "target-user" },
+        })
+        {
+            TenantAuditReceipt receipt = Receipt(entry with { NarrativePayload = payload });
+            receipt.State.ShouldBe(TenantAuditReceiptState.Partial);
+            receipt.Target.ShouldBe(payload.ContainsKey("userId") ? "target-user" : "tenant.alpha");
+            receipt.CommandReference.ShouldBeNull();
+        }
+
+        TenantAuditRow row = TenantAuditRow.FromEntry(entry, ReadModelFreshnessState.Current,
+            ProjectionLifecycleState.Current, QueryResponseProvenance.ProjectionBacked);
+        foreach (string target in new[] { string.Empty, "Bearer raw-token", "other.key", "tenant.alpha" })
+        {
+            TenantAuditReceipt receipt = TenantAuditReceipt.FromRow(row with { Target = target });
+            receipt.State.ShouldBe(TenantAuditReceiptState.Partial);
+            receipt.Target.ShouldBe(target is "Bearer raw-token" ? string.Empty : target);
+        }
+        TenantAuditReceipt.FromRow(row with { Narrative = new TenantAuditNarrative(ConfigurationKey: "Bearer raw-token") })
+            .State.ShouldBe(TenantAuditReceiptState.Partial);
+        TenantAuditReceipt.FromRow(row with { Narrative = null }).State.ShouldBe(TenantAuditReceiptState.Partial);
+
+        TenantAuditEntry bothFields = entry with
+        {
+            NarrativePayload = new Dictionary<string, string> { ["userId"] = "target-user", ["key"] = "billing.mode" },
+        };
+        Receipt(bothFields).State.ShouldBe(TenantAuditReceiptState.Ready);
+        Receipt(bothFields).Target.ShouldBe("target-user");
+        TenantAuditRow userTargetRow = TenantAuditRow.FromEntry(bothFields, ReadModelFreshnessState.Current,
+            ProjectionLifecycleState.Current, QueryResponseProvenance.ProjectionBacked);
+        foreach (string mismatchedTarget in new[] { "billing.mode", "other-user", "tenant.alpha" })
+        {
+            TenantAuditReceipt.FromRow(userTargetRow with { Target = mismatchedTarget }).State.ShouldBe(TenantAuditReceiptState.Partial);
+        }
+    }
+
+    [Theory]
+    [InlineData(TenantAuditSurfaceKind.Ready, TenantCommandAuditState.AuditPending, TenantAuditReceiptState.Pending)]
+    [InlineData(TenantAuditSurfaceKind.Ready, TenantCommandAuditState.AuditDelayed, TenantAuditReceiptState.Delayed)]
+    [InlineData(TenantAuditSurfaceKind.Ready, TenantCommandAuditState.AuditUnavailable, TenantAuditReceiptState.Unavailable)]
+    [InlineData(TenantAuditSurfaceKind.Ready, TenantCommandAuditState.MissingSupport, TenantAuditReceiptState.MissingSupport)]
+    [InlineData(TenantAuditSurfaceKind.Loading, TenantCommandAuditState.AuditAvailable, TenantAuditReceiptState.Loading)]
+    [InlineData(TenantAuditSurfaceKind.Error, TenantCommandAuditState.AuditPending, TenantAuditReceiptState.Error)]
+    [InlineData(TenantAuditSurfaceKind.Unauthorized, TenantCommandAuditState.AuditAvailable, TenantAuditReceiptState.Unauthorized)]
+    [InlineData(TenantAuditSurfaceKind.Unavailable, TenantCommandAuditState.AuditAvailable, TenantAuditReceiptState.Unavailable)]
+    [InlineData(TenantAuditSurfaceKind.InvalidCursor, TenantCommandAuditState.AuditAvailable, TenantAuditReceiptState.InvalidCursor)]
+    [InlineData(TenantAuditSurfaceKind.Stale, TenantCommandAuditState.AuditAvailable, TenantAuditReceiptState.Stale)]
+    [InlineData(TenantAuditSurfaceKind.Degraded, TenantCommandAuditState.AuditAvailable, TenantAuditReceiptState.Degraded)]
+    public void ExplicitAuthorityDoesNotOverrideSurfaceOrCommandAuditState(
+        TenantAuditSurfaceKind surface, TenantCommandAuditState audit, TenantAuditReceiptState expected)
+    {
+        TenantAuditReceipt.FromEntry(Entry(new Dictionary<string, string> { ["userId"] = "target-user" }),
+            ReadModelFreshnessState.Current, ProjectionLifecycleState.Current, QueryResponseProvenance.ProjectionBacked,
+            surface, audit).State.ShouldBe(expected);
+    }
+
+    [Fact]
+    public void ExplicitAuthorityCannotPromoteUnsafeOrMissingEvidence()
+    {
+        TenantAuditEntry safe = Entry(new Dictionary<string, string> { ["userId"] = "target-user" });
+        TenantAuditEntry[] incomplete =
+        [
+            safe with { ActorId = "Bearer raw-token" },
+            safe with { TenantId = "Bearer raw-token" },
+            safe with { NarrativePayload = new Dictionary<string, string> { ["userId"] = "person@example.test" } },
+            safe with { EventType = "FutureTenantEvent" },
+            safe with { Category = AuditEventCategory.Administrative },
+            safe with { Timestamp = default },
+            safe with { Timestamp = safe.Timestamp.ToOffset(TimeSpan.FromHours(2)) },
+        ];
+        foreach (TenantAuditEntry entry in incomplete)
+        {
+            TenantAuditReceipt receipt = TenantAuditReceipt.FromEntry(entry, ReadModelFreshnessState.Current,
+                ProjectionLifecycleState.Current, QueryResponseProvenance.ProjectionBacked);
+            receipt.State.ShouldBe(TenantAuditReceiptState.Partial);
+            receipt.Actor.ShouldNotBe("Bearer raw-token");
+            receipt.Target.ShouldNotBe("person@example.test");
+            receipt.Scope.ShouldNotBe("Bearer raw-token");
+            receipt.Outcome.ShouldNotBe("FutureTenantEvent");
+        }
+
+        Should.Throw<ArgumentException>(() => TenantAuditReceipt.FromEntry(safe with { EventId = "Bearer raw-token" },
+            ReadModelFreshnessState.Current, ProjectionLifecycleState.Current, QueryResponseProvenance.ProjectionBacked));
+        Should.Throw<ArgumentNullException>(() => TenantAuditReceipt.FromEntry(null!,
+            ReadModelFreshnessState.Current, ProjectionLifecycleState.Current, QueryResponseProvenance.ProjectionBacked));
+    }
+
+    [Theory]
+    [InlineData("en-US")]
+    [InlineData("fr-FR")]
+    [InlineData("ar-SA")]
+    public void TimestampConventionIsInvariantAndNormalizesOffsetsWithoutInventingMissingTime(string cultureName)
+    {
+        CultureInfo previous = CultureInfo.CurrentCulture;
+        try
+        {
+            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(cultureName);
+            TenantAuditReceipt receipt = TenantAuditReceipt.FromRow(Row());
+            receipt.TimestampLabel.ShouldBe("2026-06-01 10:00:00 UTC");
+            (receipt with { Timestamp = receipt.Timestamp!.Value.ToOffset(TimeSpan.FromHours(-7)) })
+                .TimestampLabel.ShouldBe("2026-06-01 10:00:00 UTC");
+            (receipt with { Timestamp = null }).TimestampLabel.ShouldBeEmpty();
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = previous;
+        }
+    }
+
     private static TenantAuditEntry Entry(IReadOnlyDictionary<string, string> narrative)
         => new(
             "event-safe-reference",

@@ -1,5 +1,7 @@
 # Maintenance backlog
 
+**DW-408/DW-440/DW-450/DW-460/DW-474 closure (2026-10-26):** Approved audit compatibility, invariant UTC timestamps, shared badge anatomy and explicit receipt authority are implemented and independently reviewed. Final Debug source build has zero warnings/errors; all 7,762 UI tests and the maintained EN/FR Chromium normal/forced-color checks pass, including 16 targeted badge rejection controls. Exactly five records close: all 657 IDs remain, 615 done/42 open across 38 maintenance rows. Original findings, historical fields, all 652 other numbered records, dependencies and broader release/assistive-technology holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-408-440-450-460-474-validation-evidence.md).
+
 **DW-161 closure (2026-10-26):** Published EventStore3.128.2 and the clean hosted normal-NuGet consumer qualify all six production REST reads, unchanged conditional304 authority, fresh bootstrap, persisted state, cursor recovery and25 authenticated browser cases. The responsive identity fixture also passes hosted Chromium. This completes the requested DW-104/DW-161/DW-432/DW-436/DW-594 batch. All657 IDs remain:610 done/47 open across42 maintenance rows; all656 other record bodies and every DW-161 historical field remain preserved. Only the approved EventStore dependency/gitlink advances. Broader baseline CI/runtime/release holds remain. See [validation evidence](../_bmad-output/implementation-artifacts/dw-161-shared-conditional-authority-validation-evidence.md).
 
 **DW-104/DW-432/DW-436/DW-594 closure (2026-10-25):** Fresh hosted production REST/UI and command-seeded persisted-state checks, 25 physical browser cases, measured layouts at 390, 768 and 1440 pixels with forced colors off/on and contextual audit Back qualify exactly four records. DW-161 remains open: pinned EventStore returns 200 instead of 304 and requires an approved shared-module/dependency change. All 657 IDs remain: 609 done/48 open across 43 maintenance rows. Historical fields, all 652 unselected records, accepted limitations and dependency pointers remain preserved. Broader CI/release holds remain. See [validation evidence](../_bmad-output/implementation-artifacts/dw-104-161-432-436-594-validation-evidence.md).
@@ -234,14 +236,14 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 | Disposition | Records |
 | --- | ---: |
-| done | 605 |
-| actionable | 9 |
-| blocked | 11 |
-| awaiting-decision | 21 |
+| done | 615 |
+| actionable | 7 |
+| blocked | 8 |
+| awaiting-decision | 16 |
 | accepted-limitation | 5 |
 | uncertain | 6 |
 
-**Remaining: 52 open records across 47 index rows.**
+**Remaining: 42 open records across 38 index rows.**
 
 **Unnumbered review follow-up:** navigation verification exposed a cancellation-test cleanup timing gap, retained in the deferred ledger. The numbered DW totals and rows exclude this new follow-up until ledger migration. Disposition counts now cover all 657 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
 
@@ -285,7 +287,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-154 | P2 | Gap / blocked | unassigned | concurrent teardown harness | Use a concurrency-capable renderer/browser harness to pin reset and disposed-notification behavior. |
 | DW-334, DW-358 | P2 | Gap / blocked | operator | operator-owned live Aspire/secret-provider evidence; Operator environment and intended secret-provider configuration | Capture deployed model, provider binding and healthy startup in the intended package mode. |
 | DW-457 | P2 | Gap / awaiting-decision | Hexalith.Builds | Builds toolchain qualification decision | Builds owners must annotate the historical Aspire split disposition and disambiguate the two Dapr meanings. |
-| DW-460 | P2 | Gap / awaiting-decision | unassigned | Public receipt API decision | Choose an authoritative-metadata overload or deprecate the misleading FromEntry factory, preserving provenance checks. |
 | DW-461, DW-467, DW-478 | P2 | Gap / awaiting-decision | unassigned | Historical artifact validation policy | Choose a resolvable audited range for the legacy artifact or explicitly retire its executable guard role. |
 | DW-540 | P2 | Gap / awaiting-decision | Hexalith.Builds | Maintainer CI gating decision | Record whether the existing Aspire lane must become blocking, and define the exact prerequisites/skip behavior before changing the workflow. |
 | DW-554 | P2 | Gap / awaiting-decision | unassigned | Published package dependency-layer decision | Approve allowed published layers for each technical ServiceDefaults dependency, then enforce that policy with isolated package fixtures. |
@@ -307,14 +308,11 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-568 | P2 | Unverified / uncertain | unassigned | Live store ETag behavior and index-version contract | Capture safe metadata for index and tenant-audit reads with absent store ETags before deciding remaining stamping work. |
 | DW-137 | P2 | Recommendation / actionable | future Tenants API route-contract work | Tenants API route-contract design | Specify the reversible route representation and slash/dot/traversal tests before changing client/controller behavior. |
 | DW-144 | P2 | Recommendation / actionable | unassigned | topology/security contract and DW-137 | Implement the already-selected topology in a dedicated owning change with deny-default GET policy, retry and ETag/route checks. |
-| DW-408 | P2 | Recommendation / awaiting-decision | unassigned | Audit contract/versioning decision | Decide the unknown audit event compatibility contract, then update gateway behavior/tests and documentation to that single policy. |
 | DW-498 | P2 | Recommendation / awaiting-decision | unassigned | Product/authorization result-read policy | Choose and document an authorized post-self-demotion inspection/handoff policy; retain current redaction until that decision. |
 | DW-570 | P2 | Recommendation / actionable | release workflow owner | Approved release-provenance policy | Add the owning workflow closure gate or document an approved equivalent closure procedure. |
 | DW-584 | P2 | Recommendation / awaiting-decision | unassigned | Release-gate policy owner | Decide which separate exact-source workflow outcomes must block publication and document the gate. |
 | DW-600 | P2 | Recommendation / awaiting-decision | unassigned | Complete-evidence duplicate-page policy | Decide whether cross-page overlap must invalidate completeness; reconcile any new rule with the existing spec/test contract. |
 | DW-438 | P3 | Recommendation / awaiting-decision | unassigned | Support-safety policy/opaque-reference contract decision | Decide whether opaque references need a shape-based exemption from substring rejection and define examples before changing the shared safety policy. |
-| DW-440 | P3 | Recommendation / awaiting-decision | unassigned | UX/support timestamp formatting decision | Choose culture-formatted absolute dates or the stable UTC pattern for both grid and receipt, then align the UX wording/tests. |
-| DW-450, DW-474 | P3 | Recommendation / awaiting-decision | unassigned | Repo-wide UX/design precedence decision; Existing Tint-versus-Filled badge decision | Decide the shared badge appearance/anatomy and align components with DESIGN.md. |
 
 ## Accepted limitations
 

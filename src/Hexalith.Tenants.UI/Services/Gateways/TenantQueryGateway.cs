@@ -1522,10 +1522,7 @@ internal sealed class TenantQueryGateway(
         ProjectionLifecycleState lifecycle = ResolveLifecycle(result.Metadata);
         QueryResponseProvenance provenance = ResolveProvenance(result.Metadata);
         IReadOnlyList<TenantAuditRow> rows = payload.Items
-            .Select(entry => TenantAuditRow.FromEntry(entry, freshness) with {
-                Lifecycle = lifecycle,
-                Provenance = provenance,
-            })
+            .Select(entry => TenantAuditRow.FromEntry(entry, freshness, lifecycle, provenance))
             .ToArray();
 
         if (result.Metadata?.IsDegraded == true) {
@@ -3276,6 +3273,8 @@ internal sealed class TenantQueryGateway(
         return true;
     }
 
+    // Compatibility policy: an unknown event or category mismatch rejects the whole page before mapping.
+    // Deploy support-safe UI mappings/translations before a server begins emitting a new event type.
     private static bool IsSupportedAuditEvent(string? eventType, AuditEventCategory category)
         => eventType switch
         {

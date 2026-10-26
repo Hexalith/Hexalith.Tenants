@@ -143,6 +143,7 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
     public void Known_outcome_has_correct_localized_meaning_and_runtime_copy(
         string eventType, string english, string french)
     {
+        ArgumentNullException.ThrowIfNull(eventType);
         string projectRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
         string key = $"Tenants.Audit.Receipt.Outcome.{eventType}";
         static string Value(string path, string resourceKey) => XDocument.Load(path).Root!
@@ -152,8 +153,10 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
         Value(Path.Combine(projectRoot, "src", "Hexalith.Tenants.UI", "Resources", "TenantsResources.fr.resx"), key).ShouldBe(french);
 
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        TenantAuditReceipt receipt = TenantAuditReceipt.FromRow(Row(eventType: eventType));
+        receipt.State.ShouldBe(TenantAuditReceiptState.Ready);
         IRenderedComponent<AuditEvidenceReceipt> cut = Render<AuditEvidenceReceipt>(parameters => parameters
-            .Add(component => component.Receipt, TenantAuditReceipt.FromRow(Row(eventType: eventType))));
+            .Add(component => component.Receipt, receipt));
         cut.Find("[data-testid='tenants-audit-receipt-outcome'] dd").TextContent.ShouldBe(english);
         cut.Find("[data-surface-testid='tenants-audit-receipt-copy']");
     }
@@ -894,11 +897,13 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
             "target-user",
             "tenant.alpha",
             eventType,
-            "userId: target-user",
+            eventType is "TenantConfigurationSet" or "TenantConfigurationRemoved"
+                ? "userId: target-user; key: billing.mode" : "userId: target-user",
             ReadModelFreshnessState.Current,
             ProjectionLifecycleState.Current,
             QueryResponseProvenance.ProjectionBacked,
-            new TenantAuditNarrative(UserId: "target-user"));
+            new TenantAuditNarrative(UserId: "target-user",
+                ConfigurationKey: eventType is "TenantConfigurationSet" or "TenantConfigurationRemoved" ? "billing.mode" : null));
 
     private static TenantAuditRow RowWith(string field, string value)
         => field switch

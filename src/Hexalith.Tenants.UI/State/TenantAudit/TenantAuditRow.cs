@@ -45,8 +45,22 @@ public sealed record TenantAuditRow(
     /// <summary>Creates a UI audit row from a query-contract entry.</summary>
     /// <param name="entry">The query-contract audit entry.</param>
     /// <param name="freshness">The normalized read-model freshness for the response.</param>
-    /// <returns>A support-safe audit row.</returns>
-    public static TenantAuditRow FromEntry(TenantAuditEntry entry, ReadModelFreshnessState freshness) {
+    /// <returns>A support-safe audit row with unknown authority.</returns>
+    public static TenantAuditRow FromEntry(TenantAuditEntry entry, ReadModelFreshnessState freshness)
+        => FromEntry(entry, freshness, ProjectionLifecycleState.Unknown, QueryResponseProvenance.Unknown);
+
+    /// <summary>Creates a support-safe audit row with authority supplied by the authorized query response.</summary>
+    /// <param name="entry">The query-contract audit entry.</param>
+    /// <param name="freshness">The normalized response freshness.</param>
+    /// <param name="lifecycle">The normalized response projection lifecycle.</param>
+    /// <param name="provenance">The declared response provenance.</param>
+    /// <returns>A support-safe audit row retaining the supplied authority.</returns>
+    public static TenantAuditRow FromEntry(
+        TenantAuditEntry entry,
+        ReadModelFreshnessState freshness,
+        ProjectionLifecycleState lifecycle,
+        QueryResponseProvenance provenance)
+    {
         ArgumentNullException.ThrowIfNull(entry);
 
         TenantAuditNarrative narrative = TenantAuditNarrative.FromPayload(entry.NarrativePayload);
@@ -71,6 +85,8 @@ public sealed record TenantAuditRow(
             entry.EventType,
             narrative.ToDisplayString(),
             freshness,
+            lifecycle,
+            provenance,
             Narrative: narrative)
         {
             CommandCorrelationId = entry.CommandCorrelationId,

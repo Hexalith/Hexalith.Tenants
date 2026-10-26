@@ -181,6 +181,12 @@ Inherit Fluent's corner radii wholesale (`{rounded}` note); there are **no bespo
 
 Ten domain components compose Fluent primitives. The first five are the **trust-specific** core and carry the most detail; the three grids are `FluentDataGrid` configurations with pinned safety columns; the last two are the action controls. Each lists its anatomy, the semantic role(s) it draws from, sizing via `{spacing.*}`, and state appearance. **When** each state appears, the announcement politeness, and the recovery flow are the **behavioral spec in EXPERIENCE.md**; below is purely visual.
 
+### Approved presentation precedence — 2026-10-26
+
+The approved [audit contracts spec](../../../implementation-artifacts/spec-dw-408-440-450-460-474-audit-contracts.md) adopts this document's Rounded and Filled-for-Danger/Severe badge convention across the seven affected Tenants badge components. It supersedes the completed Story 5.4 implementation spec's explicit Tint choice without rewriting that historical story. Icon-bearing badges supply localized `IconLabel`; each badge exposes a single named-image state through a FluentText span while the inner visual FluentBadge subtree is aria-hidden. The pinned FluentBadge has IconLabel but no icon-only aria-hidden parameter; the Fluent wrapper supplies that semantic boundary without custom markup or CSS. The existing parent live region owns audit/lifecycle announcements, while refreshing truth badges retain polite, atomic announcements. Color and appearance do not select live-region urgency.
+
+For audit grid and receipt timestamps, DW-440 chooses invariant `yyyy-MM-dd HH:mm:ss UTC`; EN/FR localize surrounding labels. This is the approved exception to older culture-aware timestamp wording. Missing or noncanonical evidence remains subject to existing authority checks. DW-408 retains whole-page rejection for unknown audit events and requires coordinated UI-before-server rollout; DW-460 adds explicit response authority to receipt construction while retaining the old conservative overload. See the [audit evidence policy](../../../../docs/tenants-ui-audit-evidence-and-compensating-recovery-spec.md#approved-audit-contract-precedence--2026-10-26) for the complete precedence contract.
+
 ### truth-state-badge
 
 The atom of the whole system — one component that fuses **color + icon + text** so no status is ever color-only. It renders the canonical state vocabularies (freshness, command lifecycle, projection confirmation, audit availability, authorization, risk) as a single Fluent `FluentBadge`.

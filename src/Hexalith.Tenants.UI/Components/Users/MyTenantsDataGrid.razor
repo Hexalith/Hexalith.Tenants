@@ -47,27 +47,37 @@
                         Class="@($"{SelectorPrefix}-critical {SelectorPrefix}-critical--role")"
                         Width="165px"
                         Pin="DataGridColumnPin.Start">
-            <FluentBadge Appearance="BadgeAppearance.Tint"
-                         Color="@RoleBadgeColor(context.Role)"
-                         IconStart="@RoleIcon(context.Role)"
-                         Class="@($"my-tenants-grid__badge my-tenants-grid__badge--role-{RoleCss(context.Role)}")"
-                         aria-label="@Localizer[$"{ResourcePrefix}.RoleAccessible", RoleLabel(context.Role)]"
-                         data-testid="@($"{SelectorPrefix}-role")">
-                @RoleLabel(context.Role)
-            </FluentBadge>
+            <FluentText As="TextTag.Span" role="img" aria-label="@Localizer[$"{ResourcePrefix}.RoleAccessible", RoleLabel(context.Role)]" data-status-badge="true">
+                <FluentBadge aria-hidden="true" Appearance="@(RoleBadgeColor(context.Role) is BadgeColor.Danger or BadgeColor.Severe ? BadgeAppearance.Filled : BadgeAppearance.Tint)"
+                             Shape="BadgeShape.Rounded"
+                             Color="@RoleBadgeColor(context.Role)"
+                             IconStart="@RoleIcon(context.Role)"
+                             IconLabel="@RoleLabel(context.Role)"
+                             role="img"
+                             Class="@($"my-tenants-grid__badge my-tenants-grid__badge--role-{RoleCss(context.Role)}")"
+                             aria-label="@Localizer[$"{ResourcePrefix}.RoleAccessible", RoleLabel(context.Role)]"
+                             data-testid="@($"{SelectorPrefix}-role")">
+                    @RoleLabel(context.Role)
+                </FluentBadge>
+            </FluentText>
         </TemplateColumn>
         <TemplateColumn Title="@Localizer[$"{ResourcePrefix}.Column.Status"]"
                         ColumnId="tenant-status"
                         Class="@($"{SelectorPrefix}-critical {SelectorPrefix}-critical--status")"
                         Width="150px">
-            <FluentBadge Appearance="BadgeAppearance.Tint"
-                         Color="@StatusBadgeColor(context.Status)"
-                         IconStart="@StatusIcon(context.Status)"
-                         Class="@($"my-tenants-grid__badge my-tenants-grid__badge--status-{StatusCss(context.Status)}")"
-                         aria-label="@Localizer[$"{ResourcePrefix}.StatusAccessible", StatusLabel(context.Status)]"
-                         data-testid="@($"{SelectorPrefix}-status")">
-                @StatusLabel(context.Status)
-            </FluentBadge>
+            <FluentText As="TextTag.Span" role="img" aria-label="@Localizer[$"{ResourcePrefix}.StatusAccessible", StatusLabel(context.Status)]" data-status-badge="true">
+                <FluentBadge aria-hidden="true" Appearance="@(StatusBadgeColor(context.Status) is BadgeColor.Danger or BadgeColor.Severe ? BadgeAppearance.Filled : BadgeAppearance.Tint)"
+                             Shape="BadgeShape.Rounded"
+                             Color="@StatusBadgeColor(context.Status)"
+                             IconStart="@StatusIcon(context.Status)"
+                             IconLabel="@StatusLabel(context.Status)"
+                             role="img"
+                             Class="@($"my-tenants-grid__badge my-tenants-grid__badge--status-{StatusCss(context.Status)}")"
+                             aria-label="@Localizer[$"{ResourcePrefix}.StatusAccessible", StatusLabel(context.Status)]"
+                             data-testid="@($"{SelectorPrefix}-status")">
+                    @StatusLabel(context.Status)
+                </FluentBadge>
+            </FluentText>
         </TemplateColumn>
         <TemplateColumn Title="@Localizer[$"{ResourcePrefix}.Column.Freshness"]"
                         ColumnId="tenant-freshness"

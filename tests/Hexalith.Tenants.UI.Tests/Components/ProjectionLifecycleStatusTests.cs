@@ -36,6 +36,11 @@ public sealed class ProjectionLifecycleStatusTests : FluentBunitContext
         var region = cut.Find("[data-testid='tenants-projection-lifecycle-status']");
         region.GetAttribute("role").ShouldBe(expectedRole);
         region.GetAttribute("aria-live").ShouldBeNull();
+        var badge = cut.Find("[data-testid='tenants-projection-lifecycle-status-badge']");
+        badge.GetAttribute("role").ShouldBe("img");
+        badge.GetAttribute("aria-label").ShouldBe(expectedLabel);
+        badge.HasAttribute("aria-live").ShouldBeFalse();
+        cut.FindAll("[role='status'], [role='alert'], [aria-live]").Count.ShouldBe(1);
         region.TextContent.ShouldContain("Projection lifecycle");
         cut.Find("[data-testid='tenants-projection-lifecycle-status-badge']").TextContent.Trim().ShouldBe(expectedLabel);
         (cut.Find("[data-testid='tenants-projection-lifecycle-status-badge']").GetAttribute("class") ?? string.Empty)

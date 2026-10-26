@@ -40,12 +40,18 @@
                         ColumnId="audit-category"
                         Class="tenants-audit-critical tenants-audit-critical--category"
                         Width="160px">
-            <FluentBadge Appearance="BadgeAppearance.Tint"
-                         Color="@CategoryBadgeColor(context.Category)"
-                         IconStart="@CategoryIcon(context.Category)"
-                         Class="@($"audit-data-grid__category audit-data-grid__category--{CategoryCss(context.Category)}")">
-                @Localizer[$"Tenants.Audit.Category.{context.Category}"]
-            </FluentBadge>
+            <FluentText As="TextTag.Span" role="img" aria-label="@Localizer[$"Tenants.Audit.Category.{context.Category}"]" data-status-badge="true">
+                <FluentBadge aria-hidden="true" Appearance="@(CategoryBadgeColor(context.Category) is BadgeColor.Danger or BadgeColor.Severe ? BadgeAppearance.Filled : BadgeAppearance.Tint)"
+                             Shape="BadgeShape.Rounded"
+                             Color="@CategoryBadgeColor(context.Category)"
+                             IconStart="@CategoryIcon(context.Category)"
+                             IconLabel="@Localizer[$"Tenants.Audit.Category.{context.Category}"]"
+                             role="img"
+                             aria-label="@Localizer[$"Tenants.Audit.Category.{context.Category}"]"
+                             Class="@($"audit-data-grid__category audit-data-grid__category--{CategoryCss(context.Category)}")">
+                    @Localizer[$"Tenants.Audit.Category.{context.Category}"]
+                </FluentBadge>
+            </FluentText>
         </TemplateColumn>
         <TemplateColumn Title="@Localizer["Tenants.Audit.Column.Freshness"]"
                         ColumnId="audit-freshness"
@@ -228,7 +234,8 @@
     // displayed timestamp to the server's timezone (non-deterministic across deployments) and
     // disagree with the absolute date-range filter and the app-wide UTC convention (TenantDetailPage "u").
     private static string TimestampLabel(DateTimeOffset timestamp)
-        => timestamp.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss 'UTC'", CultureInfo.CurrentCulture);
+        => timestamp == default ? string.Empty
+            : timestamp.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss 'UTC'", CultureInfo.InvariantCulture);
 
     private static string CategoryCss(AuditEventCategory category)
         => category.ToString().ToLowerInvariant();

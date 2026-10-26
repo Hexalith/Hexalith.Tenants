@@ -71,14 +71,19 @@
                 <FluentText As="TextTag.Span" data-testid="tenants-list-sort-status">@Localizer["Tenants.List.CurrentPageSort.Status"]</FluentText>
             </HeaderCellTitleTemplate>
             <ChildContent>
-                <FluentBadge Appearance="BadgeAppearance.Tint"
-                             Color="@StatusBadgeColor(context.Status)"
-                             IconStart="@StatusIcon(context.Status)"
-                             Class="@($"tenant-data-grid__status tenant-data-grid__status--{StatusCss(context.Status)}")"
-                             aria-label="@StatusLabel(context.Status)"
-                             data-testid="tenants-list-status">
-                    @StatusLabel(context.Status)
-                </FluentBadge>
+                <FluentText As="TextTag.Span" role="img" aria-label="@StatusLabel(context.Status)" data-status-badge="true">
+                    <FluentBadge aria-hidden="true" Appearance="@(StatusBadgeColor(context.Status) is BadgeColor.Danger or BadgeColor.Severe ? BadgeAppearance.Filled : BadgeAppearance.Tint)"
+                                 Shape="BadgeShape.Rounded"
+                                 Color="@StatusBadgeColor(context.Status)"
+                                 IconStart="@StatusIcon(context.Status)"
+                                 IconLabel="@StatusLabel(context.Status)"
+                                 role="img"
+                                 Class="@($"tenant-data-grid__status tenant-data-grid__status--{StatusCss(context.Status)}")"
+                                 aria-label="@StatusLabel(context.Status)"
+                                 data-testid="tenants-list-status">
+                        @StatusLabel(context.Status)
+                    </FluentBadge>
+                </FluentText>
             </ChildContent>
         </TemplateColumn>
         <TemplateColumn Title="@Localizer["Tenants.List.Column.Freshness"]"
@@ -103,14 +108,19 @@
                         ColumnId="tenant-pending"
                         Class="tenants-critical tenants-critical--pending"
                         Width="175px">
-            <FluentBadge Appearance="BadgeAppearance.Tint"
-                         Color="@PendingBadgeColor(context.PendingState)"
-                         IconStart="@PendingIcon(context.PendingState)"
-                         Class="tenant-data-grid__pending"
-                         aria-label="@PendingLabel(context.PendingState)"
-                         data-testid="tenants-list-pending">
-                @PendingLabel(context.PendingState)
-            </FluentBadge>
+            <FluentText As="TextTag.Span" role="img" aria-label="@PendingLabel(context.PendingState)" data-status-badge="true">
+                <FluentBadge aria-hidden="true" Appearance="@(PendingBadgeColor(context.PendingState) is BadgeColor.Danger or BadgeColor.Severe ? BadgeAppearance.Filled : BadgeAppearance.Tint)"
+                             Shape="BadgeShape.Rounded"
+                             Color="@PendingBadgeColor(context.PendingState)"
+                             IconStart="@PendingIcon(context.PendingState)"
+                             IconLabel="@PendingLabel(context.PendingState)"
+                             role="img"
+                             Class="tenant-data-grid__pending"
+                             aria-label="@PendingLabel(context.PendingState)"
+                             data-testid="tenants-list-pending">
+                    @PendingLabel(context.PendingState)
+                </FluentBadge>
+            </FluentText>
         </TemplateColumn>
         @if (!AuditReadDenied)
         {

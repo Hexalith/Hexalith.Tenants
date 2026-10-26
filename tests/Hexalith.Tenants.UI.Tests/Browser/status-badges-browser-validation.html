@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><link rel="stylesheet" href="./fluent-ui.css"><link rel="stylesheet" href="./badge-components.css"><title>Status badge contract</title></head>
+<body><section id="badges"></section><output id="validation-report">RUNNING</output>
+<script type="module">
+try {
+    const parameters = new URLSearchParams(location.search);
+    const culture = parameters.get("culture");
+    if (!["en", "fr"].includes(culture)) throw new Error("Unsupported fixture culture");
+    document.documentElement.lang = culture;
+    const fluentUi = await import("./fluent-ui.js");
+    fluentUi.beforeStart(document, "web");
+    const files = [`status-badges-${culture}.html`, ...["Unknown", "Active", "Disabled"].map(state => `status-badges-detail-${culture}-${state}.html`)];
+    document.getElementById("badges").innerHTML = (await Promise.all(files.map(async file => {
+        const response = await fetch(`./${file}`);
+        if (!response.ok) throw new Error(`Missing fixture ${file}`);
+        return response.text();
+    }))).join("\n");
+    await customElements.whenDefined("fluent-badge");
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    const forcedColors = parameters.get("forcedColors") === "active";
+    if (forcedColors !== matchMedia("(forced-colors: active)").matches) throw new Error("Forced colors mismatch");
+    // Explicit coverage binds every production site/state; a large unrelated fixture cannot satisfy it.
+    const expectedStates = {
+        truth: ["Current", "Aging", "Stale", "Unknown", "Refreshing"],
+        lifecycle: ["Current", "Stale", "Rebuilding", "Degraded", "Unavailable", "LocalOnly", "Unknown"],
+        availability: ["AuditPending", "AuditDelayed", "AuditUnavailable", "AuditAvailable", "MissingSupport"],
+        "tenant-status": ["Unknown", "Active", "Disabled"],
+        "tenant-pending": ["None", "Unknown"],
+        "membership-status": ["Unknown", "Active", "Disabled"],
+        "membership-role": ["Unknown", "TenantOwner", "TenantContributor", "TenantReader"],
+        "audit-category": ["Access", "Administrative"],
+        "detail-status": ["Unknown", "Active", "Disabled"],
+    };
+    const expected = Object.entries(expectedStates).flatMap(([site, states]) => states.map(state => `${site}/${state}`)).sort();
+    const owners = [...document.querySelectorAll("[data-status-badge]")];
+    const actual = owners.map(owner => `${owner.dataset.badgeSite}/${owner.dataset.badgeState}`).sort();
+    if (JSON.stringify(actual) !== JSON.stringify(expected)) throw new Error("Incomplete production site/state coverage");
+    const mutation = parameters.get("mutation");
+    const first = owners[0];
+    if (mutation === "missing-name") first.removeAttribute("aria-label");
+    if (mutation === "duplicate-descendant") first.querySelector("fluent-badge").removeAttribute("aria-hidden");
+    if (mutation === "wrong-appearance") first.querySelector("fluent-badge").setAttribute("appearance", "filled");
+    if (mutation === "invisible-icon") first.querySelector("svg").style.opacity = "0";
+
+    function transparent(color) {
+        return color === "transparent" || /(?:rgba\([^)]*,|\/)\s*0(?:\.0+)?\s*\)$/.test(color);
+    }
+    function visible(element, context) {
+        const rect = element.getBoundingClientRect();
+        if (rect.width <= 0 || rect.height <= 0 || !element.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true }))
+            throw new Error(`${context} is not visible`);
+        const style = getComputedStyle(element);
+        if (style.visibility !== "visible" || style.display === "none" || Number(style.opacity) === 0)
+            throw new Error(`${context} is not visible`);
+    }
+    for (const owner of owners) {
+        const badge = owner.querySelector("fluent-badge");
+        const icon = badge?.querySelector("svg");
+        // Expectations came from resources selected by test state, independently of rendered labels.
+        if (!owner.dataset.expectedName || owner.getAttribute("aria-label") !== owner.dataset.expectedName || owner.getAttribute("role") !== "img")
+            throw new Error("Badge accessible name differs from expected localized state");
+        if (!badge || badge.getAttribute("shape") !== "rounded" || badge.getAttribute("aria-label") !== owner.dataset.expectedName
+            || badge.textContent.trim() !== owner.dataset.expectedLabel || icon?.getAttribute("aria-label") !== owner.dataset.expectedLabel)
+            throw new Error("Badge label or anatomy differs from expected localized state");
+        const expectedAppearance = ["danger", "severe"].includes(badge.getAttribute("color")) ? "filled" : "tint";
+        if (badge.getAttribute("appearance") !== expectedAppearance) throw new Error("Badge emphasis drift");
+        visible(badge, "Badge");
+        visible(icon, "Badge icon");
+        const paths = [...icon.querySelectorAll("path")];
+        if (!paths.some(path => {
+            const style = getComputedStyle(path);
+            const rect = path.getBoundingClientRect();
+            return path.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true }) && rect.width > 0 && rect.height > 0 && style.display !== "none" && style.visibility === "visible"
+                && Number(style.opacity) > 0 && Number(style.fillOpacity) > 0 && style.fill !== "none" && !transparent(style.fill);
+        })) throw new Error("Badge icon has no visible glyph");
+        const textWalker = document.createTreeWalker(badge, NodeFilter.SHOW_TEXT);
+        let text;
+        let visibleText = "";
+        while ((text = textWalker.nextNode())) {
+            if (!text.textContent.trim() || text.parentElement.closest("svg")) continue;
+            const range = document.createRange();
+            range.selectNodeContents(text);
+            const rect = range.getBoundingClientRect();
+            const style = getComputedStyle(text.parentElement);
+            visible(text.parentElement, "Badge label");
+            if (rect.width <= 0 || rect.height <= 0 || parseFloat(style.fontSize) <= 0 || transparent(style.color))
+                throw new Error("Badge label is not visible");
+            if (text.assignedSlot) {
+                const slotStyle = getComputedStyle(text.assignedSlot);
+                if (slotStyle.display === "none" || slotStyle.visibility !== "visible" || Number(slotStyle.opacity) === 0)
+                    throw new Error("Badge label slot is not visible");
+            }
+            visibleText += text.textContent;
+        }
+        if (visibleText.trim() !== owner.dataset.expectedLabel) throw new Error("Badge visible label is missing");
+        if (forcedColors && owner.dataset.badgeSite === "availability") {
+            const style = getComputedStyle(badge);
+            const card = badge.closest(".tenants-audit-availability");
+            if (!card || style.borderTopStyle !== "solid" || style.borderTopWidth !== "1px"
+                || style.borderTopColor !== getComputedStyle(card).borderTopColor || style.forcedColorAdjust !== "auto")
+                throw new Error("Production availability forced-color outline missing");
+        }
+    }
+    window.__validateNamedBadges = true;
+    document.documentElement.dataset.validationStatus = "passed";
+    document.getElementById("validation-report").textContent = `${culture}: ${owners.length} explicit site/state badges; localized names, visible icons/text, appearance and production forced-color properties passed`;
+} catch (error) {
+    document.documentElement.dataset.validationStatus = "failed";
+    document.getElementById("validation-report").textContent = error.message;
+}
+</script></body></html>

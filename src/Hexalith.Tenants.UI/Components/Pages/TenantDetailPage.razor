@@ -159,13 +159,18 @@
                 <div>
                     <dt>@Localizer["Tenants.Detail.StatusLabel"]</dt>
                     <dd>
-                        <FluentBadge Appearance="BadgeAppearance.Tint"
-                                     Color="@StatusBadgeColor(Detail.Status)"
-                                     IconStart="@StatusIcon(Detail.Status)"
-                                     Class="tenant-detail__status"
-                                     aria-label="@Localizer["Tenants.Detail.StatusAccessibleLabel", StatusLabel(Detail.Status)]">
-                            @StatusLabel(Detail.Status)
-                        </FluentBadge>
+                        <FluentText As="TextTag.Span" role="img" aria-label="@Localizer["Tenants.Detail.StatusAccessibleLabel", StatusLabel(Detail.Status)]" data-status-badge="true">
+                            <FluentBadge aria-hidden="true" Appearance="@(StatusBadgeColor(Detail.Status) is BadgeColor.Danger or BadgeColor.Severe ? BadgeAppearance.Filled : BadgeAppearance.Tint)"
+                                         Shape="BadgeShape.Rounded"
+                                         Color="@StatusBadgeColor(Detail.Status)"
+                                         IconStart="@StatusIcon(Detail.Status)"
+                                         IconLabel="@StatusLabel(Detail.Status)"
+                                         role="img"
+                                         Class="tenant-detail__status"
+                                         aria-label="@Localizer["Tenants.Detail.StatusAccessibleLabel", StatusLabel(Detail.Status)]">
+                                @StatusLabel(Detail.Status)
+                            </FluentBadge>
+                        </FluentText>
                     </dd>
                 </div>
                 <div>

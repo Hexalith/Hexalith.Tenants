@@ -287,6 +287,69 @@ validation_report_contains() {
     [[ "$report" == *"$2"* ]]
 }
 
+# Actual component badges qualify localized names and live-region properties in Chromium.
+run_status_badges() {
+    local test_executable="$project_root/tests/Hexalith.Tenants.UI.Tests/bin/${build_configuration}/net10.0/Hexalith.Tenants.UI.Tests"
+    if ! TENANTS_BADGE_FIXTURE_DIRECTORY="$validation_tmp" "$test_executable" \
+        -method '*StatusBadgeContractTests.StatusBadgesExposeOneLocalizedNameAndExportBrowserFixtures' \
+        -method '*TenantDetailSurfaceTests.DetailStatusUsesTheSharedBadgeAnatomy' \
+        >"$validation_tmp/badge-fixture-tests.log" 2>&1; then
+        echo "Status badge fixture export failed." >&2
+        cat "$validation_tmp/badge-fixture-tests.log" >&2
+        exit 1
+    fi
+    # Load the compiled, scoped production rules, retaining each exported component's scope attributes.
+    : >"$validation_tmp/badge-components.css"
+    local component
+    for component in Shared/TruthStateBadge Shared/ProjectionLifecycleBadge Tenants/Audit/AuditAvailabilityState \
+        Tenants/Audit/AuditDataGrid Pages/TenantDetailPage Tenants/TenantDataGrid Users/MyTenantsDataGrid; do
+        cat "$project_root/src/Hexalith.Tenants.UI/obj/${build_configuration}/net10.0/scopedcss/Components/${component}.razor.rz.scp.css" \
+            >>"$validation_tmp/badge-components.css"
+    done
+    cp -- "$script_dir/status-badges-browser-validation.html" "$validation_tmp/badges.html"
+    local culture colors mutation badge_output expected_failure
+    local color_args=()
+    for culture in en fr; do
+        for colors in none active; do
+            color_args=()
+            if [[ "$colors" == active ]]; then color_args+=(--force-high-contrast); fi
+            for mutation in none missing-name duplicate-descendant wrong-appearance invisible-icon; do
+                badge_output="$validation_tmp/badges-${culture}-${colors}-${mutation}.html"
+                dump_dom "status badges ${culture} ${colors} ${mutation}" "$badge_output" \
+                    --user-data-dir="$validation_tmp/badge-profile-${culture}-${colors}-${mutation}" \
+                    "${color_args[@]}" "${validation_url%/*}/badges.html?culture=${culture}&forcedColors=${colors}&mutation=${mutation}"
+                if [[ "$mutation" == none ]]; then
+                    if ! grep -q 'data-validation-status="passed"' "$badge_output" \
+                        || ! grep -q 'data-badge-accessibility="passed"' "$badge_output"; then
+                        echo "Status badge browser contract failed (${culture}, ${colors})." >&2
+                        cat "$badge_output" >&2
+                        exit 1
+                    fi
+                else
+                    case "$mutation" in
+                        missing-name) expected_failure='Badge accessible name differs from expected localized state' ;;
+                        duplicate-descendant) expected_failure='Badge icon/text produces duplicate accessible children' ;;
+                        wrong-appearance) expected_failure='Badge emphasis drift' ;;
+                        invisible-icon) expected_failure='Badge icon is not visible' ;;
+                    esac
+                    if ! grep -q 'data-validation-status="failed"' "$badge_output" \
+                        || ! validation_report_contains "$badge_output" "$expected_failure"; then
+                        echo "Status badge ${mutation} control did not reject for its intended reason (${culture}, ${colors})." >&2
+                        cat "$badge_output" >&2
+                        exit 1
+                    fi
+                fi
+            done
+        done
+    done
+    printf '%s\n' 'Status badges EN/FR, normal/forced colors: 34 explicit site/state fixtures, localized names, visible icons/text, production styles and computed accessibility/live-region properties passed; 16 targeted mutations rejected. Human spoken output is not qualified.'
+}
+
+if [[ "${1:-}" == --badges-only ]]; then
+    run_status_badges
+    exit 0
+fi
+
 positive_output="$validation_tmp/shipped.html"
 run_browser "tenantsFocus.js" "profile-shipped" "$positive_output"
 if ! grep -q 'data-validation-status="passed"' "$positive_output"; then
@@ -333,6 +396,7 @@ if ! TENANTS_CORRECTION_FIXTURE_DIRECTORY="$validation_tmp" "$start_test_executa
     cat "$validation_tmp/start-fixture-tests.log" >&2
     exit 1
 fi
+run_status_badges
 for fixture in tenant-correction-start-en.html tenant-correction-start-fr.html; do
     if [[ ! -f "$validation_tmp/$fixture" ]]; then
         echo "Correction start fixture export did not create $fixture." >&2

@@ -2119,6 +2119,10 @@ Users can inspect contextual audit evidence, understand proof availability, and 
 
 **Legacy numbering note:** Historical Story 5.8 evidence refers to the pre-restructure single-authoritative-refresh/proof-association work now folded into current Stories 5.6 and 5.7. There is no current Story 5.8; references below label it as **former pre-restructure Story 5.8** and do not create a dependency or story ID.
 
+### Approved audit contract precedence — 2026-10-26
+
+The approved [DW-408/440/450/460/474 implementation spec](../implementation-artifacts/spec-dw-408-440-450-460-474-audit-contracts.md) governs the current audit contract where the historical stories below conflict. Unknown events/category mismatches reject the whole page for either stream, with coordinated UI-before-server rollout. Audit grid and receipt dates use invariant `yyyy-MM-dd HH:mm:ss UTC`, with localized surrounding labels, superseding “culture-aware” timestamp wording. DESIGN.md's Rounded badges, Filled for Danger/Severe and Tint otherwise, and localized icon labels supersede Story 5.4's historical Tint implementation choice. Named-image badge semantics preserve a single state name and the existing live announcement ownership. The new explicit lifecycle/provenance receipt overload requires safe complete evidence, Current freshness/lifecycle and ProjectionBacked provenance; the old overload remains conservative. Surface and command-audit states retain precedence. Historical acceptance text and review evidence remain below; these decisions do not clear unrelated release holds or deferred work. Full policy: [audit evidence specification](../../docs/tenants-ui-audit-evidence-and-compensating-recovery-spec.md#approved-audit-contract-precedence--2026-10-26).
+
 ### Story 5.1: Browse Tenant Audit Trail
 
 As an authorized Tenants user,

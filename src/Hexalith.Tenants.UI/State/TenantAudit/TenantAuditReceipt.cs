@@ -35,11 +35,11 @@ public sealed record TenantAuditReceipt(
     /// <summary>The typed target contract retained from mapped evidence.</summary>
     internal SupportSafeCopyValueKind TargetKind { get; init; }
 
-    /// <summary>Formats the event time as absolute UTC using the current culture.</summary>
+    /// <summary>Formats the event time as absolute UTC using the invariant support convention.</summary>
     public string TimestampLabel
-        => Timestamp?.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss 'UTC'", CultureInfo.CurrentCulture) ?? string.Empty;
+        => Timestamp?.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss 'UTC'", CultureInfo.InvariantCulture) ?? string.Empty;
 
-    /// <summary>Builds a receipt from an authorized audit entry.</summary>
+    /// <summary>Builds a receipt without authority metadata; complete fields alone remain Partial.</summary>
     public static TenantAuditReceipt FromEntry(
         TenantAuditEntry entry,
         ReadModelFreshnessState freshness,
@@ -48,6 +48,20 @@ public sealed record TenantAuditReceipt(
     {
         ArgumentNullException.ThrowIfNull(entry);
         return FromRow(TenantAuditRow.FromEntry(entry, freshness), surfaceKind, auditState);
+    }
+
+    /// <summary>Builds a receipt using explicit authority metadata from the authorized audit response.</summary>
+    /// <remarks>Ready still requires safe, complete evidence and Current freshness/lifecycle with ProjectionBacked provenance.</remarks>
+    public static TenantAuditReceipt FromEntry(
+        TenantAuditEntry entry,
+        ReadModelFreshnessState freshness,
+        ProjectionLifecycleState lifecycle,
+        QueryResponseProvenance provenance,
+        TenantAuditSurfaceKind surfaceKind = TenantAuditSurfaceKind.Ready,
+        TenantCommandAuditState auditState = TenantCommandAuditState.NotStarted)
+    {
+        ArgumentNullException.ThrowIfNull(entry);
+        return FromRow(TenantAuditRow.FromEntry(entry, freshness, lifecycle, provenance), surfaceKind, auditState);
     }
 
     /// <summary>Builds a receipt from a current BFF-mapped audit row.</summary>
@@ -68,6 +82,10 @@ public sealed record TenantAuditReceipt(
             && reference.Length > 0 && outcome.Length > 0 && timestamp is not null
             && (row.Category is not AuditEventCategory.Access
                 || TenantAuditSupportSafety.IsSafe(row.Narrative?.UserId, SupportSafeCopyValueKind.UserId))
+            && (row.EventType is not ("TenantConfigurationSet" or "TenantConfigurationRemoved")
+                || (TenantAuditSupportSafety.IsSafe(row.Narrative?.ConfigurationKey, SupportSafeCopyValueKind.ConfigurationKey)
+                    // Keep the mapper's typed-user precedence when both fields are present.
+                    && string.Equals(row.Target, row.Narrative?.UserId ?? row.Narrative?.ConfigurationKey, StringComparison.Ordinal)))
             && row.Freshness is ReadModelFreshnessState.Current
             && row.Lifecycle is ProjectionLifecycleState.Current
             && row.Provenance is QueryResponseProvenance.ProjectionBacked;
@@ -107,7 +125,7 @@ public sealed record TenantAuditReceipt(
             "UserAddedToTenant" or "UserRemovedFromTenant" or "UserRoleChanged"
                 => category is AuditEventCategory.Access,
             "GlobalAdministratorSet" or "GlobalAdministratorRemoved"
-                => category is AuditEventCategory.Access or AuditEventCategory.Administrative,
+                => category is AuditEventCategory.Access,
             "TenantCreated" or "TenantUpdated" or "TenantDisabled" or "TenantEnabled"
                 or "TenantConfigurationSet" or "TenantConfigurationRemoved"
                 => category is AuditEventCategory.Administrative,

@@ -1,15 +1,19 @@
 @using Hexalith.Tenants.UI.State.TenantList
 @inject IStringLocalizer<TenantsResources> Localizer
 
-<FluentBadge Appearance="BadgeAppearance.Tint"
-             Color="@BadgeColor"
-             IconStart="@StateIcon"
-             IconLabel="@Label"
-             Class="@($"projection-lifecycle-badge projection-lifecycle-badge--{CssClass}")"
-             aria-label="@Label"
-             data-testid="@TestId">
-    @Label
-</FluentBadge>
+<FluentText As="TextTag.Span" role="img" aria-label="@Label" data-status-badge="true">
+    <FluentBadge aria-hidden="true" Appearance="@(BadgeColor is BadgeColor.Danger or BadgeColor.Severe ? BadgeAppearance.Filled : BadgeAppearance.Tint)"
+                 Shape="BadgeShape.Rounded"
+                 Color="@BadgeColor"
+                 IconStart="@StateIcon"
+                 IconLabel="@Label"
+                 role="img"
+                 Class="@($"projection-lifecycle-badge projection-lifecycle-badge--{CssClass}")"
+                 aria-label="@Label"
+                 data-testid="@TestId">
+        @Label
+    </FluentBadge>
+</FluentText>
 
 @code {
     [Parameter]

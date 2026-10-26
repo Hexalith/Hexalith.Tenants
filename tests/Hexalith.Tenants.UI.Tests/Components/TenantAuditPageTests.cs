@@ -2620,17 +2620,67 @@ public sealed class TenantAuditPageTests : BunitContext
             .OriginalAuditReference.ShouldBe("event-second"));
     }
 
-    [Fact]
-    public void Tenant_audit_page_renders_timestamps_in_utc_independent_of_host_timezone()
+    [Theory]
+    [InlineData("en-US", "Timestamp")]
+    [InlineData("fr-FR", "Horodatage")]
+    public void GridAndReceiptUseInvariantUtcWithLocalizedSurroundingLabels(string cultureName, string timestampLabel)
     {
-        RegisterServices(ReadySnapshot([Row("event-1", AuditEventCategory.Access)]));
+        CultureInfo previousCulture = CultureInfo.CurrentCulture;
+        CultureInfo previousUiCulture = CultureInfo.CurrentUICulture;
+        try
+        {
+            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(cultureName);
+            CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo(cultureName);
+            RegisterServices(ReadySnapshot([Row("event-1", AuditEventCategory.Access)]));
+            Services.AddLocalization();
+            Services.AddSingleton<IStringLocalizer<TenantsResources>>(provider => new CultureBoundTenantsLocalizer(
+                provider.GetRequiredService<IStringLocalizerFactory>().Create(typeof(TenantsResources)),
+                CultureInfo.GetCultureInfo(cultureName)));
+            IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+                .Add(p => p.TenantId, "tenant.alpha"));
+            cut.WaitForElement("[data-testid='tenants-audit-grid']");
 
-        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
-            .Add(p => p.TenantId, "tenant.alpha"));
-        cut.WaitForElement("[data-testid='tenants-audit-grid']");
+            cut.Find("[data-testid='tenants-audit-row-timestamp']").TextContent.ShouldBe("2026-06-01 10:00:00 UTC");
+            cut.FindComponents<TemplateColumn<TenantAuditRow>>().Select(column => column.Instance)
+                .Single(column => column.ColumnId == "audit-timestamp").Title.ShouldBe(timestampLabel);
+            cut.Find("[data-testid='tenants-audit-receipt-open']").Click();
+            cut.WaitForAssertion(() => cut.FindComponent<AuditEvidenceReceipt>().Instance.Receipt.ShouldNotBeNull().TimestampLabel
+                .ShouldBe("2026-06-01 10:00:00 UTC"));
+            cut.FindAll("dt").ShouldContain(label => label.TextContent == timestampLabel);
+            cut.FindAll("dd").ShouldContain(value => value.TextContent == "2026-06-01 10:00:00 UTC");
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = previousCulture;
+            CultureInfo.CurrentUICulture = previousUiCulture;
+        }
+    }
 
-        // Row timestamp is 2026-06-01T10:00:00Z; rendering must stay UTC, not shift to the server's tz.
-        cut.Find("[data-testid='tenants-audit-row-timestamp']").TextContent.ShouldBe("2026-06-01 10:00:00 UTC");
+    [Theory]
+    [InlineData("en-US")]
+    [InlineData("fr-FR")]
+    [InlineData("ar-SA")]
+    public void GridNormalizesOffsetsAndLeavesMissingTimestampsEmpty(string cultureName)
+    {
+        CultureInfo previous = CultureInfo.CurrentCulture;
+        try
+        {
+            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(cultureName);
+            TenantAuditRow original = Row("offset-event", AuditEventCategory.Access);
+            TenantAuditRow offset = original with { Timestamp = original.Timestamp.ToOffset(TimeSpan.FromHours(5.5)) };
+            RegisterServices(ReadySnapshot([offset]));
+            IRenderedComponent<AuditDataGrid> cut = Render<AuditDataGrid>(parameters => parameters
+                .Add(grid => grid.Rows, new[] { offset, original with { EventReference = "missing-time", Timestamp = default } }));
+            string[] timestamps = [.. cut.FindAll("[data-testid='tenants-audit-row-timestamp']").Select(value => value.TextContent)];
+            timestamps.ShouldBe(new[] { "2026-06-01 10:00:00 UTC", string.Empty });
+            // Receipt authority still rejects noncanonical wire evidence; formatting is not authority normalization.
+            TenantAuditReceipt.FromRow(offset).TimestampLabel.ShouldBeEmpty();
+            TenantAuditReceipt.FromRow(offset).State.ShouldBe(TenantAuditReceiptState.Partial);
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = previous;
+        }
     }
 
     [Fact]

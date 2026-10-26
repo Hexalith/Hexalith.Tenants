@@ -856,6 +856,79 @@ public sealed class TenantQueryGatewayTests
     }
 
     [Theory]
+    [InlineData(null, false, false)]
+    [InlineData(null, true, false)]
+    [InlineData("tenant", false, false)]
+    [InlineData("tenant", true, false)]
+    [InlineData("global-administrators", false, false)]
+    [InlineData("global-administrators", true, false)]
+    [InlineData(null, true, true)]
+    [InlineData("tenant", true, true)]
+    [InlineData("global-administrators", true, true)]
+    [InlineData(null, true, false, true)]
+    [InlineData("tenant", true, false, true)]
+    [InlineData("global-administrators", true, false, true)]
+    [InlineData(null, true, true, true)]
+    [InlineData("tenant", true, true, true)]
+    [InlineData("global-administrators", true, true, true)]
+    public async Task UnsupportedAuditEvidenceRejectsWholePageWithoutRetainingEarlierProof(
+        string? stream, bool mixedPage, bool categoryMismatch, bool unsupportedFirst = false)
+    {
+        string eventType = stream == "global-administrators" ? "GlobalAdministratorSet" : "UserAddedToTenant";
+        TenantAuditEntry supported = AuditEntry("supported-reference", AuditEventCategory.Access,
+            eventType: eventType, tenantId: "system");
+        TenantAuditEntry unsupported = supported with
+        {
+            EventId = "unsupported-reference",
+            EventType = categoryMismatch ? eventType : "FutureAuditEvent",
+            Category = categoryMismatch ? AuditEventCategory.Administrative : AuditEventCategory.Access,
+            NarrativePayload = new Dictionary<string, string> { ["rawPayload"] = "Bearer raw-token" },
+        };
+        ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
+        client.GetTenantAuditAsync(Arg.Any<GetTenantAuditQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(DirectResponse(new PaginatedResult<TenantAuditEntry>([supported], null, false), eTag: "first-page"),
+                DirectResponse(new PaginatedResult<TenantAuditEntry>(mixedPage ? (unsupportedFirst ? [unsupported, supported] : [supported, unsupported]) : [unsupported], "next-page", true), eTag: "invalid-page"));
+        TenantQueryGateway gateway = CreateGateway(client);
+        TenantAuditRequest request = new("system", Stream: stream);
+        TenantAuditSnapshot previous = await gateway.GetTenantAuditAsync(request, null);
+        previous.Kind.ShouldBe(TenantAuditSurfaceKind.Ready);
+        TenantAuditSnapshot result = await gateway.GetTenantAuditAsync(request, previous);
+
+        result.Kind.ShouldBe(TenantAuditSurfaceKind.Error);
+        result.Rows.ShouldBeEmpty();
+        result.NextCursor.ShouldBeNull();
+        result.ETag.ShouldBeNull();
+        result.ProjectionVersion.ShouldBeNull();
+        string serialized = JsonSerializer.Serialize(result);
+        serialized.ShouldNotContain("supported-reference");
+        serialized.ShouldNotContain("FutureAuditEvent");
+        serialized.ShouldNotContain("Bearer raw-token");
+    }
+
+    [Theory]
+    [InlineData("tenant", "UserAddedToTenant", "TenantCreated", AuditEventCategory.Administrative)]
+    [InlineData("global-administrators", "GlobalAdministratorSet", "GlobalAdministratorRemoved", AuditEventCategory.Access)]
+    public async Task SupportedAuditPagesRetainAuthorityForBothStreams(
+        string stream, string firstEvent, string secondEvent, AuditEventCategory secondCategory)
+    {
+        ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
+        TenantAuditEntry[] entries =
+        [
+            AuditEntry("first-reference", AuditEventCategory.Access, eventType: firstEvent, tenantId: "system"),
+            AuditEntry("second-reference", secondCategory, eventType: secondEvent, tenantId: "system"),
+        ];
+        client.GetTenantAuditAsync(Arg.Any<GetTenantAuditQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(DirectResponse(new PaginatedResult<TenantAuditEntry>(entries, null, false)));
+        TenantAuditSnapshot result = await CreateGateway(client).GetTenantAuditAsync(new("system", Stream: stream), null);
+
+        result.Kind.ShouldBe(TenantAuditSurfaceKind.Ready);
+        result.Rows.Count.ShouldBe(2);
+        result.Rows.ShouldAllBe(row => row.Lifecycle == ProjectionLifecycleState.Current
+            && row.Provenance == QueryResponseProvenance.ProjectionBacked);
+        result.Rows.Select(row => TenantAuditReceipt.FromRow(row).State).ShouldAllBe(state => state == TenantAuditReceiptState.Ready);
+    }
+
+    [Theory]
     [InlineData("UserRemovedFromTenant", true)]
     [InlineData("UserAddedToTenant", false)]
     [InlineData("GlobalAdministratorRemoved", false)]
