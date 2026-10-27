@@ -2,7 +2,7 @@
 title: 'Qualify CI gates and release execution provenance'
 type: 'bugfix'
 created: '2026-10-27'
-status: 'in-review'
+status: 'done'
 route: 'dispatch'
 review_loop_iteration: 0
 baseline_commit: '2cf3a9660f71f6877923772cd145aa6856907945'
@@ -66,7 +66,7 @@ The user approved all five recommendations and continued implementation on 2026-
 - [x] Update mapped CI workflows, package validator and fixtures under approved rules.
 - [x] Extend mapped Builds provenance/gating tools and tests; wire release/recovery consumers before sensitive phases.
 - [x] Bind recovery identity across preparation/publication; reject drift and stale state.
-- [ ] Update `CONTRIBUTING.md`, ledger, `docs/maintenance-backlog.md` and validation evidence after review; preserve all 657 IDs and unselected records.
+- [x] Update `CONTRIBUTING.md`, ledger, `docs/maintenance-backlog.md` and validation evidence after review; preserve all 657 IDs and unselected records.
 
 Given each matrix refusal case, when its helper executes, then it fails before the sensitive phase and preserves accepted state.
 
@@ -77,13 +77,13 @@ Given passing review/checks, when committing and pushing main, then retain valid
 ## Implementation Notes
 
 - Implementation handoff covers code and local verification; the parent owns independent review, ledger acceptance, commits and pushes after workflow gates. Do not commit or perform remote operations in the implementation handoff.
-- The initial publication pin lacked the new helpers. The local shared implementation is committed as `ad395b72f0639951d4bb2af91a22eba7fdb95207`; all three publication declarations now reference it. Validate the final consumer diff before pushing.
+- The initial publication pin lacked the new helpers. The original local shared implementation was committed as `ad395b72f0639951d4bb2af91a22eba7fdb95207`; the concurrent external integration later recorded it as `568417aebb4f517e9f46d9c60f8564b0d8f7503f`. Review fixes and upstream integration are present in final Builds `35f185abdec37a3ae92d82f85a21e0f3c971d82d`, which all three current publication declarations use.
 - Existing package-mode builds cannot resolve the pinned EventStore routing types. Debug/source provides the focused implementation lane; record exact package-mode commands and failures separately from passing checks.
 - Recovery's existing suite wrapper now invokes immutable Git fixture setup. Any increased timeout is limited to this measured full-suite invocation; short workflow checks retain their original bound.
 
 - Parent verification corrected two inherited fixture assumptions without changing production behavior: FrontComposer routing now uses an unavailable Memories fixture root, and container governance excludes the Platform/McpCli root submodules like the other reference owners. The four focused cases pass.
 
-- A concurrent `/pushall` run recorded the implementation and review fixes, integrated newer Builds main and advanced five unrelated reference pointers. Preserve its current parent `ff8c9a6273f70754c50a53b46dd4b4ff6fc2828b` and Builds `35f185abdec37a3ae92d82f85a21e0f3c971d82d`. All three publication pins now use the final shared revision; the original baseline remains unchanged. Final verification uses these source heads.
+- A concurrent `/pushall` run recorded the implementation and review fixes, integrated newer Builds main and advanced five unrelated reference pointers. Its first published parent was `ff8c9a6273f70754c50a53b46dd4b4ff6fc2828b`; final verification/closure preserves the later parent `dbd034be94d094c74ed2ee2d4cfe0c601cc18f70` and Builds `35f185abdec37a3ae92d82f85a21e0f3c971d82d`. All three publication pins now use the final shared revision; the original baseline remains unchanged. Final verification uses these source heads.
 
 ## Spec Change Log
 
@@ -132,8 +132,10 @@ Builds supplies this task's shared CI, provenance and recovery changes. The othe
 | Submodule | Baseline | Target |
 | --- | --- | --- |
 | `references/Hexalith.Builds` | `1783c0a377615063f3222c1d28f3ab513af4e72f` | `35f185abdec37a3ae92d82f85a21e0f3c971d82d` |
-| `references/Hexalith.EventStore` | `b1dd186ad49aba1c0c21d452c75fc7769feba1da` | `4dc256c4db7a0ba88efdbbe0f6bcbcf047c09d34` |
+| `references/Hexalith.EventStore` | `b1dd186ad49aba1c0c21d452c75fc7769feba1da` | `4e4a7e9b8fcc8cb6fb47107d916489ada7c08cfc` |
 | `references/Hexalith.FrontComposer` | `25e8a07198987b33cef052bdbc745f836cb6cbbf` | `8d2b47bd206ffd5c5e77a5ac0461b9cfe52ea4fd` |
 | `references/Hexalith.McpCli` | `aabc03c68c56ac8085ee1b145654576f5fd201a4` | `8bfd1e0592bfee258b381f41b098fe3b35170fdd` |
-| `references/Hexalith.Memories` | `2bfc735600ed153bce9069570a43ba93fe77ac0f` | `f480fd70a7c25587264f50b5174358eee709c513` |
-| `references/Hexalith.Platform` | `f187f346bb2a1136f4be7221af82136f779c2928` | `73903003acd33ba341e12aa3c495992bab8b0eda` |
+| `references/Hexalith.Memories` | `2bfc735600ed153bce9069570a43ba93fe77ac0f` | `ff0978d6c38c083ac410830dd2e2f9ffe7d6c4cc` |
+| `references/Hexalith.Platform` | `f187f346bb2a1136f4be7221af82136f779c2928` | `dc83a208930b95f1a0164229bebc8359024f2e48` |
+
+Final acceptance closes exactly five records: 657 IDs, 629 done/28 open across 24 index rows, with all 652 unselected bodies and selected historical fields preserved. Independent review findings were triaged individually and all actionable code/test findings were patched and rechecked. Final commands, logs, package-mode blocker and the separate unnumbered fresh Aspire qualification hold are retained in [validation evidence](dw-540-554-570-584-593-validation-evidence.md). No live release or recovery was dispatched.
