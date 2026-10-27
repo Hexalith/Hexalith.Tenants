@@ -17,6 +17,8 @@ permissions:
 jobs:
   verify-source:
     name: Verify exact green main source
+    env:
+      HEXALITH_BUILDS_EXECUTION_SHA: 35f185abdec37a3ae92d82f85a21e0f3c971d82d
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -47,26 +49,6 @@ jobs:
           fi
           if [ "$DISPATCH_SHA" != "$live_main_sha" ]; then
             echo "The dispatched source is no longer the live main tip." >&2
-            exit 1
-          fi
-
-          ci_runs="$(gh api --method GET \
-            "repos/${REPOSITORY}/actions/workflows/ci.yml/runs" \
-            -f branch=main \
-            -f event=push \
-            -f head_sha="$DISPATCH_SHA" \
-            -f status=success \
-            -f per_page=100)"
-          if ! printf '%s\n' "$ci_runs" | jq -e --arg sha "$DISPATCH_SHA" '
-            [.workflow_runs[] | select(
-              .head_sha == $sha and
-              .head_branch == "main" and
-              .event == "push" and
-              .status == "completed" and
-              .conclusion == "success"
-            )] | length > 0
-          ' >/dev/null; then
-            echo "No successful push CI run exists for the exact current main SHA." >&2
             exit 1
           fi
 
@@ -163,8 +145,7 @@ jobs:
           floor_version="${floor_tag#v}"
 
           # tools/release-packages.json is the authoritative inventory. Read it at the exact
-          # dispatched source rather than checking out: this unprotected job deliberately uses no
-          # actions, so it stays free of third-party supply-chain surface.
+          # dispatched source before checking out or executing any third-party action.
           if ! manifest_response="$(gh api "repos/${REPOSITORY}/contents/${PACKAGE_MANIFEST}?ref=${DISPATCH_SHA}")"; then
             echo "The release package manifest could not be read at the dispatched source." >&2
             exit 1
@@ -285,15 +266,49 @@ jobs:
           fi
           echo "Release tag floor ${floor_tag} is at or above every published version of the declared packages."
 
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          submodules: false
+          persist-credentials: false
+      - name: Check out approved Builds execution
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: Hexalith/Hexalith.Builds
+          ref: ${{ env.HEXALITH_BUILDS_EXECUTION_SHA }}
+          path: .hexalith/builds-execution
+          fetch-depth: 1
+          submodules: false
+          persist-credentials: false
+      - name: Require all latest exact-source push gates
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          DISPATCH_SHA: ${{ github.sha }}
+        run: >
+          python3 .hexalith/builds-execution/Github/governed-provenance/source_workflow_gates.py
+          --repository "$REPOSITORY" --source "$DISPATCH_SHA"
+          --workflow ci.yml --workflow story-guards.yml --workflow source-reference.yml
+          --evidence .hexalith/source-gates.json
+      - name: Retain source admission observations
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-source-admission-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .hexalith/source-gates.json
+          include-hidden-files: true
+          if-no-files-found: warn
+
   prepare-release:
     name: Prepare release artifacts without publication credentials
     needs: verify-source
     runs-on: ubuntu-latest
     timeout-minutes: 60
     permissions:
+      actions: read
       contents: read
     env:
-      HEXALITH_BUILDS_EXECUTION_SHA: 22a578b576a515d2af214fe81859447fffc97981
+      HEXALITH_BUILDS_EXECUTION_SHA: 35f185abdec37a3ae92d82f85a21e0f3c971d82d
       HEXALITH_RELEASE_ENVIRONMENT: production
       HEXALITH_RELEASE_SOURCE_BRANCH: main
       HEXALITH_RELEASE_SOURCE_CI_WORKFLOW: ci.yml
@@ -328,6 +343,15 @@ jobs:
             echo "The checked-out Builds actions do not match the approved Builds identity." >&2
             exit 1
           fi
+      - name: Verify standalone release workflow closure
+        uses: ./.hexalith/builds-execution/Github/governed-provenance
+        with:
+          workflow-mode: standalone
+          stage: release
+          builds-execution-sha: ${{ env.HEXALITH_BUILDS_EXECUTION_SHA }}
+          workflow-path: .github/workflows/release.yml
+          candidate: ${{ github.sha }}
+          output: .hexalith/release/governed/workflow-provenance.json
       - name: Initialize root-declared submodules
         uses: ./.hexalith/builds-execution/Github/initialize-build
       - name: Initialize .NET
@@ -372,6 +396,8 @@ jobs:
           container-projects: ${{ env.HEXALITH_CONTAINER_PROJECTS }}
           builds-execution-sha: ${{ env.HEXALITH_BUILDS_EXECUTION_SHA }}
       - name: Build and pack release candidate
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: bash scripts/build-release-candidate.sh
       - name: Pack release candidate artifact
         shell: bash
@@ -405,7 +431,7 @@ jobs:
       issues: write
       pull-requests: write
     env:
-      HEXALITH_BUILDS_EXECUTION_SHA: 22a578b576a515d2af214fe81859447fffc97981
+      HEXALITH_BUILDS_EXECUTION_SHA: 35f185abdec37a3ae92d82f85a21e0f3c971d82d
       HEXALITH_RELEASE_ENVIRONMENT: production
       HEXALITH_RELEASE_SOURCE_BRANCH: main
       HEXALITH_RELEASE_SOURCE_CI_WORKFLOW: ci.yml
@@ -433,6 +459,15 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          submodules: false
+          persist-credentials: false
+      - name: Check out approved Builds execution
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: Hexalith/Hexalith.Builds
+          ref: ${{ env.HEXALITH_BUILDS_EXECUTION_SHA }}
+          path: .hexalith/builds-execution
+          fetch-depth: 1
           submodules: false
           persist-credentials: false
       - name: Download prepared release candidate
@@ -490,6 +525,47 @@ jobs:
             echo "The release source became stale during setup. Redispatch Release from the new ${HEXALITH_RELEASE_SOURCE_BRANCH} tip after exact-source CI succeeds." >&2
             exit 1
           fi
+      - name: Reverify standalone release workflow closure
+        uses: ./.hexalith/builds-execution/Github/governed-provenance
+        with:
+          workflow-mode: standalone
+          stage: release
+          builds-execution-sha: ${{ env.HEXALITH_BUILDS_EXECUTION_SHA }}
+          workflow-path: .github/workflows/release.yml
+          candidate: ${{ github.sha }}
+          output: .hexalith/release-evidence/workflow-provenance.json
+      - name: Require the prepared workflow closure and latest source gates
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          DISPATCH_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PYCLOSURE'
+          import json, os, sys
+          from pathlib import Path
+          execution = Path(os.environ.get('HEXALITH_BUILDS_EXECUTION_ROOT', '.hexalith/builds-execution'))
+          sys.path.insert(0, str(execution / 'Github/governed-provenance'))
+          from governed_provenance import verify_git_blobs
+          installed = ('publish-containers.sh', 'oci_registry_validator.py', 'publication_preflight.py',
+                       'smoke-container-platforms.sh', 'smoke_container_platforms.py')
+          sources = {}
+          for name in installed:
+              path = Path('.hexalith/release') / name
+              if path.is_symlink() or not path.is_file():
+                  raise SystemExit('Installed publisher helper is not a regular file: ' + name)
+              sources['Github/publish-containers/' + name] = path.read_bytes()
+          verify_git_blobs(execution, os.environ['HEXALITH_BUILDS_EXECUTION_SHA'], sources)
+          prepared = json.loads(Path('.hexalith/release/governed/workflow-provenance.json').read_text())
+          current = json.loads(Path('.hexalith/release-evidence/workflow-provenance.json').read_text())
+          for key in ('candidate', 'workflow_mode', 'builds_execution_sha', 'closure'):
+              if prepared.get(key) != current.get(key):
+                  raise SystemExit('Prepared workflow provenance changed before publication: ' + key)
+          PYCLOSURE
+          python3 .hexalith/builds-execution/Github/governed-provenance/source_workflow_gates.py \
+            --repository "$REPOSITORY" --source "$DISPATCH_SHA" \
+            --workflow ci.yml --workflow story-guards.yml --workflow source-reference.yml \
+            --evidence .hexalith/release-evidence/source-gates.json
       # The temporary key lives for one hour, so it is minted only after the build and the
       # source proof, immediately before the step that publishes.
       - name: Exchange GitHub OIDC token for a temporary NuGet key

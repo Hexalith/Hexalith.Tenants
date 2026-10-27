@@ -472,17 +472,17 @@ public class CiQualityGateScriptTests {
         string repoRoot = FindRepoRoot();
         using TemporaryDirectory temp = new();
         const string project = "src/Fixture.Package/Fixture.Package.csproj";
-        string manifest = WriteReleaseManifest(temp.Path, "Fixture.Package", project);
-        WriteRestoreEvidence(temp.Path, project, "Fixture.Package", [dependencyId], []);
+        string manifest = WriteReleaseManifest(temp.Path, "Hexalith.Tenants.Server", project);
+        WriteRestoreEvidence(temp.Path, project, "Hexalith.Tenants.Server", [dependencyId], []);
         string packageDirectory = Path.Combine(temp.Path, "packages");
-        WritePackage(packageDirectory, "Fixture.Package", "1.2.3", includeLicense: true, dependencyIds: [dependencyId]);
+        WritePackage(packageDirectory, "Hexalith.Tenants.Server", "1.2.3", includeLicense: true, dependencyIds: [dependencyId]);
 
         CommandResult result = await RunAsync(repoRoot, "python3",
             $"scripts/validate-nuget-packages.py {Quote(packageDirectory)} --manifest {Quote(manifest)}");
 
         result.ExitCode.ShouldBe(allowed ? 0 : 1, result.Output + result.Error);
         if (allowed) {
-            result.Output.ShouldContain($"- Fixture.Package dependencies: {dependencyId}");
+            result.Output.ShouldContain($"- Hexalith.Tenants.Server dependencies: {dependencyId}");
         }
         else {
             result.Error.ShouldContain("forbidden projects");
@@ -527,6 +527,106 @@ public class CiQualityGateScriptTests {
         CommandResult result = await RunAsync(FindRepoRoot(), "python3", "tests/scripts/test_nuget_dependency_ranges.py");
         result.ExitCode.ShouldBe(0, result.Output + result.Error);
         result.Error.ShouldContain("OK");
+    }
+
+    /// <summary>
+    /// The generic Aspire lane has explicit prerequisites and cannot hide failures or skips.
+    /// </summary>
+    [Fact]
+    public void AspireLaneRequiresBlockingBrowserAndSkipInputs()
+    {
+        string root = FindRepoRoot();
+        string caller = File.ReadAllText(Path.Combine(root, ".github/workflows/ci.yml"));
+        foreach (string declaration in new[]
+        {
+            "aspire-continue-on-error: false", "aspire-fail-skips: true",
+            "aspire-browser-project: tests/performance/tenant-audit",
+        })
+        {
+            caller.ShouldContain(declaration);
+        }
+
+        string shared = File.ReadAllText(Path.Combine(root, "references/Hexalith.Builds/.github/workflows/domain-ci.yml"));
+        shared.ShouldContain("if: ${{ inputs.aspire-browser-project != '' }}");
+        shared.ShouldContain("npx --no-install playwright install --with-deps chromium");
+        shared.ShouldContain("dotnet dev-certs https --trust");
+        shared.ShouldContain("--minimum-expected-tests 1 --fail-skips on");
+        shared.ShouldContain("inputs.aspire-test-project != '' && github.event_name == 'schedule'");
+        shared.ShouldContain("--filter-not-trait \"$ASPIRE_MTP_EXCLUDED_TRAIT\"");
+    }
+
+    /// <summary>
+    /// Executing the actual result gate rejects skipped, failed and empty qualification runs.
+    /// </summary>
+    /// <param name="executed">The number of executed tests.</param>
+    /// <param name="skipped">The number of skipped tests.</param>
+    /// <param name="failed">The number of failed tests.</param>
+    /// <param name="accepted">Whether this result can qualify CI.</param>
+    [Theory]
+    [InlineData(1, 0, 0, true)]
+    [InlineData(1, 1, 0, false)]
+    [InlineData(1, 0, 1, false)]
+    [InlineData(0, 0, 0, false)]
+    public async Task AspireResultGateRequiresPassingExecutedTests(int executed, int skipped, int failed, bool accepted)
+    {
+        string root = FindRepoRoot();
+        string shared = File.ReadAllText(Path.Combine(root, "references/Hexalith.Builds/.github/workflows/domain-ci.yml"));
+        string script = shared.Split("python3 - <<'PYTEST'", StringSplitOptions.None)[1]
+            .Split("          PYTEST", StringSplitOptions.None)[0];
+        script = string.Join('\n', script.Split('\n').Skip(1).Select(line => line.Length >= 10 ? line[10..] : line));
+        using TemporaryDirectory temp = new();
+        Directory.CreateDirectory(Path.Combine(temp.Path, "TestResults/aspire"));
+        string program = Path.Combine(temp.Path, "contract.py");
+        await File.WriteAllTextAsync(program, script);
+        await File.WriteAllTextAsync(Path.Combine(temp.Path, "TestResults/aspire/results.trx"),
+            $"<TestRun xmlns=\"http://microsoft.com/schemas/VisualStudio/TeamTest/2010\"><Results><UnitTestResult outcome=\"Passed\" /></Results><ResultSummary outcome=\"Completed\"><Counters total=\"{executed}\" executed=\"{executed}\" passed=\"{executed}\" notExecuted=\"{skipped}\" failed=\"{failed}\" /></ResultSummary></TestRun>");
+        CommandResult result = await RunAsync(temp.Path, "python3", Quote(program));
+        (result.ExitCode == 0).ShouldBe(accepted, result.Output + result.Error);
+    }
+
+    /// <summary>
+    /// A positive execution count cannot hide aborted, erroneous or malformed result summaries.
+    /// </summary>
+    /// <param name="mutation">The report defect to refuse.</param>
+    [Theory]
+    [InlineData("aborted-summary")]
+    [InlineData("failed-summary")]
+    [InlineData("error")]
+    [InlineData("aborted")]
+    [InlineData("timeout")]
+    [InlineData("passedButRunAborted")]
+    [InlineData("missing-results")]
+    [InlineData("missing-passed")]
+    [InlineData("missing-failed")]
+    [InlineData("malformed")]
+    [InlineData("contradictory-total")]
+    [InlineData("wrong-root")]
+    public async Task AspireResultGateRejectsNonpassingSummaries(string mutation)
+    {
+        string shared = File.ReadAllText(Path.Combine(FindRepoRoot(), "references/Hexalith.Builds/.github/workflows/domain-ci.yml"));
+        string script = shared.Split("python3 - <<'PYTEST'", StringSplitOptions.None)[1]
+            .Split("          PYTEST", StringSplitOptions.None)[0];
+        script = string.Join('\n', script.Split('\n').Skip(1).Select(line => line.Length >= 10 ? line[10..] : line));
+        using TemporaryDirectory temp = new();
+        Directory.CreateDirectory(Path.Combine(temp.Path, "TestResults/aspire"));
+        string program = Path.Combine(temp.Path, "contract.py");
+        await File.WriteAllTextAsync(program, script);
+        string report = "<TestRun xmlns=\"http://microsoft.com/schemas/VisualStudio/TeamTest/2010\"><Results><UnitTestResult outcome=\"Passed\" /></Results><ResultSummary outcome=\"Completed\"><Counters total=\"1\" executed=\"1\" passed=\"1\" failed=\"0\" /></ResultSummary></TestRun>";
+        report = mutation switch
+        {
+            "aborted-summary" => report.Replace("Completed", "Aborted", StringComparison.Ordinal),
+            "failed-summary" => report.Replace("Completed", "Failed", StringComparison.Ordinal),
+            "missing-results" => report.Replace("<UnitTestResult outcome=\"Passed\" />", string.Empty, StringComparison.Ordinal),
+            "missing-failed" => report.Replace(" failed=\"0\"", string.Empty, StringComparison.Ordinal),
+            "missing-passed" => report.Replace(" passed=\"1\"", string.Empty, StringComparison.Ordinal),
+            "malformed" => "<TestRun>",
+            "contradictory-total" => report.Replace("total=\"1\"", "total=\"2\"", StringComparison.Ordinal),
+            "wrong-root" => report.Replace("TestRun", "Other", StringComparison.Ordinal),
+            _ => report.Replace("failed=\"0\"", $"failed=\"0\" {mutation}=\"1\"", StringComparison.Ordinal),
+        };
+        await File.WriteAllTextAsync(Path.Combine(temp.Path, "TestResults/aspire/results.trx"), report);
+        CommandResult result = await RunAsync(temp.Path, "python3", Quote(program));
+        result.ExitCode.ShouldNotBe(0, result.Output + result.Error);
     }
 
     private static string CoverageClass(string filename, string[] lines)

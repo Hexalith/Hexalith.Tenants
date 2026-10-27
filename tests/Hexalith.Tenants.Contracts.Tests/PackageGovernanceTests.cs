@@ -778,6 +778,8 @@ public class PackageGovernanceTests {
         startInfo.ArgumentList.Add("-getProperty:HexalithFrontComposerFromSource,HexalithCommonsFromSource,HexalithEventStoreFromSource,HexalithMemoriesFromSource,HexalithMcpCliFromSource");
         startInfo.ArgumentList.Add("-property:UseHexalithProjectReferences=false");
         startInfo.ArgumentList.Add($"-property:HexalithFrontComposerRoot={frontComposerRoot}");
+        // Isolate this FrontComposer fixture from available Memories source checkouts.
+        startInfo.ArgumentList.Add($"-property:HexalithMemoriesRoot={Path.Combine(frontComposerRoot, "unavailable-memories")}");
         if (sourceOverride is not null) {
             startInfo.ArgumentList.Add($"-property:HexalithFrontComposerFromSource={sourceOverride}");
         }
@@ -996,7 +998,8 @@ public class PackageGovernanceTests {
         verifySourceJob.ShouldContain("actions: read");
         verifySourceJob.ShouldContain("refs/heads/main");
         verifySourceJob.ShouldContain("git/ref/heads/main");
-        verifySourceJob.ShouldContain("actions/workflows/ci.yml/runs");
+        verifySourceJob.ShouldContain("source_workflow_gates.py");
+        verifySourceJob.ShouldContain("--workflow ci.yml --workflow story-guards.yml --workflow source-reference.yml");
         verifySourceJob.ShouldContain("no longer the live main tip");
         string prepareJob = GetYamlJobBlock(workflow, "prepare-release");
         string releaseJob = GetYamlJobBlock(workflow, "release");
@@ -1042,7 +1045,8 @@ public class PackageGovernanceTests {
         prepareJob.ShouldContain("git -C .hexalith/builds-execution rev-parse HEAD");
         prepareJob.ShouldContain("uses: ./.hexalith/builds-execution/Github/initialize-build");
         prepareJob.ShouldContain("uses: ./.hexalith/builds-execution/Github/publish-containers");
-        releaseJob.ShouldNotContain("repository: Hexalith/Hexalith.Builds");
+        releaseJob.ShouldContain("repository: Hexalith/Hexalith.Builds");
+        releaseJob.ShouldContain("Reverify standalone release workflow closure");
         prepareJob.ShouldContain("builds-execution-sha: ${{ env.HEXALITH_BUILDS_EXECUTION_SHA }}");
         prepareJob.ShouldContain("container-projects: ${{ env.HEXALITH_CONTAINER_PROJECTS }}");
         string[][] containerMappings = GetYamlLiteralBlockLines(prepareJob, "HEXALITH_CONTAINER_PROJECTS")
@@ -1252,9 +1256,9 @@ public class PackageGovernanceTests {
         workflow.ShouldContain("workflow_dispatch:");
         workflow.ShouldContain("environment: production");
         workflow.ShouldContain("source_sha:");
-        workflow.ShouldContain("HEXALITH_BUILDS_EXECUTION_SHA:");
+        workflow.ShouldContain("HEXALITH_BUILDS_EXECUTION_SHA");
         workflow.ShouldContain("git submodule update --init references/Hexalith.Builds");
-        validator.ShouldContain("No successful push CI run exists for the exact source SHA");
+        validator.ShouldContain("recovery_require_source_gates");
         validator.ShouldContain("The package manifest must contain exactly five packages");
         validator.ShouldContain("missing-packages");
         publisher.ShouldContain("while IFS= read -r package_id");
@@ -1434,9 +1438,9 @@ public class PackageGovernanceTests {
         guardStep.ShouldContain("--max-time 30");
         guardStep.ShouldContain("--retry 3");
 
-        // The unprotected job runs no actions, so the guard reads the manifest through the contents
-        // API rather than checking the source out.
-        verifySourceJob.ShouldNotContain("uses:");
+        // Registry lineage remains checked before checkout and shared source admission.
+        verifySourceJob.IndexOf($"- name: {RegistryDriftGuardStepName}", StringComparison.Ordinal)
+            .ShouldBeLessThan(verifySourceJob.IndexOf("uses: actions/checkout@", StringComparison.Ordinal));
 
         // The inventory comes from the manifest; restating ids here would let the two drift apart.
         foreach (string packageId in ExpectedPackageIds) {
@@ -2326,6 +2330,8 @@ public class PackageGovernanceTests {
             .Where(path => !path.StartsWith("references/Hexalith.Memories/", StringComparison.Ordinal))
             .Where(path => !path.StartsWith("references/Hexalith.AI.Tools/", StringComparison.Ordinal))
             .Where(path => !path.StartsWith("references/Hexalith.PolymorphicSerializations/", StringComparison.Ordinal))
+            .Where(path => !path.StartsWith("references/Hexalith.Platform/", StringComparison.Ordinal))
+            .Where(path => !path.StartsWith("references/Hexalith.McpCli/", StringComparison.Ordinal))
             .Where(IsAdHocContainerFile)
             .ToArray();
 

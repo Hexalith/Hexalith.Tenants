@@ -19,11 +19,12 @@ class NuGetDependencyRangeTests(unittest.TestCase):
         (self.root / "src/Fixture.csproj").write_text("<Project />")
         (self.root / "packages").mkdir()
         self.manifest = self.root / "release-packages.json"
-        self.manifest.write_text(json.dumps({"packages": [{"id": "Fixture", "project": "src/Fixture.csproj"}]}))
+        self.package_id = "Fixture"
+        self.manifest.write_text(json.dumps({"packages": [{"id": self.package_id, "project": "src/Fixture.csproj"}]}))
         self.assets = {
             "projectFileDependencyGroups": {"net10.0": ["Fixture.Direct >= 1.0.0"]},
             "centralTransitiveDependencyGroups": {"net10.0": {"Fixture.Central": {"version": "[2.0.0, )"}}},
-            "project": {"restore": {"projectPath": str(self.root / "src/Fixture.csproj"), "projectName": "Fixture",
+            "project": {"restore": {"projectPath": str(self.root / "src/Fixture.csproj"), "projectName": "Fixture", "projectUniqueName": str(self.root / "src/Fixture.csproj"),
                                      "projectStyle": "PackageReference", "originalTargetFrameworks": ["net10.0"]},
                         "frameworks": {"net10.0": {}}},
         }
@@ -32,7 +33,7 @@ class NuGetDependencyRangeTests(unittest.TestCase):
         (self.root / "src/obj/project.assets.json").write_text(json.dumps(self.assets))
         package = self.root / "packages/Fixture.1.2.3.nupkg"
         with zipfile.ZipFile(package, "w") as archive:
-            archive.writestr("Fixture.nuspec", '<package><metadata><id>Fixture</id><version>1.2.3</version>'
+            archive.writestr("Fixture.nuspec", f'<package><metadata><id>{self.package_id}</id><version>1.2.3</version>'
                              '<readme>README.md</readme><license>MIT</license>' + groups + '</metadata></package>')
             archive.writestr("README.md", "fixture")
         result = subprocess.run(["python3", str(ROOT / "scripts/validate-nuget-packages.py"),
@@ -98,6 +99,9 @@ class NuGetDependencyRangeTests(unittest.TestCase):
         self.run_validator(groups(("3.0.0", "4.0.0"), ("1.0.0", "2.0.0")), False)
 
     def test_technical_exceptions_obey_ordinary_range_checks(self):
+        self.package_id = "Hexalith.Tenants.Server"
+        self.assets["project"]["restore"]["projectName"] = self.package_id
+        self.manifest.write_text(json.dumps({"packages": [{"id": self.package_id, "project": "src/Fixture.csproj"}]}))
         for dependency_id in ("Hexalith.EventStore.ServiceDefaults", "Hexalith.Commons.ServiceDefaults"):
             with self.subTest(dependency_id=dependency_id):
                 self.assets["projectFileDependencyGroups"]["net10.0"] = [dependency_id + " >= 1.0.0"]
@@ -105,6 +109,22 @@ class NuGetDependencyRangeTests(unittest.TestCase):
                 group = '<dependencies><group targetFramework="net10.0"><dependency id="' + dependency_id + '" version="{}" /></group></dependencies>'
                 self.run_validator(group.format("1.0.0"))
                 self.run_validator(group.format("9.0.0"), False)
+                self.run_validator(group.format("1.0.0").replace('targetFramework="net10.0"', 'targetFramework="net9.0"'), False)
+
+    def test_technical_defaults_are_refused_for_every_other_package_layer(self):
+        for package_id in ("Hexalith.Tenants.Contracts", "Hexalith.Tenants.Client", "Hexalith.Tenants.Testing",
+                           "Hexalith.Tenants.Aspire", "Unknown.Package"):
+            for dependency_id in ("Hexalith.EventStore.ServiceDefaults", "Hexalith.Commons.ServiceDefaults",
+                                  "Other.ServiceDefaults", "Hexalith.EventStore.ServiceDefaults.Extra"):
+                with self.subTest(package=package_id, dependency=dependency_id):
+                    self.package_id = package_id
+                    self.assets["project"]["restore"]["projectName"] = package_id
+                    self.manifest.write_text(json.dumps({"packages": [{"id": package_id, "project": "src/Fixture.csproj"}]}))
+                    self.assets["projectFileDependencyGroups"]["net10.0"] = [dependency_id + " >= 1.0.0"]
+                    self.assets["centralTransitiveDependencyGroups"]["net10.0"] = {}
+                    group = f'<dependencies><group targetFramework="net10.0"><dependency id="{dependency_id}" version="1.0.0" /></group></dependencies>'
+                    result = self.run_validator(group, False)
+                    self.assertIn("forbidden projects", result.stdout + result.stderr)
 
     def test_unusable_central_evidence_is_rejected(self):
         for details in ({}, {"version": ""}, {"version": "1.*"}, {"version": None}):

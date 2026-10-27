@@ -17,6 +17,7 @@ fi
 
 recovery_require_manifest
 recovery_require_prepared
+recovery_require_source_gates "$state_directory/source-gates-publication.json"
 live_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq '.object.sha')"
 [ "$live_sha" = "$source_sha" ] || { echo '[partial-release-recovery] Live main changed before publication.' >&2; exit 1; }
 
@@ -50,14 +51,16 @@ if [ "$(cat "$state_directory/container-state")" = absent ]; then
   registry="${HEXALITH_ZOT_REGISTRY:-registry.hexalith.com}"
   container_repository="${HEXALITH_RECOVERY_CONTAINER_REPOSITORY:-tenants}"
   echo "${HEXALITH_ZOT_API_KEY:?HEXALITH_ZOT_API_KEY is required}" | docker login "$registry" --username "${HEXALITH_ZOT_USERNAME:?HEXALITH_ZOT_USERNAME is required}" --password-stdin
+  recovery_container_created="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
   dotnet publish src/Hexalith.Tenants/Hexalith.Tenants.csproj --configuration Release /t:PublishContainer \
     -p:RuntimeIdentifiers='linux-musl-x64;linux-musl-arm64' \
     -p:ContainerRuntimeIdentifiers='linux-musl-x64;linux-musl-arm64' \
     -p:ContainerImageFormat=OCI -p:UseHexalithProjectReferences=false \
     -p:ContainerRegistry="$registry" -p:ContainerRepository="$container_repository" -p:ContainerImageTag="$version" -p:Version="$version" \
     -p:ContainerProvenanceSourceSha="$source_sha" -p:ContainerProvenanceReleaseVersion="$version" \
-    -p:ContainerProvenanceCreated="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
-  recovery_verify_container "$state_directory/oci-published"
+    -p:ContainerProvenanceCreated="$recovery_container_created"
+  recovery_require_execution
+  HEXALITH_RECOVERY_CONTAINER_CREATED="$recovery_container_created" recovery_verify_container "$state_directory/oci-published"
 fi
 
 if [ "$release_status" = 404 ]; then

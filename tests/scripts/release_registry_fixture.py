@@ -23,7 +23,7 @@ def graph(state):
         return {"digest": digest, "size": len(body), "mediaType": media_type}
     children = []
     for architecture in ("amd64", "arm64"):
-        source = state.get("oci_source_sha", "a" * 40)
+        source = state.get("oci_source_sha", os.environ.get("GITHUB_SHA", "a" * 40))
         repository = "https://github.com/fixture/recovery"
         version = state.get("version", "1.2.3")
         labels = {
@@ -32,8 +32,14 @@ def graph(state):
             "org.opencontainers.image.documentation": repository + "/blob/" + source + "/README.md",
             "org.opencontainers.image.revision": source,
             "org.opencontainers.image.version": version,
+            "org.opencontainers.image.created": state.get("created", "2026-10-27T00:00:00Z"),
+            "org.opencontainers.artifact.created": state.get("created", "2026-10-27T00:00:00Z"),
         }
         mutation = state.get("oci_mutation")
+        if mutation == "missing-created": labels.pop("org.opencontainers.image.created")
+        if mutation == "malformed-created": labels["org.opencontainers.image.created"] = labels["org.opencontainers.artifact.created"] = "2026-02-30T00:00:00Z"
+        if mutation == "mismatched-created" and architecture == "arm64":
+            labels["org.opencontainers.image.created"] = labels["org.opencontainers.artifact.created"] = "2026-10-28T00:00:00Z"
         if mutation == "label" and architecture == "arm64":
             labels["org.opencontainers.image.version"] = "9.9.9"
         config = store({"os": "linux", "architecture": architecture, "config": {"Labels": labels},
@@ -96,7 +102,7 @@ if __name__ == "__main__":
     # observed graph still goes through the real Builds validator before writes.
     import sys
     root, version = Path(sys.argv[1]), sys.argv[2]
-    state = {"container": True, "version": version}
+    state = {"container": True, "version": version, "created": os.environ.get("FIXTURE_CREATED", "2026-10-27T00:00:00Z")}
     (root / "destinations.json").write_text(json.dumps(state))
     (root / "sitecustomize.py").write_text("from release_registry_fixture import install\ninstall()\n")
     if sys.argv[3:] == ["no-receipt"]:
@@ -107,4 +113,5 @@ if __name__ == "__main__":
     (directory / "oci-validation.json").write_text(json.dumps({
         "result": "pass", "image": "fixture.invalid/tenants:" + version,
         "platforms": ["linux/amd64", "linux/arm64"], "index_digest": digest,
+        "children": [{"provenance_labels": {"org.opencontainers.image.created": state["created"]}}],
     }))

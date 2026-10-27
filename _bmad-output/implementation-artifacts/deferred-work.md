@@ -5015,16 +5015,24 @@ location: references/Hexalith.Builds/.github/workflows/domain-ci.yml
 source_spec: `_bmad-output/implementation-artifacts/spec-gh-actions-28953291798-85906522208.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-gh-actions-28953291798-85906522208.md`\n  summary: medium; Aspire-lane failures are hidden because the reusable `domain-ci.yml` defaults `aspire-continue-on-error` to true.\n  evidence: Run 28953291798 concluded `success` although `ci / aspire-tests` failed; Tenants `ci.yml` does not override the default. A red hosted smoke test therefore never blocks a merge. Changing this is a workflow-definition decision (Ask First in the spec)."
-status: open
-disposition: awaiting-decision
-verification-date: 2026-10-12
-verification: references/Hexalith.Builds/.github/workflows/domain-ci.yml:109-114 still defaults aspire-continue-on-error to true and applies it to aspire-tests at :669; .github/workflows/ci.yml does not override the input. The lane remains advisory by workflow definition, independent of its latest health.
-verification-files: references/Hexalith.Builds/.github/workflows/domain-ci.yml
-evidence-kind: verified-gap
+pre-release-governance-status: open
+status: done 2026-10-27
+pre-release-governance-disposition: awaiting-decision
+disposition: done
+pre-release-governance-verification-date: 2026-10-12
+verification-date: 2026-10-27
+pre-release-governance-verification: references/Hexalith.Builds/.github/workflows/domain-ci.yml:109-114 still defaults aspire-continue-on-error to true and applies it to aspire-tests at :669; .github/workflows/ci.yml does not override the input. The lane remains advisory by workflow definition, independent of its latest health.
+verification: Tenants opts into blocking generic Aspire tests, browser/TLS/Dapr prerequisites and skipped-test rejection while other reusable callers retain their defaults. The shared guard requires a successful consistent TRX summary. Final source Contracts 718/718 and shared workflow platform checks 371 assertions pass. A fresh full generic package-mode Aspire run remains separately unqualified because published EventStore routing types do not compile; no live CI acceptance is claimed. Approved spec and exact commands/limitations: dw-540-554-570-584-593-validation-evidence.md.
+pre-release-governance-verification-files: references/Hexalith.Builds/.github/workflows/domain-ci.yml
+verification-files: .github/workflows/ci.yml; references/Hexalith.Builds/.github/workflows/domain-ci.yml; references/Hexalith.Builds/Tools/test-domain-workflow-test-platforms.ps1; tests/Hexalith.Tenants.Contracts.Tests/CiQualityGateScriptTests.cs
+pre-release-governance-evidence-kind: verified-gap
+evidence-kind: verified-contract-regression
 priority: P2
 owner: Hexalith.Builds
-dependencies: Maintainer CI gating decision
-next-action: Record whether the existing Aspire lane must become blocking, and define the exact prerequisites/skip behavior before changing the workflow.
+pre-release-governance-dependencies: Maintainer CI gating decision
+dependencies: None for this approved policy implementation; broader package/runtime/release qualification holds remain separately recorded.
+pre-release-governance-next-action: Record whether the existing Aspire lane must become blocking, and define the exact prerequisites/skip behavior before changing the workflow.
+next-action: None for this record; retain the separate fresh Aspire qualification follow-up and broader release holds in dw-540-554-570-584-593-validation-evidence.md.
 related: none
 
 
@@ -5151,16 +5159,24 @@ location: scripts/validate-nuget-packages.py
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: medium; technical ServiceDefaults package exceptions are not scoped to published package layers.\n  evidence: `scripts/validate-nuget-packages.py` allows both exact technical ServiceDefaults IDs for every package whose restore evidence includes them, including Contracts, Client, and Testing. Define and enforce the intended dependency layers in package architecture work; Story 5.6 adds executable exact-ID boundary coverage without changing that policy."
-status: open
-disposition: awaiting-decision
-verification-date: 2026-10-12
-verification: scripts/validate-nuget-packages.py applies exact ServiceDefaults ID allowlisting globally; load_dependency_boundaries keys packages but no exception policy distinguishes Server from Contracts/Client/Testing. The intended technical dependency layers are not specified by this validator.
-verification-files: scripts/validate-nuget-packages.py
-evidence-kind: verified-gap
+pre-release-governance-status: open
+status: done 2026-10-27
+pre-release-governance-disposition: awaiting-decision
+disposition: done
+pre-release-governance-verification-date: 2026-10-12
+verification-date: 2026-10-27
+pre-release-governance-verification: scripts/validate-nuget-packages.py applies exact ServiceDefaults ID allowlisting globally; load_dependency_boundaries keys packages but no exception policy distinguishes Server from Contracts/Client/Testing. The intended technical dependency layers are not specified by this validator.
+verification: Approved exact EventStore and Commons ServiceDefaults IDs are allowed only in Hexalith.Tenants.Server. Other known and unknown published packages refuse those exceptions; exact ID/range and framework checks remain. Eleven isolated package-policy tests and final Contracts 718/718 pass. Approved spec and exact commands/limitations: dw-540-554-570-584-593-validation-evidence.md.
+pre-release-governance-verification-files: scripts/validate-nuget-packages.py
+verification-files: scripts/validate-nuget-packages.py; tests/scripts/test_nuget_dependency_ranges.py; tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs
+pre-release-governance-evidence-kind: verified-gap
+evidence-kind: verified-contract-regression
 priority: P2
 owner: unassigned
-dependencies: Published package dependency-layer decision
-next-action: Approve allowed published layers for each technical ServiceDefaults dependency, then enforce that policy with isolated package fixtures.
+pre-release-governance-dependencies: Published package dependency-layer decision
+dependencies: None for this approved policy implementation; broader package/runtime/release qualification holds remain separately recorded.
+pre-release-governance-next-action: Approve allowed published layers for each technical ServiceDefaults dependency, then enforce that policy with isolated package fixtures.
+next-action: None for this record; retain the separate fresh Aspire qualification follow-up and broader release holds in dw-540-554-570-584-593-validation-evidence.md.
 related: DW-527,DW-544
 
 
@@ -5362,16 +5378,24 @@ location: .github/workflows/release.yml; references/Hexalith.Builds/.github/work
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: medium; the standalone release workflow omits the reusable Builds workflow's governed-provenance evaluation.\n  evidence: `.github/workflows/release.yml` checks the approved Builds checkout SHA but does not run the `governed-provenance` closure evaluation used by `references/Hexalith.Builds/.github/workflows/domain-release.yml`. This pre-existing release-governance difference should be resolved in the release workflow owner before publication relies on equivalent closure evidence."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: release.yml validates the Builds checkout SHA but contains no governed-provenance closure evaluation; shared Builds domain-release.yml supplies that evaluation. The parity recommendation remains unimplemented.
-verification-files: .github/workflows/release.yml; references/Hexalith.Builds/.github/workflows/domain-release.yml
-evidence-kind: recommendation
+pre-release-governance-status: open
+status: done 2026-10-27
+pre-release-governance-disposition: actionable
+disposition: done
+pre-release-governance-verification-date: 2026-10-12
+verification-date: 2026-10-27
+pre-release-governance-verification: release.yml validates the Builds checkout SHA but contains no governed-provenance closure evaluation; shared Builds domain-release.yml supplies that evaluation. The parity recommendation remains unimplemented.
+verification: Standalone release and recovery invoke bounded governed-provenance closure evaluation using the actual defining job workflow identity, immutable candidate and checked-out helper blobs. Existing reusable identity enforcement and standalone Trusted Publishing jobs remain. Executable actual-workflow fixtures, refusal controls and shared provenance/gate/identity 59/59 pass after independent review. Approved spec and exact commands/limitations: dw-540-554-570-584-593-validation-evidence.md.
+pre-release-governance-verification-files: .github/workflows/release.yml; references/Hexalith.Builds/.github/workflows/domain-release.yml
+verification-files: .github/workflows/release.yml; .github/workflows/recover-partial-release.yml; references/Hexalith.Builds/Github/governed-provenance; tests/scripts/test_release_workflow_governance.py
+pre-release-governance-evidence-kind: recommendation
+evidence-kind: verified-contract-regression
 priority: P2
 owner: release workflow owner
-dependencies: Approved release-provenance policy
-next-action: Add the owning workflow closure gate or document an approved equivalent closure procedure.
+pre-release-governance-dependencies: Approved release-provenance policy
+dependencies: None for this approved policy implementation; broader package/runtime/release qualification holds remain separately recorded.
+pre-release-governance-next-action: Add the owning workflow closure gate or document an approved equivalent closure procedure.
+next-action: None for this record; retain the separate fresh Aspire qualification follow-up and broader release holds in dw-540-554-570-584-593-validation-evidence.md.
 related: DW-593
 
 
@@ -5518,16 +5542,24 @@ location: .github/workflows/release.yml
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Decide whether separate story and source-reference workflows must gate releases.\n  evidence: Unverified medium-severity policy question; `release.yml` queries only `ci.yml`, and an explicit release-gate policy would establish whether failed separate workflows must block publication."
-status: open
-disposition: awaiting-decision
-verification-date: 2026-10-12
-verification: release.yml verify-source queries only successful ci.yml runs; separate story-guards.yml/source-reference checks are not included. Existing separate workflow design alone does not establish release-blocking policy.
-verification-files: .github/workflows/release.yml
-evidence-kind: recommendation
+pre-release-governance-status: open
+status: done 2026-10-27
+pre-release-governance-disposition: awaiting-decision
+disposition: done
+pre-release-governance-verification-date: 2026-10-12
+verification-date: 2026-10-27
+pre-release-governance-verification: release.yml verify-source queries only successful ci.yml runs; separate story-guards.yml/source-reference checks are not included. Existing separate workflow design alone does not establish release-blocking policy.
+verification: Approved publication and recovery policy requires the latest exact-source main push run and attempt for ci.yml, story-guards.yml and source-reference.yml to succeed. Pagination, per-attempt checks and a final refresh refuse stale successes and changes during qualification. Normal publication also enforces all three gates at its final admission boundary. Release controls 70/70 and shared provenance/gate/identity 59/59 pass. Approved spec and exact commands/limitations: dw-540-554-570-584-593-validation-evidence.md.
+pre-release-governance-verification-files: .github/workflows/release.yml
+verification-files: .github/workflows/release.yml; scripts/validate-publication-preflight.sh; scripts/validate-partial-release-recovery.sh; references/Hexalith.Builds/Github/governed-provenance/source_workflow_gates.py; tests/scripts/test_release_workflow_governance.py
+pre-release-governance-evidence-kind: recommendation
+evidence-kind: verified-contract-regression
 priority: P2
 owner: unassigned
-dependencies: Release-gate policy owner
-next-action: Decide which separate exact-source workflow outcomes must block publication and document the gate.
+pre-release-governance-dependencies: Release-gate policy owner
+dependencies: None for this approved policy implementation; broader package/runtime/release qualification holds remain separately recorded.
+pre-release-governance-next-action: Decide which separate exact-source workflow outcomes must block publication and document the gate.
+next-action: None for this record; retain the separate fresh Aspire qualification follow-up and broader release holds in dw-540-554-570-584-593-validation-evidence.md.
 related: DW-585
 
 
@@ -5606,16 +5638,24 @@ location: .github/workflows/release.yml; .github/workflows/recover-partial-relea
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: medium; reconcile the Builds execution revision used by partial release recovery with the publishing workflow. Owner: release recovery (`recover-partial-release.yml`).\n  evidence: `release.yml` declares `53d53ae42abf7c87d385a078ab260531480bbf8a` for publication, but `recover-partial-release.yml` declares `2eac6955a812465a4308d194ae38fee35b766b05` for recovery. `validate-partial-release-recovery.sh` verifies only that the recovery value has SHA syntax. Recovery builds with the source tree's Builds gitlink, so matching publication-tool provenance is not established. The release recovery owner should decide and enforce the exact revision relationship before relying on rebuilt artifacts."
-status: open
-disposition: awaiting-decision
-verification-date: 2026-10-12
-verification: release.yml declares Builds execution 53d53ae4 while recover-partial-release.yml declares 2eac6955; validate-partial-release-recovery.sh checks SHA syntax only and recovery builds use source gitlink. Approved relationship between publication and recovery tooling remains unspecified.
-verification-files: .github/workflows/release.yml; .github/workflows/recover-partial-release.yml; scripts/validate-partial-release-recovery.sh
-evidence-kind: verified-gap
+pre-release-governance-status: open
+status: done 2026-10-27
+pre-release-governance-disposition: awaiting-decision
+disposition: done
+pre-release-governance-verification-date: 2026-10-12
+verification-date: 2026-10-27
+pre-release-governance-verification: release.yml declares Builds execution 53d53ae4 while recover-partial-release.yml declares 2eac6955; validate-partial-release-recovery.sh checks SHA syntax only and recovery builds use source gitlink. Approved relationship between publication and recovery tooling remains unspecified.
+verification: Recovery structurally resolves the Builds execution revision declared by the immutable source release workflow and verifies that checkout, helper bytes and retained closure throughout preparation/publication. All three current publication pins match Builds 35f185abdec37a3ae92d82f85a21e0f3c971d82d. Source build props remain source-gitlink pinned; restored publisher and post-build helper drift fail before subsequent sensitive work. Release controls 70/70 and shared provenance/gate/identity 59/59 pass. Approved spec and exact commands/limitations: dw-540-554-570-584-593-validation-evidence.md.
+pre-release-governance-verification-files: .github/workflows/release.yml; .github/workflows/recover-partial-release.yml; scripts/validate-partial-release-recovery.sh
+verification-files: .github/workflows/release.yml; .github/workflows/recover-partial-release.yml; scripts/partial-release-recovery-common.sh; scripts/validate-partial-release-recovery.sh; scripts/prepare-partial-release.sh; scripts/publish-partial-release.sh; references/Hexalith.Builds/Github/governed-provenance/execution_identity.py
+pre-release-governance-evidence-kind: verified-gap
+evidence-kind: verified-contract-regression
 priority: P2
 owner: release recovery (recover-partial-release.yml)
-dependencies: Release-owner exact execution provenance decision
-next-action: Define and enforce the approved publication/recovery Builds revision relationship.
+pre-release-governance-dependencies: Release-owner exact execution provenance decision
+dependencies: None for this approved policy implementation; broader package/runtime/release qualification holds remain separately recorded.
+pre-release-governance-next-action: Define and enforce the approved publication/recovery Builds revision relationship.
+next-action: None for this record; retain the separate fresh Aspire qualification follow-up and broader release holds in dw-540-554-570-584-593-validation-evidence.md.
 related: DW-570
 
 
@@ -6291,3 +6331,10 @@ archived: 2026-10-22
 - source_spec: `_bmad-output/implementation-artifacts/spec-dw-194-201-221-267-609-ui-safety.md`
   summary: Medium — route a pinned Fluent UI 5.0.1 grid continuation that uses a disposed JavaScript module during navigation to the component owner.
   evidence: One full authenticated browser run failed during create recovery with ObjectDisposedException in FluentDataGrid.UpdateColumnInteractionsAsync/OnAfterRenderAsync and one circuit error; its packet, log and sanitized stack are preserved in the batch evidence diagnostics. The existing pinned grid awaits initialization before later module use without a disposal recheck. Later labelled checks did not reproduce the circuit fault, so the exact focus checkpoint remains unproven and no local workaround is claimed. Reproduce with controlled grid initialization/disposal across detail navigation and Back, then qualify the owning component fix; retain zero-circuit-error acceptance.
+
+
+## Deferred from: release-governance independent review (2026-10-27)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-dw-540-554-570-584-593-release-governance.md`
+  summary: Medium, unverified — qualify a fresh generic blocking Aspire CI run after the published EventStore routing contracts can compile.
+  evidence: The new browser/TLS/Dapr prerequisite and result-gate definitions have local contract checks, but no fresh full generic Aspire provisioning run is claimed. Current default and Release/package Contracts builds fail with ten missing EventStore routing-type errors in TenantCatalogDeclarations.cs; pre-review Debug/source Contracts passed 704/704 and both real workflow closures passed immutable-snapshot checks. Retain those distinct results and the existing release holds. Capture a fresh package-mode generic tier with installed prerequisites, executed tests and no skips after the upstream package prerequisite is available.

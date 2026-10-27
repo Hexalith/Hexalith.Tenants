@@ -11,6 +11,8 @@ test "$source_sha" = "${GITHUB_SHA:?GITHUB_SHA is required}" || { echo '[partial
 [ "$(cat "$state_directory/version")" = "$version" ] || { echo '[partial-release-recovery] Recovery version changed.' >&2; exit 1; }
 [ -f "$state_directory/missing-packages" ] || { echo '[partial-release-recovery] Missing-package state is absent.' >&2; exit 1; }
 recovery_require_manifest
+recovery_require_execution
+recovery_require_source_gates "$state_directory/source-gates-preparation.json"
 live_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq '.object.sha')"
 [ "$live_sha" = "$source_sha" ] || { echo '[partial-release-recovery] Live main changed before publication.' >&2; exit 1; }
 
@@ -38,6 +40,7 @@ while IFS= read -r package_id || [ -n "$package_id" ]; do
 done < "$state_directory/existing-packages"
 
 recovery_require_manifest
+recovery_require_execution
 [ "$(recovery_preparation_state)" = "$validated_state" ] || recovery_fail 'Recovery state changed during package preparation.'
 recovery_package_hashes > "$state_directory/prepared-packages-sha256"
 printf '%s\n' "$validated_state" > "$state_directory/prepared-state-sha256"

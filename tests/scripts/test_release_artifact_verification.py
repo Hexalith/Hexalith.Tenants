@@ -56,7 +56,7 @@ class ReleaseArtifactVerificationTests(unittest.TestCase):
         evidence = self.fixture.root / ".hexalith/release-evidence/1.2.3/destinations"
         document = json.loads((evidence / "verified.json").read_text())
         self.assertEqual(document["version"], "1.2.3")
-        self.assertEqual(document["source_sha"], recovery.SOURCE_SHA)
+        self.assertEqual(document["source_sha"], self.fixture.environment["GITHUB_SHA"])
         self.assertEqual(len((evidence / "nuget-sha256").read_text().splitlines()), 5)
         self.assertEqual(len((evidence / "github-sha256").read_text().splitlines()), 5)
 

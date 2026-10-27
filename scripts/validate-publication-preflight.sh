@@ -4,6 +4,7 @@ set -euo pipefail
 version="${1:-}"
 phase="${2:-}"
 builds_execution_sha="${HEXALITH_BUILDS_EXECUTION_SHA:-}"
+builds_execution_root="${HEXALITH_BUILDS_EXECUTION_ROOT:-.hexalith/builds-execution}"
 registry="${HEXALITH_ZOT_REGISTRY:-registry.hexalith.com}"
 source_sha="${GITHUB_SHA:-}"
 source_branch="${HEXALITH_RELEASE_SOURCE_BRANCH:-}"
@@ -71,6 +72,11 @@ lowest_version="$(printf '%s\n%s\n' "$minimum_release_version" "$version_core" |
   fail "The shared publication preflight is unavailable."
 [[ -f "$package_manifest" ]] ||
   fail "The authoritative release package manifest is unavailable."
+
+python3 "$builds_execution_root/Github/governed-provenance/source_workflow_gates.py" \
+  --repository "Hexalith/Hexalith.Tenants" --source "$source_sha" \
+  --workflow ci.yml --workflow story-guards.yml --workflow source-reference.yml \
+  --evidence "$evidence_directory/source-gates.json"
 
 exec "$publication_preflight" \
   --repository "Hexalith/Hexalith.Tenants" \

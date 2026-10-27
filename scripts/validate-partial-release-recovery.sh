@@ -33,12 +33,37 @@ recovery_validate_manifest
 state_directory="$(recovery_confine_directory "$state_directory")"
 manifest_hash="$(sha256sum "$manifest" | awk '{ print $1 }')"
 
+validated_state_directory="$state_directory"
+recovery_workspace_directory="$(recovery_confine_directory .hexalith)"
+mkdir -p "$recovery_workspace_directory"
+recovery_temporary_directory="$(mktemp -d "$recovery_workspace_directory/recovery-validation.XXXXXXXX")"
+recovery_validation_cleanup() {
+  local result="$?" failure_directory
+  if [ "$result" -ne 0 ]; then
+    failure_directory="$(recovery_confine_directory "$validated_state_directory/failures/$(basename "$recovery_temporary_directory")")"
+    mkdir -p "$failure_directory"
+    printf 'rejected exit=%s\n' "$result" > "$recovery_temporary_directory/validation-result"
+    cp -R "$recovery_temporary_directory/." "$failure_directory/"
+  fi
+  rm -rf -- "$recovery_temporary_directory"
+}
+trap recovery_validation_cleanup EXIT
+state_directory="$recovery_temporary_directory"
+execution_root="${HEXALITH_BUILDS_EXECUTION_ROOT:-.hexalith/builds-execution}"
+provenance="${HEXALITH_RECOVERY_WORKFLOW_PROVENANCE:-.hexalith/recovery-workflow-provenance.json}"
+[ -s "$provenance" ] || fail 'Verified standalone recovery workflow provenance is required.'
+cp "$provenance" "$state_directory/workflow-provenance.json"
+recovery_require_checkout
+PYTHONDONTWRITEBYTECODE=1 python3 "$execution_root/Github/governed-provenance/execution_identity.py" capture \
+  --source "$source_sha" --declared "$builds_sha" --builds-root "$execution_root" \
+  --provenance "$state_directory/workflow-provenance.json" --state "$state_directory/execution-identity.json" ||
+  fail 'Recovery execution identity does not match the approved source.'
+recovery_require_execution
+
 live_sha="$(gh api "repos/${repository}/git/ref/heads/main" --jq '.object.sha')"
 [ "$live_sha" = "$source_sha" ] || fail "The requested source is not the live main tip."
-ci_count="$(gh api --method GET "repos/${repository}/actions/workflows/${source_ci_workflow}/runs" \
-  -f branch=main -f event=push -f head_sha="$source_sha" -f status=success -f per_page=100 \
-  --jq '[.workflow_runs[] | select(.head_sha == "'"$source_sha"'" and .head_branch == "main" and .event == "push" and .status == "completed" and .conclusion == "success")] | length')"
-[ "$ci_count" -gt 0 ] || fail "No successful push CI run exists for the exact source SHA."
+
+recovery_require_source_gates "$state_directory/source-gates.json" || fail 'Required exact-source workflow gates refused recovery.'
 
 api_status() {
   local endpoint="$1"
@@ -80,22 +105,6 @@ esac
 
 mapfile -t package_ids < <(jq -r '.packages[] | .id' "$manifest")
 [ "${#package_ids[@]}" -eq 5 ] || fail "The package manifest must contain exactly five packages."
-validated_state_directory="$state_directory"
-recovery_workspace_directory="$(recovery_confine_directory .hexalith)"
-mkdir -p "$recovery_workspace_directory"
-recovery_temporary_directory="$(mktemp -d "$recovery_workspace_directory/recovery-validation.XXXXXXXX")"
-recovery_validation_cleanup() {
-  local result="$?" failure_directory
-  if [ "$result" -ne 0 ]; then
-    failure_directory="$(recovery_confine_directory "$validated_state_directory/failures/$(basename "$recovery_temporary_directory")")"
-    mkdir -p "$failure_directory"
-    printf 'rejected exit=%s\n' "$result" > "$recovery_temporary_directory/validation-result"
-    cp -R "$recovery_temporary_directory/." "$failure_directory/"
-  fi
-  rm -rf -- "$recovery_temporary_directory"
-}
-trap recovery_validation_cleanup EXIT
-state_directory="$recovery_temporary_directory"
 : > "$state_directory/missing-packages"
 : > "$state_directory/existing-packages"
 : > "$state_directory/existing-package-sha256"
@@ -140,6 +149,7 @@ if [ "$existing" -eq 0 ] && [ "$container_status" = 404 ] && [ "$tag_status" = 4
   fail "Recovery requires evidence of an existing partial release."
 fi
 printf '%s\n' "$manifest_hash" > "$state_directory/package-manifest-sha256"
+recovery_require_execution
 mkdir -p "$validated_state_directory"
 cp -R "$state_directory/"* "$validated_state_directory/"
 if [ -n "${GITHUB_OUTPUT:-}" ]; then
