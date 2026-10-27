@@ -809,8 +809,18 @@ public sealed class TenantReadRefreshSubscriptionTests
         IProjectionSubscription subscription = Substitute.For<IProjectionSubscription>();
         IProjectionChangeNotifierWithTenant notifier = Substitute.For<IProjectionChangeNotifierWithTenant>();
         TaskCompletionSource setupCompleted = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource unsubscribeStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource releaseUnsubscribe = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource unsubscribeCompleted = new(TaskCreationOptions.RunContinuationsAsynchronously);
         subscription.SubscribeAsync("tenants", "tenant.alpha", Arg.Any<CancellationToken>())
             .Returns(setupCompleted.Task);
+        subscription.UnsubscribeAsync("tenants", "tenant.alpha", Arg.Any<CancellationToken>())
+            .Returns(async _ =>
+            {
+                unsubscribeStarted.TrySetResult();
+                await releaseUnsubscribe.Task;
+                unsubscribeCompleted.TrySetResult();
+            });
         ServiceProvider services = new ServiceCollection()
             .AddSingleton(subscription)
             .AddSingleton(notifier)
@@ -829,9 +839,24 @@ public sealed class TenantReadRefreshSubscriptionTests
             },
             cancellation.Token);
         cancellation.Cancel();
-        setupCompleted.SetResult();
 
         _ = await Should.ThrowAsync<OperationCanceledException>(pending);
+        setupCompleted.SetResult();
+        try
+        {
+            await unsubscribeStarted.Task.WaitAsync(TimeSpan.FromSeconds(2));
+            // Cancellation returns before background cleanup. Hold unsubscribe to prove the barrier
+            // stays pending while checking that the callback was already detached.
+            unsubscribeCompleted.Task.IsCompleted.ShouldBeFalse();
+            notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>("tenants", "tenant.alpha");
+            refreshCount.ShouldBe(0);
+        }
+        finally
+        {
+            releaseUnsubscribe.TrySetResult();
+        }
+
+        await unsubscribeCompleted.Task.WaitAsync(TimeSpan.FromSeconds(2));
         await subscription.Received(1).UnsubscribeAsync("tenants", "tenant.alpha", Arg.Any<CancellationToken>());
         notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>("tenants", "tenant.alpha");
         await Task.Yield();

@@ -3,7 +3,6 @@ using System.Text;
 
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Queries;
-using Hexalith.EventStore.Contracts.Rest;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.Services.Gateways;
@@ -118,10 +117,10 @@ public sealed class TenantsRestQueryClientTests
         handler.Requests.Select(static request => request.PathAndQuery).ShouldBe(
         [
             "/api/tenants?cursor=list%20cursor%2F%2B&pageSize=25",
-            "/api/tenants/dGVuYW50LmFscGhh",
-            "/api/tenants/dGVuYW50LmFscGhh/users?cursor=users%20cursor%2F%2B&pageSize=20",
-            "/api/users/dXNlci5hbHBoYQ/tenants?cursor=membership%20cursor%2F%2B&pageSize=12",
-            "/api/tenants/dGVuYW50LmFscGhh/audit?from=2026-07-01T00%3A00%3A00.0000000%2B00%3A00&to=2026-07-28T00%3A00%3A00.0000000%2B00%3A00&category=Access&cursor=audit%20cursor%2F%2B&pageSize=30",
+            "/api/tenants/tenant.alpha",
+            "/api/tenants/tenant.alpha/users?cursor=users%20cursor%2F%2B&pageSize=20",
+            "/api/users/user.alpha/tenants?cursor=membership%20cursor%2F%2B&pageSize=12",
+            "/api/tenants/tenant.alpha/audit?from=2026-07-01T00%3A00%3A00.0000000%2B00%3A00&to=2026-07-28T00%3A00%3A00.0000000%2B00%3A00&category=Access&cursor=audit%20cursor%2F%2B&pageSize=30",
             "/api/global-administrators?cursor=admin%20cursor%2F%2B&pageSize=10",
         ]);
         // All six, not just the list and member reads. Previously only Requests[0] and Requests[2] were
@@ -139,9 +138,6 @@ public sealed class TenantsRestQueryClientTests
             "\"admins-etag\"",
         ]);
         handler.Requests.ShouldAllBe(static request => request.Method == HttpMethod.Get);
-        handler.Requests.Select(request => request.RouteEncoding).ShouldBe([
-            null, "base64url-v1", "base64url-v1", "base64url-v1", "base64url-v1", null,
-        ]);
     }
 
     [Fact]
@@ -216,9 +212,9 @@ public sealed class TenantsRestQueryClientTests
     }
 
     [Fact]
-    public async Task Slash_route_identifiers_preserve_all_four_exact_routes()
+    public async Task Slash_route_identifiers_fail_closed_without_sending_an_ambiguous_request()
     {
-        var handler = new RecordingHandler(Enumerable.Range(0, 4).Select(_ => new HttpResponseMessage(HttpStatusCode.NotFound)).ToArray());
+        var handler = new RecordingHandler();
         using var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://tenants.invalid") };
         var client = new TenantsRestQueryClient(httpClient);
 
@@ -239,26 +235,14 @@ public sealed class TenantsRestQueryClientTests
             null,
             TestContext.Current.CancellationToken);
 
-        handler.Requests.Select(request => request.PathAndQuery).ShouldBe([
-            "/api/tenants/dGVuYW50L2FscGhh",
-            "/api/tenants/dGVuYW50L2FscGhh/users?pageSize=20",
-            "/api/users/dXNlci9hbHBoYQ/tenants?pageSize=20",
-            "/api/tenants/dGVuYW50L2FscGhh/audit?pageSize=20",
-        ]);
-        handler.Requests.ShouldAllBe(request => request.RouteEncoding == RestRouteIdentifierCodec.Base64UrlVersion);
-        new[] { detail.FailureKind, users.FailureKind, memberships.FailureKind, audit.FailureKind }
-            .ShouldAllBe(kind => kind == TenantsRestQueryFailureKind.NotFound);
-    }
-
-    [Fact]
-    public async Task Invalid_utf16_identifier_fails_before_transport_without_lossy_replacement()
-    {
-        var handler = new RecordingHandler();
-        using var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://tenants.invalid") };
-        var client = new TenantsRestQueryClient(httpClient);
-        var result = await client.GetTenantAsync(new GetTenantQuery { TenantId = "\ud800" }, null, TestContext.Current.CancellationToken);
-        result.FailureKind.ShouldBe(TenantsRestQueryFailureKind.UnsupportedRouteIdentifier);
         handler.Requests.ShouldBeEmpty();
+
+        // UnsupportedRouteIdentifier, not InvalidRequest or Unavailable: no request was sent, so this must
+        // remain distinguishable from both a server-issued 400 and the Tenants API being down.
+        new[] { detail.FailureKind, users.FailureKind, memberships.FailureKind, audit.FailureKind }
+            .ShouldAllBe(static kind => kind == TenantsRestQueryFailureKind.UnsupportedRouteIdentifier);
+        new[] { detail.StatusCode, users.StatusCode, memberships.StatusCode, audit.StatusCode }
+            .ShouldAllBe(static status => status == (int)HttpStatusCode.BadRequest);
     }
 
     [Fact]
@@ -699,9 +683,13 @@ public sealed class TenantsRestQueryClientTests
     [InlineData("...")]
     [InlineData("\\")]
     [InlineData("tenant\\alpha")]
-    public async Task Dot_only_and_separator_route_identifiers_are_encoded_as_one_segment(string tenantId)
+    public async Task Dot_only_and_separator_route_identifiers_are_rejected_without_sending_a_request(string tenantId)
     {
-        var handler = new RecordingHandler(new HttpResponseMessage(HttpStatusCode.NotFound));
+        // Superseded: these used to be percent-escaped to %2E and sent. Escaping is not a durable guarantee
+        // -- the upstream API may normalize %2E during routing, and a resolved ".." under a future DAPR
+        // invoke path could traverse out of the /v1.0/invoke/{appId}/method/ prefix. A route identity that
+        // is only dots, or carries a separator, is not a usable identity, so it is refused here.
+        var handler = new RecordingHandler();
         using var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://tenants.invalid") };
         var client = new TenantsRestQueryClient(httpClient);
 
@@ -710,9 +698,9 @@ public sealed class TenantsRestQueryClientTests
             null,
             TestContext.Current.CancellationToken);
 
-        handler.Requests.ShouldHaveSingleItem().PathAndQuery.ShouldBe("/api/tenants/" + RestRouteIdentifierCodec.Encode(tenantId));
-        handler.Requests.Single().RouteEncoding.ShouldBe(RestRouteIdentifierCodec.Base64UrlVersion);
-        result.FailureKind.ShouldBe(TenantsRestQueryFailureKind.NotFound);
+        handler.Requests.ShouldBeEmpty();
+        result.FailureKind.ShouldBe(TenantsRestQueryFailureKind.UnsupportedRouteIdentifier);
+        result.StatusCode.ShouldBe((int)HttpStatusCode.BadRequest);
     }
 
     [Fact]
@@ -728,7 +716,7 @@ public sealed class TenantsRestQueryClientTests
             null,
             TestContext.Current.CancellationToken);
 
-        handler.Requests.Select(static request => request.PathAndQuery).ShouldBe(["/api/tenants/dGVuYW50LmFscGhh"]);
+        handler.Requests.Select(static request => request.PathAndQuery).ShouldBe(["/api/tenants/tenant.alpha"]);
     }
 
     [Theory]
@@ -1103,14 +1091,19 @@ public sealed class TenantsRestQueryClientTests
     }
 
     [Theory]
-    [InlineData("alpha?pageSize=9999", "/api/tenants/YWxwaGE_cGFnZVNpemU9OTk5OQ")]
-    [InlineData("alpha#fragment", "/api/tenants/YWxwaGEjZnJhZ21lbnQ")]
-    [InlineData("alpha beta", "/api/tenants/YWxwaGEgYmV0YQ")]
-    [InlineData("alpha&x=1", "/api/tenants/YWxwaGEmeD0x")]
-    public async Task Route_identifiers_are_canonically_encoded_before_the_uri_is_built(
+    [InlineData("alpha?pageSize=9999", "/api/tenants/alpha%3FpageSize%3D9999")]
+    [InlineData("alpha#fragment", "/api/tenants/alpha%23fragment")]
+    [InlineData("alpha beta", "/api/tenants/alpha%20beta")]
+    [InlineData("alpha&x=1", "/api/tenants/alpha%26x%3D1")]
+    public async Task Route_identifiers_are_percent_escaped_before_the_uri_is_built(
         string tenantId,
         string expectedPath)
     {
+        // The only prior escaping test used "tenant.alpha", where every character is unreserved and
+        // Uri.EscapeDataString is the identity function -- so the escape call was unpinned. It matters
+        // because TryEscapeRouteValue rejects only '/', '\\' and all-dot values, and CreateRequestUri runs
+        // with DangerousDisablePathAndQueryCanonicalization = true: without the escape, a caller-supplied
+        // tenant id splices a query parameter into the request or truncates it at a fragment.
         var handler = new RecordingHandler(Success("{\"tenantId\":\"alpha\",\"name\":\"Alpha\",\"members\":[],\"configuration\":{}}"));
         using var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://tenants.invalid") };
         var client = new TenantsRestQueryClient(httpClient);
@@ -1619,8 +1612,7 @@ public sealed class TenantsRestQueryClientTests
             Requests.Add(new(
                 request.Method,
                 request.RequestUri?.PathAndQuery ?? string.Empty,
-                request.Headers.IfNoneMatch.SingleOrDefault()?.ToString(),
-                request.Headers.TryGetValues(RestRouteIdentifierCodec.HeaderName, out var encoding) ? encoding.Single() : null));
+                request.Headers.IfNoneMatch.SingleOrDefault()?.ToString()));
             if (_responses.Count == 0)
             {
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
@@ -1633,7 +1625,7 @@ public sealed class TenantsRestQueryClientTests
         }
     }
 
-    private sealed record RecordedRequest(HttpMethod Method, string PathAndQuery, string? IfNoneMatch, string? RouteEncoding);
+    private sealed record RecordedRequest(HttpMethod Method, string PathAndQuery, string? IfNoneMatch);
 
     private sealed class ThrowingHandler(Exception exception) : HttpMessageHandler
     {

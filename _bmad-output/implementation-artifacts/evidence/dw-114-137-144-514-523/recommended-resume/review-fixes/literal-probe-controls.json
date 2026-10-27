@@ -1,0 +1,23 @@
+[
+  {
+    "emptyList": false,
+    "failedRead": false,
+    "expectedChecks": 9,
+    "exitCode": 0,
+    "pass": true
+  },
+  {
+    "emptyList": true,
+    "failedRead": false,
+    "expectedChecks": 9,
+    "exitCode": 1,
+    "pass": true
+  },
+  {
+    "emptyList": false,
+    "failedRead": true,
+    "expectedChecks": 9,
+    "exitCode": 1,
+    "pass": true
+  }
+]

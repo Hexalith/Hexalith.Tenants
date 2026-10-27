@@ -1,0 +1,170 @@
+{
+  "state": "Approved five-item scope completed, independent review corrected, current validation accepted; owning modules pushed before parent",
+  "files": [
+    {
+      "path": "apphost-baseline-state.json",
+      "sha256": "c09c5786ed8c119564f9d3e5b5cfedc0cbe9cde014ca3ee90f7a0374cede153b",
+      "size": 3299
+    },
+    {
+      "path": "apphost-live-literal-probe.py",
+      "sha256": "58997b1a9a09e2f528538d640cf3ca599b3fcb3e57e27d5f6ee044eec0d6bcdb",
+      "size": 5747
+    },
+    {
+      "path": "apphost-live-literal-results.json",
+      "sha256": "39f28ba0fc54824bb02ef520db40e108cdde12dfd07681f1b87fbc5dc5d3bfae",
+      "size": 1075
+    },
+    {
+      "path": "apphost-source-build-blocker.log",
+      "sha256": "df5e6948ead0f46af70b9e386c41494fd73b05314c1f6dd7dc43196b08a66fc2",
+      "size": 16260
+    },
+    {
+      "path": "command-metadata.json",
+      "sha256": "8dcd7e119f9afbd0fb98565a3506d9c85b96628894e2dd1060903e349a9d7c2b",
+      "size": 6947
+    },
+    {
+      "path": "commitlint-records.tar.gz",
+      "sha256": "38371b8f4c84b59cfa2fa9f13e1fb175fe07f2a2d2c735458b3b18c1dfdb730a",
+      "size": 2172
+    },
+    {
+      "path": "completed-module-commits.json",
+      "sha256": "d512cd2a5885663502b4b9c57d584ad07fb10ba74e44dd45bc2dc6ac58d54aa6",
+      "size": 631
+    },
+    {
+      "path": "dw-137-encoding-patches.tar.gz",
+      "sha256": "c48b230898739e87e59bca9b3f98fd3dfab7a1c5fcb2d1adb73a943fd894342a",
+      "size": 7392
+    },
+    {
+      "path": "dw-137-preserved-patch-manifest.json",
+      "sha256": "5767eedb7ad16358aab55fed799a85787b765cd164400c69d2e9ba1a8fb99642",
+      "size": 1581
+    },
+    {
+      "path": "final-command-metadata.json",
+      "sha256": "ed1c5648a1c8489e40c09011f90a287f0b000da1c2e32a9fd2b95e3c7a9121e2",
+      "size": 4317
+    },
+    {
+      "path": "final-source-hashes.json",
+      "sha256": "533c1bf4cacdfc37c2d264ab79ff3dc2b44eba2317493e96db0f273222ceba84",
+      "size": 4795
+    },
+    {
+      "path": "final-validation-records.tar.gz",
+      "sha256": "585e9e19122f42ebf5e65edc2d170aea549aaeaf2fd7c31de564c9fc204d4dcc",
+      "size": 103392
+    },
+    {
+      "path": "generators-build.log",
+      "sha256": "104b17a42149cf582a91232233c4457d95725bc8bcaa7a964cdb85bbe19f2fe5",
+      "size": 76
+    },
+    {
+      "path": "generators-tests.log",
+      "sha256": "c1c3ea3ab3e9f44762497667b2218d392665b66ce232533ad6bd721f65a400f4",
+      "size": 458
+    },
+    {
+      "path": "gitlink-precommit.txt",
+      "sha256": "f4928313adc4c4f8fd590edf8f1ab0bb744cd7a72ced4698c64bfe350bc77f8a",
+      "size": 372
+    },
+    {
+      "path": "ledger-preservation-audit.json",
+      "sha256": "1c8a1aecc76ee602f95cbfff4717af7a2e0ce5c0eb43e530e691001e92e92a6e",
+      "size": 450
+    },
+    {
+      "path": "parent-validation-records.tar.gz",
+      "sha256": "c46071570b482f9730d08bc9a6ee6b1dd7a60bcb765d2672d39a1500ef2c7ceb",
+      "size": 20104
+    },
+    {
+      "path": "platform-source-hash-match.json",
+      "sha256": "9ce21ad03018d2c4147d8570d6b0ab0cb0eb02d32ab1b4f4dd49c336cb76660f",
+      "size": 866
+    },
+    {
+      "path": "resumed-repository-heads.json",
+      "sha256": "eb416cb1c57db2fe66674f544f6057e88f990442b1f84a8034c51d1c4e7e336b",
+      "size": 290
+    },
+    {
+      "path": "review-fixes/command-metadata.json",
+      "sha256": "8a5b942cf97e17255aa4820cf842d942baafe7ab039b6e11a9a4ea01f45a4936",
+      "size": 3000
+    },
+    {
+      "path": "review-fixes/dapr-no-retry.json",
+      "sha256": "9000dbefc0785222ec38b316b94019f9d8df326746cb7ea55232298ad14c794f",
+      "size": 2367
+    },
+    {
+      "path": "review-fixes/dapr-retry-mutation.json",
+      "sha256": "2d26f9de832caa77eb455c13210e9626b873f57c971fd1eab3d2bcbd777731bc",
+      "size": 2367
+    },
+    {
+      "path": "review-fixes/legacy-loopback-compatibility.json",
+      "sha256": "6f19d1e018eaa23f6b12c0c31b9ae75c8e6c7b39e4f14d2a102f655ee63b7b48",
+      "size": 1547
+    },
+    {
+      "path": "review-fixes/legacy-loopback-validation.tar.gz",
+      "sha256": "39db6b244a6fc6d79a6ca0f7f3222aab6544f43c0843b9f2f6cca6ac0d73c7ff",
+      "size": 1718
+    },
+    {
+      "path": "review-fixes/literal-probe-controls.json",
+      "sha256": "313f35b975e966c41989de7785cbdb283d0389c7a3a7a2d07cb94ce7892ae136",
+      "size": 358
+    },
+    {
+      "path": "review-fixes/manifest.json",
+      "sha256": "9e84626142cb7b7fa07e57ee9057a0b321dcbe9d5ea2ed8439d8ad60616c70b1",
+      "size": 1727
+    },
+    {
+      "path": "review-fixes/source-hashes.json",
+      "sha256": "470f87f472fe76b949fc169f0542b2e63104b61ec22d7619b54375125f9fdcd1",
+      "size": 2067
+    },
+    {
+      "path": "review-fixes/source-root-layout-checks.json",
+      "sha256": "4772b94803acc1fe6f19be6cbfc6349f9889bef0baaad1c7de3156fe55785056",
+      "size": 490
+    },
+    {
+      "path": "review-fixes/validation-output-manifest.json",
+      "sha256": "bdb79a490e2962ebb1d623a04cc0ea11b7de947df89fdb6ccc698d4b57d11a23",
+      "size": 546
+    },
+    {
+      "path": "review-fixes/validation-outputs.tar.gz",
+      "sha256": "03adada8ae5f520a123401a1ca732ec0c0d273d5b52e2721f0397d27c0d78c9b",
+      "size": 2077
+    },
+    {
+      "path": "source-hashes.json",
+      "sha256": "ae8f97a5b015f25d1b50a3c15d4906a06f730652473304e3ac35c90907038341",
+      "size": 1676
+    },
+    {
+      "path": "ui-focused-tests.log",
+      "sha256": "7e37e08335b15adfd6e1c445720411eb14b070de295e13ade1ddf1bc2535dc85",
+      "size": 2518
+    },
+    {
+      "path": "ui-source-build.log",
+      "sha256": "eeb58fb1933f713b8dd2530a2710092fb7729b4ffd8738706850c8a9815e7654",
+      "size": 9774
+    }
+  ]
+}

@@ -31,15 +31,15 @@ public sealed class LocalDaprIdentityTests
             AssemblyName = typeof(LocalDaprIdentityTests).Assembly.GetName().Name,
         });
         builder.AddDapr(options => options.EnableTelemetry = false);
+        string runtimeHome = Path.Combine(Path.GetTempPath(), "tenants-identity-runtime-" + Guid.NewGuid().ToString("N"));
         IResourceBuilder<ProjectResource> application = builder.AddProject("identity-probe", project)
-            .WithDaprSidecar(sidecar => sidecar.WithOptions(new DaprSidecarOptions { AppId = "identity-probe", AppProtocol = "https" }));
+            .WithDaprSidecar(sidecar => sidecar.WithOptions(new DaprSidecarOptions { AppId = "identity-probe", AppProtocol = "https", RuntimePath = runtimeHome }));
         var owned = DaprSelfHostedMtls.AddLocalApplicationInfrastructure(builder, repository.FullName,
             Path.Combine(repository.FullName, "src/Hexalith.Tenants.AppHost/DaprComponents/sentry.yaml"));
         try
         {
             builder.Configuration["DcpPublisher:CliPath"] = Path.Combine(owned.RunDirectory, "model-dcp-not-started");
             builder.Configuration["DcpPublisher:DashboardPath"] = Path.Combine(owned.RunDirectory, "model-dashboard-not-started");
-            string runtimeHome = Path.Combine(owned.RunDirectory, "runtime");
             string runtime = Path.Combine(runtimeHome, ".dapr", "bin", OperatingSystem.IsWindows() ? "daprd.exe" : "daprd");
             Directory.CreateDirectory(Path.GetDirectoryName(runtime)!);
             if (!missingRuntime) await File.WriteAllTextAsync(runtime, "model-only native runtime");
@@ -47,7 +47,7 @@ public sealed class LocalDaprIdentityTests
                 await File.WriteAllTextAsync(Path.Combine(owned.CertificateDirectory, name), "model-only-" + name);
             IDaprSidecarResource declared = application.Resource.Annotations.OfType<DaprSidecarAnnotation>().Single().Sidecar;
             DaprSidecarOptionsAnnotation options = declared.Annotations.OfType<DaprSidecarOptionsAnnotation>().Single();
-            declared.Annotations[declared.Annotations.IndexOf(options)] = new DaprSidecarOptionsAnnotation(options.Options with { RuntimePath = runtimeHome });
+            options.Options.RuntimePath.ShouldBe(runtimeHome);
 
             await using DistributedApplication app = builder.Build();
             DistributedApplicationModel model = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -79,11 +79,56 @@ public sealed class LocalDaprIdentityTests
             options.Options.PlacementHostAddress.ShouldNotBeNull();
             options.Options.SchedulerHostAddress.ShouldNotBeNull();
             actual.Annotations.OfType<EndpointAnnotation>().ShouldAllBe(endpoint => endpoint.IsProxied == false);
+            var environment = new EnvironmentCallbackContext(builder.ExecutionContext, actual,
+                new Dictionary<string, object>(), TestContext.Current.CancellationToken);
+            foreach (EnvironmentCallbackAnnotation callback in actual.Annotations.OfType<EnvironmentCallbackAnnotation>())
+                await callback.Callback(environment);
+            environment.EnvironmentVariables["DAPR_TRUST_ANCHORS"].ShouldBe("model-only-ca.crt");
+            environment.EnvironmentVariables["DAPR_CERT_CHAIN"].ShouldBe("model-only-issuer.crt");
+            environment.EnvironmentVariables["DAPR_CERT_KEY"].ShouldBe("model-only-issuer.key");
+            environment.EnvironmentVariables["NAMESPACE"].ShouldBe("default");
+            environment.EnvironmentVariables["DAPR_CONTROLPLANE_NAMESPACE"].ShouldBe("default");
+            environment.EnvironmentVariables["DAPR_CONTROLPLANE_TRUST_DOMAIN"].ShouldBe("localhost");
         }
         finally
         {
             await CompositionWorkspace.TryDeleteAsync(owned.CertificateDirectory, CancellationToken.None);
             await CompositionWorkspace.TryDeleteAsync(owned.RunDirectory, CancellationToken.None);
+            await CompositionWorkspace.TryDeleteAsync(runtimeHome, CancellationToken.None);
         }
     }
+    [Fact]
+    public void FailedCompositionRemovesItsRunAndSeparateCertificateDirectories()
+    {
+        string certificateParent = Path.Combine(Path.GetTempPath(), "tenants-failed-identity-" + Guid.NewGuid().ToString("N"));
+        string runs = Path.Combine(Path.GetTempPath(), "hexalith-dapr");
+        string[] before = Directory.Exists(runs) ? Directory.GetDirectories(runs) : [];
+        var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
+        {
+            Args = [], DisableDashboard = true, AllowUnsecuredTransport = true,
+            AssemblyName = typeof(LocalDaprIdentityTests).Assembly.GetName().Name,
+        });
+        builder.AddDapr(options => options.EnableTelemetry = false);
+        builder.Configuration["Dapr:Mtls:CertificateDirectory"] = certificateParent;
+        DirectoryInfo repository = new(AppContext.BaseDirectory);
+        while (!File.Exists(Path.Combine(repository.FullName, "Hexalith.Tenants.slnx")))
+            repository = repository.Parent ?? throw new DirectoryNotFoundException("Tenants checkout is required.");
+        builder.AddProject("identity-probe", Path.Combine(repository.FullName, "src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj"))
+            .WithDaprSidecar();
+        // Fail after AddSentry creates its owned child directory, before the tuple can be returned.
+        builder.AddContainer("dapr-sentry", "model-only-collision");
+        try
+        {
+            Should.Throw<DistributedApplicationException>(() => DaprSelfHostedMtls.AddLocalApplicationInfrastructure(
+                builder, repository.FullName, Path.Combine(repository.FullName, "src/Hexalith.Tenants.AppHost/DaprComponents/sentry.yaml")));
+            Directory.Exists(certificateParent).ShouldBeTrue();
+            Directory.GetFileSystemEntries(certificateParent).ShouldBeEmpty();
+            Directory.GetDirectories(runs).Except(before, StringComparer.Ordinal).ShouldBeEmpty();
+        }
+        finally
+        {
+            if (Directory.Exists(certificateParent)) Directory.Delete(certificateParent, recursive: true);
+        }
+    }
+
 }

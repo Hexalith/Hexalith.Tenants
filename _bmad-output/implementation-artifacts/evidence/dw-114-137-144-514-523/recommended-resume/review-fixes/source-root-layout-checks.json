@@ -1,0 +1,32 @@
+[
+  {
+    "layout": "standalone",
+    "sourceMode": "false",
+    "pass": true
+  },
+  {
+    "layout": "standalone",
+    "sourceMode": "true",
+    "pass": true
+  },
+  {
+    "layout": "sibling",
+    "sourceMode": "false",
+    "pass": true
+  },
+  {
+    "layout": "sibling",
+    "sourceMode": "true",
+    "pass": true
+  },
+  {
+    "layout": "platform-parent",
+    "sourceMode": "false",
+    "pass": true
+  },
+  {
+    "layout": "platform-parent",
+    "sourceMode": "true",
+    "pass": true
+  }
+]

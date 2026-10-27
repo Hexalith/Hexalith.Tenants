@@ -975,17 +975,26 @@ location: references/
 source_spec: `_bmad-output/implementation-artifacts/spec-1-9-authoritative-memories-search-with-protected-paging.md`
 reason: The legacy ledger defers this issue: The advance-by-requested-window paging rule rests on a Memories server premise that no test in this repository can observe. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-1-9-authoritative-memories-search-with-protected-paging.md` summary: The advance-by-requested-window paging rule rests on a Memories server premise that no test in this repository can observe. evidence: Correctness of `nextOffset = min(rawOffset + PageSize, TotalCount)` requires the Memories search server to apply `Offset` before dropping entries that fail its required-field check and to report the untrimmed total. That is true of `SyntacticSearchService` in the consumed submodule today, but `SearchResult.TotalCount` documents only "may exceed returned results", every gateway test stubs `MemoriesClient.SearchAsync`, and the intent's Block-If bars editing anything under `references/`. Closing this needs a contract test in the Memories repository or a Tenants integration test against a live index.
-status: open
-disposition: blocked
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs advances rawOffset by requested PageSize; references/Hexalith.Memories/src/Hexalith.Memories.Server/Search/SyntacticSearchService.cs reports raw totals and filters required fields. Tenants gateway tests still substitute SearchAsync, so no owning contract regression proves that premise.
-verification-files: src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs; references/Hexalith.Memories/src/Hexalith.Memories.Server/Search/SyntacticSearchService.cs
-evidence-kind: verified-gap
+pre-read-recovery-status: open
+status: done 2026-10-27
+pre-read-recovery-disposition: blocked
+disposition: done
+pre-read-recovery-verification-date: 2026-10-12
+verification-date: 2026-10-27
+pre-read-recovery-verification: src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs advances rawOffset by requested PageSize; references/Hexalith.Memories/src/Hexalith.Memories.Server/Search/SyntacticSearchService.cs reports raw totals and filters required fields. Tenants gateway tests still substitute SearchAsync, so no owning contract regression proves that premise.
+verification: Owning Memories search integration proves required-field filtering follows raw paging and preserves raw totals across empty, later and exhausted windows; SearchResult documents normalized window advancement. Current ordinary Debug/package Integration build and real-Redis class pass19/19 without source repair or exclusions.
+pre-read-recovery-verification-files: src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs; references/Hexalith.Memories/src/Hexalith.Memories.Server/Search/SyntacticSearchService.cs
+verification-files: references/Hexalith.Memories/src/Hexalith.Memories.Contracts/V1/SearchResult.cs; references/Hexalith.Memories/tests/Hexalith.Memories.IntegrationTests/Search/SyntacticSearchIntegrationTests.cs
+pre-read-recovery-evidence-kind: verified-gap
+evidence-kind: verified-contract-regression
 priority: P2
 owner: unassigned
 dependencies: Memories owning contract/integration lane
-next-action: Obtain a Memories server contract test for offset-before-filtering and untrimmed totals.
+pre-read-recovery-next-action: Obtain a Memories server contract test for offset-before-filtering and untrimmed totals.
+next-action: None for this record; completion evidence and remaining broad/release limits are retained in dw-114-137-144-514-523-validation-evidence.md.
 related: DW-122
+resolution-spec: `_bmad-output/implementation-artifacts/spec-dw-114-137-144-514-523-read-and-recovery-contracts.md`
+resolution-evidence: `_bmad-output/implementation-artifacts/dw-114-137-144-514-523-validation-evidence.md`
 
 ### DW-115: The tenant-detail read path does not adopt the shared null-member guard, so a malformed member element crashes the detail page while both list surfaces degrade safely
 
@@ -1273,18 +1282,27 @@ location: src/Hexalith.Tenants.AppHost/Program.cs:104-106; src/Hexalith.Tenants.
 source_spec: `_bmad-output/implementation-artifacts/spec-1-10-direct-tenants-reads-and-authoritative-freshness.md`
 reason: The legacy ledger defers this issue: Decide whether the Tenants UI BFF's six canonical reads should move from direct HTTPS to DAPR service invocation. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-1-10-direct-tenants-reads-and-authoritative-freshness.md` summary: Decide whether the Tenants UI BFF's six canonical reads should move from direct HTTPS to DAPR service invocation. Raised by the owner during the 1.10 review: DAPR is the intended discovery mechanism for services with sidecars. Not actionable inside 1.10 — it is a topology and security-posture change, not a base-address swap. evidence: | Current topology (verified 2026-07-30): - `tenants-api` HAS a DAPR sidecar, `AppId = "tenants-api"` (src/Hexalith.Tenants.AppHost/Program.cs:104-106). - `tenants-ui` has NO sidecar, no app-id, and no Dapr package references anywhere in src/Hexalith.Tenants.UI. It is not a DAPR app; it is a Blazor front end / BFF. - `deploy/dapr/accesscontrol.tenants.yaml` is `defaultAction: deny` and allows exactly one caller, `appId: eventstore`, on five POST operations (/process, /project, /query, /replay-state, /admin/operational-index-metadata). None of the six `GET /api/tenants*` read routes are allowed and `tenants-ui` has no policy entry. - Because the reads go direct HTTPS to `tenants-api` (which is `.WithExternalHttpEndpoints()`), they bypass the DAPR access-control plane and mTLS entirely. That is a deviation from the documented deny-by-default posture and was not recorded anywhere in Story 1.10. What a move to DAPR invoke would require: 1. A sidecar + app-id for `tenants-ui`. 2. A `tenants-ui` policy in accesscontrol.tenants.yaml allowing GET on the six read routes, plus the route tests project-context.md requires to change alongside any app-id/topic change. 3. Base address becomes `http://localhost:{daprHttpPort}/v1.0/invoke/tenants-api/method/` + route. Route identity at the API is preserved so the six-path acceptance criterion survives, but the client's URI building, base-path retention and scheme gate all assume a direct service address. 4. Reconciling `deploy/dapr/resiliency.yaml`, which applies `defaultRetry` (constant, 3 retries), a 5s `daprSidecar` timeout and a circuit breaker to invoke targets, with Story 1.10's deliberate transport semantics: the hand-built linked deadline, the fixed support-safe failure categories, and the explicit never-silently-retry invariant (notably the invalid-cursor rule). A retried conditional GET re-sends `If-None-Match`, so 304/ETag behaviour through the sidecar must be verified, not assumed. Not verified, flagged for that work: how `%2E%2E` behaves through a DAPR invoke path. If anything it is worse than direct HTTP — a resolved `..` could traverse out of the `/v1.0/invoke/{appId}/method/` prefix — so the reject-all-dot route-value patch is required regardless of the transport chosen. status: open — owner-raised architectural decision for its own story. Story 1.10 proceeds with the resolved option (c): no discovery mechanism, consuming the AppHost-injected resolved endpoint URL, matching the EventStore command/status and Memories clients.
-status: open
+pre-read-recovery-status: open
+status: done 2026-10-27
 decision: 2026-08-26 Use Dapr invocation — Add a tenants-ui sidecar and app ID, deny-by-default GET policy, resilience reconciliation, and route and ETag tests.
 decision: 2026-08-25 Use Dapr invocation — Add a tenants-ui sidecar and app-id, deny-by-default GET policy, resilience reconciliation, and route and ETag tests.
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.AppHost/Program.cs gives tenants-api a Dapr sidecar, while tenants-ui remains a ProjectResource without one and receives Tenants__BaseAddress from the HTTPS endpoint. Recorded 2026-08-25/26 decisions select Dapr invocation; migration is still absent.
-evidence-kind: recommendation
+pre-read-recovery-disposition: actionable
+disposition: done
+pre-read-recovery-verification-date: 2026-10-12
+verification-date: 2026-10-27
+pre-read-recovery-verification: src/Hexalith.Tenants.AppHost/Program.cs gives tenants-api a Dapr sidecar, while tenants-ui remains a ProjectResource without one and receives Tenants__BaseAddress from the HTTPS endpoint. Recorded 2026-08-25/26 decisions select Dapr invocation; migration is still absent.
+verification: BFF reads use the authoritative local Dapr endpoint, existing invocation handler, HTTPS app channel, caller-specific deny-default ACL and explicit zero-retry app policy. Shared local mTLS/bootstrap, six persisted reads, conditional metadata and caller/verb/no-retry controls qualify the retained literal route contract independently of deferred DW-137.
+pre-read-recovery-evidence-kind: recommendation
+evidence-kind: verified-contract-regression
 priority: P2
 owner: unassigned
 dependencies: topology/security contract and DW-137
-next-action: Implement the already-selected topology in a dedicated owning change with deny-default GET policy, retry and ETag/route checks.
+pre-read-recovery-next-action: Implement the already-selected topology in a dedicated owning change with deny-default GET policy, retry and ETag/route checks.
+next-action: None for this record; completion evidence and remaining broad/release limits are retained in dw-114-137-144-514-523-validation-evidence.md.
 related: DW-161
+verification-files: src/Hexalith.Tenants.UI/Extensions/TenantsUiServiceCollectionExtensions.cs; src/Hexalith.Tenants.AppHost/Program.cs; deploy/dapr/README.md; tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsRouteTests.cs; tests/Hexalith.Tenants.AppHost.Tests/LocalDaprIdentityTests.cs
+resolution-spec: `_bmad-output/implementation-artifacts/spec-dw-114-137-144-514-523-read-and-recovery-contracts.md`
+resolution-evidence: `_bmad-output/implementation-artifacts/dw-114-137-144-514-523-validation-evidence.md`
 
 ### DW-145: Deferred to Story 1.11
 
@@ -4709,18 +4727,26 @@ location: references/Hexalith.EventStore/src/Hexalith.EventStore.Server/Actors/A
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: Normalize whitespace causation in `AggregateActor.CreateCommandProcessingIdentity` (medium, unverified).\n  evidence: `CreateCommandProcessingIdentity` (`AggregateActor.cs:4704-4710`) maps only `null` to `MessageId`, while admission (`:652`) also maps whitespace. On the resume publish-failure path (`:4346`), a whitespace `CausationId` makes `IdempotencyChecker` → `identity.Validate()` throw before the drain record and reminder are written. The same call already existed at the EventStore story baseline `2c58ffda`. HTTP always sets causation = messageId. To settle it, list every non-HTTP entry point that builds a `CommandEnvelope` with a caller-supplied `CausationId`."
-status: open
-disposition: uncertain
-verification-date: 2026-10-12
-verification: references/Hexalith.EventStore/src/Hexalith.EventStore.Server/Actors/AggregateActor.cs:5151-5158 CreateCommandProcessingIdentity still maps only null CausationId to MessageId; admission at :669 normalizes whitespace too. HTTP initializes causation from MessageId, and no complete inventory/test proves a supported non-HTTP whitespace causation can reach failing resume recovery.
-verification-files: references/Hexalith.EventStore/src/Hexalith.EventStore.Server/Actors/AggregateActor.cs
-evidence-kind: unverified-risk
+pre-read-recovery-status: open
+status: done 2026-10-27
+pre-read-recovery-disposition: uncertain
+disposition: done
+pre-read-recovery-verification-date: 2026-10-12
+verification-date: 2026-10-27
+pre-read-recovery-verification: references/Hexalith.EventStore/src/Hexalith.EventStore.Server/Actors/AggregateActor.cs:5151-5158 CreateCommandProcessingIdentity still maps only null CausationId to MessageId; admission at :669 normalizes whitespace too. HTTP initializes causation from MessageId, and no complete inventory/test proves a supported non-HTTP whitespace causation can reach failing resume recovery.
+verification: Blank causation now uses the same MessageId fallback at recovery as admission. Null, empty and whitespace regression cases prove crash resume, durable unpublished-event ownership, reminder recovery and exact-range completion; current source recovery/status/provenance lane passes 123/123.
+pre-read-recovery-verification-files: references/Hexalith.EventStore/src/Hexalith.EventStore.Server/Actors/AggregateActor.cs
+verification-files: references/Hexalith.EventStore/src/Hexalith.EventStore.Server/Actors/AggregateActor.cs; references/Hexalith.EventStore/tests/Hexalith.EventStore.Server.Tests/Actors/CommandRecoveryIntegrityTests.cs
+pre-read-recovery-evidence-kind: unverified-risk
+evidence-kind: verified-contract-regression
 priority: P2
 owner: Hexalith.EventStore
 dependencies: Non-HTTP command-entry-point reachability evidence
-next-action: Inventory non-HTTP CommandEnvelope producers and reproduce a supported whitespace-causation resume before deciding normalization/rejection behavior.
+pre-read-recovery-next-action: Inventory non-HTTP CommandEnvelope producers and reproduce a supported whitespace-causation resume before deciding normalization/rejection behavior.
+next-action: None for this record; completion evidence and remaining broad/release limits are retained in dw-114-137-144-514-523-validation-evidence.md.
 related: none
-
+resolution-spec: `_bmad-output/implementation-artifacts/spec-dw-114-137-144-514-523-read-and-recovery-contracts.md`
+resolution-evidence: `_bmad-output/implementation-artifacts/dw-114-137-144-514-523-validation-evidence.md`
 
 ### DW-515: Give the EventStore shared-consumer authority Contracts test more headroom, or speed it up.
 
@@ -4821,18 +4847,26 @@ location: references/Hexalith.EventStore/src/Hexalith.EventStore.Contracts/Comma
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: Correct EventStore polling guidance that treats recoverable PublishFailed as terminal.\n  evidence: Pass-14 BH10, extended by pass 17 at EventStore `07d1e23a6c5b06bbbb1fc8ddb5174cc3382d3d93`: command-api.md labels PublishFailed terminal at :380, :383, :400 (replay of terminal failure states), :470, :473, :475, and :477; docs/brownfield/architecture.md:152 and docs/brownfield/api-contracts.md:23 make the same claim. The runtime CommandStatusExtensions.IsTerminal also classifies PublishFailed as terminal, and CommandStatusController.cs:201-202 therefore omits Retry-After. Line :477 tells callers to stop polling, although a successful publication drain can later write Completed with command-specific sequence proof. Correcting :477 alone leaves the other documentation sites and runtime polling behavior inconsistent. Story 5.6's consumer maps PublishFailed to Degraded with refresh recovery, so it remains pending for verification rather than claiming correction success. The identical terminal-state sentence exists at preserved EventStore baseline b51978dd1d2a3721ad239db2623e1560377c7583:454, so this is pre-existing EventStore documentation work. Distinguish recoverable publication failure from exhausted recovery without duplicating the existing recovery-field documentation follow-up."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: references/Hexalith.EventStore/docs/reference/command-api.md:380,383,400,470,473,475,477 and brownfield docs still call PublishFailed terminal. CommandStatusExtensions.cs IsTerminal returns status >= Completed, and CommandStatusController.cs:231-235 omits Retry-After for it despite recoverable publication drain later reaching Completed.
-verification-files: references/Hexalith.EventStore/src/Hexalith.EventStore.Contracts/Commands/CommandStatusExtensions.cs; references/Hexalith.EventStore/src/Hexalith.EventStore/Controllers/CommandStatusController.cs
-evidence-kind: verified-defect
+pre-read-recovery-status: open
+status: done 2026-10-27
+pre-read-recovery-disposition: actionable
+disposition: done
+pre-read-recovery-verification-date: 2026-10-12
+verification-date: 2026-10-27
+pre-read-recovery-verification: references/Hexalith.EventStore/docs/reference/command-api.md:380,383,400,470,473,475,477 and brownfield docs still call PublishFailed terminal. CommandStatusExtensions.cs IsTerminal returns status >= Completed, and CommandStatusController.cs:231-235 omits Retry-After for it despite recoverable publication drain later reaching Completed.
+verification: Ordinary and workload status advertise Retry-After for PublishFailed only when Retryable is true; false/null advertise none. Documentation distinguishes armed recovery from exhausted/unknown state while preserving enum/replay compatibility and independent projection proof. Current source recovery/status/provenance lane passes 123/123.
+pre-read-recovery-verification-files: references/Hexalith.EventStore/src/Hexalith.EventStore.Contracts/Commands/CommandStatusExtensions.cs; references/Hexalith.EventStore/src/Hexalith.EventStore/Controllers/CommandStatusController.cs
+verification-files: references/Hexalith.EventStore/src/Hexalith.EventStore/Controllers/CommandStatusController.cs; references/Hexalith.EventStore/tests/Hexalith.EventStore.Server.Tests/Commands/CommandStatusControllerTests.cs; references/Hexalith.EventStore/docs/reference/command-api.md
+pre-read-recovery-evidence-kind: verified-defect
+evidence-kind: verified-contract-regression
 priority: P2
 owner: Hexalith.EventStore
 dependencies: EventStore publication recovery status contract
-next-action: Define recoverable versus exhausted PublishFailed polling semantics and align runtime Retry-After plus all lifecycle/replay documentation.
+pre-read-recovery-next-action: Define recoverable versus exhausted PublishFailed polling semantics and align runtime Retry-After plus all lifecycle/replay documentation.
+next-action: None for this record; completion evidence and remaining broad/release limits are retained in dw-114-137-144-514-523-validation-evidence.md.
 related: DW-507
-
+resolution-spec: `_bmad-output/implementation-artifacts/spec-dw-114-137-144-514-523-read-and-recovery-contracts.md`
+resolution-evidence: `_bmad-output/implementation-artifacts/dw-114-137-144-514-523-validation-evidence.md`
 
 ## Deferred from: spec-refresh-dependencies.md and spec-eventstore-3-117-1.md (2026-10-08)
 
@@ -6236,6 +6270,10 @@ archived: 2026-10-22
 - source_spec: `_bmad-output/implementation-artifacts/spec-dw-119-211-212-213-444-navigation-accessibility.md`
   summary: Pre-existing medium; synchronize the late-subscription cancellation test with actual asynchronous cleanup completion.
   evidence: `TenantReadRefreshSubscriptionTests.Cancellation_after_late_backend_setup_cleans_up_without_retaining_a_callback` immediately asserts `UnsubscribeAsync` after the caller's cancellation exception, while unchanged `TenantReadRefreshSubscription.cs` starts `CleanupFailedSetupAsync` without awaiting it before rethrowing. One full 7,504-case run observed no unsubscribe yet; the isolated 37-case class and subsequent full 7,504-case run passed. Use a deterministic unsubscribe-completion signal while preserving exactly-one-unsubscribe and no-retained-callback assertions; this records test timing rather than a proven production cleanup failure.
+  status: done 2026-10-27
+  resolution: The cancellation test now observes caller cancellation before releasing late setup, holds unsubscribe to verify callback retirement, releases cleanup in finally and awaits bounded unsubscribe completion before exactly-once/no-callback assertions. Production cleanup is unchanged; the current full UI run passes 7,839/7,839.
+  resolution-spec: `_bmad-output/implementation-artifacts/spec-dw-114-137-144-514-523-read-and-recovery-contracts.md`
+  resolution-evidence: `_bmad-output/implementation-artifacts/dw-114-137-144-514-523-validation-evidence.md`
 
 ## Deferred from: UI runtime qualification verification (2026-10-24)
 

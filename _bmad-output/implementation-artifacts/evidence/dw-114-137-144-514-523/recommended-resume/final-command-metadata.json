@@ -1,0 +1,79 @@
+[
+  {
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "command": "dotnet build tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj -c Debug -p:UseHexalithProjectReferences=true -p:HexalithMemoriesFromSource=false -p:NuGetAudit=false -m:1 --nologo",
+    "log": "dw-recommended-root-integration-build.log",
+    "exitCode": 0,
+    "warnings": 0,
+    "errors": 0
+  },
+  {
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "command": "dotnet build tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj -c Debug --no-restore -p:UseHexalithProjectReferences=true -p:HexalithMemoriesFromSource=false -p:BuildProjectReferences=false -p:NuGetAudit=false -m:1 --nologo",
+    "log": "dw-recommended-root-integration-test-rebuild.log",
+    "exitCode": 0,
+    "warnings": 0,
+    "errors": 0
+  },
+  {
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "command": "EventStore__Projections__WorkersEnabled=false dotnet test --project tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj -c Debug --no-build --no-restore --filter-class Hexalith.Tenants.IntegrationTests.AuthenticatedTenantsRouteTests --minimum-expected-tests 6 --fail-skips on",
+    "log": "dw-recommended-root-live-routes-final.log",
+    "passed": 6,
+    "failed": 0,
+    "skipped": 0
+  },
+  {
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "command": "dotnet build tests/Hexalith.Tenants.AppHost.Tests/Hexalith.Tenants.AppHost.Tests.csproj -c Debug -p:UseHexalithProjectReferences=false -p:NuGetAudit=false -m:1 --nologo",
+    "log": "dw-recommended-root-apphost-package-final-build.log",
+    "exitCode": 0,
+    "warnings": 0,
+    "errors": 0
+  },
+  {
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "command": "dotnet tests/Hexalith.Tenants.AppHost.Tests/bin/Debug/net10.0/Hexalith.Tenants.AppHost.Tests.dll",
+    "log": "dw-recommended-root-apphost-package-final-tests.log",
+    "passed": 30,
+    "failed": 0,
+    "skipped": 0
+  },
+  {
+    "cwd": "/home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore",
+    "command": "dotnet build tests/Hexalith.EventStore.Server.Tests/Hexalith.EventStore.Server.Tests.csproj -c Debug -p:UseHexalithProjectReferences=true -p:HexalithTenantsFromSource=true -p:HexalithEventStoreRoot=/home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore -p:HexalithEventStoreVersion=3.128.2 -p:Version=3.128.2 -p:ArtifactsPath=/tmp/dw-recommended-root-eventstore-artifacts -p:NuGetAudit=false -m:1 --nologo",
+    "log": "dw-recommended-root-eventstore-rebased-build.log",
+    "exitCode": 0,
+    "warnings": 0,
+    "errors": 0
+  },
+  {
+    "cwd": "/home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore",
+    "command": "dotnet /tmp/dw-recommended-root-eventstore-artifacts/bin/Hexalith.EventStore.Server.Tests/debug/Hexalith.EventStore.Server.Tests.dll -class Hexalith.EventStore.Server.Tests.Actors.CommandRecoveryIntegrityTests -class Hexalith.EventStore.Server.Tests.Commands.CommandStatusControllerTests -class Hexalith.EventStore.Server.Tests.Integration.QueryResponseProvenancePersistenceTests",
+    "log": "dw-recommended-root-eventstore-rebased-tests.log",
+    "passed": 123,
+    "failed": 0,
+    "skipped": 0
+  },
+  {
+    "command": "Initial maintained live route run",
+    "log": "dw-recommended-root-live-routes.log",
+    "passed": 4,
+    "failed": 2,
+    "skipped": 0,
+    "cause": "New test incorrectly parsed normalized unquoted metadata as a raw HTTP entity tag; client already admits only strong ETags. Remove the incorrect test assertion; complete rerun passes6/6."
+  },
+  {
+    "command": "Initial full AppHost assembly in source mode",
+    "log": "dw-recommended-root-apphost-tests-final.log",
+    "passed": 29,
+    "failed": 1,
+    "skipped": 0,
+    "cause": "Existing package-mode-only test correctly refuses source-mode assembly. Rebuild AppHost in package mode and all30 pass."
+  },
+  {
+    "command": "aspire stop --apphost src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj --non-interactive",
+    "exitCode": 0,
+    "note": "Stopped only this workflow-owned AppHost before maintained fixture startup. Initial --format Json attempt was refused by stop CLI and made no change."
+  }
+]

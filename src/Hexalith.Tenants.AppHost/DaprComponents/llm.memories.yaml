@@ -15,3 +15,5 @@ spec:
   metadata:
     - name: responseCacheTTL
       value: "0s"
+scopes:
+  - memories

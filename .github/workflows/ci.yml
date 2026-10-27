@@ -106,6 +106,27 @@ jobs:
           --configuration Release --no-build
           --filter-class Hexalith.Tenants.IntegrationTests.AspireTopologyBootstrapTests
           --minimum-expected-tests 72 --fail-skips on
+      - name: Verify real Dapr HTTPS reads never retry a 503
+        run: |
+          python3 tests/integration/qualify-dapr-read-retries.py --output "${{ runner.temp }}/tenants-dapr-no-retry.json"
+          if python3 tests/integration/qualify-dapr-read-retries.py --mutate-retries --output "${{ runner.temp }}/tenants-dapr-retry-mutation.json"; then
+            echo 'The retries=3 mutation unexpectedly passed.' >&2
+            exit 1
+          fi
+          python3 - "${{ runner.temp }}/tenants-dapr-retry-mutation.json" <<'PY'
+          import json, sys
+          report = json.load(open(sys.argv[1]))
+          retry = next(row for row in report['results'] if row['case'] == 'no retry on 503')
+          assert retry['backendCalls'] == 4 and not retry['pass'], report
+          assert len(report['results']) == 13 and all(row['pass'] for row in report['results'] if row is not retry), report
+          PY
+      - name: Retain the real Dapr retry qualification
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: tenants-dapr-read-retry-evidence
+          path: ${{ runner.temp }}/tenants-dapr-*.json
+          if-no-files-found: warn
       - name: Verify cold bootstrap, six REST reads, conditional responses and cursor recovery
         if: ${{ !cancelled() && steps.live-build.outcome == 'success' }}
         env:
@@ -115,7 +136,7 @@ jobs:
           dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj
           --configuration Release --no-build
           --filter-class Hexalith.Tenants.IntegrationTests.AuthenticatedTenantsRouteTests
-          --minimum-expected-tests 4 --fail-skips on
+          --minimum-expected-tests 6 --fail-skips on
       - name: Verify private failure evidence
         if: ${{ !cancelled() && steps.live-build.outcome == 'success' }}
         run: >

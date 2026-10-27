@@ -1,0 +1,14 @@
+{
+  "src/Hexalith.Tenants.UI/Services/Gateways/TenantsRestQueryClient.cs": "7e8db8180a8a2f4415c91ab1a77b8f04e90934f408d3d156e9d12efabf002733",
+  "tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantsRestQueryClientTests.cs": "ca25a96832bed1982ccd4bad8ee130f6259fe4611e5759c8c8800aace87a7cc7",
+  "tests/Hexalith.Tenants.UI.Tests/Services/TenantReadRefreshSubscriptionTests.cs": "79e8866d90b644690722e7700883cd7edb84b38c1f62e1a1c568a23a8026582e",
+  "src/Hexalith.Tenants.UI/Services/TenantReadRefreshSubscription.cs": "ae11230bc5bf2554ae2c17adec8c71bb0460e3b86de81aceb0851f69839826b7",
+  "src/Hexalith.Tenants.UI/Services/TenantUiOperationPolicy.cs": "b861ffc09f7e950af69afb5c15badb38fc76bd4ee441361c47b58282b4ded66b",
+  "src/Hexalith.Tenants.UI/Extensions/TenantsUiServiceCollectionExtensions.cs": "413a4c5ef979949e98244ced76ee3995b5a391a0d52eb3c57f73653fad029b84",
+  "deploy/dapr/README.md": "0de2fb81b1b2955541e09dffe5ae7e9d21e8d178254fc39d3bcabee33b0c73c0",
+  "deploy/dapr/accesscontrol.tenants-api.yaml": "21dc7d747d9465d4f3e93c7c5ad66431dd55574d1a62a478f5cc12171dee666b",
+  "deploy/dapr/accesscontrol.tenants-ui.yaml": "570b315a07eb9a59a891eb985e8c3dd5611aa0c12a309e7ad18ab00196451bf1",
+  "deploy/dapr/resiliency.yaml": "e2d5e08be292a2dd8ef933599f1bd13cba46ea505ab03e431be4e381448157f0",
+  "references/Hexalith.EventStore/src/Hexalith.EventStore.RestApi.Generators/RestApiControllerEmitter.cs": "a72ed45949c2b02fe17febfc50bad48294fdc35fb2538346fb5498569ed30a1d",
+  "references/Hexalith.EventStore/tests/Hexalith.EventStore.RestApi.Generators.Tests/RestApiGeneratedControllerErrorSemanticsTests.cs": "aa0ec97c6547dc70cc385d73efaea5e68c8bf4161a9abc9f344c4c74a6f4012e"
+}

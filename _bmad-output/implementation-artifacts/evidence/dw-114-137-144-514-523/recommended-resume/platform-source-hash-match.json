@@ -1,0 +1,20 @@
+[
+  {
+    "path": "references/Hexalith.Platform/DaprSelfHostedMtls.cs",
+    "priorSha256": "567024c5f20fc3166f442c4e0d5f76459e48fac4c90cbff310e08ad45b8ea7af",
+    "currentSha256": "567024c5f20fc3166f442c4e0d5f76459e48fac4c90cbff310e08ad45b8ea7af",
+    "match": true
+  },
+  {
+    "path": "references/Hexalith.Platform/DaprSelfHostedMtlsSubscriber.cs",
+    "priorSha256": "55c280284d0a305b1d6b6667f31362b7c4e4a3cf39890b6175d913cd762bb9c6",
+    "currentSha256": "55c280284d0a305b1d6b6667f31362b7c4e4a3cf39890b6175d913cd762bb9c6",
+    "match": true
+  },
+  {
+    "path": "references/Hexalith.Platform/src/Hexalith.Platform.Composition/PlatformDaprEndpointSubscriber.cs",
+    "priorSha256": "b6cea06f75c4abb48020eaa21900fbce3ef1e87c35d5e7b76ac7708952b4fcbb",
+    "currentSha256": "b6cea06f75c4abb48020eaa21900fbce3ef1e87c35d5e7b76ac7708952b4fcbb",
+    "match": true
+  }
+]

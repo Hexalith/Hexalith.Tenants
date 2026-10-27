@@ -1,0 +1,47 @@
+[
+  {
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "command": "dotnet build tests/Hexalith.Tenants.AppHost.Tests/Hexalith.Tenants.AppHost.Tests.csproj -c Debug -p:UseHexalithProjectReferences=true -p:HexalithMemoriesFromSource=false -m:1",
+    "result": "0 warnings, 0 errors",
+    "log": "apphost-source-build.log"
+  },
+  {
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "command": "dotnet tests/Hexalith.Tenants.AppHost.Tests/bin/Debug/net10.0/Hexalith.Tenants.AppHost.Tests.dll -class 'Hexalith.Tenants.AppHost.Tests.LocalDaprIdentityTests' -class 'Hexalith.Tenants.AppHost.Tests.AppHostSecurityResourceGraphTests'",
+    "result": "19 passed, 0 failed/skipped",
+    "log": "apphost-focused-tests.log"
+  },
+  {
+    "cwd": "/home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore",
+    "command": "dotnet build tests/Hexalith.EventStore.Testing.Integration.Tests/Hexalith.EventStore.Testing.Integration.Tests.csproj -c Debug -p:UseHexalithProjectReferences=true -p:HexalithTenantsFromSource=true -p:HexalithTenantsRoot=/home/administrator/projects/hexalith/tenants -p:HexalithEventStoreRoot=/home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore -m:1",
+    "result": "0 warnings, 0 errors",
+    "log": "harness-build.log"
+  },
+  {
+    "cwd": "/home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore",
+    "command": "dotnet tests/Hexalith.EventStore.Testing.Integration.Tests/bin/Debug/net10.0/Hexalith.EventStore.Testing.Integration.Tests.dll -class 'Hexalith.EventStore.Testing.Integration.Tests.AspireTopologyFixtureArgumentsTests'",
+    "result": "4 passed, 0 failed/skipped",
+    "log": "harness-focused-tests.log"
+  },
+  {
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "command": "python3 tests/integration/qualify-dapr-read-retries.py --output /tmp/dw-reviewfix-dapr-no-retry.json",
+    "result": "13/13; one backend call on 503",
+    "log": "dapr-no-retry.json"
+  },
+  {
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "command": "python3 tests/integration/qualify-dapr-read-retries.py --mutate-retries --output /tmp/dw-reviewfix-dapr-retry-mutation.json",
+    "result": "Expected exit 1; four backend calls on 503; other 12 checks pass",
+    "log": "dapr-retry-mutation.json"
+  },
+  {
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "command": "python3 _bmad-output/implementation-artifacts/evidence/dw-114-137-144-514-523/recommended-resume/apphost-live-literal-probe.py",
+    "result": "9/9 from freshly collected Aspire state",
+    "log": "../apphost-live-literal-results.json"
+  },
+  {
+    "result": "Three focused injected-response controls prove all9 checks and nonzero empty-list/failure exit; six direct MSBuild evaluations prove standalone/sibling/enclosing-Platform dependency-root resolution in both source/package modes. CI YAML parsed with PyYAML. Original patch archive extraction matches both retained SHA-256 hashes."
+  }
+]

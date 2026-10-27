@@ -1,0 +1,23 @@
+{
+  "buildCommand": "dotnet build tests/Hexalith.Tenants.AppHost.Tests/Hexalith.Tenants.AppHost.Tests.csproj -c Debug --no-restore -p:UseHexalithProjectReferences=true -p:HexalithMemoriesFromSource=false -m:1",
+  "buildResult": "0 warnings, 0 errors",
+  "testCommand": "dotnet tests/Hexalith.Tenants.AppHost.Tests/bin/Debug/net10.0/Hexalith.Tenants.AppHost.Tests.dll -method '*PublishedHarnessLoopbackHintsRetainThePrivateAllocatedControlPlane' -method '*LocalPrivateControlPlaneRejectsExternalHostsAndCustomPorts'",
+  "testResult": {
+    "passed": 12,
+    "failed": 0,
+    "skipped": 0,
+    "supersededLegacyHintDiagnostics": 8
+  },
+  "archive": "legacy-loopback-validation.tar.gz",
+  "archiveSha256": "39db6b244a6fc6d79a6ca0f7f3222aab6544f43c0843b9f2f6cca6ac0d73c7ff",
+  "members": {
+    "dw-reviewfix-legacy-hints-build.log": "72528d678be184c5176b4d6f15927e46b99114bfc8fcf39ad8bbb17e7bf661f8",
+    "dw-reviewfix-legacy-hints-tests.log": "90a8410164dcf97a70d501111a9b50b96767ec30e58205265e6ff6f7eb2554ca"
+  },
+  "sourceSha256": {
+    "src/Hexalith.Tenants.AppHost/Program.cs": "458e57001b95aa54d363d5a06e4c8155a11214d10c72fdbe18c58642e1481862",
+    "tests/Hexalith.Tenants.AppHost.Tests/AppHostSecurityResourceGraphTests.cs": "df2ff0655ac91bd6284a0fd42b968cb41ee91934f8448073141624b23fec190e",
+    "deploy/dapr/README.md": "35de7db55db7f5a2852c6ddf2d4ea7231947bc282ba424c2542fc15a36b5874a",
+    "tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsRouteTests.cs": "e1a9afdd7bb34a5f806ebdd8e7d73e834a2070b401fbc5d457547e9373dc1830"
+  }
+}

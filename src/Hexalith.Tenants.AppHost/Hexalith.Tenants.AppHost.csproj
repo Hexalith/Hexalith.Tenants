@@ -30,9 +30,9 @@
 
   <!-- Consume the Platform-owned self-hosted Dapr identity bootstrap from its canonical source. -->
   <ItemGroup>
-    <Compile Include="..\..\references\Hexalith.Platform\DaprSelfHostedMtls.cs" Link="Platform\DaprSelfHostedMtls.cs" />
-    <Compile Include="..\..\references\Hexalith.Platform\DaprSelfHostedMtlsSubscriber.cs" Link="Platform\DaprSelfHostedMtlsSubscriber.cs" />
-    <ProjectReference Include="..\..\references\Hexalith.Builds\src\libraries\Hexalith.Builds.Tooling\Hexalith.Builds.Tooling.csproj" IsAspireProjectResource="false" />
+    <Compile Include="$(HexalithPlatformRoot)\DaprSelfHostedMtls.cs" Link="Platform\DaprSelfHostedMtls.cs" />
+    <Compile Include="$(HexalithPlatformRoot)\DaprSelfHostedMtlsSubscriber.cs" Link="Platform\DaprSelfHostedMtlsSubscriber.cs" />
+    <ProjectReference Include="$(HexalithBuildsRoot)\src\libraries\Hexalith.Builds.Tooling\Hexalith.Builds.Tooling.csproj" IsAspireProjectResource="false" />
   </ItemGroup>
 
   <!-- Debug build-forcing references for the launched child host projects.

@@ -1,0 +1,61 @@
+{
+  "localTopology": "ordinary Tenants AppHost, shared Platform mTLS bootstrap",
+  "routeMode": "literal",
+  "results": [
+    {
+      "case": "list",
+      "status": 200,
+      "expected": 200,
+      "pass": true
+    },
+    {
+      "case": "detail",
+      "status": 200,
+      "expected": 200,
+      "pass": true
+    },
+    {
+      "case": "users",
+      "status": 200,
+      "expected": 200,
+      "pass": true
+    },
+    {
+      "case": "audit",
+      "status": 200,
+      "expected": 200,
+      "pass": true
+    },
+    {
+      "case": "memberships",
+      "status": 200,
+      "expected": 200,
+      "pass": true
+    },
+    {
+      "case": "administrators",
+      "status": 200,
+      "expected": 200,
+      "pass": true
+    },
+    {
+      "case": "denied caller",
+      "status": 403,
+      "expected": 403,
+      "pass": true
+    },
+    {
+      "case": "denied verb",
+      "status": 403,
+      "expected": 403,
+      "pass": true
+    },
+    {
+      "case": "missing bearer",
+      "status": 401,
+      "expected": 401,
+      "pass": true
+    }
+  ],
+  "allPass": true
+}

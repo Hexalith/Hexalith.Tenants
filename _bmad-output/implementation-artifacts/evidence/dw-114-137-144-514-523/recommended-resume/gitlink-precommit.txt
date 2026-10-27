@@ -1,0 +1,10 @@
+Story:    spec-dw-114-137-144-514-523-read-and-recovery-contracts.md
+Baseline: cc0efc7
+Compared: HEAD (20100fc) + working tree
+
+3 references/ pointer change(s) in range:
+  [declared] references/Hexalith.EventStore  935c21a -> b1dd186
+  [declared] references/Hexalith.Memories  cdd73d7 -> 2bfc735
+  [declared] references/Hexalith.Platform  eecea3f -> f187f34
+
+RESULT: PASS

@@ -22,9 +22,24 @@ string resiliencyConfigPath = ResolveDaprConfigPath(builder.AppHostDirectory, "r
 string stateStoreComponentPath = ResolveDaprConfigPath(builder.AppHostDirectory, "statestore.yaml");
 string pubSubComponentPath = ResolveDaprConfigPath(builder.AppHostDirectory, "pubsub.yaml");
 
-// Optional DAPR placement/scheduler service addresses. Explicit configuration still wins, but local AppHosts
-// auto-detect the common containerized (6050/6060) and slim/native (50005/50006) DAPR service ports so every
-// Aspire-managed sidecar connects to the actual local actor infrastructure.
+// Local runs own an isolated mTLS placement/scheduler plane. The published test harness appends
+// standard loopback prerequisites even when the fixture selects empty endpoints. Accept only those
+// legacy local hints; external hosts and custom ports cannot join the private identity boundary.
+if (builder.ExecutionContext.IsRunMode) {
+    foreach (string key in new[] { CommonsDaprLocalServiceEndpoints.PlacementHostAddressKey, CommonsDaprLocalServiceEndpoints.SchedulerHostAddressKey }) {
+        string? configured = builder.Configuration[key]?.Trim();
+        if (string.IsNullOrWhiteSpace(configured)) {
+            continue;
+        }
+        string[] legacyHints = key == CommonsDaprLocalServiceEndpoints.PlacementHostAddressKey
+            ? ["localhost:50005", "localhost:6050", "127.0.0.1:50005", "127.0.0.1:6050"]
+            : ["localhost:50006", "localhost:6060", "127.0.0.1:50006", "127.0.0.1:6060"];
+        if (!legacyHints.Contains(configured, StringComparer.OrdinalIgnoreCase)) {
+            throw new InvalidOperationException($"Configuration '{key}' is incompatible with the private local Dapr mTLS control plane. Remove this setting for local runs.");
+        }
+        Console.WriteLine($"Configuration '{key}' contains a legacy local prerequisite hint ({configured}). Private allocated Dapr mTLS listeners supersede this hint; no connection to that prerequisite endpoint will be used.");
+    }
+}
 (string? daprPlacementHostAddress, string? daprSchedulerHostAddress) = CommonsDaprLocalServiceEndpoints.Resolve(
     builder.Configuration[CommonsDaprLocalServiceEndpoints.PlacementHostAddressKey],
     builder.Configuration[CommonsDaprLocalServiceEndpoints.SchedulerHostAddressKey]);

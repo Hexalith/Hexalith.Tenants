@@ -1,0 +1,23 @@
+{
+  "tenantsHead": "20100fc33b837fb5d85688afe3e3c6529c535080",
+  "eventStoreHead": "29f9ec2d2214292a5abb71370bb24adfbe063189",
+  "state": "DW-137 deferred; exact original patch bytes retained as compressed archive members",
+  "patches": {
+    "dw-137-tenants-encoding.patch": "9b602184e6ba697a11f2ab69c7c289537f10dd068efa53d2fb3f6bd89f3a11db",
+    "dw-137-eventstore-encoding.patch": "925d033441813b35cb5f3d6ca0866ff847bc00b1ecfcc6d90a5c29db3f318c1a"
+  },
+  "originalFiles": {
+    "src/Hexalith.Tenants.UI/Services/Gateways/TenantsRestQueryClient.cs": "ebb2768e3b0a1ef9aca1ff72036d9c506e6cdd095eddf97a059d63db4eceb2ca",
+    "tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantsRestQueryClientTests.cs": "a90af6a0f333f8c5cf2f59458c8c099f488aaa56af8f8ea5dd0886c908389c1e"
+  },
+  "originalEventStoreFiles": {
+    "src/Hexalith.EventStore.Contracts/Rest/RestRouteIdentifierCodec.cs": "9fb86cc4f4443ea6b2b43d68d25bc7be57230ecad2269986f6e9d6e23e8ee0c3",
+    "src/Hexalith.EventStore.RestApi.Generators/RestApiControllerEmitter.cs": "5020f47a0e741b83ff12aa6093483fd7f7372c97d9a61097e7e9e752f4ce531a",
+    "tests/Hexalith.EventStore.Contracts.Tests/Rest/RestRouteIdentifierCodecTests.cs": "e573af7e32f546d2fe9c14c0909d2c7235c13188c0273d8b5ba69113dbb0dc8d",
+    "tests/Hexalith.EventStore.RestApi.Generators.Tests/RestApiGeneratedControllerErrorSemanticsTests.cs": "e8cde424d08b2b5b287e88cce632482cb629026b0224ab3d33faf5f94e2dc352"
+  },
+  "archive": {
+    "path": "dw-137-encoding-patches.tar.gz",
+    "sha256": "c48b230898739e87e59bca9b3f98fd3dfab7a1c5fcb2d1adb73a943fd894342a"
+  }
+}

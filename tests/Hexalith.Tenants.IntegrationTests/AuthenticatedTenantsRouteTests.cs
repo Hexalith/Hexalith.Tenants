@@ -1,16 +1,23 @@
 using System.Net;
 using System.Net.Http.Headers;
+using System.Security.Claims;
 
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Queries;
+using Hexalith.FrontComposer.Shell.Extensions;
+using Hexalith.FrontComposer.Shell.Services.Auth;
 using Hexalith.Memories.Client.Rest;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.IntegrationTests.Fixtures;
 using Hexalith.Tenants.UI.Services.Gateways;
+using Hexalith.Tenants.UI.Extensions;
 using Hexalith.Tenants.UI.State.TenantList;
 using Hexalith.Tenants.UI.State.TenantUsers;
 
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
@@ -35,10 +42,9 @@ public sealed class AuthenticatedTenantsRouteTests(AspireTopologyFixture fixture
         fixture.SkipIfUnavailable();
         using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(5));
         AuthenticatedRouteState state = await AuthenticatedRouteState.CreateAsync(fixture.CommandApiClient, timeout.Token);
-        EntityTagHeaderValue? observed = null;
-        using HttpClient http = state.CreateClient(fixture.TenantsUiDaprClient, value => observed = value);
-        http.DefaultRequestHeaders.Add("dapr-app-id", "tenants-api");
-        var client = new TenantsRestQueryClient(http);
+        using ServiceProvider provider = CreateProductionReadServices(state.Token);
+        using IServiceScope scope = provider.CreateScope();
+        ITenantsRestQueryClient client = scope.ServiceProvider.GetRequiredService<ITenantsRestQueryClient>();
 
         string? cursor = await state.WaitForListPageAsync(fixture.TenantsApiClient, 100, timeout.Token);
         bool found = false;
@@ -59,7 +65,6 @@ public sealed class AuthenticatedTenantsRouteTests(AspireTopologyFixture fixture
         detail.Status.ShouldBe(state.Persisted.Status);
         detail.Members.Select(static member => (member.UserId, member.Role)).OrderBy(static member => member.UserId)
             .ShouldBe(state.Persisted.Members.Select(static member => (UserId: member.Key, Role: member.Value)).OrderBy(static member => member.UserId));
-        observed.ShouldNotBeNull().IsWeak.ShouldBeFalse();
 
         var users = await AssertReadAsync(tag => client.GetTenantUsersAsync(new GetTenantUsersQuery { TenantId = state.TenantId, PageSize = 100 }, tag, timeout.Token));
         users.Items.Select(static member => (member.UserId, member.Role)).OrderBy(static member => member.UserId)
@@ -98,8 +103,9 @@ public sealed class AuthenticatedTenantsRouteTests(AspireTopologyFixture fixture
         fixture.SkipIfUnavailable();
         using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(5));
         AuthenticatedRouteState state = await AuthenticatedRouteState.CreateAsync(fixture.CommandApiClient, timeout.Token);
-        using HttpClient http = state.CreateClient(fixture.TenantsApiClient);
-        var client = new TenantsRestQueryClient(http);
+        using ServiceProvider provider = CreateProductionReadServices(state.Token);
+        using IServiceScope scope = provider.CreateScope();
+        ITenantsRestQueryClient client = scope.ServiceProvider.GetRequiredService<ITenantsRestQueryClient>();
         TenantsRestQueryResponse<TenantDetail> first = await client.GetTenantAsync(new GetTenantQuery { TenantId = state.TenantId }, null, timeout.Token);
         first.StatusCode.ShouldBe((int)HttpStatusCode.OK);
         first.Payload.ShouldNotBeNull().TenantId.ShouldBe(state.Persisted.TenantId);
@@ -121,8 +127,9 @@ public sealed class AuthenticatedTenantsRouteTests(AspireTopologyFixture fixture
         fixture.SkipIfUnavailable();
         using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(5));
         AuthenticatedRouteState state = await AuthenticatedRouteState.CreateAsync(fixture.CommandApiClient, timeout.Token);
-        using HttpClient http = state.CreateClient(fixture.TenantsApiClient);
-        var client = new TenantsRestQueryClient(http);
+        using ServiceProvider provider = CreateProductionReadServices(state.Token);
+        using IServiceScope scope = provider.CreateScope();
+        ITenantsRestQueryClient client = scope.ServiceProvider.GetRequiredService<ITenantsRestQueryClient>();
         await state.WaitForListPageAsync(fixture.TenantsApiClient, 100, timeout.Token);
         var invalid = await client.GetTenantUsersAsync(new GetTenantUsersQuery { TenantId = state.TenantId, Cursor = "foreign-protected-cursor", PageSize = 1 }, null, timeout.Token);
         invalid.StatusCode.ShouldBe((int)HttpStatusCode.BadRequest);
@@ -172,8 +179,55 @@ public sealed class AuthenticatedTenantsRouteTests(AspireTopologyFixture fixture
     public async Task AnonymousRestRequestCannotReadCommandSeededTenant()
     {
         fixture.SkipIfUnavailable();
-        using HttpResponseMessage response = await fixture.TenantsApiClient.GetAsync("/api/tenants", TestContext.Current.CancellationToken);
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/tenants");
+        request.Headers.Add("dapr-app-id", "tenants-api");
+        using HttpResponseMessage response = await fixture.TenantsUiDaprClient.SendAsync(request, TestContext.Current.CancellationToken);
         response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+    }
+
+    [DaprFact]
+    public async Task AuthenticatedWrongPeerCannotInvokeTheReadReceiver()
+    {
+        fixture.SkipIfUnavailable();
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/tenants");
+        request.Headers.Add("dapr-app-id", "tenants-api");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AspireTopologyTests.CreateDemoJwt());
+        using HttpResponseMessage response = await fixture.EventStoreDaprClient.SendAsync(request, TestContext.Current.CancellationToken);
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+    }
+
+    [DaprFact]
+    public async Task AuthenticatedReadCallerCannotInvokeADisallowedVerb()
+    {
+        fixture.SkipIfUnavailable();
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/tenants");
+        request.Headers.Add("dapr-app-id", "tenants-api");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AspireTopologyTests.CreateDemoJwt());
+        using HttpResponseMessage response = await fixture.TenantsUiDaprClient.SendAsync(request, TestContext.Current.CancellationToken);
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+    }
+
+    private ServiceProvider CreateProductionReadServices(string token)
+    {
+        IConfiguration configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["DAPR_HTTP_ENDPOINT"] = fixture.TenantsUiDaprClient.BaseAddress!.AbsoluteUri,
+        }).Build();
+        ServiceCollection services = new();
+        services.AddLogging();
+        services.AddSingleton(configuration);
+        services.AddHexalithFrontComposerTokenRelay();
+        services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: true);
+        services.AddSingleton<IHttpContextAccessor>(new HttpContextAccessor
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                User = new ClaimsPrincipal(new ClaimsIdentity([new Claim("sub", AuthenticatedRouteState.CallerId)], "live-route")),
+            },
+        });
+        ServiceProvider provider = services.BuildServiceProvider();
+        provider.GetRequiredService<FrontComposerUserTokenStore>().Set(AuthenticatedRouteState.CallerId, token, DateTimeOffset.UtcNow.AddMinutes(5));
+        return provider;
     }
 
     private static async Task<T> AssertReadAsync<T>(Func<string?, Task<TenantsRestQueryResponse<T>>> read, Func<T, bool>? projected = null, string? expectedVersion = null)

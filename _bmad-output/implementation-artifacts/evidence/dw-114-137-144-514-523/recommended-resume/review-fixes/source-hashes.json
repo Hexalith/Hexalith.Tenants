@@ -1,0 +1,17 @@
+{
+  ".github/workflows/ci.yml": "d72ec53b69f7b2d883f19ea62752ccae2a46c8427c4e5be63f80226a9490babe",
+  "Directory.Build.props": "b46d2395b04a9dc1703e78f59766e4e6e8b7cea36355154d2a04a5c062e19f21",
+  "src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj": "ef1559499fc2e386af7c77ed1ea5f0c892daa5b4b94a936c0d9f94345ea72b38",
+  "src/Hexalith.Tenants.AppHost/Program.cs": "558129e105b403b61431706a3a872c75e6fae0c14471bab6b1d8eaee3916604c",
+  "src/Hexalith.Tenants.AppHost/DaprComponents/llm.memories.yaml": "8cd7058d96465f704b8f004bd323967421e09a6b6cf02375b17caff3597243b2",
+  "src/Hexalith.Tenants.AppHost/DaprComponents/secretstore.memories.yaml": "9b5073b1259492093d2bca46c57156ce9dd65e7c66039808ae0ba510001216e1",
+  "tests/Hexalith.Tenants.AppHost.Tests/LocalDaprIdentityTests.cs": "3e61b88757261b9325453a546d8cda5ff70aff3fe39bb6c5277f6167ada93411",
+  "tests/Hexalith.Tenants.AppHost.Tests/AppHostSecurityResourceGraphTests.cs": "c3e4ed487527133b2bf53dc8210ad219fffa04256db40b56b34a7a95290bbfb3",
+  "tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsRouteTests.cs": "143f1242e094025062ab5a90fd1cb44116c3f3e29e8293f8800ac75ac2db9b69",
+  "tests/Hexalith.Tenants.IntegrationTests/Fixtures/AspireTopologyFixture.cs": "9a145ca831929b055179010e51f260e7ddeb5a09c5bb65b2049f0095da06a03c",
+  "tests/integration/qualify-dapr-read-retries.py": "5ce779c95845b882815b15cf5749dc4fbd9acd7db3bc6b8a80559a56d03fa8a5",
+  "references/Hexalith.Platform/DaprSelfHostedMtls.cs": "703072feb8b609c2661a1c7eaa955fbd2c9d838402520b4fc425bda2000ba1a8",
+  "references/Hexalith.Memories/src/Hexalith.Memories.Contracts/V1/SearchResult.cs": "3a1f44a90a4adc7a768a1aa8c69e9d6d159bea278826b50d5510e11f4fabaf9e",
+  "references/Hexalith.EventStore/src/Hexalith.EventStore.Testing.Integration/AspireTopologyFixtureBase.cs": "0783094e41e07b1b11e244473040d8c5ba86c6bf28077d9a08a943fdf8ead023",
+  "references/Hexalith.EventStore/tests/Hexalith.EventStore.Testing.Integration.Tests/AspireTopologyFixtureArgumentsTests.cs": "e6382749e3885ef9d6fe8bb9fb18fc9bf400c1d29c3a9473b6e9f8b51bab8e5e"
+}

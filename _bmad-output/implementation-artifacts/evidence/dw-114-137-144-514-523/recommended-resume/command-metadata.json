@@ -1,0 +1,123 @@
+[
+  {
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "command": "dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseHexalithProjectReferences=true -m:1",
+    "log": "ui-source-build.log",
+    "exitCode": 0,
+    "warnings": 0,
+    "errors": 0
+  },
+  {
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "command": "dotnet test --project tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug --no-build --no-restore --filter-class '*TenantReadRefreshSubscriptionTests|*TenantsRestQueryClientTests|*TenantsUiCompositionTests'",
+    "exitCode": 5,
+    "total": 0,
+    "note": "The MTP class filter did not interpret a pipe as a union; replaced by supported direct assembly invocation with repeated single-dash class arguments."
+  },
+  {
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "command": "dotnet tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll -class 'Hexalith.Tenants.UI.Tests.Services.TenantReadRefreshSubscriptionTests' -class 'Hexalith.Tenants.UI.Tests.Services.Gateways.TenantsRestQueryClientTests' -class 'Hexalith.Tenants.UI.Tests.TenantsUiCompositionTests'",
+    "log": "ui-focused-tests.log",
+    "passed": 260,
+    "failed": 0,
+    "skipped": 0
+  },
+  {
+    "cwd": "/home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore",
+    "command": "dotnet build tests/Hexalith.EventStore.RestApi.Generators.Tests/Hexalith.EventStore.RestApi.Generators.Tests.csproj -c Debug -m:1 --artifacts-path /tmp/dw-recommended-generator-artifacts -p:UseHexalithProjectReferences=false -p:Version=3.128.2 -p:HexalithEventStoreVersion=3.128.2 -p:HexalithTenantsFromSource=false -v:q",
+    "log": "generators-build.log",
+    "warnings": 0,
+    "errors": 0
+  },
+  {
+    "cwd": "/home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore",
+    "command": "dotnet test --project tests/Hexalith.EventStore.RestApi.Generators.Tests/Hexalith.EventStore.RestApi.Generators.Tests.csproj -c Debug --no-build --no-restore --artifacts-path /tmp/dw-recommended-generator-artifacts",
+    "log": "generators-tests.log",
+    "passed": 124,
+    "failed": 0,
+    "skipped": 0
+  },
+  {
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "command": "dotnet build tests/Hexalith.Tenants.AppHost.Tests/Hexalith.Tenants.AppHost.Tests.csproj -c Debug -p:UseHexalithProjectReferences=true -m:1",
+    "log": "apphost-source-build-blocker.log",
+    "exitCode": 1,
+    "blocker": "Unchanged Memories EventStoreMemoriesCommandStore.cs:22 CS0246 IEventStoreGatewayBoundCommandProofSource."
+  },
+  {
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "command": "aspire ps --format Json; aspire describe --apphost src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj --format Json",
+    "log": "apphost-baseline-state.json",
+    "note": "Already-running ordinary AppHost found healthy; redacted to resource names and states, excluding environment and dashboard tokens."
+  },
+  {
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "command": "python3 /tmp/dw-recommended-apphost-probe.py",
+    "log": "apphost-live-literal-results.json",
+    "passed": 9,
+    "failed": 0,
+    "note": "Existing running AppHost; six literal reads through real sidecar/API/EventStore and denial controls. Rebuilt source decoder removal is covered separately by generator tests."
+  },
+  {
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "command": "dotnet test --project tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug --no-build --no-restore",
+    "state": "completed",
+    "log": "dw-recommended-ui-full-tests.log",
+    "exitCode": 0,
+    "passed": 7839,
+    "failed": 0,
+    "skipped": 0
+  },
+  {
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "command": "dotnet build tests/Hexalith.Tenants.AppHost.Tests/Hexalith.Tenants.AppHost.Tests.csproj -c Debug -p:UseHexalithProjectReferences=false -m:1 --nologo",
+    "state": "completed",
+    "log": "dw-recommended-child-apphost-package-build.log",
+    "exitCode": 0,
+    "warnings": 0,
+    "errors": 0
+  },
+  {
+    "cwd": "/home/administrator/projects/hexalith/tenants/references/Hexalith.Memories",
+    "command": "dotnet build tests/Hexalith.Memories.IntegrationTests/Hexalith.Memories.IntegrationTests.csproj -c Debug --no-restore -p:UseHexalithProjectReferences=false -p:NuGetAudit=false -m:1 --nologo",
+    "log": "dw-recommended-root-memories-clean-build.log",
+    "exitCode": 0,
+    "warnings": 0,
+    "errors": 0
+  },
+  {
+    "cwd": "/home/administrator/projects/hexalith/tenants/references/Hexalith.Memories",
+    "command": "dotnet test --project tests/Hexalith.Memories.IntegrationTests/Hexalith.Memories.IntegrationTests.csproj -c Debug --no-build --no-restore --filter-class '*SyntacticSearchIntegrationTests'",
+    "log": "dw-recommended-root-memories-search-tests.log",
+    "passed": 19,
+    "failed": 0,
+    "skipped": 0
+  },
+  {
+    "cwd": "/home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore",
+    "command": "dotnet build tests/Hexalith.EventStore.Server.Tests/Hexalith.EventStore.Server.Tests.csproj -c Debug -p:UseHexalithProjectReferences=true -p:HexalithTenantsFromSource=true -p:HexalithEventStoreRoot=/home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore -p:HexalithEventStoreVersion=3.128.2 -p:Version=3.128.2 -p:ArtifactsPath=/tmp/dw-recommended-root-eventstore-artifacts -p:NuGetAudit=false -m:1 --nologo",
+    "log": "dw-recommended-root-eventstore-source-build.log",
+    "exitCode": 0,
+    "warnings": 0,
+    "errors": 0
+  },
+  {
+    "cwd": "/home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore",
+    "command": "dotnet /tmp/dw-recommended-root-eventstore-artifacts/bin/Hexalith.EventStore.Server.Tests/debug/Hexalith.EventStore.Server.Tests.dll -class Hexalith.EventStore.Server.Tests.Actors.CommandRecoveryIntegrityTests -class Hexalith.EventStore.Server.Tests.Commands.CommandStatusControllerTests -class Hexalith.EventStore.Server.Tests.Integration.QueryResponseProvenancePersistenceTests",
+    "log": "dw-recommended-root-eventstore-tests.log",
+    "passed": 123,
+    "failed": 0,
+    "skipped": 0
+  },
+  {
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "command": "dotnet tests/Hexalith.Tenants.AppHost.Tests/bin/Debug/net10.0/Hexalith.Tenants.AppHost.Tests.dll",
+    "log": "dw-recommended-root-apphost-tests.log",
+    "passed": 15,
+    "failed": 0,
+    "skipped": 0
+  },
+  {
+    "note": "Parallel parent/implementation attempts collided on two earlier build log paths. Their outputs are not acceptance evidence. A package-Tenants Server attempt failed CatalogConstruction Routing references; the complete Tenants-source command recorded above passes. No tracked compile exclusions or disposable repairs are used in the resumed Redis lane."
+  }
+]

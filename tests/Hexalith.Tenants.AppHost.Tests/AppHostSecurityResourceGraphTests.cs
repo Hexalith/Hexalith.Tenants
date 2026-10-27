@@ -74,6 +74,80 @@ public sealed class AppHostSecurityResourceGraphTests
     }
 
     [Theory]
+    [InlineData("Dapr:PlacementHostAddress", "external:50005")]
+    [InlineData("Dapr:SchedulerHostAddress", "external:50006")]
+    [InlineData("Dapr:PlacementHostAddress", "localhost:9999")]
+    [InlineData("Dapr:SchedulerHostAddress", "127.0.0.1:9999")]
+    [InlineData("Dapr:PlacementHostAddress", "127.0.0.1:50006")]
+    [InlineData("Dapr:SchedulerHostAddress", "localhost:50005")]
+    [InlineData("Dapr:PlacementHostAddress", "[::1]:50005")]
+    [InlineData("Dapr:SchedulerHostAddress", "0.0.0.0:6060")]
+    public async Task LocalPrivateControlPlaneRejectsExternalHostsAndCustomPorts(string key, string endpoint)
+    {
+        InvalidOperationException failure = await Should.ThrowAsync<InvalidOperationException>(async () =>
+        {
+            await using IDistributedApplicationTestingBuilder builder = await DistributedApplicationTestingBuilder
+                .CreateAsync<Projects.Hexalith_Tenants_AppHost>(["--EnableKeycloak=true", $"--{key}={endpoint}"]);
+        });
+        failure.Message.ShouldContain(key);
+        failure.Message.ShouldContain("private local Dapr mTLS control plane");
+    }
+
+    [Theory]
+    [InlineData("localhost", 50005, 50006)]
+    [InlineData("localhost", 6050, 6060)]
+    [InlineData("127.0.0.1", 50005, 50006)]
+    [InlineData("127.0.0.1", 6050, 6060)]
+    public async Task PublishedHarnessLoopbackHintsRetainThePrivateAllocatedControlPlane(string host, int placementPort, int schedulerPort)
+    {
+        // The unchanged published harness appends its standard prerequisite hints after these empties.
+        await using IDistributedApplicationTestingBuilder builder = await DistributedApplicationTestingBuilder
+            .CreateAsync<Projects.Hexalith_Tenants_AppHost>(
+                ["--EnableKeycloak=true", "--EnableMemories=false",
+                    "--Dapr:PlacementHostAddress=", "--Dapr:SchedulerHostAddress=",
+                    $"--Dapr:PlacementHostAddress={host}:{placementPort}",
+                    $"--Dapr:SchedulerHostAddress={host}:{schedulerPort}"]);
+        builder.ExecutionContext.IsRunMode.ShouldBeTrue();
+        int privatePlacement = builder.Resources.Single(resource => resource.Name == "dapr-placement-mtls")
+            .Annotations.OfType<EndpointAnnotation>().Single(endpoint => endpoint.Name == "grpc").Port!.Value;
+        int privateScheduler = builder.Resources.Single(resource => resource.Name == "dapr-scheduler-mtls")
+            .Annotations.OfType<EndpointAnnotation>().Single(endpoint => endpoint.Name == "grpc").Port!.Value;
+        foreach (ProjectResource application in builder.Resources.OfType<ProjectResource>())
+        {
+            foreach (DaprSidecarAnnotation sidecar in application.Annotations.OfType<DaprSidecarAnnotation>())
+            {
+                DaprSidecarOptions options = sidecar.Sidecar.Annotations.OfType<DaprSidecarOptionsAnnotation>().Single().Options;
+                options.PlacementHostAddress.ShouldBe("localhost:" + privatePlacement);
+                options.SchedulerHostAddress.ShouldBe("localhost:" + privateScheduler);
+                options.PlacementHostAddress.ShouldNotBe(host + ":" + placementPort);
+                options.SchedulerHostAddress.ShouldNotBe(host + ":" + schedulerPort);
+            }
+        }
+    }
+
+    [Theory]
+    [InlineData("llm.memories.yaml")]
+    [InlineData("secretstore.memories.yaml")]
+    public async Task MemoriesCapabilitiesAreScopedAwayFromBothReadSidecars(string file)
+    {
+        await using IDistributedApplicationTestingBuilder builder = await DistributedApplicationTestingBuilder
+            .CreateAsync<Projects.Hexalith_Tenants_AppHost>(["--EnableKeycloak=true"]);
+        string yaml = await File.ReadAllTextAsync(Path.Combine(builder.AppHostDirectory, "DaprComponents", file));
+        string[] sections = yaml.Split("scopes:", StringSplitOptions.None);
+        sections.Length.ShouldBe(2);
+        string[] scopes = sections[1].Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(line => line.TrimStart('-').Trim()).ToArray();
+        scopes.ShouldBe(["memories"]);
+        foreach (string reader in new[] { "tenants-api", "tenants-ui" })
+        {
+            IDaprSidecarResource sidecar = builder.Resources.Single(resource => resource.Name == reader).Annotations
+                .OfType<DaprSidecarAnnotation>().ShouldHaveSingleItem().Sidecar;
+            string? appId = sidecar.Annotations.OfType<DaprSidecarOptionsAnnotation>().ShouldHaveSingleItem().Options.AppId;
+            scopes.ShouldNotContain(appId!);
+        }
+    }
+
+    [Theory]
     [InlineData(null)]
     [InlineData("")]
     [InlineData("short-key")]

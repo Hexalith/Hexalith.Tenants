@@ -2,13 +2,11 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Queries;
-using Hexalith.EventStore.Contracts.Rest;
 using Hexalith.Tenants.Contracts.Queries;
 
 namespace Hexalith.Tenants.UI.Services.Gateways;
@@ -65,7 +63,7 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
     {
         ArgumentNullException.ThrowIfNull(query);
         ArgumentException.ThrowIfNullOrWhiteSpace(query.TenantId);
-        if (!TryEncodeRouteValue(query.TenantId, out string? tenantId))
+        if (!TryEscapeRouteValue(query.TenantId, out string? tenantId))
         {
             return UnsupportedRouteIdentifier<TenantDetail>();
         }
@@ -73,8 +71,7 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
         return SendAsync<TenantDetail>(
             $"/api/tenants/{tenantId}",
             eTag,
-            cancellationToken,
-            encodeRouteIdentifiers: true);
+            cancellationToken);
     }
 
     /// <inheritdoc />
@@ -85,7 +82,7 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
     {
         ArgumentNullException.ThrowIfNull(query);
         ArgumentException.ThrowIfNullOrWhiteSpace(query.TenantId);
-        if (!TryEncodeRouteValue(query.TenantId, out string? tenantId))
+        if (!TryEscapeRouteValue(query.TenantId, out string? tenantId))
         {
             return UnsupportedRouteIdentifier<PaginatedResult<TenantMember>>();
         }
@@ -96,8 +93,7 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
                 ("cursor", query.Cursor),
                 ("pageSize", query.PageSize)),
             eTag,
-            cancellationToken,
-            encodeRouteIdentifiers: true);
+            cancellationToken);
     }
 
     /// <inheritdoc />
@@ -108,7 +104,7 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
     {
         ArgumentNullException.ThrowIfNull(query);
         ArgumentException.ThrowIfNullOrWhiteSpace(query.UserId);
-        if (!TryEncodeRouteValue(query.UserId, out string? userId))
+        if (!TryEscapeRouteValue(query.UserId, out string? userId))
         {
             return UnsupportedRouteIdentifier<PaginatedResult<UserTenantMembership>>();
         }
@@ -119,8 +115,7 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
                 ("cursor", query.Cursor),
                 ("pageSize", query.PageSize)),
             eTag,
-            cancellationToken,
-            encodeRouteIdentifiers: true);
+            cancellationToken);
     }
 
     /// <inheritdoc />
@@ -131,7 +126,7 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
     {
         ArgumentNullException.ThrowIfNull(query);
         ArgumentException.ThrowIfNullOrWhiteSpace(query.TenantId);
-        if (!TryEncodeRouteValue(query.TenantId, out string? tenantId))
+        if (!TryEscapeRouteValue(query.TenantId, out string? tenantId))
         {
             return await UnsupportedRouteIdentifier<PaginatedResult<TenantAuditEntry>>().ConfigureAwait(false);
         }
@@ -146,8 +141,7 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
                 ("cursor", query.Cursor),
                 ("pageSize", query.PageSize)),
             eTag,
-            cancellationToken,
-            encodeRouteIdentifiers: true).ConfigureAwait(false);
+            cancellationToken).ConfigureAwait(false);
 
         if (response.IsSuccess
             && !response.IsNotModified
@@ -181,8 +175,7 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
         string path,
         string? eTag,
         CancellationToken cancellationToken,
-        int? maximumSummaryCount = null,
-        bool encodeRouteIdentifiers = false)
+        int? maximumSummaryCount = null)
     {
         using CancellationTokenSource transportDeadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         if (httpClient.Timeout != Timeout.InfiniteTimeSpan)
@@ -192,11 +185,6 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
 
         CancellationToken transportToken = transportDeadline.Token;
         using var request = new HttpRequestMessage(HttpMethod.Get, CreateRequestUri(path));
-        if (encodeRouteIdentifiers)
-        {
-            request.Headers.Add(RestRouteIdentifierCodec.HeaderName, RestRouteIdentifierCodec.Base64UrlVersion);
-        }
-
         EntityTagHeaderValue? validator = NormalizeValidator(eTag);
         if (validator is not null)
         {
@@ -719,21 +707,36 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
             : value;
     }
 
-    /// <summary>Encodes an exact identifier without path separators or traversal segments.</summary>
-    private static bool TryEncodeRouteValue(string value, [NotNullWhen(true)] out string? encoded)
+    /// <summary>
+    /// Escapes a route identity, rejecting values that cannot safely occupy a single path segment.
+    /// </summary>
+    /// <remarks>
+    /// All-dot values are REJECTED rather than escaped. Percent-escaping them to <c>%2E</c> was defence
+    /// against a value that resolves to a relative path segment, but escaping is not a durable guarantee:
+    /// the upstream API may normalize <c>%2E</c> during routing, and any move to DAPR service invocation
+    /// would make a resolved <c>..</c> strictly worse, because it could traverse out of the
+    /// <c>/v1.0/invoke/{appId}/method/</c> prefix. A route identity that is only dots, or that carries a
+    /// path separator, is not a usable identity in the first place -- so it is refused here rather than
+    /// transported and hoped about.
+    /// </remarks>
+    private static bool TryEscapeRouteValue(string value, [NotNullWhen(true)] out string? escaped)
     {
-        try
+        if (value.Contains('/', StringComparison.Ordinal)
+            || value.Contains('\\', StringComparison.Ordinal)
+            || value.All(static character => character == '.'))
         {
-            encoded = RestRouteIdentifierCodec.Encode(value);
-            return true;
-        }
-        catch (EncoderFallbackException)
-        {
-            encoded = null;
+            escaped = null;
             return false;
         }
+
+        escaped = Uri.EscapeDataString(value);
+        return true;
     }
 
+    // Not Unavailable: an unusable route identity is a caller-side input defect, and reporting it as 503
+    // made it indistinguishable from the Tenants API being down. Not InvalidRequest either, which is what a
+    // server-issued 400 maps to: no request is sent here, so the two are different facts and the detail
+    // mapper needs to tell them apart before it can call one of them non-existence.
     private static Task<TenantsRestQueryResponse<TPayload>> UnsupportedRouteIdentifier<TPayload>()
         => Task.FromResult(Failure<TPayload>(
             TenantsRestQueryFailureKind.UnsupportedRouteIdentifier,
@@ -747,7 +750,8 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
         // Keep any path prefix on the configured base address. Building from the authority alone discarded
         // it, so a gateway or reverse-proxy address such as https://host/tenants-api/ silently retargeted
         // every read at https://host/api/... -- which 404s, and a 404 renders as authorization-safe absence
-        // rather than as the misconfiguration it is. Encoded identifiers stay within one route segment.
+        // rather than as the misconfiguration it is. Canonicalization stays disabled so the dot-only route
+        // escaping applied by EscapeRouteValue is not undone.
         string basePath = baseAddress.GetLeftPart(UriPartial.Path).TrimEnd('/');
         return new Uri(
             basePath + path,

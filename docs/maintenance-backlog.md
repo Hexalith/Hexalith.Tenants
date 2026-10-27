@@ -1,5 +1,7 @@
 # Maintenance backlog
 
+**Read/recovery and cleanup closure, 2026-10-27:** Complete DW-114, DW-144, DW-514 and DW-523 plus the existing unnumbered subscription-cleanup test follow-up. All 657 numbered IDs remain: 624 done/33 open across 29 index rows. DW-137 remains open; its encoding draft is preserved and current shared identity restrictions remain in force. Current source, real Redis and Dapr checks and independent review are retained in [validation evidence](../_bmad-output/implementation-artifacts/dw-114-137-144-514-523-validation-evidence.md). Original findings, unselected records, external work/pointers and broader release holds remain preserved.
+
 **DW-154/DW-387/DW-390/DW-568/DW-625 acceptance (2026-10-26):** Original-caller-bound MessageId recovery, distinguishing teardown controls, browser-qualified whitespace annotations and opaque index authority satisfy the selected five records. Debug/source UI 7,835/7,835, Server 1,527/1,527, focused generated-controller Integration 47/47, both teardown mutations and maintained/targeted Chromium checks pass. All 657 IDs remain: 620 done/37 open across 33 maintenance rows; all 652 unselected record bodies and original selected fields remain preserved. Broader Integration/runtime/release holds remain. See [validation evidence](../_bmad-output/implementation-artifacts/validation-dw-154-387-390-568-625.md).
 
 **DW-408/DW-440/DW-450/DW-460/DW-474 closure (2026-10-26):** Approved audit compatibility, invariant UTC timestamps, shared badge anatomy and explicit receipt authority are implemented and independently reviewed. Final Debug source build has zero warnings/errors; all 7,762 UI tests and the maintained EN/FR Chromium normal/forced-color checks pass, including 16 targeted badge rejection controls. Exactly five records close: all 657 IDs remain, 615 done/42 open across 38 maintenance rows. Original findings, historical fields, all 652 other numbered records, dependencies and broader release/assistive-technology holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-408-440-450-460-474-validation-evidence.md).
@@ -238,16 +240,16 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 | Disposition | Records |
 | --- | ---: |
-| done | 620 |
-| actionable | 6 |
-| blocked | 7 |
+| done | 624 |
+| actionable | 4 |
+| blocked | 6 |
 | awaiting-decision | 15 |
 | accepted-limitation | 5 |
-| uncertain | 4 |
+| uncertain | 3 |
 
-**Remaining: 37 open records across 33 index rows.**
+**Remaining: 33 open records across 29 index rows.**
 
-**Unnumbered review follow-up:** navigation verification exposed a cancellation-test cleanup timing gap, retained in the deferred ledger. The numbered DW totals and rows exclude this new follow-up until ledger migration. Disposition counts now cover all 657 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
+**Unnumbered cleanup follow-up resolved, 2026-10-27:** The original navigation-verification finding remains in the ledger with its resolution. Its explicit unsubscribe completion and held-cleanup callback checks are qualified; numbered DW totals exclude this unnumbered item. Disposition counts cover all 657 numbered records. P1 means correctness, confidentiality or command ownership; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. `unassigned` preserves the absence of an established owner.
 
 **DW-331 closure (2026-10-16):** The pure removal evaluator now rejects contradictory complete-population scope using the existing IncompletePopulation outcome. Nine new cases prove grant independence and refusal precedence. Independent review/recheck, final Debug focused33/full UI5988 pass with zero failures/skips. [Exact commands, initial intermittent correction-test failure, passing rechecks and limits](../_bmad-output/implementation-artifacts/dw-331-validation-evidence.md). Only DW-331 and its row close: 340 done/303 open across 643 IDs, 271 rows; 136 reconciled done/215 actionable. Historical findings/pre-closure evidence/actions, all prior closures/decisions, archive/sprint, dependencies and release holds remain preserved. Release remains not ready.
 
@@ -279,10 +281,8 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | --- | --- | --- | --- | --- | --- |
 | DW-562, DW-617 | P1 | Gap / awaiting-decision | global-administrator authority owner; other records unassigned | Platform authorization and revocation contract; DW-562 revocation contract decision | Define the authoritative/version-bounded revocation guarantee and responsible authority before changing command/query gates. |
 | DW-521 | P2 | Defect / actionable | Hexalith.EventStore | EventStore lookup compatibility decision | Choose explicit message-primary versus compatibility lookup semantics across authorized tenants and test caller-chosen cross-tenant collisions. |
-| DW-523 | P2 | Defect / actionable | Hexalith.EventStore | EventStore publication recovery status contract | Define recoverable versus exhausted PublishFailed polling semantics and align runtime Retry-After plus all lifecycle/replay documentation. |
 | DW-595 | P2 | Defect / blocked | EventStore (Story 6.1-P1R evidence, contracts packaging) | EventStore-maintainer fixes at adopted source revision | Route current failing upstream tests to EventStore and capture a green exact-pin CI result. |
 | DW-618 | P2 | Defect / actionable | unassigned | Authorization-safe index paging design | Design bounded authorized paging that continues through hidden windows without exposing raw-result pagination facts. |
-| DW-114 | P2 | Gap / blocked | unassigned | Memories owning contract/integration lane | Obtain a Memories server contract test for offset-before-filtering and untrimmed totals. |
 | DW-122 | P2 | Gap / blocked | Memories | Memories index uniqueness guarantee | Add an owning Memories uniqueness contract test across raw windows. |
 | DW-334, DW-358 | P2 | Gap / blocked | operator | operator-owned live Aspire/secret-provider evidence; Operator environment and intended secret-provider configuration | Capture deployed model, provider binding and healthy startup in the intended package mode. |
 | DW-457 | P2 | Gap / awaiting-decision | Hexalith.Builds | Builds toolchain qualification decision | Builds owners must annotate the historical Aspire split disposition and disambiguate the two Dapr meanings. |
@@ -302,9 +302,7 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-446 | P2 | Unverified / uncertain | unassigned | none | Run NVDA with a supported browser through the first events-stored availability transition and record whether its first message is announced. |
 | DW-459 | P2 | Unverified / uncertain | unassigned | NVDA or VoiceOver authenticated browser session | Capture an assistive-technology browser trace of the first mounted state before deciding whether an always-mounted empty live container is required. |
 | DW-466 | P2 | Unverified / uncertain | unassigned | Historical full-suite raw logs; controlled load reproduction | Identify the metadata test from raw historical logs and reproduce both waits under controlled load before changing timeout or synchronization. |
-| DW-514 | P2 | Unverified / uncertain | Hexalith.EventStore | Non-HTTP command-entry-point reachability evidence | Inventory non-HTTP CommandEnvelope producers and reproduce a supported whitespace-causation resume before deciding normalization/rejection behavior. |
 | DW-137 | P2 | Recommendation / actionable | future Tenants API route-contract work | Tenants API route-contract design | Specify the reversible route representation and slash/dot/traversal tests before changing client/controller behavior. |
-| DW-144 | P2 | Recommendation / actionable | unassigned | topology/security contract and DW-137 | Implement the already-selected topology in a dedicated owning change with deny-default GET policy, retry and ETag/route checks. |
 | DW-498 | P2 | Recommendation / awaiting-decision | unassigned | Product/authorization result-read policy | Choose and document an authorized post-self-demotion inspection/handoff policy; retain current redaction until that decision. |
 | DW-570 | P2 | Recommendation / actionable | release workflow owner | Approved release-provenance policy | Add the owning workflow closure gate or document an approved equivalent closure procedure. |
 | DW-584 | P2 | Recommendation / awaiting-decision | unassigned | Release-gate policy owner | Decide which separate exact-source workflow outcomes must block publication and document the gate. |

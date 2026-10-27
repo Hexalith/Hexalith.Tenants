@@ -1,0 +1,55 @@
+{
+  "state": "Review corrections and legacy loopback compatibility implemented; parent owns final acceptance",
+  "files": [
+    {
+      "path": "command-metadata.json",
+      "sha256": "8a5b942cf97e17255aa4820cf842d942baafe7ab039b6e11a9a4ea01f45a4936",
+      "size": 3000
+    },
+    {
+      "path": "dapr-no-retry.json",
+      "sha256": "9000dbefc0785222ec38b316b94019f9d8df326746cb7ea55232298ad14c794f",
+      "size": 2367
+    },
+    {
+      "path": "dapr-retry-mutation.json",
+      "sha256": "2d26f9de832caa77eb455c13210e9626b873f57c971fd1eab3d2bcbd777731bc",
+      "size": 2367
+    },
+    {
+      "path": "legacy-loopback-compatibility.json",
+      "sha256": "6f19d1e018eaa23f6b12c0c31b9ae75c8e6c7b39e4f14d2a102f655ee63b7b48",
+      "size": 1547
+    },
+    {
+      "path": "legacy-loopback-validation.tar.gz",
+      "sha256": "39db6b244a6fc6d79a6ca0f7f3222aab6544f43c0843b9f2f6cca6ac0d73c7ff",
+      "size": 1718
+    },
+    {
+      "path": "literal-probe-controls.json",
+      "sha256": "313f35b975e966c41989de7785cbdb283d0389c7a3a7a2d07cb94ce7892ae136",
+      "size": 358
+    },
+    {
+      "path": "source-hashes.json",
+      "sha256": "470f87f472fe76b949fc169f0542b2e63104b61ec22d7619b54375125f9fdcd1",
+      "size": 2067
+    },
+    {
+      "path": "source-root-layout-checks.json",
+      "sha256": "4772b94803acc1fe6f19be6cbfc6349f9889bef0baaad1c7de3156fe55785056",
+      "size": 490
+    },
+    {
+      "path": "validation-output-manifest.json",
+      "sha256": "bdb79a490e2962ebb1d623a04cc0ea11b7de947df89fdb6ccc698d4b57d11a23",
+      "size": 546
+    },
+    {
+      "path": "validation-outputs.tar.gz",
+      "sha256": "03adada8ae5f520a123401a1ca732ec0c0d273d5b52e2721f0397d27c0d78c9b",
+      "size": 2077
+    }
+  ]
+}

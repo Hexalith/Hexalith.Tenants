@@ -1,0 +1,23 @@
+{
+  "numberedRecords": 657,
+  "selectedNumberedClosures": [
+    "DW-114",
+    "DW-144",
+    "DW-514",
+    "DW-523"
+  ],
+  "done": 624,
+  "open": 33,
+  "indexRows": 29,
+  "unnumberedCleanupResolved": true,
+  "unselectedNumberedBodiesByteIdentical": 653,
+  "dw137ByteIdenticalAndOpen": true,
+  "dispositions": {
+    "done": 624,
+    "blocked": 6,
+    "accepted-limitation": 5,
+    "awaiting-decision": 15,
+    "actionable": 4,
+    "uncertain": 3
+  }
+}
