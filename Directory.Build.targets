@@ -48,4 +48,15 @@
   </PropertyGroup>
   <Import Project="$(HexalithContainerProvenanceTargets)" />
 
+  <!-- Pack asks referenced projects for their version while Version/PackageVersion is the
+       package being packed, so EventStore project references are stamped with the Tenants
+       version. Put the central EventStore pin back before the nuspec is generated. -->
+  <Target Name="PinProjectReferenceEventStoreVersions" BeforeTargets="GenerateNuspec" DependsOnTargets="_GetProjectReferenceVersions" Condition="'$(HexalithEventStoreFromSource)' == 'true' and '$(HexalithEventStoreVersion)' != ''">
+    <ItemGroup>
+      <_ProjectReferencesWithVersions Condition="$([System.String]::Copy('%(_ProjectReferencesWithVersions.Identity)').Contains('Hexalith.EventStore'))">
+        <ProjectVersion>$(HexalithEventStoreVersion)</ProjectVersion>
+      </_ProjectReferencesWithVersions>
+    </ItemGroup>
+  </Target>
+
 </Project>
