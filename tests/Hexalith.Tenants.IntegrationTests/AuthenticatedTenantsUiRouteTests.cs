@@ -24,6 +24,7 @@ public sealed class AuthenticatedTenantsUiRouteTests(AuthenticatedTenantsTopolog
     public async Task ProtectedRoutesRenderForValidatedCallerAndCurrentTenant()
     {
         fixture.SkipIfUnavailable();
+        fixture.ProjectionWorkersEnabledAtStartup.ShouldBeFalse("authenticated UI routes qualify the independent request-path profile");
         await WithSafeEvidenceAsync(TimeSpan.FromMinutes(5), async (_, phase, cancellationToken) =>
         {
             phase("sign-in");
@@ -75,6 +76,7 @@ public sealed class AuthenticatedTenantsUiRouteTests(AuthenticatedTenantsTopolog
     public async Task LiveBrowserMeasuresResponsiveForcedColorsAndRestoresContextualAuditBackFocus()
     {
         fixture.SkipIfUnavailable();
+        fixture.ProjectionWorkersEnabledAtStartup.ShouldBeFalse("authenticated UI routes qualify the independent request-path profile");
         await WithSafeEvidenceAsync(TimeSpan.FromMinutes(8), async (outputPath, phase, cancellationToken) =>
         {
             phase("sign-in");

@@ -76,7 +76,7 @@ public sealed class AuthenticatedTenantsTopologyFixture : AspireTopologyFixture,
                 Environment.SetEnvironmentVariable(setting.Key, setting.Value);
             }
 
-            await base.InitializeAsync();
+            await AuthenticatedRouteTopologyFixture.WithRequestPathSettingsAsync(() => base.InitializeAsync());
         }
         catch
         {
