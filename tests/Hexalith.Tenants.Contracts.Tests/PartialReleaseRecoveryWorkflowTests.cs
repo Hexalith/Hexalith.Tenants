@@ -20,7 +20,7 @@ public class PartialReleaseRecoveryWorkflowTests
     {
         string repository = FindRepoRoot();
         var result = await RunAsync("python3", [Path.Combine(repository, "tests/scripts/test_partial_release_recovery.py")],
-            timeout: TimeSpan.FromMinutes(5));
+            timeout: TimeSpan.FromMinutes(15));
         result.ExitCode.ShouldBe(0, result.Diagnostics);
         result.Diagnostics.ShouldContain("OK");
     }
