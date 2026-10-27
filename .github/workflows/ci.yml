@@ -238,6 +238,8 @@ jobs:
       test-platform: microsoft-testing-platform
       run-consumer-validation: true
       run-coverage-gate: true
+      # Restore/build/package consumers plus the bounded recovery controls exceed the shared 15-minute default.
+      build-timeout-minutes: 25
       unit-test-projects: |
         tests/Hexalith.Tenants.Contracts.Tests
         tests/Hexalith.Tenants.Client.Tests
