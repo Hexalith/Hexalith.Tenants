@@ -18,7 +18,7 @@ jobs:
   verify-source:
     name: Verify exact green main source
     env:
-      HEXALITH_BUILDS_EXECUTION_SHA: ad395b72f0639951d4bb2af91a22eba7fdb95207
+      HEXALITH_BUILDS_EXECUTION_SHA: 35f185abdec37a3ae92d82f85a21e0f3c971d82d
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -308,7 +308,7 @@ jobs:
       actions: read
       contents: read
     env:
-      HEXALITH_BUILDS_EXECUTION_SHA: ad395b72f0639951d4bb2af91a22eba7fdb95207
+      HEXALITH_BUILDS_EXECUTION_SHA: 35f185abdec37a3ae92d82f85a21e0f3c971d82d
       HEXALITH_RELEASE_ENVIRONMENT: production
       HEXALITH_RELEASE_SOURCE_BRANCH: main
       HEXALITH_RELEASE_SOURCE_CI_WORKFLOW: ci.yml
@@ -431,7 +431,7 @@ jobs:
       issues: write
       pull-requests: write
     env:
-      HEXALITH_BUILDS_EXECUTION_SHA: ad395b72f0639951d4bb2af91a22eba7fdb95207
+      HEXALITH_BUILDS_EXECUTION_SHA: 35f185abdec37a3ae92d82f85a21e0f3c971d82d
       HEXALITH_RELEASE_ENVIRONMENT: production
       HEXALITH_RELEASE_SOURCE_BRANCH: main
       HEXALITH_RELEASE_SOURCE_CI_WORKFLOW: ci.yml

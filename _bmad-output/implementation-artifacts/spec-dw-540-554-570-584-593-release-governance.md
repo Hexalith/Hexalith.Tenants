@@ -6,6 +6,7 @@ status: 'in-review'
 route: 'dispatch'
 review_loop_iteration: 0
 baseline_commit: '2cf3a9660f71f6877923772cd145aa6856907945'
+resumed_revision: 'ff8c9a6273f70754c50a53b46dd4b4ff6fc2828b'
 context:
   - '{project-root}/AGENTS.md'
   - '{project-root}/references/Hexalith.AI.Tools/hexalith-llm-instructions.md'
@@ -82,6 +83,8 @@ Given passing review/checks, when committing and pushing main, then retain valid
 
 - Parent verification corrected two inherited fixture assumptions without changing production behavior: FrontComposer routing now uses an unavailable Memories fixture root, and container governance excludes the Platform/McpCli root submodules like the other reference owners. The four focused cases pass.
 
+- A concurrent `/pushall` run recorded the implementation and review fixes, integrated newer Builds main and advanced five unrelated reference pointers. Preserve its current parent `ff8c9a6273f70754c50a53b46dd4b4ff6fc2828b` and Builds `35f185abdec37a3ae92d82f85a21e0f3c971d82d`. All three publication pins now use the final shared revision; the original baseline remains unchanged. Final verification uses these source heads.
+
 ## Spec Change Log
 
 ## Review Triage Log
@@ -116,11 +119,21 @@ Patch work preserves the approved policies and existing command interfaces. The 
 ## File List
 
 - `references/Hexalith.Builds`
+- `references/Hexalith.EventStore`
+- `references/Hexalith.FrontComposer`
+- `references/Hexalith.McpCli`
+- `references/Hexalith.Memories`
+- `references/Hexalith.Platform`
 
 ## Completion Notes List
 
-The Builds update supplies the approved shared CI, provenance and recovery capabilities used by the Tenants workflows.
+Builds supplies this task's shared CI, provenance and recovery changes. The other five pointers were advanced by the concurrent run and are preserved without attributing their implementation to this task. The declarations below describe the full comparison range required by the guard.
 
 | Submodule | Baseline | Target |
 | --- | --- | --- |
-| `references/Hexalith.Builds` | `1783c0a377615063f3222c1d28f3ab513af4e72f` | `ad395b72f0639951d4bb2af91a22eba7fdb95207` |
+| `references/Hexalith.Builds` | `1783c0a377615063f3222c1d28f3ab513af4e72f` | `35f185abdec37a3ae92d82f85a21e0f3c971d82d` |
+| `references/Hexalith.EventStore` | `b1dd186ad49aba1c0c21d452c75fc7769feba1da` | `4dc256c4db7a0ba88efdbbe0f6bcbcf047c09d34` |
+| `references/Hexalith.FrontComposer` | `25e8a07198987b33cef052bdbc745f836cb6cbbf` | `8d2b47bd206ffd5c5e77a5ac0461b9cfe52ea4fd` |
+| `references/Hexalith.McpCli` | `aabc03c68c56ac8085ee1b145654576f5fd201a4` | `8bfd1e0592bfee258b381f41b098fe3b35170fdd` |
+| `references/Hexalith.Memories` | `2bfc735600ed153bce9069570a43ba93fe77ac0f` | `f480fd70a7c25587264f50b5174358eee709c513` |
+| `references/Hexalith.Platform` | `f187f346bb2a1136f4be7221af82136f779c2928` | `73903003acd33ba341e12aa3c495992bab8b0eda` |
