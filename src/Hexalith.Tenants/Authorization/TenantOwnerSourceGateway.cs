@@ -57,11 +57,6 @@ internal sealed class TenantOwnerSourceGateway(
         };
         message.Headers.TryAddWithoutValidation(EventStoreWorkloadAuthenticationDefaults.AssertionHeaderName, assertion);
         message.Headers.TryAddWithoutValidation("X-Hexalith-Bound-Stream-Read-Proof", proof);
-        message.Headers.TryAddWithoutValidation("dapr-app-id", "eventstore");
-        if (Environment.GetEnvironmentVariable("DAPR_API_TOKEN") is { Length: > 0 } apiToken)
-        {
-            message.Headers.TryAddWithoutValidation("dapr-api-token", apiToken);
-        }
         using HttpResponseMessage response = await http.SendAsync(message, cancellationToken).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
         StreamReadPage? page = await response.Content.ReadFromJsonAsync<StreamReadPage>(JsonOptions, cancellationToken).ConfigureAwait(false);
@@ -87,7 +82,4 @@ internal sealed class TenantOwnerSourceGateway(
 
     private static string Base64Url(byte[] bytes)
         => Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
-
-    private sealed record ProofPayload(int Version, string Caller, string Tenant, string Domain, string AggregateId,
-        long IssuedAt, long ExpiresAt, string Nonce);
 }

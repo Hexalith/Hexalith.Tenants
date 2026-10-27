@@ -41,6 +41,8 @@ public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith
     /// <inheritdoc/>
     public new async ValueTask InitializeAsync()
     {
+        ProjectionWorkersEnabledAtStartup = !bool.TryParse(
+            Environment.GetEnvironmentVariable("EventStore__Projections__WorkersEnabled"), out bool enabled) || enabled;
         await WithBootstrapStartupSettingsAsync(() => base.InitializeAsync());
         if (!PrerequisitesAvailable)
         {
@@ -59,6 +61,9 @@ public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith
             string.Equals(Environment.GetEnvironmentVariable("TENANTS_LIVE_REQUIRE_COLD_BOOTSTRAP"), "true", StringComparison.OrdinalIgnoreCase),
             timeout.Token);
     }
+
+    /// <summary>Gets the inherited worker profile captured before the AppHost child processes start.</summary>
+    internal bool ProjectionWorkersEnabledAtStartup { get; private set; }
 
     /// <summary>Runs the real bootstrap and authority checks behind the fixture's support-safe cleanup boundary.</summary>
     internal static async Task CompleteBootstrapAsync(

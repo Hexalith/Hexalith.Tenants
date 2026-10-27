@@ -26,10 +26,10 @@ using Shouldly;
 namespace Hexalith.Tenants.IntegrationTests;
 
 /// <summary>Qualifies the six production REST reads against authenticated live Aspire sockets.</summary>
-[Collection("AspireTopology")]
+[Collection("AuthenticatedRouteTopology")]
 [DaprTestSerialization]
 [Trait("Category", "Integration")]
-public sealed class AuthenticatedTenantsRouteTests(AspireTopologyFixture fixture) : IDisposable
+public sealed class AuthenticatedTenantsRouteTests(AuthenticatedRouteTopologyFixture fixture) : IDisposable
 {
     private readonly IDisposable _daprTestLease = DaprTestExecutionGate.Enter();
 
@@ -40,6 +40,7 @@ public sealed class AuthenticatedTenantsRouteTests(AspireTopologyFixture fixture
     public async Task SixAuthenticatedDaprRestReadsMatchPersistedState()
     {
         fixture.SkipIfUnavailable();
+        fixture.ProjectionWorkersEnabledAtStartup.ShouldBeFalse("this independent fixture qualifies the existing request-path profile");
         using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(5));
         AuthenticatedRouteState state = await AuthenticatedRouteState.CreateAsync(fixture.CommandApiClient, timeout.Token);
         using ServiceProvider provider = CreateProductionReadServices(state.Token);

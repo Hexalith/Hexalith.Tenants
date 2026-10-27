@@ -321,6 +321,7 @@ public class AspireTopologyTests : IDisposable {
     [Trait("Tier", "3")]
     public async Task Aha_moment_demo_revokes_sample_access_from_tenant_events() {
         _fixture.SkipIfUnavailable();
+        _fixture.ProjectionWorkersEnabledAtStartup.ShouldBeTrue("background event delivery must remain qualified with workers enabled");
 
         string token = CreateDemoJwt();
         string tenantId = $"aha-{Guid.NewGuid():N}";
