@@ -675,6 +675,85 @@ public class PackageGovernanceTests {
         }
     }
 
+    [Theory]
+    [InlineData("true", "", "", "", true)]
+    [InlineData("true", "mapping-hash", "", "", true)]
+    [InlineData("true", "", "true", "", true)]
+    [InlineData("true", "mapping-hash", "true", "", false)]
+    [InlineData("false", "", "", "", false)]
+    [InlineData("false", "mapping-hash", "true", "", false)]
+    [InlineData("", "", "", "", false)]
+    [InlineData("true", "", "", "source", false)]
+    [InlineData("true", "mapping-hash", "", "source", false)]
+    [InlineData("true", "mapping-hash", "true", "package", false)]
+    public void EventStore_source_version_forwarding_defers_only_to_an_active_producer_mapping(
+        string fromSource,
+        string mappingHash,
+        string mappingApplies,
+        string mappingMode,
+        bool forwardsSourceVersion) {
+        string repoRoot = FindRepoRoot();
+        string fixtureRoot = Path.Combine(Path.GetTempPath(), $"hexalith-tenants-source-version-{Guid.NewGuid():N}");
+        _ = Directory.CreateDirectory(fixtureRoot);
+
+        try {
+            string projectPath = Path.Combine(fixtureRoot, "SourceVersion.proj");
+            new XDocument(new XElement("Project",
+                new XElement("ItemGroup",
+                    new XElement("ProjectReference",
+                        new XAttribute("Include", "existing.csproj"),
+                        new XAttribute("AdditionalProperties", "ExistingProperty=kept"),
+                        new XAttribute("Private", "false")),
+                    new XElement("ProjectReference", new XAttribute("Include", "empty.csproj"))),
+                new XElement("Import", new XAttribute("Project", Path.Combine(repoRoot, "Directory.Build.targets")))))
+                .Save(projectPath);
+
+            var startInfo = new ProcessStartInfo("dotnet") {
+                WorkingDirectory = repoRoot,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+            };
+            foreach (string property in new[] {
+                "CustomBeforeDirectoryBuildProps", "CustomAfterMicrosoftCommonProps", "CustomBeforeDirectoryBuildTargets",
+                "CustomAfterDirectoryBuildTargets", "AfterMicrosoftNETSdkTargets", "HEXALITH_SOURCE_MAPPING_HASH",
+            }) {
+                _ = startInfo.Environment.Remove(property);
+            }
+            foreach (string argument in new[] {
+                "msbuild", projectPath, "-nologo", "-getItem:ProjectReference",
+                $"-property:HexalithEventStoreFromSource={fromSource}",
+                "-property:HexalithEventStoreVersion=test-source-version",
+                $"-property:HexalithSourceMappingHash={mappingHash}",
+                $"-property:HexalithSourceMappingApplies={mappingApplies}",
+                $"-property:HexalithSourceMappingMode={mappingMode}",
+            }) {
+                startInfo.ArgumentList.Add(argument);
+            }
+
+            using Process process = Process.Start(startInfo)
+                ?? throw new InvalidOperationException("Could not start dotnet msbuild for source version forwarding evaluation.");
+            string standardOutput = process.StandardOutput.ReadToEnd();
+            string standardError = process.StandardError.ReadToEnd();
+            process.WaitForExit();
+            process.ExitCode.ShouldBe(0, $"Source version forwarding evaluation failed. stdout: {standardOutput}{Environment.NewLine}stderr: {standardError}");
+
+            using JsonDocument evaluation = JsonDocument.Parse(standardOutput);
+            Dictionary<string, JsonElement> references = evaluation.RootElement.GetProperty("Items").GetProperty("ProjectReference")
+                .EnumerateArray().ToDictionary(item => item.GetProperty("Identity").GetString()!, StringComparer.Ordinal);
+            references.Count.ShouldBe(2);
+            string forwarded = forwardsSourceVersion ? ";HexalithEventStoreVersion=test-source-version" : string.Empty;
+            references["existing.csproj"].GetProperty("AdditionalProperties").GetString().ShouldBe("ExistingProperty=kept" + forwarded);
+            references["existing.csproj"].GetProperty("Private").GetString().ShouldBe("false");
+            string emptyProperties = references["empty.csproj"].TryGetProperty("AdditionalProperties", out JsonElement additional)
+                ? additional.GetString() ?? string.Empty : string.Empty;
+            emptyProperties.ShouldBe(forwarded);
+        }
+        finally {
+            Directory.Delete(fixtureRoot, recursive: true);
+        }
+    }
+
     /// <summary>
     /// Collects the <c>Hexalith.EventStore*</c> references of the requested item type, keyed by
     /// package id. A <c>ProjectReference</c> id is derived from its project file name so the rule is
