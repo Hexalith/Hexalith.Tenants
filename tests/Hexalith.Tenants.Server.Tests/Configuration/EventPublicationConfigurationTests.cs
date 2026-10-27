@@ -90,22 +90,9 @@ public class EventPublicationConfigurationTests {
         program.ShouldContain("AppId = \"tenants-api\"");
         normalizedProgram.ShouldContain("    _ = tenantsApi.WithEventStoreClientCredentials(security);");
 
-        // Story 1.10 reversed the earlier "the UI talks to EventStore directly" rule: the six canonical reads
-        // now go direct to the Tenants REST API, so the UI needs both the reference and the base address.
-        // The previous assertion here (ShouldNotContain("Tenants__BaseAddress")) described the pre-1.10
-        // architecture and is retired -- keeping it would have made the read transport unreachable in every
-        // deployment while still passing CI.
-        // Asserted as exact wiring lines, not bare substrings. "Tenants__BaseAddress" also appears in the
-        // explanatory comment beside this wiring, so ShouldContain("Tenants__BaseAddress") stayed green even
-        // if the WithEnvironment call were deleted -- and neither substring pinned the value to the
-        // tenants-api https endpoint, so binding it to eventStoreHttps would also have passed while every
-        // read resolved UnavailableTenantQueryGateway. That is exactly the HOST-REF-1 reopening this guard
-        // exists to prevent.
-        normalizedProgram.ShouldContain(
-            "    .WithEnvironment(\"Tenants__BaseAddress\", tenantsApi.GetEndpoint(\"https\"))");
-        normalizedProgram.ShouldContain("    .WithReference(tenantsApi)");
-
-        // ...and attached to the UI resource, not to some other builder in the file.
+        // The approved read transport uses the UI's Dapr endpoint and the API receiver's GET-only
+        // policy. A direct Tenants base address is no longer the AppHost transport binding.
+        // Require the sidecar, receiver config and dependency on the UI resource itself.
         int tenantsUiStart = normalizedProgram.IndexOf(
             "IResourceBuilder<ProjectResource> tenantsUI = builder.AddProject<HexalithTenantsUI>(\"tenants-ui\")",
             StringComparison.Ordinal);
@@ -114,8 +101,17 @@ public class EventPublicationConfigurationTests {
         string tenantsUiBlock = tenantsUiEnd < 0
             ? normalizedProgram[tenantsUiStart..]
             : normalizedProgram[tenantsUiStart..tenantsUiEnd];
-        tenantsUiBlock.ShouldContain(".WithEnvironment(\"Tenants__BaseAddress\", tenantsApi.GetEndpoint(\"https\"))");
         tenantsUiBlock.ShouldContain(".WithReference(tenantsApi)");
+        tenantsUiBlock.ShouldContain(".WithDaprSidecar(");
+        tenantsUiBlock.ShouldContain("AppId = \"tenants-ui\"");
+        tenantsUiBlock.ShouldContain("AppProtocol = \"https\"");
+        tenantsUiBlock.ShouldContain("Config = tenantsUiAccessControlConfigPath");
+        tenantsUiBlock.ShouldNotContain("Tenants__BaseAddress");
+
+        string uiComposition = File.ReadAllText(RepositoryPath(
+            "src", "Hexalith.Tenants.UI", "Extensions", "TenantsUiServiceCollectionExtensions.cs"));
+        uiComposition.ShouldContain("configuration[\"DAPR_HTTP_ENDPOINT\"]");
+        uiComposition.ShouldContain("AddEventStoreDaprServiceInvocation(\"tenants-api\", configuration[\"DAPR_API_TOKEN\"])");
 
         // .WaitFor was the one wiring line still asserted against the whole file, which defeats the stated
         // purpose above: moving it to `sample` left the UI starting before the API was ready on every cold
@@ -592,8 +588,37 @@ public class EventPublicationConfigurationTests {
             [
                 "accesscontrol.eventstore-admin.yaml",
                 "accesscontrol.eventstore.yaml",
+                "accesscontrol.tenants-api.yaml",
+                "accesscontrol.tenants-ui.yaml",
                 "accesscontrol.tenants.yaml",
             ]);
+
+        YamlMappingNode api = LoadYaml(RepositoryPath("deploy", "dapr", "accesscontrol.tenants-api.yaml"));
+        Scalar(api, "spec", "accessControl", "defaultAction").ShouldBe("deny");
+        Scalar(api, "spec", "accessControl", "trustDomain").ShouldBe("{env:DAPR_TRUST_DOMAIN|hexalith.io}");
+        Policies(api).Select(policy => Scalar(policy, "appId")).ShouldBe(["tenants-ui"]);
+        YamlMappingNode uiCaller = SinglePolicy(api, "tenants-ui");
+        Scalar(uiCaller, "defaultAction").ShouldBe("deny");
+        Scalar(uiCaller, "trustDomain").ShouldBe("{env:DAPR_TRUST_DOMAIN|hexalith.io}");
+        Scalar(uiCaller, "namespace").ShouldBe("{env:DAPR_NAMESPACE|hexalith}");
+        Sequence(uiCaller, "operations").OfType<YamlMappingNode>()
+            .Select(operation => $"{Scalar(operation, "action")} {string.Join(',', ScalarValues(operation, "httpVerb"))} {Scalar(operation, "name")}")
+            .ShouldBe([
+                "allow GET /api/tenants",
+                "allow GET /api/tenants/*",
+                "allow GET /api/tenants/**/users",
+                "allow GET /api/tenants/**/audit",
+                "allow GET /api/users/**/tenants",
+                "allow GET /api/global-administrators",
+            ], ignoreOrder: true);
+
+        YamlMappingNode ui = LoadYaml(RepositoryPath("deploy", "dapr", "accesscontrol.tenants-ui.yaml"));
+        Scalar(ui, "spec", "accessControl", "defaultAction").ShouldBe("deny");
+        Scalar(ui, "spec", "accessControl", "trustDomain").ShouldBe("{env:DAPR_TRUST_DOMAIN|hexalith.io}");
+        if (((YamlMappingNode)Node(ui, "spec", "accessControl")).Children.TryGetValue(new YamlScalarNode("policies"), out YamlNode? uiPolicies))
+        {
+            uiPolicies.ShouldBeOfType<YamlSequenceNode>().ShouldBeEmpty();
+        }
     }
 
     [Fact]
