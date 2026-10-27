@@ -2,7 +2,8 @@
 
   <!-- Carry the owning EventStore source identity through every local project edge, including
        indirect source graphs. Published package versions remain pinned in Directory.Build.props. -->
-  <ItemGroup Condition="'$(HexalithEventStoreFromSource)' == 'true'">
+  <!-- The pinned mapper owns edge properties in mapped mode; keep legacy propagation elsewhere. -->
+  <ItemGroup Condition="'$(HexalithEventStoreFromSource)' == 'true' and '$(HexalithSourceMappingMode)' != 'source'">
     <ProjectReference Update="@(ProjectReference)">
       <AdditionalProperties>%(ProjectReference.AdditionalProperties);HexalithEventStoreVersion=$(HexalithEventStoreVersion)</AdditionalProperties>
     </ProjectReference>
