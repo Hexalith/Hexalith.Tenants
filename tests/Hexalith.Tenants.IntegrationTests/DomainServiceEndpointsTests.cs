@@ -3,8 +3,14 @@ using System.Text;
 using System.Text.Json;
 
 using Hexalith.EventStore.Client.Projections;
+using Hexalith.EventStore.Client.Discovery;
+using Hexalith.EventStore.Client.Registration;
+using Hexalith.Tenants.Server.Aggregates;
 using Hexalith.EventStore.Contracts.Projections;
 using Hexalith.EventStore.Contracts.Queries;
+using Hexalith.EventStore.Contracts.Routing;
+using Hexalith.Tenants.Server.Routing;
+using Hexalith.Tenants.Queries.Handlers;
 using Hexalith.EventStore.DomainService;
 using Hexalith.EventStore.ServiceDefaults.Authentication;
 using Hexalith.EventStore.Testing.Fakes;
@@ -135,12 +141,174 @@ public sealed class DomainServiceEndpointsTests {
             .ReadFromJsonAsync<AdminOperationalIndexMetadata.Response>()
             .ConfigureAwait(true);
 
+        AssertProjectionMetadata(metadata.ShouldNotBeNull());
+        // Metadata requests intentionally select a domain subset; unrelated enrolled routes must
+        // neither fail the request nor leak into its response.
+        using HttpResponseMessage subsetResponse = await SendInternalAsync(client,
+            "/admin/operational-index-metadata", new AdminOperationalIndexMetadata.Request([GetTenantQuery.Domain]),
+            Assertion(configuration, EventStoreWorkloadOperations.DomainServiceMetadata)).ConfigureAwait(true);
+        subsetResponse.EnsureSuccessStatusCode();
+        AdminOperationalIndexMetadata.Response subset = (await subsetResponse.Content.ReadFromJsonAsync<AdminOperationalIndexMetadata.Response>().ConfigureAwait(true)).ShouldNotBeNull();
+        subset.Domains.ShouldHaveSingleItem().Domain.ShouldBe(GetTenantQuery.Domain);
+        subset.Domains[0].ProjectionNames.ShouldBe(metadata.Domains.Single(domain => domain.Domain == GetTenantQuery.Domain).ProjectionNames);
+        subset.Domains[0].LegacyProjectionOutputs![GetTenantQuery.Domain].Order().ShouldBe(
+            TenantCatalogCapabilities.Projections.Declarations.Single(route => route.Domain == GetTenantQuery.Domain).Execution!.ProjectionOutputs.Order());
+        // Omitting the endpoint Bind step loses these fields even if callable names remain.
+        var withoutBinding = metadata with
+        {
+            Domains = metadata.Domains.Select(domain => domain with { LegacyProjectionOutputs = null }).ToArray(),
+        };
+        Should.Throw<ShouldAssertException>(() => AssertProjectionMetadata(withoutBinding));
+        LegacyProjectionCatalogRegistration[] enrollment = factory.Services.GetServices<LegacyProjectionCatalogRegistration>().ToArray();
+        enrollment.ShouldHaveSingleItem().Declarations.Select(RouteCatalogCodec.ComputeDeclarationDigest).Order()
+            .ShouldBe(TenantCatalogCapabilities.Projections.Declarations.Select(RouteCatalogCodec.ComputeDeclarationDigest).Order());
+
         metadata.ShouldNotBeNull().Domains
             .Single(domain => domain.Domain == GetTenantQuery.Domain)
             .QueryTypes.ShouldContain(ListTenantsQuery.QueryType);
         metadata.Domains
             .Single(domain => domain.Domain == GetGlobalAdministratorsQuery.Domain)
             .QueryTypes.ShouldContain(GetGlobalAdministratorsQuery.QueryType);
+    }
+
+    [Fact]
+    public async Task RegisteredQueryInstancesMatchEveryPackagedDeclaration()
+    {
+        await using var baseFactory = new WebApplicationFactory<TenantBootstrapOptions>();
+        await using WebApplicationFactory<TenantBootstrapOptions> factory = baseFactory.WithWebHostBuilder(builder => builder
+            .UseSetting("EventStore:DomainService:AppId", AppId)
+            .UseSetting(DaprAppChannelToken.ConfigurationKey, ChannelToken));
+        using HttpClient client = factory.CreateClient();
+        using IServiceScope scope = factory.Services.CreateScope();
+        IDomainQueryHandler[] handlers = scope.ServiceProvider.GetServices<IDomainQueryHandler>().ToArray();
+        AssertRegisteredQueries(handlers);
+        // The host also scans its executable assembly. Any aggregate added there must invalidate
+        // the packaged owner boundary used by root construction, without a root host reference.
+        var packagedServices = new ServiceCollection();
+        packagedServices.AddEventStore(typeof(TenantAggregate).Assembly);
+        using ServiceProvider packaged = packagedServices.BuildServiceProvider();
+        DiscoveryResult hosted = factory.Services.GetRequiredService<DiscoveryResult>();
+        hosted.Aggregates.OrderBy(aggregate => aggregate.DomainName).ShouldBe(
+            packaged.GetRequiredService<DiscoveryResult>().Aggregates.OrderBy(aggregate => aggregate.DomainName));
+        hosted.Projections.OrderBy(projection => projection.DomainName).ShouldBe(
+            packaged.GetRequiredService<DiscoveryResult>().Projections.OrderBy(projection => projection.DomainName));
+        AssertSdkProjectionInventory(hosted.Projections);
+        scope.ServiceProvider.GetServices<IDomainProjectionHandler>().ShouldBeEmpty();
+        scope.ServiceProvider.GetServices<IAsyncDomainProjectionHandler>().ShouldBeEmpty();
+        Type[] ownerTypes = [.. typeof(TenantAggregate).Assembly.GetTypes(), .. typeof(TenantBootstrapOptions).Assembly.GetTypes()];
+        AssertNoUnenrolledProjectionHandlers(ownerTypes);
+        // These custom-dispatcher hosts enroll no legacy or async SDK endpoint handlers.
+        // Either newly discoverable shape must fail even if endpoint metadata still looks unchanged.
+        AssertNoUnenrolledProjectionHandlers([]);
+        Should.Throw<ShouldAssertException>(() => AssertNoUnenrolledProjectionHandlers([typeof(CatalogLegacyProjectionProbe)]));
+        Should.Throw<ShouldAssertException>(() => AssertNoUnenrolledProjectionHandlers([typeof(CatalogAsyncProjectionProbe)]));
+        Should.Throw<ShouldAssertException>(() => AssertSdkProjectionInventory(hosted.Projections.Skip(1).ToArray()));
+        Should.Throw<ShouldAssertException>(() => AssertSdkProjectionInventory([.. hosted.Projections, hosted.Projections[0]]));
+        Should.Throw<ShouldAssertException>(() => AssertSdkProjectionInventory([hosted.Projections[0] with { DomainName = "wrong-domain" }, .. hosted.Projections.Skip(1)]));
+        IDomainQueryHandler[] others = handlers.Where(handler => handler is not GetTenantQueryHandler).ToArray();
+        others.Length.ShouldBe(7);
+        Should.Throw<ShouldAssertException>(() => AssertRegisteredQueries(others));
+        Should.Throw<ShouldAssertException>(() => AssertRegisteredQueries([.. others, new CatalogQueryHandlerProbe("wrong-domain", GetTenantQuery.QueryType)]));
+        Should.Throw<ShouldAssertException>(() => AssertRegisteredQueries([.. others, new CatalogQueryHandlerProbe(GetTenantQuery.Domain, "Wrong.QueryType")]));
+        Should.Throw<ShouldAssertException>(() => AssertRegisteredQueries([.. handlers, handlers[0]]));
+    }
+
+    [Fact]
+    public async Task MissingActualQueryRegistrationFailsEnrollmentParity()
+    {
+        await using var baseFactory = new WebApplicationFactory<TenantBootstrapOptions>();
+        await using WebApplicationFactory<TenantBootstrapOptions> factory = baseFactory.WithWebHostBuilder(builder => builder
+            .UseSetting("EventStore:DomainService:AppId", AppId)
+            .UseSetting(DaprAppChannelToken.ConfigurationKey, ChannelToken)
+            .ConfigureServices(services =>
+            {
+                ServiceDescriptor registration = services.Single(service => service.ServiceType == typeof(IDomainQueryHandler)
+                    && service.ImplementationType == typeof(GetTenantQueryHandler));
+                services.Remove(registration);
+            }));
+        using HttpClient client = factory.CreateClient();
+        using IServiceScope scope = factory.Services.CreateScope();
+        IDomainQueryHandler[] handlers = scope.ServiceProvider.GetServices<IDomainQueryHandler>().ToArray();
+        handlers.Length.ShouldBe(7);
+        Should.Throw<ShouldAssertException>(() => AssertRegisteredQueries(handlers));
+    }
+
+    [Fact]
+    public async Task MissingProjectionEnrollmentFailsTheRealHttpMetadataAssertion()
+    {
+        await using var baseFactory = new WebApplicationFactory<TenantBootstrapOptions>();
+        await using WebApplicationFactory<TenantBootstrapOptions> factory = baseFactory.WithWebHostBuilder(builder => builder
+            .UseSetting("EventStore:DomainService:AppId", AppId)
+            .UseSetting(DaprAppChannelToken.ConfigurationKey, ChannelToken)
+            .ConfigureServices(services => services.RemoveAll<LegacyProjectionCatalogRegistration>()));
+        using HttpClient client = factory.CreateClient();
+        client.DefaultRequestHeaders.Add(DaprAppChannelToken.HeaderName, ChannelToken);
+        IConfiguration configuration = factory.Services.GetRequiredService<IConfiguration>();
+        using HttpResponseMessage response = await SendInternalAsync(client, "/admin/operational-index-metadata",
+            new AdminOperationalIndexMetadata.Request([GetTenantQuery.Domain, GetGlobalAdministratorsQuery.Domain]),
+            Assertion(configuration, EventStoreWorkloadOperations.DomainServiceMetadata)).ConfigureAwait(true);
+        response.EnsureSuccessStatusCode();
+        var metadata = (await response.Content.ReadFromJsonAsync<AdminOperationalIndexMetadata.Response>().ConfigureAwait(true)).ShouldNotBeNull();
+        factory.Services.GetServices<LegacyProjectionCatalogRegistration>().ShouldBeEmpty();
+        Should.Throw<ShouldAssertException>(() => AssertProjectionMetadata(metadata));
+    }
+
+    private static void AssertSdkProjectionInventory(IReadOnlyList<DiscoveredDomain> projections)
+    {
+        (Type Type, string Output)[] expected = [(typeof(TenantProjection), "tenants"), (typeof(TenantIndexProjection), "tenant-index"),
+            (typeof(GlobalAdministratorProjection), "global-administrators")];
+        projections.Select(projection => (projection.Type, projection.DomainName)).OrderBy(value => value.Type.FullName)
+            .ShouldBe(expected.OrderBy(value => value.Type.FullName));
+        string[] outputs = TenantCatalogCapabilities.Projections.Declarations.SelectMany(route => route.Execution!.ProjectionOutputs).ToArray();
+        foreach (var projection in expected) outputs.ShouldContain(projection.Output);
+    }
+
+    private static void AssertNoUnenrolledProjectionHandlers(IEnumerable<Type> types)
+        => types.Where(type => type is { IsClass: true, IsAbstract: false }
+            && (typeof(IDomainProjectionHandler).IsAssignableFrom(type) || typeof(IAsyncDomainProjectionHandler).IsAssignableFrom(type))).ShouldBeEmpty();
+
+    private static void AssertRegisteredQueries(IReadOnlyList<IDomainQueryHandler> handlers)
+    {
+        handlers.Count.ShouldBe(8);
+        var actual = new List<string>();
+        foreach (IDomainQueryHandler handler in handlers)
+        {
+            var declaration = handler.GetType().GetProperty("CatalogDeclaration", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+                ?.GetValue(null) as RouteContractDeclaration;
+            declaration.ShouldNotBeNull();
+            handler.Domain.ShouldBe(declaration.Domain);
+            handler.QueryType.ShouldBe(declaration.MessageType);
+            actual.Add(RouteCatalogCodec.ComputeDeclarationDigest(declaration));
+        }
+        actual.Order().ShouldBe(TenantCatalogCapabilities.HandlerQueries.Select(RouteCatalogCodec.ComputeDeclarationDigest).Order());
+        handlers.Select(handler => (handler.Domain, handler.QueryType)).Distinct().Count().ShouldBe(8);
+    }
+
+    private static void AssertProjectionMetadata(AdminOperationalIndexMetadata.Response metadata)
+    {
+        metadata.DispatchVersion.ShouldBeNull();
+        metadata.DispatchCapability.ShouldBeNull();
+        metadata.AppId.ShouldBeNull();
+        metadata.ServiceVersion.ShouldBeNull();
+        metadata.CatalogFingerprint.ShouldBeNull();
+        metadata.Domains.Select(domain => domain.Domain).Order().ShouldBe(new[] { "global-administrators", "tenants" });
+        foreach (var domain in metadata.Domains)
+        {
+            domain.ProjectionNames.ShouldBe([domain.Domain]);
+            domain.NamedProjectionTypes.ShouldNotBeNull().ShouldBeEmpty();
+            (domain.OrdinaryProjectionTypes ?? []).ShouldBeEmpty();
+            (domain.FullReplayProjectionTypes ?? []).ShouldBeEmpty();
+            (domain.MappedOnlyStreamedProjectionTypes ?? []).ShouldBeEmpty();
+            (domain.IncrementalReplayProjectionTypes ?? []).ShouldBeEmpty();
+            (domain.SharedEpochProjectionTypes ?? []).ShouldBeEmpty();
+            (domain.SingleEventProjectionTypes ?? []).ShouldBeEmpty();
+            (domain.SourceGuardCapabilities?.Count ?? 0).ShouldBe(0);
+            (domain.ReplayRecoveryBindings?.Count ?? 0).ShouldBe(0);
+            domain.LegacyProjectionOutputs.ShouldNotBeNull().Count.ShouldBe(1);
+            domain.LegacyProjectionOutputs[domain.Domain].Order().ShouldBe(domain.Domain == "tenants"
+                ? new[] { "tenant-audit", "tenant-index", "tenants" }
+                : new[] { "global-administrator-audit", "global-administrators" });
+        }
     }
 
     /// <summary>

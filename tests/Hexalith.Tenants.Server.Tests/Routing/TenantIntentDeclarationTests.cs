@@ -50,6 +50,9 @@ public class TenantIntentDeclarationTests
     [InlineData("change-user-role", "{\"userId\":\"A\",\"newRole\":1}", "{\"userId\":\"A\",\"newRole\":3}")]
     [InlineData("set-tenant-configuration", "{\"key\":\"Key\",\"value\":\"\"}", "{\"key\":\"Key\",\"value\":\" \"}")]
     [InlineData("remove-tenant-configuration", "{\"key\":\"Key\"}", "{\"key\":\"key\"}")]
+    [InlineData("add-user-to-tenant", "{\"userId\":\"A\",\"role\":1}", "{\"userId\":\"B\",\"role\":1}")]
+    [InlineData("change-user-role", "{\"userId\":\"A\",\"newRole\":1}", "{\"userId\":\"B\",\"newRole\":1}")]
+    [InlineData("set-tenant-configuration", "{\"key\":\"Key-A\",\"value\":\"same\"}", "{\"key\":\"Key-B\",\"value\":\"same\"}")]
     public void SemanticDistinctionsRemainDistinct(string operation, string first, string second)
     {
         IDeclaredIdempotencyIntentAdapter adapter = Adapter(operation);
