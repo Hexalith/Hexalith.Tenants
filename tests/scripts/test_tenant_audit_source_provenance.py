@@ -29,8 +29,10 @@ def git(root, *args):
 
 
 def advance_dependency(dependency):
-    # A content commit stays on the same path as fixture setup. Empty commits are rejected
-    # with exit 128 by the hosted runner even when ordinary commits succeed.
+    # The submodule checkout does not inherit the source repository identity. Hosted runners
+    # reject the commit with an empty author name unless that identity is set here.
+    git(dependency, "config", "user.name", "Fixture")
+    git(dependency, "config", "user.email", "fixture@example.invalid")
     source = dependency / "source.txt"
     source.write_text(source.read_text() + "advanced\n")
     git(dependency, "add", "source.txt")
