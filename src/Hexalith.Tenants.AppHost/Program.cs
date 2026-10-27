@@ -268,10 +268,30 @@ else {
     ConfigureLocalSymmetricValidation(sample, signingKey);
 }
 
-await builder
-    .Build()
-    .RunAsync()
-    .ConfigureAwait(false);
+// The connected sidecars share authenticated peer identity and the actor control plane locally.
+// Receiver ACLs require a verified SPIFFE caller; healthy plaintext sidecars cannot satisfy them.
+(string RunDirectory, string CertificateDirectory)? localDapr = builder.ExecutionContext.IsRunMode
+    ? DaprSelfHostedMtls.AddLocalApplicationInfrastructure(
+        builder,
+        Path.GetFullPath(Path.Combine(builder.AppHostDirectory, "../..")),
+        ResolveDaprConfigPath(builder.AppHostDirectory, "sentry.yaml"))
+    : null;
+try
+{
+    DistributedApplication application = builder.Build();
+    await using (application.ConfigureAwait(false))
+    {
+        await application.RunAsync().ConfigureAwait(false);
+    }
+}
+finally
+{
+    if (localDapr is { } owned)
+    {
+        _ = await Hexalith.Builds.Tooling.Runtime.CompositionWorkspace.TryDeleteAsync(owned.CertificateDirectory, CancellationToken.None).ConfigureAwait(false);
+        _ = await Hexalith.Builds.Tooling.Runtime.CompositionWorkspace.TryDeleteAsync(owned.RunDirectory, CancellationToken.None).ConfigureAwait(false);
+    }
+}
 
 static string ResolveDaprConfigPath(string appHostDirectory, string fileName) {
     // Primary: resolve relative to AppHost project directory (works for dotnet run and Aspire testing)

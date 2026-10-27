@@ -144,6 +144,17 @@ public sealed class AppHostSecurityResourceGraphTests
 
     private static async Task AssertAppChannelTokensAsync(IDistributedApplicationTestingBuilder builder)
     {
+        // These tests evaluate the model without starting its Sentry container. Its private mount
+        // receives synthetic nonempty material solely so environment callbacks can be inspected.
+        IResource? sentry = builder.Resources.SingleOrDefault(resource => resource.Name == "dapr-sentry");
+        if (sentry is not null)
+        {
+            string directory = sentry.Annotations.OfType<ContainerMountAnnotation>()
+                .Single(mount => mount.Target == "/var/run/dapr/credentials").Source!;
+            foreach (string name in new[] { "ca.crt", "issuer.crt", "issuer.key" })
+                await File.WriteAllTextAsync(Path.Combine(directory, name), "model-only-" + name);
+        }
+
         ProjectResource eventStore = builder.Resources.OfType<ProjectResource>()
             .Single(static resource => resource.Name == "eventstore");
         ProjectResource tenants = builder.Resources.OfType<ProjectResource>()

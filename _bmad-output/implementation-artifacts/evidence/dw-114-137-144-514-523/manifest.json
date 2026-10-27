@@ -1,0 +1,311 @@
+{
+  "state": "implementation retained; DW137 policy decision and independent review pending",
+  "archiveSha256": "1b89dd4551503eb786329a3b16e53b2bd6600a3fcab770828009eef0ff963ca7",
+  "files": [
+    {
+      "path": "tmp/dw-api-encoded-socket-results.json",
+      "sha256": "8e185ff02e4885474f1d733b5d7846e6d31d0fd34dec357625de0231fe50e1e9",
+      "size": 2734
+    },
+    {
+      "path": "tmp/dw-api-special-policy-results.json",
+      "sha256": "f3225c30e625931fe32863171c1d7b833345bdbe318085aefc01aab6a2a89ab5",
+      "size": 305
+    },
+    {
+      "path": "tmp/dw-apphost-mtls-build.log",
+      "sha256": "76238fd3cbf15435257040ee439603dea89cead81cd31a555c268483e8390d52",
+      "size": 1432
+    },
+    {
+      "path": "tmp/dw-apphost-mtls-model-tests.log",
+      "sha256": "4f7d26090eedb98e4055bd142fd2251d220d0d971474bb5c2b30b19c14d21da0",
+      "size": 465
+    },
+    {
+      "path": "tmp/dw-apphost-mtls-probe-results.json",
+      "sha256": "d0c2e852b76a2e49ea997895c1e1808189a6f9cb869c1bd7dde654c13364ac4a",
+      "size": 1285
+    },
+    {
+      "path": "tmp/dw-apphost-tests-package-build.log",
+      "sha256": "5bbcc042ab081edb39a7945c595a901344c864c37357702a7d17139db73772ff",
+      "size": 629
+    },
+    {
+      "path": "tmp/dw-apphost-tests-package.log",
+      "sha256": "ed36163e7309be671ad45f7f9b7549d297667eada69eebadc02b7301379d7a13",
+      "size": 465
+    },
+    {
+      "path": "tmp/dw-bff-composition-source-build.log",
+      "sha256": "3e4205637e5ec1ef281a7733e91f5c4628db6a958b4b3510fbc94015a09afd8e",
+      "size": 973
+    },
+    {
+      "path": "tmp/dw-bff-composition-source-tests-focused.log",
+      "sha256": "a260ccd9930dad87dde682b77ad57650459af259675282a12df1ef33ed554543",
+      "size": 439
+    },
+    {
+      "path": "tmp/dw-bff-composition-source-tests.log",
+      "sha256": "3bb329492e0108fc5b27c84bbf8fc19793fd22b32742acc3309a91e19c3838a2",
+      "size": 110819
+    },
+    {
+      "path": "tmp/dw-bff-source-build.log",
+      "sha256": "9309954e250c121631766b587c1020a04bfa29862b672d38973f6e1c42700061",
+      "size": 895
+    },
+    {
+      "path": "tmp/dw-bff-source-tests.log",
+      "sha256": "33de49a66d5bdbcf28e47d0a176067bfd2dc975fcf29a72dd6d2bad9bcfc7881",
+      "size": 381
+    },
+    {
+      "path": "tmp/dw-eventstore-codec-tests.log",
+      "sha256": "5f8c4c092b8a7976fbd062e76084704a8d9ae534f68e15fd5893d6f51ee04b88",
+      "size": 520
+    },
+    {
+      "path": "tmp/dw-eventstore-contracts-build-rerun.log",
+      "sha256": "de18068165bcb9921d55f0db34204db586f531d98b82cebb1bcf55b34bdbbdac",
+      "size": 76
+    },
+    {
+      "path": "tmp/dw-eventstore-contracts-build.log",
+      "sha256": "991dae6507303d25254e3c4020bf0a2744d859b4ab567b55bff5854e08127e84",
+      "size": 900
+    },
+    {
+      "path": "tmp/dw-eventstore-contracts-tests.log",
+      "sha256": "3c8dc43ae55cce35ad589ae9f737e24c3a885b501ce642aa357034ae89c80213",
+      "size": 2796
+    },
+    {
+      "path": "tmp/dw-eventstore-generators-build-final.log",
+      "sha256": "7996f98a987d3732463889a84914e73594aff6d3deb3239b0b36795356b79369",
+      "size": 2136
+    },
+    {
+      "path": "tmp/dw-eventstore-generators-build.log",
+      "sha256": "89f537e591eddd0556e2322d31dd0c5fa54dd9a36445e7437924c8a01c860128",
+      "size": 76
+    },
+    {
+      "path": "tmp/dw-eventstore-generators-isolated-build.log",
+      "sha256": "2b3e456b2e7a0a59f86900dc306294f5fe163a3d02c73e7e110143dcb67f184f",
+      "size": 76
+    },
+    {
+      "path": "tmp/dw-eventstore-generators-isolated-tests.log",
+      "sha256": "1283eb4128466068e18bd4a979634a9c6b3de835bbca4d361a3c5eb6f182c79b",
+      "size": 468
+    },
+    {
+      "path": "tmp/dw-eventstore-generators-tests.log",
+      "sha256": "933f78387acd411ee670c5ff79c04c3e3b005397d3297ad009109415323b01c1",
+      "size": 560
+    },
+    {
+      "path": "tmp/dw-eventstore-server-build-narrow.log",
+      "sha256": "22e5f373270d94a4344f284b24c2c41c23834e1b5516d64853d6bd8f14322c62",
+      "size": 3338
+    },
+    {
+      "path": "tmp/dw-eventstore-server-build-source.log",
+      "sha256": "e019f0e0a199d7dd1bf0b2d4891e19cce192ca14dd6c639d8274b4bf059c7803",
+      "size": 14869
+    },
+    {
+      "path": "tmp/dw-eventstore-server-build-tests-only.log",
+      "sha256": "fdadd246955fcae6fe95ed4c17d4f3184f031d4e82244f762e780c5bf1170631",
+      "size": 285
+    },
+    {
+      "path": "tmp/dw-eventstore-server-build.log",
+      "sha256": "98316160935283d05bb45dc747bae72f9ab377f0bd18c20e99ae1bd57c24dff1",
+      "size": 14873
+    },
+    {
+      "path": "tmp/dw-eventstore-server-isolated-build.log",
+      "sha256": "21ce90be9154f6330d282462e3304110c564934164323458f28abb07171ff013",
+      "size": 4517
+    },
+    {
+      "path": "tmp/dw-eventstore-server-isolated-full-tests.log",
+      "sha256": "6dcb37d472343f070be74ab18cd776b30bbb98780c4151e4530eade57aaeec00",
+      "size": 1100296
+    },
+    {
+      "path": "tmp/dw-eventstore-server-isolated-tests.log",
+      "sha256": "ad1a61ddb359eba847628c93858d143145fc974a13321b9c627ade17d0368a03",
+      "size": 290998
+    },
+    {
+      "path": "tmp/dw-eventstore-server-root-aware-tests.log",
+      "sha256": "20fc70cf8c307b5c047d8648647f3da49ea45e68e126ab4f25f75e5c57d56309",
+      "size": 956303
+    },
+    {
+      "path": "tmp/dw-eventstore-server-root-depth-tests.log",
+      "sha256": "5ba65b7930a752158e9bf7116a4891af8581ad507eb02d96ff9f701d186defe0",
+      "size": 820932
+    },
+    {
+      "path": "tmp/dw-eventstore-server-tests-final-focused.log",
+      "sha256": "6c0d292e17969b2e4033c94146c262e8c08c8d55c7ec1bcbd05cb48bb754e7c4",
+      "size": 872
+    },
+    {
+      "path": "tmp/dw-eventstore-server-tests-focused-rerun.log",
+      "sha256": "5db209ecc2a1c7fa4498c372232868ca02e0bacadc5728f400741acf62fb6285",
+      "size": 476
+    },
+    {
+      "path": "tmp/dw-eventstore-server-tests-focused.log",
+      "sha256": "7ffd35308474983ff4c2989bcafc9cc051683088b96b466ee2fb7c8b11d7f077",
+      "size": 67151
+    },
+    {
+      "path": "tmp/dw-eventstore-server-tests-full.log",
+      "sha256": "1fd39db1e99975002d23b92fbd51474f9983c3ecbd807591b322551f8145a4c8",
+      "size": 742086
+    },
+    {
+      "path": "tmp/dw-five-final-implementation-hashes.json",
+      "sha256": "73fafe777376a21fbc300d7bf00dadfa0074b13ec2914d502ef2f2913c4f2fb8",
+      "size": 914
+    },
+    {
+      "path": "tmp/dw-five-implementation-command-metadata.json",
+      "sha256": "60977f317fdd9fd7b2ae41ddf21762eae8166bc994c61d72aedd700ee839d5b5",
+      "size": 10094
+    },
+    {
+      "path": "tmp/dw-five-messages/eventstore-commitlint.txt",
+      "sha256": "18cf8fb78c23e1091d97c94d2206ea8c24e4284992cb10d9bb69727d5fd2dcc0",
+      "size": 344
+    },
+    {
+      "path": "tmp/dw-five-messages/eventstore.txt",
+      "sha256": "9ca83349b7cb7376bf1ca2267f15ac7746912a5ea9c1bc8bf5d9b85adff63a1d",
+      "size": 289
+    },
+    {
+      "path": "tmp/dw-five-messages/manifest.json",
+      "sha256": "838bef4057bc0437f3c0648926bd6ad50563746c7ef6542d8b46156d96390ad9",
+      "size": 1618
+    },
+    {
+      "path": "tmp/dw-five-messages/memories-commitlint.txt",
+      "sha256": "41cd25431f19752ccf32f2c4b9bb93dac4c09e750ba67bbb531fe0d03ae75c18",
+      "size": 240
+    },
+    {
+      "path": "tmp/dw-five-messages/memories.txt",
+      "sha256": "4dcb65ecd7d680c37b5c0f0d2d40a1c9dcb59c7d691b0a04f718cbba221ae9b5",
+      "size": 185
+    },
+    {
+      "path": "tmp/dw-five-messages/platform-commitlint.txt",
+      "sha256": "0987965820ec9e122fa4fbe62899bddcef1091105e51f6d5020bb00d5c7d85fb",
+      "size": 279
+    },
+    {
+      "path": "tmp/dw-five-messages/platform.txt",
+      "sha256": "44ee3d6b8a99c4b200517cd836f4eccf07bad137f8528c89f811bf9657ae0ace",
+      "size": 224
+    },
+    {
+      "path": "tmp/dw-five-messages/tenants-commitlint.txt",
+      "sha256": "d27d600683bdb0468f39f8b86f808df97ee2c60ed8b4dcaa6e5cf4bd696cc5f8",
+      "size": 330
+    },
+    {
+      "path": "tmp/dw-five-messages/tenants.txt",
+      "sha256": "471057138cee0a7d71a90669930035f8238a5612944332dea40684fc7af74766",
+      "size": 275
+    },
+    {
+      "path": "tmp/dw-memories-build.log",
+      "sha256": "d9971d347f58a7d80ca8ca4d69f313d2a6959a6d6484409529aaa35565576e89",
+      "size": 5995
+    },
+    {
+      "path": "tmp/dw-platform-mtls-build.log",
+      "sha256": "2dd06eb06d88c1fc764d5c5b4022353bfd8e1143c00c5315b1f39dd6c976219f",
+      "size": 3573
+    },
+    {
+      "path": "tmp/dw114-memories-focused-build.log",
+      "sha256": "edd7b813087109491fee3ae3fb8ebd2e0f06e486531b3eaeb5cd314a7d76941f",
+      "size": 1146
+    },
+    {
+      "path": "tmp/dw114-memories-mirror-build.log",
+      "sha256": "d084e46fc5f7f9663afcff1a688764072fe6bad570519ef753412397e82bb75f",
+      "size": 76
+    },
+    {
+      "path": "tmp/dw114-memories-mtp-help.log",
+      "sha256": "f853054b882bd2e3327883e983961192f1a75fa25edd5e3a969611723e009e27",
+      "size": 5023
+    },
+    {
+      "path": "tmp/dw114-memories-package-debug-build.log",
+      "sha256": "820f2c9eb568a092d1b72c134431ccbd60cad46571c7afb1ec85fd15e85c5acc",
+      "size": 1052
+    },
+    {
+      "path": "tmp/dw114-memories-search-tests.log",
+      "sha256": "c8cce31967850c5b47bb89674394a837108faad99ec441e565b3c40496beab05",
+      "size": 440
+    },
+    {
+      "path": "tmp/dw114-memories-validation/focus.targets",
+      "sha256": "97cbe01a43785568f323cad0ddf000ebeb430a6dfb577c604352664ae28e9e9e",
+      "size": 265
+    },
+    {
+      "path": "tmp/dw114-memories-validation/manifest.json",
+      "sha256": "a65e7b6339ddd3d9a19d2b0f7423b50cf5f575412e521d2cc1271fccb60455a1",
+      "size": 524
+    },
+    {
+      "path": "tmp/dw114-memories-validation/prepare-focused-mirror.py",
+      "sha256": "e9843a680e51ace60c222f14906892d1f9417fb556fe1d869581ceb4b242edea",
+      "size": 2335
+    },
+    {
+      "path": "tmp/dw144-dapr-validation/baseline-passed/before-selfhost-domain-results.json",
+      "sha256": "547dfc7530383551901f1d494d86728ca253c8d161da92d56d8ca23c478f498a",
+      "size": 3491
+    },
+    {
+      "path": "tmp/dw144-dapr-validation/baseline-passed/initial-trust-domain-results.json",
+      "sha256": "547dfc7530383551901f1d494d86728ca253c8d161da92d56d8ca23c478f498a",
+      "size": 3491
+    },
+    {
+      "path": "tmp/dw144-dapr-validation/baseline-passed/results.json",
+      "sha256": "516b5b3c7f3b9f8b339adf9fc946f968e41461e17a404bd89a7e526810b6a321",
+      "size": 2031
+    },
+    {
+      "path": "tmp/dw144-dapr-validation/qualify.py",
+      "sha256": "962bef237a3eb0a4ba1cd80af1b5fd027b731ff640f1fa2bc1f68f8bff0d2cc1",
+      "size": 7415
+    },
+    {
+      "path": "tmp/dw144-dapr-validation/results.json",
+      "sha256": "516b5b3c7f3b9f8b339adf9fc946f968e41461e17a404bd89a7e526810b6a321",
+      "size": 2031
+    },
+    {
+      "path": "tmp/dw144-dapr-validation/retry-mutation-rejected/results.json",
+      "sha256": "cbd9c85fd2b92183452a72ba07c406315048e464481b525fa31c762fedcd62b5",
+      "size": 2032
+    }
+  ]
+}

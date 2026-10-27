@@ -28,6 +28,13 @@
     <PackageReference Include="Hexalith.Memories.Aspire" Condition="'$(HexalithMemoriesFromSource)' != 'true'" />
   </ItemGroup>
 
+  <!-- Consume the Platform-owned self-hosted Dapr identity bootstrap from its canonical source. -->
+  <ItemGroup>
+    <Compile Include="..\..\references\Hexalith.Platform\DaprSelfHostedMtls.cs" Link="Platform\DaprSelfHostedMtls.cs" />
+    <Compile Include="..\..\references\Hexalith.Platform\DaprSelfHostedMtlsSubscriber.cs" Link="Platform\DaprSelfHostedMtlsSubscriber.cs" />
+    <ProjectReference Include="..\..\references\Hexalith.Builds\src\libraries\Hexalith.Builds.Tooling\Hexalith.Builds.Tooling.csproj" IsAspireProjectResource="false" />
+  </ItemGroup>
+
   <!-- Debug build-forcing references for the launched child host projects.
        The children are added to the app model via path-only IProjectMetadata (SuppressBuild=true) and Aspire
        launches them with `dotnet run` in no-build mode, so nothing on the `aspire run` path compiles them — a

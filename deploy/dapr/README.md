@@ -38,7 +38,7 @@ Expected local ports used by existing tests:
 - Placement: `50005` on Linux, `6050` on Windows
 - Scheduler: `50006` on Linux, `6060` on Windows
 
-Local AppHost components live in `src/Hexalith.Tenants.AppHost/DaprComponents`. The historical domain access-control file remains local-only and allow-by-default. The generated API receiver uses its dedicated deny-by-default `accesscontrol.tenants-api.yaml`, allowing only the `tenants-ui` sidecar to invoke the six GET reads.
+Local AppHost components live in `src/Hexalith.Tenants.AppHost/DaprComponents`. The AppHost reuses the Platform-owned Sentry, mTLS placement/scheduler and generated-sidecar bindings, using private per-run credentials outside the checkout and allocated listeners. All connected sidecars use mTLS so API-to-EventStore and actor flows retain the same identity boundary. The historical domain access-control file remains local-only and allow-by-default. The generated API receiver uses its dedicated deny-by-default `accesscontrol.tenants-api.yaml`, allowing only the `tenants-ui` sidecar to invoke the six GET reads.
 
 ## Slim Self-Hosted Mode
 
@@ -68,7 +68,7 @@ Apply the templates in this folder after replacing the placeholders with environ
 
 Run the UI with its own `tenants-ui` sidecar and bind the API receiver's dedicated ACL. Configure the API app channel as HTTPS (`--app-protocol https`, with the application's HTTPS port). `DAPR_HTTP_ENDPOINT` selects the BFF's local sidecar and takes precedence over `Tenants:BaseAddress`; an explicitly configured `Tenants:BaseAddress` must also address that sidecar when no endpoint is injected. Sidecar failures fail closed without trying a direct API address. User bearer forwarding runs before the platform-owned invocation handler, which authoritatively sets `dapr-app-id: tenants-api` and the optional `DAPR_API_TOKEN`. Commands and status retain their independent EventStore address.
 
-The four parameterized reads send `X-Hexalith-Route-Encoding: base64url-v1` and canonical unpadded UTF-8 base64url segments. The API decodes identifiers before tenant-scope resolution and query authorization. This preserves slash, backslash, dots, Unicode and literal percent text without traversal. Missing discriminator preserves existing literal-route clients; unknown or duplicate discriminators, padding, noncanonical trailing bits and invalid UTF-8 produce 400. List and global-administrator reads carry no route-identifier discriminator. Cursors remain opaque query parameters, and conditional headers and response metadata pass through the sidecars. DW-161 still tracks generated-API conditional-response qualification; a controlled 304 transport test does not close it.
+The four parameterized reads send `X-Hexalith-Route-Encoding: base64url-v1` and canonical unpadded UTF-8 base64url segments. The API decodes identifiers before tenant-scope resolution and query authorization. This preserves slash, backslash, dots, Unicode and literal percent text without traversal. Missing discriminator preserves existing literal-route clients; unknown or duplicate discriminators, padding, noncanonical trailing bits and invalid UTF-8 produce 400. List and global-administrator reads carry no route-identifier discriminator. Cursors remain opaque query parameters, and conditional headers and response metadata pass through the sidecars. The generated API's prior conditional-response acceptance remains unchanged; the controlled 304 check qualifies the additional Dapr transport.
 
 ## Pub/Sub Recovery Evidence
 
