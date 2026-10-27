@@ -20,8 +20,21 @@ _module_spec.loader.exec_module(_guard)
 
 
 def git(root, *args):
-    return subprocess.run(["git", "-C", str(root), *args], check=True, text=True,
-                          stdout=subprocess.PIPE, stderr=subprocess.PIPE).stdout.strip()
+    completed = subprocess.run(["git", "-C", str(root), *args], check=False, text=True,
+                               stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if completed.returncode != 0:
+        raise AssertionError(
+            f"git {' '.join(args)} failed with exit {completed.returncode}: {completed.stderr.strip()}")
+    return completed.stdout.strip()
+
+
+def advance_dependency(dependency):
+    # A content commit stays on the same path as fixture setup. Empty commits are rejected
+    # with exit 128 by the hosted runner even when ordinary commits succeed.
+    source = dependency / "source.txt"
+    source.write_text(source.read_text() + "advanced\n")
+    git(dependency, "add", "source.txt")
+    git(dependency, "commit", "-qm", "test: advance fixture dependency")
 
 
 class SourceProvenanceTests(unittest.TestCase):
@@ -104,7 +117,7 @@ class SourceProvenanceTests(unittest.TestCase):
         self.assert_refused_before_runner_work()
 
     def test_mismatched_clean_dependency_is_rejected_before_work(self):
-        git(self.dependency, "commit", "--allow-empty", "-qm", "test: advance fixture dependency")
+        advance_dependency(self.dependency)
         self.assert_refused_before_runner_work()
 
     def test_assume_unchanged_root_source_is_rejected_before_work(self):
@@ -145,8 +158,7 @@ class SourceProvenanceTests(unittest.TestCase):
         self.assertTrue(mutated, "control must change a dependency after its first inspection")
 
     def test_dependency_revision_is_rechecked_before_output(self):
-        self.assert_late_dependency_change_rejected(lambda: git(self.dependency, "commit", "--allow-empty",
-            "-qm", "test: advance fixture dependency"))
+        self.assert_late_dependency_change_rejected(lambda: advance_dependency(self.dependency))
 
     def test_dependency_tracked_dirtiness_is_rechecked_before_output(self):
         self.assert_late_dependency_change_rejected(lambda: (self.dependency / "source.txt").write_text("late edit\n"))
