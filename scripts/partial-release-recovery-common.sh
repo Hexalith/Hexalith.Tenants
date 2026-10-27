@@ -30,9 +30,45 @@ recovery_require_separate_evidence() {
   done
 }
 
+# Check with Git before executing a verifier that could itself have drifted.
+recovery_require_checkout() {
+  local execution_root="${HEXALITH_BUILDS_EXECUTION_ROOT:-.hexalith/builds-execution}"
+  local approved="${HEXALITH_BUILDS_EXECUTION_SHA:?Approved Builds execution SHA is required}"
+  [ "$(git -C "$execution_root" rev-parse HEAD)" = "$approved" ] ||
+    recovery_fail 'Recovery Builds checkout no longer matches the approved execution revision.'
+  git -C "$execution_root" diff --quiet "$approved" -- Github/governed-provenance Github/publish-containers ||
+    recovery_fail 'Executed shared helper bytes changed before verification.'
+  [ -z "$(git -C "$execution_root" ls-files --others -- Github/governed-provenance Github/publish-containers)" ] ||
+    recovery_fail 'Unapproved shared helper or bytecode files appeared before verification.'
+}
+
+# Every phase revalidates the execution checkout, approved source declaration and provenance.
+recovery_require_execution() {
+  recovery_require_checkout
+  local execution_root="${HEXALITH_BUILDS_EXECUTION_ROOT:-.hexalith/builds-execution}"
+  local validator="$execution_root/Github/publish-containers/oci_registry_validator.py"
+  [ "$(realpath -m -- "${HEXALITH_RELEASE_OCI_VALIDATOR:-$validator}")" = "$(realpath -m -- "$validator")" ] ||
+    recovery_fail 'OCI validator must execute from the approved Builds checkout.'
+  PYTHONDONTWRITEBYTECODE=1 python3 "$execution_root/Github/governed-provenance/execution_identity.py" verify \
+    --source "$source_sha" --declared "${HEXALITH_BUILDS_EXECUTION_SHA:?Approved Builds execution SHA is required}" \
+    --builds-root "$execution_root" --state "$state_directory/execution-identity.json" \
+    --provenance "$state_directory/workflow-provenance.json" || recovery_fail 'Recovery execution identity changed or is unverified.'
+}
+
+recovery_require_source_gates() {
+  python3 "${HEXALITH_BUILDS_EXECUTION_ROOT:-.hexalith/builds-execution}/Github/governed-provenance/source_workflow_gates.py" \
+    --repository "$repository" --source "$source_sha" \
+    --workflow ci.yml --workflow story-guards.yml --workflow source-reference.yml \
+    --evidence "$1"
+}
+
 recovery_verify_container() {
-  local evidence_directory="$1" receipt="${2:-}" image expected_digest actual_digest
-  local validator="${HEXALITH_RELEASE_OCI_VALIDATOR:-references/Hexalith.Builds/Github/publish-containers/oci_registry_validator.py}"
+  local evidence_directory="$1" receipt="${2:-}" image expected_digest actual_digest expected_created
+  local creation_arguments=(--observe-created)
+  if [ -n "${HEXALITH_RECOVERY_CONTAINER_CREATED:-}" ]; then
+    creation_arguments=(--created "$HEXALITH_RECOVERY_CONTAINER_CREATED")
+  fi
+  local validator="${HEXALITH_RELEASE_OCI_VALIDATOR:-${HEXALITH_BUILDS_EXECUTION_ROOT:-.hexalith/builds-execution}/Github/publish-containers/oci_registry_validator.py}"
   evidence_directory="$(recovery_confine_directory "$evidence_directory")"
   image="${HEXALITH_ZOT_REGISTRY:-registry.hexalith.com}/${HEXALITH_RECOVERY_CONTAINER_REPOSITORY:-tenants}:${version}"
   if [ -n "$receipt" ]; then
@@ -44,9 +80,12 @@ recovery_verify_container() {
       (.index_digest | type == "string" and test("^sha256:[0-9a-f]{64}$"))
     ' "$receipt" >/dev/null || recovery_fail 'Reviewed OCI receipt does not match the release identity.'
     expected_digest="$(jq -r '.index_digest' "$receipt")"
+    expected_created="$(jq -er '.children[0].provenance_labels["org.opencontainers.image.created"]' "$receipt")" ||
+      recovery_fail 'Reviewed OCI receipt has no approved creation instant.'
+    creation_arguments=(--created "$expected_created")
   fi
   python3 "$validator" --image "$image" --repository "$repository" --source-sha "$source_sha" \
-    --version "$version" --evidence-directory "$evidence_directory" || return $?
+    --version "$version" "${creation_arguments[@]}" --evidence-directory "$evidence_directory" || return $?
   if [ -n "$receipt" ]; then
     actual_digest="$(jq -r '.index_digest' "$evidence_directory/oci-validation.json")"
     [ "$actual_digest" = "$expected_digest" ] || recovery_fail 'OCI destination digest changed from the reviewed receipt.'
@@ -155,7 +194,7 @@ recovery_check_release_assets() {
 # Bind prepared bytes to the validated inventory, source and destination decisions.
 recovery_preparation_state() {
   local state_file
-  for state_file in source-sha version package-manifest-sha256 missing-packages existing-packages container-state; do
+  for state_file in source-sha version package-manifest-sha256 missing-packages existing-packages container-state execution-identity.json workflow-provenance.json source-gates.json; do
     [ -f "$state_directory/$state_file" ] || recovery_fail "Required recovery state $state_file is absent."
   done
   case "$(cat "$state_directory/container-state")" in
@@ -163,7 +202,7 @@ recovery_preparation_state() {
     *) recovery_fail 'Container recovery state must be present or absent.' ;;
   esac
   printf 'repository %s\nregistry %s\ncontainer %s\n' "$repository" "${HEXALITH_ZOT_REGISTRY:-registry.hexalith.com}" "${HEXALITH_RECOVERY_CONTAINER_REPOSITORY:-tenants}"
-  for state_file in source-sha version package-manifest-sha256 missing-packages existing-packages existing-package-sha256 container-state; do
+  for state_file in source-sha version package-manifest-sha256 missing-packages existing-packages existing-package-sha256 container-state execution-identity.json workflow-provenance.json source-gates.json; do
     if [ -f "$state_directory/$state_file" ]; then
       sha256sum "$state_directory/$state_file" || return 1
     else
@@ -184,6 +223,7 @@ recovery_package_hashes() {
 }
 
 recovery_require_prepared() {
+  recovery_require_execution
   local current_packages current_state
   [ -s "$state_directory/prepared-packages-sha256" ] && [ -s "$state_directory/prepared-state-sha256" ] ||
     recovery_fail 'Prepared package evidence is required before publication.'

@@ -33,7 +33,7 @@ FORBIDDEN_DEPENDENCY_FRAGMENTS = (
     ".ServiceDefaults",
 )
 
-ALLOWED_DEPENDENCY_IDS = frozenset({
+SERVER_TECHNICAL_DEPENDENCY_IDS = frozenset({
     "Hexalith.EventStore.ServiceDefaults",
     "Hexalith.Commons.ServiceDefaults",
 })
@@ -44,9 +44,11 @@ FORBIDDEN_DEPENDENCY_IDS_NORMALIZED = frozenset(
 FORBIDDEN_DEPENDENCY_FRAGMENTS_NORMALIZED = tuple(
     fragment.casefold() for fragment in FORBIDDEN_DEPENDENCY_FRAGMENTS
 )
-ALLOWED_DEPENDENCY_IDS_NORMALIZED = frozenset(
-    dependency_id.casefold() for dependency_id in ALLOWED_DEPENDENCY_IDS
-)
+ALLOWED_DEPENDENCIES_BY_PACKAGE = {
+    "hexalith.tenants.server": frozenset(
+        dependency_id.casefold() for dependency_id in SERVER_TECHNICAL_DEPENDENCY_IDS
+    ),
+}
 
 
 @dataclass(frozen=True)
@@ -412,7 +414,7 @@ def validate_dependency_boundaries(
         dependency
         for group in metadata.dependencies.values()
         for dependency, _ in group.values()
-        if dependency.casefold() not in ALLOWED_DEPENDENCY_IDS_NORMALIZED
+        if dependency.casefold() not in ALLOWED_DEPENDENCIES_BY_PACKAGE.get(metadata.package_id.casefold(), frozenset())
         and (
             dependency.casefold() in FORBIDDEN_DEPENDENCY_IDS_NORMALIZED
             or any(fragment in dependency.casefold() for fragment in FORBIDDEN_DEPENDENCY_FRAGMENTS_NORMALIZED)

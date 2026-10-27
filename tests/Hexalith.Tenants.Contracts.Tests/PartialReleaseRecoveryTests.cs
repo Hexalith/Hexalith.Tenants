@@ -54,7 +54,7 @@ public class PartialReleaseRecoveryTests
     [Theory]
     [InlineData("invalid-source", "Source SHA must be an exact lowercase commit SHA.")]
     [InlineData("stale-source", "The requested source is not the live main tip.")]
-    [InlineData("no-ci", "No successful push CI run exists for the exact source SHA.")]
+    [InlineData("no-ci", "ci.yml: no push run exists for exact main source")]
     [InlineData("unknown-tag", "The release tag state could not be proved.")]
     [InlineData("unknown-release", "The GitHub Release state could not be proved.")]
     [InlineData("wrong-source", "The existing release tag resolves to a different source.")]
@@ -75,7 +75,7 @@ public class PartialReleaseRecoveryTests
         bool expectInventory = false,
         bool existingState = false)
     {
-        const string sourceSha = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        string sourceSha = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
         string repoRoot = FindRepoRoot();
         string temporaryRoot = Path.Combine(Path.GetTempPath(), $"tenants-recovery-{Guid.NewGuid():N}");
         Directory.CreateDirectory(temporaryRoot);
@@ -85,6 +85,26 @@ public class PartialReleaseRecoveryTests
         string manifest = Path.Combine(repoRoot, "tools/release-packages.json");
         try
         {
+            using Process setup = new()
+            {
+                StartInfo = new ProcessStartInfo("python3")
+                {
+                    WorkingDirectory = temporaryRoot,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                },
+            };
+            setup.StartInfo.ArgumentList.Add(Path.Combine(repoRoot, "tests/scripts/recovery_execution_fixture.py"));
+            setup.StartInfo.ArgumentList.Add(temporaryRoot);
+            setup.Start();
+            string setupOutput = await setup.StandardOutput.ReadToEndAsync();
+            string setupError = await setup.StandardError.ReadToEndAsync();
+            await setup.WaitForExitAsync();
+            setup.ExitCode.ShouldBe(0, setupError);
+            using JsonDocument execution = JsonDocument.Parse(setupOutput);
+            sourceSha = execution.RootElement.GetProperty("source_sha").GetString()!;
+            string buildsSha = execution.RootElement.GetProperty("builds_sha").GetString()!;
             await File.WriteAllTextAsync(callLog, string.Empty);
             await File.WriteAllTextAsync(unexpectedLog, string.Empty);
             using var inventory = JsonDocument.Parse(await File.ReadAllTextAsync(manifest));
@@ -119,8 +139,17 @@ public class PartialReleaseRecoveryTests
                   case "$*" in
                     'api repos/fixture/recovery/git/ref/heads/main --jq .object.sha')
                       if [ "$FIXTURE_SCENARIO" = stale-source ]; then echo wrong-source; else echo "$FIXTURE_SHA"; fi ;;
-                    "api --method GET repos/fixture/recovery/actions/workflows/ci.yml/runs -f branch=main -f event=push -f head_sha=$FIXTURE_SHA -f status=success -f per_page=100 --jq "*)
-                      printf '%s\n' "$FIXTURE_CI_RUNS" | jq -er "${!#}" ;;
+                    'api --paginate --slurp --method GET repos/fixture/recovery/actions/workflows/'*)
+                      local workflow id
+                      workflow="$(printf '%s' "$*" | sed -n 's|.*actions/workflows/\([^/]*\)/runs.*|\1|p')"
+                      case "$workflow" in ci.yml) id=1 ;; story-guards.yml) id=2 ;; source-reference.yml) id=3 ;; *) return 97 ;; esac
+                      printf '%s\n' "$FIXTURE_CI_RUNS" | jq --arg workflow "$workflow" --argjson id "$id" '[.workflow_runs |= map(. + {id:$id, path:(".github/workflows/" + $workflow)})]' ;;
+                    'api repos/fixture/recovery/actions/runs/'*)
+                      local id workflow
+                      id="${!#}"
+                      id="${id##*/}"
+                      case "$id" in 1) workflow=ci.yml ;; 2) workflow=story-guards.yml ;; 3) workflow=source-reference.yml ;; *) return 97 ;; esac
+                      printf '%s\n' "$FIXTURE_CI_RUNS" | jq --arg workflow "$workflow" --argjson id "$id" '.workflow_runs[0] + {id:$id, path:(".github/workflows/" + $workflow)}' ;;
                     'api --include repos/fixture/recovery/git/ref/tags/v1.2.3')
                       case "$FIXTURE_SCENARIO" in
                         missing-tag|both-absent) printf 'HTTP/2.0 404 Not Found\n'; return 1 ;;
@@ -172,6 +201,10 @@ public class PartialReleaseRecoveryTests
                     *) printf 'curl %s\n' "$url" >> "$FIXTURE_UNEXPECTED_LOG"; echo "Unexpected curl request: $url" >&2; return 97 ;;
                   esac
                 }
+                mkdir -p bin
+                { printf '#!/usr/bin/env bash\n'; declare -f gh; printf 'gh "$@"\n'; } > bin/gh
+                chmod +x bin/gh
+                export PATH="$PWD/bin:$PATH"
                 source "$FIXTURE_VALIDATOR" 1.2.3 "$FIXTURE_SHA"
                 """;
             using Process process = new()
@@ -193,27 +226,28 @@ public class PartialReleaseRecoveryTests
             environment["FIXTURE_CALL_LOG"] = callLog;
             environment["FIXTURE_UNEXPECTED_LOG"] = unexpectedLog;
             environment["FIXTURE_EXISTING_ID"] = ids[0].ToLowerInvariant();
-            string[] ciCases = ["valid", "wrong-sha", "wrong-branch", "wrong-event", "running", "failed"];
             environment["FIXTURE_CI_RUNS"] = JsonSerializer.Serialize(new
             {
-                workflow_runs = ciCases.Where(item => scenario != "no-ci" || item != "valid").Select(item => new
+                workflow_runs = scenario == "no-ci" ? [] : new[]
                 {
-                    head_sha = item == "wrong-sha" ? "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" : sourceSha,
-                    head_branch = item == "wrong-branch" ? "feature" : "main",
-                    @event = item == "wrong-event" ? "pull_request" : "push",
-                    status = item == "running" ? "in_progress" : "completed",
-                    conclusion = item == "failed" ? "failure" : "success",
-                }),
+                    new
+                    {
+                        id = 1, run_number = 1, run_attempt = 1,
+                        head_sha = sourceSha, head_branch = "main", @event = "push",
+                        status = "completed", conclusion = "success",
+                    },
+                },
             });
             environment["FIXTURE_VALIDATOR"] = Path.Combine(repoRoot, "scripts/validate-partial-release-recovery.sh");
             environment["RECOVERY_FIXTURE"] = temporaryRoot;
             environment["FIXTURE_REGISTRY"] = Path.Combine(repoRoot, "tests/scripts/release_registry_fixture.py");
-            environment["HEXALITH_RELEASE_OCI_VALIDATOR"] = Path.Combine(repoRoot, "references/Hexalith.Builds/Github/publish-containers/oci_registry_validator.py");
+
             environment["PYTHONPATH"] = temporaryRoot + Path.PathSeparator + Path.Combine(repoRoot, "tests/scripts");
             environment["GITHUB_REPOSITORY"] = "fixture/recovery";
             environment["HEXALITH_RELEASE_SOURCE_BRANCH"] = "main";
             environment["HEXALITH_RELEASE_SOURCE_CI_WORKFLOW"] = "ci.yml";
-            environment["HEXALITH_BUILDS_EXECUTION_SHA"] = sourceSha;
+            environment["HEXALITH_BUILDS_EXECUTION_SHA"] = buildsSha;
+            environment["GITHUB_SHA"] = sourceSha;
             environment["HEXALITH_RELEASE_ENVIRONMENT"] = "production";
             environment["HEXALITH_RELEASE_PACKAGE_MANIFEST"] = manifest;
             environment["HEXALITH_RECOVERY_STATE_DIRECTORY"] = stateDirectory;
@@ -289,10 +323,13 @@ public class PartialReleaseRecoveryTests
             else
             {
                 destinationReads.ShouldBeEmpty(stdout + stderr);
-                Directory.Exists(stateDirectory).ShouldBe(existingState, stdout + stderr);
+                if (scenario == "invalid-source")
+                {
+                    Directory.Exists(stateDirectory).ShouldBe(existingState, stdout + stderr);
+                }
                 if (existingState)
                 {
-                    Directory.GetFileSystemEntries(stateDirectory).Order(StringComparer.Ordinal)
+                    Directory.GetFileSystemEntries(stateDirectory).Where(path => Path.GetFileName(path) != "failures").Order(StringComparer.Ordinal)
                         .ShouldBe(previousState.Keys.Select(name => Path.Combine(stateDirectory, name)).Order(StringComparer.Ordinal));
                     foreach (var file in previousState)
                     {

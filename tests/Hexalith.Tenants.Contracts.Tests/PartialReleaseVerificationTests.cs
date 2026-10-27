@@ -33,7 +33,7 @@ public class PartialReleaseVerificationTests
     [InlineData("1.2.3-rc.1", "\"true\"", false)]
     public async Task FinalVerificationRequiresMatchingClassification(string version, string? classification, bool accepted)
     {
-        const string sourceSha = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        string sourceSha = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
         DirectoryInfo? root = new(AppContext.BaseDirectory);
         while (root is not null && !File.Exists(Path.Combine(root.FullName, "Hexalith.Tenants.slnx")))
         {
@@ -45,6 +45,26 @@ public class PartialReleaseVerificationTests
         Directory.CreateDirectory(Path.Combine(temporaryRoot, "tools"));
         try
         {
+            using Process setup = new()
+            {
+                StartInfo = new ProcessStartInfo("python3")
+                {
+                    WorkingDirectory = temporaryRoot,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                },
+            };
+            setup.StartInfo.ArgumentList.Add(Path.Combine(repoRoot, "tests/scripts/recovery_execution_fixture.py"));
+            setup.StartInfo.ArgumentList.Add(temporaryRoot);
+            setup.Start();
+            string setupOutput = await setup.StandardOutput.ReadToEndAsync();
+            string setupError = await setup.StandardError.ReadToEndAsync();
+            await setup.WaitForExitAsync();
+            setup.ExitCode.ShouldBe(0, setupError);
+            using JsonDocument execution = JsonDocument.Parse(setupOutput);
+            sourceSha = execution.RootElement.GetProperty("source_sha").GetString()!;
+            string buildsSha = execution.RootElement.GetProperty("builds_sha").GetString()!;
             string manifestPath = Path.Combine(repoRoot, "tools/release-packages.json");
             File.Copy(manifestPath, Path.Combine(temporaryRoot, "tools/release-packages.json"));
             using var manifest = JsonDocument.Parse(await File.ReadAllTextAsync(manifestPath));
@@ -63,6 +83,9 @@ public class PartialReleaseVerificationTests
 
             string stateDirectory = Path.Combine(temporaryRoot, "state");
             Directory.CreateDirectory(stateDirectory);
+            File.Copy(execution.RootElement.GetProperty("provenance").GetString()!, Path.Combine(stateDirectory, "workflow-provenance.json"));
+            File.Copy(execution.RootElement.GetProperty("identity").GetString()!, Path.Combine(stateDirectory, "execution-identity.json"));
+            await File.WriteAllTextAsync(Path.Combine(stateDirectory, "source-gates.json"), "{\"result\":\"pass\"}\n");
             Directory.CreateDirectory(Path.Combine(temporaryRoot, "nupkgs"));
             await File.WriteAllTextAsync(Path.Combine(stateDirectory, "package-manifest-sha256"),
                 Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(await File.ReadAllBytesAsync(manifestPath))) + "\n");
@@ -129,7 +152,7 @@ public class PartialReleaseVerificationTests
             environment["GITHUB_SHA"] = sourceSha;
             environment["RECOVERY_FIXTURE"] = temporaryRoot;
             environment["FIXTURE_REGISTRY"] = Path.Combine(repoRoot, "tests/scripts/release_registry_fixture.py");
-            environment["HEXALITH_RELEASE_OCI_VALIDATOR"] = Path.Combine(repoRoot, "references/Hexalith.Builds/Github/publish-containers/oci_registry_validator.py");
+            environment["HEXALITH_BUILDS_EXECUTION_SHA"] = buildsSha;
             environment["PYTHONPATH"] = temporaryRoot + Path.PathSeparator + Path.Combine(repoRoot, "tests/scripts");
             environment["GITHUB_REPOSITORY"] = "fixture/recovery";
             environment["HEXALITH_ZOT_USERNAME"] = "fixture-user";

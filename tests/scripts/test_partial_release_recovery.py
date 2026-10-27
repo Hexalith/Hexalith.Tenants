@@ -12,6 +12,8 @@ import sys
 import tempfile
 import unittest
 
+from recovery_execution_fixture import create as create_execution_fixture
+
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE_SHA = "a" * 40
@@ -57,10 +59,20 @@ if kind == "curl":
     else: fail()
 elif kind == "gh":
     if args[0] == "api":
-        endpoint = args[2] if args[1] in ("--include", "--method") else args[1]
-        if args[1] == "--method": endpoint = args[3]
+        endpoint = next((argument for argument in args if argument.startswith("repos/")), "")
         if endpoint.endswith("git/ref/heads/main"): print(state.get("live_main_sha", os.environ["GITHUB_SHA"]))
-        elif "/actions/workflows/" in endpoint: print(1)
+        elif "/actions/workflows/" in endpoint:
+            workflow = endpoint.split("/actions/workflows/", 1)[1].split("/", 1)[0]
+            default = {"id": {"ci.yml": 1, "story-guards.yml": 2, "source-reference.yml": 3}[workflow],
+                       "run_number": 1, "run_attempt": 1, "head_sha": os.environ["GITHUB_SHA"], "head_branch": "main",
+                       "event": "push", "path": ".github/workflows/" + workflow, "status": "completed", "conclusion": "success"}
+            print(json.dumps([{"workflow_runs": state.get("gate_runs", {}).get(workflow, [default])}]))
+        elif "/actions/runs/" in endpoint:
+            run_id = int(endpoint.rsplit("/", 1)[1])
+            workflow = {1: "ci.yml", 2: "story-guards.yml", 3: "source-reference.yml"}[run_id]
+            default = {"id": run_id, "run_number": 1, "run_attempt": 1, "head_sha": os.environ["GITHUB_SHA"], "head_branch": "main",
+                       "event": "push", "path": ".github/workflows/" + workflow, "status": "completed", "conclusion": "success"}
+            print(json.dumps(state.get("gate_detail", {}).get(workflow, default)))
         elif "/git/ref/tags/" in endpoint:
             if "--include" in args: print("HTTP/2.0 200 OK" if state["tag"] else "HTTP/2.0 404 Not Found")
             elif "--jq" in args: print("commit" if args[-1] == ".object.type" else state.get("tag_sha", os.environ["GITHUB_SHA"]))
@@ -122,6 +134,14 @@ elif kind == "dotnet":
     elif args[0] == "publish":
         for prefix in ("-p:ContainerProvenanceSourceSha=", "-p:ContainerProvenanceReleaseVersion=", "-p:ContainerProvenanceCreated="):
             if not any(a.startswith(prefix) and a != prefix for a in args): fail()
+        if state.get("mutate_helper_on_publish"):
+            helper = pathlib.Path(".hexalith/builds-execution/Github/publish-containers/oci_registry_validator.py")
+            helper.write_text(helper.read_text() + "\n# publisher mutation\n")
+        if state.get("hold_publish"):
+            (root / "publisher-held").touch()
+            import time
+            while not (root / "publisher-resume").exists(): time.sleep(0.02)
+        state["created"] = next(a.split("=", 1)[1] for a in args if a.startswith("-p:ContainerProvenanceCreated="))
         state["container"] = True; save()
     else: fail()
 elif kind == "docker":
@@ -156,14 +176,16 @@ class PartialReleaseRecoveryTests(unittest.TestCase):
             path = self.root / "bin" / client
             path.write_text(f"#!{sys.executable}\n" + CLIENT)
             path.chmod(0o755)
+        execution = create_execution_fixture(self.root, actual_workflows=getattr(self, "actual_workflows", False))
+        self.source_sha = execution["source_sha"]
         self.environment = {
             **os.environ,
             "PATH": str(self.root / "bin") + os.pathsep + os.environ["PATH"],
             "RECOVERY_FIXTURE": str(self.root),
             "HEXALITH_RELEASE_PACKAGE_MANIFEST": str(self.manifest_path),
             "HEXALITH_RECOVERY_STATE_DIRECTORY": str(self.root / "state"),
-            "GITHUB_REPOSITORY": "fixture/recovery", "GITHUB_SHA": SOURCE_SHA,
-            "HEXALITH_BUILDS_EXECUTION_SHA": SOURCE_SHA, "HEXALITH_RELEASE_ENVIRONMENT": "production",
+            "GITHUB_REPOSITORY": "fixture/recovery", "GITHUB_SHA": self.source_sha,
+            "HEXALITH_BUILDS_EXECUTION_SHA": execution["builds_sha"], "HEXALITH_RELEASE_ENVIRONMENT": "production",
             "HEXALITH_RELEASE_SOURCE_BRANCH": "main", "HEXALITH_RELEASE_SOURCE_CI_WORKFLOW": "ci.yml",
             "HEXALITH_ZOT_REGISTRY": "fixture.invalid", "HEXALITH_ZOT_USERNAME": "fixture-user",
             "HEXALITH_ZOT_API_KEY": "fixture-key", "GITHUB_OUTPUT": str(self.root / "outputs"),
@@ -233,6 +255,99 @@ class PartialReleaseRecoveryTests(unittest.TestCase):
         self.assertFalse(any(c[:3] in (["gh", "release", "upload"], ["gh", "release", "create"],
                                       ["dotnet", "nuget", "push"])
                              or c[:2] == ["dotnet", "publish"] for c in self.calls()))
+
+    def test_required_source_gate_refuses_before_build_or_publication(self):
+        for workflow in ("ci.yml", "story-guards.yml", "source-reference.yml"):
+            for status, conclusion in (("completed", "failure"), ("completed", "skipped"), ("in_progress", None)):
+                with self.subTest(workflow=workflow, status=status, conclusion=conclusion):
+                    run = {"id": {"ci.yml": 1, "story-guards.yml": 2, "source-reference.yml": 3}[workflow],
+                           "run_number": 1, "run_attempt": 1, "head_sha": self.source_sha, "head_branch": "main",
+                           "event": "push", "path": ".github/workflows/" + workflow, "status": status, "conclusion": conclusion}
+                    self.destinations["gate_detail"] = {workflow: run}
+                    self.save()
+                    result = self.run_script("validate-partial-release-recovery.sh", False)
+                    self.assertIn(workflow, result.stderr)
+                    self.assertFalse(any(call[0] == "dotnet" for call in self.calls()))
+                    self.assert_no_publication()
+
+    def test_gate_failure_after_preparation_refuses_publication(self):
+        self.prepare()
+        before = (self.root / "state/prepared-state-sha256").read_bytes()
+        self.destinations["gate_detail"] = {"ci.yml": {"id": 1, "run_number": 1, "run_attempt": 2,
+            "head_sha": self.source_sha, "head_branch": "main", "event": "push",
+            "path": ".github/workflows/ci.yml", "status": "completed", "conclusion": "failure"}}
+        self.save()
+        self.environment["NUGET_API_KEY"] = "fixture-key"
+        self.run_script("publish-partial-release.sh", False)
+        self.assertEqual((self.root / "state/prepared-state-sha256").read_bytes(), before)
+        self.assert_no_publication()
+
+    def test_recovery_tooling_must_match_source_approval(self):
+        self.environment["HEXALITH_BUILDS_EXECUTION_SHA"] = "b" * 40
+        result = self.run_script("validate-partial-release-recovery.sh", False)
+        self.assertIn("approved execution revision", result.stderr)
+        self.assert_no_publication()
+
+    def test_tooling_and_provenance_drift_refuse_prepared_state(self):
+        for filename in ("execution-identity.json", "workflow-provenance.json"):
+            with self.subTest(filename=filename):
+                self.prepare()
+                path = self.root / "state" / filename
+                original = path.read_text()
+                path.write_text(original + " ")
+                if filename == "execution-identity.json":
+                    document = json.loads(original)
+                    document["builds_execution_sha"] = "b" * 40
+                    path.write_text(json.dumps(document))
+                self.environment["NUGET_API_KEY"] = "fixture-key"
+                self.run_script("publish-partial-release.sh", False)
+                self.assert_no_publication()
+                path.write_text(original)
+
+    def test_unapproved_cached_helper_refuses_before_preparation(self):
+        self.run_script("validate-partial-release-recovery.sh")
+        cache = self.root / ".hexalith/builds-execution/Github/governed-provenance/__pycache__/unapproved.pyc"
+        cache.parent.mkdir()
+        cache.write_bytes(b"unapproved cached code")
+        result = self.run_script("prepare-partial-release.sh", False)
+        self.assertIn("bytecode files appeared", result.stderr)
+        self.assertFalse(any(call[0] == "dotnet" for call in self.calls()))
+        self.assert_no_publication()
+
+    def test_changed_shared_helper_refuses_before_preparation(self):
+        self.run_script("validate-partial-release-recovery.sh")
+        helper = self.root / ".hexalith/builds-execution/Github/publish-containers/oci_registry_validator.py"
+        helper.write_text(helper.read_text() + "\n# changed helper\n")
+        result = self.run_script("prepare-partial-release.sh", False)
+        self.assertIn("shared helper bytes changed", result.stderr)
+        self.assertFalse(any(call[0] == "dotnet" for call in self.calls()))
+        self.assert_no_publication()
+
+    def test_held_publisher_mutation_refuses_before_oci_or_release_writes(self):
+        import time
+        self.prepare()
+        self.destinations.update(hold_publish=True, mutate_helper_on_publish=True)
+        self.save()
+        self.environment["NUGET_API_KEY"] = "fixture-key"
+        (self.root / "calls.jsonl").write_text("")
+        process = subprocess.Popen(["bash", str(ROOT / "scripts/publish-partial-release.sh"), "1.2.3"],
+                                   cwd=self.root, env=self.environment, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        try:
+            deadline = time.monotonic() + 15
+            while not (self.root / "publisher-held").exists() and process.poll() is None and time.monotonic() < deadline:
+                time.sleep(0.02)
+            self.assertTrue((self.root / "publisher-held").exists())
+            (self.root / "publisher-resume").touch()
+            stdout, stderr = process.communicate(timeout=15)
+            self.assertNotEqual(process.returncode, 0, stdout + stderr)
+            self.assertIn("shared helper bytes changed", stderr)
+            calls = self.calls()
+            publish = next(index for index, call in enumerate(calls) if call[:2] == ["dotnet", "publish"])
+            self.assertFalse(any(call[0] == "oci" or call[:2] == ["gh", "release"] for call in calls[publish + 1:]), calls)
+        finally:
+            if process.poll() is None:
+                process.kill()
+                process.communicate()
 
     def test_publication_never_rebuilds_prepared_packages(self):
         self.prepare()
@@ -318,7 +433,8 @@ class PartialReleaseRecoveryTests(unittest.TestCase):
                 self.environment["NUGET_API_KEY"] = "fixture-key"
                 (self.root / "calls.jsonl").write_text("")
                 result = self.run_script("publish-partial-release.sh", accepted=False)
-                self.assertIn("state changed after package preparation", result.stderr)
+                expected = "workflow identity is unverifiable" if name == "GITHUB_REPOSITORY" else "state changed after package preparation"
+                self.assertIn(expected, result.stderr)
                 self.assertEqual(self.calls(), [])
                 if old_value is None: self.environment.pop(name)
                 else: self.environment[name] = old_value
@@ -523,7 +639,7 @@ class PartialReleaseRecoveryTests(unittest.TestCase):
         self.assertIn("does not match the reviewed package", result.stderr)
 
     def test_invalid_existing_oci_content_is_rejected_without_publication(self):
-        for mutation in ("label", "platform", "digest", "size", "unresolved", "negotiation"):
+        for mutation in ("label", "platform", "digest", "size", "unresolved", "negotiation", "missing-created", "malformed-created", "mismatched-created"):
             with self.subTest(mutation=mutation):
                 self.destinations.update(container=True, oci_mutation=mutation)
                 self.save()

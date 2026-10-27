@@ -255,3 +255,28 @@ Please include:
 - Steps to reproduce (for bugs)
 - Expected vs actual behavior
 - .NET SDK version and OS
+
+Release and partial recovery admission require the latest `push` run and latest
+attempt of **each** `ci.yml`, `story-guards.yml`, and `source-reference.yml` for
+the exact live `main` source to have completed successfully. A missing, pending,
+failed or skipped latest run refuses admission; an earlier green run cannot
+mask it. Intentional conditional jobs, including nightly performance tests,
+retain their existing schedules.
+
+The generic Aspire lane is blocking for Tenants. It installs pinned browser,
+TLS trust and Dapr prerequisites and rejects skipped or empty qualification
+results. Package policy permits the exact technical dependencies
+`Hexalith.EventStore.ServiceDefaults` and `Hexalith.Commons.ServiceDefaults`
+only in `Hexalith.Tenants.Server`; framework, dependency ID and restored version
+range checks still apply to every package.
+
+Publication stays in the standalone Trusted Publishing workflows. Before
+preparing artifacts they verify the actual executing workflow and its bounded,
+immutable action/helper closure. Recovery checks out the Builds execution SHA
+approved by the source `release.yml`, separately from source-pinned build props.
+Recovery retains source-gate observations, workflow provenance and helper
+identity in `.hexalith/recovery`; preparation and publication revalidate them and
+refuse prepared-state reuse after drift. An initial OCI recovery observation
+requires canonical, matching image/artifact creation labels on both platforms.
+Later checks freeze the observed creation instant and index digest from the
+reviewed receipt; normal publication uses its publisher receipt's exact instant.

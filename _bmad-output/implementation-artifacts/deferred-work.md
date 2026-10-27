@@ -6291,3 +6291,10 @@ archived: 2026-10-22
 - source_spec: `_bmad-output/implementation-artifacts/spec-dw-194-201-221-267-609-ui-safety.md`
   summary: Medium — route a pinned Fluent UI 5.0.1 grid continuation that uses a disposed JavaScript module during navigation to the component owner.
   evidence: One full authenticated browser run failed during create recovery with ObjectDisposedException in FluentDataGrid.UpdateColumnInteractionsAsync/OnAfterRenderAsync and one circuit error; its packet, log and sanitized stack are preserved in the batch evidence diagnostics. The existing pinned grid awaits initialization before later module use without a disposal recheck. Later labelled checks did not reproduce the circuit fault, so the exact focus checkpoint remains unproven and no local workaround is claimed. Reproduce with controlled grid initialization/disposal across detail navigation and Back, then qualify the owning component fix; retain zero-circuit-error acceptance.
+
+
+## Deferred from: release-governance independent review (2026-10-27)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-dw-540-554-570-584-593-release-governance.md`
+  summary: Medium, unverified — qualify a fresh generic blocking Aspire CI run after the published EventStore routing contracts can compile.
+  evidence: The new browser/TLS/Dapr prerequisite and result-gate definitions have local contract checks, but no fresh full generic Aspire provisioning run is claimed. Current default and Release/package Contracts builds fail with ten missing EventStore routing-type errors in TenantCatalogDeclarations.cs; pre-review Debug/source Contracts passed 704/704 and both real workflow closures passed immutable-snapshot checks. Retain those distinct results and the existing release holds. Capture a fresh package-mode generic tier with installed prerequisites, executed tests and no skips after the upstream package prerequisite is available.

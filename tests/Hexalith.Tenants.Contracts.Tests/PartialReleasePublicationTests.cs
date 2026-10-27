@@ -301,7 +301,7 @@ public class PartialReleasePublicationTests
         bool terminateExistingInventory = true)
     {
         ArgumentNullException.ThrowIfNull(response);
-        const string sourceSha = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        string sourceSha = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
         string repoRoot = FindRepoRoot();
         string temporaryRoot = Path.Combine(Path.GetTempPath(), $"tenants-publication-{Guid.NewGuid():N}");
         string stateDirectory = Path.Combine(temporaryRoot, "state");
@@ -310,6 +310,26 @@ public class PartialReleasePublicationTests
         Directory.CreateDirectory(stateDirectory);
         try
         {
+            using Process setup = new()
+            {
+                StartInfo = new ProcessStartInfo("python3")
+                {
+                    WorkingDirectory = temporaryRoot,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                },
+            };
+            setup.StartInfo.ArgumentList.Add(Path.Combine(repoRoot, "tests/scripts/recovery_execution_fixture.py"));
+            setup.StartInfo.ArgumentList.Add(temporaryRoot);
+            setup.Start();
+            string setupOutput = await setup.StandardOutput.ReadToEndAsync();
+            string setupError = await setup.StandardError.ReadToEndAsync();
+            await setup.WaitForExitAsync();
+            setup.ExitCode.ShouldBe(0, setupError);
+            using JsonDocument execution = JsonDocument.Parse(setupOutput);
+            sourceSha = execution.RootElement.GetProperty("source_sha").GetString()!;
+            string buildsSha = execution.RootElement.GetProperty("builds_sha").GetString()!;
             using var manifest = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(repoRoot, "tools/release-packages.json")));
             string[] ids = [.. manifest.RootElement.GetProperty("packages").EnumerateArray()
                 .Select(package => package.GetProperty("id").GetString()!)];
@@ -339,6 +359,9 @@ public class PartialReleasePublicationTests
                 ["existing-package-sha256"] = string.Concat(existingIds.Reverse().Select(id =>
                     $"{Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(packageContents[id])))} {id}\n")),
                 ["package-manifest-sha256"] = Convert.ToHexStringLower(SHA256.HashData(await File.ReadAllBytesAsync(manifestPath))) + "\n",
+                ["workflow-provenance.json"] = await File.ReadAllTextAsync(execution.RootElement.GetProperty("provenance").GetString()!),
+                ["execution-identity.json"] = await File.ReadAllTextAsync(execution.RootElement.GetProperty("identity").GetString()!),
+                ["source-gates.json"] = "{\"result\":\"pass\"}\n",
                 ["container-state"] = inventory is "container" or "mixed" or "mixed-existing" or "all-missing" ? "absent\n" : "present\n",
             };
             if (response == "missing-inventory")
@@ -397,6 +420,17 @@ public class PartialReleasePublicationTests
                 }
                 gh() {
                   case "$*" in
+                    'api --paginate --slurp --method GET repos/fixture/recovery/actions/workflows/'*)
+                      local workflow id
+                      workflow="$(printf '%s' "$*" | sed -n 's|.*actions/workflows/\([^/]*\)/runs.*|\1|p')"
+                      case "$workflow" in ci.yml) id=1 ;; story-guards.yml) id=2 ;; source-reference.yml) id=3 ;; *) return 97 ;; esac
+                      jq -n --arg sha "$FIXTURE_SHA" --arg workflow "$workflow" --argjson id "$id" '[{workflow_runs:[{id:$id,run_number:1,run_attempt:1,head_sha:$sha,head_branch:"main",event:"push",path:(".github/workflows/"+$workflow),status:"completed",conclusion:"success"}]}]' ;;
+                    'api repos/fixture/recovery/actions/runs/'*)
+                      local id workflow
+                      id="${!#}"
+                      id="${id##*/}"
+                      case "$id" in 1) workflow=ci.yml ;; 2) workflow=story-guards.yml ;; 3) workflow=source-reference.yml ;; *) return 97 ;; esac
+                      jq -n --arg sha "$FIXTURE_SHA" --arg workflow "$workflow" --argjson id "$id" '{id:$id,run_number:1,run_attempt:1,head_sha:$sha,head_branch:"main",event:"push",path:(".github/workflows/"+$workflow),status:"completed",conclusion:"success"}' ;;
                     'api repos/fixture/recovery/git/ref/heads/main --jq .object.sha')
                       echo main >> "$FIXTURE_CALLS"
                       if [ "$FIXTURE_RESPONSE" = initially-stale ]; then printf '%040d\n' 1; return; fi
@@ -448,7 +482,7 @@ public class PartialReleasePublicationTests
                 curl() { [ "$(cat "$HEXALITH_RECOVERY_STATE_DIRECTORY/container-state")" = present ] && echo 200 || echo 404; }
                 python3() {
                   case "$*" in
-                    *oci_registry_validator.py*|*release-package-content.py*) command python3 "$@" ;;
+                    *oci_registry_validator.py*|*release-package-content.py*|*execution_identity.py*|*source_workflow_gates.py*) command python3 "$@" ;;
                     "${FIXTURE_PACKER} --manifest ${FIXTURE_MANIFEST} --validate-only") command python3 "$@" ;;
                     "scripts/pack-release-packages.py ./nupkgs ${FIXTURE_VERSION} --manifest ${FIXTURE_MANIFEST}") prepare pack ;;
                     "scripts/validate-nuget-packages.py ./nupkgs --manifest ${FIXTURE_MANIFEST}") prepare packages ;;
@@ -469,6 +503,10 @@ public class PartialReleasePublicationTests
                     *) unexpected "docker $*" ;;
                   esac
                 }
+                mkdir -p bin
+                { printf '#!/usr/bin/env bash\n'; declare -f gh unexpected; printf 'gh "$@"\n'; } > bin/gh
+                chmod +x bin/gh
+                export PATH="$PWD/bin:$PATH"
                 unset NUGET_API_KEY
                 source "$FIXTURE_PREPARER" "$FIXTURE_VERSION"
                 export NUGET_API_KEY=fixture-key
@@ -520,7 +558,8 @@ public class PartialReleasePublicationTests
                 + $"-p:ContainerProvenanceSourceSha={sourceSha} -p:ContainerProvenanceReleaseVersion={version} -p:ContainerProvenanceCreated=2026-10-23T00:00:00Z";
             environment["RECOVERY_FIXTURE"] = temporaryRoot;
             environment["FIXTURE_REGISTRY"] = Path.Combine(repoRoot, "tests/scripts/release_registry_fixture.py");
-            environment["HEXALITH_RELEASE_OCI_VALIDATOR"] = Path.Combine(repoRoot, "references/Hexalith.Builds/Github/publish-containers/oci_registry_validator.py");
+            environment["HEXALITH_BUILDS_EXECUTION_SHA"] = buildsSha;
+            environment["FIXTURE_CREATED"] = "2026-10-23T00:00:00Z";
             environment["PYTHONPATH"] = temporaryRoot + Path.PathSeparator + Path.Combine(repoRoot, "tests/scripts");
             environment["GITHUB_REPOSITORY"] = "fixture/recovery";
             environment["GITHUB_SHA"] = sourceSha;
@@ -631,8 +670,12 @@ public class PartialReleasePublicationTests
 
             string[] preparedFiles = response is "stable" or "changed" or "empty" or "malformed" or "unavailable"
                 ? ["prepared-packages-sha256", "prepared-state-sha256"] : [];
+            string[] gateEvidenceFiles = response is "source-mismatch" or "version-mismatch" or "missing-inventory"
+                ? [] : preparedFiles.Length > 0
+                    ? ["source-gates-preparation.json", "source-gates-publication.json"] : ["source-gates-preparation.json"];
             Directory.GetFiles(stateDirectory).Select(Path.GetFileName).Order(StringComparer.Ordinal)
-                .ShouldBe(originalState.Keys.Concat(preparedFiles).Concat(existingIds.Select(id => $"{id}.{version}.nupkg")).Order(StringComparer.Ordinal));
+                .ShouldBe(originalState.Keys.Concat(preparedFiles).Concat(gateEvidenceFiles)
+                    .Concat(existingIds.Select(id => $"{id}.{version}.nupkg")).Order(StringComparer.Ordinal));
         }
         finally
         {

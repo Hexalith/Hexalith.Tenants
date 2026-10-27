@@ -320,3 +320,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-367 | P3 | Accepted / accepted-limitation | unassigned | Explicit contract/product change approval | Keep deliberate role selection; revisit the event schema only through a separately approved contract change. |
 
 **Additional unnumbered verification follow-up (2026-10-24):** One grant Escape focus timeout remains unverified after a passing instrumented trace and final normal nine-case browser run. Its cause and distinguishing reproduction are retained in the deferred ledger and [focus diagnostic](../_bmad-output/implementation-artifacts/dw-391-focus-diagnostic.json). Numbered DW totals and exact index coverage exclude this follow-up until migration.
+
+
+**Additional unnumbered CI qualification follow-up (2026-10-27):** A fresh full generic Aspire run remains unqualified while published EventStore routing types fail compilation. The release-governance review records this separately from workflow policy/result-gate implementation; numbered DW totals exclude the follow-up. Existing runtime/release holds remain.

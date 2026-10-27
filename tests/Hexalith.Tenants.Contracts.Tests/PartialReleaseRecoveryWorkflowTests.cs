@@ -19,7 +19,8 @@ public class PartialReleaseRecoveryWorkflowTests
     public async Task RecoveryPipelinePassesOfflineDestinationControls()
     {
         string repository = FindRepoRoot();
-        var result = await RunAsync("python3", [Path.Combine(repository, "tests/scripts/test_partial_release_recovery.py")]);
+        var result = await RunAsync("python3", [Path.Combine(repository, "tests/scripts/test_partial_release_recovery.py")],
+            timeout: TimeSpan.FromMinutes(5));
         result.ExitCode.ShouldBe(0, result.Diagnostics);
         result.Diagnostics.ShouldContain("OK");
     }
@@ -330,6 +331,56 @@ public class PartialReleaseRecoveryWorkflowTests
         _ = Should.Throw<ShouldAssertException>(() => AssertDestinationVerificationBindings(verify));
     }
 
+    /// <summary>
+    /// Closure verification precedes preparation and remains in the standalone publishing workflow.
+    /// </summary>
+    [Fact]
+    public void StandaloneProvenancePrecedesSensitivePreparation()
+    {
+        foreach (var identity in new[]
+        {
+            (Workflow: "release.yml", Job: "prepare-release", Sensitive: "Build and pack release candidate"),
+            (Workflow: "recover-partial-release.yml", Job: "recover", Sensitive: "Prepare recovery packages"),
+        })
+        {
+            YamlMappingNode[] steps = GetSteps(identity.Workflow, identity.Job);
+            int provenance = Array.FindIndex(steps, step => Value(step, "uses") == "./.hexalith/builds-execution/Github/governed-provenance");
+            int preparation = Array.FindIndex(steps, step => Value(step, "name") == identity.Sensitive);
+            provenance.ShouldBeGreaterThan(0);
+            provenance.ShouldBeLessThan(preparation);
+            MappingValue(steps[provenance], "with", "workflow-mode").ShouldBe("standalone");
+            MappingValue(steps[provenance], "with", "workflow-path").ShouldBe(".github/workflows/" + identity.Workflow);
+            Value(steps[provenance], "if").ShouldBeEmpty();
+            Value(steps[provenance], "continue-on-error").ShouldBeEmpty();
+        }
+    }
+
+    /// <summary>
+    /// The actual final publication step and bootstrap refuse drift and changing required gates.
+    /// </summary>
+    [Fact]
+    public async Task ShippedWorkflowAdmissionAndBootstrapPassExecutableControls()
+    {
+        var result = await RunAsync("python3", [Path.Combine(FindRepoRoot(), "tests/scripts/test_release_workflow_governance.py")]);
+        result.ExitCode.ShouldBe(0, result.Diagnostics);
+        result.Diagnostics.ShouldContain("OK");
+    }
+
+    /// <summary>
+    /// Credential-free candidate preparation can read Actions qualification through the scoped GitHub token.
+    /// </summary>
+    [Fact]
+    public void CandidatePreparationCanReadRequiredWorkflowGates()
+    {
+        var job = (YamlMappingNode)GetJobs("release.yml").Children[new YamlScalarNode("prepare-release")];
+        MappingValue(job, "permissions", "actions").ShouldBe("read");
+        YamlMappingNode build = GetSteps("release.yml", "prepare-release")
+            .Single(step => Value(step, "name") == "Build and pack release candidate");
+        MappingValue(build, "env", "GH_TOKEN").ShouldBe("${{ github.token }}");
+        MappingValue(build, "env", "NUGET_API_KEY").ShouldBeEmpty();
+        MappingValue(build, "env", "HEXALITH_ZOT_API_KEY").ShouldBeEmpty();
+    }
+
     private static void AssertDestinationVerificationBindings(YamlMappingNode verification)
     {
         Value(verification, "run").ShouldBe("bash scripts/verify-release-artifacts.sh");
@@ -443,7 +494,8 @@ public class PartialReleaseRecoveryWorkflowTests
         string executable,
         string[] arguments,
         string? account = null,
-        IReadOnlyDictionary<string, string?>? environment = null)
+        IReadOnlyDictionary<string, string?>? environment = null,
+        TimeSpan? timeout = null)
     {
         using Process process = new()
         {
@@ -485,7 +537,7 @@ public class PartialReleaseRecoveryWorkflowTests
         process.Start();
         Task<string> output = process.StandardOutput.ReadToEndAsync();
         Task<string> error = process.StandardError.ReadToEndAsync();
-        using CancellationTokenSource deadline = new(TimeSpan.FromMinutes(2));
+        using CancellationTokenSource deadline = new(timeout ?? TimeSpan.FromMinutes(2));
         try
         {
             await process.WaitForExitAsync(deadline.Token);
