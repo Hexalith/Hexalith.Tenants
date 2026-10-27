@@ -9,6 +9,9 @@
     <PackageReference Include="Shouldly" />
 
     <PackageReference Include="xunit.v3.assert" />
+
+    <!-- Server's host defaults are transitive for compilation and must not be republished. -->
+    <PackageReference Include="Hexalith.EventStore.ServiceDefaults" PrivateAssets="all" />
   </ItemGroup>
 
 </Project>

@@ -408,6 +408,7 @@ def validate_dependency_boundaries(
     package_path: Path,
     metadata: PackageMetadata,
     expected_dependencies: dict,
+    sibling_package_ids: frozenset[str],
 ) -> None:
     """Validate package dependency metadata against restore evidence and forbidden boundaries."""
     forbidden_dependencies = sorted(
@@ -426,6 +427,22 @@ def validate_dependency_boundaries(
             f"{forbidden_dependencies}"
         )
 
+    # Restore records the catalog pin, while pack stamps sibling projects with the version
+    # being produced. Compare those edges to that produced version. Transitive host packages
+    # must not be republished, so drop them after the nuspec has been rejected for containing them.
+    packed_sibling_range = normalize_range(metadata.version)
+    expected_dependencies = {
+        framework: {
+            key: (
+                value[0],
+                packed_sibling_range if value[0].casefold() in sibling_package_ids else value[1],
+            )
+            for key, value in group.items()
+            if not dependency_is_forbidden(metadata.package_id, value[0])
+        }
+        for framework, group in expected_dependencies.items()
+    }
+
     # A package with no dependencies may omit the dependencies element altogether.
     if not metadata.dependencies and all(not group for group in expected_dependencies.values()):
         return
@@ -433,6 +450,16 @@ def validate_dependency_boundaries(
         raise ValueError(f"{package_path.name}: dependency target-framework groups mismatch")
     for framework, expected in expected_dependencies.items():
         validate_dependency_group(package_path, framework, metadata.dependencies[framework], expected)
+
+
+def dependency_is_forbidden(package_id: str, dependency_id: str) -> bool:
+    """Return whether a dependency is outside this package's technical exception list."""
+    folded = dependency_id.casefold()
+    if folded in ALLOWED_DEPENDENCIES_BY_PACKAGE.get(package_id.casefold(), frozenset()):
+        return False
+    return folded in FORBIDDEN_DEPENDENCY_IDS_NORMALIZED or any(
+        fragment in folded for fragment in FORBIDDEN_DEPENDENCY_FRAGMENTS_NORMALIZED
+    )
 
 
 def validate_dependency_group(package_path: Path, framework: str, actual: dict, expected: dict) -> None:
@@ -508,7 +535,7 @@ def main() -> int:
         if expected_boundary is None:
             raise ValueError(f"{package.name}: package id is not declared in the release manifest")
         _, expected_dependencies = expected_boundary
-        validate_dependency_boundaries(package, metadata, expected_dependencies)
+        validate_dependency_boundaries(package, metadata, expected_dependencies, expected_package_ids)
 
     if len(versions) != 1:
         raise ValueError(f"Expected all packages to share one version, found: {sorted(versions)}")
