@@ -329,6 +329,7 @@ public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith
         new("eventstore", "http", CommandApiClientTimeout, CommandApiHealthTimeout, WaitForAliveness: true, CommandApiHealthTimeout),
         new("tenants", "http", CommandApiClientTimeout, CommandApiHealthTimeout, WaitForAliveness: true, CommandApiHealthTimeout),
         new("tenants-ui", "http", CommandApiClientTimeout, CommandApiHealthTimeout, WaitForAliveness: false, CommandApiHealthTimeout),
+        new("tenants-ui-dapr-cli", "http", TenantsApiClientTimeout, TenantsApiHealthTimeout, WaitForAliveness: false, TenantsApiHealthTimeout),
         new("sample", "http", SampleClientTimeout, SampleHealthTimeout, WaitForAliveness: true, SampleHealthTimeout),
         // HTTPS is required because tenants-api redirects HTTP. Aliveness is polled by the Story 4.7
         // proof with that test's timeout so a slow or unhealthy generated API does not stall the
@@ -355,6 +356,9 @@ public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith
 
     /// <summary>Gets the HTTP client for the Tenants UI resource.</summary>
     public HttpClient TenantsUiClient => Client("tenants-ui");
+
+    /// <summary>Gets the UI caller sidecar's HTTP endpoint for real service-invocation qualification.</summary>
+    public HttpClient TenantsUiDaprClient => Client("tenants-ui-dapr-cli");
 
     /// <summary>Gets the HTTP client for the Sample service.</summary>
     public HttpClient SampleClient => Client("sample");

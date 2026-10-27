@@ -5,6 +5,11 @@ metadata:
 spec:
   policies:
     retries:
+      # An explicit app target also bypasses Dapr's built-in service invocation retries.
+      noReadRetry:
+        policy: constant
+        duration: 1ms
+        maxRetries: 0
       defaultRetry:
         policy: constant
         duration: 1s
@@ -18,8 +23,7 @@ spec:
         maxInterval: 30s
         maxRetries: 10
     timeouts:
-      daprSidecar:
-        general: 5s
+      daprSidecar: 5s
       pubsubTimeout: 10s
       subscriberTimeout: 30s
     circuitBreakers:
@@ -35,6 +39,9 @@ spec:
         trip: consecutiveFailures > 5
   targets:
     apps:
+      tenants-api:
+        retry: noReadRetry
+        timeout: daprSidecar
       eventstore:
         retry: defaultRetry
         timeout: daprSidecar

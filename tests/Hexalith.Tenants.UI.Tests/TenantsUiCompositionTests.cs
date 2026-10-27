@@ -765,6 +765,56 @@ public sealed class TenantsUiCompositionTests
         primaryHandler.Authorization.ShouldBe(expectedAuthorization);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Dapr_endpoint_is_authoritative_and_routing_headers_cannot_be_retargeted(bool unavailable)
+    {
+        IConfiguration configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["DAPR_HTTP_ENDPOINT"] = "http://localhost:35123",
+            ["DAPR_API_TOKEN"] = "configured-sidecar-token",
+            ["Tenants:BaseAddress"] = "https://legacy-direct.invalid",
+        }).Build();
+        ServiceCollection services = new();
+        services.AddSingleton(configuration);
+        services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: false);
+        var primaryHandler = new AuthorizationRecordingHandler { StatusCode = unavailable ? HttpStatusCode.ServiceUnavailable : HttpStatusCode.OK };
+        services.AddHttpClient<TenantsRestQueryClient>(client =>
+        {
+            client.DefaultRequestHeaders.Add("dapr-app-id", "untrusted-target");
+            client.DefaultRequestHeaders.Add("dapr-api-token", "untrusted-token");
+        }).ConfigurePrimaryHttpMessageHandler(() => primaryHandler);
+        using ServiceProvider provider = services.BuildServiceProvider();
+        using IServiceScope scope = provider.CreateScope();
+
+        var response = await scope.ServiceProvider.GetRequiredService<ITenantsRestQueryClient>()
+            .ListTenantsAsync(new ListTenantsQuery { PageSize = 20 }, "validator", TestContext.Current.CancellationToken);
+
+        primaryHandler.RequestUri.ShouldNotBeNull().AbsoluteUri.ShouldBe("http://localhost:35123/api/tenants?pageSize=20");
+        primaryHandler.AppId.ShouldBe("tenants-api");
+        primaryHandler.ApiToken.ShouldBe("configured-sidecar-token");
+        primaryHandler.IfNoneMatch.ShouldBe("\"validator\"");
+        primaryHandler.CallCount.ShouldBe(1);
+        response.FailureKind.ShouldBe(unavailable ? TenantsRestQueryFailureKind.Unavailable : TenantsRestQueryFailureKind.None);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("ftp://sidecar.invalid")]
+    public void Invalid_injected_sidecar_does_not_fall_back_to_legacy_direct_address(string endpoint)
+    {
+        IConfiguration configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["DAPR_HTTP_ENDPOINT"] = endpoint,
+            ["Tenants:BaseAddress"] = "https://legacy-direct.invalid",
+        }).Build();
+        ServiceCollection services = new();
+        services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: false);
+        services.Last(descriptor => descriptor.ServiceType == typeof(ITenantQueryGateway))
+            .ImplementationType.ShouldBe(typeof(UnavailableTenantQueryGateway));
+    }
+
     [Fact]
     public void Configuration_policy_services_are_idempotent_and_do_not_make_missing_policy_startup_fatal()
     {
@@ -2235,6 +2285,16 @@ public sealed class TenantsUiCompositionTests
     {
         public string? Authorization { get; private set; }
 
+        public string? AppId { get; private set; }
+
+        public string? ApiToken { get; private set; }
+
+        public string? IfNoneMatch { get; private set; }
+
+        public int CallCount { get; private set; }
+
+        public HttpStatusCode StatusCode { get; init; } = HttpStatusCode.OK;
+
         public Uri? RequestUri { get; private set; }
 
         protected override Task<HttpResponseMessage> SendAsync(
@@ -2244,7 +2304,11 @@ public sealed class TenantsUiCompositionTests
             cancellationToken.ThrowIfCancellationRequested();
             Authorization = request.Headers.Authorization?.ToString();
             RequestUri = request.RequestUri;
-            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            AppId = request.Headers.TryGetValues("dapr-app-id", out var appIds) ? appIds.Single() : null;
+            ApiToken = request.Headers.TryGetValues("dapr-api-token", out var tokens) ? tokens.Single() : null;
+            IfNoneMatch = request.Headers.IfNoneMatch.SingleOrDefault()?.ToString();
+            CallCount++;
+            return Task.FromResult(new HttpResponseMessage(StatusCode)
             {
                 Content = new StringContent("{\"items\":[],\"cursor\":null,\"hasMore\":false}"),
             });

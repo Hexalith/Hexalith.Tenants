@@ -126,19 +126,13 @@ public static class TenantsUiServiceCollectionExtensions
         // which a typo and a genuine outage render identically and nothing anywhere names the setting.
         TenantsUiConfigurationDiagnostics diagnostics = new();
 
-        // No service discovery is attached: the AppHost injects an already-resolved endpoint URL, which is
-        // the exact shape the EventStore command/status clients below and the Memories client already
-        // consume. Attaching .AddServiceDiscovery() registered the resolving handler without any endpoint
-        // provider -- the UI host never calls AddServiceDefaults and this repo has no ServiceDefaults
-        // project -- so every read threw "No provider which supports the provided service name" at send
-        // time, and that handler also rebuilt the request URI, re-canonicalizing the %2E escaping that
-        // DangerousDisablePathAndQueryCanonicalization exists to preserve.
-        // AC2 / "Separate dependencies": read availability follows ONLY the read reference. A compound or
-        // otherwise unsendable value fails closed to UnavailableTenantQueryGateway here -- it must not abort
-        // composition, because that also prevented the command/status block below from registering, so a typo
-        // in the read address took down command submission too. TryGetHttpBaseAddress already rejects the
-        // compound scheme (IsSendableScheme accepts only exact http/https), so nothing is lost by not throwing.
-        if (TryGetHttpBaseAddress(configuration["Tenants:BaseAddress"], out Uri? tenantsBaseAddress))
+        // The configured read address is the BFF's Dapr HTTP endpoint. Aspire injects its dynamically
+        // allocated sidecar address; an explicit Tenants address remains available to embedded hosts.
+        // Read and command/status availability are evaluated independently.
+        string tenantsEndpointSetting = configuration["DAPR_HTTP_ENDPOINT"] is not null
+            ? "DAPR_HTTP_ENDPOINT"
+            : "Tenants:BaseAddress";
+        if (TryGetHttpBaseAddress(configuration[tenantsEndpointSetting], out Uri? tenantsBaseAddress))
         {
             IHttpClientBuilder tenantsQueryClient = services
                 .AddHttpClient<TenantsRestQueryClient>(client => client.BaseAddress = tenantsBaseAddress)
@@ -151,6 +145,9 @@ public static class TenantsUiServiceCollectionExtensions
             {
                 _ = tenantsQueryClient.AddFrontComposerGatewayAuthorization();
             }
+
+            // Keep the platform routing handler innermost so relayed headers cannot retarget a read.
+            _ = tenantsQueryClient.AddEventStoreDaprServiceInvocation("tenants-api", configuration["DAPR_API_TOKEN"]);
 
             services.TryAddScoped<ITenantsRestQueryClient>(sp => sp.GetRequiredService<TenantsRestQueryClient>());
             services.TryAddScoped<ITenantQueryGateway, TenantQueryGateway>();
@@ -170,7 +167,7 @@ public static class TenantsUiServiceCollectionExtensions
                 new TenantsReadSurfaceAvailability(IsConnected: false));
             if (!queryGatewayAlreadyRegistered)
             {
-                diagnostics.RecordRejectedBaseAddressIfConfigured(configuration, "Tenants:BaseAddress");
+                diagnostics.RecordRejectedBaseAddressIfConfigured(configuration, tenantsEndpointSetting);
             }
         }
 

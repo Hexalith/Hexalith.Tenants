@@ -15,6 +15,8 @@ IDistributedApplicationBuilder builder = DistributedApplication.CreateBuilder(ar
 // Resolve DAPR access control + resiliency configuration paths.
 // Uses builder.AppHostDirectory to work under both `dotnet run` and Aspire testing.
 string accessControlConfigPath = ResolveDaprConfigPath(builder.AppHostDirectory, "accesscontrol.yaml");
+string tenantsUiAccessControlConfigPath = ResolveDaprConfigPath(builder.AppHostDirectory, "accesscontrol.tenants-ui.yaml");
+string tenantsApiAccessControlConfigPath = ResolveDaprConfigPath(builder.AppHostDirectory, "accesscontrol.tenants-api.yaml");
 string adminServerAccessControlConfigPath = ResolveDaprConfigPath(builder.AppHostDirectory, "accesscontrol.eventstore-admin.yaml");
 string resiliencyConfigPath = ResolveDaprConfigPath(builder.AppHostDirectory, "resiliency.yaml");
 string stateStoreComponentPath = ResolveDaprConfigPath(builder.AppHostDirectory, "statestore.yaml");
@@ -112,6 +114,9 @@ IResourceBuilder<ProjectResource> tenantsApi = builder.AddProject<HexalithTenant
     .WithDaprSidecar(sidecar => sidecar
         .WithOptions(new DaprSidecarOptions {
             AppId = "tenants-api",
+            AppProtocol = "https",
+            Config = tenantsApiAccessControlConfigPath,
+            ResourcesPaths = [Path.GetDirectoryName(resiliencyConfigPath)!],
             PlacementHostAddress = daprPlacementHostAddress,
             SchedulerHostAddress = daprSchedulerHostAddress,
         }));
@@ -151,17 +156,20 @@ if (!string.Equals(builder.Configuration["EnableMemories"], "false", StringCompa
 
 IResourceBuilder<ProjectResource> tenantsUI = builder.AddProject<HexalithTenantsUI>("tenants-ui")
     .WithReference(eventStore)
-    // Story 1.10: the BFF's six canonical reads go direct to the generated Tenants REST API, not through
-    // the EventStore query gateway. Without this reference and base address every read resolves
-    // UnavailableTenantQueryGateway, so the read surfaces render fail-closed. This closes HOST-REF-1.
+    // Reads use this BFF's sidecar and the API receiver's GET-only caller policy.
     .WithReference(tenantsApi)
     .WaitFor(eventStore)
     .WaitFor(tenantsApi)
     .WithEnvironment("EventStore__BaseAddress", eventStoreHttps)
-    // Commands/status stay on EventStore; reads resolve independently from Tenants__BaseAddress. A missing
-    // reference must fail closed on its own side -- neither side falls back to the other.
-    .WithEnvironment("Tenants__BaseAddress", tenantsApi.GetEndpoint("https"))
-    .WithExternalHttpEndpoints();
+    .WithExternalHttpEndpoints()
+    .WithDaprSidecar(sidecar => sidecar.WithOptions(new DaprSidecarOptions {
+        AppId = "tenants-ui",
+        AppProtocol = "https",
+        Config = tenantsUiAccessControlConfigPath,
+        ResourcesPaths = [Path.GetDirectoryName(resiliencyConfigPath)!],
+        PlacementHostAddress = daprPlacementHostAddress,
+        SchedulerHostAddress = daprSchedulerHostAddress,
+    }));
 
 // Search is optional for focused REST-route qualification; the ordinary topology retains it by default.
 if (memoriesService is not null) {

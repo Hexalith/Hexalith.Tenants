@@ -2,7 +2,7 @@
 
 This folder contains production-oriented DAPR templates for deploying Hexalith.Tenants beside Hexalith.EventStore. The application-facing contract is stable across local and production modes:
 
-- AppIds: `eventstore`, `tenants`, `eventstore-admin`, `eventstore-admin-ui`, `sample`
+- AppIds: `eventstore`, `tenants`, `eventstore-admin`, `eventstore-admin-ui`, `sample`, `tenants-api`, `tenants-ui`
 - State store component: `statestore`
 - Pub/sub component: `pubsub`
 - Event topic: `tenants.events`
@@ -38,7 +38,7 @@ Expected local ports used by existing tests:
 - Placement: `50005` on Linux, `6050` on Windows
 - Scheduler: `50006` on Linux, `6060` on Windows
 
-Local AppHost components live in `src/Hexalith.Tenants.AppHost/DaprComponents`. The local access-control files are labelled local-only and are allow-by-default for developer ergonomics.
+Local AppHost components live in `src/Hexalith.Tenants.AppHost/DaprComponents`. The historical domain access-control file remains local-only and allow-by-default. The generated API receiver uses its dedicated deny-by-default `accesscontrol.tenants-api.yaml`, allowing only the `tenants-ui` sidecar to invoke the six GET reads.
 
 ## Slim Self-Hosted Mode
 
@@ -59,8 +59,16 @@ Apply the templates in this folder after replacing the placeholders with environ
 - `pubsub.yaml` is scoped to `eventstore` and `sample`; `eventstore` is left unlisted in `publishingScopes` so it keeps unrestricted publish access (required for EventStore dynamic per-tenant topic provisioning, NFR20), `sample` is denied publishing via an empty topic list (`sample=`), and `sample` subscribes to `tenants.events` in demo deployments.
 - `accesscontrol.tenants.yaml` is bound only to the Tenants sidecar. It uses `defaultAction: deny` and allows only `eventstore` to call `POST /process` and `POST /project`.
 - `accesscontrol.eventstore.yaml` is bound only to the EventStore sidecar. It allows `eventstore-admin` GET/POST/PUT `/**`, `tenants-api` GET `/ready` and POST `/api/v1/queries` or `/api/v1/commands`, and `tenants` POST `/api/v1/commands` for configured bootstrap. Every other caller and route is denied; EventStore still authorizes the command itself.
+- `accesscontrol.tenants-ui.yaml` is bound only to the UI caller sidecar. It denies inbound peer invocation and selects the same trust domain used by the API receiver; both sidecars must use the same `DAPR_TRUST_DOMAIN`, matching the SPIFFE trust domain actually issued by the deployment's identity provider. Self-hosted Dapr/Sentry can issue `public` identities even when configured otherwise; verify the issued identity and resolve this template accordingly.
+- `accesscontrol.tenants-api.yaml` is bound only to the generated API receiver. It allows `tenants-ui` GET for list, detail, users, memberships, audit and global administrators; other callers and verbs are denied. Dapr trie matching also admits descendants of matching path prefixes; generated API routing enforces the declared read actions. The domain receiver remains POST-only.
 - `accesscontrol.eventstore-admin.yaml` is bound only to Admin.Server and exposes no peer DAPR invocation policies.
-- `resiliency.yaml` preserves the local retry and timeout intent for sidecar, state-store, and pub/sub operations.
+- `resiliency.yaml` preserves the local retry and timeout intent for state-store and pub/sub operations. Its explicit `tenants-api` app target sets `noReadRetry` (`maxRetries: 0`) and a five-second timeout; the explicit target also bypasses Dapr built-in service retries. Load this Resiliency on the UI caller sidecar.
+
+## BFF read transport and identifiers
+
+Run the UI with its own `tenants-ui` sidecar and bind the API receiver's dedicated ACL. Configure the API app channel as HTTPS (`--app-protocol https`, with the application's HTTPS port). `DAPR_HTTP_ENDPOINT` selects the BFF's local sidecar and takes precedence over `Tenants:BaseAddress`; an explicitly configured `Tenants:BaseAddress` must also address that sidecar when no endpoint is injected. Sidecar failures fail closed without trying a direct API address. User bearer forwarding runs before the platform-owned invocation handler, which authoritatively sets `dapr-app-id: tenants-api` and the optional `DAPR_API_TOKEN`. Commands and status retain their independent EventStore address.
+
+The four parameterized reads send `X-Hexalith-Route-Encoding: base64url-v1` and canonical unpadded UTF-8 base64url segments. The API decodes identifiers before tenant-scope resolution and query authorization. This preserves slash, backslash, dots, Unicode and literal percent text without traversal. Missing discriminator preserves existing literal-route clients; unknown or duplicate discriminators, padding, noncanonical trailing bits and invalid UTF-8 produce 400. List and global-administrator reads carry no route-identifier discriminator. Cursors remain opaque query parameters, and conditional headers and response metadata pass through the sidecars. DW-161 still tracks generated-API conditional-response qualification; a controlled 304 transport test does not close it.
 
 ## Pub/Sub Recovery Evidence
 

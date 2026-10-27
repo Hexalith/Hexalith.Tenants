@@ -1,0 +1,10 @@
+# The BFF invokes peers but exposes no Dapr service-invocation operations.
+# Keep its SPIFFE trust domain aligned with the generated API receiver.
+apiVersion: dapr.io/v1alpha1
+kind: Configuration
+metadata:
+  name: accesscontrol-tenants-ui
+spec:
+  accessControl:
+    defaultAction: deny
+    trustDomain: "{env:DAPR_TRUST_DOMAIN|hexalith.io}"

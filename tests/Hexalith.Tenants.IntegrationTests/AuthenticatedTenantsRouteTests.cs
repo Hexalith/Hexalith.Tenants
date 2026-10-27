@@ -30,13 +30,14 @@ public sealed class AuthenticatedTenantsRouteTests(AspireTopologyFixture fixture
     public void Dispose() => _daprTestLease.Dispose();
 
     [DaprFact]
-    public async Task SixAuthenticatedRestReadsMatchPersistedState()
+    public async Task SixAuthenticatedDaprRestReadsMatchPersistedState()
     {
         fixture.SkipIfUnavailable();
         using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(5));
         AuthenticatedRouteState state = await AuthenticatedRouteState.CreateAsync(fixture.CommandApiClient, timeout.Token);
         EntityTagHeaderValue? observed = null;
-        using HttpClient http = state.CreateClient(fixture.TenantsApiClient, value => observed = value);
+        using HttpClient http = state.CreateClient(fixture.TenantsUiDaprClient, value => observed = value);
+        http.DefaultRequestHeaders.Add("dapr-app-id", "tenants-api");
         var client = new TenantsRestQueryClient(http);
 
         string? cursor = await state.WaitForListPageAsync(fixture.TenantsApiClient, 100, timeout.Token);

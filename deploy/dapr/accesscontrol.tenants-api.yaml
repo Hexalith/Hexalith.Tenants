@@ -1,0 +1,35 @@
+# Bind only to the tenants-api receiver. The UI BFF may invoke the six read routes.
+# Production requires mTLS; JWT authentication and per-query authorization remain mandatory.
+# Dapr trie prefix/wildcard matching admits descendants; generated API routing enforces the route inventory.
+apiVersion: dapr.io/v1alpha1
+kind: Configuration
+metadata:
+  name: accesscontrol-tenants-api
+spec:
+  accessControl:
+    defaultAction: deny
+    trustDomain: "{env:DAPR_TRUST_DOMAIN|hexalith.io}"
+    policies:
+      - appId: tenants-ui
+        defaultAction: deny
+        trustDomain: "{env:DAPR_TRUST_DOMAIN|hexalith.io}"
+        namespace: "{env:DAPR_NAMESPACE|hexalith}"
+        operations:
+          - name: /api/tenants
+            httpVerb: ['GET']
+            action: allow
+          - name: /api/tenants/*
+            httpVerb: ['GET']
+            action: allow
+          - name: /api/tenants/**/users
+            httpVerb: ['GET']
+            action: allow
+          - name: /api/tenants/**/audit
+            httpVerb: ['GET']
+            action: allow
+          - name: /api/users/**/tenants
+            httpVerb: ['GET']
+            action: allow
+          - name: /api/global-administrators
+            httpVerb: ['GET']
+            action: allow

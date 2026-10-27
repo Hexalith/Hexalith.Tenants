@@ -47,7 +47,7 @@ public sealed class AppHostSecurityResourceGraphTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public async Task UiReadsResolveToTenantsApiHttpsInBothAuthenticationModes(bool enableKeycloak)
+    public async Task UiReadsUseOwnDaprSidecarAndHttpsApiReceiverInBothAuthenticationModes(bool enableKeycloak)
     {
         await using IDistributedApplicationTestingBuilder builder = await DistributedApplicationTestingBuilder
             .CreateAsync<Projects.Hexalith_Tenants_AppHost>(
@@ -56,18 +56,21 @@ public sealed class AppHostSecurityResourceGraphTests
         ProjectResource tenantsApi = builder.Resources.OfType<ProjectResource>()
             .Single(static resource => resource.Name == "tenants-api");
 
-        EndpointAnnotation apiHttps = tenantsApi.Annotations.OfType<EndpointAnnotation>()
-            .Single(static endpoint => endpoint.Name == "https");
-        apiHttps.AllocatedEndpoint = new AllocatedEndpoint(apiHttps, "localhost", 45123);
-
-        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-        IReadOnlyDictionary<string, object> environment = await GetEnvironmentAsync(tenantsUi, builder.ExecutionContext, timeout.Token);
-        EndpointReference readEndpoint = environment
-            .Where(static entry => string.Equals(entry.Key.Replace("__", ":", StringComparison.Ordinal), "Tenants:BaseAddress", StringComparison.OrdinalIgnoreCase))
-            .ShouldHaveSingleItem().Value.ShouldBeOfType<EndpointReference>();
-        readEndpoint.Resource.ShouldBeSameAs(tenantsApi);
-        readEndpoint.EndpointName.ShouldBe("https");
-        (await readEndpoint.GetValueAsync(timeout.Token)).ShouldBe("https://localhost:45123");
+        DaprSidecarOptions apiSidecar = tenantsApi.Annotations.OfType<DaprSidecarAnnotation>()
+            .ShouldHaveSingleItem().Sidecar.Annotations.OfType<DaprSidecarOptionsAnnotation>()
+            .ShouldHaveSingleItem().Options;
+        apiSidecar.AppId.ShouldBe("tenants-api");
+        apiSidecar.AppProtocol.ShouldBe("https");
+        Path.GetFileName(apiSidecar.Config).ShouldBe("accesscontrol.tenants-api.yaml");
+        DaprSidecarOptions uiSidecar = tenantsUi.Annotations.OfType<DaprSidecarAnnotation>()
+            .ShouldHaveSingleItem().Sidecar.Annotations.OfType<DaprSidecarOptionsAnnotation>()
+            .ShouldHaveSingleItem().Options;
+        uiSidecar.AppId.ShouldBe("tenants-ui");
+        uiSidecar.AppProtocol.ShouldBe("https");
+        Path.GetFileName(uiSidecar.Config).ShouldBe("accesscontrol.tenants-ui.yaml");
+        uiSidecar.ResourcesPaths.ShouldNotBeNull().ShouldHaveSingleItem().ShouldEndWith("DaprComponents");
+        IReadOnlyDictionary<string, object> environment = await GetEnvironmentAsync(tenantsUi, builder.ExecutionContext);
+        environment.ContainsKey("Tenants__BaseAddress").ShouldBeFalse("the dynamically injected DAPR_HTTP_ENDPOINT is authoritative for reads");
     }
 
     [Theory]
