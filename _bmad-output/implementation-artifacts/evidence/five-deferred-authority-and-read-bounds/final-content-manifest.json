@@ -1,7 +1,7 @@
 {
-  "capturedUtc": "2026-10-28T22:50:14.792269+00:00",
+  "capturedUtc": "2026-10-28T23:17:14.993911+00:00",
   "baseline": "8127cb3b47dcfcf4086d07e4af0730c2f4920f9e",
-  "phase": "post-review local acceptance; actual CI pending",
+  "phase": "CI first attempt blocked; test-only corrections verified; fresh generic CI required",
   "frozenIntentSha256": "6d8aa8fdd9b7d885787043252bde110fe1d5607f17408a7963f5886c016b1225",
   "productionInputsUnchangedSinceAcceptedGenericTier": true,
   "postTestChanges": "Whitespace only in five new test files; post-test-formatting-audit.json binds both versions. Separate published rebuilds passed afterward.",
@@ -176,6 +176,18 @@
       "gitBlob": "f431052569e53d21fa89435a41d54517e8dacf0c"
     },
     {
+      "path": "tests/Hexalith.Tenants.AppHost.Tests/LocalDaprIdentityCollection.cs",
+      "bytes": 283,
+      "sha256": "7ce38fb637f86390fa6bdb43fc958e024f101caf2244286e67383840a8a3a914",
+      "gitBlob": "448b72fe3e41d8ae723ae100176b5f660cb70f06"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.AppHost.Tests/LocalDaprIdentityTests.cs",
+      "bytes": 9373,
+      "sha256": "c40e14a67d62a2ca187ec47695455abcab155c7dbdaa60ce142aebadc502677d",
+      "gitBlob": "d7dd0bfa30ee59d404f86ffd873342442ca89f8c"
+    },
+    {
       "path": "tests/Hexalith.Tenants.AppHost.Tests/SourceAuthorityBackpressureTests.cs",
       "bytes": 1959,
       "sha256": "cc40ecc9b5c86a766bf7bac5336987430736bebded15d32b6fa7b0070a62aae2",
@@ -332,6 +344,12 @@
       "gitBlob": "9759845d8562e3c6dc2dad49759af8438b4536c8"
     },
     {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-live-routes.mjs",
+      "bytes": 31831,
+      "sha256": "20213032db7d746f386110a796f8bc9c3587277dd3ee6047a3de781d822a9e6b",
+      "gitBlob": "568438fbb1b24d6b0a64b2d6d3bf49cb890996a4"
+    },
+    {
       "path": "tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.Deadlines.cs",
       "bytes": 16937,
       "sha256": "9067fee92f22d7895fbdf960a9256ef03644fb9edd8480ec88010f8a74bac42d",
@@ -345,9 +363,9 @@
     },
     {
       "path": "tests/Hexalith.Tenants.UI.Tests/TenantsUiCompositionTests.cs",
-      "bytes": 135799,
-      "sha256": "af41f1053ee084daaa9b2aa6e41bcac6fdd1f791576b3adf0851c1b14c20129e",
-      "gitBlob": "e3b29c6056ef37c574ba2fc99b04dec4326137d7"
+      "bytes": 135880,
+      "sha256": "0bf3acf215a644c5e207ad13b6ee99f33be4e69dca327001c78a3cef585459c3",
+      "gitBlob": "f8c89c06c3b48a8b7d59ca1e09dadf8aed58e32b"
     }
   ],
   "shareableFiles": {
@@ -370,6 +388,14 @@
     "bundle-manifest.json": {
       "bytes": 452,
       "sha256": "4a2b2d93e2ce1cc3823c6f39effa90966edb7043bd991e05572ae30341ef3fb5"
+    },
+    "ci-first-attempt-and-followup.json": {
+      "bytes": 1557,
+      "sha256": "6244f128ab7c622fb3fd3fdb029358efb19392778cb7b0db47e71c1137cc6920"
+    },
+    "ci-first-attempt-and-followup.tar.gz": {
+      "bytes": 31151,
+      "sha256": "1a264f1142a41bd1b0edd3dc8c71c5ce94c3074ccaed5de207421debdef12f98"
     },
     "command-manifest.json": {
       "bytes": 9292,
@@ -466,7 +492,8 @@
   },
   "validationIndex": {
     "path": "_bmad-output/implementation-artifacts/five-deferred-authority-and-read-bounds-validation-evidence.md",
-    "bytes": 16665,
-    "sha256": "b24b2da6b4965eed29c59484f843cde13fa3b4e093aab0ac6394d1805672de8f"
-  }
+    "bytes": 18534,
+    "sha256": "852d5ae6b6dfd33f267571e732bd6dc30fc513cd45d72a115fd6c246a92f4a6b"
+  },
+  "ciFirstAttempt": "ci-first-attempt-and-followup.json"
 }

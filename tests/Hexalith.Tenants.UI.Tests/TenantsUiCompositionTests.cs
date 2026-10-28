@@ -2062,6 +2062,7 @@ public sealed class TenantsUiCompositionTests
             $"-property:BaseIntermediateOutputPath={isolatedIntermediatePath}{Path.DirectorySeparatorChar}");
         startInfo.ArgumentList.Add("-property:HexalithMemoriesFromSource=false");
         startInfo.ArgumentList.Add("-property:HexalithCommonsFromSource=false");
+        startInfo.ArgumentList.Add("-property:HexalithMcpCliFromSource=false");
 
         Process? started;
         try

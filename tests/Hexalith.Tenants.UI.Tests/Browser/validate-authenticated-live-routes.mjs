@@ -190,7 +190,9 @@ try {
 
             phase = `tenant-list-layout-${width}-${forcedColors}`;
             const layoutPhase = phase;
+            phase = `${layoutPhase}-open`;
             await open(new URL(listPath, base).href);
+            phase = `${layoutPhase}-ready`;
             await requireReady('tenants-workspace');
             const grid = testId('tenants-list-grid');
             const row = seededListRow();

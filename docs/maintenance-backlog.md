@@ -311,3 +311,6 @@ No numbered verified defect or gap remains open in this index. Historical findin
 
 
 **Additional unnumbered CI qualification follow-up (updated 2026-10-28):** Local generic Release restore/build and complete-tier qualification have passed; actual passing post-push CI remains required before this record closes. Published and generic source-exception graphs remain separately evidenced. Numbered DW totals exclude this follow-up; existing runtime/release holds remain.
+
+
+**Additional unnumbered browser qualification risk (2026-10-29):** The published-profile CI browser run timed out before its 1440-pixel tenant-list check after16 passing cases. Its cause is unverified; the deferred ledger retains the exact run and distinguishing control. Fixed phase labels now separate navigation/network-idle from Current-row readiness without changing acceptance. Numbered totals remain unchanged.

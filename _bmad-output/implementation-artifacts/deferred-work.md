@@ -6528,3 +6528,10 @@ archived: 2026-10-22
   resolution-spec: spec-five-deferred-authority-and-read-bounds.md
   resolution: The approved configurable ten-second whole-load budget covers windows, hydration and fallback, cancels outstanding work and discards late evidence. Manual-clock slow-window/seam controls, nondefault production-DI binding, cursor recovery and safe expiry diagnostics pass; controlled populated-list timing is retained without claiming a general latency SLA.
   resolution-evidence: five-deferred-authority-and-read-bounds-validation-evidence.md
+
+
+## Deferred from: native authority CI qualification (2026-10-29)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-five-deferred-authority-and-read-bounds.md`
+  summary: Unverified medium — determine the cause of the published-profile browser timeout before the 1440-pixel tenant-list check.
+  evidence: Exact-source CI40783107965 on22644726 passed16 authenticated route/layout cases, then reported browser-timeout under tenant-list-layout-1440-none. That phase covered both navigation/network-idle and seeded Current readiness; finer fixed phase labels now distinguish them without changing waits or assertions. Native transport responses in the captured logs were200, which does not prove a cause. Preserve the original safe result and compare a fresh exact-source run plus a same-corpus baseline/control if it recurs before changing production behavior or timeouts. Generic and explicit published qualification profiles remain distinct; this unnumbered risk is excluded from numbered totals.

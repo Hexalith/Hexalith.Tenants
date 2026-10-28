@@ -1,0 +1,50 @@
+{
+  "capturedUtc": "2026-10-28T23:17:14.933636+00:00",
+  "implementationSource": "22644726ac816865263943739914d9589af32051",
+  "ciRun": 40783107965,
+  "ciAttempt": 1,
+  "ciConclusion": "failure",
+  "genericAspire": "skipped after prerequisite test failures; remains unqualified",
+  "mainUi": {
+    "passed": 8010,
+    "failed": 1,
+    "skipped": 0
+  },
+  "mainAppHost": {
+    "passed": 41,
+    "failed": 1,
+    "skipped": 0
+  },
+  "publishedBrowser": {
+    "passedCasesBeforeFailure": 16,
+    "failurePhase": "tenant-list-layout-1440-none",
+    "failureLabel": "browser-timeout",
+    "cause": "unverified; no runtime fix claimed"
+  },
+  "correctedLocalReleaseUi": {
+    "passed": 8011,
+    "failed": 0,
+    "skipped": 0,
+    "inheritedEventStoreVersion": "unset"
+  },
+  "correctedLocalAppHost": {
+    "passed": 42,
+    "failed": 0,
+    "skipped": 0
+  },
+  "excludedAbortedCheck": {
+    "phase": "ui-ci-followup-full",
+    "exitCode": 58,
+    "reason": "mistakenly selected stale Debug output; stopped and replaced by rebuilt Release suite"
+  },
+  "nodeSyntaxCheck": "passed",
+  "newCollectionFormatCheck": "passed",
+  "productionSourceChanges": false,
+  "dependencyVersionChanges": false,
+  "effectiveSharedWorkflow": "e909ffd9fe9a6097e36d932010b983d029396968",
+  "existingSourceReferenceBlocker": "McpCli source selects EventStore3.128.3 below unchanged3.128.4 floor",
+  "archive": "ci-first-attempt-and-followup.tar.gz",
+  "archiveSha256": "1a264f1142a41bd1b0edd3dc8c71c5ce94c3074ccaed5de207421debdef12f98",
+  "archiveBytes": 31151,
+  "memberCount": 24
+}

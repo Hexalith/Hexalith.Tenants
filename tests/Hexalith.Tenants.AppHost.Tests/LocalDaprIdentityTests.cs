@@ -14,6 +14,7 @@ using Shouldly;
 namespace Hexalith.Tenants.AppHost.Tests;
 
 /// <summary>Exercises the shared Platform bootstrap through Aspire's actual generated-sidecar callbacks.</summary>
+[Collection("LocalDaprIdentity")]
 public sealed class LocalDaprIdentityTests
 {
     [Theory]
