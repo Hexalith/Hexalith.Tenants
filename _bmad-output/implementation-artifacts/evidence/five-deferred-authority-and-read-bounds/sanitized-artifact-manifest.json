@@ -1,0 +1,10 @@
+{
+  "rawLocalDirectory": "/tmp/tenants-five-deferred-raw-evidence-6675c9ebc6c4",
+  "rawCapturesIncludedInRepository": false,
+  "sessionOrCertificateOrKeyFilesIncluded": false,
+  "sanitization": "Known credential/header/PEM/dashboard/cursor patterns; structured credential fields; raw versus shareable hashes distinguished.",
+  "artifactCount": 246,
+  "fullManifestArchiveMember": "full-sanitized-artifact-manifest.json",
+  "fullManifestSha256": "6c8b0c645e0dc61078c131f571b139a98da179f014b3ef22eb731698a5541d4d",
+  "externalTableNormalization": "Trailing table padding removed from the three baseline text renderings; original capture receipts and full sanitized console records are retained in the archive."
+}

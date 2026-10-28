@@ -1,4 +1,5 @@
 using System.Net;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
@@ -41,7 +42,9 @@ internal sealed class TenantQueryGateway(
     ILogger<TenantQueryGateway>? logger = null,
     TimeSpan? enrichmentDeadline = null,
     CircuitServicesAccessor? circuitServicesAccessor = null,
-    AuthenticationStateProvider? authenticationStateProvider = null) : ITenantQueryGateway, IDisposable {
+    AuthenticationStateProvider? authenticationStateProvider = null,
+    Microsoft.Extensions.Options.IOptions<TenantSearchOptions>? searchOptions = null,
+    TimeProvider? timeProvider = null) : ITenantQueryGateway, IDisposable {
     private string? CapturedUserId { get; init; }
 
     private string? CapturedCallerScope { get; init; }
@@ -106,7 +109,7 @@ internal sealed class TenantQueryGateway(
         {
             throw;
         }
-        catch (Exception)
+        catch (Exception fatalCandidate) when (!TenantWorkspaceReadDiagnostics.IsFatal(fatalCandidate))
         {
             return unavailable;
         }
@@ -328,7 +331,7 @@ internal sealed class TenantQueryGateway(
             catch (OperationCanceledException) {
                 throw;
             }
-            catch (Exception) {
+            catch (Exception fatalCandidate) when (!TenantWorkspaceReadDiagnostics.IsFatal(fatalCandidate)) {
                 // A same-tenant prior can be retained only through a fresh policy/principal decision in the
                 // helper below. If that reauthorization also fails, configuration becomes unavailable.
                 return HasSameTenantDetail(previous, request.TenantId)
@@ -359,7 +362,7 @@ internal sealed class TenantQueryGateway(
         catch (OperationCanceledException) {
             throw;
         }
-        catch (EventStoreGatewayException ex) {
+        catch (EventStoreGatewayException ex) when (!TenantWorkspaceReadDiagnostics.IsFatal(ex)) {
             if (ex.StatusCode != (int)HttpStatusCode.Unauthorized
                 && ex.StatusCode != (int)HttpStatusCode.Forbidden
                 && ex.StatusCode != (int)HttpStatusCode.NotFound
@@ -375,7 +378,7 @@ internal sealed class TenantQueryGateway(
 
             return MapDetailException(request.TenantId, ex);
         }
-        catch (Exception) {
+        catch (Exception fatalCandidate) when (!TenantWorkspaceReadDiagnostics.IsFatal(fatalCandidate)) {
             SignalReadFailure(TenantDetailReadName, TenantsRestQueryFailureKind.Unavailable);
             if (HasSameTenantDetail(previous, request.TenantId)) {
                 return await RetainPreviousTenantDetailAsync(
@@ -475,7 +478,7 @@ internal sealed class TenantQueryGateway(
         {
             throw;
         }
-        catch (Exception)
+        catch (Exception fatalCandidate) when (!TenantWorkspaceReadDiagnostics.IsFatal(fatalCandidate))
         {
             return TenantSetConfigurationPreview.Unavailable(intent);
         }
@@ -560,7 +563,7 @@ internal sealed class TenantQueryGateway(
         {
             throw;
         }
-        catch (Exception)
+        catch (Exception fatalCandidate) when (!TenantWorkspaceReadDiagnostics.IsFatal(fatalCandidate))
         {
             return TenantRemoveConfigurationPreview.Unavailable(intent);
         }
@@ -663,7 +666,7 @@ internal sealed class TenantQueryGateway(
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
             throw;
         }
-        catch (Exception) {
+        catch (Exception fatalCandidate) when (!TenantWorkspaceReadDiagnostics.IsFatal(fatalCandidate)) {
             // Every sibling read contains its transport faults; this one did not, so an InvalidOperationException
             // from URI construction, a UriFormatException, or a throw from the bearer-relay handler reached
             // OnParametersSetAsync -- which catches only OperationCanceledException -- and tore down the circuit.
@@ -708,7 +711,7 @@ internal sealed class TenantQueryGateway(
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
                 throw;
             }
-            catch (Exception) {
+            catch (Exception fatalCandidate) when (!TenantWorkspaceReadDiagnostics.IsFatal(fatalCandidate)) {
                 SignalReadFailure(TenantUsersReadName, TenantsRestQueryFailureKind.Unavailable);
                 return TenantUsersSnapshot.Invalid(request.TenantId, TenantUsersReason.InvalidCursor);
             }
@@ -1005,7 +1008,7 @@ internal sealed class TenantQueryGateway(
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
             throw;
         }
-        catch (EventStoreGatewayException ex) when (
+        catch (EventStoreGatewayException ex) when (!TenantWorkspaceReadDiagnostics.IsFatal(ex) &&
             IsInvalidUserTenantsCursor(ex)
             && !string.IsNullOrWhiteSpace(request.Cursor)) {
             UserTenantMembershipSnapshot recovered = await GetUserTenantsCoreAsync(
@@ -1020,12 +1023,12 @@ internal sealed class TenantQueryGateway(
                 }
                 : recovered;
         }
-        catch (EventStoreGatewayException ex) {
+        catch (EventStoreGatewayException ex) when (!TenantWorkspaceReadDiagnostics.IsFatal(ex)) {
             return CanRetainUserTenants(previous, request, ex)
                 ? RetainUserTenants(previous!, UserTenantMembershipReason.GatewayFailure)
                 : MapUserTenantException(ex, request.TargetUserId);
         }
-        catch (Exception) {
+        catch (Exception fatalCandidate) when (!TenantWorkspaceReadDiagnostics.IsFatal(fatalCandidate)) {
             SignalReadFailure(UserTenantsReadName, TenantsRestQueryFailureKind.Unavailable);
             return HasMatchingUserTenants(previous, request)
                 && MatchesRetainedValidator(request.ETag, previous!.ETag)
@@ -1226,7 +1229,7 @@ internal sealed class TenantQueryGateway(
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
             throw;
         }
-        catch (EventStoreGatewayException ex) when (
+        catch (EventStoreGatewayException ex) when (!TenantWorkspaceReadDiagnostics.IsFatal(ex) &&
             IsInvalidListCursor(ex)
             && !string.IsNullOrWhiteSpace(request.Cursor)) {
             GlobalAdministratorsSnapshot recovered = await GetGlobalAdministratorsAsync(
@@ -1240,12 +1243,12 @@ internal sealed class TenantQueryGateway(
                 }
                 : recovered;
         }
-        catch (EventStoreGatewayException ex) {
+        catch (EventStoreGatewayException ex) when (!TenantWorkspaceReadDiagnostics.IsFatal(ex)) {
             return CanRetainGlobalAdministrators(previous, request, ex)
                 ? RetainGlobalAdministrators(previous!, GlobalAdministratorsReason.GatewayFailure)
                 : MapGlobalAdministratorsException(ex);
         }
-        catch (Exception) {
+        catch (Exception fatalCandidate) when (!TenantWorkspaceReadDiagnostics.IsFatal(fatalCandidate)) {
             SignalReadFailure(GlobalAdministratorsReadName, TenantsRestQueryFailureKind.Unavailable);
             return previous is not null
                 && IsRetainableGlobalAdministrators(previous)
@@ -1352,7 +1355,7 @@ internal sealed class TenantQueryGateway(
                 cancellationToken)
                 .ConfigureAwait(false);
         }
-        catch (EventStoreGatewayException ex) when (
+        catch (EventStoreGatewayException ex) when (!TenantWorkspaceReadDiagnostics.IsFatal(ex) &&
             IsInvalidAuditCursor(ex)
             && !string.IsNullOrWhiteSpace(request.Cursor)) {
             TenantAuditSnapshot? identityFailure = AuditIdentityFailure(authenticatedUserId, request);
@@ -1378,17 +1381,17 @@ internal sealed class TenantQueryGateway(
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
                 throw;
             }
-            catch (EventStoreGatewayException retryException) {
+            catch (EventStoreGatewayException retryException) when (!TenantWorkspaceReadDiagnostics.IsFatal(retryException)) {
                 return AuditIdentityFailure(authenticatedUserId, firstPageRequest)
                     ?? BindAuditCaller(MapTenantAuditException(firstPageRequest, retryException), callerScope);
             }
-            catch (Exception) {
+            catch (Exception fatalCandidate) when (!TenantWorkspaceReadDiagnostics.IsFatal(fatalCandidate)) {
                 SignalReadFailure(TenantAuditReadName, TenantsRestQueryFailureKind.Unavailable);
                 return AuditIdentityFailure(authenticatedUserId, firstPageRequest)
                     ?? BindAuditCaller(TenantAuditSnapshot.Unavailable(firstPageRequest), callerScope);
             }
         }
-        catch (EventStoreGatewayException ex) {
+        catch (EventStoreGatewayException ex) when (!TenantWorkspaceReadDiagnostics.IsFatal(ex)) {
             TenantAuditSnapshot? identityFailure = AuditIdentityFailure(authenticatedUserId, request);
             if (identityFailure is not null) {
                 return identityFailure;
@@ -1401,7 +1404,7 @@ internal sealed class TenantQueryGateway(
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
             throw;
         }
-        catch (Exception) {
+        catch (Exception fatalCandidate) when (!TenantWorkspaceReadDiagnostics.IsFatal(fatalCandidate)) {
             SignalReadFailure(TenantAuditReadName, TenantsRestQueryFailureKind.Unavailable);
             TenantAuditSnapshot? identityFailure = AuditIdentityFailure(authenticatedUserId, request);
             if (identityFailure is not null) {
@@ -1612,10 +1615,72 @@ internal sealed class TenantQueryGateway(
             return await ListByCursorAsync(canonicalRequest, ordinaryPrevious, cancellationToken).ConfigureAwait(false);
         }
 
+        TimeSpan budget = (searchOptions?.Value ?? new TenantSearchOptions()).LoadBudget;
+        if (budget <= TimeSpan.Zero || budget.TotalMilliseconds > uint.MaxValue - 1) return TenantListSnapshot.Error();
+        TimeProvider clock = timeProvider ?? TimeProvider.System;
+        using var budgetDeadline = new CancellationTokenSource();
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, budgetDeadline.Token);
+        using ITimer budgetTimer = clock.CreateTimer(_ =>
+        {
+            ObserveCancellation(budgetDeadline);
+            // Mark the awaited/provider boundary immediately too; linked callbacks run asynchronously.
+            ObserveCancellation(deadline);
+        }, null, budget, Timeout.InfiniteTimeSpan);
+        long started = clock.GetTimestamp();
+        StrongBox<bool> cursorRecovered = new(false);
+        Task<TenantListSnapshot> load = ListTenantsSearchCoreAsync(canonicalRequest, previous, cursorRecovered, deadline.Token);
+        try
+        {
+            TenantListSnapshot result = await load.WaitAsync(deadline.Token).ConfigureAwait(false);
+            budgetDeadline.Token.ThrowIfCancellationRequested();
+            deadline.Token.ThrowIfCancellationRequested();
+            return result;
+        }
+        catch (OperationCanceledException exception) when (!TenantWorkspaceReadDiagnostics.IsFatal(exception)
+            && (cancellationToken.IsCancellationRequested || budgetDeadline.IsCancellationRequested))
+        {
+            CallerGuard!.ThrowIfFatal();
+            TenantWorkspaceReadDiagnostics.ThrowIfFatal(load);
+            // A provider may ignore cancellation. Retire its result and observe any later fault without
+            // giving it a second budget or allowing it to publish incomplete search evidence.
+            _ = load.ContinueWith(static task => _ = task.Exception, CancellationToken.None,
+                TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (logger is not null) TenantWorkspaceReadDiagnostics.SearchBudgetExpired(logger);
+            return TenantListSnapshot.Error() with
+            {
+                PagingRecovered = cursorRecovered.Value,
+                PagingNotice = cursorRecovered.Value ? TenantListReason.SearchRefreshed : TenantListReason.None,
+            };
+        }
+        finally
+        {
+            // A completed load owns no awaited work. Redundant cancellation could run a provider's
+            // throwing callback and replace the original fatal failure during cleanup.
+            if (!load.IsCompleted && !deadline.IsCancellationRequested) ObserveCancellation(deadline);
+            TenantWorkspaceReadDiagnostics.SearchLoadCompleted(logger, clock.GetElapsedTime(started).TotalMilliseconds);
+        }
+    }
+
+    // CancelAsync marks the token immediately but schedules callbacks away from the timer thread.
+    // Observe all completion faults; provider callback failures must not escape that thread or cleanup.
+    private static void ObserveCancellation(CancellationTokenSource source)
+    {
+        try
+        {
+            _ = source.CancelAsync().ContinueWith(static task => _ = task.Exception, CancellationToken.None,
+                TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+        }
+        catch (ObjectDisposedException) { }
+    }
+
+    private async Task<TenantListSnapshot> ListTenantsSearchCoreAsync(
+        TenantListRequest canonicalRequest, TenantListSnapshot? previous, StrongBox<bool> cursorRecovered, CancellationToken cancellationToken)
+    {
         string userId = ScopedUserId()!;
         string scope = TenantSearchCursorScopes.Create(
             userId,
-            canonicalRequest.Search,
+            canonicalRequest.Search!,
             canonicalRequest.Status?.ToString(),
             canonicalRequest.SortColumn,
             canonicalRequest.SortDescending,
@@ -1645,7 +1710,7 @@ internal sealed class TenantQueryGateway(
         // The invalidation is owned by the caller, not by the authoritative attempt, so an index-shrink
         // recovery discovered inside that attempt survives a later throw and is still reported to the
         // ordinary-list fallback.
-        StrongBox<bool> cursorRecovered = new(!decoded);
+        cursorRecovered.Value = !decoded;
         if (!decoded)
         {
             position = default;
@@ -1898,8 +1963,17 @@ internal sealed class TenantQueryGateway(
             Explain: false,
             TokenBudget: null,
             AttributeFilters: filters);
-        return await CallerGuard!.ReadAsync(
-            () => memoriesClient.SearchAsync(memoriesRequest, cancellationToken), cancellationToken).ConfigureAwait(false);
+        TimeProvider clock = timeProvider ?? TimeProvider.System;
+        long started = clock.GetTimestamp();
+        try
+        {
+            return await CallerGuard!.ReadAsync(
+                () => memoriesClient.SearchAsync(memoriesRequest, cancellationToken), cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            TenantWorkspaceReadDiagnostics.SearchWindowCompleted(logger, clock.GetElapsedTime(started).TotalMilliseconds);
+        }
     }
 
     // Raw-page accounting: the index is authoritative for *which* entries exist at an offset, not for *how
@@ -2259,7 +2333,7 @@ internal sealed class TenantQueryGateway(
         // The !IsNullOrWhiteSpace(request.Cursor) guard matches the user-tenants and global-administrator
         // siblings. Without it the recovery path stamped TenantListReason.ListRefreshed on a first-page load
         // that never paged, telling the operator paging had restarted when nothing had.
-        catch (EventStoreGatewayException ex) when (
+        catch (EventStoreGatewayException ex) when (!TenantWorkspaceReadDiagnostics.IsFatal(ex) &&
             IsInvalidListCursor(ex)
             && !string.IsNullOrWhiteSpace(request.Cursor))
         {
@@ -2281,17 +2355,17 @@ internal sealed class TenantQueryGateway(
             {
                 throw;
             }
-            catch (EventStoreGatewayException retryException)
+            catch (EventStoreGatewayException retryException) when (!TenantWorkspaceReadDiagnostics.IsFatal(retryException))
             {
                 return MapTenantListException(retryException);
             }
-            catch (Exception)
+            catch (Exception fatalCandidate) when (!TenantWorkspaceReadDiagnostics.IsFatal(fatalCandidate))
             {
                 SignalReadFailure(TenantListReadName, TenantsRestQueryFailureKind.Unavailable);
                 return TenantListSnapshot.Error();
             }
         }
-        catch (EventStoreGatewayException ex)
+        catch (EventStoreGatewayException ex) when (!TenantWorkspaceReadDiagnostics.IsFatal(ex))
         {
             return CanRetainTenantList(previous, request, ex)
                 ? RetainTenantList(previous!, TenantListReason.GatewayUnavailable)
@@ -2301,7 +2375,7 @@ internal sealed class TenantQueryGateway(
         {
             throw;
         }
-        catch (Exception)
+        catch (Exception fatalCandidate) when (!TenantWorkspaceReadDiagnostics.IsFatal(fatalCandidate))
         {
             SignalReadFailure(TenantListReadName, TenantsRestQueryFailureKind.Unavailable);
             return previous is not null
@@ -2477,7 +2551,8 @@ internal sealed class TenantQueryGateway(
         bool degraded = false;
 
         using var pageDeadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        pageDeadline.CancelAfter(enrichmentDeadline ?? MaximumEnrichmentDuration);
+        using ITimer enrichmentTimer = (timeProvider ?? TimeProvider.System).CreateTimer(
+            _ => ObserveCancellation(pageDeadline), null, enrichmentDeadline ?? MaximumEnrichmentDuration, Timeout.InfiniteTimeSpan);
 
         using var concurrency = new SemaphoreSlim(MaximumHydrationConcurrency, MaximumHydrationConcurrency);
 
@@ -2528,7 +2603,8 @@ internal sealed class TenantQueryGateway(
             // member-count read; a 401 on a single row's detail read rendered the whole list as "sign in
             // required". A supplementary read must never be able to collapse a confirmed page. The caller's
             // own cancellation still propagates.
-            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested) {
+            catch (OperationCanceledException exception) when (!TenantWorkspaceReadDiagnostics.IsFatal(exception)
+                && !cancellationToken.IsCancellationRequested) {
                 degraded = true;
             }
             // IsSurfacingDefect is excluded for the same reason the search hydration path excludes it: a
@@ -2612,7 +2688,7 @@ internal sealed class TenantQueryGateway(
         catch (OperationCanceledException) {
             throw;
         }
-        catch (Exception) {
+        catch (Exception fatalCandidate) when (!TenantWorkspaceReadDiagnostics.IsFatal(fatalCandidate)) {
             return TenantConfigurationProjectionProof.Unavailable(tenantId);
         }
     }
@@ -2658,7 +2734,7 @@ internal sealed class TenantQueryGateway(
         catch (OperationCanceledException) {
             throw;
         }
-        catch (Exception) {
+        catch (Exception fatalCandidate) when (!TenantWorkspaceReadDiagnostics.IsFatal(fatalCandidate)) {
             // Retaining rows without a successful current-policy decision would turn an indeterminate or
             // revoked policy into continued disclosure. Preserve only sanitized tenant detail and make both
             // configuration boundaries unavailable.
@@ -3026,7 +3102,7 @@ internal sealed class TenantQueryGateway(
         string scope = AuditCallerScope(userId);
         TenantQueryGateway gateway = new(
             guardedClient, userContextAccessor, memoriesClient, searchCursorCodec, bffComposition,
-            logger, enrichmentDeadline, circuitServicesAccessor, authenticationStateProvider)
+            logger, enrichmentDeadline, circuitServicesAccessor, authenticationStateProvider, searchOptions, timeProvider)
         {
             CapturedUserId = userId,
             CapturedCallerScope = scope,
@@ -3043,8 +3119,9 @@ internal sealed class TenantQueryGateway(
         {
             throw;
         }
-        catch (Exception) when (!guardedClient.IsCallerVerified || !IsCurrentCaller(userId, provider)
-            || authorizationRevision != Volatile.Read(ref _authorizationRevision))
+        catch (Exception exception) when (!TenantWorkspaceReadDiagnostics.IsFatal(exception)
+            && (!guardedClient.IsCallerVerified || !IsCurrentCaller(userId, provider)
+                || authorizationRevision != Volatile.Read(ref _authorizationRevision)))
         {
             // Authentication transitions and provider/accessor faults never retain old evidence.
         }
@@ -3117,7 +3194,7 @@ internal sealed class TenantQueryGateway(
             }));
             return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(evidence)));
         }
-        catch (Exception)
+        catch (Exception fatalCandidate) when (!TenantWorkspaceReadDiagnostics.IsFatal(fatalCandidate))
         {
             return null;
         }
@@ -3154,7 +3231,7 @@ internal sealed class TenantQueryGateway(
             provider = authenticationStateProvider;
             return true;
         }
-        catch (Exception)
+        catch (Exception fatalCandidate) when (!TenantWorkspaceReadDiagnostics.IsFatal(fatalCandidate))
         {
             return false;
         }
@@ -3181,7 +3258,7 @@ internal sealed class TenantQueryGateway(
             return TenantsGlobalAdministratorClaims.ResolvePrincipalEvidence(
                 state.Result.User, subject, requireCorroboration: true).Subject;
         }
-        catch (Exception)
+        catch (Exception fatalCandidate) when (!TenantWorkspaceReadDiagnostics.IsFatal(fatalCandidate))
         {
             return null;
         }

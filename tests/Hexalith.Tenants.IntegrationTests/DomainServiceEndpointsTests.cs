@@ -1,3 +1,5 @@
+using Hexalith.EventStore.Client.Streams;
+using Hexalith.Tenants.IntegrationTests.Fixtures;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
@@ -41,6 +43,7 @@ public sealed class DomainServiceEndpointsTests {
     [Fact]
     public async Task Host_ServesProjectionQueryAndOperationalMetadataRoutes() {
         var store = new InMemoryReadModelStore();
+        var source = new MutableGlobalAdministratorSource("global-admin-http");
         store.SeedRaw(
             StateStoreName,
             "projection:global-administrators:singleton",
@@ -53,6 +56,11 @@ public sealed class DomainServiceEndpointsTests {
                 .ConfigureServices(services => {
                     _ = services.RemoveAll<IReadModelStore>();
                     _ = services.AddSingleton<IReadModelStore>(store);
+                    services.RemoveAllKeyed<IAuthoritativeEventStreamReader>("native-tenant-source");
+                    services.AddKeyedSingleton<IAuthoritativeEventStreamReader>("native-tenant-source", source);
+                    services.RemoveAll<INativeSourceMetadataReader>();
+                    services.AddSingleton<INativeSourceMetadataReader>(source);
+
                 }));
         using HttpClient client = factory.CreateClient();
         IConfiguration configuration = factory.Services.GetRequiredService<IConfiguration>();
@@ -317,8 +325,9 @@ public sealed class DomainServiceEndpointsTests {
     /// read model, and nobody else's does. Before the projection, the same administrator is not yet verified.
     /// </summary>
     [Fact]
-    public async Task BootstrappedAdministrator_VerifiesFromTheProjectedReadModel() {
+    public async Task BootstrappedAdministrator_VerifiesFromSourceBeforeProjectionAndRevokesWhileProjectionStillGrants() {
         var store = new InMemoryReadModelStore();
+        var source = new MutableGlobalAdministratorSource("global-admin-http");
         await using var baseFactory = new WebApplicationFactory<TenantBootstrapOptions>();
         await using WebApplicationFactory<TenantBootstrapOptions> factory = baseFactory.WithWebHostBuilder(
             builder => builder
@@ -327,6 +336,11 @@ public sealed class DomainServiceEndpointsTests {
                 .ConfigureServices(services => {
                     _ = services.RemoveAll<IReadModelStore>();
                     _ = services.AddSingleton<IReadModelStore>(store);
+                    services.RemoveAllKeyed<IAuthoritativeEventStreamReader>("native-tenant-source");
+                    services.AddKeyedSingleton<IAuthoritativeEventStreamReader>("native-tenant-source", source);
+                    services.RemoveAll<INativeSourceMetadataReader>();
+                    services.AddSingleton<INativeSourceMetadataReader>(source);
+
                 }));
         using HttpClient client = factory.CreateClient();
         client.DefaultRequestHeaders.Add(DaprAppChannelToken.HeaderName, ChannelToken);
@@ -336,6 +350,9 @@ public sealed class DomainServiceEndpointsTests {
         bool verifiedBefore = await VerifyAsync(factory.Services, bootstrapped).ConfigureAwait(true);
         DateTimeOffset timestamp = new(2026, 10, 7, 9, 0, 0, TimeSpan.Zero);
         var set = new GlobalAdministratorSet("system", "bootstrap-admin", "bootstrap-admin", timestamp);
+        source.Append(set);
+        (await VerifyAsync(factory.Services, bootstrapped)).ShouldBeTrue();
+        store.Snapshot<GlobalAdministratorReadModel>(StateStoreName, "projection:global-administrators:singleton").ShouldBeNull();
         var projectionRequest = new ProjectionRequest(
             "system",
             "global-administrators",
@@ -361,6 +378,11 @@ public sealed class DomainServiceEndpointsTests {
         verifiedBefore.ShouldBeFalse();
         (await VerifyAsync(factory.Services, bootstrapped).ConfigureAwait(true)).ShouldBeTrue();
         (await VerifyAsync(factory.Services, bootstrapped with { UserId = "someone-else" }).ConfigureAwait(true)).ShouldBeFalse();
+        source.Append(new GlobalAdministratorRemoved("system", "bootstrap-admin"));
+        (await VerifyAsync(factory.Services, bootstrapped)).ShouldBeFalse();
+        store.Snapshot<GlobalAdministratorReadModel>(StateStoreName, "projection:global-administrators:singleton")!
+            .Administrators.ShouldContain("bootstrap-admin");
+
     }
 
     private static async Task<bool> VerifyAsync(IServiceProvider services, DomainServiceAdministratorClaim claim) {

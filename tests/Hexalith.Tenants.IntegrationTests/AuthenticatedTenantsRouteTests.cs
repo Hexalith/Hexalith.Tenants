@@ -1,6 +1,24 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Security.Claims;
+using System.Text;
+using System.Text.Json;
+using System.IdentityModel.Tokens.Jwt;
+using Hexalith.EventStore.Client.Gateway;
+using Hexalith.EventStore.Client.Queries;
+using Hexalith.EventStore.Client.Streams;
+using Hexalith.EventStore.Contracts.Identity;
+using Hexalith.EventStore.DomainService;
+using Hexalith.EventStore.ServiceDefaults.Authentication;
+using Hexalith.EventStore.Testing.Fakes;
+using Hexalith.Tenants.Authorization;
+using Hexalith.Tenants.Contracts.Commands;
+using Hexalith.Tenants.Contracts.Events;
+using Hexalith.Tenants.Queries.Handlers;
+using Hexalith.Tenants.Server.Projections;
+using Hexalith.Tenants.Telemetry;
+using Microsoft.IdentityModel.Tokens;
+using NSubstitute;
 
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Queries;
@@ -35,6 +53,83 @@ public sealed class AuthenticatedTenantsRouteTests(AuthenticatedRouteTopologyFix
 
     /// <inheritdoc/>
     public void Dispose() => _daprTestLease.Dispose();
+
+    [DaprFact]
+    public async Task CommittedNativeRemovalRefusesARetainedGrantingProjectionThroughProductionReaders()
+    {
+        fixture.SkipIfUnavailable();
+        using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+        string administrator = "native-revocation-" + Guid.NewGuid().ToString("N");
+        string token = AspireTopologyTests.CreateDemoJwt();
+        var grant = await AspireTopologyTests.SubmitAndWaitForTerminalStatusAsync(fixture.CommandApiClient,
+            AspireTopologyTests.CreateCommand("global-administrators", "global-administrators", nameof(SetGlobalAdministrator),
+                new SetGlobalAdministrator(administrator)), token, timeout.Token);
+        grant.Status.ShouldBe("Completed"); grant.CommittedEventSequence.ShouldNotBeNull();
+        using ServiceProvider reads = CreateProductionReadServices(token);
+        using IServiceScope scope = reads.CreateScope();
+        var client = scope.ServiceProvider.GetRequiredService<ITenantsRestQueryClient>();
+        await AssertReadAsync(tag => client.GetGlobalAdministratorsAsync(new GetGlobalAdministratorsQuery { PageSize = 100 }, tag, timeout.Token),
+            page => page.Items.Any(item => item.UserId == administrator));
+
+        // Retain the actual persisted granting projection, without changing the live store or its workers.
+        using var redis = await StackExchange.Redis.ConnectionMultiplexer.ConnectAsync(new StackExchange.Redis.ConfigurationOptions
+        {
+            EndPoints = { $"localhost:{DaprDiagnostics.ResolveRedisPort()}" },
+            ConnectTimeout = 5_000, SyncTimeout = 5_000, AbortOnConnectFail = true,
+        });
+        var bytes = await redis.GetDatabase().HashGetAsync("tenants||projection:global-administrators:singleton", "data").WaitAsync(timeout.Token);
+        var granting = JsonSerializer.Deserialize<GlobalAdministratorReadModel>(bytes.ToString(), JsonSerializerOptions.Web).ShouldNotBeNull();
+        granting.Administrators.ShouldContain(administrator);
+        var retained = new InMemoryReadModelStore();
+        await retained.SaveAsync("statestore", "projection:global-administrators:singleton", granting, timeout.Token);
+
+        // Only test credentials are supplied here. Both source readers and the source itself are production
+        // implementations over the running EventStore/Dapr topology; no native reader or metadata fake is registered.
+        string assertion = new JwtSecurityTokenHandler().WriteToken(new JwtSecurityToken("hexalith-dev", "eventstore",
+            [new("azp", "tenants"), new("iat", DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(System.Globalization.CultureInfo.InvariantCulture), ClaimValueTypes.Integer64),
+                new(EventStoreWorkloadAuthenticationDefaults.OperationClaimType, "eventstore:stream-read"),
+                new(EventStoreWorkloadAuthenticationDefaults.TenantBindingClaimType, "system"),
+                new(EventStoreWorkloadAuthenticationDefaults.DomainBindingClaimType, "global-administrators")],
+            expires: DateTime.UtcNow.AddSeconds(60), signingCredentials: new SigningCredentials(
+                new SymmetricSecurityKey(Encoding.UTF8.GetBytes(AspireTopologyFixture.DemoSigningKey)), SecurityAlgorithms.HmacSha256)));
+        var credentials = Substitute.For<IEventStoreGatewayWorkloadAssertionSource>();
+        credentials.IssueAsync("eventstore:stream-read", "system", "global-administrators", Arg.Any<CancellationToken>())
+            .Returns(ValueTask.FromResult<string?>(assertion));
+        using var http = new HttpClient { BaseAddress = fixture.TenantsDaprClient.BaseAddress };
+        http.DefaultRequestHeaders.Add("dapr-app-id", "eventstore");
+        var gateway = new EventStoreGatewayClient(http, Options.Create(new EventStoreGatewayClientOptions { UseWorkloadTransport = true }), credentials);
+        var stream = new AuthoritativeEventStreamReader(gateway, TimeProvider.System, TimeSpan.FromSeconds(10), requireNativeProof: true);
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        { ["DAPR_HTTP_ENDPOINT"] = fixture.TenantsDaprClient.BaseAddress!.AbsoluteUri }).Build();
+        using var metadataHttp = new HttpClient();
+        var metadata = new DaprNativeSourceMetadataReader(metadataHttp, configuration, TimeProvider.System);
+        var cursor = new QueryCursorCodec(new EphemeralDataProtectionProvider(), "live-native-revocation");
+        var telemetry = new TenantTelemetry(new EventStoreDomainDiagnostics("tenants"));
+        var envelope = new QueryEnvelope("system", "global-administrators", "global-administrators",
+            GetGlobalAdministratorsQuery.QueryType, [], "live-native-revocation", administrator, isGlobalAdmin: true);
+        GetGlobalAdministratorsQueryHandler Handler() => new(retained,
+            new TenantsGlobalAdministratorAuthority(stream, metadata, TimeProvider.System), cursor, telemetry,
+            NullLogger<GetGlobalAdministratorsQueryHandler>.Instance);
+        var beforeSource = await stream.ReadAsync(new AggregateIdentity("system", "global-administrators", "global-administrators"), timeout.Token);
+        beforeSource.IsAuthoritative.ShouldBeTrue(beforeSource.FailureReason);
+        (await Handler().ExecuteAsync(envelope, timeout.Token)).Success.ShouldBeTrue();
+
+        var removal = await AspireTopologyTests.SubmitAndWaitForTerminalStatusAsync(fixture.CommandApiClient,
+            AspireTopologyTests.CreateCommand("global-administrators", "global-administrators", nameof(RemoveGlobalAdministrator),
+                new RemoveGlobalAdministrator(administrator)), token, timeout.Token);
+        removal.Status.ShouldBe("Completed"); removal.CommittedEventSequence.ShouldNotBeNull().ShouldBeGreaterThan(grant.CommittedEventSequence!.Value);
+        var source = (await stream.ReadAsync(new AggregateIdentity("system", "global-administrators", "global-administrators"), timeout.Token))
+            .Stream.ShouldNotBeNull();
+        var committed = source.Events.Single(item => item.SequenceNumber == removal.CommittedEventSequence);
+        committed.EventTypeName.ShouldContain(nameof(GlobalAdministratorRemoved));
+        JsonSerializer.Deserialize<GlobalAdministratorRemoved>(committed.Payload, JsonSerializerOptions.Web)!.UserId.ShouldBe(administrator);
+        source.NativeProof.ShouldNotBeNull().HeadSequence.ShouldBeGreaterThanOrEqualTo(removal.CommittedEventSequence!.Value);
+        var refused = await Handler().ExecuteAsync(envelope, timeout.Token);
+        refused.Success.ShouldBeFalse(); refused.ErrorMessage.ShouldBe(QueryAdapterFailureReason.Forbidden);
+        (await retained.GetAsync<GlobalAdministratorReadModel>("statestore", "projection:global-administrators:singleton", timeout.Token))
+            .Value.ShouldNotBeNull().Administrators.ShouldContain(administrator);
+        TestContext.Current.TestOutputHelper?.WriteLine("Native removal control: committed removal present, production stream/final metadata readers verified, retained granting projection refused.");
+    }
 
     [DaprFact]
     public async Task SixAuthenticatedDaprRestReadsMatchPersistedState()
@@ -206,6 +301,40 @@ public sealed class AuthenticatedTenantsRouteTests(AuthenticatedRouteTopologyFix
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AspireTopologyTests.CreateDemoJwt());
         using HttpResponseMessage response = await fixture.TenantsUiDaprClient.SendAsync(request, TestContext.Current.CancellationToken);
         response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+    }
+
+    [DaprFact]
+    public async Task PopulatedTwentyRowPageHydratesWithoutActorQuotaFailure()
+    {
+        fixture.SkipIfUnavailable();
+        using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+        string token = AspireTopologyTests.CreateDemoJwt();
+        for (int index = 0; index < 20; index++)
+        {
+            string tenantId = $"populated-page-{Guid.NewGuid():N}";
+            var command = AspireTopologyTests.CreateCommand("tenants", tenantId,
+                nameof(Hexalith.Tenants.Contracts.Commands.CreateTenant),
+                new Hexalith.Tenants.Contracts.Commands.CreateTenant(tenantId, "Populated page control", "Native authority capacity control"));
+            var status = await AspireTopologyTests.SubmitAndWaitForTerminalStatusAsync(fixture.CommandApiClient, command, token, timeout.Token);
+            status.Status.ShouldBe("Completed");
+            await AspireTopologyTests.WaitForPersistedTenantAsync(tenantId, Hexalith.Tenants.Contracts.Projections.TenantProjectionVersionFormat.SequencePrefix + "1", timeout.Token);
+        }
+
+        // Start the measured page after the unchanged one-second consumer window used by command preparation.
+        await Task.Delay(TimeSpan.FromSeconds(2), timeout.Token);
+        TestContext.Current.TestOutputHelper?.WriteLine("Populated page control: starting one production 20-row load.");
+        using ServiceProvider provider = CreateProductionReadServices(token);
+        using IServiceScope scope = provider.CreateScope();
+        using var gateway = new TenantQueryGateway(
+            scope.ServiceProvider.GetRequiredService<ITenantsRestQueryClient>(), new LiveRouteUserContext(),
+            scope.ServiceProvider.GetRequiredService<MemoriesClient>(),
+            scope.ServiceProvider.GetRequiredService<ITenantSearchCursorCodec>());
+        var elapsed = System.Diagnostics.Stopwatch.StartNew();
+        TenantListSnapshot result = await gateway.ListTenantsAsync(new TenantListRequest(PageSize: 20), null, timeout.Token);
+        TestContext.Current.TestOutputHelper?.WriteLine($"Populated page outcome: Kind={result.Kind}, Rows={result.Rows.Count}, Degraded={result.IsDegraded}, KnownCounts={result.Rows.Count(row => row.MemberCount.IsKnown && row.OwnerCount.IsKnown)}, ElapsedMilliseconds={elapsed.Elapsed.TotalMilliseconds:F2}, Cancelled={timeout.IsCancellationRequested}.");
+        result.Rows.Count.ShouldBe(20);
+        result.IsDegraded.ShouldBeFalse();
+        result.Rows.All(row => row.MemberCount.IsKnown && row.OwnerCount.IsKnown).ShouldBeTrue();
     }
 
     private ServiceProvider CreateProductionReadServices(string token)

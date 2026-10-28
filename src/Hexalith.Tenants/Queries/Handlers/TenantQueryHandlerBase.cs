@@ -1,3 +1,4 @@
+using Hexalith.Tenants.Authorization;
 using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -44,6 +45,7 @@ public abstract partial class TenantQueryHandlerBase : IDomainQueryHandler {
 
     private readonly ReadModelFreshnessThresholds _freshnessThresholds;
     private readonly IReadModelStore _store;
+    private readonly ITenantsGlobalAdministratorAuthority _administratorAuthority;
     private readonly TenantTelemetry _telemetry;
     private readonly TimeProvider _timeProvider;
 
@@ -60,6 +62,7 @@ public abstract partial class TenantQueryHandlerBase : IDomainQueryHandler {
     /// <param name="logger">The logger.</param>
     protected TenantQueryHandlerBase(
         IReadModelStore store,
+        ITenantsGlobalAdministratorAuthority administratorAuthority,
         IQueryCursorCodec cursorCodec,
         TenantTelemetry telemetry,
         ILogger logger,
@@ -70,6 +73,7 @@ public abstract partial class TenantQueryHandlerBase : IDomainQueryHandler {
         ArgumentNullException.ThrowIfNull(telemetry);
         ArgumentNullException.ThrowIfNull(logger);
         _store = store;
+        _administratorAuthority = administratorAuthority ?? throw new ArgumentNullException(nameof(administratorAuthority));
         CursorCodec = cursorCodec;
         _telemetry = telemetry;
         Logger = logger;
@@ -563,22 +567,17 @@ public abstract partial class TenantQueryHandlerBase : IDomainQueryHandler {
     }
 
     /// <summary>
-    /// Re-evaluates global-administrator authority from the current global-administrators read model.
+    /// Re-evaluates global-administrator authority from the final verified native source observation.
     /// </summary>
     /// <remarks>
     /// <see cref="QueryEnvelope.IsGlobalAdmin"/> is untrusted wire data (EventStore Story 5.5, FR28) and never grants
-    /// access on its own: the acting user must be a current member of the persisted global-administrators read model.
+    /// access on its own: the acting user must be a current member of the authenticated native global-administrators source.
     /// </remarks>
     private protected Task<bool> IsGlobalAdminAsync(QueryEnvelope envelope, CancellationToken cancellationToken)
         => IsGlobalAdminAsync(envelope.UserId, cancellationToken);
 
-    private protected async Task<bool> IsGlobalAdminAsync(string userId, CancellationToken cancellationToken) {
-        cancellationToken.ThrowIfCancellationRequested();
-        GlobalAdministratorReadModel? adminModel = await GetStateAsync<GlobalAdministratorReadModel>(
-            GlobalAdminProjectionKey, cancellationToken).ConfigureAwait(false);
-
-        return adminModel is not null && adminModel.Administrators.Contains(userId);
-    }
+    private protected Task<bool> IsGlobalAdminAsync(string userId, CancellationToken cancellationToken)
+        => _administratorAuthority.IsCurrentGlobalAdministratorAsync(userId, cancellationToken);
 
     private static partial class Log {
         [LoggerMessage(

@@ -58,6 +58,42 @@ public sealed class TenantsUiCompositionTests
     private static readonly TimeSpan DependencyResolutionTimeout = TimeSpan.FromMinutes(3);
 
     [Fact]
+    public async Task ComposedGatewayUsesTheConfiguredSearchLoadBudgetAndInjectedClock()
+    {
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Tenants:BaseAddress"] = "https://tenants.invalid",
+            ["Tenants:Search:LoadBudget"] = "00:00:03",
+        }).Build();
+        var clock = new ManualTimeProvider();
+        var services = new ServiceCollection(); services.AddLogging(); services.AddSingleton<IConfiguration>(configuration);
+        services.AddSingleton<TimeProvider>(clock);
+        services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: false);
+        var caller = Substitute.For<Hexalith.FrontComposer.Contracts.Rendering.IUserContextAccessor>();
+        caller.UserId.Returns("composed-caller"); services.AddSingleton(caller);
+        services.AddSingleton(Substitute.For<ITenantsRestQueryClient>());
+        using var http = new HttpClient();
+        var memories = Substitute.For<MemoriesClient>(http, Options.Create(new MemoriesClientOptions()), NullLogger<MemoriesClient>.Instance);
+        var held = new TaskCompletionSource<Hexalith.Memories.Contracts.V1.SearchResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        CancellationToken observed = default;
+        memories.SearchAsync(Arg.Any<Hexalith.Memories.Client.Rest.SearchRequest>(), Arg.Any<CancellationToken>())
+            .Returns(call => { observed = call.ArgAt<CancellationToken>(1); started.SetResult(); return held.Task; });
+        services.AddSingleton(memories);
+        using var provider = services.BuildServiceProvider(); using var scope = provider.CreateScope();
+        provider.GetRequiredService<IOptions<TenantSearchOptions>>().Value.LoadBudget.ShouldBe(TimeSpan.FromSeconds(3));
+        var gateway = scope.ServiceProvider.GetRequiredService<ITenantQueryGateway>();
+        gateway.ShouldBeOfType<TenantQueryGateway>();
+        var load = gateway.ListTenantsAsync(new TenantListRequest(Search: "configured-search"), null);
+        await started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        clock.Advance(TimeSpan.FromMilliseconds(2999)); load.IsCompleted.ShouldBeFalse();
+        clock.Advance(TimeSpan.FromMilliseconds(1));
+        (await load.WaitAsync(TimeSpan.FromSeconds(5))).Kind.ShouldBe(TenantListSurfaceKind.Error);
+        observed.IsCancellationRequested.ShouldBeTrue();
+        held.SetResult(new Hexalith.Memories.Contracts.V1.SearchResult { Query = "configured-search", Results = [], TotalCount = 0, HasIndexedMemoryUnits = false });
+    }
+
+    [Fact]
     public void FrontComposer_registration_exposes_tenants_nav_entries_and_generated_surface_manifest()
     {
         CapturingRegistry registry = new();

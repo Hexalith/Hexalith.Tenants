@@ -188,6 +188,55 @@
           }
         }
       ]
+    },
+    {
+      "name": "eventstore-audience.eventstore",
+      "description": "Grants the EventStore audience for the Tenants source authority reader",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      },
+      "protocolMappers": [
+        {
+          "name": "workload-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.custom.audience": "eventstore",
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "name": "eventstore-operation.eventstore.stream-read",
+      "description": "Grants only authenticated EventStore source-stream reads",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      },
+      "protocolMappers": [
+        {
+          "name": "workload-operation",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-hardcoded-claim-mapper",
+          "consentRequired": false,
+          "config": {
+            "claim.name": "eventstore:operation",
+            "claim.value": "eventstore:stream-read",
+            "jsonType.label": "String",
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
     }
   ],
   "clients": [
@@ -432,6 +481,28 @@
         "eventstore-operation.domain-service.query",
         "eventstore-operation.domain-service.project",
         "eventstore-operation.domain-service.metadata"
+      ]
+    },
+    {
+      "clientId": "tenants",
+      "name": "Hexalith Tenants source authority",
+      "description": "Source-read workload with no default grants",
+      "enabled": true,
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "${HEXALITH_TENANTS_WORKLOAD_CLIENT_SECRET}",
+      "directAccessGrantsEnabled": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": true,
+      "fullScopeAllowed": false,
+      "attributes": {
+        "access.token.lifespan": "300"
+      },
+      "defaultClientScopes": [],
+      "optionalClientScopes": [
+        "eventstore-audience.eventstore",
+        "eventstore-operation.eventstore.stream-read"
       ]
     }
   ],

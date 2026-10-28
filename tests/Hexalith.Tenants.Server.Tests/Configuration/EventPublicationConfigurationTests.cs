@@ -1,3 +1,4 @@
+using Hexalith.Tenants.Authorization;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
@@ -134,6 +135,7 @@ public class EventPublicationConfigurationTests {
         WebApplicationBuilder builder = WebApplication.CreateBuilder();
         builder.AddEventStoreDomainService(typeof(TenantAggregate).Assembly, typeof(GetTenantQueryHandler).Assembly);
         builder.Services.AddSingleton<IReadModelStore, EmptyReadModelStore>();
+        builder.Services.AddSingleton(Substitute.For<ITenantsGlobalAdministratorAuthority>());
         builder.Services.AddSingleton<IQueryCursorCodec, EmptyQueryCursorCodec>();
         // Match the host's domain-owned dependencies for the discovered owner-authority handler.
         IAuthoritativeEventStreamReader reader = Substitute.For<IAuthoritativeEventStreamReader>();
@@ -550,7 +552,7 @@ public class EventPublicationConfigurationTests {
         Sequence(SinglePolicy(eventStore, "tenants"), "operations")
             .OfType<YamlMappingNode>()
             .Select(operation => $"{Scalar(operation, "action")} {string.Join(',', ScalarValues(operation, "httpVerb"))} {Scalar(operation, "name")}")
-            .ShouldBe(["allow POST /api/v1/commands"]);
+            .ShouldBe(["allow POST /api/v1/commands", "allow POST /api/v1/streams/read/workload"]);
         Policies(admin).ShouldBeEmpty();
     }
 

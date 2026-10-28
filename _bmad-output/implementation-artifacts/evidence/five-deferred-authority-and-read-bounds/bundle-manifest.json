@@ -1,0 +1,14 @@
+{
+  "archive": "validation-records.tar.gz",
+  "sha256": "e75a7e526eea62bce82081d404a07314a051af1f8c57c99b3fa650c9d560fa3e",
+  "bytes": 3089897,
+  "sanitizedOnly": true,
+  "memberCount": 236,
+  "memberManifest": {
+    "member": "member-hashes.json",
+    "sha256": "3d2986fa892ae27d481f4aca6f6cf7686ee6829b396bebd615b0347d5f89d53b",
+    "bytes": 38867,
+    "excludesSelf": true
+  },
+  "originalBundleManifestArchiveMember": "full-bundle-manifest.json"
+}

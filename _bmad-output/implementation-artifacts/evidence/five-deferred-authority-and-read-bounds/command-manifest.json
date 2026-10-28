@@ -1,0 +1,244 @@
+{
+  "cwd": "/home/administrator/projects/hexalith/tenants",
+  "historicalAndAcceptedCommandCount": 74,
+  "fullManifestArchiveMember": "full-command-manifest.json",
+  "fullManifestSha256": "b0ccd5522a5320ca3e9d15d85404d6dc330060ccb9cc7991933cfb21087d0881",
+  "acceptedCommands": [
+    {
+      "receiptMember": "apphost-backpressure-full.json",
+      "rawReceiptSha256": "707aa2ef51980ab6c85a89e6e18871952fbcbebbe61b44171ff46d0763161363",
+      "sanitizedReceiptSha256": "707aa2ef51980ab6c85a89e6e18871952fbcbebbe61b44171ff46d0763161363",
+      "record": {
+        "phase": "apphost-backpressure-full",
+        "cwd": "/home/administrator/projects/hexalith/tenants",
+        "command": [
+          "dotnet",
+          "tests/Hexalith.Tenants.AppHost.Tests/bin/Release/net10.0/Hexalith.Tenants.AppHost.Tests.dll",
+          "-showLiveOutput",
+          "-noLogo"
+        ],
+        "startedUtc": "2026-10-28T21:15:11.940150+00:00",
+        "finishedUtc": "2026-10-28T21:15:13.158713+00:00",
+        "exitCode": 0,
+        "log": "apphost-backpressure-full.txt",
+        "environment": {}
+      }
+    },
+    {
+      "receiptMember": "generic-fourth-build.json",
+      "rawReceiptSha256": "f070ea13157992e3020550484af91ab5895c3f9aa3a8f589a59373dd109d18e4",
+      "sanitizedReceiptSha256": "f070ea13157992e3020550484af91ab5895c3f9aa3a8f589a59373dd109d18e4",
+      "record": {
+        "phase": "generic-fourth-build",
+        "cwd": "/home/administrator/projects/hexalith/tenants",
+        "command": [
+          "dotnet",
+          "build",
+          "Hexalith.Tenants.slnx",
+          "--no-restore",
+          "-c",
+          "Release",
+          "-warnaserror",
+          "-m:1",
+          "-nr:false"
+        ],
+        "startedUtc": "2026-10-28T21:46:03.166578+00:00",
+        "finishedUtc": "2026-10-28T21:46:15.786445+00:00",
+        "exitCode": 0,
+        "log": "generic-fourth-build.txt",
+        "environment": {}
+      }
+    },
+    {
+      "receiptMember": "generic-fourth-complete-tier.json",
+      "rawReceiptSha256": "495d6519dee7865a3ea8c10fec62f1f23316e8ddc3c9e15f5fd01246f2ca8c0f",
+      "sanitizedReceiptSha256": "495d6519dee7865a3ea8c10fec62f1f23316e8ddc3c9e15f5fd01246f2ca8c0f",
+      "record": {
+        "phase": "generic-fourth-complete-tier",
+        "cwd": "/home/administrator/projects/hexalith/tenants",
+        "command": [
+          "dotnet",
+          "test",
+          "tests/Hexalith.Tenants.IntegrationTests",
+          "--no-build",
+          "--configuration",
+          "Release",
+          "--filter-not-trait",
+          "Category=Performance",
+          "--results-directory",
+          "TestResults/five-fourth-aspire",
+          "--report-xunit-trx",
+          "--report-xunit-trx-filename",
+          "aspire-results.trx",
+          "--minimum-expected-tests",
+          "1",
+          "--fail-skips",
+          "on"
+        ],
+        "startedUtc": "2026-10-28T21:46:58.973902+00:00",
+        "finishedUtc": "2026-10-28T21:49:55.951014+00:00",
+        "exitCode": 0,
+        "log": "generic-fourth-complete-tier.txt",
+        "environment": {
+          "EventStore__Projections__WorkersEnabled": "true",
+          "SSL_CERT_DIR": "/home/administrator/.aspnet/dev-certs/trust:/usr/lib/ssl/certs",
+          "Dapr__StateStoreComponentPath": "/tmp/tenants-five-deferred-fourth-861f1918da-components/statestore.yaml",
+          "Dapr__PubSubComponentPath": "/tmp/tenants-five-deferred-fourth-861f1918da-components/pubsub.yaml",
+          "HEXALITH_EVENTSTORE_TEST_REDIS_PORT": "53692"
+        }
+      }
+    },
+    {
+      "receiptMember": "generic-fourth-restore.json",
+      "rawReceiptSha256": "4439c8c2d5e9b02320baa0866f573b5c45314361ccee63f48d6d0cefa7610166",
+      "sanitizedReceiptSha256": "4439c8c2d5e9b02320baa0866f573b5c45314361ccee63f48d6d0cefa7610166",
+      "record": {
+        "phase": "generic-fourth-restore",
+        "cwd": "/home/administrator/projects/hexalith/tenants",
+        "command": [
+          "dotnet",
+          "restore",
+          "Hexalith.Tenants.slnx"
+        ],
+        "startedUtc": "2026-10-28T21:45:30.216486+00:00",
+        "finishedUtc": "2026-10-28T21:45:33.484014+00:00",
+        "exitCode": 0,
+        "log": "generic-fourth-restore.txt",
+        "environment": {}
+      }
+    },
+    {
+      "receiptMember": "independent-owner-http-green.json",
+      "rawReceiptSha256": "750ce71a9c68561906160f50131039b2c97ca2f6a6076f2e81334e938cd8393a",
+      "sanitizedReceiptSha256": "750ce71a9c68561906160f50131039b2c97ca2f6a6076f2e81334e938cd8393a",
+      "record": {
+        "phase": "independent-owner-http-green",
+        "cwd": "/home/administrator/projects/hexalith/tenants",
+        "command": [
+          "dotnet",
+          "tests/Hexalith.Tenants.IntegrationTests/bin/Release/net10.0/Hexalith.Tenants.IntegrationTests.dll",
+          "-method",
+          "*IndependentOwnerQueries*",
+          "-method",
+          "*EveryQueryGateRefuses*",
+          "-method",
+          "*OriginalNoncanonicalOwnerAuthorityHint*",
+          "-method",
+          "*NativeRemovalRefuses*",
+          "-method",
+          "*GlobalManagementUses*",
+          "-showLiveOutput",
+          "-noLogo"
+        ],
+        "startedUtc": "2026-10-28T21:42:01.302011+00:00",
+        "finishedUtc": "2026-10-28T21:42:06.122402+00:00",
+        "exitCode": 0,
+        "log": "independent-owner-http-green.txt",
+        "environment": {}
+      }
+    },
+    {
+      "receiptMember": "server-owner-fix-build.json",
+      "rawReceiptSha256": "57aed8a54d8e92b3bed529b1c683dbf7a83d6e7d97bc51542792185a34239610",
+      "sanitizedReceiptSha256": "57aed8a54d8e92b3bed529b1c683dbf7a83d6e7d97bc51542792185a34239610",
+      "record": {
+        "phase": "server-owner-fix-build",
+        "cwd": "/home/administrator/projects/hexalith/tenants",
+        "command": [
+          "dotnet",
+          "build",
+          "tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj",
+          "-c",
+          "Debug",
+          "-p:UseHexalithProjectReferences=true",
+          "-p:UseNuGetDeps=false",
+          "-p:HexalithMcpCliFromSource=false",
+          "-p:HexalithEventStoreVersion=3.128.4",
+          "-m:1",
+          "-nr:false"
+        ],
+        "startedUtc": "2026-10-28T21:43:04.611777+00:00",
+        "finishedUtc": "2026-10-28T21:43:13.769425+00:00",
+        "exitCode": 0,
+        "log": "server-owner-fix-build.txt",
+        "environment": {}
+      }
+    },
+    {
+      "receiptMember": "server-owner-full-green.json",
+      "rawReceiptSha256": "4106fe5e5e5489bf62b26e84a5daa754fec11c981e3264e942974aa6922dbd12",
+      "sanitizedReceiptSha256": "4106fe5e5e5489bf62b26e84a5daa754fec11c981e3264e942974aa6922dbd12",
+      "record": {
+        "phase": "server-owner-full-green",
+        "cwd": "/home/administrator/projects/hexalith/tenants",
+        "command": [
+          "dotnet",
+          "tests/Hexalith.Tenants.Server.Tests/bin/Debug/net10.0/Hexalith.Tenants.Server.Tests.dll",
+          "-showLiveOutput",
+          "-noLogo"
+        ],
+        "startedUtc": "2026-10-28T21:43:50.223296+00:00",
+        "finishedUtc": "2026-10-28T21:43:53.966593+00:00",
+        "exitCode": 0,
+        "log": "server-owner-full-green.txt",
+        "environment": {}
+      }
+    },
+    {
+      "receiptMember": "ui-full-cleanup-green.json",
+      "rawReceiptSha256": "0954e68748f3221fc6577064b7ba6eb3b1d5c196739f9b0fc136243d72a106b1",
+      "sanitizedReceiptSha256": "0954e68748f3221fc6577064b7ba6eb3b1d5c196739f9b0fc136243d72a106b1",
+      "record": {
+        "phase": "ui-full-cleanup-green",
+        "cwd": "/home/administrator/projects/hexalith/tenants",
+        "command": [
+          "dotnet",
+          "tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll",
+          "-showLiveOutput",
+          "-noLogo"
+        ],
+        "startedUtc": "2026-10-28T21:34:40.346997+00:00",
+        "finishedUtc": "2026-10-28T21:36:08.920185+00:00",
+        "exitCode": 0,
+        "log": "ui-full-cleanup-green.txt",
+        "environment": {
+          "HexalithEventStoreVersion": "3.128.4"
+        }
+      }
+    },
+    {
+      "receiptMember": "ui-gateway-cleanup-green.json",
+      "rawReceiptSha256": "811c854f8d4787be2c6928299ae70a4bc76dbae9c65d3007d2237db4258b6176",
+      "sanitizedReceiptSha256": "811c854f8d4787be2c6928299ae70a4bc76dbae9c65d3007d2237db4258b6176",
+      "record": {
+        "phase": "ui-gateway-cleanup-green",
+        "cwd": "/home/administrator/projects/hexalith/tenants",
+        "command": [
+          "dotnet",
+          "tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll",
+          "-class",
+          "Hexalith.Tenants.UI.Tests.Services.Gateways.TenantQueryGatewayTests",
+          "-showLiveOutput",
+          "-noLogo"
+        ],
+        "startedUtc": "2026-10-28T21:34:09.405616+00:00",
+        "finishedUtc": "2026-10-28T21:34:11.262356+00:00",
+        "exitCode": 0,
+        "log": "ui-gateway-cleanup-green.txt",
+        "environment": {}
+      }
+    }
+  ],
+  "baselineStartCommand": [
+    "aspire",
+    "start",
+    "--apphost",
+    "src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj",
+    "--non-interactive"
+  ],
+  "baselineOutputFiles": [
+    "baseline-aspire-start.txt",
+    "baseline-aspire-describe.txt",
+    "baseline-aspire-stop.txt"
+  ]
+}

@@ -1,5 +1,7 @@
 # Deferred Work
 
+**Four implementation records accepted; CI qualification pending (2026-10-28):** DW-562 and duplicate DW-617 plus the two unnumbered fatal/deadline follow-ups satisfy the approved policies after independent review, deterministic checks and real persisted-removal qualification. All 657 numbered IDs remain: 651 done/6 open across six maintenance rows; all 655 unselected numbered bodies and original selected findings remain preserved. The selected unnumbered generic-CI follow-up stays open until actual passing post-push CI. External enrollment, legacy native-proof recovery and unrelated release/accessibility holds remain separate. See [review, verification and limits](five-deferred-authority-and-read-bounds-validation-evidence.md).
+
 **DW-117/DW-118/DW-127/DW-599/DW-618 approved supersession (2026-10-28):** Workspace Error/Retry containment, qualified nonblank cursor contracts, bounded authorized search backfill/lookahead and the FR-6 UI display boundary close exactly five records under the approved policies. All 657 IDs remain: 649 done/8 open across seven maintenance rows; all 652 unselected bodies and original findings remain preserved. Two independent-review follow-ups are recorded separately and excluded from numbered totals. See [verification, review corrections and limits](dw-117-118-127-599-618-validation-evidence.md).
 
 **DW-438/DW-457/DW-498/DW-521/DW-600 closure (2026-10-28):** Approved canonical audit references, immutable historical disposition, independently authorized inspection, exact-message status precedence and strict administrator completeness are implemented, reviewed and source-qualified. All 657 IDs remain: 644 done/13 open across 12 maintenance rows; original findings and all 652 unselected numbered bodies are preserved. Published-package adoption and broader runtime/release holds remain separate. See [verification, review corrections and limits](dw-438-457-498-521-600-validation-evidence.md).
@@ -5357,8 +5359,10 @@ location: docs/production-auth-readiness.md
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: high; global-administrator revocation can remain authorized for every global-administrator command and query, including tenant correction, while its authority channels lag.\n  evidence: `81144734` added `TenantsGlobalAdministratorVerifier` for EventStore Story 5.5 FR28 within the Story 5.6 range. Correction dispatch using global-administrator authority needs both the corroborated UI principal-claims gate (`src/Hexalith.Tenants.UI/Services/Configuration/TenantConfigurationPrincipalResolver.cs:92`, reached from `src/Hexalith.Tenants.UI/Services/Gateways/TenantsBffComposition.cs:542,561`) and the server verifier. At the `/process` boundary, the verifier admits `actor:globalAdmin` for tenant commands (`src/Hexalith.Tenants.Server/Aggregates/TenantAggregate.cs:265-272`); at the `/query` boundary, it admits `QueryEnvelope.IsGlobalAdmin` for global-administrator queries (`src/Hexalith.Tenants/Authorization/TenantsGlobalAdministratorVerifier.cs:11-18`). Both use the persisted `GlobalAdministratorReadModel`. Revoking either authority channel stops its path once observed: identity-provider revocation takes effect after token or circuit renewal, and `GlobalAdministratorRemoved` takes effect after projection, with no bound if projection stalls. The global-administrator authority owner should define an authoritative or version-bounded revocation check for all such commands and queries."
-status: open
-disposition: awaiting-decision
+pre-native-authority-status: open
+status: done 2026-10-28
+pre-native-authority-disposition: awaiting-decision
+disposition: done
 verification-date: 2026-10-12
 verification: TenantsGlobalAdministratorVerifier.IsCurrentGlobalAdministratorAsync still checks only persisted model.Administrators.Contains(claim.UserId), without sequence/freshness comparison. Identity and projection revocation remain eventually consistent; production-auth-readiness.md documents grant consistency only.
 verification-files: docs/production-auth-readiness.md
@@ -5368,6 +5372,11 @@ owner: global-administrator authority owner
 dependencies: Platform authorization and revocation contract
 next-action: Define the authoritative/version-bounded revocation guarantee and responsible authority before changing command/query gates.
 related: DW-617,DW-564
+resolution-date: 2026-10-28
+resolution-spec: spec-five-deferred-authority-and-read-bounds.md
+resolution: Approved authenticated native-source membership and final incarnation/prefix proof now govern new global grants at every query gate and tenant-command boundary. Global-management commands retain locked/replayed aggregate authorization without actor self-calls. Unavailable, malformed, legacy, changed or over-bound evidence fails closed; independent tenant permissions and already-admitted operations retain the approved behavior. Request-only successful reuse has no cross-request cache. Same-host HTTP and real Dapr persisted-removal controls refuse a removed administrator while a granting projection remains retained.
+resolution-evidence: five-deferred-authority-and-read-bounds-validation-evidence.md
+resolution-next-action: None for this record; external enrollment, legacy-source recovery and broader runtime/release holds remain separate.
 
 
 ## Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 23 (2026-10-09)
@@ -6046,8 +6055,10 @@ location: n/a
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Reconcile global administrator revocation with the freshness of the authorization read model.\n  evidence: TenantsGlobalAdministratorVerifier accepts membership from the global-administrator read model without a sequence or freshness check, so a projection lag can retain revoked command authority."
-status: open
-disposition: awaiting-decision
+pre-native-authority-status: open
+status: done 2026-10-28
+pre-native-authority-disposition: awaiting-decision
+disposition: done
 verification-date: 2026-10-12
 verification: TenantsGlobalAdministratorVerifier still checks read-model membership with no version/freshness boundary. Projection lag can retain authorization after removal; this duplicates the broader command/query authority concern.
 evidence-kind: verified-gap
@@ -6057,6 +6068,11 @@ dependencies: DW-562 revocation contract decision
 next-action: Resolve the shared authoritative/version-bounded revocation contract through DW-562.
 related: DW-562,DW-564
 duplicate-of: DW-562
+resolution-date: 2026-10-28
+resolution-spec: spec-five-deferred-authority-and-read-bounds.md
+resolution: Approved authenticated native-source membership and final incarnation/prefix proof now govern new global grants at every query gate and tenant-command boundary. Global-management commands retain locked/replayed aggregate authorization without actor self-calls. Unavailable, malformed, legacy, changed or over-bound evidence fails closed; independent tenant permissions and already-admitted operations retain the approved behavior. Request-only successful reuse has no cross-request cache. Same-host HTTP and real Dapr persisted-removal controls refuse a removed administrator while a granting projection remains retained.
+resolution-evidence: five-deferred-authority-and-read-bounds-validation-evidence.md
+resolution-next-action: None for this record; external enrollment, legacy-source recovery and broader runtime/release holds remain separate.
 
 
 ### DW-618: Make authorized search paging both complete and private when index windows contain hidden tenants.
@@ -6498,7 +6514,17 @@ archived: 2026-10-22
 - source_spec: `spec-dw-117-118-127-599-618-read-safety.md`
   summary: Medium, pre-existing: qualify fatal dependency failure precedence when the authenticated caller retires concurrently.
   evidence: CallerBoundTenantsRestQueryClient.ReadAsync verifies cancellation/current authority in finally, and TenantQueryGateway.ReadForAuthenticatedCallerAsync contains caller-transition failures. Those unchanged entry paths can replace a fatal dependency exception with cancellation or authorization failure before workspace classification. Establish a held fatal read plus caller/cancellation transition regression and an owning precedence decision before changing this security boundary. This is separate from the selected workspace/search fixes and numbered totals.
+  status: done
+  resolution-date: 2026-10-28
+  resolution-spec: spec-five-deferred-authority-and-read-bounds.md
+  resolution: The approved original-fatal precedence now survives caller retirement/cancellation, fatal wrappers and completed canceled tasks; pre-cancelled work never starts. Fatal transport, enrichment and timing/callback regressions preserve original identity without returning retired-caller evidence.
+  resolution-evidence: five-deferred-authority-and-read-bounds-validation-evidence.md
 
 - source_spec: `spec-dw-117-118-127-599-618-read-safety.md`
   summary: Unverified medium: measure elapsed latency of bounded authorized backfill against a slow upstream before choosing a whole-load deadline.
   evidence: The approved scan examines at most 1,000 raw positions and honors caller cancellation and existing request timeouts, but multiple sequential windows can multiply latency. No unacceptable-duration threshold or controlled slow-upstream incident was established. Capture per-window/whole-load timing and cancellation with a deterministic slow fixture, then choose the owning timeout/fallback contract. Rendered privacy/completeness qualification does not claim a latency SLA; numbered totals are unchanged.
+  status: done
+  resolution-date: 2026-10-28
+  resolution-spec: spec-five-deferred-authority-and-read-bounds.md
+  resolution: The approved configurable ten-second whole-load budget covers windows, hydration and fallback, cancels outstanding work and discards late evidence. Manual-clock slow-window/seam controls, nondefault production-DI binding, cursor recovery and safe expiry diagnostics pass; controlled populated-list timing is retained without claiming a general latency SLA.
+  resolution-evidence: five-deferred-authority-and-read-bounds-validation-evidence.md

@@ -29,7 +29,8 @@ internal sealed record AuthenticatedRouteState(string TenantId, string TargetUse
     internal static async Task<AuthenticatedRouteState> CreateAsync(HttpClient commandApi, CancellationToken cancellationToken)
     {
         string token = AspireTopologyTests.CreateDemoJwt();
-        string tenantId = $"live-routes-{Guid.NewGuid():N}";
+        // Sort after the populated-page control so retained route cursors are exercised with a full corpus.
+        string tenantId = $"zz-live-routes-{Guid.NewGuid():N}";
         string target = $"live-member-{Guid.NewGuid():N}";
         var bootstrap = await AspireTopologyTests.SubmitAndWaitForTerminalStatusAsync(
             commandApi,
@@ -100,10 +101,14 @@ internal sealed record AuthenticatedRouteState(string TenantId, string TargetUse
             do
             {
                 var response = await client.ListTenantsAsync(new ListTenantsQuery { Cursor = cursor, PageSize = pageSize }, null, timeout.Token);
+                if (response.FailureKind != TenantsRestQueryFailureKind.None)
+                    TestContext.Current.TestOutputHelper?.WriteLine($"Live projection page failed: Kind={response.FailureKind}, HTTP={response.StatusCode}.");
                 response.FailureKind.ShouldBe(TenantsRestQueryFailureKind.None);
                 var page = response.Payload.ShouldNotBeNull();
-                if (page.Items.Any(item => item.TenantId == TenantId && item.Name == Persisted.Name && item.Status == Persisted.Status))
+                int seedIndex = page.Items.ToList().FindIndex(item => item.TenantId == TenantId && item.Name == Persisted.Name && item.Status == Persisted.Status);
+                if (seedIndex >= 0)
                 {
+                    TestContext.Current.TestOutputHelper?.WriteLine($"Live list page: PageSize={pageSize}, Rows={page.Items.Count}, SeedIndex={seedIndex}, RequestCursorPresent={cursor is not null}.");
                     return cursor;
                 }
 
@@ -133,6 +138,8 @@ internal sealed record AuthenticatedRouteState(string TenantId, string TargetUse
             do
             {
                 var response = await client.GetUserTenantsAsync(new GetUserTenantsQuery { UserId = CallerId, Cursor = cursor, PageSize = pageSize }, null, timeout.Token);
+                if (response.FailureKind != TenantsRestQueryFailureKind.None)
+                    TestContext.Current.TestOutputHelper?.WriteLine($"Live projection page failed: Kind={response.FailureKind}, HTTP={response.StatusCode}.");
                 response.FailureKind.ShouldBe(TenantsRestQueryFailureKind.None);
                 var page = response.Payload.ShouldNotBeNull();
                 if (page.Items.Any(item => item.TenantId == TenantId && item.Name == Persisted.Name && item.Role == Persisted.Members[CallerId]))

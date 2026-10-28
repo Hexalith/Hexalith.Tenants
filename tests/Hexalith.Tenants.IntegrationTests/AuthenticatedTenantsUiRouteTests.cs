@@ -190,6 +190,7 @@ public sealed class AuthenticatedTenantsUiRouteTests(AuthenticatedTenantsTopolog
         }
         catch (Exception exception)
         {
+            TestContext.Current.TestOutputHelper?.WriteLine($"Live qualification exception category: {exception.GetType().Name}.");
             if (!await HasBrowserEvidenceAsync(outputPath))
             {
                 await WriteWrapperEvidenceAsync(outputPath, phase,
@@ -249,6 +250,7 @@ public sealed class AuthenticatedTenantsUiRouteTests(AuthenticatedTenantsTopolog
             markup = await GetMarkupAsync(route, cookie, cancellationToken);
             if (HasSeededReadyContent(markup, marker, state))
             {
+                WriteMarkupFlags(markup, marker, route, state);
                 return markup;
             }
 
@@ -256,7 +258,17 @@ public sealed class AuthenticatedTenantsUiRouteTests(AuthenticatedTenantsTopolog
         }
         while (DateTimeOffset.UtcNow < deadline);
 
+        WriteMarkupFlags(markup, marker, route, state);
         return markup;
+    }
+
+    private static void WriteMarkupFlags(string markup, string marker, string route, AuthenticatedRouteState state)
+    {
+        bool Has(string value) => markup.Contains(value, StringComparison.Ordinal);
+        TestContext.Current.TestOutputHelper?.WriteLine($"Protected readiness flags: Surface={marker}, CursorPresent={route.Contains("cursor=", StringComparison.Ordinal)}, "
+            + $"ScopeBlocked={Has("data-testid=\"fc-scope-blocked\"")}, Grid={Has("data-testid=\"tenants-list-grid\"")}, "
+            + $"Rows={System.Text.RegularExpressions.Regex.Matches(markup, "data-testid=\"tenants-list-tenant-id\"").Count}, SeededReference={Has(state.TenantId)}, "
+            + $"Current={Has("truth-state-badge--current")}, Degraded={Has("data-testid=\"tenants-list-degraded\"")}, Error={Has("data-testid=\"tenants-list-error\"")}." );
     }
 
     private static bool HasSeededReadyContent(string markup, string marker, AuthenticatedRouteState state)

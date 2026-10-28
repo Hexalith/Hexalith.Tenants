@@ -1,0 +1,19 @@
+{
+  "preflightContainer": "4f0a98e5bb8b287ab97b53f399a58d369b1d648ef77b399f4fbc79b81918bd7d",
+  "eventQueryCommand": [
+    "docker",
+    "events",
+    "--since",
+    "2026-10-28T00:00:00Z",
+    "--until",
+    "2026-10-28T21:53:41Z",
+    "--filter",
+    "type=volume",
+    "--format",
+    "{{json .}}"
+  ],
+  "historicalVolumeOwnershipRecovered": false,
+  "identifiedVolumes": [],
+  "unattributedVolumesRemoved": false,
+  "limitation": "Docker event history did not retain an attributable volume event; no unidentified volume was removed."
+}

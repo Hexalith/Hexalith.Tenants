@@ -1,0 +1,241 @@
+{
+  "command": "aspire describe --apphost src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj --format Json",
+  "resources": [
+    {
+      "name": "dapr-placement-mtls-afmhjacb",
+      "displayName": "dapr-placement-mtls",
+      "resourceType": "Container",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "dapr-scheduler-mtls-qkwhbydp",
+      "displayName": "dapr-scheduler-mtls",
+      "resourceType": "Container",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "dapr-sentry-jxuugwgr",
+      "displayName": "dapr-sentry",
+      "resourceType": "Container",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "eventstore-admin-dapr-cli-sxpdykmc",
+      "displayName": "eventstore-admin-dapr-cli",
+      "resourceType": "Executable",
+      "state": "Waiting",
+      "waitingFor": [
+        "security"
+      ]
+    },
+    {
+      "name": "eventstore-admin-dkmhhdam",
+      "displayName": "eventstore-admin",
+      "resourceType": "Project",
+      "state": "Waiting",
+      "waitingFor": [
+        "security"
+      ]
+    },
+    {
+      "name": "eventstore-admin-ui-dapr-cli-urwrfvvm",
+      "displayName": "eventstore-admin-ui-dapr-cli",
+      "resourceType": "Executable",
+      "state": "Waiting",
+      "waitingFor": [
+        "eventstore-admin",
+        "security"
+      ]
+    },
+    {
+      "name": "eventstore-admin-ui-jtktsmwa",
+      "displayName": "eventstore-admin-ui",
+      "resourceType": "Project",
+      "state": "Waiting",
+      "waitingFor": [
+        "eventstore-admin",
+        "security"
+      ]
+    },
+    {
+      "name": "eventstore-app-api-token",
+      "displayName": "eventstore-app-api-token",
+      "resourceType": "Parameter",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "eventstore-dapr-cli-zphavxem",
+      "displayName": "eventstore-dapr-cli",
+      "resourceType": "Executable",
+      "state": "Waiting",
+      "waitingFor": [
+        "security"
+      ]
+    },
+    {
+      "name": "eventstore-pprrfutr",
+      "displayName": "eventstore",
+      "resourceType": "Project",
+      "state": "Waiting",
+      "waitingFor": [
+        "security"
+      ]
+    },
+    {
+      "name": "eventstore-workload-client-secret",
+      "displayName": "eventstore-workload-client-secret",
+      "resourceType": "Parameter",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "memories-crdrrnys",
+      "displayName": "memories",
+      "resourceType": "Project",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "memories-dapr-cli-hfazejuu",
+      "displayName": "memories-dapr-cli",
+      "resourceType": "Executable",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "memories-graphs-uxqqfhqg",
+      "displayName": "memories-graphs",
+      "resourceType": "Container",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "memories-vectors-jweqjcgs",
+      "displayName": "memories-vectors",
+      "resourceType": "Container",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "sample-app-api-token",
+      "displayName": "sample-app-api-token",
+      "resourceType": "Parameter",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "sample-dapr-cli-gncyytds",
+      "displayName": "sample-dapr-cli",
+      "resourceType": "Executable",
+      "state": "Waiting",
+      "waitingFor": [
+        "eventstore",
+        "security"
+      ]
+    },
+    {
+      "name": "sample-xtfrnswd",
+      "displayName": "sample",
+      "resourceType": "Project",
+      "state": "Waiting",
+      "waitingFor": [
+        "eventstore",
+        "security"
+      ]
+    },
+    {
+      "name": "security-buwqsjuy",
+      "displayName": "security",
+      "resourceType": "Container",
+      "state": "Running",
+      "healthStatus": "Unhealthy"
+    },
+    {
+      "name": "security-eventstore-client-password",
+      "displayName": "security-eventstore-client-password",
+      "resourceType": "Parameter",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "security-eventstore-client-username",
+      "displayName": "security-eventstore-client-username",
+      "resourceType": "Parameter",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "tenants-api-cxhwwcdr",
+      "displayName": "tenants-api",
+      "resourceType": "Project",
+      "state": "Waiting",
+      "waitingFor": [
+        "eventstore",
+        "security"
+      ]
+    },
+    {
+      "name": "tenants-api-dapr-cli-jdkzcjam",
+      "displayName": "tenants-api-dapr-cli",
+      "resourceType": "Executable",
+      "state": "Waiting",
+      "waitingFor": [
+        "eventstore",
+        "security"
+      ]
+    },
+    {
+      "name": "tenants-app-api-token",
+      "displayName": "tenants-app-api-token",
+      "resourceType": "Parameter",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "tenants-dapr-cli-yxyhnfsj",
+      "displayName": "tenants-dapr-cli",
+      "resourceType": "Executable",
+      "state": "Waiting",
+      "waitingFor": [
+        "eventstore",
+        "security"
+      ]
+    },
+    {
+      "name": "tenants-ui-dapr-cli-sacmhctg",
+      "displayName": "tenants-ui-dapr-cli",
+      "resourceType": "Executable",
+      "state": "Waiting",
+      "waitingFor": [
+        "eventstore",
+        "tenants-api",
+        "security"
+      ]
+    },
+    {
+      "name": "tenants-ui-vpjnntbv",
+      "displayName": "tenants-ui",
+      "resourceType": "Project",
+      "state": "Waiting",
+      "waitingFor": [
+        "eventstore",
+        "tenants-api",
+        "security"
+      ]
+    },
+    {
+      "name": "tenants-xarsszsz",
+      "displayName": "tenants",
+      "resourceType": "Project",
+      "state": "Waiting",
+      "waitingFor": [
+        "eventstore",
+        "security"
+      ]
+    }
+  ]
+}

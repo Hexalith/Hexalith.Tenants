@@ -1,3 +1,4 @@
+using Hexalith.Tenants.Authorization;
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Client.Queries;
 using Hexalith.EventStore.Contracts.Queries;
@@ -26,20 +27,22 @@ internal static class TenantQueryTestHarness {
         ILoggerFactory? loggerFactory = null,
         TenantTelemetry? telemetry = null,
         ReadModelFreshnessOptions? freshnessOptions = null,
-        TimeProvider? timeProvider = null) {
+        TimeProvider? timeProvider = null,
+        ITenantsGlobalAdministratorAuthority? administratorAuthority = null) {
         ILoggerFactory factory = loggerFactory ?? NullLoggerFactory.Instance;
         // The convention-named diagnostics produce a source/meter named "Hexalith.EventStore.Domain.tenants"
         // regardless of instance, so a telemetry listener that filters by name observes these handlers'
         // emissions whether or not the caller supplied its own telemetry.
         TenantTelemetry domainTelemetry = telemetry ?? new TenantTelemetry(new EventStoreDomainDiagnostics("tenants"));
         IOptions<ReadModelFreshnessOptions> options = Options.Create(freshnessOptions ?? new ReadModelFreshnessOptions());
+        administratorAuthority ??= new SeededGlobalAdministratorAuthority(store);
         return [
-            new GetTenantQueryHandler(store, cursorCodec, domainTelemetry, factory.CreateLogger<GetTenantQueryHandler>(), options, timeProvider),
-            new GetTenantUsersQueryHandler(store, cursorCodec, domainTelemetry, factory.CreateLogger<GetTenantUsersQueryHandler>(), options, timeProvider),
-            new GetUserTenantsQueryHandler(store, cursorCodec, domainTelemetry, factory.CreateLogger<GetUserTenantsQueryHandler>(), options, timeProvider),
-            new ListTenantsQueryHandler(store, cursorCodec, domainTelemetry, factory.CreateLogger<ListTenantsQueryHandler>(), options, timeProvider),
-            new GetTenantAuditQueryHandler(store, cursorCodec, domainTelemetry, factory.CreateLogger<GetTenantAuditQueryHandler>(), options, timeProvider),
-            new GetGlobalAdministratorsQueryHandler(store, cursorCodec, domainTelemetry, factory.CreateLogger<GetGlobalAdministratorsQueryHandler>(), options, timeProvider),
+            new GetTenantQueryHandler(store, administratorAuthority, cursorCodec, domainTelemetry, factory.CreateLogger<GetTenantQueryHandler>(), options, timeProvider),
+            new GetTenantUsersQueryHandler(store, administratorAuthority, cursorCodec, domainTelemetry, factory.CreateLogger<GetTenantUsersQueryHandler>(), options, timeProvider),
+            new GetUserTenantsQueryHandler(store, administratorAuthority, cursorCodec, domainTelemetry, factory.CreateLogger<GetUserTenantsQueryHandler>(), options, timeProvider),
+            new ListTenantsQueryHandler(store, administratorAuthority, cursorCodec, domainTelemetry, factory.CreateLogger<ListTenantsQueryHandler>(), options, timeProvider),
+            new GetTenantAuditQueryHandler(store, administratorAuthority, cursorCodec, domainTelemetry, factory.CreateLogger<GetTenantAuditQueryHandler>(), options, timeProvider),
+            new GetGlobalAdministratorsQueryHandler(store, administratorAuthority, cursorCodec, domainTelemetry, factory.CreateLogger<GetGlobalAdministratorsQueryHandler>(), options, timeProvider),
         ];
     }
 
@@ -51,8 +54,9 @@ internal static class TenantQueryTestHarness {
         ILoggerFactory? loggerFactory = null,
         TenantTelemetry? telemetry = null,
         ReadModelFreshnessOptions? freshnessOptions = null,
-        TimeProvider? timeProvider = null) {
-        TenantQueryHandlerBase? handler = CreateHandlers(store, cursorCodec, loggerFactory, telemetry, freshnessOptions, timeProvider)
+        TimeProvider? timeProvider = null,
+        ITenantsGlobalAdministratorAuthority? administratorAuthority = null) {
+        TenantQueryHandlerBase? handler = CreateHandlers(store, cursorCodec, loggerFactory, telemetry, freshnessOptions, timeProvider, administratorAuthority)
             .FirstOrDefault(h =>
                 string.Equals(h.Domain, envelope.Domain, StringComparison.OrdinalIgnoreCase)
                 && string.Equals(h.QueryType, envelope.QueryType, StringComparison.OrdinalIgnoreCase));

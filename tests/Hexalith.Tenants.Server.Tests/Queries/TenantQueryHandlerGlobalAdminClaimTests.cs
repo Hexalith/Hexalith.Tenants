@@ -24,7 +24,7 @@ namespace Hexalith.Tenants.Server.Tests.Queries;
 /// <see cref="GlobalAdministratorReadModel"/>: a caller absent from it is treated as an ordinary user even when the
 /// hint is set, and a caller listed in it is authorized even when the hint is absent.
 /// </summary>
-public sealed class TenantQueryHandlerGlobalAdminClaimTests {
+public sealed partial class TenantQueryHandlerGlobalAdminClaimTests {
     // A principal that is NOT a member of any tenant.
     private const string ClaimAdmin = "claim-admin";
     private const string TargetUser = "target-user";

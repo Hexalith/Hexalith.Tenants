@@ -1,3 +1,4 @@
+using Hexalith.Tenants.Authorization;
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Client.Queries;
 using Hexalith.EventStore.Contracts.Queries;
@@ -16,12 +17,13 @@ namespace Hexalith.Tenants.Queries.Handlers;
 /// </summary>
 public sealed class GetTenantAuditQueryHandler(
     IReadModelStore store,
+    ITenantsGlobalAdministratorAuthority administratorAuthority,
     IQueryCursorCodec cursorCodec,
     TenantTelemetry telemetry,
     ILogger<GetTenantAuditQueryHandler> logger,
     IOptions<ReadModelFreshnessOptions>? freshnessOptions = null,
     TimeProvider? timeProvider = null)
-    : TenantQueryHandlerBase(store, cursorCodec, telemetry, logger, freshnessOptions, timeProvider) {
+    : TenantQueryHandlerBase(store, administratorAuthority, cursorCodec, telemetry, logger, freshnessOptions, timeProvider) {
     // Stable EventStore wire value: the current source symbol is absent from the pinned package.
     private const string ResponseMismatch = "actor-response-mismatch";
 

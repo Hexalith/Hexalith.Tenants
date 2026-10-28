@@ -1,0 +1,23 @@
+{
+  "counters": {
+    "total": "510",
+    "executed": "510",
+    "passed": "488",
+    "failed": "22",
+    "error": "0",
+    "timeout": "0",
+    "aborted": "0",
+    "inconclusive": "0",
+    "passedButRunAborted": "0",
+    "notRunnable": "0",
+    "notExecuted": "0",
+    "disconnected": "0",
+    "warning": "0",
+    "completed": "0",
+    "inProgress": "0",
+    "pending": "0"
+  },
+  "strictAccepted": false,
+  "result": "failed",
+  "trx": "generic-first-results.xml"
+}

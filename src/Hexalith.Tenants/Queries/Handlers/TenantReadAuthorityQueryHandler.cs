@@ -44,7 +44,7 @@ public sealed class TenantReadAuthorityQueryHandler([FromKeyedServices("native-t
             || query.AggregateId != query.TenantId || !Canonical(query.TenantId) || !Canonical(query.UserId)
             || query.OriginalActorId != query.UserId || origin.OriginalActorId != query.UserId
             || query.Payload is not { Length: <= 8192 }
-            || query.IsGlobalAdmin || query.Paging is not null
+            || query.IsGlobalAdmin || caller.OriginalQuery.IsGlobalAdmin || query.Paging is not null
             || query.EntityId is not null && query.EntityId != query.AggregateId
             || origin.IsDelegated && !Canonical(origin.DelegationId)
             || !origin.IsDelegated && origin.DelegationId is not null

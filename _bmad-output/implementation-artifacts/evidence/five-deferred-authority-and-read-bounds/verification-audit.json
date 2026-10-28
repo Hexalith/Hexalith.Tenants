@@ -1,0 +1,71 @@
+{
+  "finalResults": {
+    "Server": {
+      "passed": 1617,
+      "failed": 0,
+      "skipped": 0,
+      "logMember": "server-owner-full-green.txt"
+    },
+    "UI": {
+      "passed": 7997,
+      "failed": 0,
+      "skipped": 0,
+      "logMember": "ui-full-cleanup-green.txt"
+    },
+    "ExactGatewayClass": {
+      "passed": 820,
+      "failed": 0,
+      "skipped": 0,
+      "logMember": "ui-gateway-cleanup-green.txt"
+    },
+    "AppHostModel": {
+      "passed": 39,
+      "failed": 0,
+      "skipped": 0,
+      "logMember": "apphost-backpressure-full.txt"
+    },
+    "NativeOwnerHttp": {
+      "passed": 21,
+      "failed": 0,
+      "skipped": 0,
+      "logMember": "independent-owner-http-green.txt"
+    },
+    "CompleteGeneric": {
+      "passed": 528,
+      "failed": 0,
+      "skipped": 0,
+      "duration": "2m56.593s",
+      "commandReceipt": "generic-fourth-complete-tier.json",
+      "trxMember": "generic-fourth-results.xml",
+      "strictAudit": "generic-fourth-trx-audit.json"
+    }
+  },
+  "earlierCompleteTiers": [
+    {
+      "executed": 510,
+      "passed": 488,
+      "failed": 22,
+      "skipped": 0,
+      "audit": "generic-first-trx-audit.json"
+    },
+    {
+      "executed": 510,
+      "passed": 508,
+      "failed": 2,
+      "skipped": 0,
+      "audit": "generic-fresh-second-trx-audit.json"
+    },
+    {
+      "executed": 511,
+      "passed": 510,
+      "failed": 1,
+      "skipped": 0,
+      "audit": "generic-final-third-trx-audit.json"
+    }
+  ],
+  "acceptedDefaultQueue": 64,
+  "permitCeilingsOrWindowsChanged": false,
+  "sourceAuthorityOrRetryPolicyWeakened": false,
+  "actualPostPushCiClaimed": false,
+  "ledgerAcceptanceOwnedByParent": true
+}

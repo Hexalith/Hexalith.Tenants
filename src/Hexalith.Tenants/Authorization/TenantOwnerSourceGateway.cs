@@ -23,7 +23,7 @@ internal sealed class TenantOwnerSourceGateway(
 
     public async Task<StreamReadPage> ReadStreamAsync(StreamReadRequest request, CancellationToken cancellationToken = default)
     {
-        if (request.Domain != "tenants" || request.Tenant != "system" ||
+        if ((request.Domain != "tenants" && (request.Domain != "global-administrators" || request.AggregateId != "global-administrators")) || request.Tenant != "system" ||
             string.IsNullOrWhiteSpace(request.AggregateId) ||
             configuration["Authentication:BoundStreamRead:PrivateKey"] is not { Length: > 0 } key)
         {

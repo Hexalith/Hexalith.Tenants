@@ -47,6 +47,56 @@ namespace Hexalith.Tenants.UI.Tests.Services.Gateways;
 public sealed partial class TenantQueryGatewayTests
 {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task OrdinaryAndFallbackEnrichmentPreserveOriginalFatalCancellationWrapper(bool fallback)
+    {
+        var original = new OperationCanceledException("fatal provider cancellation", new OutOfMemoryException());
+        var client = ReadSafetyDetails();
+        client.ListTenantsAsync(Arg.Any<ListTenantsQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(DirectResponse(new PaginatedResult<TenantSummary>([new("a", "A", TenantStatus.Active)], null, false)));
+        client.GetTenantAsync(Arg.Any<GetTenantQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromException<TenantsRestQueryResponse<TenantDetail>>(original));
+        var memories = new StubMemoriesClient { SearchHandler = (_, _) => Task.FromException<MemoriesSearchResult>(new HttpRequestException()) };
+        Exception? observed = null;
+        try { await CreateGateway(client, memoriesClient: memories).ListTenantsAsync(new(Search: fallback ? "needle" : null), null); }
+        catch (Exception exception) { observed = exception; }
+        observed.ShouldBeSameAs(original);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task OptionalTimingLoggerFailureCannotReplaceTheOriginalFatalProvider(bool failWindow)
+    {
+        var original = new InvalidOperationException("original provider wrapper", new OutOfMemoryException());
+        var sink = new CapturingLogger { FailTimingStage = failWindow ? "window" : "load" };
+        IUserContextAccessor caller = Substitute.For<IUserContextAccessor>(); caller.UserId.Returns("operator-user");
+        var memories = new StubMemoriesClient { SearchHandler = (_, _) => Task.FromException<MemoriesSearchResult>(original) };
+        using var gateway = new TenantQueryGateway(ReadSafetyDetails(), caller, memories,
+            new TenantSearchCursorCodec(new EphemeralDataProtectionProvider()), logger: sink);
+        (await Should.ThrowAsync<InvalidOperationException>(() => gateway.ListTenantsAsync(new(Search: "needle"), null)))
+            .ShouldBeSameAs(original);
+        sink.TimingFailureCount.ShouldBeGreaterThan(0);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task GlobalAdministratorRestTransportPreservesTheOriginalFatalInstance(bool wrapped)
+    {
+        var fatal = new OutOfMemoryException("original transport fatal");
+        Exception original = wrapped ? new Hexalith.EventStore.Client.Gateway.EventStoreGatewayException(
+            403, "Forbidden", innerException: fatal) : fatal;
+        var client = ReadSafetyDetails();
+        client.GetGlobalAdministratorsAsync(Arg.Any<GetGlobalAdministratorsQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromException<TenantsRestQueryResponse<PaginatedResult<GlobalAdministratorSummary>>>(original));
+        (await Should.ThrowAsync<Exception>(() => CreateGateway(client)
+            .GetGlobalAdministratorsAsync(new GlobalAdministratorsRequest(), null))).ShouldBeSameAs(original);
+        if (wrapped) original.InnerException.ShouldBeSameAs(fatal);
+    }
+
+    [Theory]
     [InlineData(TenantListSortColumns.Name)]
     [InlineData(TenantListSortColumns.Status)]
     public async Task SearchSortsOnlyEachBoundedPageAcrossGloballyInterleavedNamesAndStatuses(string sort)
@@ -6414,7 +6464,7 @@ public sealed partial class TenantQueryGatewayTests
         snapshot.Rows.Select(static row => row.TenantId).ShouldBe(["alpha", "beta"]);
         snapshot.Rows.ShouldAllBe(static row => !row.MemberCount.IsKnown && !row.OwnerCount.IsKnown);
         ReadCalls(client).ShouldAllBe(static query => query.GetArguments()[0] is GetTenantQuery);
-        logger.Messages.ShouldBeEmpty();
+        logger.WarningMessages.ShouldBeEmpty();
     }
 
     [Theory]
@@ -6666,7 +6716,7 @@ public sealed partial class TenantQueryGatewayTests
         snapshot.IsAuthoritativeSearch.ShouldBeFalse();
         snapshot.Notice.ShouldBe(TenantListReason.SearchUnavailable);
         ReadCalls(client).ShouldHaveSingleItem();
-        logger.Messages.ShouldHaveSingleItem().ShouldContain(TenantQueryGateway.SearchResponseInvalidReasonCode);
+        logger.WarningMessages.ShouldHaveSingleItem().ShouldContain(TenantQueryGateway.SearchResponseInvalidReasonCode);
     }
 
     [Theory]
@@ -6770,7 +6820,7 @@ public sealed partial class TenantQueryGatewayTests
         snapshot.Notice.ShouldBe(TenantListReason.SearchUnavailable);
 
         // A dead key ring must stay distinguishable from an unhealthy index, without disclosing anything.
-        string message = logger.Messages.ShouldHaveSingleItem();
+        string message = logger.WarningMessages.ShouldHaveSingleItem();
         message.ShouldContain(TenantQueryGateway.SearchIndexUnavailableReasonCode);
         ShouldNotDisclose(logger, "needle", exception.Message);
     }
@@ -6988,7 +7038,7 @@ public sealed partial class TenantQueryGatewayTests
         snapshot.IsAuthoritativeSearch.ShouldBeFalse();
         snapshot.Notice.ShouldBe(TenantListReason.SearchUnavailable);
         snapshot.NextCursor.ShouldBeNull();
-        string message = logger.Messages.ShouldHaveSingleItem();
+        string message = logger.WarningMessages.ShouldHaveSingleItem();
         message.ShouldContain(TenantQueryGateway.SearchCursorProtectionUnavailableReasonCode);
         ShouldNotDisclose(logger, "needle", "alpha", "key ring unavailable");
     }
@@ -6996,8 +7046,8 @@ public sealed partial class TenantQueryGatewayTests
     [Fact]
     public async Task Search_diagnostics_only_ever_emit_support_safe_reason_codes()
     {
-        // Runtime proof that the only diagnostic channel the gateway owns carries reason codes and nothing
-        // else, across a healthy page, an index outage, an invalid response, and a dead key ring.
+        // Warning diagnostics retain exact reason-code semantics; all captured levels remain subject to
+        // the support-safety assertions below, including window/load timing.
         CapturingLogger logger = new();
         const string query = "needle";
         const string tenantId = "tenant.secret-name";
@@ -7010,7 +7060,7 @@ public sealed partial class TenantQueryGatewayTests
             new TenantListRequest(Search: query),
             previous: null,
             CancellationToken.None);
-        logger.Messages.ShouldBeEmpty("A healthy authoritative page must be diagnostically silent.");
+        logger.WarningMessages.ShouldBeEmpty("A healthy authoritative page must emit no degradation warning.");
 
         StubMemoriesClient outage = new();
         outage.Enqueue(new HttpRequestException($"GET /search?query={query}&offset=40"));
@@ -7047,7 +7097,7 @@ public sealed partial class TenantQueryGatewayTests
                 previous: null,
                 CancellationToken.None);
         recovered.IsAuthoritativeSearch.ShouldBeTrue();
-        logger.Messages.Count.ShouldBe(2, "A cursor hiccup that recovers authoritatively degraded nothing.");
+        logger.WarningMessages.Count.ShouldBe(2, "A cursor hiccup that recovers authoritatively degraded nothing.");
 
         // A key ring that cannot protect the next cursor does resolve to the ordinary list, so it must be
         // reported: this is the signal that distinguishes a dead key ring from a healthy index.
@@ -7069,12 +7119,12 @@ public sealed partial class TenantQueryGatewayTests
                 previous: null,
                 CancellationToken.None);
 
-        logger.Messages.Count.ShouldBe(3);
-        logger.Messages.ShouldContain(static message => message.Contains(TenantQueryGateway.SearchIndexUnavailableReasonCode, StringComparison.Ordinal));
-        logger.Messages.ShouldContain(static message => message.Contains(TenantQueryGateway.SearchResponseInvalidReasonCode, StringComparison.Ordinal));
+        logger.WarningMessages.Count.ShouldBe(3);
+        logger.WarningMessages.ShouldContain(static message => message.Contains(TenantQueryGateway.SearchIndexUnavailableReasonCode, StringComparison.Ordinal));
+        logger.WarningMessages.ShouldContain(static message => message.Contains(TenantQueryGateway.SearchResponseInvalidReasonCode, StringComparison.Ordinal));
 
         // A dead or rotated key ring must be distinguishable from routine cursor expiry.
-        logger.Messages.ShouldContain(static message
+        logger.WarningMessages.ShouldContain(static message
             => message.Contains(TenantQueryGateway.SearchCursorProtectionUnavailableReasonCode, StringComparison.Ordinal));
 
         ShouldNotDisclose(logger, query, tenantId, "protected-cursor-value", "key ring unavailable");
@@ -7083,7 +7133,7 @@ public sealed partial class TenantQueryGatewayTests
             disclosure.ShouldNotContain("offset", Case.Insensitive);
         }
 
-        logger.Events.ShouldAllBe(static id
+        logger.WarningEvents.ShouldAllBe(static id
             => id == TenantQueryGateway.SearchDegradedToOrdinaryListEvent
             || id == TenantQueryGateway.SearchAndOrdinaryListUnavailableEvent);
         logger.Events.ShouldAllBe(static id => id.Id != 0);
@@ -7105,13 +7155,13 @@ public sealed partial class TenantQueryGatewayTests
             CancellationToken.None);
 
         snapshot.Kind.ShouldBe(TenantListSurfaceKind.Error);
-        logger.Events.ShouldBe([
+        logger.WarningEvents.ShouldBe([
             TenantQueryGateway.DirectTenantsReadFailedEvent,
             TenantQueryGateway.SearchAndOrdinaryListUnavailableEvent,
         ]);
-        logger.Messages.Count.ShouldBe(2);
-        logger.Messages[0].ShouldContain("FailureKind=Unavailable");
-        logger.Messages[1].ShouldContain("also unavailable");
+        logger.WarningMessages.Count.ShouldBe(2);
+        logger.WarningMessages[0].ShouldContain("FailureKind=Unavailable");
+        logger.WarningMessages[1].ShouldContain("also unavailable");
         logger.Exceptions.ShouldAllBe(static exception => exception == null);
     }
 
@@ -7698,7 +7748,8 @@ public sealed partial class TenantQueryGatewayTests
         TimeSpan? enrichmentDeadline = null,
         IUserContextAccessor? userContextAccessor = null,
         CircuitServicesAccessor? circuitServicesAccessor = null,
-        AuthenticationStateProvider? authenticationStateProvider = null)
+        AuthenticationStateProvider? authenticationStateProvider = null,
+        TimeSpan? searchBudget = null, TimeProvider? searchClock = null)
     {
         IUserContextAccessor userContext = userContextAccessor ?? Substitute.For<IUserContextAccessor>();
         if (userContextAccessor is null)
@@ -7716,7 +7767,9 @@ public sealed partial class TenantQueryGatewayTests
             logger,
             enrichmentDeadline,
             circuitServicesAccessor,
-            authenticationStateProvider);
+            authenticationStateProvider,
+            Microsoft.Extensions.Options.Options.Create(new TenantSearchOptions { LoadBudget = searchBudget ?? TimeSpan.FromSeconds(10) }),
+            searchClock);
     }
 
     private static TenantDetailSnapshot ReadyConfigurationSnapshot()
@@ -9188,9 +9241,16 @@ public sealed partial class TenantQueryGatewayTests
     /// <summary>Captures the gateway's structured diagnostics so disclosure is actually observable.</summary>
     private sealed class CapturingLogger : ILogger<TenantQueryGateway>
     {
+        public string? FailTimingStage { get; init; }
+        public int TimingFailureCount { get; private set; }
+
         public List<string> Messages { get; } = [];
 
+        public List<string> WarningMessages { get; } = [];
+
         public List<EventId> Events { get; } = [];
+
+        public List<EventId> WarningEvents { get; } = [];
 
         /// <summary>Gets the exception argument of each captured entry, including the nulls.</summary>
         public List<Exception?> Exceptions { get; } = [];
@@ -9221,8 +9281,19 @@ public sealed partial class TenantQueryGatewayTests
             Func<TState, Exception?, string> formatter)
         {
             ArgumentNullException.ThrowIfNull(formatter);
+            if (eventId.Id == 1905 && FailTimingStage is { } stage && formatter(state, exception).Contains("Stage=" + stage, StringComparison.Ordinal))
+            {
+                TimingFailureCount++;
+                throw new InvalidOperationException("optional timing sink");
+            }
             Events.Add(eventId);
-            Messages.Add(formatter(state, exception));
+            string message = formatter(state, exception);
+            Messages.Add(message);
+            if (logLevel >= LogLevel.Warning)
+            {
+                WarningMessages.Add(message);
+                WarningEvents.Add(eventId);
+            }
             Exceptions.Add(exception);
         }
     }

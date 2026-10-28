@@ -1,3 +1,8 @@
+using System.Diagnostics;
+using Hexalith.EventStore.Client.Streams;
+using Hexalith.Tenants.Contracts.Events;
+using Hexalith.Tenants.IntegrationTests.Fixtures;
+using Microsoft.Extensions.Configuration;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -22,8 +27,10 @@ namespace Hexalith.Tenants.IntegrationTests;
 [Collection("BootstrapReadiness")]
 public sealed class TenantOwnerSourceGatewayTests
 {
-    [Fact]
-    public async Task ProductionRegistration_PreservesBoundWorkloadRequestAndPerSendSidecarToken()
+    [Theory]
+    [InlineData("tenants", "owner-source")]
+    [InlineData("global-administrators", "global-administrators")]
+    public async Task ProductionRegistration_PreservesBoundWorkloadRequestAndPerSendSidecarToken(string domain, string aggregate)
     {
         using RSA key = RSA.Create(2048);
         var issuer = Substitute.For<IWorkloadAssertionIssuer>();
@@ -56,7 +63,7 @@ public sealed class TenantOwnerSourceGatewayTests
             foreach (string? token in tokens)
             {
                 Environment.SetEnvironmentVariable("DAPR_API_TOKEN", token);
-                var request = new StreamReadRequest("system", "tenants", "owner-source", FromSequence: 7, ToSequence: 12, PageSize: 2)
+                var request = new StreamReadRequest("system", domain, aggregate, FromSequence: 7, ToSequence: 12, PageSize: 2)
                 {
                     RequireNativeProof = true,
                 };
@@ -75,8 +82,8 @@ public sealed class TenantOwnerSourceGatewayTests
                 payload.RootElement.GetProperty("version").GetInt32().ShouldBe(1);
                 payload.RootElement.GetProperty("caller").GetString().ShouldBe("tenants");
                 payload.RootElement.GetProperty("tenant").GetString().ShouldBe("system");
-                payload.RootElement.GetProperty("domain").GetString().ShouldBe("tenants");
-                payload.RootElement.GetProperty("aggregateId").GetString().ShouldBe("owner-source");
+                payload.RootElement.GetProperty("domain").GetString().ShouldBe(domain);
+                payload.RootElement.GetProperty("aggregateId").GetString().ShouldBe(aggregate);
                 (payload.RootElement.GetProperty("expiresAt").GetInt64() - payload.RootElement.GetProperty("issuedAt").GetInt64()).ShouldBe(30);
                 if (previousProof is not null) proof[0].ShouldNotBe(previousProof[0]);
                 previousProof = proof;
@@ -90,6 +97,48 @@ public sealed class TenantOwnerSourceGatewayTests
             Environment.SetEnvironmentVariable("DAPR_API_TOKEN", previousToken);
             Environment.SetEnvironmentVariable("DAPR_HTTP_ENDPOINT", previousEndpoint);
         }
+    }
+
+    [Theory]
+    [InlineData("system", "global-administrators", "another-aggregate")]
+    [InlineData("another-tenant", "global-administrators", "global-administrators")]
+    [InlineData("system", "another-domain", "global-administrators")]
+    public async Task NeighboringAuthorityScopesAreRefusedBeforeAnyAssertionOrTransport(string tenant, string domain, string aggregate)
+    {
+        var issuer = Substitute.For<IWorkloadAssertionIssuer>();
+        using var http = new HttpClient(new OwnerSourceCaptureHandler());
+        using RSA scopeKey = RSA.Create(2048);
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        { ["Authentication:BoundStreamRead:PrivateKey"] = Convert.ToBase64String(scopeKey.ExportPkcs8PrivateKey()) }).Build();
+        var gateway = new TenantOwnerSourceGateway(http, issuer, configuration, TimeProvider.System);
+        await Should.ThrowAsync<InvalidOperationException>(() => gateway.ReadStreamAsync(new(tenant, domain, aggregate)));
+        await issuer.DidNotReceiveWithAnyArgs().IssueAsync(default!);
+    }
+
+    [Fact]
+    public async Task RepresentativeNativeReplayIncludesEverySignedHttpWindowAndFinalProof()
+    {
+        var source = new MutableGlobalAdministratorSource("admin", "keeper");
+        for (int i = 0; i < 4999; i++)
+        {
+            source.Append(new GlobalAdministratorSet("system", "cost"));
+            source.Append(new GlobalAdministratorRemoved("system", "cost"));
+        }
+        using RSA scopeKey = RSA.Create(2048);
+        var issuer = Substitute.For<IWorkloadAssertionIssuer>();
+        issuer.IssueAsync(Arg.Any<WorkloadAssertionRequest>(), Arg.Any<CancellationToken>())
+            .Returns(ValueTask.FromResult<string?>("controlled-workload-assertion"));
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        { ["Authentication:BoundStreamRead:PrivateKey"] = Convert.ToBase64String(scopeKey.ExportPkcs8PrivateKey()) }).Build();
+        var terminal = new OwnerSourceCaptureHandler(source.Snapshot(), scopeKey);
+        using var http = new HttpClient(terminal) { BaseAddress = new Uri("http://localhost/") };
+        var gateway = new TenantOwnerSourceGateway(http, issuer, configuration, TimeProvider.System);
+        var reader = new AuthoritativeEventStreamReader(gateway, TimeProvider.System, TimeSpan.FromSeconds(10), requireNativeProof: true);
+        var authority = new TenantsGlobalAdministratorAuthority(reader, source, TimeProvider.System);
+        var timer = Stopwatch.StartNew();
+        (await authority.IsCurrentGlobalAdministratorAsync("admin", TestContext.Current.CancellationToken)).ShouldBeTrue();
+        terminal.ReadCount.ShouldBe(102);
+        TestContext.Current.TestOutputHelper!.WriteLine($"10000 native events through {terminal.ReadCount} signed/verified in-process HTTP windows, copy/digest validation, fold and final proof: {timer.Elapsed.TotalMilliseconds:F2} ms. External workload-token issuance and Dapr/network excluded.");
     }
 
     private static byte[] Decode(string value)

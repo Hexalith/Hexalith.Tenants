@@ -1,3 +1,4 @@
+using Hexalith.Tenants.Authorization;
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Client.Queries;
 using Hexalith.EventStore.Contracts.Queries;
@@ -16,12 +17,13 @@ namespace Hexalith.Tenants.Queries.Handlers;
 /// </summary>
 public sealed class ListTenantsQueryHandler(
     IReadModelStore store,
+    ITenantsGlobalAdministratorAuthority administratorAuthority,
     IQueryCursorCodec cursorCodec,
     TenantTelemetry telemetry,
     ILogger<ListTenantsQueryHandler> logger,
     IOptions<ReadModelFreshnessOptions>? freshnessOptions = null,
     TimeProvider? timeProvider = null)
-    : TenantQueryHandlerBase(store, cursorCodec, telemetry, logger, freshnessOptions, timeProvider) {
+    : TenantQueryHandlerBase(store, administratorAuthority, cursorCodec, telemetry, logger, freshnessOptions, timeProvider) {
     /// <inheritdoc/>
     /// <summary>Gets the offline route declaration from the same owner metadata as runtime dispatch.</summary>
     public static Hexalith.EventStore.Contracts.Routing.RouteContractDeclaration CatalogDeclaration =>

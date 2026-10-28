@@ -80,7 +80,9 @@ builder.Services.AddValidatorsFromAssembly(typeof(TenantSubmitCommandValidator).
 builder.Services.AddValidatorsFromAssembly(typeof(TenantAggregate).Assembly);
 builder.Services.AddTenantBootstrap();
 // Wire administrator flags are untrusted at the domain-service boundary (EventStore Story 5.5): the SDK keeps
-// them only when the acting user is a current member of the global-administrators read model.
+// command hints only after a final verified native source observation. Query hints are stripped;
+// every query handler independently establishes its native grant or existing tenant permission.
+builder.Services.AddScoped<ITenantsGlobalAdministratorAuthority, TenantsGlobalAdministratorAuthority>();
 builder.Services.AddScoped<IDomainServiceAdministratorVerifier, TenantsGlobalAdministratorVerifier>();
 // Domain telemetry instruments (query/projection duration histograms), sourced from the platform
 // convention-named diagnostics registered by AddEventStoreDomainService. Tenants hosts more than one

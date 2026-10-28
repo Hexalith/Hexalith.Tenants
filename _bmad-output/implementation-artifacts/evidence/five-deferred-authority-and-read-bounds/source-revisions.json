@@ -1,0 +1,51 @@
+{
+  "rootRevision": "8127cb3b47dcfcf4086d07e4af0730c2f4920f9e",
+  "submodules": [
+    {
+      "path": "references/Hexalith.EventStore",
+      "revision": "be4aba873d09736abb4caacf1fae8ad870f0b3b6",
+      "dirty": false
+    },
+    {
+      "path": "references/Hexalith.Commons",
+      "revision": "3edfbdafc7d4fa915286dce8a37dc4cc7c06085a",
+      "dirty": false
+    },
+    {
+      "path": "references/Hexalith.AI.Tools",
+      "revision": "3f194e17174994d308ec84af9ee2b5aa68674d0d",
+      "dirty": false
+    },
+    {
+      "path": "references/Hexalith.FrontComposer",
+      "revision": "5f665c4d38afb2255a7dde4620330e09824a40a1",
+      "dirty": false
+    },
+    {
+      "path": "references/Hexalith.Builds",
+      "revision": "505230a24339070aa2dbf5ac927cd430050bb902",
+      "dirty": false
+    },
+    {
+      "path": "references/Hexalith.PolymorphicSerializations",
+      "revision": "221ac4592ba908ae7661ba1fa9e2d1fcc23baee0",
+      "dirty": false
+    },
+    {
+      "path": "references/Hexalith.Memories",
+      "revision": "35ef40e3fdcc7a490e04cf49e6a532fd5bf32285",
+      "dirty": false
+    },
+    {
+      "path": "references/Hexalith.McpCli",
+      "revision": "2d7311cbbcc592c0ea0348463037389251d1cb4b",
+      "dirty": false
+    },
+    {
+      "path": "references/Hexalith.Platform",
+      "revision": "8de90958bc41b7fd01b7ed22b8ab364447a800e4",
+      "dirty": false
+    }
+  ],
+  "ciWorkflowSha256": "b52255c3c012cbf360aeed1c80d1065d1ca9a10827c5e7825db37ffb654197c0"
+}

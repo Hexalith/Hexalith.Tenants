@@ -1,0 +1,38 @@
+{
+  "tool": "dotnet format whitespace",
+  "scope": "newly added C# files only",
+  "changedFiles": [
+    {
+      "path": "tests/Hexalith.Tenants.IntegrationTests/CommandApiRuntimeIntegrationTests.NativeAuthority.cs",
+      "testedSha256": "3a8423c76a07d8e5265dc598da5f8257be8fe326fe92c2d73f5e30125cfada75",
+      "formattedSha256": "dd7bd298968e96cd8544cc72f381487c0e443693773d83da9f2fe96f17db2114",
+      "nonWhitespaceBytesUnchanged": true
+    },
+    {
+      "path": "tests/Hexalith.Tenants.IntegrationTests/Fixtures/MutableGlobalAdministratorSource.cs",
+      "testedSha256": "3ac146b2cc29a01bf79861a1bee0feedaf27d43a347e875eb446f371282dbdce",
+      "formattedSha256": "d4a6a136c7194ebfc2ff18a61d869536a2ecf466a2c01ae605b2d5007d6455ca",
+      "nonWhitespaceBytesUnchanged": true
+    },
+    {
+      "path": "tests/Hexalith.Tenants.Server.Tests/Authorization/TenantsGlobalAdministratorAuthorityTests.cs",
+      "testedSha256": "8aa35a4995171733d1daaa0c9c56531fc4b8864ba0baee1f3a698fc6a42d162f",
+      "formattedSha256": "baf0f65ae305f01f383bc3f675bdb28caed0d0084f5563985b9ed5d02e9453c7",
+      "nonWhitespaceBytesUnchanged": true
+    },
+    {
+      "path": "tests/Hexalith.Tenants.Server.Tests/Queries/TenantQueryHandlerGlobalAdminClaimTests.NativeAuthority.cs",
+      "testedSha256": "5b723c53d2e8959eff1383e6e16b38f4b2288d271f9272c6e659963e92697723",
+      "formattedSha256": "b0f535749e856430ffee55cb705b2d2fd533c6f3ec3e92795fcd4ba19c5da5b8",
+      "nonWhitespaceBytesUnchanged": true
+    },
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.Deadlines.cs",
+      "testedSha256": "6920b38cc6c336dd72fd85ff632d8de08e6df92ff339bf670f5e17d44e9e9381",
+      "formattedSha256": "9067fee92f22d7895fbdf960a9256ef03644fb9edd8480ec88010f8a74bac42d",
+      "nonWhitespaceBytesUnchanged": true
+    }
+  ],
+  "allNonWhitespaceBytesUnchanged": true,
+  "separatePostFormattingPublishedBuildsRequired": true
+}

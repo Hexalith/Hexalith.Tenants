@@ -335,6 +335,7 @@ public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith
         new("tenants", "http", CommandApiClientTimeout, CommandApiHealthTimeout, WaitForAliveness: true, CommandApiHealthTimeout),
         new("tenants-ui", "http", CommandApiClientTimeout, CommandApiHealthTimeout, WaitForAliveness: false, CommandApiHealthTimeout),
         new("eventstore-dapr-cli", "http", TenantsApiClientTimeout, TenantsApiHealthTimeout, WaitForAliveness: false, TenantsApiHealthTimeout),
+        new("tenants-dapr-cli", "http", TenantsApiClientTimeout, TenantsApiHealthTimeout, WaitForAliveness: false, TenantsApiHealthTimeout),
         new("tenants-ui-dapr-cli", "http", TenantsApiClientTimeout, TenantsApiHealthTimeout, WaitForAliveness: false, TenantsApiHealthTimeout),
         new("sample", "http", SampleClientTimeout, SampleHealthTimeout, WaitForAliveness: true, SampleHealthTimeout),
         // HTTPS is required because tenants-api redirects HTTP. Aliveness is polled by the Story 4.7
@@ -367,6 +368,9 @@ public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith
 
     /// <summary>Gets the authenticated EventStore peer sidecar for receiver-denial controls.</summary>
     public HttpClient EventStoreDaprClient => Client("eventstore-dapr-cli");
+
+    /// <summary>Gets the enrolled Tenants caller sidecar for production native-source qualifications.</summary>
+    public HttpClient TenantsDaprClient => Client("tenants-dapr-cli");
 
     /// <summary>Gets the UI caller sidecar's HTTP endpoint for real service-invocation qualification.</summary>
     public HttpClient TenantsUiDaprClient => Client("tenants-ui-dapr-cli");

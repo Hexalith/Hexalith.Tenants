@@ -1,3 +1,4 @@
+using Hexalith.Tenants.IntegrationTests.Fixtures;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -485,7 +486,7 @@ public sealed class AuditStreamPersistenceTests
     }
 
     private GetTenantAuditQueryHandler Handler(InMemoryReadModelStore store)
-        => new(store, _codec, new TenantTelemetry(new EventStoreDomainDiagnostics("tenants")),
+        => new(store, GlobalAdministratorTestAuthority.Create("admin"), _codec, new TenantTelemetry(new EventStoreDomainDiagnostics("tenants")),
             NullLogger<GetTenantAuditQueryHandler>.Instance);
 
     private Task<QueryResult> Read(InMemoryReadModelStore store, string? stream = null, string? cursor = null,

@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Hexalith.Tenants.Contracts.Queries;
 
 using Microsoft.AspNetCore.Components.Authorization;
@@ -11,6 +12,7 @@ internal sealed class CallerBoundTenantsRestQueryClient : ITenantsRestQueryClien
     private readonly Func<bool> _isCurrentCaller;
     private readonly AuthenticationStateProvider? _provider;
     private int _rejected;
+    private readonly ConcurrentBag<Task> _reads = [];
 
     /// <summary>Subscribes the immutable read guard to its authoritative authentication source.</summary>
     /// <param name="client">The existing REST transport.</param>
@@ -81,14 +83,26 @@ internal sealed class CallerBoundTenantsRestQueryClient : ITenantsRestQueryClien
     internal async Task<T> ReadAsync<T>(Func<Task<T>> read, CancellationToken cancellationToken)
     {
         VerifyCaller(cancellationToken);
+        T result;
         try
         {
-            return await read().ConfigureAwait(false);
+            Task<T> dependency = read();
+            _reads.Add(dependency);
+            result = await dependency.ConfigureAwait(false);
         }
-        finally
+        catch (Exception exception) when (!TenantWorkspaceReadDiagnostics.IsFatal(exception))
         {
             VerifyCaller(cancellationToken);
+            throw;
         }
+        VerifyCaller(cancellationToken);
+        return result;
+    }
+
+    /// <summary>Preserves fatal dependencies already completed when a caller or deadline cancellation wins the await.</summary>
+    internal void ThrowIfFatal()
+    {
+        foreach (Task dependency in _reads) TenantWorkspaceReadDiagnostics.ThrowIfFatal(dependency);
     }
 
     private void VerifyCaller(CancellationToken cancellationToken)

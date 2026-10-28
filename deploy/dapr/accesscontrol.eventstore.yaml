@@ -44,3 +44,6 @@ spec:
           - name: /api/v1/commands
             httpVerb: ['POST']
             action: allow
+          - name: /api/v1/streams/read/workload
+            httpVerb: ['POST']
+            action: allow

@@ -36,6 +36,9 @@ public sealed class TenantsDaprTestFixture : DaprDomainServiceTestFixtureBase {
     protected override string AppId => "commandapi";
 
     /// <inheritdoc/>
+    protected override int RedisPort => DaprDiagnostics.ResolveRedisPort();
+
+    /// <inheritdoc/>
     protected override string DeadLetterTopic => "deadletter.tenants.events";
 
     /// <summary>Gets the fake event publisher for capturing published events.</summary>
@@ -117,7 +120,7 @@ public sealed class TenantsDaprTestFixture : DaprDomainServiceTestFixtureBase {
         // Wire administrator flags are untrusted at /process (EventStore Story 5.5): the harness keeps them only when
         // the Tenants verifier confirms the acting user from the global-administrators read model.
         _ = builder.Services.AddScoped<IDomainServiceAdministratorVerifier>(
-            _ => new TenantsGlobalAdministratorVerifier(GlobalAdministratorsReadModel));
+            _ => new TenantsGlobalAdministratorVerifier(GlobalAdministratorTestAuthority.Create(VerifiedGlobalAdministrator)));
 
         _ = builder.Services.AddDataProtection()
             .SetApplicationName("Hexalith.Tenants.IntegrationTests");

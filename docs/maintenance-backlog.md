@@ -1,5 +1,7 @@
 # Maintenance backlog
 
+**Native authority and read-boundary acceptance (2026-10-28):** DW-562/DW-617 and the two selected unnumbered fatal/deadline records close after approved implementation, independent review and deterministic/live verification. All 657 IDs remain: 651 done/6 open across six maintenance rows; all 655 unselected numbered bodies remain preserved. Actual post-push generic CI remains separately pending, as do external enrollment, legacy native-proof recovery and unrelated release/accessibility holds. See [verification and limits](../_bmad-output/implementation-artifacts/five-deferred-authority-and-read-bounds-validation-evidence.md).
+
 **DW-117/DW-118/DW-127/DW-599/DW-618 approved supersession (2026-10-28):** Nonfatal workspace Error/Retry containment, nonblank cursor contracts, bounded authorized backfill/lookahead and the FR-6 UI display boundary implement the approved decisions. DW-118 closes as a contract decision, not a claimed reachable null-input production fix; DW-599 preserves the authorized full-configuration API. All 657 IDs remain: 649 done/8 open across 7 maintenance rows; original findings and all 652 unselected numbered bodies remain preserved. Privacy covers rendered rows/pager within 1,000 raw positions per load, including replay/lookahead; budget/hydration gaps use the labelled authorized-list fallback. Timing, work, fallback-mode independence, beyond-budget completeness, offset-mutation limits and broader AT/runtime/release qualification remain outside this closure. See [verification and environment controls](../_bmad-output/implementation-artifacts/dw-117-118-127-599-618-validation-evidence.md).
 
 **DW-438/DW-457/DW-498/DW-521/DW-600 closure (2026-10-28):** Approved canonical audit references, immutable historical disposition, independently authorized inspection, exact-message status precedence and strict administrator completeness are implemented, reviewed and source-qualified. All 657 IDs remain: 644 done/13 open across 12 maintenance rows; original findings and all 652 unselected numbered bodies are preserved. Published-package adoption and broader runtime/release holds remain separate. See [verification, review corrections and limits](../_bmad-output/implementation-artifacts/dw-438-457-498-521-600-validation-evidence.md).
@@ -250,14 +252,14 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 | Disposition | Records |
 | --- | ---: |
-| done | 644 |
-| actionable | 2 |
+| done | 651 |
+| actionable | 1 |
 | blocked | 1 |
-| awaiting-decision | 4 |
-| accepted-limitation | 3 |
+| awaiting-decision | 0 |
+| accepted-limitation | 1 |
 | uncertain | 3 |
 
-**Remaining: 13 open records across 12 index rows.**
+**Remaining: 6 open records across 6 index rows.**
 
 **Unnumbered cleanup follow-up resolved, 2026-10-27:** The original navigation-verification finding remains in the ledger with its resolution. Its explicit unsubscribe completion and held-cleanup callback checks are qualified; numbered DW totals exclude this unnumbered item. Disposition counts cover all 657 numbered records. P1 means correctness, confidentiality or command ownership; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. `unassigned` preserves the absence of an established owner.
 
@@ -279,7 +281,7 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 **Current implementation completed:** DW-590; DW-588; DW-216; DW-215; DW-653; DW-652; DW-651 (separate DW-653 follow-up now closed above); DW-424 (separate DW-650 follow-up open); DW-308/DW-314; DW-648; DW-545; DW-528/DW-542; prior DW-243/DW-262/DW-612; prior DW-325/DW-587; prior DW-647; prior DW-646, DW-645, DW-644, DW-480, DW-468, DW-331, DW-470 and DW-285 closures are preserved. Release remains not ready.
 
-**Decisions needed:** authoritative/version-bounded global-administrator revocation (DW-562/DW-617). DW-599 API/UI scope and DW-127 rendered-search privacy/completeness were approved on 2026-10-28; the selected read-safety supersession is recorded above. Lower-priority UX, manifest and bootstrap-provider choices appear in the index. Previously recorded decisions remain settled and are actionable work, not new approval requests.
+**Selected decisions settled:** The approved native global-administrator authority, fatal precedence and search deadline are implemented. DW-137 still needs separate route-contract work; accepted limitations and assistive-technology evidence remain visible below.
 
 **Original reconciliation verification limits (2026-10-12):** source, tests and supporting artifacts were inspected; no .NET or browser suite was rerun for this documentation task. Read-only story-gitlink checks ran. Existing exact-HEAD [CI](https://github.com/Hexalith/Hexalith.Tenants/actions/runs/38269521776) shows the build/test job green and the advisory Aspire lane 183/184 passed (zero skipped), with the generated API `/alive` TLS case failing. [Story Guards](https://github.com/Hexalith/Hexalith.Tenants/actions/runs/38269520326) still times out Chromium. The ledger records exact evidence and missing checks for each item.
 
@@ -287,9 +289,7 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 ## Verified defects and gaps
 
-| DW references | Priority | Evidence / disposition | Owner | Dependencies | Next concrete action |
-| --- | --- | --- | --- | --- | --- |
-| DW-562, DW-617 | P1 | Gap / awaiting-decision | global-administrator authority owner; other records unassigned | Platform authorization and revocation contract; DW-562 revocation contract decision | Define the authoritative/version-bounded revocation guarantee and responsible authority before changing command/query gates. |
+No numbered verified defect or gap remains open in this index. Historical findings and their resolutions remain in the deferred ledger.
 
 ## Unverified risks and recommendations
 
@@ -310,4 +310,4 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 **Additional unnumbered verification follow-up (2026-10-24):** One grant Escape focus timeout remains unverified after a passing instrumented trace and final normal nine-case browser run. Its cause and distinguishing reproduction are retained in the deferred ledger and [focus diagnostic](../_bmad-output/implementation-artifacts/dw-391-focus-diagnostic.json). Numbered DW totals and exact index coverage exclude this follow-up until migration.
 
 
-**Additional unnumbered CI qualification follow-up (2026-10-27):** A fresh full generic Aspire run remains unqualified while published EventStore routing types fail compilation. The release-governance review records this separately from workflow policy/result-gate implementation; numbered DW totals exclude the follow-up. Existing runtime/release holds remain.
+**Additional unnumbered CI qualification follow-up (updated 2026-10-28):** Local generic Release restore/build and complete-tier qualification have passed; actual passing post-push CI remains required before this record closes. Published and generic source-exception graphs remain separately evidenced. Numbered DW totals exclude this follow-up; existing runtime/release holds remain.

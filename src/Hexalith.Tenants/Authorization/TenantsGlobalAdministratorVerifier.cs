@@ -1,37 +1,38 @@
-using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.DomainService;
-using Hexalith.Tenants.Queries.Handlers;
-using Hexalith.Tenants.Server.Projections;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
 
 namespace Hexalith.Tenants.Authorization;
 
-/// <summary>
-/// Re-establishes global-administrator authority at the Tenants domain-service boundary from the current
-/// global-administrators read model (EventStore Story 5.5, FR28).
-/// </summary>
-/// <remarks>
-/// The <c>actor:globalAdmin</c> command extension and <see cref="EventStore.Contracts.Queries.QueryEnvelope.IsGlobalAdmin"/>
-/// arrive as untrusted wire hints. The EventStore domain-service SDK removes them on every inbound
-/// <c>/process</c> and <c>/query</c> request unless this verifier confirms the acting user is a current member of
-/// the Tenants global-administrators read model. A store failure propagates, so the request fails closed before
-/// any aggregate or query work.
-/// </remarks>
-public sealed class TenantsGlobalAdministratorVerifier(IReadModelStore store) : IDomainServiceAdministratorVerifier {
+/// <summary>Rebuilds command hints from native evidence and strips query hints before independent authorization.</summary>
+/// <param name="authority">The request-scoped native authority for tenant commands.</param>
+/// <param name="httpContextAccessor">The server-matched operational endpoint, when available.</param>
+public sealed class TenantsGlobalAdministratorVerifier(ITenantsGlobalAdministratorAuthority authority, IHttpContextAccessor? httpContextAccessor = null) : IDomainServiceAdministratorVerifier
+{
     /// <inheritdoc/>
-    public async Task<bool> IsCurrentGlobalAdministratorAsync(
-        DomainServiceAdministratorClaim claim,
-        CancellationToken cancellationToken) {
+    public Task<bool> IsCurrentGlobalAdministratorAsync(DomainServiceAdministratorClaim claim, CancellationToken cancellationToken)
+    {
         ArgumentNullException.ThrowIfNull(claim);
-        if (string.IsNullOrWhiteSpace(claim.UserId)) {
-            return false;
-        }
+        cancellationToken.ThrowIfCancellationRequested();
+        // Global management commands already authorize from their locked replayed aggregate state.
+        // Never honor their wire hint: reading that same actor during /process would self-deadlock.
+        // Global queries still run their independent native-source gate in the query handler.
+        // Query handlers establish their own permissions. Discard their unused hint before a global
+        // source outage can preempt an independently authorized owner. Only matched server metadata
+        // identifies this operation; a caller-supplied path or claim never selects the shortcut.
+        return IsCanonicalQueryEndpoint() || string.Equals(claim.Domain, "global-administrators", StringComparison.Ordinal)
+            ? Task.FromResult(false)
+            : authority.IsCurrentGlobalAdministratorAsync(claim.UserId, cancellationToken);
+    }
 
-        ReadModelEntry<GlobalAdministratorReadModel>? entry = await store
-            .GetAsync<GlobalAdministratorReadModel>(
-                TenantQueryHandlerBase.StateStoreName,
-                TenantQueryHandlerBase.GlobalAdminProjectionKey,
-                cancellationToken)
-            .ConfigureAwait(false);
-        return entry?.Value is { } model && model.Administrators.Contains(claim.UserId);
+    private bool IsCanonicalQueryEndpoint()
+    {
+        HttpContext? context = httpContextAccessor?.HttpContext;
+        return context is not null && HttpMethods.IsPost(context.Request.Method)
+            && context.GetEndpoint() is RouteEndpoint endpoint && endpoint.RoutePattern.RawText == "/query"
+            && endpoint.Metadata.GetMetadata<HttpMethodMetadata>()?.HttpMethods is { Count: 1 } methods
+            && methods[0] == HttpMethods.Post
+            && endpoint.Metadata.GetOrderedMetadata<IAuthorizeData>().Any(data => data.Policy == EventStoreDomainServicePolicies.Query);
     }
 }

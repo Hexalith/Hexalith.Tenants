@@ -1,0 +1,55 @@
+[
+  {
+    "command": [
+      "dotnet",
+      "--version"
+    ],
+    "exitCode": 0,
+    "output": "10.0.402\n"
+  },
+  {
+    "command": [
+      "dapr",
+      "--version"
+    ],
+    "exitCode": 0,
+    "output": "CLI version: 1.18.2 \nRuntime version: 1.18.7\n"
+  },
+  {
+    "command": [
+      "node",
+      "--version"
+    ],
+    "exitCode": 0,
+    "output": "v26.4.0\n"
+  },
+  {
+    "command": [
+      "npm",
+      "--version"
+    ],
+    "exitCode": 0,
+    "output": "11.18.0\n"
+  },
+  {
+    "command": [
+      "docker",
+      "version",
+      "--format",
+      "{{.Server.Version}}"
+    ],
+    "exitCode": 0,
+    "output": "29.8.2\n"
+  },
+  {
+    "command": [
+      "dotnet",
+      "dev-certs",
+      "https",
+      "--check",
+      "--trust"
+    ],
+    "exitCode": 7,
+    "output": "The following certificates were found, but none of them is trusted: 1 certificate\n    1) ED6C9438F604A23BCB61B2E08EE0F6E33DD3CA06 - CN=localhost - Valid from 2026-05-27 01:23:31Z to 2027-05-27 01:23:31Z - IsHttpsDevelopmentCertificate: true - IsExportable: true\nRun the command with --verbose for more details.\n"
+  }
+]

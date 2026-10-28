@@ -1,3 +1,4 @@
+using Hexalith.EventStore.Client.Streams;
 #pragma warning disable CA2007
 
 using System.IdentityModel.Tokens.Jwt;
@@ -53,7 +54,7 @@ using Shouldly;
 
 namespace Hexalith.Tenants.IntegrationTests;
 
-public class CommandApiRuntimeIntegrationTests {
+public partial class CommandApiRuntimeIntegrationTests {
     private const string JwtAudience = "hexalith-tenants";
     private const string JwtIssuer = "hexalith-dev";
     private const string JwtSigningKey = "this-is-a-development-signing-key-minimum-32-chars";
@@ -2931,7 +2932,8 @@ public class CommandApiRuntimeIntegrationTests {
         bool useTestAuthentication = false,
         bool presentWorkloadAssertion = true,
         bool useLegacyStatusAdapter = true,
-        IReadModelStore? projectionStore = null) : WebApplicationFactory<TenantBootstrapOptions> {
+        IReadModelStore? projectionStore = null,
+        MutableGlobalAdministratorSource? administratorSource = null) : WebApplicationFactory<TenantBootstrapOptions> {
         /// <summary>Gets the isolated store so read-only projection contracts can verify its persisted end state.</summary>
         public InMemoryReadModelStore ReadModelStore { get; } = new();
 
@@ -2954,7 +2956,7 @@ public class CommandApiRuntimeIntegrationTests {
             .UseSetting("EventStore:DomainService:AppId", WorkloadAudience)
             .UseSetting(DaprAppChannelToken.ConfigurationKey, WorkloadChannelToken)
             .ConfigureServices(services => {
-            // The wire administrator flag is honored only for current members of the global-administrators read model.
+            // Projection membership is independently seeded from the native source used by administrator verification.
             InMemoryReadModelStore store = ReadModelStore;
             store.SeedRaw(
                 "statestore",
@@ -2964,6 +2966,12 @@ public class CommandApiRuntimeIntegrationTests {
                 });
             _ = services.RemoveAll<IReadModelStore>();
             _ = services.AddSingleton<IReadModelStore>(projectionStore ?? store);
+            var source = administratorSource ?? new MutableGlobalAdministratorSource(VerifiedGlobalAdministrators);
+            services.RemoveAllKeyed<IAuthoritativeEventStreamReader>("native-tenant-source");
+            services.AddKeyedSingleton<IAuthoritativeEventStreamReader>("native-tenant-source", source);
+            services.RemoveAll<INativeSourceMetadataReader>();
+            services.AddSingleton<INativeSourceMetadataReader>(source);
+
 
             if (useTestAuthentication) {
                 _ = services.AddAuthentication(TestAuthHandler.SchemeName)

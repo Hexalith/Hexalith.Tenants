@@ -253,6 +253,8 @@ jobs:
       aspire-timeout-minutes: 35
       aspire-continue-on-error: false
       aspire-browser-project: tests/performance/tenant-audit
+      # Complete non-Performance tier, workers enabled by the generic fixture default.
+      # The focused authenticated-route worker override above does not apply to this reusable job.
       aspire-fail-skips: true
       coverage-minimum-line: 80
       coverage-required-branch: 100

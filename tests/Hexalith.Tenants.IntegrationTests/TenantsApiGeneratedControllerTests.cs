@@ -2,6 +2,8 @@
 
 extern alias TenantsApi;
 
+using Hexalith.Tenants.IntegrationTests.Fixtures;
+
 using System.IdentityModel.Tokens.Jwt;
 using System.Globalization;
 using System.Net;
@@ -392,7 +394,7 @@ public sealed class TenantsApiGeneratedControllerTests
         storedRemoval.AggregateSequence.ShouldBe(3);
 
         using var diagnostics = new EventStoreDomainDiagnostics("tenants");
-        var handler = new GetTenantAuditQueryHandler(store,
+        var handler = new GetTenantAuditQueryHandler(store, GlobalAdministratorTestAuthority.Create("admin.current"),
             new QueryCursorCodec(new EphemeralDataProtectionProvider(), "Hexalith.Tenants.Integration.QueryCursor.v1"),
             new TenantTelemetry(diagnostics), NullLogger<GetTenantAuditQueryHandler>.Instance,
             timeProvider: new FixedTimeProvider(now));
@@ -449,7 +451,7 @@ public sealed class TenantsApiGeneratedControllerTests
         index.ProjectionVersion.ShouldBe(TenantIndexProjectionVersion.Create(index));
         index.ProjectionVersion.ShouldNotBeNull();
         using var diagnostics = new EventStoreDomainDiagnostics("tenants");
-        var handler = new GetUserTenantsQueryHandler(store,
+        var handler = new GetUserTenantsQueryHandler(store, GlobalAdministratorTestAuthority.Create("admin.current"),
             new QueryCursorCodec(new EphemeralDataProtectionProvider(), "index-authority"),
             new TenantTelemetry(diagnostics), NullLogger<GetUserTenantsQueryHandler>.Instance, timeProvider: new FixedTimeProvider(now));
         using var gateway = new HandlerRoutedEventStoreGatewayClient(handler);
@@ -492,7 +494,7 @@ public sealed class TenantsApiGeneratedControllerTests
         ConfigurePersistedModel<GlobalAdministratorReadModel>(store, persisted);
         ConfigurePersistedModel<TenantAuditReadModel>(store, persisted);
         using var diagnostics = new EventStoreDomainDiagnostics("tenants");
-        var handler = new GetTenantAuditQueryHandler(store,
+        var handler = new GetTenantAuditQueryHandler(store, GlobalAdministratorTestAuthority.Create("admin.current"),
             new QueryCursorCodec(new EphemeralDataProtectionProvider(), "failure-boundary"),
             new TenantTelemetry(diagnostics), NullLogger<GetTenantAuditQueryHandler>.Instance);
         var router = new HandlerAwareQueryRouter(new UnexpectedInnerQueryRouter(), new AlwaysSupportedDomainQueryHandlerRegistry(),
@@ -1614,6 +1616,7 @@ public sealed class TenantsApiGeneratedControllerTests
         {
             var handler = new GetGlobalAdministratorsQueryHandler(
                 new SingleGlobalAdministratorReadModelStore(model, eTag),
+                GlobalAdministratorTestAuthority.Create(model.Administrators.ToArray()),
                 new QueryCursorCodec(new EphemeralDataProtectionProvider(), "Hexalith.Tenants.Integration.QueryCursor.v1"),
                 new TenantTelemetry(_diagnostics),
                 NullLogger<GetGlobalAdministratorsQueryHandler>.Instance,

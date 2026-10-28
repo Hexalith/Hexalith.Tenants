@@ -1,0 +1,38 @@
+{
+  "capturedUtc": "2026-10-28T22:46:52.605909+00:00",
+  "phase": "accepted generic graph before separate published rebuild",
+  "testedArtifacts": {
+    "tests/Hexalith.Tenants.Server.Tests/bin/Debug/net10.0/Hexalith.Tenants.Server.Tests.dll": {
+      "sha256": "d11d1fecc527f0a8c05cfbc23dd36aa7200df553328778412b5c749253846999",
+      "bytes": 1370624
+    },
+    "tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll": {
+      "sha256": "4aca70681a8ddd5c098586c5de4a86a10b16212862d8a27972cc2d241d7f7d24",
+      "bytes": 6801920
+    },
+    "tests/Hexalith.Tenants.IntegrationTests/bin/Release/net10.0/Hexalith.Tenants.IntegrationTests.dll": {
+      "sha256": "f575f6e3bbf35d48f400c7f45bea4629106e7007db24c999f5ed18041bbc2937",
+      "bytes": 883200
+    },
+    "tests/Hexalith.Tenants.AppHost.Tests/bin/Release/net10.0/Hexalith.Tenants.AppHost.Tests.dll": {
+      "sha256": "e69cd7e6d46a164c880f7aafb92f48eb9dd912cfa8ede89676f895cf01901a11",
+      "bytes": 84480
+    },
+    "tests/Hexalith.Tenants.IntegrationTests/bin/Release/net10.0/Hexalith.Tenants.AppHost.dll": {
+      "sha256": "ec7d8313f184ce86ebb99d7df8f5dcdef2f4eeb90b926788264d456c9e2580e6",
+      "bytes": 57856
+    },
+    "src/Hexalith.Tenants/bin/Release/net10.0/Hexalith.Tenants.dll": {
+      "sha256": "d66959084833cb9fde295302471b401051ae69f2aee67c7c49cee9251d85b4ff",
+      "bytes": 195584
+    },
+    "src/Hexalith.Tenants.UI/bin/Release/net10.0/Hexalith.Tenants.UI.dll": {
+      "sha256": "15861b6486dfe2c632e0e029cb7803ed7ad977b4b8ab4683c67c3efe4b8f086c",
+      "bytes": 2678784
+    },
+    "src/Hexalith.Tenants.AppHost/bin/Release/net10.0/Hexalith.Tenants.AppHost.dll": {
+      "sha256": "ec7d8313f184ce86ebb99d7df8f5dcdef2f4eeb90b926788264d456c9e2580e6",
+      "bytes": 57856
+    }
+  }
+}

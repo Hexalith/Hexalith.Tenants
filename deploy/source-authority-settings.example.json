@@ -1,0 +1,30 @@
+{
+  "TenantsHost": {
+    "Authentication": {
+      "WorkloadIssuer": {
+        "Workload": "tenants",
+        "ClientId": "tenants",
+        "ClientSecret": "<inject-enrolled-workload-client-secret>"
+      },
+      "BoundStreamRead": {
+        "PrivateKey": "<inject-base64-pkcs8-rsa-private-key-at-least-2048-bits>"
+      }
+    }
+  },
+  "EventStoreHost": {
+    "EventStore": { "RateLimiting": { "QueueLimit": 64 } },
+    "Authentication": {
+      "DaprInternal": {
+        "Audience": "eventstore",
+        "AllowedCallers": ["tenants"]
+      },
+      "BoundStreamRead": {
+        "PublicKeys": { "tenants": "<inject-base64-spki-public-key>" },
+        "AllowedDomains": { "tenants": "tenants,global-administrators" }
+      }
+    }
+  },
+  "TenantsUiHost": {
+    "Tenants": { "Search": { "LoadBudget": "00:00:10" } }
+  }
+}

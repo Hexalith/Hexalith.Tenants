@@ -1,3 +1,4 @@
+using Hexalith.Tenants.Authorization;
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Client.Queries;
 using Hexalith.EventStore.Contracts.Queries;
@@ -17,12 +18,13 @@ namespace Hexalith.Tenants.Queries.Handlers;
 /// </summary>
 public sealed class GetGlobalAdministratorsQueryHandler(
     IReadModelStore store,
+    ITenantsGlobalAdministratorAuthority administratorAuthority,
     IQueryCursorCodec cursorCodec,
     TenantTelemetry telemetry,
     ILogger<GetGlobalAdministratorsQueryHandler> logger,
     IOptions<ReadModelFreshnessOptions>? freshnessOptions = null,
     TimeProvider? timeProvider = null)
-    : TenantQueryHandlerBase(store, cursorCodec, telemetry, logger, freshnessOptions, timeProvider) {
+    : TenantQueryHandlerBase(store, administratorAuthority, cursorCodec, telemetry, logger, freshnessOptions, timeProvider) {
     /// <inheritdoc/>
     public override string Domain => GetGlobalAdministratorsQuery.Domain;
 
@@ -64,7 +66,7 @@ public sealed class GetGlobalAdministratorsQueryHandler(
         cancellationToken.ThrowIfCancellationRequested();
 
         // The wire administrator hint is untrusted (EventStore Story 5.5, FR28): only current membership authorizes.
-        if (model is null || !model.Administrators.Contains(envelope.UserId)) {
+        if (!await IsGlobalAdminAsync(envelope, cancellationToken).ConfigureAwait(false) || model is null) {
             return new QueryResult(false, default, ErrorMessage: QueryAdapterFailureReason.Forbidden);
         }
 

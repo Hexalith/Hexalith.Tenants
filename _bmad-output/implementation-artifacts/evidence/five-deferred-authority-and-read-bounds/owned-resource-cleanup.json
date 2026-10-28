@@ -1,0 +1,108 @@
+{
+  "finishedUtc": "2026-10-28T21:52:46.895512+00:00",
+  "existingRedisDataCleared": false,
+  "existingRedisDataMigrated": false,
+  "onlyProvenanceBoundResourcesRemoved": true,
+  "resources": [
+    {
+      "provenance": "fresh-redis-isolation.json",
+      "container": "6f888fd0ab68cdf93597c1e8c582e7ce5750f3e26c36e3b7d25467e533840a22",
+      "name": "tenants-five-deferred-redis-4894dc61bbc9-full",
+      "ownedAnonymousVolumes": [
+        "8d87cd62b4daae6988d0de7c1e9b9f4424129f2720d9a37b2c5940de07455216"
+      ],
+      "finalKeyCount": 558,
+      "removalCommand": [
+        "docker",
+        "rm",
+        "--force",
+        "--volumes",
+        "6f888fd0ab68cdf93597c1e8c582e7ce5750f3e26c36e3b7d25467e533840a22"
+      ],
+      "removalExitCode": 0,
+      "containerAbsent": true,
+      "identifiedVolumesAbsent": true,
+      "componentDirectoryAbsent": true
+    },
+    {
+      "provenance": "fresh-ui-isolation.json",
+      "container": "4c5e5f4f249e6ca86c3eb9d6e5e0ce4dd359c390b398f56ba5b07011218cab95",
+      "name": "tenants-five-deferred-ui-e61ed71d64",
+      "ownedAnonymousVolumes": [
+        "bfd1e8192aa1b275818fe46f1776acd9b3010078e097dc8c53d0ab44ccc0ed36"
+      ],
+      "finalKeyCount": 432,
+      "removalCommand": [
+        "docker",
+        "rm",
+        "--force",
+        "--volumes",
+        "4c5e5f4f249e6ca86c3eb9d6e5e0ce4dd359c390b398f56ba5b07011218cab95"
+      ],
+      "removalExitCode": 0,
+      "containerAbsent": true,
+      "identifiedVolumesAbsent": true,
+      "componentDirectoryAbsent": true
+    },
+    {
+      "provenance": "populated-page-isolation.json",
+      "container": "7fd3c75db34aba0c0f715fe396ed1b19c7c4e2f6cef05bed75e066009deecd96",
+      "name": "tenants-five-deferred-ui-f1fa60ed43",
+      "ownedAnonymousVolumes": [
+        "1a6290515450dcaf724f3156da00f4bbb5351f88611b1349c98e023007b8cf21"
+      ],
+      "finalKeyCount": 784,
+      "removalCommand": [
+        "docker",
+        "rm",
+        "--force",
+        "--volumes",
+        "7fd3c75db34aba0c0f715fe396ed1b19c7c4e2f6cef05bed75e066009deecd96"
+      ],
+      "removalExitCode": 0,
+      "containerAbsent": true,
+      "identifiedVolumesAbsent": true,
+      "componentDirectoryAbsent": true
+    },
+    {
+      "provenance": "final-generic-isolation.json",
+      "container": "21e7844307c10f4077180840ec249e19ac4dd571350b2ffa97be581d22def7be",
+      "name": "tenants-five-deferred-final-a392f751c3",
+      "ownedAnonymousVolumes": [
+        "86c083a140bb332e21b8f1f654a29bd80801fc7512656c960038ea108606b09e"
+      ],
+      "finalKeyCount": 981,
+      "removalCommand": [
+        "docker",
+        "rm",
+        "--force",
+        "--volumes",
+        "21e7844307c10f4077180840ec249e19ac4dd571350b2ffa97be581d22def7be"
+      ],
+      "removalExitCode": 0,
+      "containerAbsent": true,
+      "identifiedVolumesAbsent": true,
+      "componentDirectoryAbsent": true
+    },
+    {
+      "provenance": "generic-fourth-isolation.json",
+      "container": "7637fdcd66f490991f77fb9c9c3fd82b5a884806f2cba8b0a97794a22c372c50",
+      "name": "tenants-five-deferred-fourth-861f1918da",
+      "ownedAnonymousVolumes": [
+        "e6dbd5d286e32a727dd359541d7520b62fde936bd741e916037b98d17c4c029e"
+      ],
+      "finalKeyCount": 866,
+      "removalCommand": [
+        "docker",
+        "rm",
+        "--force",
+        "--volumes",
+        "7637fdcd66f490991f77fb9c9c3fd82b5a884806f2cba8b0a97794a22c372c50"
+      ],
+      "removalExitCode": 0,
+      "containerAbsent": true,
+      "identifiedVolumesAbsent": true,
+      "componentDirectoryAbsent": true
+    }
+  ]
+}

@@ -120,6 +120,13 @@ public static class TenantsUiServiceCollectionExtensions
                     TenantsGlobalAdministratorClaims.Evaluate(context.User)
                         == TenantLifecycleAuthorizationReflectionState.Authorized)));
 
+        services.AddOptions<TenantSearchOptions>()
+            .Bind(configuration.GetSection(TenantSearchOptions.SectionName))
+            .Validate(static options => options.LoadBudget > TimeSpan.Zero
+                && options.LoadBudget.TotalMilliseconds <= uint.MaxValue - 1,
+                "Tenants search load budget must be a positive finite cancellation duration.")
+            .ValidateOnStart();
+
         // Decision D-G: composition runs before any logger exists, so a rejected base address is recorded
         // here by key name and reported once at startup by TenantsUiConfigurationDiagnosticsReporter. The
         // per-side fail-closed registration below is unchanged -- what is restored is the signal, without

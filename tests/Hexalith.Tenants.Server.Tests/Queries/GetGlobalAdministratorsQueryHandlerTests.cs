@@ -47,7 +47,7 @@ public sealed class GetGlobalAdministratorsQueryHandlerTests {
         decodedCursor.ShouldBe("admin-2");
         failureReason.ShouldBeNull();
 
-        _ = await store.Received(1).GetAsync<GlobalAdministratorReadModel>(
+        _ = await store.Received(2).GetAsync<GlobalAdministratorReadModel>(
             TenantQueryHandlerBase.StateStoreName,
             TenantQueryHandlerBase.GlobalAdminProjectionKey,
             Arg.Any<CancellationToken>());

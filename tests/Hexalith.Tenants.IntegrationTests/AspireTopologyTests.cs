@@ -457,7 +457,7 @@ public class AspireTopologyTests : IDisposable {
         removal.EventReference.ShouldNotBe(removeCommand.MessageId);
         using RedisConnectionMultiplexer redis = await RedisConnection.ConnectAsync(new RedisConfigurationOptions
         {
-            EndPoints = { $"localhost:{DaprDiagnostics.DefaultRedisPort}" },
+            EndPoints = { $"localhost:{DaprDiagnostics.ResolveRedisPort()}" },
             ConnectTimeout = 5_000, SyncTimeout = 5_000, AbortOnConnectFail = true,
         });
         RedisValue storedAudit = await redis.GetDatabase().HashGetAsync($"tenants||audit:{tenantId}", "data").WaitAsync(timeout.Token);
@@ -515,6 +515,8 @@ public class AspireTopologyTests : IDisposable {
                 TimeoutDuration: null);
         }
 
+        if (response.StatusCode != HttpStatusCode.Accepted)
+            TestContext.Current.TestOutputHelper?.WriteLine($"Live command submission failed: HTTP={(int)response.StatusCode}.");
         response.StatusCode.ShouldBe(HttpStatusCode.Accepted);
 
         Hexalith.EventStore.Contracts.Commands.SubmitCommandResponse? accepted = await response.Content.ReadFromJsonAsync<Hexalith.EventStore.Contracts.Commands.SubmitCommandResponse>(
@@ -533,7 +535,7 @@ public class AspireTopologyTests : IDisposable {
         string tenantId,
         string? expectedProjectionVersion,
         CancellationToken cancellationToken) {
-        string redisEndpoint = $"localhost:{DaprDiagnostics.DefaultRedisPort}";
+        string redisEndpoint = $"localhost:{DaprDiagnostics.ResolveRedisPort()}";
         string persistedKey = $"tenants||projection:tenants:{tenantId}";
         RedisConnectionMultiplexer redis;
         try {

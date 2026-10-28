@@ -1,84 +1,67 @@
-using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.DomainService;
 using Hexalith.Tenants.Authorization;
-using Hexalith.Tenants.Queries.Handlers;
-using Hexalith.Tenants.Server.Projections;
-
 using NSubstitute;
-using NSubstitute.ExceptionExtensions;
-
 using Shouldly;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.AspNetCore.Routing.Patterns;
 
 namespace Hexalith.Tenants.Server.Tests.Authorization;
 
-/// <summary>
-/// EventStore Story 5.5: a wire administrator assertion reaching the Tenants domain service is honored only when the
-/// acting user is a current member of the global-administrators read model; an unavailable store fails closed.
-/// </summary>
-public sealed class TenantsGlobalAdministratorVerifierTests {
-    [Fact]
-    public async Task Current_member_is_verified() {
-        IReadModelStore store = Store("admin-user");
-
-        bool verified = await new TenantsGlobalAdministratorVerifier(store)
-            .IsCurrentGlobalAdministratorAsync(Claim("admin-user"), CancellationToken.None);
-
-        verified.ShouldBeTrue();
-    }
-
+public sealed class TenantsGlobalAdministratorVerifierTests
+{
     [Theory]
-    [InlineData("someone-else")]
-    [InlineData("")]
-    public async Task Non_member_is_not_verified(string userId) {
-        IReadModelStore store = Store("admin-user");
-
-        bool verified = await new TenantsGlobalAdministratorVerifier(store)
-            .IsCurrentGlobalAdministratorAsync(Claim(userId), CancellationToken.None);
-
-        verified.ShouldBeFalse();
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task VerifierConsumesTheSharedSourceAuthority(bool allowed)
+    {
+        var authority = Substitute.For<ITenantsGlobalAdministratorAuthority>();
+        authority.IsCurrentGlobalAdministratorAsync("admin", Arg.Any<CancellationToken>()).Returns(allowed);
+        var claim = new DomainServiceAdministratorClaim("system", "tenants", "admin", "correlation");
+        (await new TenantsGlobalAdministratorVerifier(authority).IsCurrentGlobalAdministratorAsync(claim,
+            TestContext.Current.CancellationToken)).ShouldBe(allowed);
+    }
+    [Theory]
+    [InlineData("canonical", true)]
+    [InlineData("no-endpoint", false)]
+    [InlineData("wrong-route", false)]
+    [InlineData("wrong-method", false)]
+    [InlineData("wrong-request-method", false)]
+    [InlineData("missing-policy", false)]
+    [InlineData("wrong-policy", false)]
+    public async Task OnlyMatchedCanonicalQueryMetadataCanDiscardTheUnusedHint(string contextKind, bool stripped)
+    {
+        var authority = Substitute.For<ITenantsGlobalAdministratorAuthority>();
+        authority.IsCurrentGlobalAdministratorAsync("admin", Arg.Any<CancellationToken>()).Returns(false);
+        var context = new DefaultHttpContext();
+        context.Request.Method = contextKind == "wrong-request-method" ? HttpMethods.Get : HttpMethods.Post;
+        context.Request.Path = "/query";
+        context.User = new(new System.Security.Claims.ClaimsIdentity([
+            new("global_admin", "true"), new("operation", "domain-service:query")], "spoofed"));
+        if (contextKind != "no-endpoint")
+        {
+            List<object> metadata = [new HttpMethodMetadata([contextKind == "wrong-method" ? HttpMethods.Get : HttpMethods.Post])];
+            if (contextKind != "missing-policy") metadata.Add(new AuthorizeAttribute(contextKind == "wrong-policy"
+                ? EventStoreDomainServicePolicies.Process : EventStoreDomainServicePolicies.Query));
+            context.SetEndpoint(new RouteEndpoint(_ => Task.CompletedTask,
+                RoutePatternFactory.Parse(contextKind == "wrong-route" ? "/process" : "/query"), 0,
+                new EndpointMetadataCollection(metadata), "matched-test-endpoint"));
+        }
+        var verifier = new TenantsGlobalAdministratorVerifier(authority, new HttpContextAccessor { HttpContext = context });
+        (await verifier.IsCurrentGlobalAdministratorAsync(new("system", "tenants", "admin", "correlation"),
+            TestContext.Current.CancellationToken)).ShouldBeFalse();
+        if (stripped) await authority.DidNotReceiveWithAnyArgs().IsCurrentGlobalAdministratorAsync(default!, default);
+        else await authority.Received(1).IsCurrentGlobalAdministratorAsync("admin", Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task Missing_projection_is_not_verified() {
-        IReadModelStore store = Substitute.For<IReadModelStore>();
-        _ = store.GetAsync<GlobalAdministratorReadModel>(
-                TenantQueryHandlerBase.StateStoreName,
-                TenantQueryHandlerBase.GlobalAdminProjectionKey,
-                Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(new ReadModelEntry<GlobalAdministratorReadModel>(null, null)));
-
-        bool verified = await new TenantsGlobalAdministratorVerifier(store)
-            .IsCurrentGlobalAdministratorAsync(Claim("admin-user"), CancellationToken.None);
-
-        verified.ShouldBeFalse();
-    }
-
-    [Fact]
-    public async Task Unavailable_store_fails_closed() {
-        IReadModelStore store = Substitute.For<IReadModelStore>();
-        _ = store.GetAsync<GlobalAdministratorReadModel>(
-                Arg.Any<string>(),
-                Arg.Any<string>(),
-                Arg.Any<CancellationToken>())
-            .ThrowsAsync(new InvalidOperationException("state store unavailable"));
-
-        _ = await Should.ThrowAsync<InvalidOperationException>(() => new TenantsGlobalAdministratorVerifier(store)
-            .IsCurrentGlobalAdministratorAsync(Claim("admin-user"), CancellationToken.None));
-    }
-
-    private static DomainServiceAdministratorClaim Claim(string userId)
-        => new("system", "tenants", userId, "correlation-1");
-
-    private static IReadModelStore Store(params string[] administrators) {
-        IReadModelStore store = Substitute.For<IReadModelStore>();
-        var model = new GlobalAdministratorReadModel {
-            Administrators = administrators.ToHashSet(StringComparer.Ordinal),
-        };
-        _ = store.GetAsync<GlobalAdministratorReadModel>(
-                TenantQueryHandlerBase.StateStoreName,
-                TenantQueryHandlerBase.GlobalAdminProjectionKey,
-                Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(new ReadModelEntry<GlobalAdministratorReadModel>(model, "admin-etag")));
-        return store;
+    public async Task GlobalDomainHintsNeverTriggerASourceSelfCallOrGrantAuthority()
+    {
+        var authority = Substitute.For<ITenantsGlobalAdministratorAuthority>();
+        var verifier = new TenantsGlobalAdministratorVerifier(authority);
+        (await verifier.IsCurrentGlobalAdministratorAsync(new("system", "global-administrators", "current", "correlation"),
+            TestContext.Current.CancellationToken)).ShouldBeFalse();
+        await authority.DidNotReceiveWithAnyArgs().IsCurrentGlobalAdministratorAsync(default!, default);
     }
 }

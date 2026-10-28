@@ -1,0 +1,261 @@
+{
+  "capturedUtc": "2026-10-28T21:59:27.485367+00:00",
+  "rootRevision": "8127cb3b47dcfcf4086d07e4af0730c2f4920f9e",
+  "frozenIntentSha256": "6d8aa8fdd9b7d885787043252bde110fe1d5607f17408a7963f5886c016b1225",
+  "changedInputs": {
+    ".github/workflows/ci.yml": {
+      "sha256": "b52255c3c012cbf360aeed1c80d1065d1ca9a10827c5e7825db37ffb654197c0",
+      "bytes": 14310
+    },
+    "_bmad-output/implementation-artifacts/spec-five-deferred-authority-and-read-bounds.md": {
+      "sha256": "b0b09bfda6aca2123b6177b73436d599b7763e9dd364a058037563feb3a049c4",
+      "bytes": 11762
+    },
+    "deploy/dapr/README.md": {
+      "sha256": "5f921cc0a76c84049bde34d5f008c682dd4518bd0d2e17624d3c74ecc775719d",
+      "bytes": 16319
+    },
+    "deploy/dapr/accesscontrol.eventstore.yaml": {
+      "sha256": "d4182ddbf7dd8e47292ebd5f7c5221b3dd29da8974cc7fe8b98f076e7eded8c6",
+      "bytes": 1759
+    },
+    "deploy/source-authority-settings.example.json": {
+      "sha256": "3c0f0e833b36f8d0cb5265f02a256cce1d5102821ebe7dc25c77474ba76bedf6",
+      "bytes": 823
+    },
+    "docs/production-auth-readiness.md": {
+      "sha256": "a0b2270c4f74503a53351abec86ffac73b6bd90e64f9ac9153d01fd342b638dc",
+      "bytes": 30759
+    },
+    "src/Hexalith.Tenants.AppHost/KeycloakRealms/hexalith-realm.json": {
+      "sha256": "a21a4dc2774e52444cebd25baced357871a733e50ae8236c3f065be5e38e3118",
+      "bytes": 20487
+    },
+    "src/Hexalith.Tenants.AppHost/Program.cs": {
+      "sha256": "c54fc37c6ea9a2601608166df037fbe480224de3d46eef1822176843ec6bc077",
+      "bytes": 23447
+    },
+    "src/Hexalith.Tenants.UI/Extensions/TenantsUiServiceCollectionExtensions.cs": {
+      "sha256": "5bde006eeaad96911817b59651c460e0345077880c8809d0981a161605c6a13a",
+      "bytes": 17303
+    },
+    "src/Hexalith.Tenants.UI/Services/Gateways/CallerBoundTenantsRestQueryClient.cs": {
+      "sha256": "8a13e1f3a1466b50af1fa1abca11fed9101e6f029166a4069717ad9eeda7bf3e",
+      "bytes": 5575
+    },
+    "src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs": {
+      "sha256": "a9c98ec93e0d927d2337733bc91e854e51d96f3df837fb4075c685d789e0666b",
+      "bytes": 198029
+    },
+    "src/Hexalith.Tenants.UI/Services/Gateways/TenantSearchOptions.cs": {
+      "sha256": "c51872f4c66abdf8c45a1573c95276a45b5cd3156847e3d7750f990b49f99427",
+      "bytes": 521
+    },
+    "src/Hexalith.Tenants.UI/Services/Gateways/TenantWorkspaceReadDiagnostics.cs": {
+      "sha256": "06548e0dbe8e7e66b87bd8e52e760623bf1d6aa16b8e8a7210e89b8c60f4b5db",
+      "bytes": 3159
+    },
+    "src/Hexalith.Tenants.UI/appsettings.json": {
+      "sha256": "795b27efe2db1ac8e85d545193bda1f4c01672d4aa0f9232d19d22751b0558bc",
+      "bytes": 456
+    },
+    "src/Hexalith.Tenants/Authorization/ITenantsGlobalAdministratorAuthority.cs": {
+      "sha256": "72df86e623b69e639c5ad54842970e0c536bdbcb8eab724480e8223fe7facbeb",
+      "bytes": 680
+    },
+    "src/Hexalith.Tenants/Authorization/TenantOwnerSourceGateway.cs": {
+      "sha256": "f796d24a82019e1605648634af25d6ebc46aba11082567099cf1b86425b60575",
+      "bytes": 4995
+    },
+    "src/Hexalith.Tenants/Authorization/TenantsGlobalAdministratorAuthority.cs": {
+      "sha256": "c46689a828afad0c223f3bd3b030b19b1e468c5cd45ea0575effcc108f417634",
+      "bytes": 5747
+    },
+    "src/Hexalith.Tenants/Authorization/TenantsGlobalAdministratorAuthorityUnavailableException.cs": {
+      "sha256": "4df5d8fd5f1682d12f2e806fc3b72d23cb3e8d17468deffda316fffa0aa8fe8d",
+      "bytes": 536
+    },
+    "src/Hexalith.Tenants/Authorization/TenantsGlobalAdministratorVerifier.cs": {
+      "sha256": "18e5d4d16766730c49afcd0e56f5ee68c4ba05b8560fc0f0803245b69a08ed7e",
+      "bytes": 2470
+    },
+    "src/Hexalith.Tenants/Program.cs": {
+      "sha256": "83a9a034649a5e12d5b88e1766fc18641e2742c40c9babde2cc6f7dbdbe42076",
+      "bytes": 14338
+    },
+    "src/Hexalith.Tenants/Queries/Handlers/GetGlobalAdministratorsQueryHandler.cs": {
+      "sha256": "47bb4224230c2845308464dc48d662faaef0f0406bb9b789232948219784b104",
+      "bytes": 4548
+    },
+    "src/Hexalith.Tenants/Queries/Handlers/GetTenantAuditQueryHandler.cs": {
+      "sha256": "5d04702b86483d8a4aecc5a98b390ce35faea08274a89781a93fc2102dec7bec",
+      "bytes": 5925
+    },
+    "src/Hexalith.Tenants/Queries/Handlers/GetTenantQueryHandler.cs": {
+      "sha256": "4d6f94aace9313139d82b6e47c7e670a612a780d4577e216af9873541b6a5224",
+      "bytes": 3538
+    },
+    "src/Hexalith.Tenants/Queries/Handlers/GetTenantUsersQueryHandler.cs": {
+      "sha256": "b1d68b1cd9bd3751039141418abc3b0c67cd2eee4048995f25948c9eabd95b71",
+      "bytes": 3971
+    },
+    "src/Hexalith.Tenants/Queries/Handlers/GetUserTenantsQueryHandler.cs": {
+      "sha256": "3afdbb2058ef2b4c977a7da85f014425372780e3d1e6d34d29f71535e5b31d44",
+      "bytes": 10001
+    },
+    "src/Hexalith.Tenants/Queries/Handlers/ListTenantsQueryHandler.cs": {
+      "sha256": "a3f8a9c76c45df089b5c224346db1abad69e252104245a0b3546c3ad254aab41",
+      "bytes": 4422
+    },
+    "src/Hexalith.Tenants/Queries/Handlers/TenantQueryHandlerBase.cs": {
+      "sha256": "e336614b2a8c1d2c71c97b641a90da718606041dddc6860557a79c6e4f8c5cb6",
+      "bytes": 29256
+    },
+    "src/Hexalith.Tenants/Queries/Handlers/TenantReadAuthorityQueryHandler.cs": {
+      "sha256": "a1d6a086ef3c3659861a5b9d919511ff30cc12adc349159452dccca5ab7644d2",
+      "bytes": 5885
+    },
+    "tests/Hexalith.Tenants.AppHost.Tests/DaprComponentOverrideTests.cs": {
+      "sha256": "5980016435fa078afbfe9c7e0f4239e2d884b7ccce4e5e9e064f9af45ff71c0a",
+      "bytes": 3479
+    },
+    "tests/Hexalith.Tenants.AppHost.Tests/SourceAuthorityBackpressureTests.cs": {
+      "sha256": "cc40ecc9b5c86a766bf7bac5336987430736bebded15d32b6fa7b0070a62aae2",
+      "bytes": 1959
+    },
+    "tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs": {
+      "sha256": "f1f2d27fde132c146144e0caa5026c4998d06dedd96db408196abff3234bd10e",
+      "bytes": 47721
+    },
+    "tests/Hexalith.Tenants.IntegrationTests/AuditStreamPersistenceTests.cs": {
+      "sha256": "144686271f2df3c804c05814d1c4bdc9e9e2079c3859fa7e22df0ff4c2c4cffd",
+      "bytes": 32808
+    },
+    "tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsRouteTests.cs": {
+      "sha256": "bb1bfcd4aed7520a37095a907b471b2cf2d2fd8ecb7ffa37d221448b3a0b46aa",
+      "bytes": 19753
+    },
+    "tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsUiRouteTests.cs": {
+      "sha256": "466bd85e3f17e28e64e0f772d72532c28b8dfe816e5d703681b168c063a4d124",
+      "bytes": 18233
+    },
+    "tests/Hexalith.Tenants.IntegrationTests/CommandApiRuntimeIntegrationTests.NativeAuthority.cs": {
+      "sha256": "eb420bd32db3c2b64516647294b4697e3f72b7b52424c3619d8de9468f2d858c",
+      "bytes": 10642
+    },
+    "tests/Hexalith.Tenants.IntegrationTests/CommandApiRuntimeIntegrationTests.cs": {
+      "sha256": "cced2a1a483f1734bd00ab39a99fe39b92cfdbeabff322fc54b3b6c5e53669ef",
+      "bytes": 164265
+    },
+    "tests/Hexalith.Tenants.IntegrationTests/DomainServiceEndpointsTests.cs": {
+      "sha256": "73dff92bfefc5322b6c106bf6107e0a18aaa87a26f4c0579dfb17e1c8044d260",
+      "bytes": 25894
+    },
+    "tests/Hexalith.Tenants.IntegrationTests/Fixtures/AuthenticatedRouteState.cs": {
+      "sha256": "6533b50fd9747fd44ede0e123dba7b57ac81bb2abcedc7b8e929c020902cee9c",
+      "bytes": 9873
+    },
+    "tests/Hexalith.Tenants.IntegrationTests/Fixtures/GlobalAdministratorTestAuthority.cs": {
+      "sha256": "72bd2b9fbbc281cc3da1b141894bce08198bcdf6ec6d5b2abe9f0b2bf855c748",
+      "bytes": 639
+    },
+    "tests/Hexalith.Tenants.IntegrationTests/Fixtures/MutableGlobalAdministratorSource.cs": {
+      "sha256": "3ac146b2cc29a01bf79861a1bee0feedaf27d43a347e875eb446f371282dbdce",
+      "bytes": 2827
+    },
+    "tests/Hexalith.Tenants.IntegrationTests/Fixtures/TenantsDaprTestFixture.cs": {
+      "sha256": "9d464ce40dafce8ee326054f4edbdee8808984b7d9fdc9f81735b1d7307d6ca3",
+      "bytes": 10552
+    },
+    "tests/Hexalith.Tenants.IntegrationTests/OwnerSourceCaptureHandler.cs": {
+      "sha256": "f85c08f238d4a6d226c0c3224a68ceae7eb01526f07d1a202b0b7a487b1dee5f",
+      "bytes": 2936
+    },
+    "tests/Hexalith.Tenants.IntegrationTests/TenantOwnerSourceGatewayTests.cs": {
+      "sha256": "5a0e3977e56d8ef9814c9f1df0d93c7b89ffeb4ec3214a32e441faa102349f08",
+      "bytes": 9235
+    },
+    "tests/Hexalith.Tenants.IntegrationTests/TenantsApiGeneratedControllerTests.cs": {
+      "sha256": "0ac1e37652dc002f67cf8c4cb7af893ed5e305fc90f97524067d8c3039bcc00e",
+      "bytes": 99728
+    },
+    "tests/Hexalith.Tenants.Server.Tests/Authorization/TenantsGlobalAdministratorAuthorityTests.cs": {
+      "sha256": "06fab8dd6e660fb6053f6580e6362039bd44d5624dac12b8fca4c94ac5f81f11",
+      "bytes": 6084
+    },
+    "tests/Hexalith.Tenants.Server.Tests/Authorization/TenantsGlobalAdministratorVerifierTests.cs": {
+      "sha256": "fb630bd83da4bed562919a8b053c3d004baa62ab90587ba03fa4a52b505c9e24",
+      "bytes": 3818
+    },
+    "tests/Hexalith.Tenants.Server.Tests/Configuration/EventPublicationConfigurationTests.cs": {
+      "sha256": "3853ab8162af1a2671aff04b80bc5d86adca280eed977f01ba6c29cb04adb45c",
+      "bytes": 50828
+    },
+    "tests/Hexalith.Tenants.Server.Tests/Queries/GetGlobalAdministratorsQueryHandlerTests.cs": {
+      "sha256": "af7c17280a7955ca8441736a04e8fc2bbefb71705fd1b86e59a843c62abf2e7c",
+      "bytes": 7357
+    },
+    "tests/Hexalith.Tenants.Server.Tests/Queries/TenantQueryHandlerGlobalAdminClaimTests.NativeAuthority.cs": {
+      "sha256": "5b723c53d2e8959eff1383e6e16b38f4b2288d271f9272c6e659963e92697723",
+      "bytes": 3262
+    },
+    "tests/Hexalith.Tenants.Server.Tests/Queries/TenantQueryHandlerGlobalAdminClaimTests.cs": {
+      "sha256": "b6e5a6990590bd08b288e0e3694477ba160f22f85f1b72bcd1d39221530a60c4",
+      "bytes": 19001
+    },
+    "tests/Hexalith.Tenants.Server.Tests/Support/GlobalAdministratorSourceFixture.cs": {
+      "sha256": "32c82d970b049d72a93d5719db0d8c455a058221505a49e3e69d8bce3b4086c1",
+      "bytes": 2666
+    },
+    "tests/Hexalith.Tenants.Server.Tests/Support/SeededGlobalAdministratorAuthority.cs": {
+      "sha256": "90b18bbca4369369f97e81a61464a5a045b65823213b65b69d6ea10c3ce83ca3",
+      "bytes": 930
+    },
+    "tests/Hexalith.Tenants.Server.Tests/Support/TenantQueryTestHarness.cs": {
+      "sha256": "3c1b561723d73958d7c3566a5adc850b0c1fd8eb8077fa6bc0f4f73c558d4cb0",
+      "bytes": 4464
+    },
+    "tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.Deadlines.cs": {
+      "sha256": "4966702b73a68a35abf2ec96d8dda4d92a3d87cf261a167a3a48d7a50a851973",
+      "bytes": 10246
+    },
+    "tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs": {
+      "sha256": "5239f7b5b589e99925bade937177b32ec803935e86bd06edb7e45c40cb34fcf1",
+      "bytes": 501227
+    }
+  },
+  "testedArtifacts": {
+    "tests/Hexalith.Tenants.Server.Tests/bin/Debug/net10.0/Hexalith.Tenants.Server.Tests.dll": {
+      "sha256": "120dd783f49305d5f113a7bd03a67cee21309932da3727ffceaf30b673141b46",
+      "bytes": 1368576
+    },
+    "tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll": {
+      "sha256": "d540bb261c2a46c0b46236db21e3d0187ceef53695de0ba4b685385b68dfc179",
+      "bytes": 6781440
+    },
+    "tests/Hexalith.Tenants.IntegrationTests/bin/Release/net10.0/Hexalith.Tenants.IntegrationTests.dll": {
+      "sha256": "89d8eefa29a1c5a77b09175edb62d20fd8530813f70c033944d35cf14b2f31c5",
+      "bytes": 875008
+    },
+    "tests/Hexalith.Tenants.AppHost.Tests/bin/Release/net10.0/Hexalith.Tenants.AppHost.Tests.dll": {
+      "sha256": "938cf0d58165e66f62bdd95e68b533d2885542c28c5b65c499ea1c4707d37d21",
+      "bytes": 77312
+    },
+    "tests/Hexalith.Tenants.IntegrationTests/bin/Release/net10.0/Hexalith.Tenants.AppHost.dll": {
+      "sha256": "fa931ac99489185ed5f71ca7351e8ffa942a7f89b6c370ace9114af8976fd261",
+      "bytes": 56320
+    },
+    "src/Hexalith.Tenants/bin/Release/net10.0/Hexalith.Tenants.dll": {
+      "sha256": "f1bc0c9e9c41317746b43cff49b9f9804994b813ed4d9254ac2ccbab8541f81b",
+      "bytes": 195072
+    },
+    "src/Hexalith.Tenants.UI/bin/Release/net10.0/Hexalith.Tenants.UI.dll": {
+      "sha256": "2182e9324ebd8cdda5195c4b7343ad82615c9d8cff6c844602c41f0f0ffb9fc8",
+      "bytes": 2677248
+    },
+    "src/Hexalith.Tenants.AppHost/bin/Release/net10.0/Hexalith.Tenants.AppHost.dll": {
+      "sha256": "fa931ac99489185ed5f71ca7351e8ffa942a7f89b6c370ace9114af8976fd261",
+      "bytes": 56320
+    }
+  }
+}

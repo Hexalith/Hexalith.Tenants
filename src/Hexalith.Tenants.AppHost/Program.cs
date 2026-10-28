@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+
 using CommunityToolkit.Aspire.Hosting.Dapr;
 
 using Aspire.Hosting.ApplicationModel;
@@ -19,8 +21,14 @@ string tenantsUiAccessControlConfigPath = ResolveDaprConfigPath(builder.AppHostD
 string tenantsApiAccessControlConfigPath = ResolveDaprConfigPath(builder.AppHostDirectory, "accesscontrol.tenants-api.yaml");
 string adminServerAccessControlConfigPath = ResolveDaprConfigPath(builder.AppHostDirectory, "accesscontrol.eventstore-admin.yaml");
 string resiliencyConfigPath = ResolveDaprConfigPath(builder.AppHostDirectory, "resiliency.yaml");
-string stateStoreComponentPath = ResolveDaprConfigPath(builder.AppHostDirectory, "statestore.yaml");
-string pubSubComponentPath = ResolveDaprConfigPath(builder.AppHostDirectory, "pubsub.yaml");
+string? configuredStateComponent = builder.Configuration["Dapr:StateStoreComponentPath"];
+string? configuredPubSubComponent = builder.Configuration["Dapr:PubSubComponentPath"];
+if (string.IsNullOrWhiteSpace(configuredStateComponent) != string.IsNullOrWhiteSpace(configuredPubSubComponent))
+{
+    throw new InvalidOperationException("Dapr state-store and pub/sub component path overrides must be supplied together.");
+}
+string stateStoreComponentPath = ResolveDaprComponentPath(builder.AppHostDirectory, "statestore.yaml", configuredStateComponent);
+string pubSubComponentPath = ResolveDaprComponentPath(builder.AppHostDirectory, "pubsub.yaml", configuredPubSubComponent);
 
 // Local runs own an isolated mTLS placement/scheduler plane. The published test harness appends
 // standard loopback prerequisites even when the fixture selects empty endpoints. Accept only those
@@ -58,6 +66,11 @@ HexalithEventStorePlatformProjects eventStorePlatform = builder.AddHexalithEvent
 IResourceBuilder<ProjectResource> eventStore = eventStorePlatform.EventStore;
 IResourceBuilder<ProjectResource> adminServer = eventStorePlatform.AdminServer;
 IResourceBuilder<ProjectResource> adminUI = eventStorePlatform.AdminUI;
+
+// Native administrator verification fans out during a populated page. Queue bounded bursts
+// under the existing permit ceilings; an explicit operator value retains precedence.
+_ = eventStore.WithEnvironment("EventStore__RateLimiting__QueueLimit",
+    builder.Configuration["EventStore:RateLimiting:QueueLimit"] ?? "64");
 
 // Register the Tenants domain service's two domains with the EventStore command gateway so it routes
 // tenants/global-administrators commands to the "tenants" app, and publish global-administrators events on the
@@ -111,6 +124,25 @@ IResourceBuilder<ProjectResource> tenants = builder.AddHexalithTenantsServer(
     .WithEnvironment("Tenants__BootstrapGlobalAdminUserId", "11111111-1111-1111-1111-111111111111")
     .WithGeneratedEventStoreAppChannelToken();
 
+// Source-read enrollment is independent of human claims. The private scope key stays only in Tenants;
+// EventStore receives its public key and the two existing owner domains. The transport admits only the
+// fixed system/global-administrators/global-administrators source for the additional domain.
+if (builder.ExecutionContext.IsRunMode)
+{
+    using RSA sourceKey = RSA.Create(2048);
+    string privateKey = Convert.ToBase64String(sourceKey.ExportPkcs8PrivateKey());
+    var sourcePrivateKey = builder.AddParameter("tenants-source-private-key",
+        () => builder.Configuration["Parameters:tenants-source-private-key"] ?? privateKey, secret: true);
+    // Derive the verifier from the same effective parameter supplied to Tenants.
+    sourceKey.ImportPkcs8PrivateKey(Convert.FromBase64String((await sourcePrivateKey.Resource.GetValueAsync(CancellationToken.None).ConfigureAwait(false))!), out _);
+    string publicKey = Convert.ToBase64String(sourceKey.ExportSubjectPublicKeyInfo());
+    _ = tenants.WithEnvironment("Authentication__BoundStreamRead__PrivateKey", sourcePrivateKey)
+        .WithEnvironment("Authentication__WorkloadIssuer__Workload", "tenants");
+    _ = eventStore.WithEnvironment("Authentication__BoundStreamRead__PublicKeys__tenants", publicKey)
+        .WithEnvironment("Authentication__BoundStreamRead__AllowedDomains__tenants", "tenants,global-administrators")
+        .WithEnvironment("Authentication__DaprInternal__AllowedCallers__0", "tenants");
+}
+
 // Wire Admin.UI to Admin.Server + EventStore SignalR (domain-agnostic composition kept in the AppHost).
 EndpointReference adminServerHttps = adminServer.GetEndpoint("https");
 EndpointReference eventStoreHttps = eventStore.GetEndpoint("https");
@@ -144,8 +176,10 @@ IResourceBuilder<ProjectResource> tenantsApi = builder.AddProject<HexalithTenant
 // End-to-end ingestion/search is gated on the Memories handoff (memories-search-index-handoff-2026-06-21.md).
 IResourceBuilder<ProjectResource>? memoriesService = null;
 if (!string.Equals(builder.Configuration["EnableMemories"], "false", StringComparison.OrdinalIgnoreCase)) {
-    string memoriesSecretStorePath = ResolveDaprConfigPath(builder.AppHostDirectory, "secretstore.memories.yaml");
-    string memoriesLlmConfigPath = ResolveDaprConfigPath(builder.AppHostDirectory, "llm.memories.yaml");
+    string memoriesSecretStorePath = ResolveDaprComponentPath(builder.AppHostDirectory, "secretstore.memories.yaml",
+        Path.Combine(Path.GetDirectoryName(stateStoreComponentPath)!, "secretstore.memories.yaml"));
+    string memoriesLlmConfigPath = ResolveDaprComponentPath(builder.AppHostDirectory, "llm.memories.yaml",
+        Path.Combine(Path.GetDirectoryName(stateStoreComponentPath)!, "llm.memories.yaml"));
 
     // Hexalith.Memories.Aspire 2.25.0 and current source builds require the consumer-owned secret-store resource.
     IResourceBuilder<IDaprComponentResource> memoriesSecretStore = builder.AddDaprComponent(
@@ -224,6 +258,13 @@ if (security is not null) {
         persist: persistWorkloadSecret);
     _ = security.Keycloak.WithEnvironment("HEXALITH_EVENTSTORE_WORKLOAD_CLIENT_SECRET", workloadClientSecret);
     _ = eventStore.WithEventStoreWorkloadClientCredentials("eventstore", workloadClientSecret);
+    var tenantsWorkloadSecret = builder.AddParameter("tenants-workload-client-secret", new GenerateParameterDefault
+    {
+        MinLength = 32, Lower = true, Upper = true, Numeric = true, Special = false,
+    }, secret: true, persist: persistWorkloadSecret);
+    _ = security.Keycloak.WithEnvironment("HEXALITH_TENANTS_WORKLOAD_CLIENT_SECRET", tenantsWorkloadSecret);
+    _ = tenants.WithEventStoreWorkloadClientCredentials("tenants", tenantsWorkloadSecret);
+
 
     _ = eventStore.WithJwtBearerSecurity(security);
 
@@ -306,6 +347,13 @@ finally
         _ = await Hexalith.Builds.Tooling.Runtime.CompositionWorkspace.TryDeleteAsync(owned.CertificateDirectory, CancellationToken.None).ConfigureAwait(false);
         _ = await Hexalith.Builds.Tooling.Runtime.CompositionWorkspace.TryDeleteAsync(owned.RunDirectory, CancellationToken.None).ConfigureAwait(false);
     }
+}
+
+static string ResolveDaprComponentPath(string appHostDirectory, string fileName, string? configured)
+{
+    if (string.IsNullOrWhiteSpace(configured)) return ResolveDaprConfigPath(appHostDirectory, fileName);
+    string path = Path.GetFullPath(configured, appHostDirectory);
+    return File.Exists(path) ? path : throw new FileNotFoundException("Configured DAPR component file was not found.", path);
 }
 
 static string ResolveDaprConfigPath(string appHostDirectory, string fileName) {

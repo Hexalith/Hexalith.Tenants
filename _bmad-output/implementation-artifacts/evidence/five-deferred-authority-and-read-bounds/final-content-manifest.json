@@ -1,0 +1,472 @@
+{
+  "capturedUtc": "2026-10-28T22:50:14.792269+00:00",
+  "baseline": "8127cb3b47dcfcf4086d07e4af0730c2f4920f9e",
+  "phase": "post-review local acceptance; actual CI pending",
+  "frozenIntentSha256": "6d8aa8fdd9b7d885787043252bde110fe1d5607f17408a7963f5886c016b1225",
+  "productionInputsUnchangedSinceAcceptedGenericTier": true,
+  "postTestChanges": "Whitespace only in five new test files; post-test-formatting-audit.json binds both versions. Separate published rebuilds passed afterward.",
+  "testedAssembliesPhase": "post-review-tested-assemblies.json records accepted generic graph before the later explicit published rebuild; no identity equivalence between graphs is claimed.",
+  "qualificationInputs": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "bytes": 14310,
+      "sha256": "b52255c3c012cbf360aeed1c80d1065d1ca9a10827c5e7825db37ffb654197c0",
+      "gitBlob": "e97fdcb4b168219432534f0b602ff840a9bb017b"
+    },
+    {
+      "path": "deploy/dapr/README.md",
+      "bytes": 16319,
+      "sha256": "5f921cc0a76c84049bde34d5f008c682dd4518bd0d2e17624d3c74ecc775719d",
+      "gitBlob": "cdb7a65205746cb33a7fdf2c2980925c1ec8544a"
+    },
+    {
+      "path": "deploy/dapr/accesscontrol.eventstore.yaml",
+      "bytes": 1759,
+      "sha256": "d4182ddbf7dd8e47292ebd5f7c5221b3dd29da8974cc7fe8b98f076e7eded8c6",
+      "gitBlob": "54bdd9a2c50089ce4aff36e1061e9ade10b47d50"
+    },
+    {
+      "path": "deploy/source-authority-settings.example.json",
+      "bytes": 823,
+      "sha256": "3c0f0e833b36f8d0cb5265f02a256cce1d5102821ebe7dc25c77474ba76bedf6",
+      "gitBlob": "3cc0faa18337f3112177eacdf51e2858a9f64632"
+    },
+    {
+      "path": "docs/production-auth-readiness.md",
+      "bytes": 33338,
+      "sha256": "7701b3e2311ec548da4ca47f797ab9c02e51bdf45b9997c8343fd04816bc14d6",
+      "gitBlob": "0935eda14e49217f0f93c0036eb5bbbf8017eeff"
+    },
+    {
+      "path": "src/Hexalith.Tenants.AppHost/KeycloakRealms/hexalith-realm.json",
+      "bytes": 20487,
+      "sha256": "a21a4dc2774e52444cebd25baced357871a733e50ae8236c3f065be5e38e3118",
+      "gitBlob": "5ca3f07a3b37bd02481b6104ffe221a15dd46424"
+    },
+    {
+      "path": "src/Hexalith.Tenants.AppHost/Program.cs",
+      "bytes": 23816,
+      "sha256": "0e36a08802f3f7ec12d209a5cb32c93afb65ea9f5dc3ee26fed677906351b476",
+      "gitBlob": "ad4db0ce7956c165c35ce419c38449229769c84d"
+    },
+    {
+      "path": "src/Hexalith.Tenants.UI/Extensions/TenantsUiServiceCollectionExtensions.cs",
+      "bytes": 17303,
+      "sha256": "5bde006eeaad96911817b59651c460e0345077880c8809d0981a161605c6a13a",
+      "gitBlob": "56db1f2e0aaf1ec5e2bb0ba5b2484a39757ac37b"
+    },
+    {
+      "path": "src/Hexalith.Tenants.UI/Services/Gateways/CallerBoundTenantsRestQueryClient.cs",
+      "bytes": 5575,
+      "sha256": "8a13e1f3a1466b50af1fa1abca11fed9101e6f029166a4069717ad9eeda7bf3e",
+      "gitBlob": "0e81243c2cb9f2e00bab26b0ac96612c0db7269d"
+    },
+    {
+      "path": "src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs",
+      "bytes": 199649,
+      "sha256": "2b85c761adb36cd061fc8383c9a516460e7a6da79d53c608d9f3ee1d3bba5c55",
+      "gitBlob": "f9fbc68df82567ed41a6ae4b0255aceb545f570e"
+    },
+    {
+      "path": "src/Hexalith.Tenants.UI/Services/Gateways/TenantSearchOptions.cs",
+      "bytes": 521,
+      "sha256": "c51872f4c66abdf8c45a1573c95276a45b5cd3156847e3d7750f990b49f99427",
+      "gitBlob": "c93dbfec7094f1c480eebd7ffed8bc491f49fadf"
+    },
+    {
+      "path": "src/Hexalith.Tenants.UI/Services/Gateways/TenantWorkspaceReadDiagnostics.cs",
+      "bytes": 3661,
+      "sha256": "8b7df2c93732d91cd9c0a506e632ade68e8b45496cd16bd52f1fd7a6000e4625",
+      "gitBlob": "50ee446ccddbb5fe82faa1f33ef1e786a922a6b2"
+    },
+    {
+      "path": "src/Hexalith.Tenants.UI/appsettings.json",
+      "bytes": 456,
+      "sha256": "795b27efe2db1ac8e85d545193bda1f4c01672d4aa0f9232d19d22751b0558bc",
+      "gitBlob": "3560d1cc4495a0c5ae4c0df67f9bc0ae1ba23029"
+    },
+    {
+      "path": "src/Hexalith.Tenants/Authorization/ITenantsGlobalAdministratorAuthority.cs",
+      "bytes": 680,
+      "sha256": "72df86e623b69e639c5ad54842970e0c536bdbcb8eab724480e8223fe7facbeb",
+      "gitBlob": "5ece88c61041527e2e64094356a9baa5c0b3112e"
+    },
+    {
+      "path": "src/Hexalith.Tenants/Authorization/TenantOwnerSourceGateway.cs",
+      "bytes": 4995,
+      "sha256": "f796d24a82019e1605648634af25d6ebc46aba11082567099cf1b86425b60575",
+      "gitBlob": "b13234517795bc24c99cc5d38088d78c7434388c"
+    },
+    {
+      "path": "src/Hexalith.Tenants/Authorization/TenantsGlobalAdministratorAuthority.cs",
+      "bytes": 6662,
+      "sha256": "5787a6b53fbd512c98df990b2e8e79c398c1c0e2776cf84d741639e497adeecd",
+      "gitBlob": "2b0e0eac12976e47e47ca379b0ff6116953b00b8"
+    },
+    {
+      "path": "src/Hexalith.Tenants/Authorization/TenantsGlobalAdministratorAuthorityUnavailableException.cs",
+      "bytes": 536,
+      "sha256": "4df5d8fd5f1682d12f2e806fc3b72d23cb3e8d17468deffda316fffa0aa8fe8d",
+      "gitBlob": "532e00a155e45f1a1da68340bfb8742720d37650"
+    },
+    {
+      "path": "src/Hexalith.Tenants/Authorization/TenantsGlobalAdministratorVerifier.cs",
+      "bytes": 2470,
+      "sha256": "18e5d4d16766730c49afcd0e56f5ee68c4ba05b8560fc0f0803245b69a08ed7e",
+      "gitBlob": "fd0c6afd6754211bb50fe48c295fed876128e835"
+    },
+    {
+      "path": "src/Hexalith.Tenants/Program.cs",
+      "bytes": 14338,
+      "sha256": "83a9a034649a5e12d5b88e1766fc18641e2742c40c9babde2cc6f7dbdbe42076",
+      "gitBlob": "e3a0176da79da3b1d42481d8a0746105a6a66a42"
+    },
+    {
+      "path": "src/Hexalith.Tenants/Queries/Handlers/GetGlobalAdministratorsQueryHandler.cs",
+      "bytes": 4548,
+      "sha256": "47bb4224230c2845308464dc48d662faaef0f0406bb9b789232948219784b104",
+      "gitBlob": "a9a96bd7bb9c3c1f6898863058962894e9d1f016"
+    },
+    {
+      "path": "src/Hexalith.Tenants/Queries/Handlers/GetTenantAuditQueryHandler.cs",
+      "bytes": 5925,
+      "sha256": "5d04702b86483d8a4aecc5a98b390ce35faea08274a89781a93fc2102dec7bec",
+      "gitBlob": "119c67c587ce4ac5d2a2ef9cd92e97fa6776e85f"
+    },
+    {
+      "path": "src/Hexalith.Tenants/Queries/Handlers/GetTenantQueryHandler.cs",
+      "bytes": 3538,
+      "sha256": "4d6f94aace9313139d82b6e47c7e670a612a780d4577e216af9873541b6a5224",
+      "gitBlob": "051244f9a349a1c73259782382b3b2f597d1a2ee"
+    },
+    {
+      "path": "src/Hexalith.Tenants/Queries/Handlers/GetTenantUsersQueryHandler.cs",
+      "bytes": 3971,
+      "sha256": "b1d68b1cd9bd3751039141418abc3b0c67cd2eee4048995f25948c9eabd95b71",
+      "gitBlob": "4eba55f6ebce530e8162c04abf676b0010a0bf75"
+    },
+    {
+      "path": "src/Hexalith.Tenants/Queries/Handlers/GetUserTenantsQueryHandler.cs",
+      "bytes": 10001,
+      "sha256": "3afdbb2058ef2b4c977a7da85f014425372780e3d1e6d34d29f71535e5b31d44",
+      "gitBlob": "a3142387be7a16257c266d1b98ac092a292a3387"
+    },
+    {
+      "path": "src/Hexalith.Tenants/Queries/Handlers/ListTenantsQueryHandler.cs",
+      "bytes": 4422,
+      "sha256": "a3f8a9c76c45df089b5c224346db1abad69e252104245a0b3546c3ad254aab41",
+      "gitBlob": "8404946586510d2cffd52fe7135254fa727b0aab"
+    },
+    {
+      "path": "src/Hexalith.Tenants/Queries/Handlers/TenantQueryHandlerBase.cs",
+      "bytes": 29256,
+      "sha256": "e336614b2a8c1d2c71c97b641a90da718606041dddc6860557a79c6e4f8c5cb6",
+      "gitBlob": "6ba2506a5301ad8d8465cf2ae5dec21505a0870c"
+    },
+    {
+      "path": "src/Hexalith.Tenants/Queries/Handlers/TenantReadAuthorityQueryHandler.cs",
+      "bytes": 5885,
+      "sha256": "a1d6a086ef3c3659861a5b9d919511ff30cc12adc349159452dccca5ab7644d2",
+      "gitBlob": "8e4e3391a057a643d87e7b7031dd4d67e69d7452"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.AppHost.Tests/DaprComponentOverrideTests.cs",
+      "bytes": 3479,
+      "sha256": "5980016435fa078afbfe9c7e0f4239e2d884b7ccce4e5e9e064f9af45ff71c0a",
+      "gitBlob": "f431052569e53d21fa89435a41d54517e8dacf0c"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.AppHost.Tests/SourceAuthorityBackpressureTests.cs",
+      "bytes": 1959,
+      "sha256": "cc40ecc9b5c86a766bf7bac5336987430736bebded15d32b6fa7b0070a62aae2",
+      "gitBlob": "b32f36dfc70364c381952113109d2b342bb87e56"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.AppHost.Tests/SourceAuthorityEnrollmentTests.cs",
+      "bytes": 3595,
+      "sha256": "93e8ab49f8af8ee78eeb59746449d6b1b1e2d0bb644bd49e13379957501888b8",
+      "gitBlob": "75c548f8de3a707e049cab99bd24d989f466c3c5"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs",
+      "bytes": 47721,
+      "sha256": "f1f2d27fde132c146144e0caa5026c4998d06dedd96db408196abff3234bd10e",
+      "gitBlob": "3cc63728a427a8f4c43e301e7b69bd05f8a4ff31"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.IntegrationTests/AuditStreamPersistenceTests.cs",
+      "bytes": 32808,
+      "sha256": "144686271f2df3c804c05814d1c4bdc9e9e2079c3859fa7e22df0ff4c2c4cffd",
+      "gitBlob": "2d80575ccfa5e6a37c78cd09f2e3acf0ef0a93ea"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsRouteTests.cs",
+      "bytes": 27636,
+      "sha256": "fc53751126519a39e5110ffdeb47cfe10f97ed4295625aa71bb0fdd9dde5b9c8",
+      "gitBlob": "a36378c6c09784656ebf55512a94865befa49d48"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsUiRouteTests.cs",
+      "bytes": 18233,
+      "sha256": "466bd85e3f17e28e64e0f772d72532c28b8dfe816e5d703681b168c063a4d124",
+      "gitBlob": "acf292133d0649a702c601485a1252d0eec48523"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.IntegrationTests/CommandApiRuntimeIntegrationTests.NativeAuthority.cs",
+      "bytes": 11775,
+      "sha256": "dd7bd298968e96cd8544cc72f381487c0e443693773d83da9f2fe96f17db2114",
+      "gitBlob": "6ce9e22fc8913b522cb990a2653452b9887cea38"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.IntegrationTests/CommandApiRuntimeIntegrationTests.cs",
+      "bytes": 164265,
+      "sha256": "cced2a1a483f1734bd00ab39a99fe39b92cfdbeabff322fc54b3b6c5e53669ef",
+      "gitBlob": "b2074cbfaff4a4f33b781a275f5771ea5c38a1e6"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.IntegrationTests/DomainServiceEndpointsTests.cs",
+      "bytes": 25894,
+      "sha256": "73dff92bfefc5322b6c106bf6107e0a18aaa87a26f4c0579dfb17e1c8044d260",
+      "gitBlob": "5dc3dce86731346159b15b65aed2025f911ef032"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.IntegrationTests/Fixtures/AspireTopologyFixture.cs",
+      "bytes": 21421,
+      "sha256": "8ce02d426a9b58ffaf4c4ac3c5a5634d816b287d93f795d2742c09dd25d3a456",
+      "gitBlob": "f9ffb0d6bda73788ae1eddc3f0f9d62bdc08e2c5"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.IntegrationTests/Fixtures/AuthenticatedRouteState.cs",
+      "bytes": 9873,
+      "sha256": "6533b50fd9747fd44ede0e123dba7b57ac81bb2abcedc7b8e929c020902cee9c",
+      "gitBlob": "718cd54e1f822ff2454af37fcae289e8ae37724f"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.IntegrationTests/Fixtures/GlobalAdministratorTestAuthority.cs",
+      "bytes": 639,
+      "sha256": "72bd2b9fbbc281cc3da1b141894bce08198bcdf6ec6d5b2abe9f0b2bf855c748",
+      "gitBlob": "165f2a8f9b6722e7703c2c45146b4a6d7d06469c"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.IntegrationTests/Fixtures/MutableGlobalAdministratorSource.cs",
+      "bytes": 2828,
+      "sha256": "d4a6a136c7194ebfc2ff18a61d869536a2ecf466a2c01ae605b2d5007d6455ca",
+      "gitBlob": "74384e33baeecaef64cd8a399f2120c89cd702ca"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.IntegrationTests/Fixtures/TenantsDaprTestFixture.cs",
+      "bytes": 10552,
+      "sha256": "9d464ce40dafce8ee326054f4edbdee8808984b7d9fdc9f81735b1d7307d6ca3",
+      "gitBlob": "db8e17186cda0506b5e86366205991acbeb5a158"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.IntegrationTests/OwnerSourceCaptureHandler.cs",
+      "bytes": 2936,
+      "sha256": "f85c08f238d4a6d226c0c3224a68ceae7eb01526f07d1a202b0b7a487b1dee5f",
+      "gitBlob": "cf26205e1e9cb5d1c8865d0c046b33ebb4e92308"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.IntegrationTests/TenantOwnerSourceGatewayTests.cs",
+      "bytes": 9235,
+      "sha256": "5a0e3977e56d8ef9814c9f1df0d93c7b89ffeb4ec3214a32e441faa102349f08",
+      "gitBlob": "343f25b1fd1467b057505d7ba27f5be81fa3b659"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.IntegrationTests/TenantsApiGeneratedControllerTests.cs",
+      "bytes": 99728,
+      "sha256": "0ac1e37652dc002f67cf8c4cb7af893ed5e305fc90f97524067d8c3039bcc00e",
+      "gitBlob": "46c4407726ac3345a5e0397d02b88ae737d1e650"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.Server.Tests/Authorization/TenantsGlobalAdministratorAuthorityTests.cs",
+      "bytes": 7719,
+      "sha256": "baf0f65ae305f01f383bc3f675bdb28caed0d0084f5563985b9ed5d02e9453c7",
+      "gitBlob": "a2910fe0e761d903d623784b167a8b2c19b47771"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.Server.Tests/Authorization/TenantsGlobalAdministratorVerifierTests.cs",
+      "bytes": 3818,
+      "sha256": "fb630bd83da4bed562919a8b053c3d004baa62ab90587ba03fa4a52b505c9e24",
+      "gitBlob": "75716cf9fc4850e72ecd97772a294e15a5f1407c"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.Server.Tests/Configuration/EventPublicationConfigurationTests.cs",
+      "bytes": 50828,
+      "sha256": "3853ab8162af1a2671aff04b80bc5d86adca280eed977f01ba6c29cb04adb45c",
+      "gitBlob": "8270218d3e559c0913c8f93bf3013187d1d3d665"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.Server.Tests/Queries/GetGlobalAdministratorsQueryHandlerTests.cs",
+      "bytes": 7357,
+      "sha256": "af7c17280a7955ca8441736a04e8fc2bbefb71705fd1b86e59a843c62abf2e7c",
+      "gitBlob": "66834f64ed0357501b7e6e4a232fc9bc0434945e"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.Server.Tests/Queries/TenantQueryHandlerGlobalAdminClaimTests.NativeAuthority.cs",
+      "bytes": 3339,
+      "sha256": "b0f535749e856430ffee55cb705b2d2fd533c6f3ec3e92795fcd4ba19c5da5b8",
+      "gitBlob": "6a609d14dacdaf217f4f25705516386b45136f5b"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.Server.Tests/Queries/TenantQueryHandlerGlobalAdminClaimTests.cs",
+      "bytes": 19001,
+      "sha256": "b6e5a6990590bd08b288e0e3694477ba160f22f85f1b72bcd1d39221530a60c4",
+      "gitBlob": "2ebf5c6e5b58e639e3647d906e63464bd0a5db25"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.Server.Tests/Support/GlobalAdministratorSourceFixture.cs",
+      "bytes": 2666,
+      "sha256": "32c82d970b049d72a93d5719db0d8c455a058221505a49e3e69d8bce3b4086c1",
+      "gitBlob": "92fed12a4e607826d08e65f10a51b579a37c43ed"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.Server.Tests/Support/SeededGlobalAdministratorAuthority.cs",
+      "bytes": 930,
+      "sha256": "90b18bbca4369369f97e81a61464a5a045b65823213b65b69d6ea10c3ce83ca3",
+      "gitBlob": "5ed57b28dafe77dfded079e2b42088f4b3f25774"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.Server.Tests/Support/TenantQueryTestHarness.cs",
+      "bytes": 4464,
+      "sha256": "3c1b561723d73958d7c3566a5adc850b0c1fd8eb8077fa6bc0f4f73c558d4cb0",
+      "gitBlob": "9759845d8562e3c6dc2dad49759af8438b4536c8"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.Deadlines.cs",
+      "bytes": 16937,
+      "sha256": "9067fee92f22d7895fbdf960a9256ef03644fb9edd8480ec88010f8a74bac42d",
+      "gitBlob": "3939f64154471e2dbb437aa120d8cd71d178e654"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs",
+      "bytes": 504885,
+      "sha256": "5ea049a3d36a4d3ad11373ca28823837ac425d36caef66c3806cd37360edd23b",
+      "gitBlob": "60bc677ba07792295747e7a27073c212192525ea"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/TenantsUiCompositionTests.cs",
+      "bytes": 135799,
+      "sha256": "af41f1053ee084daaa9b2aa6e41bcac6fdd1f791576b3adf0851c1b14c20129e",
+      "gitBlob": "e3b29c6056ef37c574ba2fc99b04dec4326137d7"
+    }
+  ],
+  "shareableFiles": {
+    "assembly-manifest.json": {
+      "bytes": 1704,
+      "sha256": "768767f73f73be5e90e039bc8c25dd1c1d6591288bb6753863a592e45c1196be"
+    },
+    "baseline-aspire-describe.txt": {
+      "bytes": 6025,
+      "sha256": "42a8861831c29bc63a17772b30a96698ead472baa3a131bc9fbb4028fb890136"
+    },
+    "baseline-aspire-start.txt": {
+      "bytes": 362,
+      "sha256": "51f6cdf7f2b0a665f2d4328f0deb41b07cd1fe39631f6e912aeef09a764f3fbc"
+    },
+    "baseline-aspire-stop.txt": {
+      "bytes": 375,
+      "sha256": "653951ae1d1e2b76c9441c91a1874c8869bf9c2b393ee09e2eb9a5623a13d650"
+    },
+    "bundle-manifest.json": {
+      "bytes": 452,
+      "sha256": "4a2b2d93e2ce1cc3823c6f39effa90966edb7043bd991e05572ae30341ef3fb5"
+    },
+    "command-manifest.json": {
+      "bytes": 9292,
+      "sha256": "c01e07ff4a57ed8e706e7a16f31467401cdb3e213ff422cc0bd1f693c22a27d7"
+    },
+    "generic-final-third-trx-audit.json": {
+      "bytes": 697,
+      "sha256": "dc5f8ebd8790ef24d2dc1b0a0b06bcbc3fc52d1f85b6542c17e10d8ad9e13303"
+    },
+    "generic-final-trx-audit.json": {
+      "bytes": 857,
+      "sha256": "f2dc208af37328b592c2fbc06c9f536cfcf688e44f47315182a3547d25f1aa16"
+    },
+    "generic-first-trx-audit.json": {
+      "bytes": 467,
+      "sha256": "cd54ab7745549be82f7e9ae7f735d3843c0a45dc72e31423a119b2cec902c804"
+    },
+    "generic-fourth-trx-audit.json": {
+      "bytes": 641,
+      "sha256": "88cce22e695ef9a71824df803af399beb03f64c46574e8e0a18a6a5a6a3f117e"
+    },
+    "generic-fresh-second-trx-audit.json": {
+      "bytes": 427,
+      "sha256": "bea25e04758459b041c3d19de6c9f5e8fc06a721aa6830aefac6404a4b65c76a"
+    },
+    "ledger-acceptance-audit.json": {
+      "bytes": 654,
+      "sha256": "0f1a518481a20caa60521ca8238d43a14c6eb8aecf3c64aaf1fa49f69ed338f8"
+    },
+    "local-prerequisites.json": {
+      "bytes": 1105,
+      "sha256": "570413ccc89e40c5865bb5978f62c17a23d75a12cb1fd636e7c9749c9c65ada0"
+    },
+    "owned-resource-cleanup.json": {
+      "bytes": 3556,
+      "sha256": "916d24ff6367c824b7fe7f60b5bac0649742e29bb6de1de21c7ab5c4d3b9c336"
+    },
+    "post-review-final-inputs.json": {
+      "bytes": 11973,
+      "sha256": "6d3a3e2f8de7da8c94b3a1c667321b3c219ee750f2357eb5923dde3115ceabe7"
+    },
+    "post-review-tested-assemblies.json": {
+      "bytes": 1785,
+      "sha256": "e8b30a4cb1552cc57593ea8231783c7c4b24298ed2e4d9460717df94ebd3a25b"
+    },
+    "post-review-validation-manifest.json": {
+      "bytes": 589,
+      "sha256": "628da8083618eaf0cc4ba6cf91bb4bd3d81d70d0794012398cf8ed87f7e22b05"
+    },
+    "post-review-validation-records.tar.gz": {
+      "bytes": 429321,
+      "sha256": "2a083113c35652c3ad2a45762d1a1175b91277c5139890f314115eabb383eb44"
+    },
+    "post-test-formatting-audit.json": {
+      "bytes": 1941,
+      "sha256": "953d8354e5ad527f8d0cbd4a9650f3665295c40fbce0d76710d10d7a866b983b"
+    },
+    "preflight-volume-cleanup-audit.json": {
+      "bytes": 541,
+      "sha256": "2aa79f44e9b1eaa15f79ce2a95f79dcc2e95919e836808bb6a262a2cb16049cb"
+    },
+    "raw-capture-receipts.json": {
+      "bytes": 350,
+      "sha256": "fd73016397d769436274767f85f592b5b9d68e2960b5eb8e26dd25f6bd388051"
+    },
+    "repository-final-state.json": {
+      "bytes": 1491,
+      "sha256": "dd5528af9a4799deef5d570917c13cc677184fe193b65f155442dd1e886a35e4"
+    },
+    "sanitized-artifact-manifest.json": {
+      "bytes": 711,
+      "sha256": "ce58641681c1e5caf21b7165ef8b13b09b482bad4c130fc5eb77dd59b7ad7a42"
+    },
+    "source-revisions.json": {
+      "bytes": 1474,
+      "sha256": "f36ff4e1dd723b354b836ba1eecc2577c12270412ed94103294de782ecf94318"
+    },
+    "tested-inputs-before-fourth-generic.json": {
+      "bytes": 12384,
+      "sha256": "18ea397876f5a4e91da771acfa618ca0b1361e53ce059709836fb0d1cf881e93"
+    },
+    "tested-inputs-final.json": {
+      "bytes": 12384,
+      "sha256": "120294efbc915433da75a12288220108ec9500189a11524289047f4457046f3f"
+    },
+    "validation-records.tar.gz": {
+      "bytes": 3089897,
+      "sha256": "e75a7e526eea62bce82081d404a07314a051af1f8c57c99b3fa650c9d560fa3e"
+    },
+    "verification-audit.json": {
+      "bytes": 1672,
+      "sha256": "88963db911d37eeef3c57c245f6b11be921b364ebe6b27c1c65d40939caadf15"
+    }
+  },
+  "validationIndex": {
+    "path": "_bmad-output/implementation-artifacts/five-deferred-authority-and-read-bounds-validation-evidence.md",
+    "bytes": 16665,
+    "sha256": "b24b2da6b4965eed29c59484f843cde13fa3b4e093aab0ac6394d1805672de8f"
+  }
+}

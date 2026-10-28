@@ -1,0 +1,18 @@
+{
+  "archive": "post-review-validation-records.tar.gz",
+  "bytes": 429321,
+  "sha256": "2a083113c35652c3ad2a45762d1a1175b91277c5139890f314115eabb383eb44",
+  "memberCount": 71,
+  "memberManifestSha256": "15186e0451ad26aa55cc4ad5a80fbcab208944de6e2e4eb6acf47ff8b3e43ca5",
+  "sanitizedOnly": true,
+  "parentCommandCount": 19,
+  "serverPassed": 1624,
+  "uiPassed": 8011,
+  "apphostPassed": 42,
+  "genericPassed": 529,
+  "genericFailed": 0,
+  "genericSkipped": 0,
+  "publishedBuildsPassed": 6,
+  "actualPostPushCi": "pending",
+  "rawCaptures": "/tmp/tenants-authority-final-verification/raw"
+}

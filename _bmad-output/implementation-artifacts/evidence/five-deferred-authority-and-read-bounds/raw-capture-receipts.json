@@ -1,0 +1,9 @@
+{
+  "rawLocalDirectory": "/tmp/tenants-five-deferred-raw-evidence-6675c9ebc6c4",
+  "rawDataIsOutsideRepository": true,
+  "directoryMode": "0700",
+  "fileMode": "0600",
+  "artifactCount": 246,
+  "fullManifestArchiveMember": "full-raw-capture-receipts.json",
+  "fullManifestSha256": "ba219f8d962d2f27ef159e3f0e95eed155699685829beb010594ac941beff936"
+}
