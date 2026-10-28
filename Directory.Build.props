@@ -10,9 +10,9 @@
 
     <PropertyGroup>
         <!-- Source builds follow the centralized EventStore source identity; packaged dependencies
-             retain the published 3.128.3 pin that first contains the routing contracts. Restore does not propagate every edge override. -->
+             retain the published 3.128.4 pin with bounded legacy completion reconciliation. Restore does not propagate every edge override. -->
         <HexalithEventStoreSourceVersion>$(HexalithEventStoreVersion)</HexalithEventStoreSourceVersion>
-        <HexalithEventStoreVersion>3.128.3</HexalithEventStoreVersion>
+        <HexalithEventStoreVersion>3.128.4</HexalithEventStoreVersion>
         <!-- Auto-detect Hexalith.EventStore location:
              1. Tenants is a submodule inside Hexalith.EventStore
              2. EventStore is a references/ submodule inside Tenants (standalone) — prioritized over sibling
