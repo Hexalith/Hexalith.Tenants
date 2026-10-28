@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Text.Json;
 
 using Hexalith.Tenants.UI.State.TenantList;
+using Hexalith.Tenants.UI.Services.SupportSafety;
 
 namespace Hexalith.Tenants.UI.State.TenantAudit;
 
@@ -268,7 +269,9 @@ public static partial class TenantAuditNavigationSafety
         string path = canonical.Split('?', '#')[0];
         return path.Split('/', StringSplitOptions.RemoveEmptyEntries)
             .Any(segment => segment is "." or ".."
-                || TenantAuditSupportSafety.SafeApprovedReference(segment) is null)
+                // Configured recovery segments retain the strict policy; the canonical ULID
+                // exception belongs only to approved audit references, including after decoding.
+                || !TenantAuditSupportSafety.IsSafe(segment, SupportSafeCopyValueKind.ConfigurationKey))
             ? null
             : canonical;
     }

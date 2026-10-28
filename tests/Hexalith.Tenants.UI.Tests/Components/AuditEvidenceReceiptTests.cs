@@ -51,6 +51,73 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
         cut.Find(".audit-evidence-receipt__action").NodeName.ShouldBe("FLUENT-BUTTON");
     }
 
+    [Theory]
+    [InlineData("en", "01JWT000000000000000000000", true)]
+    [InlineData("fr", "01JWT000000000000000000000", true)]
+    [InlineData("en", "01EYJ000000000000000000000", true)]
+    [InlineData("fr", "01EYJ000000000000000000000", true)]
+    [InlineData("en", "01SECRET000000000000000000", false)]
+    [InlineData("fr", "01SECRET000000000000000000", false)]
+    [InlineData("en", "01jwt000000000000000000000", false)]
+    [InlineData("fr", "01jwt000000000000000000000", false)]
+    [InlineData("en", "%30%31JWT000000000000000000000", false)]
+    [InlineData("fr", "%30%31JWT000000000000000000000", false)]
+    [InlineData("en", "01JWT000000000000000000000 ", false)]
+    [InlineData("fr", "01JWT000000000000000000000 ", false)]
+    [InlineData("en", "01JWT000000000000000000000|actor", false)]
+    [InlineData("fr", "01JWT000000000000000000000|actor", false)]
+    public void RealLocalizedReceiptSummaryCopiesOnlyApprovedUndecoratedReferences(
+        string culture, string reference, bool safe)
+    {
+        CultureInfo previous = CultureInfo.CurrentUICulture;
+        try
+        {
+            CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo(culture);
+            Services.AddLocalization();
+            BunitJSModuleInterop module = JSInterop.SetupModule("./js/tenantsClipboard.js");
+            JSRuntimeInvocationHandler write = module.SetupVoid("writeText", _ => true).SetVoidResult();
+            TenantAuditReceipt receipt = TenantAuditReceipt.FromRow(Row()) with { AuditReference = reference };
+            IRenderedComponent<AuditEvidenceReceipt> cut = Render<AuditEvidenceReceipt>(parameters => parameters
+                .Add(component => component.Receipt, receipt));
+            if (!safe)
+            {
+                cut.FindAll("[data-surface-testid='tenants-audit-receipt-copy']").ShouldBeEmpty();
+                cut.FindAll("[data-testid='tenants-audit-receipt-copy-value']").ShouldBeEmpty();
+                write.Invocations.ShouldBeEmpty();
+                return;
+            }
+
+            string expected = culture == "fr"
+                ? "Acteur : actor-user | Cible : target-user | Portée locataire : tenant.alpha"
+                    + " | Résultat : Utilisateur ajouté au locataire | Horodatage : 2026-06-01 10:00:00 UTC"
+                    + " | Marqueur de projection : Actuel | Référence d’audit : " + reference
+                : "Actor: actor-user | Target: target-user | Tenant scope: tenant.alpha"
+                    + " | Outcome: User added to tenant | Timestamp: 2026-06-01 10:00:00 UTC"
+                    + " | Projection marker: Current | Audit reference: " + reference;
+            cut.Find("[data-testid='tenants-audit-receipt-copy-value']").TextContent.ShouldBe(expected);
+            cut.Find("[data-surface-testid='tenants-audit-receipt-copy']").Click();
+            cut.WaitForAssertion(() => write.Invocations.Count.ShouldBe(1));
+            write.Invocations.Single().Arguments[0].ShouldBe(expected);
+        }
+        finally
+        {
+            CultureInfo.CurrentUICulture = previous;
+        }
+    }
+
+    [Theory]
+    [InlineData("01JWT000000000000000000000")]
+    [InlineData("01EYJ000000000000000000000")]
+    public void CanonicalReferenceExceptionCannotHideTemplateTextGluedToTheReference(string reference)
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer(
+            StubTenantsLocalizer.DefaultSummary.Replace("{auditReference}", "x{auditReference}", StringComparison.Ordinal)));
+        IRenderedComponent<AuditEvidenceReceipt> cut = Render<AuditEvidenceReceipt>(parameters => parameters
+            .Add(component => component.Receipt, TenantAuditReceipt.FromRow(Row()) with { AuditReference = reference }));
+        cut.FindAll("[data-surface-testid='tenants-audit-receipt-copy']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-audit-receipt-copy-value']").ShouldBeEmpty();
+    }
+
     [Fact]
     public void Receipt_component_copies_the_seven_field_named_summary()
     {

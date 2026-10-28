@@ -68,7 +68,10 @@ internal static class GlobalAdministratorsProjectionLoader
             projectionVersion ??= page.ProjectionVersion;
             foreach (GlobalAdministratorRow row in page.Rows)
             {
-                _ = rows.TryAdd(row.UserId, row);
+                if (!rows.TryAdd(row.UserId, row))
+                {
+                    return ToIncomplete(page);
+                }
             }
 
             if (!page.HasMore)

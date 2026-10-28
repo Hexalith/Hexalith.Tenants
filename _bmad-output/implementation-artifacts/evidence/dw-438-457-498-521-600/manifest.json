@@ -1,0 +1,337 @@
+{
+  "schema": "hexalith.deferred-work-validation.v1",
+  "selected": [
+    "DW-438",
+    "DW-457",
+    "DW-498",
+    "DW-521",
+    "DW-600"
+  ],
+  "baselineCommit": "983ba9d51027a287db0efa6860058b56dcb8ff44",
+  "owningMainCommits": {
+    "references/Hexalith.EventStore": "be4aba873d09736abb4caacf1fae8ad870f0b3b6",
+    "references/Hexalith.Builds": "505230a24339070aa2dbf5ac927cd430050bb902"
+  },
+  "checks": {
+    "uiPassed": 7925,
+    "serverPassed": 1584,
+    "eventstoreCommandsPassed": 239,
+    "buildsDispositionTestsPassed": 4,
+    "buildsHistoricalControlsPassed": true,
+    "failed": 0,
+    "skipped": 0
+  },
+  "ledger": {
+    "numberedIds": 657,
+    "selected": [
+      "DW-438",
+      "DW-457",
+      "DW-498",
+      "DW-521",
+      "DW-600"
+    ],
+    "changedNumberedRecords": [
+      438,
+      457,
+      498,
+      521,
+      600
+    ],
+    "unchangedUnselectedNumberedRecords": 652,
+    "statusCounts": {
+      "done": 644,
+      "open": 13
+    },
+    "originalSelectedFieldsPreserved": true,
+    "baselineLedgerSha256": "61a0ff040addfb6876f1583f9b26378e51f1a0eac56e69e39d2c0b717bb04d67"
+  },
+  "maintenance": {
+    "openNumberedRecords": 13,
+    "maintenanceRows": 12,
+    "exactCoverage": true,
+    "unselectedRowsPreserved": true
+  },
+  "archive": {
+    "path": "validation-records.tar.gz",
+    "bytes": 146171,
+    "sha256": "98ad54d87a8f63a9c35a943608bc353df622e63d829743be76e527680793a8d0"
+  },
+  "entries": [
+    {
+      "path": "aspire-final-summary.json",
+      "bytes": 2915,
+      "sha256": "a322abfdbc763439e79a0f1cdfa376198c4132df52fd9a758ac47c01b70a3bf6"
+    },
+    {
+      "path": "aspire-observation.json",
+      "bytes": 893,
+      "sha256": "92463768b4d02550db479e0cc3e0e71116bdae5667d4f61cbc3b2753f7290224"
+    },
+    {
+      "path": "aspire-stop.txt",
+      "bytes": 375,
+      "sha256": "653951ae1d1e2b76c9441c91a1874c8869bf9c2b393ee09e2eb9a5623a13d650"
+    },
+    {
+      "path": "aspire-wait.txt",
+      "bytes": 115,
+      "sha256": "322dc280ee997242105ca2bf94ce6cde9c51a738004b3870e7718259187cc539"
+    },
+    {
+      "path": "baseline.json",
+      "bytes": 387,
+      "sha256": "bbb06a019e117f0071898ef6eabdb0612e71a208c068d6e1b5abb4e69a203d0b"
+    },
+    {
+      "path": "builds-commit-message.txt",
+      "bytes": 68,
+      "sha256": "6e8071bcc4dbe8d71fb2fbbb7845edc77112020a142b1eee0957ff3cd949087e"
+    },
+    {
+      "path": "builds-commitlint.log",
+      "bytes": 123,
+      "sha256": "2fe39b5332427bcb19a134298841a67415dba7eeada989b30349b8e438d7d627"
+    },
+    {
+      "path": "builds-disposition-review-fixes.log",
+      "bytes": 666,
+      "sha256": "fb2d3fd544077c28a3897424299f41cf020d38449fad2a6d741282dc696a34b7"
+    },
+    {
+      "path": "builds-disposition-tests.log",
+      "bytes": 497,
+      "sha256": "eba277403a449c943aee5b5111eaefbe5c55f47e37cb0e1f9794c71841a1ac0c"
+    },
+    {
+      "path": "builds-disposition-validation.log",
+      "bytes": 96,
+      "sha256": "8c3af175398f010fdceffe6aed7550bc746d334de4badc5e3894a904df5cf42d"
+    },
+    {
+      "path": "builds-historical-tests.log",
+      "bytes": 758,
+      "sha256": "a1ede1ca53ed973165cb4b4e6c40fcb5905189e66f68dccf9b63bc6e021630b4"
+    },
+    {
+      "path": "builds-push.log",
+      "bytes": 541,
+      "sha256": "5832ede4e0bf4931618469f909dbb7c88da58b6aa422aba315c084aa543bb93d"
+    },
+    {
+      "path": "builds-rebase-range-diff.txt",
+      "bytes": 94,
+      "sha256": "840a84f91c9c6a714597ff02939a17b159b685e6fa34fb9dffcb0643c2d0369e"
+    },
+    {
+      "path": "eventstore-build.log",
+      "bytes": 7745,
+      "sha256": "bb7b8ac76667d3d23c6451fc653082533d7b70555af0098f1d630c65ac6a75be"
+    },
+    {
+      "path": "eventstore-command-suite.log",
+      "bytes": 476,
+      "sha256": "4bb39f532d4603ab8594243ba52289f359981057a309a135fbcc189cb6abd825"
+    },
+    {
+      "path": "eventstore-commit-message.txt",
+      "bytes": 70,
+      "sha256": "fa723f92d5620d251e3af63bae7e84641954e7972bfc9a543ab8d22da1396926"
+    },
+    {
+      "path": "eventstore-commitlint.log",
+      "bytes": 125,
+      "sha256": "f4fd0b4af6cadb5c3f85f5b7350cb8a7c3bdbce626b84298b2e4e60cb3dc8461"
+    },
+    {
+      "path": "eventstore-controller-tests.log",
+      "bytes": 475,
+      "sha256": "b3690c876f2d8b35df7b0f46d7d0f8d44c12d591720bdd00dede1f5405ea5e85"
+    },
+    {
+      "path": "eventstore-push.log",
+      "bytes": 579,
+      "sha256": "7a61302c8cc727171a39bb02273de808e4d3f54b4c989bd332be231666cbc8b1"
+    },
+    {
+      "path": "eventstore-rebase-range-diff.txt",
+      "bytes": 100,
+      "sha256": "0dc256fb03925420dec1b7fb4c5e9db7ee750ebc29fb18bbeaf22abfc68007a4"
+    },
+    {
+      "path": "eventstore-review-build.log",
+      "bytes": 7745,
+      "sha256": "a26ed8870f893e1b2e783384f6495dadf932149c0dbf9c3a8706792e13740892"
+    },
+    {
+      "path": "eventstore-review-controller-tests.log",
+      "bytes": 475,
+      "sha256": "b1e75fa3d6ace8bd4336961409cc69cd1c18a16b4dd816f2d550aae3d6bf9e0f"
+    },
+    {
+      "path": "first-review.diff",
+      "bytes": 65172,
+      "sha256": "0c261e50535b75ab26a04a67d7f5177748b1f2d086725e05cfdba5828cd83700"
+    },
+    {
+      "path": "ledger-before.md",
+      "bytes": 546683,
+      "sha256": "61a0ff040addfb6876f1583f9b26378e51f1a0eac56e69e39d2c0b717bb04d67"
+    },
+    {
+      "path": "ledger-conservation.json",
+      "bytes": 433,
+      "sha256": "5e1f6714b6f43b99424d9d1b9ff4411cad779d41350e5dd69241ad718f6f42cb"
+    },
+    {
+      "path": "maintenance-conservation.json",
+      "bytes": 117,
+      "sha256": "4cd1b9d8a021b0c43363fa68c1a321e2aa82805f621c3c929c84dbc2e6213825"
+    },
+    {
+      "path": "parent-final-builds-disposition.log",
+      "bytes": 666,
+      "sha256": "c3996c77dde9efcd89f4159225a6998f71bc3a5d12dd8d55c9e4f2a440f1ead1"
+    },
+    {
+      "path": "parent-final-builds-historical.log",
+      "bytes": 758,
+      "sha256": "a1ede1ca53ed973165cb4b4e6c40fcb5905189e66f68dccf9b63bc6e021630b4"
+    },
+    {
+      "path": "parent-final-eventstore-commands.log",
+      "bytes": 476,
+      "sha256": "62b83ec4555e53b39ccebbbb7f30241dc672edf322bcec2eb5c0c9623dbf5d06"
+    },
+    {
+      "path": "parent-final-server-full.log",
+      "bytes": 462,
+      "sha256": "06ab8f95ba3a5961126d6af14abfa356f8d8c63a9dbd8a9f1718e110e71bd3e4"
+    },
+    {
+      "path": "parent-final-ui-full.log",
+      "bytes": 54755,
+      "sha256": "c1e64102217eac85a5aa9b8d2723483bb4ef137e6ac32af08d27450a3c159853"
+    },
+    {
+      "path": "post-rebase-builds-disposition.log",
+      "bytes": 666,
+      "sha256": "5728f55cdffe0616d691e091d853053b13acb353273f4f923db14f5c583596ee"
+    },
+    {
+      "path": "post-rebase-builds-historical.log",
+      "bytes": 758,
+      "sha256": "a1ede1ca53ed973165cb4b4e6c40fcb5905189e66f68dccf9b63bc6e021630b4"
+    },
+    {
+      "path": "post-rebase-builds-validation.log",
+      "bytes": 96,
+      "sha256": "8c3af175398f010fdceffe6aed7550bc746d334de4badc5e3894a904df5cf42d"
+    },
+    {
+      "path": "post-rebase-eventstore-build.log",
+      "bytes": 8804,
+      "sha256": "f855c7cecf90e88f45559d1c72470cd592b2f493488c0ffb0983321995e301a9"
+    },
+    {
+      "path": "post-rebase-eventstore-commands.log",
+      "bytes": 476,
+      "sha256": "c0f41f3fae0c2d1bd3a53b534d87f53bf2be23b703450fecfe0469a4ddc0f12d"
+    },
+    {
+      "path": "post-rebase-server-build.log",
+      "bytes": 10035,
+      "sha256": "1b5be9336a00f19c71614472df908713df1a2ef605bbf017e4e1f64d786a58f6"
+    },
+    {
+      "path": "post-rebase-server-full.log",
+      "bytes": 462,
+      "sha256": "8426572cc524c9988dc90739673c7d9c5702c19d80e7e4c23f5bb0d860027230"
+    },
+    {
+      "path": "post-rebase-ui-build.log",
+      "bytes": 10123,
+      "sha256": "a2a52db5f988f5e3ab9d632c0a1a731036f6bb56c7fb967a41a446b4811b59de"
+    },
+    {
+      "path": "post-rebase-ui-full.log",
+      "bytes": 54755,
+      "sha256": "b9aa6eaaf5a62e8de5943a3cc7b4d6aecfaff1c730403a6e7e7ec5a808f17fde"
+    },
+    {
+      "path": "source-and-binary-hashes.json",
+      "bytes": 9020,
+      "sha256": "9ffd872e75ffd11ae7b09ee2afdfafd30a2dc3918a2f2f0fa35d7fdc1beceef1"
+    },
+    {
+      "path": "story-gitlink-validation.txt",
+      "bytes": 298,
+      "sha256": "db5f3869660860bc9b82f5728e1fafb26eb51ac779d4fbadf9c0f4ef6fda3315"
+    },
+    {
+      "path": "tenants-commit-message.txt",
+      "bytes": 57,
+      "sha256": "10d527c78d0125a2106df74e41035bc5a442170f5ff870ff2c394dde03205175"
+    },
+    {
+      "path": "tenants-commitlint.log",
+      "bytes": 112,
+      "sha256": "a2c6af398c898b175e7e6306378620504c7b2ef7f293d512d565a08707635257"
+    },
+    {
+      "path": "tenants-server-review-audit-tests.log",
+      "bytes": 461,
+      "sha256": "8a775488bf12a82c09ec688e2d981f715970dbd184d4ef872b431b19d94c82b8"
+    },
+    {
+      "path": "tenants-server-review-build.log",
+      "bytes": 8492,
+      "sha256": "85618ee478b04ceea15c883901f43390b42aef0e5e9a62c8badbe43fda15fd4a"
+    },
+    {
+      "path": "tenants-ui-build.log",
+      "bytes": 7850,
+      "sha256": "dbcefd0d3ff8d995b35d40d63d04c8a1a9cafe2d2abd2a1c6d185cc6c9977e78"
+    },
+    {
+      "path": "tenants-ui-focused-final.log",
+      "bytes": 442,
+      "sha256": "5c23b45dc2c3b4f2c0f5895e8dc45a7d26d8f5f7b0c72466d3428b6531b9c140"
+    },
+    {
+      "path": "tenants-ui-focused.log",
+      "bytes": 5583,
+      "sha256": "7db8184fe808524a6d6759d19b969981d1b1b753121dfd4075eb2b80fe391ef9"
+    },
+    {
+      "path": "tenants-ui-full.log",
+      "bytes": 54756,
+      "sha256": "07dac30b6ce1185ec5663d186a323bdcdb46fe6f5c49bec7bddc96eecca428ee"
+    },
+    {
+      "path": "tenants-ui-review-build-final.log",
+      "bytes": 7850,
+      "sha256": "809df9d2e2395de7591754da99e96d79904651a746f5fcca4216c55dfd2884e0"
+    },
+    {
+      "path": "tenants-ui-review-build.log",
+      "bytes": 7850,
+      "sha256": "5f7482f465d996866f2205578b9eb9e17980a6fb28c9d9508527aea8196734aa"
+    },
+    {
+      "path": "tenants-ui-review-focused-final.log",
+      "bytes": 441,
+      "sha256": "9c3bdeb45794c026262e01b9b62a50324bdce15d62917071130b923fbd300a16"
+    },
+    {
+      "path": "tenants-ui-review-focused.log",
+      "bytes": 19347,
+      "sha256": "6496b1c434f08d370d4488af779dcd119161961322b1701a3adf9a2be449ad6c"
+    },
+    {
+      "path": "verify-ledger.py",
+      "bytes": 1500,
+      "sha256": "cc609317cf7a3347af5d9bac358d6f541cd67ccb5975f745de50abdaf22f26e8"
+    }
+  ],
+  "excluded": "Raw Aspire output and authentication-bearing URLs; no published-package, browser, AT or release qualification."
+}

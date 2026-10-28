@@ -1,5 +1,7 @@
 # Maintenance backlog
 
+**DW-438/DW-457/DW-498/DW-521/DW-600 closure (2026-10-28):** Approved canonical audit references, immutable historical disposition, independently authorized inspection, exact-message status precedence and strict administrator completeness are implemented, reviewed and source-qualified. All 657 IDs remain: 644 done/13 open across 12 maintenance rows; original findings and all 652 unselected numbered bodies are preserved. Published-package adoption and broader runtime/release holds remain separate. See [verification, review corrections and limits](../_bmad-output/implementation-artifacts/dw-438-457-498-521-600-validation-evidence.md).
+
 **DW-122/DW-334/DW-358/DW-579/DW-595 qualification (2026-10-28):** Deterministic BM25 raw windows, actual package-mode local Memories provider initialization, a validated current Builds audit and exact-adopted-pin EventStore CI complete the selected five records. All 657 IDs remain: 639 done/18 open across 17 maintenance rows. Historical failures and selected original fields, all 652 unselected numbered bodies, unrelated dependencies and broader runtime/release holds remain preserved. See [exact verification and limits](../_bmad-output/implementation-artifacts/dw-122-334-358-579-595-validation-evidence.md).
 
 **Historical audit provenance closure, 2026-10-28:** Close exactly DW-133/DW-365/DW-461/DW-467/DW-478 through original tooling attribution and a verified creation-parent correction for the legacy Story 5.4 audit. All seven additions remain inventoried at the final historical endpoint; provenance/identity/target/pointer refusals remain enforced. All 657 numbered IDs remain: 634 done/23 open across 21 exactly covering rows. All 652 other record bodies, selected historical fields, source stories, generated tooling, the five modified submodule checkouts and runtime/release holds remain preserved. [Exact checks, final review and limits](../_bmad-output/implementation-artifacts/dw-133-365-461-467-478-validation-evidence.md).
@@ -246,14 +248,14 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 | Disposition | Records |
 | --- | ---: |
-| done | 639 |
-| actionable | 3 |
+| done | 644 |
+| actionable | 2 |
 | blocked | 1 |
-| awaiting-decision | 8 |
+| awaiting-decision | 4 |
 | accepted-limitation | 3 |
 | uncertain | 3 |
 
-**Remaining: 18 open records across 17 index rows.**
+**Remaining: 13 open records across 12 index rows.**
 
 **Unnumbered cleanup follow-up resolved, 2026-10-27:** The original navigation-verification finding remains in the ledger with its resolution. Its explicit unsubscribe completion and held-cleanup callback checks are qualified; numbered DW totals exclude this unnumbered item. Disposition counts cover all 657 numbered records. P1 means correctness, confidentiality or command ownership; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. `unassigned` preserves the absence of an established owner.
 
@@ -286,9 +288,7 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW references | Priority | Evidence / disposition | Owner | Dependencies | Next concrete action |
 | --- | --- | --- | --- | --- | --- |
 | DW-562, DW-617 | P1 | Gap / awaiting-decision | global-administrator authority owner; other records unassigned | Platform authorization and revocation contract; DW-562 revocation contract decision | Define the authoritative/version-bounded revocation guarantee and responsible authority before changing command/query gates. |
-| DW-521 | P2 | Defect / actionable | Hexalith.EventStore | EventStore lookup compatibility decision | Choose explicit message-primary versus compatibility lookup semantics across authorized tenants and test caller-chosen cross-tenant collisions. |
 | DW-618 | P2 | Defect / actionable | unassigned | Authorization-safe index paging design | Design bounded authorized paging that continues through hidden windows without exposing raw-result pagination facts. |
-| DW-457 | P2 | Gap / awaiting-decision | Hexalith.Builds | Builds toolchain qualification decision | Builds owners must annotate the historical Aspire split disposition and disambiguate the two Dapr meanings. |
 | DW-599 | P2 | Gap / awaiting-decision | unassigned | Configuration read-policy scope decision | Decide whether FR-6 filtering protects API disclosure as well as UI display; specify the owning boundary. |
 
 ## Unverified risks and recommendations
@@ -301,9 +301,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-459 | P2 | Unverified / uncertain | unassigned | NVDA or VoiceOver authenticated browser session | Capture an assistive-technology browser trace of the first mounted state before deciding whether an always-mounted empty live container is required. |
 | DW-466 | P2 | Unverified / uncertain | unassigned | Historical full-suite raw logs; controlled load reproduction | Identify the metadata test from raw historical logs and reproduce both waits under controlled load before changing timeout or synchronization. |
 | DW-137 | P2 | Recommendation / actionable | future Tenants API route-contract work | Tenants API route-contract design | Specify the reversible route representation and slash/dot/traversal tests before changing client/controller behavior. |
-| DW-498 | P2 | Recommendation / awaiting-decision | unassigned | Product/authorization result-read policy | Choose and document an authorized post-self-demotion inspection/handoff policy; retain current redaction until that decision. |
-| DW-600 | P2 | Recommendation / awaiting-decision | unassigned | Complete-evidence duplicate-page policy | Decide whether cross-page overlap must invalidate completeness; reconcile any new rule with the existing spec/test contract. |
-| DW-438 | P3 | Recommendation / awaiting-decision | unassigned | Support-safety policy/opaque-reference contract decision | Decide whether opaque references need a shape-based exemption from substring rejection and define examples before changing the shared safety policy. |
 
 ## Accepted limitations
 

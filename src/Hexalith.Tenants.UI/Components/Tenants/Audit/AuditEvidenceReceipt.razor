@@ -329,6 +329,7 @@
             0 => TenantAuditSupportSafety.IsSafe(segment.Trim().TrimStart(':').Trim(), SupportSafeCopyValueKind.UserId),
             1 => TenantAuditSupportSafety.IsSafe(segment.Trim().TrimStart(':').Trim(), targetKind),
             2 => TenantAuditSupportSafety.IsSafe(segment, SupportSafeCopyValueKind.TenantId),
+            6 => TenantAuditSupportSafety.IsSafe(segment.Trim().TrimStart(':').Trim(), SupportSafeCopyValueKind.ApprovedReference),
             _ => TenantAuditSupportSafety.IsSafe(segment, SupportSafeCopyValueKind.ApprovedReference),
         };
 

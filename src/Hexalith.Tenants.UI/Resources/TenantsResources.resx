@@ -4576,4 +4576,7 @@
   <data name="Tenants.GlobalAdministrators.Recovery.Retained" xml:space="preserve"><value>Retry status recovery with the original authorized caller. A changed projection alone does not prove success.</value></data>
   <data name="Tenants.GlobalAdministrators.Recovery.CallerUnavailable" xml:space="preserve"><value>The original caller could not be verified. No command was sent.</value></data>
   <data name="Tenants.GlobalAdministrators.Recovery.CallerRetry" xml:space="preserve"><value>Review and confirm the preview again after caller authority is available.</value></data>
+  <data name="Tenants.Correction.Recovery.IndependentInspection" xml:space="preserve">
+    <value>This correction remains unconfirmed. If your access changed, another current tenant owner or global administrator can independently inspect current state. Audit evidence requires separate global-administrator authorization. This does not transfer your correction attempt or confirm its outcome.</value>
+  </data>
 </root>

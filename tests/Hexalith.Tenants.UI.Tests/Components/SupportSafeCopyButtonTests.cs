@@ -5,6 +5,7 @@ using Bunit;
 using Hexalith.Tenants.UI.Components.Shared;
 using Hexalith.Tenants.UI.Resources;
 using Hexalith.Tenants.UI.Services.SupportSafety;
+using Hexalith.Tenants.UI.State.TenantAudit;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
@@ -17,6 +18,37 @@ namespace Hexalith.Tenants.UI.Tests.Components;
 
 public sealed class SupportSafeCopyButtonTests : FluentBunitContext
 {
+    [Theory]
+    [InlineData("01JWT000000000000000000000", true)]
+    [InlineData("01EYJ000000000000000000000", true)]
+    [InlineData("01SECRET000000000000000000", false)]
+    [InlineData("01jwt000000000000000000000", false)]
+    public void ApprovedReferenceSurfaceCopiesCanonicalUlidsWithoutBroadeningItsApproval(string value, bool approved)
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        BunitJSModuleInterop module = JSInterop.SetupModule("./js/tenantsClipboard.js");
+        JSRuntimeInvocationHandler write = module.SetupVoid("writeText", value).SetVoidResult();
+        bool surfaceApproval = TenantAuditSupportSafety.SafeApprovedReference(value) is not null;
+        surfaceApproval.ShouldBe(approved);
+        IRenderedComponent<SupportSafeCopyButton> cut = Render<SupportSafeCopyButton>(parameters => parameters
+            .Add(button => button.Value, value)
+            .Add(button => button.ValueKind, SupportSafeCopyValueKind.ApprovedReference)
+            .Add(button => button.IsApproved, surfaceApproval)
+            .Add(button => button.AccessibleName, "Copy audit reference")
+            .Add(button => button.TestId, "audit-reference-surface"));
+        if (approved)
+        {
+            cut.Find("[data-testid='tenants-copy-reference']").Click();
+            cut.WaitForAssertion(() => write.Invocations.Count.ShouldBe(1));
+            write.Invocations.Single().Arguments[0].ShouldBe(value);
+        }
+        else
+        {
+            cut.Markup.ShouldBeEmpty();
+            write.Invocations.ShouldBeEmpty();
+        }
+    }
+
     [Fact]
     public void Copy_button_writes_literal_value_without_identifier_normalization()
     {

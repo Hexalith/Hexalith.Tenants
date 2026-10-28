@@ -8,6 +8,38 @@ namespace Hexalith.Tenants.UI.Tests.State;
 public sealed class TenantAuditSupportSafetyTests
 {
     [Theory]
+    [InlineData("01JWT000000000000000000000")]
+    [InlineData("01EYJ000000000000000000000")]
+    public void CanonicalUlidReferencesPermitOnlyApprovedIncidentalFragments(string value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        TenantAuditSupportSafety.SafeApprovedReference(value).ShouldBe(value);
+        TenantAuditSupportSafety.SafeIdentifier(value, SupportSafeCopyValueKind.TenantId).ShouldBeEmpty();
+        TenantAuditSupportSafety.SafeIdentifier(value, SupportSafeCopyValueKind.UserId).ShouldBeEmpty();
+        TenantAuditSupportSafety.SafeIdentifier(value, SupportSafeCopyValueKind.ConfigurationKey).ShouldBeEmpty();
+        TenantAuditSupportSafety.SafeApprovedReference(value.ToLowerInvariant()).ShouldBeNull();
+        TenantAuditSupportSafety.SafeApprovedReference(" " + value).ShouldBeNull();
+        TenantAuditSupportSafety.SafeApprovedReference(value + " ").ShouldBeNull();
+        TenantAuditSupportSafety.SafeApprovedReference(value.Replace("01", "%30%31", StringComparison.Ordinal)).ShouldBeNull();
+        TenantAuditSupportSafety.SafeApprovedReference(value.Replace("01", "０１", StringComparison.Ordinal)).ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData("01SECRET000000000000000000")]
+    [InlineData("01JWTSECRET000000000000000")]
+    [InlineData("01TOKEN0000000000000000000")]
+    [InlineData("01METADATA0000000000000000")]
+    [InlineData("event-jwt-reference")]
+    [InlineData("event-eyj-reference")]
+    [InlineData("81JWT000000000000000000000")]
+    [InlineData("01JWT00000000000000000000")]
+    [InlineData("01JWT0000000000000000000000")]
+    [InlineData("01JWT000000000000000000000|actor")]
+    [InlineData("01JWT000000000000000000000\u200B")]
+    public void CanonicalExceptionRetainsAllOtherSafetyAndShapeGates(string value)
+        => TenantAuditSupportSafety.SafeApprovedReference(value).ShouldBeNull();
+
+    [Theory]
     [InlineData("202.555.0100")]
     [InlineData("202/555/0100")]
     [InlineData("tel:+1-202-555-0100")]

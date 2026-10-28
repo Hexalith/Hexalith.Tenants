@@ -4852,6 +4852,32 @@ public sealed class TenantQueryGatewayTests
     }
 
     [Theory]
+    [InlineData("01JWT000000000000000000000", true)]
+    [InlineData("01EYJ000000000000000000000", true)]
+    [InlineData("01SECRET000000000000000000", false)]
+    [InlineData("01jwt000000000000000000000", false)]
+    public async Task AuditReferencesUseTheCanonicalUlidPolicyThroughGatewayAndReceipt(string eventReference, bool safe)
+    {
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> responses);
+        EnqueueQueryResult(responses, new PaginatedResult<TenantAuditEntry>(
+            [AuditEntry(eventReference, AuditEventCategory.Access)], null, false));
+
+        TenantAuditSnapshot snapshot = await CreateGateway(client)
+            .GetTenantAuditAsync(new("tenant.alpha"), null, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(safe ? TenantAuditSurfaceKind.Ready : TenantAuditSurfaceKind.Error);
+        if (safe)
+        {
+            snapshot.Rows.Single().EventReference.ShouldBe(eventReference);
+            TenantAuditReceipt.FromRow(snapshot.Rows.Single()).AuditReference.ShouldBe(eventReference);
+        }
+        else
+        {
+            snapshot.Rows.ShouldBeEmpty();
+        }
+    }
+
+    [Theory]
     [InlineData("")]
     [InlineData("   ")]
     [InlineData("Bearer reference")]

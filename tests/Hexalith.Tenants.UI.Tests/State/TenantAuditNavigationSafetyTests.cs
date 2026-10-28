@@ -15,6 +15,32 @@ public sealed class TenantAuditNavigationSafetyTests
     public void UnsafeIdentifiersCannotBecomeTenantRoutes(string identifier)
         => TenantAuditNavigationSafety.IsSafeIdentifier(identifier).ShouldBeFalse();
 
+    [Theory]
+    [InlineData("01JWT000000000000000000000")]
+    [InlineData("01EYJ000000000000000000000")]
+    public void CanonicalUlidReferenceHintsPreserveTheExactApprovedLiteral(string reference)
+    {
+        ArgumentNullException.ThrowIfNull(reference);
+        TenantAuditNavigationSafety.IsSafeHint(reference).ShouldBeTrue();
+        TenantAuditNavigationSafety.IsSafeHint(reference.ToLowerInvariant()).ShouldBeFalse();
+        TenantAuditNavigationSafety.IsSafeHint("01SECRET000000000000000000").ShouldBeFalse();
+    }
+
+    [Theory]
+    [InlineData("/help/01JWT000000000000000000000")]
+    [InlineData("/help/%30%31JWT000000000000000000000")]
+    [InlineData("/help/01EYJ000000000000000000000")]
+    [InlineData("/help/%30%31EYJ000000000000000000000")]
+    [InlineData("/help/%2530%2531JWT000000000000000000000")]
+    public void RecoveryDestinationsRetainStrictFragmentPolicyAfterDecoding(string href)
+        => TenantAuditNavigationSafety.SafeRecoveryHref(href).ShouldBeNull();
+
+    [Theory]
+    [InlineData("/help/%72%65covery", "/help/recovery")]
+    [InlineData("/aide/%C3%A9quipe", "/aide/équipe")]
+    public void OrdinaryDecodedRecoveryDestinationsRemainUsable(string href, string expected)
+        => TenantAuditNavigationSafety.SafeRecoveryHref(href).ShouldBe(expected);
+
     [Fact]
     public void UnpairedSurrogateCannotBecomeTenantRoute()
         => TenantAuditNavigationSafety.IsSafeIdentifier("tenant" + new string((char)0xD800, 1) + "alpha")

@@ -107,6 +107,51 @@ public sealed class TenantsBffCompositionTests
     }
 
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task SelfDemotionStaysRedactedWhileAnotherCurrentInspectorReadsIndependently(bool globalInspector)
+    {
+        var submitter = new StubPrincipalResolver(TenantConfigurationPrincipalEvidence.NonAdministrator("operator.alpha"));
+        var submitterComposition = new TenantsBffComposition(Substitute.For<ITenantCommandGateway>(), principalResolver: submitter);
+        TenantDetail before = Detail([
+            new TenantMember("operator.alpha", TenantRole.TenantOwner),
+            new TenantMember("other-owner", TenantRole.TenantOwner)]);
+        TenantCorrectionProjection initial = await submitterComposition.ComposeTenantCorrectionProjectionAsync(
+            "tenant.alpha", "operator.alpha", before, ReadModelFreshnessState.Current,
+            ProjectionLifecycleState.Current, QueryResponseProvenance.ProjectionBacked);
+        initial.IsAuthorized.ShouldBeTrue();
+        initial.CurrentRole.ShouldBe(TenantRole.TenantOwner);
+
+        TenantDetail after = before with { Members = [
+            new TenantMember("operator.alpha", TenantRole.TenantReader),
+            new TenantMember("other-owner", TenantRole.TenantOwner)] };
+        for (int refresh = 0; refresh < 2; refresh++)
+        {
+            TenantCorrectionProjection redacted = await submitterComposition.ComposeTenantCorrectionProjectionAsync(
+                "tenant.alpha", "operator.alpha", after, ReadModelFreshnessState.Current,
+                ProjectionLifecycleState.Current, QueryResponseProvenance.ProjectionBacked);
+            redacted.IsAuthorized.ShouldBeFalse();
+            redacted.HasVerifiedMembership.ShouldBeFalse();
+            redacted.CurrentRole.ShouldBeNull();
+            redacted.OwnerCount.ShouldBeNull();
+            redacted.ProjectionVersion.ShouldBeNull();
+        }
+        var inspector = new StubPrincipalResolver(globalInspector
+            ? TenantConfigurationPrincipalEvidence.GlobalAdministrator("independent-admin")
+            : TenantConfigurationPrincipalEvidence.NonAdministrator("other-owner"));
+        var independentComposition = new TenantsBffComposition(Substitute.For<ITenantCommandGateway>(), principalResolver: inspector);
+        TenantCorrectionProjection inspected = await independentComposition.ComposeTenantCorrectionProjectionAsync(
+            "tenant.alpha", "operator.alpha", after, ReadModelFreshnessState.Current,
+            ProjectionLifecycleState.Current, QueryResponseProvenance.ProjectionBacked);
+        inspected.IsAuthorized.ShouldBeTrue();
+        inspected.HasVerifiedMembership.ShouldBeTrue();
+        inspected.CurrentRole.ShouldBe(TenantRole.TenantReader);
+        inspected.OwnerCount.ShouldBe(1);
+        submitter.Evidence.Subject.ShouldBe("operator.alpha");
+        inspector.ResolutionCount.ShouldBe(1);
+    }
+
+    [Theory]
     [InlineData("null")]
     [InlineData("null-member")]
     [InlineData("duplicate")]

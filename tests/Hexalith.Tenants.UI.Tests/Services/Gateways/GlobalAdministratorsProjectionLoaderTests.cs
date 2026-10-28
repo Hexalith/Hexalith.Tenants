@@ -324,31 +324,50 @@ public sealed class GlobalAdministratorsProjectionLoaderTests
         calls.ShouldBe(1);
     }
 
-    [Fact]
-    public async Task LoadAsyncDeduplicatesIdentitiesWithinAndAcrossPagesWithOrdinalComparison()
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task LoadAsyncRejectsAnyOrdinalDuplicateWithoutFollowingMorePages(bool acrossPages, bool continuation)
     {
         ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
         int calls = 0;
-        gateway.GetGlobalAdministratorsAsync(
-                Arg.Any<GlobalAdministratorsRequest>(),
-                Arg.Any<GlobalAdministratorsSnapshot?>(),
-                Arg.Any<CancellationToken>())
+        gateway.GetGlobalAdministratorsAsync(Arg.Any<GlobalAdministratorsRequest>(),
+                Arg.Any<GlobalAdministratorsSnapshot?>(), Arg.Any<CancellationToken>())
             .Returns(call =>
             {
-                calls++;
-                GlobalAdministratorsRequest request = call.ArgAt<GlobalAdministratorsRequest>(0);
-                return Task.FromResult(calls == 1
-                    ? Page(["admin-a", "admin-a"], "page-2", hasMore: true, request: request)
-                    : Page(["admin-a", "Admin-a", "admin-b"], null, hasMore: false, request: request));
+                GlobalAdministratorsRequest request = call.Arg<GlobalAdministratorsRequest>();
+                bool firstPage = ++calls == 1;
+                bool hasMore = acrossPages && firstPage || continuation;
+                return Page(acrossPages ? ["admin-a"] : ["admin-a", "admin-a"],
+                    hasMore ? firstPage ? "page-two" : "must-not-follow" : null, hasMore, request: request);
             });
 
-        GlobalAdministratorsSnapshot result = await GlobalAdministratorsProjectionLoader.LoadAsync(
-            gateway,
-            cancellationToken: TestContext.Current.CancellationToken);
+        GlobalAdministratorsSnapshot result = await GlobalAdministratorsProjectionLoader.LoadAsync(gateway);
+
+        AssertCanonicalIncomplete(result);
+        calls.ShouldBe(acrossPages ? 2 : 1);
+    }
+
+    [Fact]
+    public async Task LoadAsyncPreservesCaseDistinctIdentitiesAcrossPages()
+    {
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.GetGlobalAdministratorsAsync(Arg.Any<GlobalAdministratorsRequest>(),
+                Arg.Any<GlobalAdministratorsSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                GlobalAdministratorsRequest request = call.Arg<GlobalAdministratorsRequest>();
+                return request.Cursor is null
+                    ? Page(["admin-a"], "page-two", true, request: request)
+                    : Page(["Admin-a", "admin-b"], null, false, request: request);
+            });
+
+        GlobalAdministratorsSnapshot result = await GlobalAdministratorsProjectionLoader.LoadAsync(gateway);
 
         result.IsCompleteEvidence.ShouldBeTrue();
         result.Rows.Select(static row => row.UserId).ShouldBe(["admin-a", "Admin-a", "admin-b"]);
-        calls.ShouldBe(2);
     }
 
     [Theory]

@@ -1,7 +1,9 @@
-using Hexalith.Tenants.UI.Services.SupportSafety;
-
 using System.Globalization;
 using System.Text;
+
+using Hexalith.Tenants.UI.Services.SupportSafety;
+
+using NUlid;
 
 namespace Hexalith.Tenants.UI.State.TenantAudit;
 
@@ -118,8 +120,19 @@ internal static class TenantAuditSupportSafety
             .Where(char.IsLetterOrDigit)
             .Select(char.ToLowerInvariant)
             .ToArray());
+        // Only this already approved reference contract permits the two incidental fragments.
+        // Parsing and exact round-trip prevent encoded, normalized or lowercase lookalikes from
+        // acquiring the exception. A ULID shape alone never establishes that arbitrary data is safe.
+        bool canonicalReference = kind is SupportSafeCopyValueKind.ApprovedReference
+            && Ulid.TryParse(value, out Ulid reference)
+            && string.Equals(reference.ToString(), value, StringComparison.Ordinal);
         return !fragments.Any(fragment =>
         {
+            if (canonicalReference && fragment is "jwt" or "eyj")
+            {
+                return false;
+            }
+
             string normalizedFragment = Normalize(fragment);
             return skeleton.Contains(fragment, StringComparison.OrdinalIgnoreCase)
                 || (normalizedFragment.Length > 0

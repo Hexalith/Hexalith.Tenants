@@ -331,3 +331,46 @@ All state labels, timestamps, outcomes, audit-state words, and recovery actions 
 - `_bmad-output/project-context.md#API Surface`
 - `_bmad-output/project-context.md#Logging & Telemetry`
 - `_bmad-output/project-context.md#Rejection Event Payloads`
+
+## Approved evidence and inspection policies — 2026-10-28
+
+The approved DW-438 policy permits incidental `JWT` and `EYJ` only in an
+`ApprovedReference` that is an exact, canonical uppercase ULID. Parsing and an
+ordinal round-trip check apply to the original literal, before granting this
+narrow exception. Lowercase, encoded, normalized or padded variants do not gain
+the exception. All other fragment, Unicode, encoding and field-boundary gates
+remain in effect, including rejection of a canonical ULID containing `SECRET`.
+Existing safe non-ULID references remain valid and retain their exact literals.
+An identifier's shape alone cannot establish that arbitrary content is nonsecret;
+authorized surface approval is still required for display, receipts and copy.
+Configured recovery destinations retain the strict fragment policy, including
+literal or encoded `JWT`/`EYJ` path segments; the audit-only exception never
+applies to those configured destinations.
+
+The approved DW-600 policy supersedes the ordinal deduplication requirement in
+`_bmad-output/implementation-artifacts/spec-global-admin-projection-paging.md`.
+That spec remains historical evidence. Any repeated ordinal administrator identity
+within a page or across cursor pages invalidates complete projection evidence,
+even if the repeated rows agree. The bounded walker stops and discards the
+aggregate. Case-distinct identities remain distinct. The currentness, lifecycle,
+caller scope, stable version, cursor, cancellation and 50-page bounds still apply;
+correction cannot confirm from the discarded aggregate.
+
+The approved DW-498 policy preserves current authorization after self-demotion.
+If the submitting owner loses owner/global authority, the BFF continues returning
+redacted correction captures on every refresh, independently of pending,
+retryable, unverified or event-publication command status. Derived current role,
+owner count, empty-membership and current-snapshot display facts are cleared;
+original evidence, causal baseline, attempt identity and circuit ownership remain. Completed command status does not
+confirm the correction without authorized, current, causally sufficient evidence.
+The submitted attempt stays unconfirmed and belongs to its submitting circuit.
+Another current tenant owner or global administrator may independently inspect
+current state using their own session. Audit inspection separately requires current
+global-administrator authorization: `GetTenantAuditQueryHandler` checks that
+authority before reading audit evidence, even when the caller is a tenant owner. This neither
+transfers the original attempt nor confirms it on behalf of its submitter; it does
+not manufacture corrective audit association or bypass the separate status,
+projection and audit evidence requirements. English and French recovery guidance
+explain this path and describe the focused lifecycle region without adding another
+live region, exposing hidden membership, sending contact messages,
+or creating an automatic handoff.

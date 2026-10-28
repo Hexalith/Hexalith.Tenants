@@ -154,6 +154,7 @@
                      @ref="_lifecycleElement"
                      tabindex="-1"
                      data-testid="tenants-correction-lifecycle"
+                     aria-describedby="@(ShowIndependentInspectionGuidance ? "tenants-correction-independent-inspection" : null)"
                      aria-label="@Localizer["Tenants.Correction.Lifecycle.Title"]">
                 <p class="correction-start-panel__state correction-start-panel__state--@_snapshot.LifecycleState.ToString().ToLowerInvariant()"
                    data-testid="tenants-correction-state">
@@ -169,6 +170,13 @@
                     <p data-testid="tenants-correction-audit-state">
                         @Localizer[$"Tenants.Correction.Audit.{_snapshot.AuditState}"]
                     </p>
+                }
+                @if (ShowIndependentInspectionGuidance)
+                {
+                    <FluentText Id="tenants-correction-independent-inspection"
+                                data-testid="tenants-correction-independent-inspection">
+                        @Localizer["Tenants.Correction.Recovery.IndependentInspection"]
+                    </FluentText>
                 }
             </section>
               </FluentAccordionItem>
@@ -351,6 +359,12 @@
             or TenantCommandLifecycleState.ProjectionPending
             or TenantCommandLifecycleState.UnableToVerify
             or TenantCommandLifecycleState.Degraded);
+
+    private bool ShowIndependentInspectionGuidance
+        => _hasSubmitted && _snapshot?.LifecycleState is TenantCommandLifecycleState.Accepted
+            or TenantCommandLifecycleState.ProjectionPending
+            or TenantCommandLifecycleState.UnableToVerify
+            or TenantCommandLifecycleState.Degraded;
 
     private string RefreshActionLabel
         => Localizer[CanRefresh && string.IsNullOrWhiteSpace(_snapshot?.CorrelationId)
@@ -1049,13 +1063,6 @@
         }
 
         ITenantCommandGateway? gateway = CommandGateway;
-        if (gateway is null)
-        {
-            await SetRetainedSnapshotAsync(attempt, statusSnapshot.ApplyStatus(TenantCommandStatusResult.Unknown(
-                Localizer["Tenants.Correction.Unavailable.CommandSupportUnavailable"])), statusGeneration).ConfigureAwait(false);
-            return;
-        }
-
         object? statusReadOwner = null;
         bool duplicateRead = false;
         if (!_disposed)
@@ -1082,7 +1089,9 @@
         TenantCommandStatusResult status;
         try
         {
-            status = await gateway.GetStatusAsync(
+            status = gateway is null
+                ? TenantCommandStatusResult.Unknown(Localizer["Tenants.Correction.Unavailable.CommandSupportUnavailable"])
+                : await gateway.GetStatusAsync(
                 new(messageId, statusSnapshot.CorrelationId, statusSnapshot.TenantId)
                 {
                     ExpectedDomain = TenantIdentity.Domain,
@@ -1094,6 +1103,20 @@
             status = TenantCommandStatusResult.RetryableFailure(
                 Localizer["Tenants.Correction.State.UnableToVerify"]);
         }
+        // Authority and current display facts are refreshed independently of advisory status.
+        // This read may redact the retained preview, but can never confirm the command by itself.
+        TenantCorrectionProjection? capture = null;
+        bool captureFailed = false;
+        try
+        {
+            capture = await readCapture().ConfigureAwait(false);
+        }
+        catch (Exception)
+        {
+            captureFailed = true;
+        }
+        statusSnapshot = RedactUnavailableCurrentFacts(statusSnapshot, capture);
+
         if (status.IsPending || status.IsRetryableFailure)
         {
             await SetRetainedSnapshotAsync(attempt, statusSnapshot with { SafeMessage = null,
@@ -1119,22 +1142,16 @@
         if (next.LifecycleState is TenantCommandLifecycleState.ProjectionPending
             && status.Status is Hexalith.EventStore.Contracts.Commands.CommandStatus.Completed && status.EventCount is > 0)
         {
-            try
-            {
-                TenantCorrectionProjection? capture = await readCapture().ConfigureAwait(false);
-                next = next.ConfirmProjection(capture);
-            }
-            catch (Exception)
-            {
-                next = next with {
+            next = captureFailed
+                ? next with {
                     LifecycleState = TenantCommandLifecycleState.UnableToVerify,
                     SafeMessage = null,
                     SafeMessageKey = "Tenants.Correction.Unavailable.CurrentProjectionUnavailable",
                     AuditState = TenantCommandAuditState.MissingSupport,
                     FocusTarget = TenantCommandFocusTarget.Refresh,
                     LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
-                };
-            }
+                }
+                : next.ConfirmProjection(capture);
         }
         next = next.WithCorrectiveProof(null);
         await SetRetainedSnapshotAsync(attempt, next, statusGeneration, focusTerminalState: true).ConfigureAwait(false);
@@ -1143,6 +1160,35 @@
         {
             if (statusReadOwner is not null) Interlocked.CompareExchange(ref _statusReadOwner, null, statusReadOwner);
         }
+    }
+
+    private static TenantCorrectionPreviewSnapshot RedactUnavailableCurrentFacts(
+        TenantCorrectionPreviewSnapshot snapshot, TenantCorrectionProjection? capture)
+    {
+        if (capture is { IsCurrent: true, IsAuthorized: true }
+            && string.Equals(capture.TenantId, snapshot.TenantId, StringComparison.Ordinal)
+            && string.Equals(capture.TargetUserId, snapshot.TargetUserId, StringComparison.Ordinal))
+        {
+            return snapshot;
+        }
+
+        // Apply the pre-submit redaction contract without changing dispatch identity, original
+        // evidence or the causal baseline retained for eventual authorized confirmation.
+        Dictionary<string, string> inputs = new(snapshot.Intent.RequiredPreviewInputs, StringComparer.Ordinal);
+        inputs.Remove("currentRole");
+        inputs.Remove("emptyMembership");
+        inputs["currentProjectionSnapshot"] = string.Empty;
+        return snapshot with {
+            CurrentRole = TenantRole.Unknown,
+            CurrentProjectionSnapshotReference = string.Empty,
+            LastConfirmedCorrectionProjection = null,
+            LastConfirmedProjectionEvidence = null,
+            Intent = snapshot.Intent with {
+                CurrentProjectionSnapshotReference = string.Empty,
+                CurrentProjection = TenantCorrectionProjection.Unavailable(snapshot.TenantId, snapshot.TargetUserId),
+                RequiredPreviewInputs = inputs,
+            },
+        };
     }
 
     private static string? FailureMessageKey(TenantCommandLifecycleState state)

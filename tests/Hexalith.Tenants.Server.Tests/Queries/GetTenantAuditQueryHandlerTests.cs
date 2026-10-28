@@ -21,6 +21,39 @@ namespace Hexalith.Tenants.Server.Tests.Queries;
 /// <summary>Verifies direct audit filter validation through the production query handler.</summary>
 public sealed class GetTenantAuditQueryHandlerTests
 {
+    /// <summary>Tenant ownership authorizes state inspection but never substitutes for audit global authority.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task AuditInspectionRequiresSeparateGlobalAuthorityEvenForCurrentTenantOwners(bool global)
+    {
+        IReadModelStore store = CreateStore();
+        store.GetAsync<TenantReadModel>(TenantQueryHandlerBase.StateStoreName,
+            TenantQueryHandlerBase.TenantProjectionKeyPrefix + "tenant-1", Arg.Any<CancellationToken>())
+            .Returns(new ReadModelEntry<TenantReadModel>(new TenantReadModel {
+                TenantId = "tenant-1", Status = TenantStatus.Active,
+                Members = new Dictionary<string, TenantRole> { ["current-owner"] = TenantRole.TenantOwner },
+            }, "tenant-etag"));
+
+        QueryResult result = await ExecuteAsync(store, CreateCursorCodec(), "{}", global ? "admin-1" : "current-owner");
+
+        result.Success.ShouldBe(global);
+        if (global)
+        {
+            ReadEventIds(result).ShouldContain("access");
+            _ = await store.Received(1).GetAsync<TenantAuditReadModel>(TenantQueryHandlerBase.StateStoreName,
+                TenantQueryHandlerBase.TenantAuditProjectionKeyPrefix + "tenant-1", Arg.Any<CancellationToken>());
+        }
+        else
+        {
+            result.ErrorMessage.ShouldBe(QueryAdapterFailureReason.Forbidden);
+            result.PayloadBytes.ShouldBeNull();
+            await AssertOnlyAuthorityWasReadAsync(store);
+        }
+        _ = await store.DidNotReceive().GetAsync<TenantReadModel>(TenantQueryHandlerBase.StateStoreName,
+            TenantQueryHandlerBase.TenantProjectionKeyPrefix + "tenant-1", Arg.Any<CancellationToken>());
+    }
+
     /// <summary>Gets malformed category Unicode sequences with cursor and authorization variants.</summary>
     public static TheoryData<string, bool, string> MalformedUnicodeCategories
     {

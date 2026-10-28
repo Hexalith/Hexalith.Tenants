@@ -4576,4 +4576,7 @@
   <data name="Tenants.GlobalAdministrators.Recovery.Retained" xml:space="preserve"><value>Réessayez la vérification du statut avec l’auteur initial autorisé. Un changement de projection ne prouve pas la réussite.</value></data>
   <data name="Tenants.GlobalAdministrators.Recovery.CallerUnavailable" xml:space="preserve"><value>L’auteur initial n’a pas pu être vérifié. Aucune commande n’a été envoyée.</value></data>
   <data name="Tenants.GlobalAdministrators.Recovery.CallerRetry" xml:space="preserve"><value>Vérifiez et confirmez à nouveau l’aperçu lorsque l’autorité de l’auteur est disponible.</value></data>
+  <data name="Tenants.Correction.Recovery.IndependentInspection" xml:space="preserve">
+    <value>Cette correction reste non confirmée. Si vos droits ont changé, un autre propriétaire actuel du tenant ou un administrateur global peut examiner indépendamment l’état actuel. L’examen des preuves d’audit requiert une autorisation distincte d’administrateur global. Cela ne transfère pas votre tentative de correction et ne confirme pas son résultat.</value>
+  </data>
 </root>

@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-438/DW-457/DW-498/DW-521/DW-600 closure (2026-10-28):** Approved canonical audit references, immutable historical disposition, independently authorized inspection, exact-message status precedence and strict administrator completeness are implemented, reviewed and source-qualified. All 657 IDs remain: 644 done/13 open across 12 maintenance rows; original findings and all 652 unselected numbered bodies are preserved. Published-package adoption and broader runtime/release holds remain separate. See [verification, review corrections and limits](dw-438-457-498-521-600-validation-evidence.md).
+
 **Five runtime follow-ups (2026-10-28):** Two unnumbered records close: credential acquisition refuses redirects, and removal submission refuses admission after rejected focus preparation while preserving intent and retained identity for retry. Fresh focused browser acceptance passes 4/4 with zero circuit errors; full UI 7,841/7,841 and Server 1,582/1,582 pass. Grant Escape's historical cause, the external Fluent grid disposal defect and DW-466's missing historical test identity remain open. The full browser lane and separate grid diagnostic fail on the preserved external grid fault. No numbered record closes: all 657 IDs and 639 done/18 open totals remain. Original findings and unrelated holds, including DW-137, are preserved. See [outcomes and exact evidence](five-deferred-runtime-followups-validation-evidence.md).
 
 **DW-122/DW-334/DW-358/DW-579/DW-595 qualification (2026-10-28):** Deterministic BM25 raw windows, actual package-mode local Memories provider initialization, a validated current Builds audit and exact-adopted-pin EventStore CI complete the selected five records. All 657 IDs remain: 639 done/18 open across 17 maintenance rows. Historical failures and selected original fields, all 652 unselected numbered bodies, unrelated dependencies and broader runtime/release holds remain preserved. See [exact verification and limits](dw-122-334-358-579-595-validation-evidence.md).
@@ -3873,8 +3875,8 @@ location: src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditSupportSafety.cs
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-3-view-a-support-safe-audit-evidence-receipt.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-3-view-a-support-safe-audit-evidence-receipt.md`\n  summary: Revisit strict opaque audit reference classification for incidental secret-shaped substrings.\n  evidence: The pre-existing gateway and reference classifier reject an otherwise valid opaque event ID when it happens to contain `jwt` or `eyj`; this story did not introduce that policy."
-status: open
-disposition: awaiting-decision
+status: done 2026-10-28
+disposition: done
 verification-date: 2026-10-12
 verification: TenantAuditSupportSafety.cs::StrictUnsafeFragments still includes jwt/eyj, and IsSafe compares normalized secret fragments as substrings for ApprovedReference. An opaque ID containing those fragments is rejected. This is conservative established support-safety policy; no actual legitimate generated reference rejected in production is established.
 verification-files: src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditSupportSafety.cs
@@ -3882,9 +3884,14 @@ evidence-kind: recommendation
 priority: P3
 owner: unassigned
 dependencies: Support-safety policy/opaque-reference contract decision
-next-action: Decide whether opaque references need a shape-based exemption from substring rejection and define examples before changing the shared safety policy.
+next-action: none; selected source requirement completed with retained qualification limits.
 related: DW-441
-
+pre-closure-status: open
+pre-closure-disposition: awaiting-decision
+pre-closure-next-action: Decide whether opaque references need a shape-based exemption from substring rejection and define examples before changing the shared safety policy.
+closure-date: 2026-10-28
+closure-verification: The approved exact-uppercase canonical ULID JWT/EYJ exception is limited to authorized audit references. Real EN/FR receipt rendering and summary clipboard checks, gateway/row/receipt/navigation coverage and rejecting controls qualify the policy. Configured recovery paths retain strict filtering after decoding; other fragments including SECRET remain rejected.
+closure-evidence: dw-438-457-498-521-600-validation-evidence.md
 
 ## Deferred from: code review of spec-5-3-view-a-support-safe-audit-evidence-receipt.md (2026-09-28)
 
@@ -4114,8 +4121,8 @@ location: references/Hexalith.Builds/Tools/runtime-toolchain-baseline-2026-09-27
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`\n  summary: Hand off to Hexalith.Builds. Record a disposition for the Aspire SDK split in the 2026-09-27 baseline.\n  evidence: `runtime-toolchain-baseline-2026-09-27.json:12` certifies `aspireSdk` `13.5.4` while `pinAudit.appHostProjects` lists five AppHosts at `13.5.3`, including `Hexalith.Tenants.AppHost`, with no `aspireSdk` disposition. `dispositions` also has the case-duplicate keys `dapr` (object) and `Dapr` (string)."
-status: open
-disposition: awaiting-decision
+status: done 2026-10-28
+disposition: done
 verification-date: 2026-10-12
 verification: references/Hexalith.Builds/Tools/runtime-toolchain-baseline-2026-09-27.json:12,22-34,59-66 still records aspireSdk 13.5.4 against five AppHosts at 13.5.3 and no Aspire SDK disposition; dapr and Dapr remain case-distinct keys. This is the retained historical qualification record, not evidence that current pins are all 13.5.3.
 verification-files: references/Hexalith.Builds/Tools/runtime-toolchain-baseline-2026-09-27.json
@@ -4123,8 +4130,14 @@ evidence-kind: verified-gap
 priority: P2
 owner: Hexalith.Builds
 dependencies: Builds toolchain qualification decision
-next-action: Builds owners must annotate the historical Aspire split disposition and disambiguate the two Dapr meanings.
+next-action: none; selected source requirement completed with retained qualification limits.
 related: none
+pre-closure-status: open
+pre-closure-disposition: awaiting-decision
+pre-closure-next-action: Builds owners must annotate the historical Aspire split disposition and disambiguate the two Dapr meanings.
+closure-date: 2026-10-28
+closure-verification: A separate Builds disposition binds the immutable 2026-09-27 baseline through its established normalized-LF digest, records the superseded/unqualified Aspire SDK split and distinguishes the two Dapr meanings. Positive CRLF equivalence and drift/forgery/qualification/containment negative controls pass and run in normal Builds CI. Historical bytes and approvals are preserved; no qualification or release permission is granted.
+closure-evidence: dw-438-457-498-521-600-validation-evidence.md
 
 
 ### DW-458: Withhold the shared control's Continue read-only in the member flows while an owned attempt is still in flight.
@@ -4623,8 +4636,8 @@ location: src/Hexalith.Tenants.UI/Services/Gateways/TenantsBffComposition.cs
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: Decide how an authorized correction result can be inspected after the submitting owner demotes themselves.\n  evidence: TenantsBffComposition.ComposeTenantCorrectionProjectionsAsync returns unavailable captures for nonowners; its owner/global authorization predicate is unchanged from baseline 11e65e3. Correction confirmation properly refuses redacted postconditions, leaving self-demotion unconfirmed until another authorized actor inspects it; a result-read policy must preserve authorization."
-status: open
-disposition: awaiting-decision
+status: done 2026-10-28
+disposition: done
 verification-date: 2026-10-12
 verification: TenantsBffComposition.cs:562-567 still returns unavailable correction captures to a caller who is neither current owner nor global administrator. Self-demotion therefore removes authorized confirmation evidence; this follows the existing authorization boundary rather than proving a security bug. No approved result-read exception or authorized alternate-actor handoff contract is recorded.
 verification-files: src/Hexalith.Tenants.UI/Services/Gateways/TenantsBffComposition.cs
@@ -4632,8 +4645,14 @@ evidence-kind: recommendation
 priority: P2
 owner: unassigned
 dependencies: Product/authorization result-read policy
-next-action: Choose and document an authorized post-self-demotion inspection/handoff policy; retain current redaction until that decision.
+next-action: none; selected source requirement completed with retained qualification limits.
 related: none
+pre-closure-status: open
+pre-closure-disposition: awaiting-decision
+pre-closure-next-action: Choose and document an authorized post-self-demotion inspection/handoff policy; retain current redaction until that decision.
+closure-date: 2026-10-28
+closure-verification: Current authority is captured independently of command-status completion. Redacted or unavailable captures clear derived current facts while retaining causal baseline, original evidence and exact circuit-owned attempt identity. EN/FR focused recovery guidance distinguishes owner state inspection from separately authorized global-admin audit inspection; rendered and production query-boundary tests qualify independent inspection without attempt transfer or inferred completion.
+closure-evidence: dw-438-457-498-521-600-validation-evidence.md
 
 
 ### DW-499: Make terminal EventStore advisory status publication recoverable after a failed write or crash.
@@ -4871,8 +4890,8 @@ location: references/Hexalith.EventStore/src/Hexalith.EventStore/Controllers/Com
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: A caller-chosen correlation ID in one tenant can force a 409 on another tenant's `messageId` status lookup.\n  evidence: `CommandStatusController.GetStatus` (`:114-153`) counts a direct match in tenant A and an indexed correlation match in tenant B together, so `matches.Count == 2` returns 409. The body `correlationId` is caller-chosen, and the endpoint has no tenant selector. Tenants correction confirmation fails closed (unable to verify), so the impact is availability for multi-tenant callers. The `:3576` entry tracks only the wording, not the lookup behaviour. Pre-existing (`ddccb9b1`). EventStore-owned."
-status: open
-disposition: actionable
+status: done 2026-10-28
+disposition: done
 verification-date: 2026-10-12
 verification: references/Hexalith.EventStore/src/Hexalith.EventStore/Controllers/CommandStatusController.cs:114-156 counts exact MessageId in one authorized tenant and correlation-index resolution in another together, then returns 409 for multiple matches. docs/reference/command-api.md now documents this behavior, but its availability consequence for caller-chosen correlations remains.
 verification-files: references/Hexalith.EventStore/src/Hexalith.EventStore/Controllers/CommandStatusController.cs
@@ -4880,8 +4899,14 @@ evidence-kind: verified-defect
 priority: P2
 owner: Hexalith.EventStore
 dependencies: EventStore lookup compatibility decision
-next-action: Choose explicit message-primary versus compatibility lookup semantics across authorized tenants and test caller-chosen cross-tenant collisions.
+next-action: none; selected source requirement completed with retained qualification limits.
 related: DW-511,DW-522
+pre-closure-status: open
+pre-closure-disposition: actionable
+pre-closure-next-action: Choose explicit message-primary versus compatibility lookup semantics across authorized tenants and test caller-chosen cross-tenant collisions.
+closure-date: 2026-10-28
+closure-verification: EventStore now searches exact MessageId records across distinct authorized tenant scopes before correlation/legacy compatibility. One exact match wins; multiple exact matches still return 409. Ordering, ambiguous-index collision, duplicate claims, compatibility ambiguity and unauthorized-scope controls pass. This is source qualification; new published-package adoption is not claimed.
+closure-evidence: dw-438-457-498-521-600-validation-evidence.md
 
 
 ### DW-522: Extends the pass-6 entry "Make the command-status 409 ProblemDetails detail match every ambiguity it reports": the served error catalog has the same wrong copy.
@@ -5831,16 +5856,22 @@ location: n/a
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Treat duplicate administrator identities across cursor pages as incomplete projection evidence.\n  evidence: GlobalAdministratorsProjectionLoader silently drops repeated user IDs and marks the final aggregate IsCompleteEvidence=true even when pages overlap."
-status: open
-disposition: awaiting-decision
+status: done 2026-10-28
+disposition: done
 verification-date: 2026-10-12
 verification: GlobalAdministratorsProjectionLoader.TryAdd still silently deduplicates across pages and marks terminal evidence complete; LoadAsyncDeduplicatesIdentitiesWithinAndAcrossPagesWithOrdinalComparison explicitly pins this behavior. The established paging spec requires ordinal aggregation, so rejection is a proposed policy change, not a proven regression.
 evidence-kind: recommendation
 priority: P2
 owner: unassigned
 dependencies: Complete-evidence duplicate-page policy
-next-action: Decide whether cross-page overlap must invalidate completeness; reconcile any new rule with the existing spec/test contract.
+next-action: none; selected source requirement completed with retained qualification limits.
 related: none
+pre-closure-status: open
+pre-closure-disposition: awaiting-decision
+pre-closure-next-action: Decide whether cross-page overlap must invalidate completeness; reconcile any new rule with the existing spec/test contract.
+closure-date: 2026-10-28
+closure-verification: Any ordinal duplicate administrator identity within or across protected cursor pages now produces canonical incomplete evidence and stops the bounded walk. Case-distinct identities remain distinct. Existing scope/version/freshness/cursor/cancellation limits and correction fail-closed consumers remain qualified; the current approved policy explicitly supersedes historical deduplication.
+closure-evidence: dw-438-457-498-521-600-validation-evidence.md
 
 
 ### DW-601: Preserve unique method numbers when elicitation catalog overrides replace shipped methods.
