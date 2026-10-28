@@ -381,6 +381,137 @@ public class PartialReleaseRecoveryWorkflowTests
         MappingValue(build, "env", "HEXALITH_ZOT_API_KEY").ShouldBeEmpty();
     }
 
+    /// <summary>
+    /// The runner that builds and smokes the container prepares its own dependencies before OIDC issuance.
+    /// </summary>
+    [Fact]
+    public void ProtectedPublisherPreparesItsOwnRuntimePrerequisites()
+    {
+        AssertPublisherRuntimePrerequisites(GetSteps("release.yml", "release"));
+    }
+
+    /// <summary>
+    /// Missing, misplaced or bypassable setup cannot satisfy the protected runner contract.
+    /// </summary>
+    /// <param name="dependency">The runner dependency to mutate.</param>
+    /// <param name="mutation">The invalid execution condition.</param>
+    [Theory]
+    [InlineData("initialize-build", "missing")]
+    [InlineData("initialize-build", "before-admission")]
+    [InlineData("initialize-build", "after-login")]
+    [InlineData("initialize-build", "conditional")]
+    [InlineData("initialize-build", "continued")]
+    [InlineData("setup-qemu-action", "missing")]
+    [InlineData("setup-qemu-action", "before-admission")]
+    [InlineData("setup-qemu-action", "after-login")]
+    [InlineData("setup-qemu-action", "conditional")]
+    [InlineData("setup-qemu-action", "continued")]
+    [InlineData("arm64-probe", "missing")]
+    [InlineData("arm64-probe", "before-admission")]
+    [InlineData("arm64-probe", "after-login")]
+    [InlineData("arm64-probe", "conditional")]
+    [InlineData("arm64-probe", "continued")]
+    public void InvalidPublisherRuntimePrerequisiteMutationIsRejected(string dependency, string mutation)
+    {
+        List<YamlMappingNode> steps = GetSteps("release.yml", "release").ToList();
+        AssertPublisherRuntimePrerequisites(steps.ToArray());
+        YamlMappingNode setup = steps.Single(step => Value(step, "uses").Contains(dependency, StringComparison.Ordinal)
+            || Value(step, "id") == dependency);
+        switch (mutation)
+        {
+            case "missing":
+                steps.Remove(setup);
+                break;
+            case "before-admission":
+                steps.Remove(setup);
+                steps.Insert(0, setup);
+                break;
+            case "after-login":
+                steps.Remove(setup);
+                steps.Add(setup);
+                break;
+            case "conditional":
+                setup.Children[new YamlScalarNode("if")] = new YamlScalarNode("false");
+                break;
+            case "continued":
+                setup.Children[new YamlScalarNode("continue-on-error")] = new YamlScalarNode("true");
+                break;
+        }
+
+        _ = Should.Throw<ShouldAssertException>(() => AssertPublisherRuntimePrerequisites(steps.ToArray()));
+    }
+
+    /// <summary>
+    /// The shipped arm64 probe executes the pinned image and propagates runtime failure before login.
+    /// </summary>
+    /// <param name="exitCode">The simulated container runtime result.</param>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(42)]
+    public async Task Arm64CapabilityProbePropagatesRuntimeResultWithoutCredentials(int exitCode)
+    {
+        YamlMappingNode probe = GetSteps("release.yml", "release").Single(step => Value(step, "id") == "arm64-probe");
+        var job = (YamlMappingNode)GetJobs("release.yml").Children[new YamlScalarNode("release")];
+        string image = MappingValue(job, "env", "HEXALITH_BINFMT_IMAGE");
+        string temporary = Path.Combine(Path.GetTempPath(), "tenants-arm64-probe-" + Path.GetRandomFileName());
+        Directory.CreateDirectory(temporary);
+        try
+        {
+            string docker = Path.Combine(temporary, "docker");
+            await File.WriteAllTextAsync(docker, """
+                #!/bin/bash
+                set -eu
+                [ "$#" = 6 ] && [ "$1" = run ] && [ "$2" = --rm ]
+                [ "$3" = --platform ] && [ "$4" = linux/arm64 ]
+                [ "$5" = "$HEXALITH_BINFMT_IMAGE" ] && [ "$6" = --version ]
+                printf invoked > "$PROBE_CALLS"
+                exit "$PROBE_EXIT"
+                """.ReplaceLineEndings("\n"));
+            var chmod = await RunAsync("chmod", ["+x", docker]);
+            chmod.ExitCode.ShouldBe(0, chmod.Diagnostics);
+            Dictionary<string, string?> environment = new(StringComparer.Ordinal)
+            {
+                ["PATH"] = temporary + Path.PathSeparator + Environment.GetEnvironmentVariable("PATH"),
+                ["HEXALITH_BINFMT_IMAGE"] = image,
+                ["PROBE_CALLS"] = Path.Combine(temporary, "calls"),
+                ["PROBE_EXIT"] = exitCode.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                ["NUGET_API_KEY"] = null,
+                ["HEXALITH_ZOT_API_KEY"] = null,
+            };
+            var result = await RunAsync("bash", ["-c", Value(probe, "run")], environment: environment);
+            result.ExitCode.ShouldBe(exitCode, result.Diagnostics);
+            File.Exists(Path.Combine(temporary, "calls")).ShouldBeTrue();
+        }
+        finally
+        {
+            Directory.Delete(temporary, recursive: true);
+        }
+    }
+
+    private static void AssertPublisherRuntimePrerequisites(YamlMappingNode[] steps)
+    {
+        int admission = Array.FindIndex(steps, step => Value(step, "name") == "Require the prepared workflow closure and latest source gates");
+        int login = Array.FindIndex(steps, step => Value(step, "id") == "nuget-login");
+        int initialize = Array.FindIndex(steps, step => Value(step, "uses") == "./.hexalith/builds-execution/Github/initialize-build");
+        int emulation = Array.FindIndex(steps, step => Value(step, "uses") == "docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8");
+        int probe = Array.FindIndex(steps, step => Value(step, "id") == "arm64-probe");
+        admission.ShouldBeGreaterThanOrEqualTo(0);
+        login.ShouldBeGreaterThan(admission);
+        foreach (int prerequisite in new[] { initialize, emulation, probe })
+        {
+            prerequisite.ShouldBeGreaterThan(admission);
+            prerequisite.ShouldBeLessThan(login);
+            Value(steps[prerequisite], "if").ShouldBeEmpty();
+            (Value(steps[prerequisite], "continue-on-error") is "" or "false").ShouldBeTrue();
+        }
+
+        probe.ShouldBeGreaterThan(emulation);
+        MappingValue(steps[emulation], "with", "platforms").ShouldBe("arm64");
+        MappingValue(steps[emulation], "with", "image").ShouldBe("${{ env.HEXALITH_BINFMT_IMAGE }}");
+        var job = (YamlMappingNode)GetJobs("release.yml").Children[new YamlScalarNode("release")];
+        MappingValue(job, "env", "HEXALITH_BINFMT_IMAGE").ShouldMatch(@"^docker\.io/tonistiigi/binfmt@sha256:[0-9a-f]{64}$");
+    }
+
     private static void AssertDestinationVerificationBindings(YamlMappingNode verification)
     {
         Value(verification, "run").ShouldBe("bash scripts/verify-release-artifacts.sh");

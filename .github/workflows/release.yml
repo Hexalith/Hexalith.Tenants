@@ -386,10 +386,6 @@ jobs:
         run: npm audit signatures
       - name: Restore
         run: dotnet restore Hexalith.Tenants.slnx
-      - name: Set up arm64 emulation
-        uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4.2.0
-        with:
-          platforms: arm64
       - name: Prepare release container publisher
         uses: ./.hexalith/builds-execution/Github/publish-containers
         with:
@@ -417,8 +413,9 @@ jobs:
     # a one-hour key immediately before Semantic Release, so no long-lived NuGet API key exists.
     # nuget.org matches the policy against the workflow file that defines the job, so this job is
     # owned here rather than delegated to Hexalith.Builds domain-release.yml: the nuget.org policy
-    # names Hexalith / Hexalith.Tenants / release.yml / production. Dependency installation and
-    # builds stay in prepare-release, which cannot request an OIDC token.
+    # names Hexalith / Hexalith.Tenants / release.yml / production. NuGet package preparation
+    # stays in prepare-release, which cannot request an OIDC token. This runner prepares
+    # its own source prerequisites and arm64 runtime before publishing the container.
     name: Publish Tenants packages and container
     needs: [verify-source, prepare-release]
     runs-on: ubuntu-latest
@@ -440,6 +437,7 @@ jobs:
       HEXALITH_RELEASE_EXPECTED_PACKAGE_COUNT: '5'
       # Normal protected release; no corrective reservation or one-use authority inputs.
       HEXALITH_RELEASE_REQUIRE_AUTHORITY: 'false'
+      HEXALITH_BINFMT_IMAGE: docker.io/tonistiigi/binfmt@sha256:400a4873b838d1b89194d982c45e5fb3cda4593fbfd7e08a02e76b03b21166f0
       HEXALITH_CONTAINER_PROJECTS: |
         src/Hexalith.Tenants/Hexalith.Tenants.csproj|tenants
     # CI (the verify-source gate above) already tested this exact head, so the release path
@@ -566,8 +564,21 @@ jobs:
             --repository "$REPOSITORY" --source "$DISPATCH_SHA" \
             --workflow ci.yml --workflow story-guards.yml --workflow source-reference.yml \
             --evidence .hexalith/release-evidence/source-gates.json
-      # The temporary key lives for one hour, so it is minted only after the build and the
-      # source proof, immediately before the step that publishes.
+      - name: Initialize root-declared container build prerequisites
+        uses: ./.hexalith/builds-execution/Github/initialize-build
+      - name: Set up arm64 emulation
+        uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4.2.0
+        with:
+          image: ${{ env.HEXALITH_BINFMT_IMAGE }}
+          platforms: arm64
+      - name: Verify arm64 runtime capability
+        id: arm64-probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm --platform linux/arm64 "$HEXALITH_BINFMT_IMAGE" --version
+      # The temporary key lives for one hour; mint it after package preparation, runner setup
+      # and source proof, immediately before publication.
       - name: Exchange GitHub OIDC token for a temporary NuGet key
         id: nuget-login
         uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
