@@ -27,6 +27,42 @@ namespace Hexalith.Tenants.Server.Tests.Bootstrap;
 
 public class TenantBootstrapHostedServiceTests {
     [Fact]
+    public async Task CredentialsAndCommandsUseTheirSeparatelyOwnedClients()
+    {
+        using var credentialHandler = new TestHttpMessageHandler((_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new { access_token = CreateAuthorityToken() })),
+        }));
+        using var commandHandler = new TestHttpMessageHandler((request, _) =>
+        {
+            request.Method.ShouldBe(HttpMethod.Post);
+            request.RequestUri!.AbsolutePath.ShouldEndWith("/api/v1/commands");
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.Accepted));
+        });
+        using var credentialClient = new HttpClient(credentialHandler);
+        using var commandClient = new HttpClient(commandHandler);
+        IHttpClientFactory factory = Substitute.For<IHttpClientFactory>();
+        factory.CreateClient(string.Empty).Returns(commandClient);
+        factory.CreateClient(TenantBootstrapServiceCollectionExtensions.CredentialClientName).Returns(credentialClient);
+        var services = new ServiceCollection();
+        services.AddDaprClient();
+        services.AddSingleton(factory);
+        await using ServiceProvider provider = services.BuildServiceProvider();
+        using var lifetime = new TestHostApplicationLifetime();
+        var logger = new TestLogger<TenantBootstrapHostedService>();
+        TenantBootstrapHostedService service = CreateService(provider.GetRequiredService<IServiceScopeFactory>(),
+            Options.Create(new TenantBootstrapOptions { BootstrapGlobalAdminUserId = AuthorityAdministrator }),
+            lifetime, logger, AuthoritySettings(), Environments.Production);
+
+        await service.StartAsync(CancellationToken.None);
+        lifetime.StartApplication();
+        await WaitUntilAsync(() => logger.Entries.Any(static entry => entry.EventId.Id == 2001));
+
+        factory.Received(1).CreateClient(string.Empty);
+        factory.Received(1).CreateClient(TenantBootstrapServiceCollectionExtensions.CredentialClientName);
+    }
+
+    [Fact]
     public async Task StartAsyncWithDisabledBootstrapPreservesConfiguredAdministrator()
     {
         bool httpCalled = false;

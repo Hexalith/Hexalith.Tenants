@@ -1,0 +1,173 @@
+{
+  "command": "aspire describe --apphost src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj --format Json",
+  "resources": [
+    {
+      "name": "dapr-placement-mtls-ptyjrmyh",
+      "resourceType": "Container",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "dapr-scheduler-mtls-acbvkzxq",
+      "resourceType": "Container",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "dapr-sentry-yrbhgfdu",
+      "resourceType": "Container",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "eventstore-admin-dapr-cli-tpwdkuds",
+      "resourceType": "Executable",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "eventstore-admin-fmnjqwmx",
+      "resourceType": "Project",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "eventstore-admin-ui-dapr-cli-fbhfewgh",
+      "resourceType": "Executable",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "eventstore-admin-ui-murmttjt",
+      "resourceType": "Project",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "eventstore-app-api-token",
+      "resourceType": "Parameter",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "eventstore-dapr-cli-wxenudqf",
+      "resourceType": "Executable",
+      "state": "Finished",
+      "healthStatus": null
+    },
+    {
+      "name": "eventstore-emaammmc",
+      "resourceType": "Project",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "eventstore-workload-client-secret",
+      "resourceType": "Parameter",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "memories-dapr-cli-nhubmgma",
+      "resourceType": "Executable",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "memories-graphs-awypsxac",
+      "resourceType": "Container",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "memories-scnkhdvu",
+      "resourceType": "Project",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "memories-vectors-frshysyj",
+      "resourceType": "Container",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "sample-app-api-token",
+      "resourceType": "Parameter",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "sample-dapr-cli-qyrhzvcv",
+      "resourceType": "Executable",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "sample-ufqqeveg",
+      "resourceType": "Project",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "security-eventstore-client-password",
+      "resourceType": "Parameter",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "security-eventstore-client-username",
+      "resourceType": "Parameter",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "security-qywjgazd",
+      "resourceType": "Container",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "tenants-api-dapr-cli-bgbndxvk",
+      "resourceType": "Executable",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "tenants-api-hcpymnbx",
+      "resourceType": "Project",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "tenants-apjsemqt",
+      "resourceType": "Project",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "tenants-app-api-token",
+      "resourceType": "Parameter",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "tenants-dapr-cli-atxwjqeh",
+      "resourceType": "Executable",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "tenants-ui-dapr-cli-zgzfjecc",
+      "resourceType": "Executable",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "tenants-ui-qnvcqafw",
+      "resourceType": "Project",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    }
+  ]
+}

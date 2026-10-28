@@ -100,7 +100,10 @@ public partial class TenantBootstrapHostedService(
                     timeProvider ?? TimeProvider.System,
                     logger);
                 phase = "credential-acquisition";
-                string? accessToken = await credentialProvider.AcquireAsync(userId, httpClient, cancellationToken).ConfigureAwait(false);
+                // Password forms must never be replayed by an automatic redirect. Command invocation keeps
+                // the host's existing default transport, independently of this credential-only policy.
+                HttpClient credentialClient = httpClientFactory.CreateClient(TenantBootstrapServiceCollectionExtensions.CredentialClientName);
+                string? accessToken = await credentialProvider.AcquireAsync(userId, credentialClient, cancellationToken).ConfigureAwait(false);
                 if (string.IsNullOrWhiteSpace(accessToken)) {
                     return;
                 }

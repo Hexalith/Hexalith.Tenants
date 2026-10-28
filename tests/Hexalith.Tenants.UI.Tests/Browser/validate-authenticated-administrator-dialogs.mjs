@@ -21,6 +21,8 @@ const playwrightRoot = dirname(require.resolve(`${playwrightModule}/package.json
 const { wsServer: WebSocketServer } = require(resolve(playwrightRoot, '../playwright-core/lib/utilsBundle.js'));
 const standaloneOidc = process.env.TENANTS_BROWSER_STANDALONE_OIDC === '1';
 const safetyOnly = process.env.TENANTS_BROWSER_UI_SAFETY_ONLY === '1';
+const runtimeFollowups = process.env.TENANTS_BROWSER_RUNTIME_FOLLOWUPS === '1';
+const holdGrid = process.env.TENANTS_BROWSER_HOLD_GRID === '1';
 const base = new URL(process.env.TENANTS_BROWSER_BASE_URL || (standaloneOidc ? 'https://localhost' : ''));
 assert.equal(base.hostname, 'localhost', 'Use the registered localhost Aspire endpoint so authentication cookies reach the fixture');
 const username = process.env.TENANTS_BROWSER_USERNAME;
@@ -73,6 +75,30 @@ let commandScenario;
 let denyExistingRead = false;
 let trackedCommand;
 let releasePendingDelivery;
+let gridLifetimeScenario = false;
+let holdSubscription = false;
+const pendingSubscriptions = new Map();
+let globalSubscriptionConnection;
+let grantRenderProbe = false;
+let grantRenderProbeReads = 0;
+const grantProbeIdentity = 'grant-subscription-render-probe';
+const statusMessageIds = [];
+const isGlobalScope = message => message.target === 'JoinGroup'
+    && JSON.stringify(message.arguments) === JSON.stringify(['global-administrators', 'system']);
+const retireSubscription = (entry, reason) => {
+    clearTimeout(entry.expiry);
+    entry.state = reason;
+    pendingSubscriptions.delete(entry.key);
+};
+const subscriptionIsCurrent = entry => entry?.state === 'held'
+    && pendingSubscriptions.get(entry.key) === entry
+    && entry.socket === globalSubscriptionConnection && entry.socket.readyState === 1
+    && Date.now() < entry.expiresAt;
+const completeSubscription = entry => {
+    check(subscriptionIsCurrent(entry), 'Only the live exact global-administrator subscription may complete');
+    entry.socket.send(JSON.stringify({ type: 3, invocationId: entry.invocationId }) + '\x1e');
+    retireSubscription(entry, 'completed');
+};
 let phase = 'startup';
 let browser;
 let context;
@@ -84,7 +110,9 @@ let uiExit;
 let upstream;
 let sockets;
 let uiLog;
+let uiLogPath;
 let oidcFixture;
+let sourceBeforeBuild;
 const circuitErrors = [];
 const check = (condition, label) => { if (!condition) throw Object.assign(new Error(), { safeLabel: label }); };
 const wait = async (condition, label, timeout = 20_000) => {
@@ -162,7 +190,7 @@ const boundedDialog = async kind => {
 };
 try {
     phase = 'build-current-ui';
-    const sourceBeforeBuild = await captureSource();
+    sourceBeforeBuild = await captureSource();
     evidence.sourceBeforeBuild = sourceBeforeBuild;
     const privateDirectory = await mkdtemp(resolve(tmpdir(), 'tenants-admin-dialog-browser-'));
     const buildArguments = ['build', 'src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj', '-c', 'Debug', '-m:1', '-p:UseNuGetDeps=false'];
@@ -228,7 +256,8 @@ try {
         catch { send({}, 401); return; }
         if (url.pathname === '/api/global-administrators') {
             fixture.adminReads++;
-            send({ items: [{ userId: claims.sub }, { userId: longTarget }], cursor: null, hasMore: false });
+            if (grantRenderProbe) grantRenderProbeReads++;
+            send({ items: [{ userId: claims.sub }, { userId: grantRenderProbe ? grantProbeIdentity : longTarget }], cursor: null, hasMore: false });
         } else if (url.pathname === '/api/tenants/tenant.alpha') {
             if (denyExistingRead) { send({}, 403); return; }
             send({ tenantId: 'tenant.alpha', name: 'Browser fixture tenant', description: 'Production safety checks', status: 'Active',
@@ -240,10 +269,13 @@ try {
         } else if (url.pathname === '/api/tenants/tenant.alpha/audit') {
             send({ items: [], cursor: null, hasMore: false });
         } else if (url.pathname.startsWith('/api/v1/commands/status/') && trackedCommand) {
+            const messageId = decodeURIComponent(url.pathname.slice('/api/v1/commands/status/'.length));
+            statusMessageIds.push(messageId);
+            if (messageId !== trackedCommand.messageId) { send({}, 409); return; }
             send({ messageId: trackedCommand.messageId, correlationId: trackedCommand.correlationId,
                 aggregateId: trackedCommand.aggregateId, tenantId: 'system', domain: 'tenants', status: 'Received' });
         } else if (url.pathname === '/api/tenants' || /^\/api\/users\/[^/]+\/tenants$/.test(url.pathname)) {
-            send({ items: [], cursor: null, hasMore: false });
+            send({ items: gridLifetimeScenario ? [{ tenantId: 'tenant.alpha', name: 'Browser fixture tenant', status: 'Active', memberCount: 3, createdAt: '2026-10-25T00:00:00Z' }] : [], cursor: null, hasMore: false });
         } else { send({}, 404); }
     });
     sockets = new WebSocketServer({ noServer: true });
@@ -251,13 +283,40 @@ try {
         if (!request.url.startsWith('/hubs/projection-changes')) { socket.destroy(); return; }
         sockets.handleUpgrade(request, socket, head, connection => sockets.emit('connection', connection, request));
     });
-    sockets.on('connection', socket => socket.on('message', data => {
-        for (const part of data.toString().split('\x1e').filter(Boolean)) {
-            const message = JSON.parse(part);
-            if (message.protocol) socket.send('{}\x1e');
-            else if (message.type === 1 && message.invocationId) socket.send(JSON.stringify({ type: 3, invocationId: message.invocationId }) + '\x1e');
-        }
-    }));
+    sockets.on('connection', socket => {
+        const connection = randomUUID();
+        const retireConnection = reason => {
+            for (const entry of pendingSubscriptions.values()) if (entry.socket === socket) retireSubscription(entry, reason);
+            if (globalSubscriptionConnection === socket) globalSubscriptionConnection = undefined;
+        };
+        socket.on('close', () => retireConnection('closed'));
+        socket.on('error', () => retireConnection('closed'));
+        socket.on('message', data => {
+            for (const part of data.toString().split('\x1e').filter(Boolean)) {
+                const message = JSON.parse(part);
+                if (message.protocol) { socket.send('{}\x1e'); continue; }
+                if (message.type === 5) {
+                    const entry = pendingSubscriptions.get(`${connection}:${message.invocationId}`);
+                    if (entry) retireSubscription(entry, 'cancelled');
+                    continue;
+                }
+                if (message.type === 7) { retireConnection('closed'); continue; }
+                if (message.type !== 1 || !message.invocationId) continue;
+                if (message.target === 'LeaveGroup' && JSON.stringify(message.arguments) === JSON.stringify(['global-administrators', 'system']))
+                    retireConnection('unsubscribed');
+                if (holdSubscription && isGlobalScope(message)) {
+                    if (globalSubscriptionConnection && globalSubscriptionConnection !== socket)
+                        for (const entry of pendingSubscriptions.values()) retireSubscription(entry, 'superseded');
+                    globalSubscriptionConnection = socket;
+                    const entry = { key: `${connection}:${message.invocationId}`, socket, connection,
+                        invocationId: message.invocationId, projection: 'global-administrators', tenant: 'system', scope: null,
+                        state: 'held', expiresAt: Date.now() + 9000 };
+                    entry.expiry = setTimeout(() => retireSubscription(entry, 'expired'), 9000);
+                    pendingSubscriptions.set(entry.key, entry);
+                } else socket.send(JSON.stringify({ type: 3, invocationId: message.invocationId }) + '\x1e');
+            }
+        });
+    });
     await new Promise(resolve => upstream.listen(0, '127.0.0.1', resolve));
     const upstreamBase = `http://127.0.0.1:${upstream.address().port}`;
     const uiPort = await freePort();
@@ -271,7 +330,8 @@ try {
         Authentication__OpenIdConnect__Authority: oidcFixture.authority,
         Authentication__OpenIdConnect__ClientId: 'tenants-browser-fixture', Authentication__OpenIdConnect__ClientSecret: randomUUID() });
     for (const key of Object.keys(environment)) if (/^(OTEL_|ASPIRE_)/.test(key)) delete environment[key];
-    uiLog = await open(resolve(privateDirectory, 'ui.log'), 'w', 0o600);
+    uiLogPath = resolve(privateDirectory, 'ui.log');
+    uiLog = await open(uiLogPath, 'w', 0o600);
     ui = spawn('dotnet', [assembly, '--urls', fixtureBase], { cwd: uiDirectory, env: environment, stdio: ['ignore', uiLog.fd, uiLog.fd] });
     uiExit = new Promise(resolve => {
         ui.once('error', () => { uiStartupFailure = true; uiExited = true; resolve(); });
@@ -311,6 +371,8 @@ try {
     await page.waitForURL(url => url.origin === (standaloneOidc ? fixtureBase : base.origin) && !url.pathname.includes('signin-oidc'));
     await testId('tenants-workspace').waitFor();
     phase = 'administrator-route-readiness';
+    await page.bringToFront();
+    holdSubscription = runtimeFollowups;
     await page.goto(`${fixtureBase}/global-administrators`);
     await page.waitForLoadState('networkidle');
     await testId('tenants-global-admins-ready').waitFor();
@@ -425,6 +487,54 @@ try {
         await testId(controls(kind).acknowledge).focus();
         await waitFocus(selector(controls(kind).acknowledge));
     };
+    if (runtimeFollowups) {
+        phase = 'grant-escape-held-subscription';
+        await wait(() => [...pendingSubscriptions.values()].some(subscriptionIsCurrent),
+            'The live exact global-administrator subscription must be held before grant Escape');
+        const subscription = [...pendingSubscriptions.values()].find(subscriptionIsCurrent);
+        await openPreview('grant');
+        check(subscriptionIsCurrent(subscription), 'Grant Escape must precede subscription expiry or cancellation');
+        check(await page.evaluate(() => document.hasFocus()), 'Grant Escape requires a foreground document');
+        await page.keyboard.press('Escape');
+        await testId(controls('grant').dialog).waitFor({ state: 'detached' });
+        await waitFocus(originSelector('grant'));
+        const beforeRelease = await observeFocus();
+        grantRenderProbe = true;
+        const nudge = () => subscription.socket.send(JSON.stringify({ type: 1, target: 'ProjectionChanged',
+            arguments: ['global-administrators', 'system'] }) + '\x1e');
+        const continuationRendered = async () => subscription.state === 'completed' && grantRenderProbeReads > 0
+            && await testId('tenants-global-admins-user-id').filter({ hasText: grantProbeIdentity }).count() === 1;
+        // The same completion predicate used below must reject while the exact join is held,
+        // even though launcher focus already looks correct. A nudge to a Pending group cannot render the probe.
+        nudge();
+        let rejectedWhileHeld = false;
+        try { await wait(continuationRendered, 'Subscription application/render checkpoint', 250); }
+        catch (error) { if (error.safeLabel !== 'Subscription application/render checkpoint') throw error; rejectedWhileHeld = true; }
+        check(rejectedWhileHeld && subscriptionIsCurrent(subscription) && grantRenderProbeReads === 0,
+            'Negative control must not pass before the exact subscription completes');
+        holdSubscription = false;
+        completeSubscription(subscription);
+        await wait(async () => {
+            if (await continuationRendered()) return true;
+            check(subscription.socket === globalSubscriptionConnection && subscription.socket.readyState === 1,
+                'Released subscription connection must remain current');
+            nudge();
+            return false;
+        }, 'Released subscription must handle its scoped nudge and render the authoritative probe row');
+        const probeRendered = true;
+        grantRenderProbe = false;
+        await wait(async () => {
+            if (await removeLauncher.count() === 1 && await testId('tenants-global-admins-user-id').filter({ hasText: grantProbeIdentity }).count() === 0) return true;
+            nudge(); return false;
+        }, 'The completed scoped read must restore normal rendered rows');
+        await waitFocus(originSelector('grant'));
+        evidence.cases.push({ scenario: 'grant-escape-held-subscription', beforeRelease,
+            afterRelease: await observeFocus(), launcherEnabled: !await grantLauncher.isDisabled(),
+            subscription: { connection: subscription.connection, invocationId: subscription.invocationId,
+                projection: subscription.projection, tenant: subscription.tenant, scope: subscription.scope, state: subscription.state },
+            completionRejectedWhileHeld: rejectedWhileHeld, scopedCallbackAndProbeRenderObserved: probeRendered,
+            observationBoundary: 'Released join activates a scoped nudge, authoritative callback and distinct DOM render; no private component-lifecycle hook is claimed' });
+    }
     if (!safetyOnly) {
     for (const viewport of [{ width: 1366, height: 1000 }, { width: 768, height: 1000 },
         { width: 1024, height: 400 }]) {
@@ -621,7 +731,73 @@ try {
     await wait(() => testId('tenants-remove-member-confirm').evaluate(element => !element.hasAttribute('disabled')),
         'Measured complete removal must enable its confirmation');
     commandScenario = 'remove-pending';
+    if (runtimeFollowups) {
+        await page.evaluate(() => {
+            const original = HTMLElement.prototype.focus;
+            window.__runtimeFocusFault = { rejected: 0, recoveryRejected: 0, holdRecovery: true };
+            HTMLElement.prototype.focus = function (...args) {
+                if (this.getAttribute('data-testid') === 'tenants-remove-member-lifecycle'
+                    && window.__runtimeFocusFault.rejected === 0) {
+                    window.__runtimeFocusFault.rejected++;
+                    throw new Error('Synthetic connected focus rejection');
+                }
+                if (window.__runtimeFocusFault.holdRecovery && this.closest('[data-testid="tenants-remove-member-modal"]')) {
+                    window.__runtimeFocusFault.recoveryRejected++;
+                    return; // Hold the DOM effect without adding a second interop fault.
+                }
+                return original.apply(this, args);
+            };
+        });
+    }
     await testId('tenants-remove-member-confirm').click();
+    if (runtimeFollowups) {
+        const refusals = [];
+        for (const dismissal of ['Escape', 'overlay']) {
+            if (dismissal === 'overlay') {
+                await page.evaluate(() => { window.__runtimeFocusFault.holdRecovery = false; });
+                await memberLauncher.click();
+                await testId('tenants-remove-member-confirmation').locator('input').fill('browser-reader');
+                await page.keyboard.press('Tab');
+                await wait(() => testId('tenants-remove-member-confirm').evaluate(element => !element.hasAttribute('disabled')),
+                    'Refused removal must preserve its visible retry path');
+                await page.evaluate(() => { window.__runtimeFocusFault.rejected = 0; window.__runtimeFocusFault.holdRecovery = true; });
+                await testId('tenants-remove-member-confirm').click();
+            }
+            await wait(() => page.evaluate(() => window.__runtimeFocusFault.rejected === 1),
+                'Connected pre-submit focus must reject exactly once');
+            check(fixture.simulatedCommands === 0 && !releasePendingDelivery,
+                'Rejected preparation must refuse admission and command dispatch before recovery focus');
+            check(await testId('tenants-remove-member-confirmation').locator('input').inputValue() === 'browser-reader'
+                && !await testId('tenants-remove-member-confirm').isDisabled(),
+                'Rejected preparation must preserve confirmation and an enabled retry control');
+            const focusBeforeDismissal = await observeFocus();
+            if (dismissal === 'Escape') await page.keyboard.press('Escape');
+            else await page.mouse.click(1, 1);
+            check(fixture.simulatedCommands === 0, 'Immediate native dismissal after rejection must dispatch nothing');
+            if (dismissal === 'overlay' && await testId('tenants-remove-member-modal').count() > 0
+                && await nativeModal()) await testId('tenants-remove-member-cancel').click();
+            // Native close precedes the asynchronous parent callback that removes its component.
+            await testId('tenants-remove-member-modal').waitFor({ state: 'detached' });
+            refusals.push({ dismissal, rejected: 1, zeroDispatch: true, confirmationPreserved: true,
+                focusBeforeDismissal, recoveryHeld: await page.evaluate(() => window.__runtimeFocusFault.holdRecovery) });
+        }
+        await page.evaluate(() => { window.__runtimeFocusFault.holdRecovery = false; });
+        await memberLauncher.click();
+        await testId('tenants-remove-member-confirmation').locator('input').fill('browser-reader');
+        await page.keyboard.press('Tab');
+        await wait(() => testId('tenants-remove-member-confirm').evaluate(element => !element.hasAttribute('disabled')),
+            'Actual focus must permit retry of the same member intent');
+        await testId('tenants-remove-member-confirm').click();
+        await wait(() => typeof releasePendingDelivery === 'function', 'Successful focus retry must reach held delivery');
+        const admitted = { messageId: trackedCommand.messageId, tenant: trackedCommand.tenant,
+            domain: trackedCommand.domain, aggregateId: trackedCommand.aggregateId, payload: trackedCommand.payload };
+        evidence.admittedRemoval = admitted;
+        check(admitted.tenant === 'system' && admitted.domain === 'tenants' && admitted.aggregateId === 'tenant.alpha'
+            && JSON.stringify(admitted.payload) === JSON.stringify({ TenantId: 'tenant.alpha', UserId: 'browser-reader', AggregateId: 'tenant.alpha' }),
+            'Held retry must retain the exact member payload and tenant/domain/aggregate envelope');
+        evidence.focusFailure = { refusedPreparations: refusals, admitted, focusWhileDeliveryHeld: await observeFocus(),
+            commandType: trackedCommand.commandType, messageId: trackedCommand.messageId, aggregateId: trackedCommand.aggregateId };
+    }
     await wait(() => testId('tenants-remove-member-cancel').evaluate(element => element.hasAttribute('disabled')),
         'Pending removal must retain guarded dismissal');
     phase = 'member-pending-before-keyboard';
@@ -643,11 +819,27 @@ try {
         check(await nativeModal(), 'Held delivery on a narrow viewport must retain the modal');
         await waitFocus(selector('tenants-remove-member-modal'));
     }
+    if (runtimeFollowups) {
+        check(fixture.simulatedCommands === 1 && trackedCommand.commandType === 'RemoveUserFromTenant'
+            && trackedCommand.aggregateId === 'tenant.alpha', 'Focus failure must retain exactly the admitted removal');
+        evidence.focusFailure.containmentBeforeRelease = true;
+        evidence.focusFailure.exactOwnedCommandRetained = true;
+    }
     releasePendingDelivery();
     await wait(() => testId('tenants-remove-member-refresh').evaluate(element => !element.hasAttribute('disabled')),
         'Accepted pending removal must retain status recovery');
     await testId('tenants-remove-member-refresh').focus();
     await waitFocus(selector('tenants-remove-member-refresh'));
+    if (runtimeFollowups) {
+        await wait(() => statusMessageIds.length > 0, 'Accepted removal must query its exact admitted message identity');
+        const statusCount = statusMessageIds.length;
+        await testId('tenants-remove-member-refresh').click();
+        await wait(() => statusMessageIds.length > statusCount, 'Explicit recovery must query the same admitted message again');
+        check(statusMessageIds.every(messageId => messageId === evidence.focusFailure.admitted.messageId)
+            && trackedCommand.messageId === evidence.focusFailure.admitted.messageId,
+            'Every subsequent status request must retain the exact admitted removal message');
+        evidence.focusFailure.statusMessageIds = [...statusMessageIds];
+    }
     check(fixture.simulatedCommands === 1 && fixture.commands === 0, 'Pending recovery must not dispatch another command');
     evidence.cases.push({ scenario: 'member-pending-native-dismissal', escapeRetainsModal: true,
         overlayRetainsModal: true, narrowResizeRetainsWork: true, recoveryReachable: true, simulatedCommands: 1 });
@@ -721,6 +913,62 @@ try {
     check(fixture.adminReads > 0 && fixture.authorizedReads > 0, 'Real authenticated production gateway reads must reach the fixture');
     check(fixture.commands === 0 && fixture.simulatedCommands === 2, 'Only the two fixture-local command simulations may be attempted');
     check(circuitErrors.length === 0, 'The interactive circuit must remain healthy');
+    if (holdGrid) {
+        phase = 'grid-held-initialization-navigation';
+        gridLifetimeScenario = true;
+        await page.route('**/Components/DataGrid/FluentDataGrid.razor.js*', async route => {
+            const response = await route.fetch();
+            const body = await response.text();
+            evidence.gridModuleOriginalSha256 = hash(body);
+            await route.fulfill({ response, body: body + `
+const runtimeGrid = Microsoft.FluentUI.Blazor.DataGrid;
+const runtimeInitialize = runtimeGrid.Initialize;
+window.__runtimeGridTrace = [];
+runtimeGrid.Initialize = async function(element, ...args) {
+    if (window.__runtimeGridHeldOnce) return runtimeInitialize(element, ...args);
+    window.__runtimeGridHeldOnce = true;
+    window.__runtimeHeldGrid = element;
+    const controller = runtimeInitialize(element, ...args);
+    const trace = window.__runtimeGridTrace;
+    trace.push({ event: 'initialize-held', connected: element.isConnected });
+    await new Promise(resolve => { window.__releaseRuntimeGrid = resolve; });
+    trace.push({ event: 'initialize-released', connected: element.isConnected });
+    const stop = controller.stop;
+    controller.stop = function(...args) {
+        trace.push({ event: 'controller-stop', connected: element.isConnected });
+        return stop.apply(this, args);
+    };
+    return controller;
+};
+` });
+        });
+        // A fresh document imports the instrumented pinned grid module. Production C# is unchanged.
+        await page.goto(`${fixtureBase}/tenants?sort=name`);
+        await wait(() => page.evaluate(() => typeof window.__releaseRuntimeGrid === 'function'), 'Pinned grid initialization must be held');
+        evidence.gridLifetime = { beforeNavigation: await page.evaluate(() => window.__runtimeGridTrace) };
+        check(evidence.gridLifetime.beforeNavigation.length === 1
+            && evidence.gridLifetime.beforeNavigation[0].event === 'initialize-held'
+            && evidence.gridLifetime.beforeNavigation[0].connected === true, 'Grid must be connected at the one-shot initialization entry');
+        await page.evaluate(() => Blazor.navigateTo('/tenants/tenant.alpha'));
+        await testId('tenants-detail-back').waitFor();
+        evidence.gridLifetime.afterNavigation = await page.evaluate(() => {
+            window.__runtimeGridTrace.push({ event: 'detail-navigation-complete', connected: window.__runtimeHeldGrid.isConnected });
+            return window.__runtimeGridTrace;
+        });
+        check(evidence.gridLifetime.afterNavigation.at(-1)?.event === 'detail-navigation-complete'
+            && evidence.gridLifetime.afterNavigation.at(-1)?.connected === false, 'Detail navigation must detach the held grid before release');
+        await page.evaluate(() => {
+            if (window.__runtimeHeldGrid.isConnected) throw new Error('Grid reconnected before release');
+            window.__releaseRuntimeGrid();
+        });
+        evidence.gridLifetime.afterRelease = await page.evaluate(() => window.__runtimeGridTrace);
+        check(evidence.gridLifetime.afterRelease.at(-1)?.event === 'initialize-released'
+            && evidence.gridLifetime.afterRelease.at(-1)?.connected === false, 'Grid initialization must resume only after detachment');
+        await testId('tenants-detail-back').click();
+        await page.waitForURL(url => ['/tenants', '/tenants/tenants'].includes(url.pathname));
+        evidence.gridLifetime.afterBack = await page.evaluate(() => window.__runtimeGridTrace);
+        check(circuitErrors.length === 0, 'Held pinned grid continuation must preserve zero circuit errors');
+    }
     evidence.sourceAfterBrowser = await captureSource();
     check(JSON.stringify(sourceBeforeBuild) === JSON.stringify(evidence.sourceAfterBrowser),
         'Source or build inputs changed during browser acceptance; evidence is refused');
@@ -728,6 +976,7 @@ try {
 } catch (error) {
     evidence.passed = false;
     evidence.failure = { phase, label: error.safeLabel || 'Browser operation failed', focus: page ? await observeFocus().catch(() => null) : null };
+    if (holdGrid && page) evidence.gridLifetimeAtFailure = await page.evaluate(() => window.__runtimeGridTrace).catch(() => null);
     evidence.failure.operation = typeof error.message === 'string' ? error.message.split(':', 1)[0] : undefined;
     if (page && phase.startsWith('member-')) evidence.failure.memberDiagnostics = await page.evaluate(() => ({
         launchers: document.querySelectorAll('[data-testid="tenants-remove-member-open"]').length,
@@ -747,11 +996,36 @@ try {
     })).catch(() => null);
     process.exitCode = 1;
 } finally {
+    try {
+        evidence.sourceAfterCleanup = await captureSource();
+        evidence.sourceStableThroughCleanup = !!sourceBeforeBuild
+            && JSON.stringify(sourceBeforeBuild) === JSON.stringify(evidence.sourceAfterCleanup);
+    } catch { evidence.sourceStableThroughCleanup = false; }
+    if (!evidence.sourceStableThroughCleanup) {
+        evidence.passed = false;
+        evidence.sourceStabilityFailure = 'Source or build inputs changed or could not be captured during cleanup';
+        process.exitCode = 1;
+    }
+    holdSubscription = false;
+    for (const entry of pendingSubscriptions.values()) retireSubscription(entry, 'cleanup');
     releasePendingDelivery?.();
+    if (uiLogPath) {
+        const lines = (await readFile(uiLogPath, 'utf8').catch(() => '')).split('\n');
+        const selected = new Set();
+        for (let index = 0; index < lines.length; index++) {
+            if (!/FluentDataGrid`/.test(lines[index])) continue;
+            for (let offset = Math.max(0, index - 8); offset <= index + 2 && offset < lines.length; offset++) {
+                if (/ObjectDisposedException|Object name:|FluentDataGrid`|Renderer\.|CircuitHost\[111\]/.test(lines[offset]))
+                    selected.add(lines[offset].trim());
+            }
+        }
+        evidence.circuitFaults = [...selected];
+    }
     evidence.fixture = { authorizedReads: fixture.authorizedReads, administratorReads: fixture.adminReads,
         unexpectedCommandAttempts: fixture.commands, simulatedCommandAttempts: fixture.simulatedCommands, circuitErrors: circuitErrors.length };
     evidence.acceptedForClosure = evidence.passed === true && evidence.build?.succeeded === true
-        && !evidence.build?.reusedBuild && !safetyOnly && evidence.cases.length === 12;
+        && !evidence.build?.reusedBuild && !safetyOnly && !holdGrid
+        && evidence.cases.length === (runtimeFollowups ? 13 : 12);
     evidence.finishedUtc = new Date().toISOString();
     let evidenceWriteFailed = false;
     try {

@@ -1005,11 +1005,12 @@
         }
     }
 
-    private static async Task FocusSafelyAsync(ElementReference element)
+    private static async Task<bool> FocusSafelyAsync(ElementReference element)
     {
         try
         {
             await element.FocusAsync().ConfigureAwait(false);
+            return true;
         }
         catch (JSDisconnectedException)
         {
@@ -1023,6 +1024,7 @@
         catch (OperationCanceledException)
         {
         }
+        return false;
     }
 
     private void SetSnapshot(TenantRemoveMemberCommandSnapshot snapshot)
@@ -1531,17 +1533,20 @@
         TenantRetainedCommandAttempt? attempt = _retainedAttempt;
         TenantRemoveMemberCommandSnapshot expected = _snapshot;
         _isPreparingSubmitFocus = true;
+        bool focused;
         try
         {
             // Move before disabling the active Confirm. Otherwise Escape can target document.body
             // during the focus gap and bypass Fluent's host-scoped native cancellation guard.
-            await FocusSafelyAsync(_lifecycleElement).ConfigureAwait(true);
+            focused = await FocusSafelyAsync(_lifecycleElement).ConfigureAwait(true);
         }
         finally
         {
             _isPreparingSubmitFocus = false;
         }
-        return !_disposed && !_dismissed && generation == _attemptGeneration
+        // Refuse admission before touching the retained attempt or lease when focus preparation
+        // rejects. Confirm stays enabled with its existing confirmation so the operator can retry.
+        return focused && !_disposed && !_dismissed && generation == _attemptGeneration
             && admissionGeneration == Volatile.Read(ref _admissionGeneration)
             && ReferenceEquals(attempt, _retainedAttempt)
             && TenantCommandAttemptTracker.HasSameEvidence(expected, _snapshot);

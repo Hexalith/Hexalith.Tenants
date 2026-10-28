@@ -78,7 +78,7 @@ builder.Services.AddKeyedScoped<IAuthoritativeEventStreamReader>("native-tenant-
 builder.Services.AddEventStoreNativeSourceMetadataReader();
 builder.Services.AddValidatorsFromAssembly(typeof(TenantSubmitCommandValidator).Assembly);
 builder.Services.AddValidatorsFromAssembly(typeof(TenantAggregate).Assembly);
-builder.Services.AddHostedService<TenantBootstrapHostedService>();
+builder.Services.AddTenantBootstrap();
 // Wire administrator flags are untrusted at the domain-service boundary (EventStore Story 5.5): the SDK keeps
 // them only when the acting user is a current member of the global-administrators read model.
 builder.Services.AddScoped<IDomainServiceAdministratorVerifier, TenantsGlobalAdministratorVerifier>();

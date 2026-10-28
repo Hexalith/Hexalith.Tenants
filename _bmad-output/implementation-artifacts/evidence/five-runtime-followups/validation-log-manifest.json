@@ -1,0 +1,205 @@
+{
+  "archive": "validation-logs.zip",
+  "members": [
+    {
+      "name": "aspire-stop.log",
+      "bytes": 375,
+      "sha256": "653951ae1d1e2b76c9441c91a1874c8869bf9c2b393ee09e2eb9a5623a13d650"
+    },
+    {
+      "name": "authorization-load-1.log",
+      "bytes": 479,
+      "sha256": "4e9a151893d0b10c0ee432df49224b17397bf293003a87a9657a2a38ab390b50"
+    },
+    {
+      "name": "authorization-load-1.xml",
+      "bytes": 1821,
+      "sha256": "bd4bd05d3a28e1080a2a87c3e2399b42bd88afac09bd081a62cff89de6636eb1"
+    },
+    {
+      "name": "authorization-load-2.log",
+      "bytes": 479,
+      "sha256": "72cc14d7fecac27b61f2d6e88e6d845bfca5d993976d9dbe9c3a987f9341de35"
+    },
+    {
+      "name": "authorization-load-2.xml",
+      "bytes": 1822,
+      "sha256": "d284af38c78fc6c50b9a35509711ca901b3b3a84c4593d3d65522fe7a1d781e3"
+    },
+    {
+      "name": "authorization-load-3.log",
+      "bytes": 479,
+      "sha256": "4d7efc839dec25396624a619a9ca1d932f316ff2232144677591fa632abafab9"
+    },
+    {
+      "name": "authorization-load-3.xml",
+      "bytes": 1822,
+      "sha256": "47c2a117f0612a02efe25eb286def14965688e101ebe5121dbb9d086fa65f40e"
+    },
+    {
+      "name": "authorization-load-4.log",
+      "bytes": 479,
+      "sha256": "a0e78e09af43ada898393a26efe53bc97932a90f7c47e61c36752edac02260f2"
+    },
+    {
+      "name": "authorization-load-4.xml",
+      "bytes": 1820,
+      "sha256": "e8494ae8ca29a6aa84d1f30671e717ec2e1ff8331ba12c7dae5ec1df6b8dbb59"
+    },
+    {
+      "name": "authorization-load-5.log",
+      "bytes": 479,
+      "sha256": "dfba661e34331fad51491c60de83193b08dcfd4f340ab094e1b8ce6fece2a3d8"
+    },
+    {
+      "name": "authorization-load-5.xml",
+      "bytes": 1822,
+      "sha256": "b5973c3eef87b6c462a603287b052768ff3e21373b9faa73ed2a7afdf9e1ee72"
+    },
+    {
+      "name": "authorization-load-controls.log",
+      "bytes": 132,
+      "sha256": "3a282f5a26297e1dd683aeebfa6fd0caddcaab681f309cb9ddad80a9e04eb844"
+    },
+    {
+      "name": "authorization-load.log",
+      "bytes": 5226,
+      "sha256": "6966da21672c3b51600a2f446f5918b537b9b057c4b245cd9813acb97f153cd0"
+    },
+    {
+      "name": "browser.log",
+      "bytes": 189,
+      "sha256": "3df2d5b5bed66218f63a49e79e0fec7ecfef37547e52bef503b58a50615b628a"
+    },
+    {
+      "name": "commitlint.log",
+      "bytes": 118,
+      "sha256": "eb40d1d86401a97b2719f7e3ef5d0827ae644f7976ad101faaccc6eae43d7dd1"
+    },
+    {
+      "name": "diff-check.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "five-runtime-focus-fix-browser-final.log",
+      "bytes": 189,
+      "sha256": "3df2d5b5bed66218f63a49e79e0fec7ecfef37547e52bef503b58a50615b628a"
+    },
+    {
+      "name": "five-runtime-focus-fix-browser.log",
+      "bytes": 189,
+      "sha256": "3df2d5b5bed66218f63a49e79e0fec7ecfef37547e52bef503b58a50615b628a"
+    },
+    {
+      "name": "five-runtime-focus-fix-build.log",
+      "bytes": 7850,
+      "sha256": "80ec6213d8dfbf0167a2aea21940609f714c2b75b92b168112922be7784c7df5"
+    },
+    {
+      "name": "five-runtime-focus-fix-class.log",
+      "bytes": 370,
+      "sha256": "3ad1c016976a262c88764b28ead873c54a3d60613a2075d8c0c669ab8f2ece41"
+    },
+    {
+      "name": "five-runtime-focus-fix-regression.log",
+      "bytes": 368,
+      "sha256": "bf7b0ca9051e45a63afe10b2f0e0e45f6f074a186c14a34f206089fef1506b05"
+    },
+    {
+      "name": "gitlinks.log",
+      "bytes": 164,
+      "sha256": "d8eeff9bd9e2b8a5108ab446670d931b0e12268a9c58e02e2bd921b11c6c4328"
+    },
+    {
+      "name": "grid-diagnostic.log",
+      "bytes": 239,
+      "sha256": "42c9f56fd9fbf02b8ed1df367df476a8f4bc10dafd44d5b3d8840c38e6ab1a9f"
+    },
+    {
+      "name": "parent-browser.log",
+      "bytes": 489,
+      "sha256": "3799aa07e38988dc425dbf3c147caa2fa21e172f7ffc7a9ff2d094c8df97b40b"
+    },
+    {
+      "name": "parent-diff-check.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "parent-focused-browser.log",
+      "bytes": 231,
+      "sha256": "48bd29b9233ce86253fdcc9743a5bc9ee0636f8574bc9a08d3daab23d360ac72"
+    },
+    {
+      "name": "parent-gitlinks.log",
+      "bytes": 164,
+      "sha256": "d8eeff9bd9e2b8a5108ab446670d931b0e12268a9c58e02e2bd921b11c6c4328"
+    },
+    {
+      "name": "parent-grid.log",
+      "bytes": 239,
+      "sha256": "42c9f56fd9fbf02b8ed1df367df476a8f4bc10dafd44d5b3d8840c38e6ab1a9f"
+    },
+    {
+      "name": "parent-load-controls.log",
+      "bytes": 126,
+      "sha256": "2cc17c927fcaf91700db13e90fd099d5daac47f5e17faecff5337ec94b7ba77b"
+    },
+    {
+      "name": "parent-server-full.log",
+      "bytes": 438,
+      "sha256": "2d33c2c8fee380af9edd48253b571946bbfdace496c4658941d67d647d370e96"
+    },
+    {
+      "name": "parent-ui-build.log",
+      "bytes": 7850,
+      "sha256": "782d35e7d2ad4066b698860611d60bb3cf42378ca78a9da8e6bd25328e5efb4e"
+    },
+    {
+      "name": "parent-ui-full.log",
+      "bytes": 430,
+      "sha256": "dc108ef89c30eb79e3608385f56b2845fa3b728e363010e89e8744af27e77955"
+    },
+    {
+      "name": "server-build.log",
+      "bytes": 8492,
+      "sha256": "b0678bc777de22b172e3a6848b52526c2dece22345185ec3f1de2556c04190bd"
+    },
+    {
+      "name": "server-focused.log",
+      "bytes": 390,
+      "sha256": "c19b1412ec906e6f579d745b212f087760d8bb8b71724ff89846331991fe861e"
+    },
+    {
+      "name": "server-full.log",
+      "bytes": 438,
+      "sha256": "1882b377318e5bdf14c7f08c9b304d071e3699512b042ab48aa1cce600c67e30"
+    },
+    {
+      "name": "ui-build.log",
+      "bytes": 8167,
+      "sha256": "2f4db7f7e7cccd93feb82047c42d78aaf5883ea3f18e02e21ad565faac37dd95"
+    },
+    {
+      "name": "ui-focused.log",
+      "bytes": 372,
+      "sha256": "87d9e397452e3e82df5a33520f0c6ca000c72d4f99bbdcf593e64f731eb83c93"
+    },
+    {
+      "name": "ui-full.log",
+      "bytes": 430,
+      "sha256": "9faef9a086d41a254c1cd00adce43e528c3b6a157505238c901dde2e98e71ff3"
+    },
+    {
+      "name": "worker-1.json",
+      "bytes": 82,
+      "sha256": "b15d2da24e7df931eb7beae326c4b35246d28cf76c999f2a68d55e4d3ea64123"
+    },
+    {
+      "name": "worker-2.json",
+      "bytes": 82,
+      "sha256": "865e476338b126161b24d07ce2f891ad1dd1a6d0da944fda3833483aadd1defe"
+    }
+  ]
+}

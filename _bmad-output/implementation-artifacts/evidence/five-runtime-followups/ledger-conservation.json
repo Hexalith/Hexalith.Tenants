@@ -1,0 +1,13 @@
+{
+  "numberedIds": 657,
+  "changedNumberedRecords": [
+    "466"
+  ],
+  "unchangedUnselectedNumberedRecords": 656,
+  "originalSelectedLinesPreserved": true,
+  "statusCounts": {
+    "done": 639,
+    "open": 18
+  },
+  "originalEvidenceHashes": "historical-evidence.json"
+}

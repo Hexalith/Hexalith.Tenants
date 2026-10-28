@@ -1,0 +1,329 @@
+{
+  "passed": true,
+  "failure": null,
+  "core": 0,
+  "cpuWorkers": 2,
+  "bound": "same single allowed CPU for two observed workers and test process",
+  "results": [
+    {
+      "iteration": 1,
+      "command": [
+        "taskset",
+        "-c",
+        "0",
+        "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests",
+        "-noLogo",
+        "-parallelMode",
+        "none",
+        "-method",
+        "*Detail_lifecycle_actions_fail_closed_while_authorization_is_pending",
+        "-xml",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/five-runtime-followups/authorization-load-1.xml"
+      ],
+      "exitCode": 0,
+      "case": {
+        "executed": 1,
+        "passed": 1,
+        "skipped": 0,
+        "method": "Detail_lifecycle_actions_fail_closed_while_authorization_is_pending"
+      },
+      "workersBefore": [
+        {
+          "pid": 703250,
+          "affinity": [
+            0
+          ],
+          "iterations": 1,
+          "cpuSeconds": 0.016924712,
+          "alive": true
+        },
+        {
+          "pid": 703251,
+          "affinity": [
+            0
+          ],
+          "iterations": 1,
+          "cpuSeconds": 0.016686839,
+          "alive": true
+        }
+      ],
+      "workersAfter": [
+        {
+          "pid": 703250,
+          "affinity": [
+            0
+          ],
+          "iterations": 24090,
+          "cpuSeconds": 1.173978091,
+          "alive": true
+        },
+        {
+          "pid": 703251,
+          "affinity": [
+            0
+          ],
+          "iterations": 24306,
+          "cpuSeconds": 1.183983242,
+          "alive": true
+        }
+      ],
+      "elapsedSeconds": 3.508
+    },
+    {
+      "iteration": 2,
+      "command": [
+        "taskset",
+        "-c",
+        "0",
+        "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests",
+        "-noLogo",
+        "-parallelMode",
+        "none",
+        "-method",
+        "*Detail_lifecycle_actions_fail_closed_while_authorization_is_pending",
+        "-xml",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/five-runtime-followups/authorization-load-2.xml"
+      ],
+      "exitCode": 0,
+      "case": {
+        "executed": 1,
+        "passed": 1,
+        "skipped": 0,
+        "method": "Detail_lifecycle_actions_fail_closed_while_authorization_is_pending"
+      },
+      "workersBefore": [
+        {
+          "pid": 703250,
+          "affinity": [
+            0
+          ],
+          "iterations": 24090,
+          "cpuSeconds": 1.173978091,
+          "alive": true
+        },
+        {
+          "pid": 703251,
+          "affinity": [
+            0
+          ],
+          "iterations": 24306,
+          "cpuSeconds": 1.183983242,
+          "alive": true
+        }
+      ],
+      "workersAfter": [
+        {
+          "pid": 703250,
+          "affinity": [
+            0
+          ],
+          "iterations": 47366,
+          "cpuSeconds": 2.270773104,
+          "alive": true
+        },
+        {
+          "pid": 703251,
+          "affinity": [
+            0
+          ],
+          "iterations": 47556,
+          "cpuSeconds": 2.27667265,
+          "alive": true
+        }
+      ],
+      "elapsedSeconds": 3.295
+    },
+    {
+      "iteration": 3,
+      "command": [
+        "taskset",
+        "-c",
+        "0",
+        "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests",
+        "-noLogo",
+        "-parallelMode",
+        "none",
+        "-method",
+        "*Detail_lifecycle_actions_fail_closed_while_authorization_is_pending",
+        "-xml",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/five-runtime-followups/authorization-load-3.xml"
+      ],
+      "exitCode": 0,
+      "case": {
+        "executed": 1,
+        "passed": 1,
+        "skipped": 0,
+        "method": "Detail_lifecycle_actions_fail_closed_while_authorization_is_pending"
+      },
+      "workersBefore": [
+        {
+          "pid": 703250,
+          "affinity": [
+            0
+          ],
+          "iterations": 47366,
+          "cpuSeconds": 2.270773104,
+          "alive": true
+        },
+        {
+          "pid": 703251,
+          "affinity": [
+            0
+          ],
+          "iterations": 47556,
+          "cpuSeconds": 2.27667265,
+          "alive": true
+        }
+      ],
+      "workersAfter": [
+        {
+          "pid": 703250,
+          "affinity": [
+            0
+          ],
+          "iterations": 71618,
+          "cpuSeconds": 3.427054475,
+          "alive": true
+        },
+        {
+          "pid": 703251,
+          "affinity": [
+            0
+          ],
+          "iterations": 71698,
+          "cpuSeconds": 3.429369068,
+          "alive": true
+        }
+      ],
+      "elapsedSeconds": 3.492
+    },
+    {
+      "iteration": 4,
+      "command": [
+        "taskset",
+        "-c",
+        "0",
+        "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests",
+        "-noLogo",
+        "-parallelMode",
+        "none",
+        "-method",
+        "*Detail_lifecycle_actions_fail_closed_while_authorization_is_pending",
+        "-xml",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/five-runtime-followups/authorization-load-4.xml"
+      ],
+      "exitCode": 0,
+      "case": {
+        "executed": 1,
+        "passed": 1,
+        "skipped": 0,
+        "method": "Detail_lifecycle_actions_fail_closed_while_authorization_is_pending"
+      },
+      "workersBefore": [
+        {
+          "pid": 703250,
+          "affinity": [
+            0
+          ],
+          "iterations": 71618,
+          "cpuSeconds": 3.427054475,
+          "alive": true
+        },
+        {
+          "pid": 703251,
+          "affinity": [
+            0
+          ],
+          "iterations": 71698,
+          "cpuSeconds": 3.429369068,
+          "alive": true
+        }
+      ],
+      "workersAfter": [
+        {
+          "pid": 703250,
+          "affinity": [
+            0
+          ],
+          "iterations": 101645,
+          "cpuSeconds": 4.912446672,
+          "alive": true
+        },
+        {
+          "pid": 703251,
+          "affinity": [
+            0
+          ],
+          "iterations": 101698,
+          "cpuSeconds": 4.917377421,
+          "alive": true
+        }
+      ],
+      "elapsedSeconds": 4.976
+    },
+    {
+      "iteration": 5,
+      "command": [
+        "taskset",
+        "-c",
+        "0",
+        "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests",
+        "-noLogo",
+        "-parallelMode",
+        "none",
+        "-method",
+        "*Detail_lifecycle_actions_fail_closed_while_authorization_is_pending",
+        "-xml",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/five-runtime-followups/authorization-load-5.xml"
+      ],
+      "exitCode": 0,
+      "case": {
+        "executed": 1,
+        "passed": 1,
+        "skipped": 0,
+        "method": "Detail_lifecycle_actions_fail_closed_while_authorization_is_pending"
+      },
+      "workersBefore": [
+        {
+          "pid": 703250,
+          "affinity": [
+            0
+          ],
+          "iterations": 101645,
+          "cpuSeconds": 4.912446672,
+          "alive": true
+        },
+        {
+          "pid": 703251,
+          "affinity": [
+            0
+          ],
+          "iterations": 101698,
+          "cpuSeconds": 4.917377421,
+          "alive": true
+        }
+      ],
+      "workersAfter": [
+        {
+          "pid": 703250,
+          "affinity": [
+            0
+          ],
+          "iterations": 127232,
+          "cpuSeconds": 6.138358539,
+          "alive": true
+        },
+        {
+          "pid": 703251,
+          "affinity": [
+            0
+          ],
+          "iterations": 127334,
+          "cpuSeconds": 6.148345228,
+          "alive": true
+        }
+      ],
+      "elapsedSeconds": 3.676
+    }
+  ]
+}

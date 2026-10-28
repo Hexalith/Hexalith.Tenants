@@ -28,6 +28,7 @@ using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Localization;
+using Microsoft.JSInterop;
 
 using NSubstitute;
 
@@ -37,6 +38,66 @@ namespace Hexalith.Tenants.UI.Tests.Components;
 
 public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
 {
+    /// <summary>A rejected focus preparation cannot admit work or replace a retained delivery identity.</summary>
+    /// <param name="isRetry">Whether a prior delivery already owns its tracking identity.</param>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task RejectedPreSubmitFocusPreservesConfirmationAndOwnershipUntilRetry(bool isRetry)
+    {
+        var gateway = new StubTenantCommandGateway
+        {
+            Submission = TenantCommandSubmissionResult.Failed("Delivery outcome needs recovery.") with
+            {
+                MessageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+                IsAmbiguousFailure = true,
+            },
+        };
+        RegisterServices(gateway);
+        int acquisitions = 0;
+        IRenderedComponent<RemoveTenantMemberFlow> cut = RenderLeaseRecoveryFlow(active =>
+        {
+            if (active) acquisitions++;
+            return Task.FromResult(true);
+        });
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        if (isRetry) await cut.Find("form").SubmitAsync();
+        TenantRemoveMemberCommandSnapshot original = cut.Instance.Snapshot;
+        TenantCommandAttemptTracker attempts = Services.GetRequiredService<TenantCommandAttemptTracker>();
+        bool owned = attempts.HasPendingOwnership("tenant.alpha");
+        int previousAcquisitions = acquisitions;
+        int authorityReads = 0;
+        cut.Render(p => p.Add(x => x.AuthorizationReflectionProvider, _ =>
+        {
+            authorityReads++;
+            return Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized);
+        }));
+        string lifecycle = ((ElementReference)typeof(RemoveTenantMemberFlow).GetField("_lifecycleElement",
+            BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(cut.Instance)!).Id;
+        bool reject = true;
+        JSInterop.SetupVoid("Blazor._internal.domWrapper.focus", invocation => reject
+            && invocation.Arguments[0] is ElementReference target && target.Id == lifecycle)
+            .SetException(new JSException("Synthetic focus rejection"));
+
+        await cut.Find("form").SubmitAsync();
+
+        authorityReads.ShouldBe(0);
+        acquisitions.ShouldBe(previousAcquisitions);
+        gateway.RemoveMemberCallCount.ShouldBe(isRetry ? 1 : 0);
+        cut.Instance.Snapshot.ShouldBeSameAs(original);
+        attempts.HasPendingOwnership("tenant.alpha").ShouldBe(owned);
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").GetAttribute("value").ShouldBe("reader-user");
+        cut.Find("[data-testid='tenants-remove-member-confirm']").HasAttribute("disabled").ShouldBeFalse();
+
+        reject = false;
+        await cut.Find("form").SubmitAsync();
+
+        gateway.RemoveMemberCallCount.ShouldBe(isRetry ? 2 : 1);
+        gateway.LastRemoveMemberRequest!.ShouldBe(new RemoveUserFromTenant("tenant.alpha", "reader-user"));
+        if (isRetry) gateway.LastRemoveMemberMessageId.ShouldBe(original.MessageId);
+        cut.Instance.Snapshot.Intent.ShouldBe(original.Intent);
+    }
+
     [Theory]
     [InlineData("authority")]
     [InlineData("replacement")]

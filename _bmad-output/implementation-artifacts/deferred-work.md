@@ -1,5 +1,7 @@
 # Deferred Work
 
+**Five runtime follow-ups (2026-10-28):** Two unnumbered records close: credential acquisition refuses redirects, and removal submission refuses admission after rejected focus preparation while preserving intent and retained identity for retry. Fresh focused browser acceptance passes 4/4 with zero circuit errors; full UI 7,841/7,841 and Server 1,582/1,582 pass. Grant Escape's historical cause, the external Fluent grid disposal defect and DW-466's missing historical test identity remain open. The full browser lane and separate grid diagnostic fail on the preserved external grid fault. No numbered record closes: all 657 IDs and 639 done/18 open totals remain. Original findings and unrelated holds, including DW-137, are preserved. See [outcomes and exact evidence](five-deferred-runtime-followups-validation-evidence.md).
+
 **DW-122/DW-334/DW-358/DW-579/DW-595 qualification (2026-10-28):** Deterministic BM25 raw windows, actual package-mode local Memories provider initialization, a validated current Builds audit and exact-adopted-pin EventStore CI complete the selected five records. All 657 IDs remain: 639 done/18 open across 17 maintenance rows. Historical failures and selected original fields, all 652 unselected numbered bodies, unrelated dependencies and broader runtime/release holds remain preserved. See [exact verification and limits](dw-122-334-358-579-595-validation-evidence.md).
 
 **Historical audit provenance closure, 2026-10-28:** DW-133/DW-365 retain reproducible original tooling attribution; DW-461/DW-467/DW-478 share the verified Story 5.4 baseline correction, explicit final endpoint and seven exact historical additions. The production guard and committed-history regressions pass. All 657 IDs remain: 634 done/23 open across 21 maintenance rows; all 652 other record bodies and original selected fields remain preserved. Source stories, generated tooling, dependency pointers and broader runtime/release holds are preserved. [Exact verification, final review and limits](dw-133-365-461-467-478-validation-evidence.md).
@@ -4265,6 +4267,10 @@ owner: unassigned
 dependencies: Historical full-suite raw logs; controlled load reproduction
 next-action: Identify the metadata test from raw historical logs and reproduce both waits under controlled load before changing timeout or synchronization.
 related: none
+followup-verification-date: 2026-10-28
+followup-verification: The corrected load runner requires exactly one passing unskipped executed xUnit XML case per iteration and five completed iterations. Two workers must be ready/alive on the same allowed CPU and show increased loop counters and process CPU time across every iteration; all five pass. Empty/aborted cases or missing/dead/inactive workers fail qualification. Its existing gate proves authorization is pending before release; no timeout or synchronization change was justified. The retained September report and archive-name inventory do not identify the metadata-confirmation case. Passing current tests does not explain either historical failure.
+followup-evidence: five-deferred-runtime-followups-validation-evidence.md
+followup-blocker: Original September failing-test output identifying the metadata-confirmation method, plus a reproduced causal scheduling failure.
 
 
 ### DW-467: `validate-story-gitlinks.py` still exits 1 on the legacy Story 5.4 artifact. This recurs the 2026-09-30 entry above; add no separate action.
@@ -6368,6 +6374,11 @@ archived: 2026-10-22
 - source_spec: `spec-dw-551-556-575-576-597-bootstrap-handoff.md`
   summary: Unverified medium, pre-existing: establish the bootstrap credential HTTP handler's redirect policy for password-grant requests.
   evidence: The provider's HttpClient.SendAsync and default handler ownership predate this batch; initial destination validation does not itself establish 307/308 handling. A real-handler redirect fixture must determine whether credentials can be reposted to a different destination, then the owning transport contract must choose and qualify its redirect policy. This follow-up does not change the five numbered closures or authorize a new redirect policy.
+  status: done 2026-10-28
+  outcome: fixed
+  resolution: A real-handler matrix reproduced same/cross-origin default 307/308 password-form replay. The explicitly recorded transport decision now disables all automatic redirects only for delegated credential acquisition; command dispatch retains the existing default client. Production registration, exact client selection, ten no-replay redirect cases and a direct-token success pass.
+  resolution-spec: spec-five-deferred-runtime-followups.md
+  resolution-evidence: five-deferred-runtime-followups-validation-evidence.md
 
 ## Deferred from: navigation accessibility verification (2026-10-23)
 
@@ -6384,6 +6395,11 @@ archived: 2026-10-22
 - source_spec: `_bmad-output/implementation-artifacts/spec-dw-268-328-391-434-489-ui-runtime-qualification.md`
   summary: Unverified medium; isolate one administrator-grant Escape focus timeout before changing production restoration behavior.
   evidence: A frozen-source normal Chromium run detached the grant dialog but observed body focus instead of the enabled launcher for twenty seconds (`dw-391-final-grant-focus-unavailable.json`). A separate instrumented three-case run found enabled launcher focus calls connected, outside inert, and immediately active; the final standalone normal run passed all nine cases. The cause is unproven: no production focus defect or browser-concurrency cause is claimed. Reproduce with controlled foreground and held subscription/render ordering, then identify whether renderer ownership or the browser driver lost focus. The diagnostic source, trace and limits are retained in `dw-391-focus-diagnostic.json` and its archive. This unnumbered qualification follow-up does not change the five numbered closures or the existing runtime/release holds.
+  status: open
+  outcome: bounded-negative-reproduction
+  verification-date: 2026-10-28
+  verification: A foreground authenticated browser holds only the live unscoped global-administrators/system JoinGroup on its current connection, retiring cancelled/closed/expired entries. The completion predicate rejects while held; after release a scoped notification must drive an authoritative read and a distinct DOM row before exact enabled-launcher focus is checked. The original body-focus timeout and its cause were not reproduced, so no restoration patch or historical root-cause closure is claimed.
+  verification-evidence: five-deferred-runtime-followups-validation-evidence.md
 
 
 ## Deferred from: five UI safety items independent review (2026-10-25)
@@ -6391,10 +6407,27 @@ archived: 2026-10-22
 - source_spec: `_bmad-output/implementation-artifacts/spec-dw-194-201-221-267-609-ui-safety.md`
   summary: Unverified medium — qualify removal-modal containment when pre-submit focus interop fails while the browser and command delivery remain connected.
   evidence: PrepareSubmissionFocusAsync awaits FocusSafelyAsync, which catches interop failures before the exact lifetime/admission checks. The lifecycle target exists throughout normal connected rendering, and the final browser lane proves normal and pending native containment; no connected failure/bypass was reproduced. Settle with production-component browser fault injection that rejects the focus operation, continues held delivery and checks Escape/overlay containment plus retained ownership.
+  status: done 2026-10-28
+  outcome: fixed
+  verification-date: 2026-10-28
+  verification: The earlier negative result allowed later focus repair and is superseded. The corrected diagnostic rejects the first lifecycle focus, holds subsequent programmatic recovery effects, verifies exact synthetic member payload and tenant/domain/aggregate, then observes body focus and native Escape closing the dialog while one simulated delivery remains pending. Zero circuit errors and cleanup source equality hold; the native containment assertion fails. Overlay and subsequent same-message status checks remain unqualified because this earlier assertion stops the run.
+  pre-fix-blocker: A qualified owning fix for native containment before focus recovery; the earlier closure is withdrawn.
+  verification-evidence: five-deferred-runtime-followups-validation-evidence.md
+
+  resolution: Rejected private focus preparation now refuses admission before changing attempts, leases or dispatch. Initial/retained retry regressions preserve confirmation, snapshot and tracking identity. Fresh uninstrumented focused browser passes: Escape and overlay after rejection send zero commands, then successful focus admits one exact member command with repeated same-message status lookup and zero circuit errors. Arbitrary interop failures and the separate external grid fault remain outside this closure.
+  resolution-spec: spec-five-deferred-runtime-followups.md
+  resolution-evidence: five-deferred-runtime-followups-validation-evidence.md
 
 - source_spec: `_bmad-output/implementation-artifacts/spec-dw-194-201-221-267-609-ui-safety.md`
   summary: Medium — route a pinned Fluent UI 5.0.1 grid continuation that uses a disposed JavaScript module during navigation to the component owner.
   evidence: One full authenticated browser run failed during create recovery with ObjectDisposedException in FluentDataGrid.UpdateColumnInteractionsAsync/OnAfterRenderAsync and one circuit error; its packet, log and sanitized stack are preserved in the batch evidence diagnostics. The existing pinned grid awaits initialization before later module use without a disposal recheck. Later labelled checks did not reproduce the circuit fault, so the exact focus checkpoint remains unproven and no local workaround is claimed. Reproduce with controlled grid initialization/disposal across detail navigation and Back, then qualify the owning component fix; retain zero-circuit-error acceptance.
+  status: open
+  outcome: reproduced-external-defect
+  verification-date: 2026-10-28
+  owner: Microsoft.FluentUI.AspNetCore.Components 5.0.1
+  verification: A one-shot hold of the pinned grid Initialize continuation records a connected workspace element, detail navigation detaches it, and release while detached produces ObjectDisposedException in FluentDataGrid.UpdateColumnInteractionsAsync/OnAfterRenderAsync plus CircuitHost[111]. The diagnostic fails the unchanged zero-circuit-error gate and remains separate from passing browser acceptance.
+  blocker: An owning component fix and approved dependency qualification; no Tenants workaround, fault suppression or speculative upgrade is applied.
+  verification-evidence: five-deferred-runtime-followups-validation-evidence.md
 
 
 ## Deferred from: release-governance independent review (2026-10-27)
