@@ -92,6 +92,23 @@ jobs:
       - name: Qualify restore dependency ranges and frameworks
         run: python3 tests/scripts/test_nuget_dependency_ranges.py
 
+  release-version-proposal:
+    name: validate-read-only-release-version
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: false
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+      - name: Install locked release tooling
+        run: npm ci
+      - name: Qualify read-only release proposals and preparation boundaries
+        run: python3 tests/scripts/test_candidate_version.py
+
   remove-focus-browser-guard:
     name: validate-remove-focus-in-chromium
     runs-on: ubuntu-latest
