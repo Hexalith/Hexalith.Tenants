@@ -1,0 +1,6 @@
+Pinned commitlint CLI: 21.2.3
+Command: node node_modules/@commitlint/cli/cli.js --edit /tmp/hexalith-read-safety-commit-pf6fp9vl.txt --verbose
+Exit: 0
+⧗   --- input ---
+fix: resolve five deferred tenant read-safety policies
+✔   found 0 problems, 0 warnings

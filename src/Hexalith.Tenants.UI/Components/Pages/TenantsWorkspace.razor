@@ -1421,14 +1421,14 @@
         }
     }
 
-    private async Task LoadAsync(bool reuseETag, bool searchTermTooLong = false)
+    private async Task<bool> LoadAsync(bool reuseETag, bool searchTermTooLong = false)
     {
         // A disposed component must never issue another load: it would keep consuming and mutating the
         // circuit-scoped paging state it no longer renders, so its outcome could retire a paging mode or
         // clear protected history behind a surface that no operator can see.
         if (_disposed || Volatile.Read(ref _listAuthorityPending))
         {
-            return;
+            return false;
         }
 
         long loadVersion = System.Threading.Interlocked.Increment(ref _loadVersion);
@@ -1564,13 +1564,36 @@
                 : null);
 
         TenantListSnapshot snapshot;
+        bool containedFailure = false;
         try
         {
             snapshot = await QueryGateway.ListTenantsAsync(request, previous, cancellationToken);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            return;
+            return false;
+        }
+        catch (Exception exception) when (!TenantWorkspaceReadDiagnostics.IsFatal(exception))
+        {
+            // Cancellation, disposal and superseding loads own their results, including failures. Never
+            // let an obsolete completion replace the current caller's state or emit misleading diagnostics.
+            if (_disposed || cancellationToken.IsCancellationRequested || loadVersion != Volatile.Read(ref _loadVersion))
+            {
+                return false;
+            }
+            try
+            {
+                if (Services.GetService<Microsoft.Extensions.Logging.ILogger<TenantsWorkspace>>() is { } logger)
+                {
+                    TenantWorkspaceReadDiagnostics.ReadFailed(logger, TenantWorkspaceReadDiagnostics.Classify(exception));
+                }
+            }
+            catch (Exception diagnosticFailure) when (!TenantWorkspaceReadDiagnostics.IsFatal(diagnosticFailure))
+            {
+                // Optional diagnostics must not prevent Error/Retry when their provider is unavailable.
+            }
+            snapshot = TenantListSnapshot.Error();
+            containedFailure = true;
         }
 
         await InvokeAsync(() =>
@@ -1642,6 +1665,7 @@
 
             ApplyVisibleRows();
         });
+        return containedFailure;
     }
 
     private async Task RefreshAsync()
@@ -1745,7 +1769,13 @@
         }
 
         // Proof always comes from this refresh, including its failure state, never retained matching rows.
-        await LoadAsync(reuseETag: false);
+        bool containedFailure = await LoadAsync(reuseETag: false);
+        if (containedFailure)
+        {
+            // The workspace has already rendered Error/Retry. Preserve the command flow's existing
+            // unable-to-verify boundary with a fixed signal, without forwarding provider diagnostics.
+            throw new InvalidOperationException("Tenant projection read is unavailable.");
+        }
         TenantListSnapshot proof = _snapshot;
         return !_disposed && string.Equals(caller, AuthenticatedUserId, StringComparison.Ordinal)
             && string.Equals(proof.CallerScope, TenantQueryGateway.AuditCallerScope(caller), StringComparison.Ordinal)

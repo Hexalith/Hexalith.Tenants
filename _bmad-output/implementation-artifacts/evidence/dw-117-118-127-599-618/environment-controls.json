@@ -1,0 +1,166 @@
+{
+  "frozenWorkflowBaseline": "d490461f4d6baeff4b2373ef9c54edfcd5e363a2",
+  "implementationHead": "6deb5d5dbaad4e26405910b347d45b82deae1057",
+  "baselineComparison": {
+    "cleanHeadTotal": 7925,
+    "currentTotal": 7968,
+    "cleanHeadFailures": 534,
+    "currentFailures": 534,
+    "identicalFailureCases": true,
+    "sortedFailureCasesSha256": "2b0a3941bde43695b914db2d2cd0336258bc19a119100c4be1d38e636d5e221b"
+  },
+  "sourceGraphEnvironmentRepair": {
+    "HexalithEventStoreVersion": "3.128.4",
+    "HexalithMcpCliFromSource": false,
+    "dependencyFilesChanged": false,
+    "McpCliVersion": "1.1.0",
+    "runtimePackageDllSha256": "166b8bace8c80aaea3e495cfcd1ef9c1e5199d279a472ba53446ce0bac8c27dd"
+  },
+  "aspireBaseline": [
+    {
+      "displayName": "dapr-placement-mtls",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "displayName": "dapr-scheduler-mtls",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "displayName": "dapr-sentry",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "displayName": "eventstore-admin-dapr-cli",
+      "state": "Waiting",
+      "healthStatus": null
+    },
+    {
+      "displayName": "eventstore-admin-ui-dapr-cli",
+      "state": "Waiting",
+      "healthStatus": null
+    },
+    {
+      "displayName": "eventstore-admin-ui",
+      "state": "Waiting",
+      "healthStatus": null
+    },
+    {
+      "displayName": "eventstore-admin",
+      "state": "Waiting",
+      "healthStatus": null
+    },
+    {
+      "displayName": "eventstore-app-api-token",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "displayName": "eventstore-dapr-cli",
+      "state": "Waiting",
+      "healthStatus": null
+    },
+    {
+      "displayName": "eventstore",
+      "state": "Waiting",
+      "healthStatus": null
+    },
+    {
+      "displayName": "eventstore-workload-client-secret",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "displayName": "memories-dapr-cli",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "displayName": "memories-graphs",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "displayName": "memories",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "displayName": "memories-vectors",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "displayName": "sample-app-api-token",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "displayName": "sample-dapr-cli",
+      "state": "Waiting",
+      "healthStatus": null
+    },
+    {
+      "displayName": "sample",
+      "state": "Waiting",
+      "healthStatus": null
+    },
+    {
+      "displayName": "security",
+      "state": "Running",
+      "healthStatus": "Unhealthy"
+    },
+    {
+      "displayName": "security-eventstore-client-password",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "displayName": "security-eventstore-client-username",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "displayName": "tenants-api-dapr-cli",
+      "state": "Waiting",
+      "healthStatus": null
+    },
+    {
+      "displayName": "tenants-api",
+      "state": "Waiting",
+      "healthStatus": null
+    },
+    {
+      "displayName": "tenants-app-api-token",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "displayName": "tenants-dapr-cli",
+      "state": "Waiting",
+      "healthStatus": null
+    },
+    {
+      "displayName": "tenants",
+      "state": "Waiting",
+      "healthStatus": null
+    },
+    {
+      "displayName": "tenants-ui-dapr-cli",
+      "state": "Waiting",
+      "healthStatus": null
+    },
+    {
+      "displayName": "tenants-ui",
+      "state": "Waiting",
+      "healthStatus": null
+    }
+  ],
+  "scope": "Baseline resource status only; no raw resource environment, telemetry, tokens, cookies, or authentication material retained. Browser qualification is the separate controlled authenticated production-UI fixture.",
+  "taskOwnedAspireCleanup": {
+    "stopped": true,
+    "remainingRunningAppHosts": 0
+  }
+}

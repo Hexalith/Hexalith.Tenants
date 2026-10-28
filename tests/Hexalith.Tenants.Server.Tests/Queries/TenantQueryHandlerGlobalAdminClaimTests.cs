@@ -29,6 +29,37 @@ public sealed class TenantQueryHandlerGlobalAdminClaimTests {
     private const string ClaimAdmin = "claim-admin";
     private const string TargetUser = "target-user";
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Authorized_configuration_api_preserves_full_contract_independently_of_ui_policy(bool administrator) {
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        var model = new TenantReadModel {
+            TenantId = "tenant.alpha", Name = "Alpha", Status = TenantStatus.Active,
+            Members = { [TargetUser] = TenantRole.TenantReader },
+            Configuration = {
+                ["billing.mode"] = "display-safe",
+                ["billing.secret"] = "authorized-api-only",
+                ["ungranted.value"] = "consumer-owned",
+            },
+        };
+        store.GetAsync<TenantReadModel>(TenantQueryHandlerBase.StateStoreName,
+            TenantQueryHandlerBase.TenantProjectionKeyPrefix + "tenant.alpha", Arg.Any<CancellationToken>())
+            .Returns(new ReadModelEntry<TenantReadModel>(model, "tenant-etag"));
+        if (administrator) SeedGlobalAdministrators(store, ClaimAdmin);
+        else SeedEmptyGlobalAdministrators(store);
+
+        QueryResult result = await TenantQueryTestHarness.ExecuteAsync(store, CreateCursorCodec(),
+            GetTenantEnvelope(administrator ? ClaimAdmin : TargetUser, isGlobalAdmin: false));
+
+        result.Success.ShouldBeTrue();
+        TenantDetail detail = Deserialize<TenantDetail>(result);
+        detail.Configuration.Count.ShouldBe(3);
+        detail.Configuration["billing.secret"].ShouldBe("authorized-api-only");
+        detail.Configuration["ungranted.value"].ShouldBe("consumer-owned");
+        model.Configuration.Count.ShouldBe(3);
+    }
+
     [Fact]
     public async Task List_tenants_wire_admin_hint_alone_does_not_reveal_tenants() {
         IReadModelStore store = Substitute.For<IReadModelStore>();

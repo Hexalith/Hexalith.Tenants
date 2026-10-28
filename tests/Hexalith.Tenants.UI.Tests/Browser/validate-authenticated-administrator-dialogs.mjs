@@ -23,6 +23,8 @@ const standaloneOidc = process.env.TENANTS_BROWSER_STANDALONE_OIDC === '1';
 const safetyOnly = process.env.TENANTS_BROWSER_UI_SAFETY_ONLY === '1';
 const runtimeFollowups = process.env.TENANTS_BROWSER_RUNTIME_FOLLOWUPS === '1';
 const holdGrid = process.env.TENANTS_BROWSER_HOLD_GRID === '1';
+const readSafety = process.env.TENANTS_BROWSER_READ_SAFETY === '1';
+let listUnavailable = false;
 const base = new URL(process.env.TENANTS_BROWSER_BASE_URL || (standaloneOidc ? 'https://localhost' : ''));
 assert.equal(base.hostname, 'localhost', 'Use the registered localhost Aspire endpoint so authentication cookies reach the fixture');
 const username = process.env.TENANTS_BROWSER_USERNAME;
@@ -64,7 +66,7 @@ const evidence = {
     hostMode: 'Production authentication and Razor components; separate UI process; controlled read-only HTTP and SignalR upstream',
     fixtureScope: 'Qualifies authenticated production dialog/create DOM and browser behavior using deterministic upstream responses; does not qualify backend authorization, stored domain data or command delivery',
     authenticationFixture: standaloneOidc ? 'Test-only loopback OIDC issuer; production code validates signed tokens and authenticates its circuit' : 'Existing local realm',
-    records: safetyOnly ? ['DW-194', 'DW-201'] : ['DW-268', 'DW-391', 'DW-194', 'DW-201'],
+    records: readSafety ? ['DW-117', 'DW-118', 'DW-127', 'DW-599', 'DW-618'] : safetyOnly ? ['DW-194', 'DW-201'] : ['DW-268', 'DW-391', 'DW-194', 'DW-201'],
     diagnosticSelectedCasesOnly: safetyOnly,
     cases: [],
 };
@@ -194,6 +196,7 @@ try {
     evidence.sourceBeforeBuild = sourceBeforeBuild;
     const privateDirectory = await mkdtemp(resolve(tmpdir(), 'tenants-admin-dialog-browser-'));
     const buildArguments = ['build', 'src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj', '-c', 'Debug', '-m:1', '-p:UseNuGetDeps=false'];
+    if (readSafety) buildArguments.push('-p:HexalithEventStoreVersion=3.128.4', '-p:HexalithMcpCliFromSource=false', '-p:NuGetAudit=false');
     evidence.build = { executable: 'dotnet', arguments: buildArguments, succeeded: false,
         skippedForDevelopment: process.env.TENANTS_BROWSER_SKIP_BUILD === '1',
         reusedBuild: process.env.TENANTS_BROWSER_SKIP_BUILD === '1' };
@@ -247,6 +250,17 @@ try {
             }
         }
         if (request.method !== 'GET') { fixture.commands++; send({ reason: 'commands-prohibited' }, 405); return; }
+        if (readSafety && url.searchParams.has('axis')) {
+            const raw = [...Array.from({ length: 20 }, (_, index) => `tenant.hidden.${index}`),
+                ...Array.from({ length: 21 }, (_, index) => `tenant.visible.${String(index).padStart(2, '0')}`),
+                ...Array.from({ length: 20 }, (_, index) => `tenant.hidden.tail.${index}`)];
+            const offset = Number(url.searchParams.get('offset') || 0);
+            const width = Number(url.searchParams.get('maxResults') || 20);
+            send({ query: url.searchParams.get('query'), totalCount: raw.length, hasIndexedMemoryUnits: true,
+                axesUsed: ['syntactic'], results: raw.slice(offset, offset + width).map(id => ({
+                    memoryUnitId: id, sourceUri: `tenant:${id}`, score: 1, contentSnippet: 'index-only', sourceType: 'projection', axis: 'syntactic' })) });
+            return;
+        }
         if (!request.headers.authorization?.startsWith('Bearer ')) { send({}, 401); return; }
         fixture.authorizedReads++;
         // Claims are used in memory only to give production code a coherent complete population.
@@ -254,6 +268,13 @@ try {
         let claims;
         try { claims = JSON.parse(Buffer.from(request.headers.authorization.slice(7).split('.')[1], 'base64url')); }
         catch { send({}, 401); return; }
+        if (readSafety && url.pathname.startsWith('/api/tenants/tenant.hidden.')) { send({}, 403); return; }
+        if (readSafety && url.pathname.startsWith('/api/tenants/tenant.visible.')) {
+            const id = url.pathname.slice('/api/tenants/'.length);
+            send({ tenantId: id, name: id, status: 'Active', members: [{ userId: claims.sub, role: 'TenantReader' }],
+                configuration: {}, createdAt: '2026-10-28T00:00:00Z' }); return;
+        }
+        if (readSafety && url.pathname === '/api/tenants' && listUnavailable) { send({}, 503); return; }
         if (url.pathname === '/api/global-administrators') {
             fixture.adminReads++;
             if (grantRenderProbe) grantRenderProbeReads++;
@@ -370,6 +391,41 @@ try {
     phase = 'authenticate-callback';
     await page.waitForURL(url => url.origin === (standaloneOidc ? fixtureBase : base.origin) && !url.pathname.includes('signin-oidc'));
     await testId('tenants-workspace').waitFor();
+    if (readSafety) {
+        phase = 'authorized-search-first-page';
+        await page.goto(`${fixtureBase}/tenants?search=needle`);
+        await page.waitForLoadState('networkidle');
+        await wait(async () => await testId('tenants-list-tenant-id').count() === 20, 'Search must backfill twenty authorized rows');
+        const first = await testId('tenants-list-tenant-id').allTextContents();
+        check(first.every(value => value.includes('tenant.visible.')), 'Rendered search rows must all be authorized');
+        check(!(await page.content()).includes('tenant.hidden.'), 'Hidden search identities must not enter browser markup');
+        check(!new URL(page.url()).searchParams.has('cursor'), 'Protected continuation must stay server-held');
+        evidence.cases.push({ name: phase, visibleRows: first.length, passed: true });
+        phase = 'authorized-search-lookahead';
+        await testId('tenants-list-next').click();
+        await wait(async () => await testId('tenants-list-tenant-id').count() === 1, 'Next must reach the final authorized result');
+        check(await testId('tenants-list-next').evaluate(element => element.hasAttribute('disabled')), 'Hidden suffix must not enable another page');
+        check(!new URL(page.url()).searchParams.has('cursor'), 'Search Next must retain its continuation on the server');
+        evidence.cases.push({ name: phase, visibleRows: 1, hasMore: false, passed: true });
+        phase = 'authorized-search-previous';
+        await testId('tenants-list-previous').click();
+        await wait(async () => await testId('tenants-list-tenant-id').count() === 20, 'Previous must replay the first authorized page');
+        check(JSON.stringify(first) === JSON.stringify(await testId('tenants-list-tenant-id').allTextContents()), 'Previous must retain visible row order');
+        evidence.cases.push({ name: phase, passed: true });
+        phase = 'workspace-error-retry';
+        listUnavailable = true;
+        await page.goto(`${fixtureBase}/tenants`);
+        await page.waitForLoadState('networkidle');
+        await testId('tenants-list-error').waitFor({ state: 'visible' });
+        listUnavailable = false;
+        await testId('tenants-list-refresh').click();
+        await testId('tenants-list-error').waitFor({ state: 'hidden' });
+        await testId('tenants-list-empty').waitFor({ state: 'visible' });
+        check(fixture.commands === 0 && fixture.simulatedCommands === 0 && circuitErrors.length === 0,
+            'Search and Retry must preserve zero command attempts and circuit errors');
+        evidence.cases.push({ name: phase, passed: true });
+        evidence.fixtureScope = 'Authenticated production UI search/Next/Previous and Error/Retry against deterministic loopback responses; no backend authorization, stored domain data, fatal-injection, assistive-technology or release qualification';
+    } else {
     phase = 'administrator-route-readiness';
     await page.bringToFront();
     holdSubscription = runtimeFollowups;
@@ -969,6 +1025,7 @@ runtimeGrid.Initialize = async function(element, ...args) {
         evidence.gridLifetime.afterBack = await page.evaluate(() => window.__runtimeGridTrace);
         check(circuitErrors.length === 0, 'Held pinned grid continuation must preserve zero circuit errors');
     }
+    }
     evidence.sourceAfterBrowser = await captureSource();
     check(JSON.stringify(sourceBeforeBuild) === JSON.stringify(evidence.sourceAfterBrowser),
         'Source or build inputs changed during browser acceptance; evidence is refused');
@@ -1025,7 +1082,8 @@ runtimeGrid.Initialize = async function(element, ...args) {
         unexpectedCommandAttempts: fixture.commands, simulatedCommandAttempts: fixture.simulatedCommands, circuitErrors: circuitErrors.length };
     evidence.acceptedForClosure = evidence.passed === true && evidence.build?.succeeded === true
         && !evidence.build?.reusedBuild && !safetyOnly && !holdGrid
-        && evidence.cases.length === (runtimeFollowups ? 13 : 12);
+        && evidence.cases.length === (readSafety ? 4 : runtimeFollowups ? 13 : 12)
+        && (!readSafety || (fixture.commands === 0 && fixture.simulatedCommands === 0 && circuitErrors.length === 0));
     evidence.finishedUtc = new Date().toISOString();
     let evidenceWriteFailed = false;
     try {

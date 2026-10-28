@@ -16,6 +16,11 @@ namespace Hexalith.Tenants.Queries.Handlers;
 /// Serves the <c>get-tenant</c> query: full details for a single tenant, gated by tenant membership
 /// or global-administrator role.
 /// </summary>
+/// <remarks>
+/// Authorized API consumers receive the full configuration contract. FR-6 is a server-side UI display
+/// policy: the BFF separately applies exact prefix grants and display-safe keys before browser rendering.
+/// Missing or malformed UI display policy does not change this membership-authorized API response.
+/// </remarks>
 public sealed class GetTenantQueryHandler(
     IReadModelStore store,
     IQueryCursorCodec cursorCodec,

@@ -1,0 +1,7 @@
+xUnit.net v3 In-Process Runner v4.0.2+0c7aa4991f (64-bit .NET 10.0.13)
+  Discovering: Hexalith.Tenants.UI.Tests
+  Discovered:  Hexalith.Tenants.UI.Tests
+  Starting:    Hexalith.Tenants.UI.Tests
+  Finished:    Hexalith.Tenants.UI.Tests (ID = 'ebdcd5ef4d4208b1f7bffe68a07b7c3b73336a0f9a7665a5af5a18fe6557b4fa')
+=== TEST EXECUTION SUMMARY ===
+   Hexalith.Tenants.UI.Tests  Total: 1129, Errors: 0, Failed: 0, Skipped: 0, Not Run: 0, Time: 8.937s

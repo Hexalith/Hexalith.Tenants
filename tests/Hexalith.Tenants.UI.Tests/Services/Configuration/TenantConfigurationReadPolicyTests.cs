@@ -24,6 +24,35 @@ namespace Hexalith.Tenants.UI.Tests.Services.Configuration;
 public sealed class TenantConfigurationReadPolicyTests
 {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Display_boundary_selects_exact_safe_keys_and_prefixes_without_mutating_api_detail(bool administrator)
+    {
+        var raw = Detail(new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["billing.mode"] = "visible",
+            ["billing.secret"] = "not-display-safe",
+            ["billingExtra.mode"] = "outside-grant",
+            ["other.mode"] = "administrator-only-display",
+        });
+        TenantConfigurationReadPolicyResolution policy = new TenantConfigurationReadPolicyProvider(Configuration("""
+            { "Tenants": { "ConfigurationReadPolicy": {
+                "PrefixGrants": [{ "TenantId": "tenant.alpha", "Subject": "operator.alpha", "Prefix": "billing" }],
+                "DisplaySafe": ["billing.mode", "billingExtra.mode", "other.mode"]
+            } } }
+            """)).Resolve("tenant.alpha", administrator
+                ? TenantConfigurationPrincipalEvidence.GlobalAdministrator("operator.alpha")
+                : TenantConfigurationPrincipalEvidence.NonAdministrator("operator.alpha"));
+
+        TenantConfigurationComposition safe = TenantConfigurationSafeComposer.Compose(raw, policy);
+        safe.SafeModel.Rows.Select(row => row.Key).ShouldBe(administrator
+            ? ["billing.mode", "billingExtra.mode", "other.mode"] : ["billing.mode"]);
+        safe.SanitizedDetail.Configuration.ShouldBeEmpty();
+        raw.Configuration.Count.ShouldBe(4);
+        raw.Configuration["billing.secret"].ShouldBe("not-display-safe");
+    }
+
+    [Theory]
     [InlineData(false, "PrefixGrants")]
     [InlineData(false, "DisplaySafe")]
     [InlineData(true, "PrefixGrants")]

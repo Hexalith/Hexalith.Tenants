@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-117/DW-118/DW-127/DW-599/DW-618 approved supersession (2026-10-28):** Workspace Error/Retry containment, qualified nonblank cursor contracts, bounded authorized search backfill/lookahead and the FR-6 UI display boundary close exactly five records under the approved policies. All 657 IDs remain: 649 done/8 open across seven maintenance rows; all 652 unselected bodies and original findings remain preserved. Two independent-review follow-ups are recorded separately and excluded from numbered totals. See [verification, review corrections and limits](dw-117-118-127-599-618-validation-evidence.md).
+
 **DW-438/DW-457/DW-498/DW-521/DW-600 closure (2026-10-28):** Approved canonical audit references, immutable historical disposition, independently authorized inspection, exact-message status precedence and strict administrator completeness are implemented, reviewed and source-qualified. All 657 IDs remain: 644 done/13 open across 12 maintenance rows; original findings and all 652 unselected numbered bodies are preserved. Published-package adoption and broader runtime/release holds remain separate. See [verification, review corrections and limits](dw-438-457-498-521-600-validation-evidence.md).
 
 **Five runtime follow-ups (2026-10-28):** Two unnumbered records close: credential acquisition refuses redirects, and removal submission refuses admission after rejected focus preparation while preserving intent and retained identity for retry. Fresh focused browser acceptance passes 4/4 with zero circuit errors; full UI 7,841/7,841 and Server 1,582/1,582 pass. Grant Escape's historical cause, the external Fluent grid disposal defect and DW-466's missing historical test identity remain open. The full browser lane and separate grid diagnostic fail on the preserved external grid fault. No numbered record closes: all 657 IDs and 639 done/18 open totals remain. Original findings and unrelated holds, including DW-137, are preserved. See [outcomes and exact evidence](five-deferred-runtime-followups-validation-evidence.md).
@@ -1035,8 +1037,8 @@ location: TenantQueryGateway.cs:1019; TenantsWorkspace.razor:632
 source_spec: `_bmad-output/implementation-artifacts/spec-1-9-authoritative-memories-search-with-protected-paging.md`
 reason: The legacy ledger defers this issue: Surfacing codec exceptions escape the gateway and reach an unguarded LoadAsync, tearing down the Blazor circuit. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-1-9-authoritative-memories-search-with-protected-paging.md` summary: Surfacing codec exceptions escape the gateway and reach an unguarded LoadAsync, tearing down the Blazor circuit. evidence: `TenantQueryGateway.cs:1019` deliberately re-raises `ObjectDisposedException`, `NullReferenceException`, `ArgumentNullException`, `OutOfMemoryException`; `TenantsWorkspace.razor:632` catches only `OperationCanceledException`. A disposed Data Protection provider during host shutdown therefore kills the circuit where every other cursor-protection failure degrades to the ordinary list. Documented as deliberate in the source comments, and shutdown-time disposal is benign, so recorded rather than patched. status: open
-status: open
-disposition: accepted-limitation
+status: done 2026-10-28
+disposition: resolved
 verification-date: 2026-10-12
 verification: src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs IsSurfacingDefect explicitly rethrows fatal/programming/disposal exceptions; Components/Pages/TenantsWorkspace.razor LoadAsync only contains cancellation. Source remarks explicitly choose diagnostic surfacing rather than classifying programming failures as malformed cursors.
 verification-files: src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs; src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor
@@ -1046,6 +1048,11 @@ owner: unassigned
 dependencies: none
 next-action: Revisit containment only if the documented surfacing policy changes.
 related: none
+resolution-date: 2026-10-28
+resolution: Approved nonfatal provider/programming exceptions are contained by the workspace Error/Retry boundary with fixed safe diagnostics; stale, cancelled and disposed loads retire, and direct/wrapped fatal exceptions propagate.
+resolution-evidence: dw-117-118-127-599-618-validation-evidence.md
+resolution-limits: Original findings and prior verification remain historical evidence. Privacy excludes timing, work, fallback-mode independence and completeness beyond budget; offset mutations retain existing limits. No snapshot-isolation, assistive-technology or release qualification is claimed.
+
 
 ### DW-118: The codec argument guard straddles the contained/surfacing partition, so its null and empty halves produce opposite outcomes
 origin: migrated from legacy ledger ("Deferred from: code review of spec-1-9-authoritative-memories-search-with-protected-paging (2026-07-27)"), 2026-08-25
@@ -1053,8 +1060,8 @@ location: TenantQueryGateway.cs:1025
 source_spec: `_bmad-output/implementation-artifacts/spec-1-9-authoritative-memories-search-with-protected-paging.md`
 reason: The legacy ledger defers this issue: The codec argument guard straddles the contained/surfacing partition, so its null and empty halves produce opposite outcomes. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-1-9-authoritative-memories-search-with-protected-paging.md` summary: The codec argument guard straddles the contained/surfacing partition, so its null and empty halves produce opposite outcomes. evidence: `QueryCursorCodec` uses `ArgumentException.ThrowIfNullOrWhiteSpace`, which throws `ArgumentNullException` for null and `ArgumentException` for empty. `TenantQueryGateway.cs:1025` excludes `ArgumentNullException` before the `ArgumentException` base match, so null escapes to circuit teardown while empty degrades to the ordinary list. Not reachable today: `TenantSearchCursorScopes.Create` never returns null and `TenantSearchCursorPosition.Format` never returns empty. status: open
-status: open
-disposition: accepted-limitation
+status: done 2026-10-28
+disposition: resolved
 verification-date: 2026-10-12
 verification: src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs excludes ArgumentNullException before ArgumentException; TenantSearchCursorScopes.Create and TenantSearchCursorPosition.Format produce closed nonblank inputs. The asymmetry remains deliberate for programming defects and is not a demonstrated production input path.
 verification-files: src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs
@@ -1064,6 +1071,11 @@ owner: unassigned
 dependencies: none
 next-action: Revisit if codec callers begin accepting nullable scope or position inputs.
 related: DW-117
+resolution-date: 2026-10-28
+resolution: Approved contract decision: wrappers require nonblank inputs; the gateway deliberately preserves null-versus-empty classification. This does not claim a reachable null-input production defect was fixed. Nonfatal escaped defects are contained by the workspace boundary.
+resolution-evidence: dw-117-118-127-599-618-validation-evidence.md
+resolution-limits: Original findings and prior verification remain historical evidence. Privacy excludes timing, work, fallback-mode independence and completeness beyond budget; offset mutations retain existing limits. No snapshot-isolation, assistive-technology or release qualification is claimed.
+
 
 ### DW-119: The pager is unmounted on every load, dropping keyboard focus from the button the operator just pressed
 
@@ -1151,10 +1163,10 @@ origin: migrated from legacy ledger ("Deferred from: code review of 1-6-read-onl
 location: TenantQueryGateway.cs:890
 reason: The legacy ledger defers this issue: Partially hidden authoritative-search windows disclose hidden candidates through paging state. Original context is preserved in legacy-detail.
 legacy-detail: - **Partially hidden authoritative-search windows disclose hidden candidates through paging state.** This is the already-recorded Story 1.9 `PARTIAL-WINDOW-DISCLOSURE-1.9` residual: `TenantQueryGateway.cs:890` renders surviving rows while retaining a `HasMore` value derived from the raw pre-authorization total. It is pre-existing relative to the Story 1.6 trust-boundary chunk and remains owned by Story 1.9.
-status: open
+status: done 2026-10-28
 decision: 2026-08-28 Await stronger requirement
 decision: 2026-08-28 Await stronger requirement
-disposition: awaiting-decision
+disposition: resolved
 verification-date: 2026-10-12
 verification: src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs still derives partially hidden-window HasMore from raw TotalCount and explicitly documents the residual disclosure channel. Both 2026-08-28 decisions say await a stronger requirement.
 verification-files: src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs
@@ -1164,6 +1176,11 @@ owner: Story 1.9
 dependencies: product/security requirement
 next-action: Set the privacy/completeness acceptance requirement for partially hidden search windows.
 related: DW-128, DW-618
+resolution-date: 2026-10-28
+resolution: Approved rendered-privacy/completeness requirement: authorized backfill and lookahead derive rows/pager only from visible results. Fixed-window replay uses protected v2 numeric positions; incomplete budget or operational hydration outcomes discard search and use the labelled authorized-list fallback.
+resolution-evidence: dw-117-118-127-599-618-validation-evidence.md
+resolution-limits: Original findings and prior verification remain historical evidence. Privacy excludes timing, work, fallback-mode independence and completeness beyond budget; offset mutations retain existing limits. No snapshot-isolation, assistive-technology or release qualification is claimed.
+
 
 ### DW-128: Search hydration conflates forbidden and missing candidates when deciding whether to end paging
 
@@ -5837,8 +5854,8 @@ location: n/a
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Enforce tenant configuration read policy at the direct API boundary.\n  evidence: GetTenantQueryHandler returns all configuration values to an authorized tenant member, while prefix and display-safe filtering runs only in the UI composer, leaving direct REST callers outside the FR-6 display policy."
-status: open
-disposition: awaiting-decision
+status: done 2026-10-28
+disposition: resolved
 verification-date: 2026-10-12
 verification: GetTenantQueryHandler.ExecuteCoreAsync still returns model.Configuration wholesale after membership authorization; display-safe/prefix policy lives in UI composition. FR-6 API applicability needs an explicit boundary decision; current REST disclosure is verified, but policy violation is not established.
 evidence-kind: verified-gap
@@ -5847,6 +5864,10 @@ owner: unassigned
 dependencies: Configuration read-policy scope decision
 next-action: Decide whether FR-6 filtering protects API disclosure as well as UI display; specify the owning boundary.
 related: none
+resolution-date: 2026-10-28
+resolution: Approved FR-6 boundary decision: retain the full configuration API after membership/current-administrator authorization. Server-side UI composition separately requires valid policy, exact display-safe keys and ordinal prefix grants; administrators bypass prefixes only. Missing/malformed policy fails UI configuration closed.
+resolution-evidence: dw-117-118-127-599-618-validation-evidence.md
+resolution-limits: Original findings and prior verification remain historical evidence. Privacy excludes timing, work, fallback-mode independence and completeness beyond budget; offset mutations retain existing limits. No snapshot-isolation, assistive-technology or release qualification is claimed.
 
 
 ### DW-600: Treat duplicate administrator identities across cursor pages as incomplete projection evidence.
@@ -6045,8 +6066,8 @@ location: n/a
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Make authorized search paging both complete and private when index windows contain hidden tenants.\n  evidence: A fully forbidden or absent window ends paging before later authorized hits, while a partly hidden window derives HasMore from the raw index total and can reveal additional raw results."
-status: open
-disposition: actionable
+status: done 2026-10-28
+disposition: resolved
 verification-date: 2026-10-12
 verification: TenantQueryGateway.BuildAuthoritativeSearchSnapshotAsync explicitly ends paging for an entirely hidden window and derives partial-window HasMore from raw index total. Later authorized hits can be inaccessible, and partial windows retain the recorded paging disclosure.
 evidence-kind: verified-defect
@@ -6055,6 +6076,10 @@ owner: unassigned
 dependencies: Authorization-safe index paging design
 next-action: Design bounded authorized paging that continues through hidden windows without exposing raw-result pagination facts.
 related: DW-619
+resolution-date: 2026-10-28
+resolution: Approved authorized backfill/lookahead continues past hidden, missing, malformed and status-filtered candidates. Each load examines at most 1,000 raw positions including replay/lookahead; exhaustion or any operational hydration gap discards incomplete search for the labelled authorized-list fallback.
+resolution-evidence: dw-117-118-127-599-618-validation-evidence.md
+resolution-limits: Original findings and prior verification remain historical evidence. Privacy excludes timing, work, fallback-mode independence and completeness beyond budget; offset mutations retain existing limits. No snapshot-isolation, assistive-technology or release qualification is claimed.
 
 
 ### DW-619: Make tenant search sorting consistent across page boundaries.
@@ -6466,3 +6491,14 @@ archived: 2026-10-22
 - source_spec: `_bmad-output/implementation-artifacts/spec-dw-540-554-570-584-593-release-governance.md`
   summary: Medium, unverified — qualify a fresh generic blocking Aspire CI run after the published EventStore routing contracts can compile.
   evidence: The new browser/TLS/Dapr prerequisite and result-gate definitions have local contract checks, but no fresh full generic Aspire provisioning run is claimed. Current default and Release/package Contracts builds fail with ten missing EventStore routing-type errors in TenantCatalogDeclarations.cs; pre-review Debug/source Contracts passed 704/704 and both real workflow closures passed immutable-snapshot checks. Retain those distinct results and the existing release holds. Capture a fresh package-mode generic tier with installed prerequisites, executed tests and no skips after the upstream package prerequisite is available.
+
+
+## Deferred from: five read-safety items independent review (2026-10-28)
+
+- source_spec: `spec-dw-117-118-127-599-618-read-safety.md`
+  summary: Medium, pre-existing: qualify fatal dependency failure precedence when the authenticated caller retires concurrently.
+  evidence: CallerBoundTenantsRestQueryClient.ReadAsync verifies cancellation/current authority in finally, and TenantQueryGateway.ReadForAuthenticatedCallerAsync contains caller-transition failures. Those unchanged entry paths can replace a fatal dependency exception with cancellation or authorization failure before workspace classification. Establish a held fatal read plus caller/cancellation transition regression and an owning precedence decision before changing this security boundary. This is separate from the selected workspace/search fixes and numbered totals.
+
+- source_spec: `spec-dw-117-118-127-599-618-read-safety.md`
+  summary: Unverified medium: measure elapsed latency of bounded authorized backfill against a slow upstream before choosing a whole-load deadline.
+  evidence: The approved scan examines at most 1,000 raw positions and honors caller cancellation and existing request timeouts, but multiple sequential windows can multiply latency. No unacceptable-duration threshold or controlled slow-upstream incident was established. Capture per-window/whole-load timing and cancellation with a deterministic slow fixture, then choose the owning timeout/fallback contract. Rendered privacy/completeness qualification does not claim a latency SLA; numbered totals are unchanged.

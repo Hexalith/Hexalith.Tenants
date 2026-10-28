@@ -15,10 +15,11 @@ public sealed class TenantSearchCursorTests {
     public void Dedicated_codec_round_trips_only_in_the_exact_seven_field_scope() {
         var codec = new TenantSearchCursorCodec(new EphemeralDataProtectionProvider());
         string scope = Scope(user: "user.one", search: "alpha");
-        string cursor = codec.Encode(scope, 42);
+        string cursor = codec.Encode(scope, 42, 7);
 
-        codec.TryDecode(cursor, scope, out int offset).ShouldBeTrue();
-        offset.ShouldBe(42);
+        codec.TryDecode(cursor, scope, out TenantSearchCursorPosition offset).ShouldBeTrue();
+        offset.WindowStart.ShouldBe(42);
+        offset.ConsumedResults.ShouldBe(7);
 
         codec.TryDecode(cursor, Scope(user: "user.two", search: "alpha"), out _).ShouldBeFalse();
         codec.TryDecode(cursor, Scope(user: "user.one", search: "beta"), out _).ShouldBeFalse();
@@ -41,8 +42,48 @@ public sealed class TenantSearchCursorTests {
             .ShouldBeFalse();
         TenantSearchCursorPosition.TryParse("-1", out _).ShouldBeFalse();
         TenantSearchCursorPosition.TryParse("01", out _).ShouldBeFalse();
-        TenantSearchCursorPosition.TryParse("1", out int offset).ShouldBeTrue();
-        offset.ShouldBe(1);
+        TenantSearchCursorPosition.TryParse("2:1:0", out TenantSearchCursorPosition offset).ShouldBeTrue();
+        offset.WindowStart.ShouldBe(1);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData(" ")]
+    public void Wrapper_inputs_require_nonblank_scope_caller_search_and_sort(string? value)
+    {
+        var codec = new TenantSearchCursorCodec(new EphemeralDataProtectionProvider());
+        Should.Throw<ArgumentException>(() => codec.Encode(value!, 0));
+        Should.Throw<ArgumentException>(() => codec.TryDecode(null, value!, out _));
+        Should.Throw<ArgumentException>(() => Scope(value!, "needle"));
+        Should.Throw<ArgumentException>(() => Scope("caller", value!));
+        Should.Throw<ArgumentException>(() => Scope("caller", "needle", sort: value!));
+    }
+
+    [Theory]
+    [InlineData("42")]
+    [InlineData("1:42:0")]
+    [InlineData("2:01:0")]
+    [InlineData("2:0:01")]
+    [InlineData("2:-1:0")]
+    [InlineData("2:0:-1")]
+    [InlineData("2:2147483648:0")]
+    public void Position_rejects_old_versions_noncanonical_numbers_and_overflow(string value)
+    {
+        TenantSearchCursorPosition.TryParse(value, out _).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Old_purpose_cursors_are_rejected_and_new_positions_retain_only_numbers()
+    {
+        var provider = new EphemeralDataProtectionProvider();
+        string scope = Scope("caller", "needle");
+        var oldCodec = new QueryCursorCodec(provider, "Hexalith.Tenants.UI.AuthoritativeTenantSearch.v1");
+        string old = oldCodec.Encode(TenantSearchCursorPosition.QueryType, scope, "20");
+        new TenantSearchCursorCodec(provider).TryDecode(old, scope, out _).ShouldBeFalse();
+        TenantSearchCursorPosition.Format(int.MaxValue, int.MaxValue).ShouldBe("2:2147483647:2147483647");
+        Should.Throw<ArgumentOutOfRangeException>(() => TenantSearchCursorPosition.Format(-1));
+        Should.Throw<ArgumentOutOfRangeException>(() => TenantSearchCursorPosition.Format(0, -1));
     }
 
     [Fact]
@@ -64,8 +105,8 @@ public sealed class TenantSearchCursorTests {
             scope,
             out _,
             out _).ShouldBeFalse();
-        searchCodec.TryDecode(cursor, scope, out int offset).ShouldBeTrue();
-        offset.ShouldBe(3);
+        searchCodec.TryDecode(cursor, scope, out TenantSearchCursorPosition offset).ShouldBeTrue();
+        offset.WindowStart.ShouldBe(3);
     }
 
     [Fact]

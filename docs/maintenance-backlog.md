@@ -1,5 +1,7 @@
 # Maintenance backlog
 
+**DW-117/DW-118/DW-127/DW-599/DW-618 approved supersession (2026-10-28):** Nonfatal workspace Error/Retry containment, nonblank cursor contracts, bounded authorized backfill/lookahead and the FR-6 UI display boundary implement the approved decisions. DW-118 closes as a contract decision, not a claimed reachable null-input production fix; DW-599 preserves the authorized full-configuration API. All 657 IDs remain: 649 done/8 open across 7 maintenance rows; original findings and all 652 unselected numbered bodies remain preserved. Privacy covers rendered rows/pager within 1,000 raw positions per load, including replay/lookahead; budget/hydration gaps use the labelled authorized-list fallback. Timing, work, fallback-mode independence, beyond-budget completeness, offset-mutation limits and broader AT/runtime/release qualification remain outside this closure. See [verification and environment controls](../_bmad-output/implementation-artifacts/dw-117-118-127-599-618-validation-evidence.md).
+
 **DW-438/DW-457/DW-498/DW-521/DW-600 closure (2026-10-28):** Approved canonical audit references, immutable historical disposition, independently authorized inspection, exact-message status precedence and strict administrator completeness are implemented, reviewed and source-qualified. All 657 IDs remain: 644 done/13 open across 12 maintenance rows; original findings and all 652 unselected numbered bodies are preserved. Published-package adoption and broader runtime/release holds remain separate. See [verification, review corrections and limits](../_bmad-output/implementation-artifacts/dw-438-457-498-521-600-validation-evidence.md).
 
 **DW-122/DW-334/DW-358/DW-579/DW-595 qualification (2026-10-28):** Deterministic BM25 raw windows, actual package-mode local Memories provider initialization, a validated current Builds audit and exact-adopted-pin EventStore CI complete the selected five records. All 657 IDs remain: 639 done/18 open across 17 maintenance rows. Historical failures and selected original fields, all 652 unselected numbered bodies, unrelated dependencies and broader runtime/release holds remain preserved. See [exact verification and limits](../_bmad-output/implementation-artifacts/dw-122-334-358-579-595-validation-evidence.md).
@@ -277,7 +279,7 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 **Current implementation completed:** DW-590; DW-588; DW-216; DW-215; DW-653; DW-652; DW-651 (separate DW-653 follow-up now closed above); DW-424 (separate DW-650 follow-up open); DW-308/DW-314; DW-648; DW-545; DW-528/DW-542; prior DW-243/DW-262/DW-612; prior DW-325/DW-587; prior DW-647; prior DW-646, DW-645, DW-644, DW-480, DW-468, DW-331, DW-470 and DW-285 closures are preserved. Release remains not ready.
 
-**Decisions needed:** authoritative/version-bounded global-administrator revocation (DW-562/DW-617); direct API configuration filtering (DW-599); hidden-search privacy/completeness (DW-127). Lower-priority UX, manifest and bootstrap-provider choices appear in the index. Previously recorded decisions remain settled and are actionable work, not new approval requests.
+**Decisions needed:** authoritative/version-bounded global-administrator revocation (DW-562/DW-617). DW-599 API/UI scope and DW-127 rendered-search privacy/completeness were approved on 2026-10-28; the selected read-safety supersession is recorded above. Lower-priority UX, manifest and bootstrap-provider choices appear in the index. Previously recorded decisions remain settled and are actionable work, not new approval requests.
 
 **Original reconciliation verification limits (2026-10-12):** source, tests and supporting artifacts were inspected; no .NET or browser suite was rerun for this documentation task. Read-only story-gitlink checks ran. Existing exact-HEAD [CI](https://github.com/Hexalith/Hexalith.Tenants/actions/runs/38269521776) shows the build/test job green and the advisory Aspire lane 183/184 passed (zero skipped), with the generated API `/alive` TLS case failing. [Story Guards](https://github.com/Hexalith/Hexalith.Tenants/actions/runs/38269520326) still times out Chromium. The ledger records exact evidence and missing checks for each item.
 
@@ -288,15 +290,12 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW references | Priority | Evidence / disposition | Owner | Dependencies | Next concrete action |
 | --- | --- | --- | --- | --- | --- |
 | DW-562, DW-617 | P1 | Gap / awaiting-decision | global-administrator authority owner; other records unassigned | Platform authorization and revocation contract; DW-562 revocation contract decision | Define the authoritative/version-bounded revocation guarantee and responsible authority before changing command/query gates. |
-| DW-618 | P2 | Defect / actionable | unassigned | Authorization-safe index paging design | Design bounded authorized paging that continues through hidden windows without exposing raw-result pagination facts. |
-| DW-599 | P2 | Gap / awaiting-decision | unassigned | Configuration read-policy scope decision | Decide whether FR-6 filtering protects API disclosure as well as UI display; specify the owning boundary. |
 
 ## Unverified risks and recommendations
 
 | DW references | Priority | Evidence / disposition | Owner | Dependencies | Next concrete action |
 | --- | --- | --- | --- | --- | --- |
 | DW-116 | P2 | Unverified / blocked | unassigned | BROWSER-SEARCH-1.9 and AT-NVDA-1.9 | Capture authenticated search live-region and NVDA evidence with the shipped Fluent runtime. |
-| DW-127 | P2 | Unverified / awaiting-decision | Story 1.9 | product/security requirement | Set the privacy/completeness acceptance requirement for partially hidden search windows. |
 | DW-446 | P2 | Unverified / uncertain | unassigned | none | Run NVDA with a supported browser through the first events-stored availability transition and record whether its first message is announced. |
 | DW-459 | P2 | Unverified / uncertain | unassigned | NVDA or VoiceOver authenticated browser session | Capture an assistive-technology browser trace of the first mounted state before deciding whether an always-mounted empty live container is required. |
 | DW-466 | P2 | Unverified / uncertain | unassigned | Historical full-suite raw logs; controlled load reproduction | Identify the metadata test from raw historical logs and reproduce both waits under controlled load before changing timeout or synchronization. |
@@ -306,8 +305,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 | DW references | Priority | Evidence / disposition | Owner | Dependencies | Next concrete action |
 | --- | --- | --- | --- | --- | --- |
-| DW-117 | P3 | Accepted / accepted-limitation | unassigned | none | Revisit containment only if the documented surfacing policy changes. |
-| DW-118 | P3 | Accepted / accepted-limitation | unassigned | none | Revisit if codec callers begin accepting nullable scope or position inputs. |
 | DW-367 | P3 | Accepted / accepted-limitation | unassigned | Explicit contract/product change approval | Keep deliberate role selection; revisit the event schema only through a separately approved contract change. |
 
 **Additional unnumbered verification follow-up (2026-10-24):** One grant Escape focus timeout remains unverified after a passing instrumented trace and final normal nine-case browser run. Its cause and distinguishing reproduction are retained in the deferred ledger and [focus diagnostic](../_bmad-output/implementation-artifacts/dw-391-focus-diagnostic.json). Numbered DW totals and exact index coverage exclude this follow-up until migration.

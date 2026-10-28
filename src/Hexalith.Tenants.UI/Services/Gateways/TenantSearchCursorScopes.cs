@@ -6,7 +6,8 @@ using Hexalith.EventStore.Client.Queries;
 namespace Hexalith.Tenants.UI.Services.Gateways;
 
 /// <summary>Builds the complete, fixed-size tenant-search cursor scope.</summary>
-internal static class TenantSearchCursorScopes {
+internal static class TenantSearchCursorScopes
+{
     /// <summary>The fixed Memories tenant/index used for tenant candidates.</summary>
     public const string SearchIndex = "tenants-index";
 
@@ -18,7 +19,11 @@ internal static class TenantSearchCursorScopes {
         string sort,
         bool descending,
         int pageSize)
-        => QueryCursorScope.Create()
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(search);
+        ArgumentException.ThrowIfNullOrWhiteSpace(sort);
+        return QueryCursorScope.Create()
             .Add("user", Hash(userId))
             .Add("index", SearchIndex)
             .Add("search", Hash(search))
@@ -27,6 +32,7 @@ internal static class TenantSearchCursorScopes {
             .Add("direction", descending ? "descending" : "ascending")
             .Add("pageSize", pageSize.ToString(System.Globalization.CultureInfo.InvariantCulture))
             .Build();
+    }
 
     private static string Hash(string value)
         => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value)));

@@ -1,0 +1,9 @@
+Running tests from /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll (net10.0|x64)
+/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll (net10.0|x64) passed (1m 42s 400ms)
+
+Test run summary: Passed!
+  total: 7986
+  failed: 0
+  succeeded: 7986
+  skipped: 0
+  duration: 1m 42s 551ms

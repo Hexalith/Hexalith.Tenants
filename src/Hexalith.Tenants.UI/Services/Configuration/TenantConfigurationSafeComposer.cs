@@ -9,6 +9,7 @@ namespace Hexalith.Tenants.UI.Services.Configuration;
 /// <summary>
 /// Removes raw configuration and composes immutable positive-policy state.
 /// </summary>
+/// <remarks>FR-6 controls browser display. Authorized API consumers retain the full configuration contract.</remarks>
 internal static class TenantConfigurationSafeComposer
 {
     /// <summary>

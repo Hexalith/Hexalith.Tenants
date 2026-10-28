@@ -1,0 +1,122 @@
+{
+  "playwrightVersion": "1.63.0",
+  "startedUtc": "2026-10-28T17:16:18.723Z",
+  "hostMode": "Production authentication and Razor components; separate UI process; controlled read-only HTTP and SignalR upstream",
+  "fixtureScope": "Authenticated production UI search/Next/Previous and Error/Retry against deterministic loopback responses; no backend authorization, stored domain data, fatal-injection, assistive-technology or release qualification",
+  "authenticationFixture": "Test-only loopback OIDC issuer; production code validates signed tokens and authenticates its circuit",
+  "records": [
+    "DW-117",
+    "DW-118",
+    "DW-127",
+    "DW-599",
+    "DW-618"
+  ],
+  "diagnosticSelectedCasesOnly": false,
+  "cases": [
+    {
+      "name": "authorized-search-first-page",
+      "visibleRows": 20,
+      "passed": true
+    },
+    {
+      "name": "authorized-search-lookahead",
+      "visibleRows": 1,
+      "hasMore": false,
+      "passed": true
+    },
+    {
+      "name": "authorized-search-previous",
+      "passed": true
+    },
+    {
+      "name": "workspace-error-retry",
+      "passed": true
+    }
+  ],
+  "sourceBeforeBuild": {
+    "validatorSha256": "96baf1d7c8c25affab2b65a9e8e92aa9c6b10874a42e3ed8069d522b3e9887eb",
+    "oidcFixtureSha256": "c3832608e33425c4e090dbf2014c246937237223c5097ea33c316363ab346b8f",
+    "sourceBaseRevision": "6deb5d5dbaad4e26405910b347d45b82deae1057",
+    "sourceDiffSha256": "67befd7948af32b6ce657d72b4bd26ed5514dc54268b32286988baf094d32bf4",
+    "buildInputsDiffSha256": "cee49fa6a21ba0f1920af2ce57d2b6fa139283f862e9c98cc27e7e68d76b91de",
+    "untrackedSourceSha256": "acecf097bcc77c54203d19736adab6d04805bf8f1653b6832fbe0842384632a7",
+    "frontComposerBaseRevision": "5f665c4d38afb2255a7dde4620330e09824a40a1",
+    "frontComposerDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "frontComposerUntrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "build": {
+    "executable": "dotnet",
+    "arguments": [
+      "build",
+      "src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj",
+      "-c",
+      "Debug",
+      "-m:1",
+      "-p:UseNuGetDeps=false",
+      "-p:HexalithEventStoreVersion=3.128.4",
+      "-p:HexalithMcpCliFromSource=false",
+      "-p:NuGetAudit=false"
+    ],
+    "succeeded": true,
+    "skippedForDevelopment": false,
+    "reusedBuild": false
+  },
+  "sourceAfterBuild": {
+    "validatorSha256": "96baf1d7c8c25affab2b65a9e8e92aa9c6b10874a42e3ed8069d522b3e9887eb",
+    "oidcFixtureSha256": "c3832608e33425c4e090dbf2014c246937237223c5097ea33c316363ab346b8f",
+    "sourceBaseRevision": "6deb5d5dbaad4e26405910b347d45b82deae1057",
+    "sourceDiffSha256": "67befd7948af32b6ce657d72b4bd26ed5514dc54268b32286988baf094d32bf4",
+    "buildInputsDiffSha256": "cee49fa6a21ba0f1920af2ce57d2b6fa139283f862e9c98cc27e7e68d76b91de",
+    "untrackedSourceSha256": "acecf097bcc77c54203d19736adab6d04805bf8f1653b6832fbe0842384632a7",
+    "frontComposerBaseRevision": "5f665c4d38afb2255a7dde4620330e09824a40a1",
+    "frontComposerDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "frontComposerUntrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "sourceStableDuringBuild": true,
+  "validatorSha256": "96baf1d7c8c25affab2b65a9e8e92aa9c6b10874a42e3ed8069d522b3e9887eb",
+  "oidcFixtureSha256": "c3832608e33425c4e090dbf2014c246937237223c5097ea33c316363ab346b8f",
+  "sourceBaseRevision": "6deb5d5dbaad4e26405910b347d45b82deae1057",
+  "sourceDiffSha256": "67befd7948af32b6ce657d72b4bd26ed5514dc54268b32286988baf094d32bf4",
+  "buildInputsDiffSha256": "cee49fa6a21ba0f1920af2ce57d2b6fa139283f862e9c98cc27e7e68d76b91de",
+  "untrackedSourceSha256": "acecf097bcc77c54203d19736adab6d04805bf8f1653b6832fbe0842384632a7",
+  "frontComposerBaseRevision": "5f665c4d38afb2255a7dde4620330e09824a40a1",
+  "frontComposerDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "frontComposerUntrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "localUiAssemblySha256": "fcbe80576ddac7d0ed57f02a57f5f5d0dcb14e5a21ecaa37f762ddccf50dddd2",
+  "localShellAssemblySha256": "b4b78423572da1c8afa514c9d4bf23f53cb4ed807cd580b49fa3b47305848094",
+  "browserVersion": "153.0.8010.12",
+  "sourceAfterBrowser": {
+    "validatorSha256": "96baf1d7c8c25affab2b65a9e8e92aa9c6b10874a42e3ed8069d522b3e9887eb",
+    "oidcFixtureSha256": "c3832608e33425c4e090dbf2014c246937237223c5097ea33c316363ab346b8f",
+    "sourceBaseRevision": "6deb5d5dbaad4e26405910b347d45b82deae1057",
+    "sourceDiffSha256": "67befd7948af32b6ce657d72b4bd26ed5514dc54268b32286988baf094d32bf4",
+    "buildInputsDiffSha256": "cee49fa6a21ba0f1920af2ce57d2b6fa139283f862e9c98cc27e7e68d76b91de",
+    "untrackedSourceSha256": "acecf097bcc77c54203d19736adab6d04805bf8f1653b6832fbe0842384632a7",
+    "frontComposerBaseRevision": "5f665c4d38afb2255a7dde4620330e09824a40a1",
+    "frontComposerDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "frontComposerUntrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "passed": true,
+  "sourceAfterCleanup": {
+    "validatorSha256": "96baf1d7c8c25affab2b65a9e8e92aa9c6b10874a42e3ed8069d522b3e9887eb",
+    "oidcFixtureSha256": "c3832608e33425c4e090dbf2014c246937237223c5097ea33c316363ab346b8f",
+    "sourceBaseRevision": "6deb5d5dbaad4e26405910b347d45b82deae1057",
+    "sourceDiffSha256": "67befd7948af32b6ce657d72b4bd26ed5514dc54268b32286988baf094d32bf4",
+    "buildInputsDiffSha256": "cee49fa6a21ba0f1920af2ce57d2b6fa139283f862e9c98cc27e7e68d76b91de",
+    "untrackedSourceSha256": "acecf097bcc77c54203d19736adab6d04805bf8f1653b6832fbe0842384632a7",
+    "frontComposerBaseRevision": "5f665c4d38afb2255a7dde4620330e09824a40a1",
+    "frontComposerDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "frontComposerUntrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "sourceStableThroughCleanup": true,
+  "circuitFaults": [],
+  "fixture": {
+    "authorizedReads": 206,
+    "administratorReads": 0,
+    "unexpectedCommandAttempts": 0,
+    "simulatedCommandAttempts": 0,
+    "circuitErrors": 0
+  },
+  "acceptedForClosure": true,
+  "finishedUtc": "2026-10-28T17:16:30.074Z"
+}

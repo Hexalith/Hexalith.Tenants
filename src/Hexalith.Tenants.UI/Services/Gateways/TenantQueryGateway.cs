@@ -119,6 +119,12 @@ internal sealed class TenantQueryGateway(
     /// <summary>The maximum number of concurrent authoritative hydration reads for one raw search page.</summary>
     internal const int MaximumHydrationConcurrency = 8;
 
+    /// <summary>Maximum raw index positions examined per search load, including replay and lookahead.</summary>
+    internal const int MaximumSearchScanPositions = 1_000;
+
+    /// <summary>Reason code when completeness cannot be established inside the approved scan budget.</summary>
+    internal const string SearchScanBudgetExceededReasonCode = "search-scan-budget-exceeded";
+
     /// <summary>Whole-page bound on supplementary list enrichment reads.</summary>
     /// <remarks>
     /// The Tenants read client configures only BaseAddress, so HttpClient.Timeout is the 100 s default. This
@@ -144,7 +150,7 @@ internal sealed class TenantQueryGateway(
     /// <summary>Reason code recorded when the protected search cursor could not be produced.</summary>
     internal const string SearchCursorProtectionUnavailableReasonCode = "search-cursor-protection-unavailable";
 
-    /// <summary>Reason code recorded when every authoritative hydration read failed operationally.</summary>
+    /// <summary>Reason code recorded when any authoritative hydration read failed operationally.</summary>
     internal const string SearchHydrationUnavailableReasonCode = "search-hydration-unavailable";
 
     /// <summary>Identifies the signal raised when authoritative search fell back to a usable ordinary list.</summary>
@@ -1622,21 +1628,27 @@ internal sealed class TenantQueryGateway(
         // authoritatively did not degrade anything, and only a load that actually resolved to the ordinary
         // list may emit the signal.
         bool decoded;
-        int rawOffset;
-        try {
-            decoded = searchCursorCodec.TryDecode(canonicalRequest.SearchCursor, scope, out rawOffset);
+        TenantSearchCursorPosition position;
+        try
+        {
+            decoded = searchCursorCodec.TryDecode(canonicalRequest.SearchCursor, scope, out position);
+            decoded = decoded && position.WindowStart >= 0
+                && position.WindowStart % canonicalRequest.PageSize == 0
+                && position.ConsumedResults >= 0 && position.ConsumedResults <= canonicalRequest.PageSize;
         }
-        catch (Exception ex) when (IsContainedCodecFailure(ex)) {
+        catch (Exception ex) when (IsContainedCodecFailure(ex))
+        {
             decoded = false;
-            rawOffset = 0;
+            position = default;
         }
 
         // The invalidation is owned by the caller, not by the authoritative attempt, so an index-shrink
         // recovery discovered inside that attempt survives a later throw and is still reported to the
         // ordinary-list fallback.
         StrongBox<bool> cursorRecovered = new(!decoded);
-        if (!decoded) {
-            rawOffset = 0;
+        if (!decoded)
+        {
+            position = default;
         }
 
         // Exactly one fallback call per load: every authoritative-search failure records a reason code and
@@ -1644,7 +1656,7 @@ internal sealed class TenantQueryGateway(
         // twice for one load, and a failure inside the ordinary-list fallback cannot re-enter the fallback.
         (TenantListSnapshot? authoritative, string? fallbackReasonCode) = await TrySearchAuthoritativelyAsync(
             canonicalRequest,
-            rawOffset,
+            position,
             scope,
             cursorRecovered,
             cancellationToken).ConfigureAwait(false);
@@ -1660,76 +1672,159 @@ internal sealed class TenantQueryGateway(
             cancellationToken).ConfigureAwait(false);
     }
 
-    /// <summary>
-    /// Runs the index lookup, the single index-shrink recovery, and authoritative hydration. Returns the
-    /// authoritative snapshot, or a support-safe reason code identifying why the caller must fall back.
-    /// Every reason code names the subsystem that actually failed: the index-unavailable arm wraps only the
-    /// Memories call, so a Tenants read fault or a codec fault can never be reported as an unavailable index.
-    /// </summary>
+    /// <summary>Backfills authorized rows and proves one authorized lookahead within a bounded raw scan.</summary>
     private async Task<(TenantListSnapshot? Snapshot, string? FallbackReasonCode)> TrySearchAuthoritativelyAsync(
-        TenantListRequest canonicalRequest,
-        int rawOffset,
+        TenantListRequest request,
+        TenantSearchCursorPosition position,
         string scope,
         StrongBox<bool> cursorRecovered,
-        CancellationToken cancellationToken) {
-        MemoriesSearchResult? result;
-        try {
-            result = await SearchMemoriesAsync(canonicalRequest, rawOffset, cancellationToken)
-                .ConfigureAwait(false);
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
-            throw;
-        }
-        catch (Exception ex) when (IsSearchAvailabilityFailure(ex)) {
-            return (null, SearchIndexUnavailableReasonCode);
-        }
-
-        if (!IsValidSearchResult(result, canonicalRequest, rawOffset, allowOffsetBeyondTotal: true)) {
-            return (null, SearchResponseInvalidReasonCode);
-        }
-
-        MemoriesSearchResult validResult = result!;
-        if (rawOffset > validResult.TotalCount
-            || (rawOffset > 0
-                && rawOffset == validResult.TotalCount
-                && validResult.Results.Count == 0)) {
-            rawOffset = 0;
-            cursorRecovered.Value = true;
-            try {
-                result = await SearchMemoriesAsync(canonicalRequest, rawOffset, cancellationToken)
-                    .ConfigureAwait(false);
+        CancellationToken cancellationToken)
+    {
+        var rows = new List<TenantListRow>(request.PageSize);
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        TenantSearchCursorPosition continuation = default;
+        int scanned = 0;
+        long? knownTotal = null;
+        bool enrichmentDegraded = false;
+        bool hasMore = false;
+        while (true)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            int windowCost = knownTotal is long total
+                ? (int)Math.Min(request.PageSize, Math.Max(0, total - position.WindowStart))
+                : request.PageSize;
+            if (windowCost > MaximumSearchScanPositions - scanned)
+            {
+                return (null, SearchScanBudgetExceededReasonCode);
             }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+            int requestedPositions = Math.Min(request.PageSize, MaximumSearchScanPositions - scanned);
+            if (requestedPositions == 0)
+            {
+                return (null, SearchScanBudgetExceededReasonCode);
+            }
+
+            MemoriesSearchResult result;
+            try
+            {
+                result = await SearchMemoriesAsync(request, position.WindowStart, cancellationToken, requestedPositions).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
                 throw;
             }
-            catch (Exception ex) when (IsSearchAvailabilityFailure(ex)) {
+            catch (Exception ex) when (IsSearchAvailabilityFailure(ex))
+            {
                 return (null, SearchIndexUnavailableReasonCode);
             }
-
-            if (!IsValidSearchResult(result, canonicalRequest, rawOffset, allowOffsetBeyondTotal: false)) {
+            if (!IsValidSearchResult(result, request with { PageSize = requestedPositions }, position.WindowStart, allowOffsetBeyondTotal: true))
+            {
                 return (null, SearchResponseInvalidReasonCode);
             }
 
-            validResult = result!;
+            // Count the complete fixed-size window, even when the index omitted returned entries or this
+            // load replays a consumed prefix. Returned ordinals never stand in for raw index offsets.
+            scanned += (int)Math.Min(requestedPositions, Math.Max(0, result.TotalCount - position.WindowStart));
+            // A shortened request is allowed only for the proven final raw tail. If the index grew after
+            // the preceding read, stop before hydration; never resume a differently sized raw window.
+            if (requestedPositions < request.PageSize && result.TotalCount > (long)position.WindowStart + requestedPositions)
+            {
+                return (null, SearchScanBudgetExceededReasonCode);
+            }
+            knownTotal = result.TotalCount;
+            if (position.WindowStart > result.TotalCount
+                || (position.WindowStart > 0 && position.WindowStart == result.TotalCount)
+                || position.ConsumedResults > result.Results.Count)
+            {
+                if (cursorRecovered.Value)
+                {
+                    return (null, SearchResponseInvalidReasonCode);
+                }
+                cursorRecovered.Value = true;
+                position = default;
+                rows.Clear();
+                seen.Clear();
+                enrichmentDegraded = false;
+                continue;
+            }
+
+            var candidates = new List<(int Ordinal, string TenantId)>();
+            for (int index = 0; index < result.Results.Count; index++)
+            {
+                string? sourceUri = result.Results[index].SourceUri;
+                if (sourceUri is null || !sourceUri.StartsWith(TenantSourcePrefix, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+                string tenantId = sourceUri[TenantSourcePrefix.Length..];
+                if (string.IsNullOrWhiteSpace(tenantId) || tenantId.Any(char.IsControl) || !seen.Add(tenantId))
+                {
+                    continue;
+                }
+                if (index >= position.ConsumedResults)
+                {
+                    candidates.Add((index, tenantId));
+                }
+            }
+
+            using var concurrency = new SemaphoreSlim(MaximumHydrationConcurrency, MaximumHydrationConcurrency);
+            Task<(int Ordinal, TenantListRow? Row, bool OperationalFailure, bool EnrichmentDegraded)[]> hydration = Task.WhenAll(candidates.Select(candidate =>
+                HydrateSearchCandidateAsync(candidate, request.Status, concurrency, cancellationToken)));
+            (int Ordinal, TenantListRow? Row, bool OperationalFailure, bool EnrichmentDegraded)[] outcomes;
+            try
+            {
+                outcomes = await hydration.ConfigureAwait(false);
+            }
+            catch (Exception exception) when (!TenantWorkspaceReadDiagnostics.IsFatal(exception)
+                && hydration.Exception is { } aggregate && TenantWorkspaceReadDiagnostics.IsFatal(aggregate))
+            {
+                // Await surfaces one failure only. Preserve every original failure when a fatal sibling
+                // would otherwise be hidden by that nonfatal exception, including cancellation races.
+                throw aggregate;
+            }
+            // Any operational gap could hide the next authorized row. Discard incomplete results rather
+            // than reporting a falsely final page (or a falsely full subset).
+            if (outcomes.Any(static outcome => outcome.OperationalFailure))
+            {
+                return (null, SearchHydrationUnavailableReasonCode);
+            }
+            enrichmentDegraded |= outcomes.Any(static outcome => outcome.EnrichmentDegraded);
+            foreach (var outcome in outcomes.OrderBy(static outcome => outcome.Ordinal))
+            {
+                if (outcome.Row is null)
+                {
+                    continue;
+                }
+                if (rows.Count == request.PageSize)
+                {
+                    hasMore = true;
+                    break;
+                }
+                rows.Add(outcome.Row);
+                continuation = outcome.Ordinal + 1 < result.Results.Count
+                    ? new(position.WindowStart, outcome.Ordinal + 1)
+                    : new((int)Math.Min((long)position.WindowStart + request.PageSize, result.TotalCount), 0);
+            }
+            if (hasMore || (long)position.WindowStart + request.PageSize >= result.TotalCount)
+            {
+                break;
+            }
+            position = new(position.WindowStart + request.PageSize, 0);
         }
 
-        try {
-            return await BuildAuthoritativeSearchSnapshotAsync(
-                canonicalRequest,
-                validResult,
-                rawOffset,
-                scope,
-                cursorRecovered.Value,
-                cancellationToken).ConfigureAwait(false);
+        string? nextCursor = null;
+        if (hasMore)
+        {
+            try
+            {
+                nextCursor = searchCursorCodec.Encode(scope, continuation.WindowStart, continuation.ConsumedResults);
+            }
+            catch (Exception ex) when (IsContainedCodecFailure(ex))
+            {
+                return (null, SearchCursorProtectionUnavailableReasonCode);
+            }
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
-            throw;
-        }
-
-        // Hydration is a Tenants read, never the Memories index, so it carries its own reason code.
-        catch (Exception ex) when (!IsSurfacingDefect(ex) && IsHydrationAvailabilityFailure(ex)) {
-            return (null, SearchHydrationUnavailableReasonCode);
-        }
+        return (BuildAuthoritativeSearchSnapshot(request, rows, nextCursor, hasMore,
+            enrichmentDegraded, cursorRecovered.Value), null);
     }
 
     /// <summary>Clamps a caller-supplied page size into the range the service accepts.</summary>
@@ -1774,7 +1869,9 @@ internal sealed class TenantQueryGateway(
     private async Task<MemoriesSearchResult> SearchMemoriesAsync(
         TenantListRequest request,
         int offset,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        int? maximumResults = null)
+    {
         // Only statuses the index actually records may be pushed down as an attribute filter. The index
         // publisher coerces TenantStatus.Unknown to the event's concrete fallback and never writes
         // status=Unknown, so forwarding it matched nothing and made "status: Unknown" plus any search term
@@ -1785,17 +1882,18 @@ internal sealed class TenantQueryGateway(
         // Agreement only actually holds because a window emptied by that recheck keeps advancing: Unknown is
         // the rare sentinel, so its matches usually sit well past the first raw window. Collapsing paging on
         // any empty window would have reinstated the same confident zero-result answer through the other
-        // door -- see the window-collapse rule in BuildAuthoritativeSearchSnapshotAsync.
+        // door -- the bounded scan continues through filtered windows.
         IReadOnlyDictionary<string, string>? filters = request.Status is null or TenantStatus.Unknown
             ? null
-            : new Dictionary<string, string>(StringComparer.Ordinal) {
+            : new Dictionary<string, string>(StringComparer.Ordinal)
+            {
                 ["status"] = request.Status.Value.ToString(),
             };
         var memoriesRequest = new SearchRequest(
             TenantSearchCursorScopes.SearchIndex,
             SearchAxis,
             request.Search,
-            MaxResults: request.PageSize,
+            MaxResults: maximumResults ?? request.PageSize,
             Offset: offset,
             Explain: false,
             TokenBudget: null,
@@ -1850,148 +1948,40 @@ internal sealed class TenantQueryGateway(
         return true;
     }
 
-    private async Task<(TenantListSnapshot? Snapshot, string? FallbackReasonCode)> BuildAuthoritativeSearchSnapshotAsync(
+    /// <summary>Builds a page whose rows and next-page indication derive only from authorized hydration.</summary>
+    private static TenantListSnapshot BuildAuthoritativeSearchSnapshot(
         TenantListRequest request,
-        MemoriesSearchResult result,
-        int rawOffset,
-        string scope,
-        bool cursorRecovered,
-        CancellationToken cancellationToken) {
-        var candidates = new List<(int Ordinal, string TenantId)>(result.Results.Count);
-        var seen = new HashSet<string>(StringComparer.Ordinal);
-        for (int index = 0; index < result.Results.Count; index++) {
-            string? sourceUri = result.Results[index].SourceUri;
-            if (sourceUri is null
-                || !sourceUri.StartsWith(TenantSourcePrefix, StringComparison.Ordinal)
-                || sourceUri.Length == TenantSourcePrefix.Length) {
-                continue;
-            }
-
-            string tenantId = sourceUri[TenantSourcePrefix.Length..];
-
-            // Whitespace-only is rejected here as well as by the widened hydration containment: a
-            // "tenant:   " hit previously passed this filter (which rejected null, empty and control
-            // characters but not whitespace) and hard-threw ArgumentException inside the typed client.
-            if (string.IsNullOrWhiteSpace(tenantId) || tenantId.Any(char.IsControl) || !seen.Add(tenantId)) {
-                continue;
-            }
-
-            candidates.Add((index, tenantId));
-        }
-
-        using var concurrency = new SemaphoreSlim(MaximumHydrationConcurrency, MaximumHydrationConcurrency);
-        Task<(int Ordinal, TenantListRow? Row, bool OperationalFailure, bool EnrichmentDegraded, bool HiddenOrAbsent)>[] hydrationTasks = candidates
-            .Select(candidate => HydrateSearchCandidateAsync(candidate, request.Status, concurrency, cancellationToken))
-            .ToArray();
-        (int Ordinal, TenantListRow? Row, bool OperationalFailure, bool EnrichmentDegraded, bool HiddenOrAbsent)[] outcomes = await Task
-            .WhenAll(hydrationTasks)
-            .ConfigureAwait(false);
-
-        bool operationalFailure = outcomes.Any(static outcome => outcome.OperationalFailure);
-
-        // A malformed member collection is an enrichment failure, not an outage: it is carried on its own
-        // flag so it can never trigger the ordinary-list fallback, while still raising exactly the same
-        // operator-visible signal the ordinary list raises for the identical payload.
-        bool enrichmentDegraded = outcomes.Any(static outcome => outcome.EnrichmentDegraded);
-        IReadOnlyList<TenantListRow> rows = SortSearchRows(
-            outcomes
-                .Where(static outcome => outcome.Row is not null)
-                .OrderBy(static outcome => outcome.Ordinal)
-                .Select(static outcome => outcome.Row!)
-                .ToArray(),
-            request.SortColumn,
-            request.SortDescending);
-
-        if (operationalFailure && rows.Count == 0) {
-            return (null, SearchHydrationUnavailableReasonCode);
-        }
-
-        // Advance by the requested window bounded to the reported total, never by the returned hit count.
-        // This is the only advancement rule under which consecutive pages neither duplicate nor skip a
-        // candidate when the index legitimately omits one of its own unusable entries.
-        int nextOffset = (int)Math.Min((long)rawOffset + request.PageSize, result.TotalCount);
-
-        // Fail closed only when the window was emptied by hiding. TotalCount is the raw pre-authorization
-        // index total, so deriving HasMore from it alone made an all-unauthorized page distinguishable from
-        // a genuine no-match: the former offered a live Next control, the latter did not, which disclosed
-        // both the existence and a page-granular count of tenants the caller is not allowed to see.
-        //
-        // Collapsing on any empty window instead was wrong in the other direction. A window is also emptied
-        // by the operator's own status recheck, by a dropped unrenderable record, and by malformed or
-        // duplicate index hits -- none of which is a secret. Ending paging there made accessible matches
-        // past the window unreachable while the surface claimed nothing matched at all. So the emptiness
-        // must be attributable to hiding before it ends paging.
-        //
-        // This closes the fully hidden window only. A partially hidden window still shows surviving rows
-        // beside a live Next, which continues to advertise that the window held more than it rendered. That
-        // channel is out of scope for this story and is recorded as an open risk in the evidence report.
-        bool windowHiddenOnly = rows.Count == 0
-            && candidates.Count == result.Results.Count
-            && outcomes.Length > 0
-            && outcomes.All(static outcome => outcome.HiddenOrAbsent);
-        bool hasMore = !windowHiddenOnly && nextOffset < result.TotalCount;
-        string? nextCursor = null;
-        if (hasMore) {
-            try {
-                nextCursor = searchCursorCodec.Encode(scope, nextOffset);
-            }
-
-            // Non-fatal cursor protection failures degrade to the ordinary list, never to the caller.
-            catch (Exception ex) when (IsContainedCodecFailure(ex)) {
-                return (null, SearchCursorProtectionUnavailableReasonCode);
-            }
-        }
-
-        bool degraded = operationalFailure || enrichmentDegraded;
-
-        // The ordinary list reports Unknown freshness whenever it degrades; the search surface mirrors that
-        // exactly so the same payload cannot produce two different freshness claims.
-        ReadModelFreshnessState freshness = degraded
-            ? ReadModelFreshnessState.Unknown
-            : AggregateFreshness(rows);
-        ProjectionLifecycleState lifecycle = AggregateLifecycle(rows);
-
-        // A search page with no visible rows is an index/authorization outcome, never a verdict on the
-        // operator's filters, so it gets its own surface state instead of reusing the filtered-empty copy.
-        TenantListSurfaceKind kind = rows.Count == 0
-            ? TenantListSurfaceKind.SearchPageEmpty
+        IReadOnlyList<TenantListRow> authorizedRows,
+        string? nextCursor,
+        bool hasMore,
+        bool degraded,
+        bool cursorRecovered)
+    {
+        IReadOnlyList<TenantListRow> rows = SortSearchRows(authorizedRows, request.SortColumn, request.SortDescending);
+        ReadModelFreshnessState freshness = degraded ? ReadModelFreshnessState.Unknown : AggregateFreshness(rows);
+        TenantListSurfaceKind kind = rows.Count == 0 ? TenantListSurfaceKind.SearchPageEmpty
             : degraded ? TenantListSurfaceKind.Degraded
-            : freshness == ReadModelFreshnessState.Stale ? TenantListSurfaceKind.Stale
-            : TenantListSurfaceKind.Ready;
-
-        return (
-            new TenantListSnapshot(
-                kind,
-                rows,
-                nextCursor,
-                hasMore,
-                ETag: null,
-                freshness,
-                IsDegraded: degraded,
-                IsAuthorizationScopedEmpty: rows.Count == 0,
-                Reason: operationalFailure
-                    ? TenantListReason.SearchPartiallyAvailable
-                    : enrichmentDegraded ? TenantListReason.RowEnrichmentUnavailable : TenantListReason.None,
-                Notice: cursorRecovered ? TenantListReason.SearchRefreshed : TenantListReason.None,
-                IsAuthoritativeSearch: true,
-                PagingRecovered: cursorRecovered,
-                Lifecycle: lifecycle),
-            null);
+            : freshness == ReadModelFreshnessState.Stale ? TenantListSurfaceKind.Stale : TenantListSurfaceKind.Ready;
+        return new TenantListSnapshot(kind, rows, nextCursor, hasMore, ETag: null, freshness,
+            IsDegraded: degraded, IsAuthorizationScopedEmpty: rows.Count == 0,
+            Reason: degraded ? TenantListReason.RowEnrichmentUnavailable : TenantListReason.None,
+            Notice: cursorRecovered ? TenantListReason.SearchRefreshed : TenantListReason.None,
+            IsAuthoritativeSearch: true, PagingRecovered: cursorRecovered, Lifecycle: AggregateLifecycle(rows));
     }
 
     /// <summary>
-    /// Hydrates one index candidate through the authorized Tenants detail seam. <c>HiddenOrAbsent</c>
-    /// distinguishes a candidate the caller may not see from one dropped for a reason that is not a secret,
-    /// because only the former may end paging: see the window-collapse rule in
-    /// <see cref="BuildAuthoritativeSearchSnapshotAsync"/>.
+    /// Hydrates one index candidate through the authorized Tenants detail seam. Hidden, missing and
+    /// malformed candidates never determine rendered pagination; the bounded scan continues past them.
     /// </summary>
-    private async Task<(int Ordinal, TenantListRow? Row, bool OperationalFailure, bool EnrichmentDegraded, bool HiddenOrAbsent)> HydrateSearchCandidateAsync(
+    private async Task<(int Ordinal, TenantListRow? Row, bool OperationalFailure, bool EnrichmentDegraded)> HydrateSearchCandidateAsync(
         (int Ordinal, string TenantId) candidate,
         TenantStatus? status,
         SemaphoreSlim concurrency,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken)
+    {
         await concurrency.WaitAsync(cancellationToken).ConfigureAwait(false);
-        try {
+        try
+        {
             EventStoreQueryResult<TenantDetail> result = ToEventStoreResult(await queryClient
                 .GetTenantAsync(
                     new GetTenantQuery { TenantId = candidate.TenantId },
@@ -2002,8 +1992,9 @@ internal sealed class TenantQueryGateway(
             if (result.IsNotModified
                 || detail is null
                 || result.Metadata?.IsDegraded == true
-                || !string.Equals(detail.TenantId, candidate.TenantId, StringComparison.Ordinal)) {
-                return (candidate.Ordinal, null, true, false, false);
+                || !string.Equals(detail.TenantId, candidate.TenantId, StringComparison.Ordinal))
+            {
+                return (candidate.Ordinal, null, true, false);
             }
 
             // A successfully read projection whose Name is null is one malformed record, not a Tenants
@@ -2012,14 +2003,15 @@ internal sealed class TenantQueryGateway(
             // unfiltered tenant list under a misleading "search unavailable" notice. Drop the unrenderable
             // row and raise the ordinary enrichment-degraded signal instead, which never reaches the
             // fallback path.
-            if (detail.Name is null) {
-                return (candidate.Ordinal, null, false, true, false);
+            if (detail.Name is null)
+            {
+                return (candidate.Ordinal, null, false, true);
             }
 
-            // Not hidden: the operator asked for this filter, so a window emptied by it must keep advancing
-            // rather than reporting that nothing matched the search at all.
-            if (status is not null && detail.Status != status.Value) {
-                return (candidate.Ordinal, null, false, false, false);
+            // An authoritative status mismatch is skipped while the bounded scan continues.
+            if (status is not null && detail.Status != status.Value)
+            {
+                return (candidate.Ordinal, null, false, false);
             }
 
             // A malformed member collection must degrade exactly like the ordinary list path: the authorized
@@ -2044,24 +2036,25 @@ internal sealed class TenantQueryGateway(
                     freshness,
                     lifecycle),
                 false,
-                !usableMembers,
-                false);
+                !usableMembers);
         }
 
-        // Both outcomes omit the row, so the external page cannot tell forbidden from missing. Only a
-        // forbidden candidate may end paging. A missing candidate is not permission: an all-404 stale
-        // window must keep advancing or a later authorized match becomes unreachable.
-        catch (EventStoreGatewayException ex) when (ex.StatusCode is (int)HttpStatusCode.Forbidden or (int)HttpStatusCode.NotFound) {
-            bool forbidden = ex.StatusCode == (int)HttpStatusCode.Forbidden;
-            return (candidate.Ordinal, null, false, false, forbidden);
+        // Both outcomes omit the row. Neither decides pagination: continue the bounded authorized scan.
+        catch (EventStoreGatewayException ex) when (!TenantWorkspaceReadDiagnostics.IsFatal(ex)
+            && ex.StatusCode is (int)HttpStatusCode.Forbidden or (int)HttpStatusCode.NotFound)
+        {
+            return (candidate.Ordinal, null, false, false);
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
             throw;
         }
-        catch (Exception ex) when (IsHydrationAvailabilityFailure(ex)) {
-            return (candidate.Ordinal, null, true, false, false);
+        catch (Exception ex) when (!IsSurfacingDefect(ex) && IsHydrationAvailabilityFailure(ex))
+        {
+            return (candidate.Ordinal, null, true, false);
         }
-        finally {
+        finally
+        {
             _ = concurrency.Release();
         }
     }
@@ -2169,8 +2162,8 @@ internal sealed class TenantQueryGateway(
     /// and a torn-down DataProtection provider would be mislabelled as a tampered cursor.
     /// </summary>
     private static bool IsSurfacingDefect(Exception exception)
-        => exception is OutOfMemoryException
-            or NullReferenceException
+        => TenantWorkspaceReadDiagnostics.IsFatal(exception)
+            || exception is NullReferenceException
             or ObjectDisposedException
             or ArgumentNullException;
 
@@ -2239,13 +2232,9 @@ internal sealed class TenantQueryGateway(
 
     /// <summary>Recognises a hydration failure that must degrade the search page rather than escape it.</summary>
     /// <remarks>
-    /// Includes the argument/state/URI families deliberately. A Memories hit whose SourceUri is
-    /// whitespace-only passes the candidate filter -- which rejects null, empty and control characters but
-    /// not whitespace -- and then hard-throws ArgumentException inside the typed client. Unlike the
-    /// cursor-paged branch, the search branch has no catch-all, so such an exception escaped Task.WhenAll,
-    /// the gateway, and TenantsWorkspace (which catches only a cancelled OperationCanceledException),
-    /// tearing down the circuit. Genuine surfacing defects are still excluded by IsSurfacingDefect at the
-    /// call site.
+    /// Includes the argument/state/URI families raised for unusable index-supplied route identities.
+    /// Genuine surfacing defects remain excluded by IsSurfacingDefect at the call site and are owned by
+    /// the workspace's nonfatal Error/Retry boundary or fatal propagation.
     /// </remarks>
     private static bool IsHydrationAvailabilityFailure(Exception exception)
         => exception is EventStoreGatewayException

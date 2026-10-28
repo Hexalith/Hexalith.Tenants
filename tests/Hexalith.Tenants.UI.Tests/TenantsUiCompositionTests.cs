@@ -905,8 +905,8 @@ public sealed class TenantsUiCompositionTests
             scope,
             out _,
             out _).ShouldBeFalse();
-        searchCodec.TryDecode(protectedCursor, scope, out int decodedOffset).ShouldBeTrue();
-        decodedOffset.ShouldBe(20);
+        searchCodec.TryDecode(protectedCursor, scope, out TenantSearchCursorPosition decodedOffset).ShouldBeTrue();
+        decodedOffset.WindowStart.ShouldBe(20);
 
         // Purpose isolation was previously inferred from the *container's* provider identity, which says
         // nothing about which provider the codec actually received. A codec that ignored injection and
@@ -915,9 +915,9 @@ public sealed class TenantsUiCompositionTests
         // use: an independent codec over the same provider must decode this cursor, and the same codec
         // over a different provider must not.
         var sameProviderCodec = new TenantSearchCursorCodec(dataProtectionProvider);
-        sameProviderCodec.TryDecode(protectedCursor, scope, out int sameProviderOffset).ShouldBeTrue(
+        sameProviderCodec.TryDecode(protectedCursor, scope, out TenantSearchCursorPosition sameProviderOffset).ShouldBeTrue(
             "the registered codec must protect with the injected provider, not one it constructed itself");
-        sameProviderOffset.ShouldBe(20);
+        sameProviderOffset.WindowStart.ShouldBe(20);
 
         var foreignProviderCodec = new TenantSearchCursorCodec(new EphemeralDataProtectionProvider());
         foreignProviderCodec.TryDecode(protectedCursor, scope, out _).ShouldBeFalse();
@@ -1050,15 +1050,15 @@ public sealed class TenantsUiCompositionTests
             descending: false,
             pageSize: 20);
         string protectedCursor = searchCodec.Encode(scope, 20);
-        searchCodec.TryDecode(protectedCursor, scope, out int decodedOffset).ShouldBeTrue();
-        decodedOffset.ShouldBe(20);
+        searchCodec.TryDecode(protectedCursor, scope, out TenantSearchCursorPosition decodedOffset).ShouldBeTrue();
+        decodedOffset.WindowStart.ShouldBe(20);
         searchCodec.TryDecode(protectedCursor, scope + "-other", out _).ShouldBeFalse();
 
         IDataProtectionProvider hostProvider = factory.Services.GetRequiredService<IDataProtectionProvider>();
         new TenantSearchCursorCodec(hostProvider)
-            .TryDecode(protectedCursor, scope, out int hostProviderOffset)
+            .TryDecode(protectedCursor, scope, out TenantSearchCursorPosition hostProviderOffset)
             .ShouldBeTrue("the registered codec must protect with the host's provider, not one it constructed");
-        hostProviderOffset.ShouldBe(20);
+        hostProviderOffset.WindowStart.ShouldBe(20);
         new TenantSearchCursorCodec(new EphemeralDataProtectionProvider())
             .TryDecode(protectedCursor, scope, out _)
             .ShouldBeFalse();

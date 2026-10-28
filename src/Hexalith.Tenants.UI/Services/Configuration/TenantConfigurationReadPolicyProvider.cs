@@ -11,6 +11,7 @@ namespace Hexalith.Tenants.UI.Services.Configuration;
 /// Validation is independent of the caller, so the bound policy is cached until the underlying
 /// configuration reloads. Without that cache a full reflection bind and two set rebuilds ran on every
 /// tenant-detail read, degraded reauthorization, and command reauthorization.
+/// This is the FR-6 server-side UI display boundary; it does not restrict the authorized configuration API.
 /// </remarks>
 internal sealed partial class TenantConfigurationReadPolicyProvider
 {
