@@ -40,8 +40,60 @@ endpoint must be available, at or before the event base, and contain the story
 with the same `baseline_commit`; that baseline must precede the endpoint. The
 current Markdown is checked against that historical Git tree. An endpoint also
 refuses if later commits before the event base touch the same story while carrying
-gitlinks. An initial snapshot therefore cannot stand in for its later closure.
-No endpoint is guessed from prose or the last file edit.
+gitlinks. An initial snapshot therefore cannot hide later story-associated pointer
+work. Later prose-only edits may follow the selected endpoint; it need not be the
+last story edit. No endpoint is guessed from prose or the last file edit.
+
+One narrowly verified correction is available when the original baseline is an
+unavailable full object ID. Preserve that exact value as
+`gitlink_original_baseline`, record the original creation commit as
+`gitlink_creation_ref`, set `baseline_commit` to that creation's exact single
+parent, and supply `gitlink_audit_ref` for the historical pointer-work endpoint. All
+revision fields must be full canonical IDs; the corrected baseline, creation
+and endpoint must be available commits in the required ancestry.
+
+To audit the corrected Story 5.4 Markdown directly at its recorded endpoint:
+
+```bash
+python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/5-4-audit-availability-state-recovery.md --ref 4f426e591c85825eb41ec4b289a43e91f2085004
+```
+
+The runner independently inspects full history through the event head for the
+story's literal identities, discovers renames across the repository, and requires
+a sole original creation. An introduction already present in another merge
+parent retains that parent's original creation; a story first created in a merge
+still fails the exact single-parent requirement.
+Its original committed Markdown and the endpoint Markdown must both record the
+preserved unavailable baseline. Deleted/recreated identities, overlapping or
+unresolved rename identities, multiple parents at creation, false provenance,
+and an available original object all fail closed. The event-base snapshot must
+still satisfy the existing baseline comparison, allowing the preserved original
+only after this independent verification. A later documentation edit can retain
+the same verified correction metadata. This is not a general mechanism to
+replace valid baselines or move them forward.
+
+A recognized historical rename must be the only repository add/delete/rename in
+its commit. Competing identity changes make the correction ambiguous even when
+Git picks a plausible source (for example, two identical deleted files). Other
+artifact modifications may share that commit. This conservative rule applies
+only to the optional malformed-baseline correction.
+
+An original-creation claim also fails if its commit removes or renames another
+Markdown source anywhere in the repository. A heavily rewritten import can
+appear as an addition plus deletion instead of a Git rename; the runner treats
+that possible origin as ambiguous rather than inventing a new starting point.
+This conservative check applies to original creation, including a creation
+absent from all merge parents, rather than branch work merely introduced by a
+merge. Unrelated Markdown modifications do not trigger it.
+
+Corrected historical audits require a stated target for every pointer in the
+baseline-to-endpoint range. The production guard remains responsible for path
+declarations and matching those targets to the selected historical tree. Keep
+unrelated pointers in that inventory as historical range contents, without
+claiming runtime ownership. All existing identity, ancestry, later
+story-associated pointer, and pointer-bearing event refusals still apply.
+Story 5.4's verified correction and original tooling attribution are recorded in
+[DW-133/365/461/467/478 evidence](../_bmad-output/implementation-artifacts/dw-133-365-461-467-478-validation-evidence.md).
 
 A historical audit is refused if **any** commit in the event range changes a
 `references/` gitlink, including changes later reverted or introduced by merges.

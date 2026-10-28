@@ -1,5 +1,7 @@
 # Deferred Work
 
+**Historical audit provenance closure, 2026-10-28:** DW-133/DW-365 retain reproducible original tooling attribution; DW-461/DW-467/DW-478 share the verified Story 5.4 baseline correction, explicit final endpoint and seven exact historical additions. The production guard and committed-history regressions pass. All 657 IDs remain: 634 done/23 open across 21 maintenance rows; all 652 other record bodies and original selected fields remain preserved. Source stories, generated tooling, dependency pointers and broader runtime/release holds are preserved. [Exact verification, final review and limits](dw-133-365-461-467-478-validation-evidence.md).
+
 **DW-154/DW-387/DW-390/DW-568/DW-625 acceptance (2026-10-26):** Original-caller-bound MessageId recovery, distinguishing teardown controls, browser-qualified whitespace annotations and opaque index authority satisfy the selected five records. Debug/source UI 7,835/7,835, Server 1,527/1,527, focused generated-controller Integration 47/47, both teardown mutations and maintained/targeted Chromium checks pass. All 657 IDs remain: 620 done/37 open across 33 maintenance rows; all 652 unselected record bodies and original selected fields remain preserved. Broader Integration/runtime/release holds remain. See [validation evidence](validation-dw-154-387-390-568-625.md).
 
 **DW-408/DW-440/DW-450/DW-460/DW-474 closure (2026-10-26):** Approved audit compatibility, invariant UTC timestamps, shared badge anatomy and explicit receipt authority are implemented and independently reviewed. Final Debug source build has zero warnings/errors; all 7,762 UI tests and the maintained EN/FR Chromium normal/forced-color checks pass, including 16 targeted badge rejection controls. Exactly five records close: all 657 IDs remain, 615 done/42 open across 38 maintenance rows. Original findings, historical fields, all 652 other numbered records, dependencies and broader release/assistive-technology holds remain preserved. See [validation evidence](dw-408-440-450-460-474-validation-evidence.md).
@@ -1189,15 +1191,20 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-1-10-di
 location: tests/test-summary.md; _bmad/render/bmad-quick-dev/step-05-present.md
 reason: The legacy ledger defers this issue: BMAD workflow render files (`_bmad/render/bmad-quick-dev/step-05-present.md`, `step-oneshot.md`, `workflow.md`) were modified inside the Story 1.10 diff, adding gitlink-validator instructions. Original context is preserved in legacy-detail.
 legacy-detail: - BMAD workflow render files (`_bmad/render/bmad-quick-dev/step-05-present.md`, `step-oneshot.md`, `workflow.md`) were modified inside the Story 1.10 diff, adding gitlink-validator instructions. Real and probably desirable, but it is tooling maintenance unrelated to Story 1.10's acceptance criteria and outside the spec's authorized doc outputs (evidence file + `tests/test-summary.md`). Should land as its own `docs` commit rather than inside a feature story (Hexalith commitlint forbids `chore`).
-status: open
-disposition: accepted-limitation
-verification-date: 2026-10-12
-verification: _bmad/render/bmad-quick-dev/step-05-present.md, step-oneshot.md and workflow.md still contain the gitlink instructions. This records historical scope attribution in the already-landed Story 1.10 diff, not a current functional defect; separating that old commit would require rewriting history. Original attribution is preserved.
+pre-historical-guard-status: open
+status: done 2026-10-28
+pre-historical-guard-disposition: accepted-limitation
+disposition: done
+pre-historical-guard-verification-date: 2026-10-12
+verification-date: 2026-10-28
+pre-historical-guard-verification: _bmad/render/bmad-quick-dev/step-05-present.md, step-oneshot.md and workflow.md still contain the gitlink instructions. This records historical scope attribution in the already-landed Story 1.10 diff, not a current functional defect; separating that old commit would require rewriting history. Original attribution is preserved.
+verification: Verified original tooling commit 2e61f57bda6379192007d1bc6fabbde61996b11d adds the three rendered gitlink instructions. The unchanged Story 1.10 File List already labels them range attribution rather than runtime behavior. No history was rewritten and no generated workflow was modified. See dw-133-365-461-467-478-validation-evidence.md for reproducible Git assertions, test results, final review and limitations.
 evidence-kind: accepted-limitation
 priority: P3
 owner: unassigned
 dependencies: none
-next-action: Keep the historical attribution when archiving; use separately scoped tooling work for future changes.
+pre-historical-guard-next-action: Keep the historical attribution when archiving; use separately scoped tooling work for future changes.
+next-action: Retain attribution when archiving; reopen if new evidence contradicts the verified original tooling attribution. Scope future workflow changes separately.
 related: none
 
 ### DW-134: Deferred to Story 1.11
@@ -3112,16 +3119,21 @@ location: _bmad-output/implementation-artifacts/spec-4-3-remove-global-administr
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`\n  summary: The pushall skill copies in the baseline range stage everything and commit with a build subject.\n  evidence: Identical .agents/.claude/.github pushall skills arrived with later tooling commits in this story's baseline range. They are not the last-administrator removal command; leaving them in this File List would mix unrelated work."
-status: open
-disposition: accepted-limitation
-verification-date: 2026-10-12
-verification: This original record is an out-of-scope tooling attribution note rather than a removal defect. spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md separately carries pushall findings, while .agents/skills/pushall/SKILL.md explicitly scopes whole-repository synchronization to a user invocation of /pushall. Actual procedure defects remain independently tracked.
+pre-historical-guard-status: open
+status: done 2026-10-28
+pre-historical-guard-disposition: accepted-limitation
+disposition: done
+pre-historical-guard-verification-date: 2026-10-12
+verification-date: 2026-10-28
+pre-historical-guard-verification: This original record is an out-of-scope tooling attribution note rather than a removal defect. spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md separately carries pushall findings, while .agents/skills/pushall/SKILL.md explicitly scopes whole-repository synchronization to a user invocation of /pushall. Actual procedure defects remain independently tracked.
+verification: Verified original tooling commit 5d6601edf357772c80f5c02c487742eace0739e2 adds all three pushall manifests with identical blob 060aed7d69b23c626936374be23a6cd009b7c678. The unchanged removal story already excludes this later tooling from runtime ownership; separate procedure safeguards retain their own records. See dw-133-365-461-467-478-validation-evidence.md for reproducible Git assertions, test results, final review and limitations.
 verification-files: _bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md; .agents/skills/pushall/SKILL.md
 evidence-kind: accepted-limitation
 priority: P3
 owner: unassigned
 dependencies: none
-next-action: Keep this scope note as history; use the separate pushall safeguards entries for maintenance.
+pre-historical-guard-next-action: Keep this scope note as history; use the separate pushall safeguards entries for maintenance.
+next-action: Retain the historical scope note; reopen attribution if evidence contradicts the verified original manifests. Procedure safeguards remain separately tracked by DW-417/DW-418/DW-428/DW-429.
 related: DW-417, DW-418, DW-428, DW-429
 
 
@@ -4158,16 +4170,21 @@ location: scripts/validate-story-gitlinks.py; _bmad-output/implementation-artifa
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery-2.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery-2.md`\n  summary: Give the legacy Story 5.4 artifact a baseline that resolves, or formally retire its guard role.\n  evidence: `5-4-audit-availability-state-recovery.md:3` pins `baseline_commit: a5ca6e3f548e89b28a37826be721d9ef9f7cd51a`, which is not a commit, so `scripts/validate-story-gitlinks.py` fails closed on it. The intended `a5ca6e38` (Story 5.3, 2026-06-06) predates the `references/` layout, and correcting it gives 7 \"absent at baseline\" failures. The work range is audited by `spec-5-4-understand-audit-availability-and-recovery.md` (`55f3dc63..HEAD`, which passes with Builds, EventStore and FrontComposer declared) and by `spec-…-2.md` (`d728ff46..HEAD`, which passes). The 2026-09-30 completion note in the legacy story says the story guard \"reported no pointer changes\"; that result came from the follow-up spec. The owner should choose between repointing the baseline to `55f3dc63` and marking the legacy artifact exempt from the guard."
-status: open
-disposition: awaiting-decision
-verification-date: 2026-10-12
-verification: Ran PYTHONDONTWRITEBYTECODE=1 python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/5-4-audit-availability-state-recovery.md: RESULT FAIL because baseline_commit a5ca6e3f548e89b28a37826be721d9ef9f7cd51a is not a commit. The historical baseline remains unchanged; do not substitute later HEAD history for the story range.
+pre-historical-guard-status: open
+status: done 2026-10-28
+pre-historical-guard-disposition: awaiting-decision
+disposition: done
+pre-historical-guard-verification-date: 2026-10-12
+verification-date: 2026-10-28
+pre-historical-guard-verification: Ran PYTHONDONTWRITEBYTECODE=1 python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/5-4-audit-availability-state-recovery.md: RESULT FAIL because baseline_commit a5ca6e3f548e89b28a37826be721d9ef9f7cd51a is not a commit. The historical baseline remains unchanged; do not substitute later HEAD history for the story range.
+verification: Preserved original unavailable baseline a5ca6e3f548e89b28a37826be721d9ef9f7cd51a and corrected only to verified sole-creation parent a5ca6e3886bf0623a1ff8da8cdfd6fade8516652; creation 8a24128989e348768173875ffb3c38bbd7461657 and final historical endpoint 4f426e591c85825eb41ec4b289a43e91f2085004 are explicit. The production guard passes with seven exact historical additions inventoried, while the runner retains provenance, ancestry, identity, target and pointer-bearing event refusals. See dw-133-365-461-467-478-validation-evidence.md for reproducible Git assertions, test results, final review and limitations.
 verification-files: scripts/validate-story-gitlinks.py; _bmad-output/implementation-artifacts/5-4-audit-availability-state-recovery.md
 evidence-kind: verified-gap
 priority: P2
 owner: unassigned
 dependencies: Historical artifact validation policy
-next-action: Choose a resolvable audited range for the legacy artifact or explicitly retire its executable guard role.
+pre-historical-guard-next-action: Choose a resolvable audited range for the legacy artifact or explicitly retire its executable guard role.
+next-action: Retain this historical provenance; no separate runtime change or history rewrite is required.
 related: DW-467,DW-478
 
 
@@ -4234,16 +4251,21 @@ location: scripts/validate-story-gitlinks.py; _bmad-output/implementation-artifa
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery-3.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery-3.md`\n  summary: `validate-story-gitlinks.py` still exits 1 on the legacy Story 5.4 artifact. This recurs the 2026-09-30 entry above; add no separate action.\n  evidence: `5-4-audit-availability-state-recovery.md:3` `baseline_commit a5ca6e3f…` is not a commit. The spec-3 range (`55fc6f9..HEAD`, no pointer changes) and the primary spec range (`55f3dc6..HEAD`, Builds, EventStore and FrontComposer declared) both pass."
-status: open
-disposition: awaiting-decision
-verification-date: 2026-10-12
-verification: Ran PYTHONDONTWRITEBYTECODE=1 python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/5-4-audit-availability-state-recovery.md: RESULT FAIL because baseline_commit a5ca6e3f548e89b28a37826be721d9ef9f7cd51a is not a commit. The historical baseline remains unchanged; do not substitute later HEAD history for the story range.
+pre-historical-guard-status: open
+status: done 2026-10-28
+pre-historical-guard-disposition: awaiting-decision
+disposition: done
+pre-historical-guard-verification-date: 2026-10-12
+verification-date: 2026-10-28
+pre-historical-guard-verification: Ran PYTHONDONTWRITEBYTECODE=1 python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/5-4-audit-availability-state-recovery.md: RESULT FAIL because baseline_commit a5ca6e3f548e89b28a37826be721d9ef9f7cd51a is not a commit. The historical baseline remains unchanged; do not substitute later HEAD history for the story range.
+verification: Preserved original unavailable baseline a5ca6e3f548e89b28a37826be721d9ef9f7cd51a and corrected only to verified sole-creation parent a5ca6e3886bf0623a1ff8da8cdfd6fade8516652; creation 8a24128989e348768173875ffb3c38bbd7461657 and final historical endpoint 4f426e591c85825eb41ec4b289a43e91f2085004 are explicit. The production guard passes with seven exact historical additions inventoried, while the runner retains provenance, ancestry, identity, target and pointer-bearing event refusals. See dw-133-365-461-467-478-validation-evidence.md for reproducible Git assertions, test results, final review and limitations.
 verification-files: scripts/validate-story-gitlinks.py; _bmad-output/implementation-artifacts/5-4-audit-availability-state-recovery.md
 evidence-kind: verified-gap
 priority: P2
 owner: unassigned
 dependencies: Historical artifact validation policy
-next-action: Choose a resolvable audited range for the legacy artifact or explicitly retire its executable guard role.
+pre-historical-guard-next-action: Choose a resolvable audited range for the legacy artifact or explicitly retire its executable guard role.
+next-action: Retain this historical provenance; no separate runtime change or history rewrite is required.
 related: DW-461,DW-478
 duplicate-of: DW-461
 
@@ -4368,16 +4390,21 @@ location: scripts/validate-story-gitlinks.py; _bmad-output/implementation-artifa
 source_spec: `_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`\n  summary: Resolve or explicitly retire the legacy Story 5.4 artifact's non-resolving validation baseline.\n  evidence: Build completion review BH10 verified that python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/5-4-audit-availability-state-recovery.md exits 1 because a5ca6e3f548e89b28a37826be721d9ef9f7cd51a is not a commit. The historical baseline is preserved; the current owning spec's canonical baseline passes its guard."
-status: open
-disposition: awaiting-decision
-verification-date: 2026-10-12
-verification: Ran PYTHONDONTWRITEBYTECODE=1 python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/5-4-audit-availability-state-recovery.md: RESULT FAIL because baseline_commit a5ca6e3f548e89b28a37826be721d9ef9f7cd51a is not a commit. The historical baseline remains unchanged; do not substitute later HEAD history for the story range.
+pre-historical-guard-status: open
+status: done 2026-10-28
+pre-historical-guard-disposition: awaiting-decision
+disposition: done
+pre-historical-guard-verification-date: 2026-10-12
+verification-date: 2026-10-28
+pre-historical-guard-verification: Ran PYTHONDONTWRITEBYTECODE=1 python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/5-4-audit-availability-state-recovery.md: RESULT FAIL because baseline_commit a5ca6e3f548e89b28a37826be721d9ef9f7cd51a is not a commit. The historical baseline remains unchanged; do not substitute later HEAD history for the story range.
+verification: Preserved original unavailable baseline a5ca6e3f548e89b28a37826be721d9ef9f7cd51a and corrected only to verified sole-creation parent a5ca6e3886bf0623a1ff8da8cdfd6fade8516652; creation 8a24128989e348768173875ffb3c38bbd7461657 and final historical endpoint 4f426e591c85825eb41ec4b289a43e91f2085004 are explicit. The production guard passes with seven exact historical additions inventoried, while the runner retains provenance, ancestry, identity, target and pointer-bearing event refusals. See dw-133-365-461-467-478-validation-evidence.md for reproducible Git assertions, test results, final review and limitations.
 verification-files: scripts/validate-story-gitlinks.py; _bmad-output/implementation-artifacts/5-4-audit-availability-state-recovery.md
 evidence-kind: verified-gap
 priority: P2
 owner: unassigned
 dependencies: Historical artifact validation policy
-next-action: Choose a resolvable audited range for the legacy artifact or explicitly retire its executable guard role.
+pre-historical-guard-next-action: Choose a resolvable audited range for the legacy artifact or explicitly retire its executable guard role.
+next-action: Retain this historical provenance; no separate runtime change or history rewrite is required.
 related: DW-461,DW-467
 duplicate-of: DW-461
 

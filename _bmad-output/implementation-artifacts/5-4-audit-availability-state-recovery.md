@@ -1,6 +1,9 @@
 ---
 created: 2026-06-06T17:36:15+02:00
-baseline_commit: a5ca6e3f548e89b28a37826be721d9ef9f7cd51a
+baseline_commit: a5ca6e3886bf0623a1ff8da8cdfd6fade8516652
+gitlink_original_baseline: a5ca6e3f548e89b28a37826be721d9ef9f7cd51a
+gitlink_creation_ref: 8a24128989e348768173875ffb3c38bbd7461657
+gitlink_audit_ref: 4f426e591c85825eb41ec4b289a43e91f2085004
 ---
 
 # Story 5.4: Audit Availability State Recovery
@@ -156,14 +159,16 @@ GPT-5 Codex
 
 ### Completion Notes List
 
+- 2026-10-28 historical audit repair: preserved the unavailable original baseline in `gitlink_original_baseline`; corrected `baseline_commit` only to the verified single parent of the sole original creation. The explicit historical endpoint is the final Story 5.4 edit, `4f426e591c85825eb41ec4b289a43e91f2085004`. The seven additions below inventory the full historical range, including unrelated repository layout/dependency history; they do not assert Story 5.4 runtime ownership. Reproducible Git and current tooling verification are in `dw-133-365-461-467-478-validation-evidence.md`. Earlier .NET/browser counts remain historical evidence.
+
 - Closed the five remaining re-review patches and all five independent-review findings. Actual ascending Tenant/Status events now cover descending and already ascending starting states, distinct pages through page three, visible row order, and a complete cursor-history reset. Successful refresh teardown starts through the Refresh click and uses renderer-driven component disposal; live finalization exceptions retain identity; ARIA counts use a bounded populated-count wait. Final Debug source build passed with zero warnings/errors, focused tests passed 189/189, and maintained MTP passed 3,589/3,589 with zero failed/skipped. Descending-only and direction-toggle mutations were rejected, with original production source restored before final validation. The pre-existing formatter brace-policy conflict is recorded separately in deferred work; prior deferrals remain. Current status is review.
-- Closed the eight 2026-09-30 re-review patches with bounded disposed-host faults, live refresh/focus exception theories, deterministic dispatcher gating, isolated template safety and a copyable positive control, accented French group naming, browser group parity, and Loading group suppression. All six independent review findings were addressed, including successful disposed completion and separate finalization dispatcher faults. The final Debug source build passed with zero warnings/errors; maintained MTP passed 3,586/3,586; nine focused code/fixture mutations and the Chrome harness's independent mutations were rejected. The current follow-up gitlink guard passed with no pointer changes; the deferred legacy baseline remains unresolved. Current status is review.
+- Closed the eight 2026-09-30 re-review patches with bounded disposed-host faults, live refresh/focus exception theories, deterministic dispatcher gating, isolated template safety and a copyable positive control, accented French group naming, browser group parity, and Loading group suppression. All six independent review findings were addressed, including successful disposed completion and separate finalization dispatcher faults. The final Debug source build passed with zero warnings/errors; maintained MTP passed 3,586/3,586; nine focused code/fixture mutations and the Chrome harness's independent mutations were rejected. The current follow-up gitlink guard passed with no pointer changes; the legacy baseline remained unresolved at that time (repaired on 2026-10-28 above). Current status is review.
 - Ultimate context engine analysis completed - comprehensive developer guide created.
 - Added a Tenants-owned audit availability model that maps `TenantCommandAuditState` into explicit pending, delayed, unavailable, and missing-support states with separate canonical recovery verbs.
 - Added reusable `AuditAvailabilityState` UI with visible labels, icon/shape, accessible labels, polite/assertive live-region behavior, stable `tenants-audit-availability` selector, focus-visible, forced-colors, reduced-motion, and responsive CSS.
 - Refactored audit receipt and create/add/change/remove/lifecycle/configuration/metadata command surfaces to reuse the shared control while preserving command lifecycle/projection/audit separation and existing `AuditEvidenceEntryPoint` scoped links.
 - Added EN/FR shared availability resources and tests for mapping, component rendering, callbacks, resource parity, selector stability, support-safe copy, no false Success, and no machine-token leakage.
-- Completed the 2026-09-30 post-review hardening: renderer-dispatcher refresh finalization, teardown-safe focus/refresh completion, semantic recovery groups, and direct receipt safety/outcome/recovery-route coverage. Release build passed with 0 warnings/errors, all 3,570 UI tests passed, the Chrome 154 harness and three mutation rejections passed, and the story gitlink guard reported no pointer changes.
+- Completed the 2026-09-30 post-review hardening: renderer-dispatcher refresh finalization, teardown-safe focus/refresh completion, semantic recovery groups, and direct receipt safety/outcome/recovery-route coverage. Release build passed with 0 warnings/errors, all 3,570 UI tests passed, the Chrome 154 harness and three mutation rejections passed, and the follow-up spec gitlink guard reported no pointer changes. That PASS did not validate this legacy artifact, whose original baseline was unavailable.
 
 ### File List
 
@@ -209,7 +214,30 @@ GPT-5 Codex
 - tests/Hexalith.Tenants.UI.Tests/TenantsUiCompositionTests.cs
 - tests/test-summary.md
 
+
+Historical range inventory for corrected baseline `a5ca6e3886bf0623a1ff8da8cdfd6fade8516652` through explicit endpoint `4f426e591c85825eb41ec4b289a43e91f2085004`: all seven paths were absent at baseline. These are range contents, including unrelated historical pointers, rather than seven story-owned runtime changes. Later independent pointer updates are outside this historical endpoint.
+
+- `references/Hexalith.AI.Tools`
+- `references/Hexalith.Builds`
+- `references/Hexalith.Commons`
+- `references/Hexalith.EventStore`
+- `references/Hexalith.FrontComposer`
+- `references/Hexalith.Memories`
+- `references/Hexalith.PolymorphicSerializations`
+
+| Dependency | Baseline | Historical target |
+| --- | --- | --- |
+| `references/Hexalith.AI.Tools` | absent | `3f194e17174994d308ec84af9ee2b5aa68674d0d` |
+| `references/Hexalith.Builds` | absent | `611f7e882ec615bad534de73149c7e95431b4cd4` |
+| `references/Hexalith.Commons` | absent | `c13dc6679aa91144b6d541078f3f20019d79c2eb` |
+| `references/Hexalith.EventStore` | absent | `4339eb6aa4d52b83adc558d2c03687b7ac7d43f2` |
+| `references/Hexalith.FrontComposer` | absent | `3b1584d923a9a7dac163050b924285a1206605b2` |
+| `references/Hexalith.Memories` | absent | `ece4edc4c9a37a62b34d3b7c8aa901fc363c038c` |
+| `references/Hexalith.PolymorphicSerializations` | absent | `7a2134eefa689d026a3fac814dd8732b22a43723` |
+
 ### Change Log
+
+- 2026-10-28 - Repaired historical baseline provenance without narrowing the range or exempting the story; preserved the malformed original, recorded verified creation/endpoint and seven exact historical additions, and qualified earlier guard claims.
 
 - 2026-10-01 - Closed the five remaining re-review patches and five independent-review findings with real ascending Tenant/Status sort events, distinct page-three/reset and visible-order coverage, renderer-driven Refresh-click disposal, live finalization exception identity, and bounded ARIA-count verification. Final Debug source build passed with zero warnings/errors; 189 focused tests and maintained MTP 3,589/3,589 passed. Descending-only and direction-toggle mutations were rejected; production source was restored before the final build. Recorded the pre-existing formatter brace-policy conflict separately and moved story/sprint status to review.
 - 2026-09-30 - Closed all eight re-review patches and recorded the final zero-warning/error Debug build, maintained MTP 3,586/3,586 run, nine mutation rejections, Chrome, and follow-up gitlink evidence; corrected the existing Fluent UI 5.0.0 sort API and ARIA test expectations for the populated item count (both RC and stable count data rows plus the header).

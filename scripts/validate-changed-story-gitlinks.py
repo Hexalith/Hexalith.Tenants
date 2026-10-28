@@ -80,11 +80,11 @@ def event_range(event: dict, event_name: str) -> tuple[str, str]:
     return base, head
 
 
-def changed_paths(base: str, head: str) -> list[tuple[str | None, str | None]]:
-    """Return old/new artifact paths, preserving spaces and rename identities."""
+def changed_paths(base: str, head: str, *, artifacts_only: bool = True) -> list[tuple[str | None, str | None]]:
+    """Return old/new paths, limiting event selection to artifacts by default."""
     fields = git(
         "diff", "--name-status", "-z", "--find-renames", "--diff-filter=AMRDT",
-        base, head, "--", ARTIFACT_ROOT,
+        base, head, "--", *([ARTIFACT_ROOT] if artifacts_only else []),
     ).split("\0")
     changes = []
     index = 0
@@ -168,15 +168,99 @@ def require_start_identity(text: str, names: set[str], path: str, baseline: str)
             raise guard.CheckError(f"{path}: mid-story baseline already touches a recorded story identity.")
 
 
+def verify_baseline_correction(
+    text: str, names: set[str], path: str, baseline: str, endpoint: str, head: str,
+) -> str:
+    """Permit only the exact parent of an independently verified sole creation."""
+    fields = guard.read_frontmatter(text)
+    original = fields["gitlink_original_baseline"]
+    if not re.fullmatch(r"(?:[0-9a-f]{40}|[0-9a-f]{64})", original):
+        raise guard.CheckError(f"{path}: original baseline must be a full canonical commit ID.")
+    available = subprocess.run(
+        ["git", "cat-file", "-e", original], cwd=REPO_ROOT,
+        capture_output=True, check=False,
+    )
+    if available.returncode != 1:
+        raise guard.CheckError(f"{path}: baseline correction requires an unavailable original object.")
+    creation = canonical_commit(fields["gitlink_creation_ref"])
+    canonical_commit(fields["baseline_commit"])
+    require_ancestor(creation, endpoint)
+
+    # Inspect all history for each literal identity, not just --follow's latest
+    # incarnation. Expand recognized renames and refuse deletion/recreation or
+    # overlapping identities rather than choosing a plausible creation.
+    changes: dict[str, list[tuple[str | None, str | None]]] = {}
+    parents_by_commit: dict[str, list[str]] = {}
+    while True:
+        commits = git(
+            "log", "--full-history", "--format=%H", "--diff-merges=first-parent", "--no-patch",
+            head, "--", *sorted(names),
+        ).split()
+        for commit in commits:
+            if commit in changes:
+                continue
+            parents = git("show", "-s", "--format=%P", commit).split()
+            if not parents:
+                raise guard.CheckError(f"{path}: original creation has no single audit parent.")
+            parents_by_commit[commit] = parents
+            changes[commit] = changed_paths(parents[0], commit, artifacts_only=False)
+        expanded = names | {
+            name for pairs in changes.values() for pair in pairs
+            if names.intersection(pair) for name in pair if name
+        }
+        if expanded == names:
+            break
+        names.update(expanded)
+    creations = set()
+    for commit, pairs in changes.items():
+        renames = [pair for pair in pairs if None not in pair and pair[0] != pair[1] and names.intersection(pair)]
+        if renames and (len(renames) != 1 or any(old != new and (old, new) != renames[0] for old, new in pairs)):
+            raise guard.CheckError(f"{path}: baseline correction has ambiguous rename candidates.")
+        for old, new in pairs:
+            if old in names and new is None:
+                raise guard.CheckError(f"{path}: baseline correction refuses deleted/recreated identities.")
+            # A merge can introduce a branch-created path relative to its first
+            # parent without creating that identity a second time.
+            if old is None and new in names and all(
+                snapshot(parent, new, regular=True) is None for parent in parents_by_commit[commit]
+            ):
+                if any(source and source.endswith(".md") and source != target for source, target in pairs):
+                    raise guard.CheckError(f"{path}: baseline correction has competing Markdown sources at original creation.")
+                creations.add(commit)
+        for revision in (*parents_by_commit[commit], commit):
+            if sum(snapshot(revision, name, regular=True) is not None for name in names) > 1:
+                raise guard.CheckError(f"{path}: baseline correction has ambiguous story identities.")
+    if creations != {creation}:
+        raise guard.CheckError(f"{path}: gitlink_creation_ref must be the sole original story creation.")
+    if parents_by_commit[creation] != [baseline]:
+        raise guard.CheckError(f"{path}: corrected baseline must be the exact single parent of story creation.")
+    for revision in (creation, endpoint):
+        originals = [snapshot(revision, name, regular=True) for name in sorted(names)]
+        originals = [value for value in originals if value is not None]
+        if len(originals) != 1 or guard.read_frontmatter(originals[0]).get("baseline_commit") != original:
+            raise guard.CheckError(f"{path}: correction must preserve the original creation and endpoint baseline.")
+    stated = guard.stated_targets(text)
+    for dependency, _, _ in guard.gitlink_changes(baseline, endpoint):
+        if dependency not in stated:
+            raise guard.CheckError(f"{path}: UNSTATED historical correction target for {dependency}.")
+    return original
+
+
 def audit_ref(text: str, names: set[str], path: str, base: str, head: str, moved: bool) -> str:
     """Bind an explicit historical endpoint without hiding current pointer work."""
     fields = guard.read_frontmatter(text)
+    correction_fields = {"gitlink_original_baseline", "gitlink_creation_ref"}
+    correction = bool(correction_fields.intersection(fields))
+    if correction and not (correction_fields | {"gitlink_audit_ref"}).issubset(fields):
+        raise guard.CheckError(f"{path}: baseline correction requires original baseline, creation and explicit endpoint metadata.")
     baseline = guard.resolve_baseline(Path(path), text)
     require_ancestor(baseline, base)
     require_start_identity(text, names, path, baseline)
     for name in names:
         old = snapshot(base, name)
         if old is not None and guard.read_frontmatter(old).get("baseline_commit"):
+            if correction and guard.read_frontmatter(old)["baseline_commit"] == fields["gitlink_original_baseline"]:
+                continue  # Independently verify this unavailable provenance below.
             previous_baseline = guard.resolve_baseline(Path(name), old)
             # Corrections can broaden the audit, never narrow away existing work.
             require_ancestor(baseline, previous_baseline)
@@ -218,7 +302,11 @@ def audit_ref(text: str, names: set[str], path: str, base: str, head: str, moved
         raise guard.CheckError(f"{path}: story does not exist at historical endpoint {endpoint}.")
     stated_baseline = fields.get("baseline_commit", "")
     previous_baseline = guard.read_frontmatter(previous).get("baseline_commit", "")
-    if not stated_baseline or stated_baseline != previous_baseline:
+    expected_baseline = (
+        verify_baseline_correction(text, names, path, baseline, endpoint, head)
+        if correction else stated_baseline
+    )
+    if not stated_baseline or expected_baseline != previous_baseline:
         raise guard.CheckError(f"{path}: historical audit must retain the endpoint story's baseline_commit.")
     require_ancestor(baseline, endpoint)
     return endpoint

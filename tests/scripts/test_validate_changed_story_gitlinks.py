@@ -97,6 +97,42 @@ class ChangedStoryGitlinkTests(unittest.TestCase):
         self.write(STORY, self.story(extra=f"gitlink_audit_ref: '{endpoint}'\n") + "\nHistorical repair.\n")
         return endpoint, before
 
+    def corrected_story(self, endpoint, creation, original="f" * 40, **kwargs):
+        return self.story(
+            declared=True,
+            extra=(f"gitlink_audit_ref: '{endpoint}'\n"
+                   f"gitlink_original_baseline: '{original}'\n"
+                   f"gitlink_creation_ref: '{creation}'\n"),
+            **kwargs,
+        )
+
+    def malformed_historical_story(self, original="f" * 40):
+        self.write(STORY, self.story(baseline=original))
+        creation = self.commit()
+        self.write(STORY, self.story(baseline=original) + "\nHistorical closure.\n")
+        self.pointer(NEW)
+        endpoint = self.commit()
+        self.pointer("3" * 40)
+        before = self.commit()
+        self.write(STORY, self.corrected_story(endpoint, creation, original))
+        return creation, endpoint, before
+
+    def historical_addition_and_removal(self):
+        self.write(STORY, self.story(baseline="f" * 40))
+        creation = self.commit()
+        self.git("update-index", "--force-remove", "--", DEPENDENCY)
+        self.git("update-index", "--add", "--cacheinfo", f"160000,{NEW},references/Added")
+        endpoint = self.commit()
+        before = self.commit()
+        text = self.corrected_story(endpoint, creation).replace(
+            f"| `{OLD}` | `{NEW}` |", f"| `{OLD}` | `{'0' * 40}` |",
+        )
+        text += ("\n- `references/Added`\n\n| Dependency | Before | After |\n"
+                 "| --- | --- | --- |\n"
+                 f"| `references/Added` | absent | `{NEW}` |\n")
+        self.write(STORY, text)
+        return text, before
+
     def test_new_story_without_pointer_changes_passes(self):
         self.write(STORY, self.story())
         after = self.commit()
@@ -311,6 +347,298 @@ class ChangedStoryGitlinkTests(unittest.TestCase):
         result = self.run_event(before=before)
         self.assert_pass(result)
         self.assertIn(f"Compared: {endpoint}", result.stdout)
+
+    def test_malformed_baseline_correction_audits_final_historical_endpoint(self):
+        _, endpoint, before = self.malformed_historical_story()
+        self.commit()
+        result = self.run_event(before=before)
+        self.assert_pass(result)
+        self.assertIn(f"Compared: {endpoint}", result.stdout)
+        self.assertIn(f"[declared] {DEPENDENCY}", result.stdout)
+
+    def test_corrected_baseline_metadata_remains_valid_on_later_documentation_edit(self):
+        self.malformed_historical_story()
+        before = self.commit()
+        self.write(STORY, (self.repo / STORY).read_text() + "\nLater documentation.\n")
+        self.commit()
+        self.assert_pass(self.run_event(before=before))
+
+    def test_malformed_baseline_without_repair_metadata_still_fails(self):
+        _, endpoint, before = self.malformed_historical_story()
+        self.write(STORY, self.story(extra=f"gitlink_audit_ref: '{endpoint}'\n"))
+        self.commit()
+        self.assert_fail(self.run_event(before=before), "not a commit")
+
+    def test_baseline_correction_requires_all_provenance_fields(self):
+        creation, endpoint, before = self.malformed_historical_story()
+        original = self.corrected_story(endpoint, creation)
+        for field in ["gitlink_original_baseline", "gitlink_creation_ref", "gitlink_audit_ref"]:
+            with self.subTest(field=field):
+                self.write(STORY, "\n".join(line for line in original.splitlines()
+                                            if not line.startswith(field + ":")) + "\n")
+                self.commit()
+                self.assert_fail(self.run_event(before=before), "baseline correction requires")
+
+    def test_baseline_correction_rejects_false_original_provenance(self):
+        creation, endpoint, before = self.malformed_historical_story()
+        self.write(STORY, self.corrected_story(endpoint, creation, original="e" * 40))
+        self.commit()
+        self.assert_fail(self.run_event(before=before), "not a commit")
+
+    def test_baseline_correction_checks_original_creation_provenance_independently(self):
+        self.write(STORY, self.story(baseline="e" * 40))
+        creation = self.commit()
+        self.write(STORY, self.story(baseline="f" * 40))
+        endpoint = self.commit()
+        before = self.commit()
+        self.write(STORY, self.corrected_story(endpoint, creation))
+        self.commit()
+        self.assert_fail(self.run_event(before=before), "preserve the original creation and endpoint baseline")
+
+    def test_available_original_baseline_cannot_use_correction(self):
+        _, _, before = self.malformed_historical_story(original=self.base)
+        self.commit()
+        self.assert_fail(self.run_event(before=before), "requires an unavailable original object")
+
+    def test_available_blob_cannot_be_an_original_baseline_correction(self):
+        blob = self.git("rev-parse", "HEAD:scripts/validate-story-gitlinks.py")
+        _, _, before = self.malformed_historical_story(original=blob)
+        self.commit()
+        self.assert_fail(self.run_event(before=before), "requires an unavailable original object")
+
+    def test_baseline_correction_rejects_wrong_creation_parent_even_if_older(self):
+        actual_parent = self.commit()
+        creation, endpoint, before = self.malformed_historical_story()
+        self.assertNotEqual(actual_parent, self.base)
+        self.write(STORY, self.corrected_story(endpoint, creation))
+        self.commit()
+        self.assert_fail(self.run_event(before=before), "exact single parent")
+
+    def test_baseline_correction_requires_verified_creation_not_a_later_edit(self):
+        _, endpoint, before = self.malformed_historical_story()
+        self.write(STORY, self.corrected_story(endpoint, endpoint))
+        self.commit()
+        self.assert_fail(self.run_event(before=before), "sole original story creation")
+
+    def test_baseline_correction_requires_canonical_metadata_revisions(self):
+        creation, endpoint, before = self.malformed_historical_story()
+        original = self.corrected_story(endpoint, creation)
+        for value in [creation, endpoint, self.base, "f" * 40]:
+            with self.subTest(value=value):
+                self.write(STORY, original.replace(value, value[:8]))
+                self.commit()
+                diagnostic = "not a commit" if value == "f" * 40 else "full canonical commit ID"
+                self.assert_fail(self.run_event(before=before), diagnostic)
+
+    def test_baseline_correction_refuses_unavailable_creation(self):
+        _, endpoint, before = self.malformed_historical_story()
+        self.write(STORY, self.corrected_story(endpoint, "e" * 40))
+        self.commit()
+        self.assert_fail(self.run_event(before=before), "rev-parse")
+
+    def test_baseline_correction_refuses_recreation_before_endpoint(self):
+        creation, _, _ = self.malformed_historical_story()
+        self.git("rm", "-f", str(STORY))
+        self.commit()
+        self.write(STORY, self.story(baseline="f" * 40))
+        endpoint = self.commit()
+        before = self.commit()
+        self.write(STORY, self.corrected_story(endpoint, creation))
+        self.commit()
+        self.assert_fail(self.run_event(before=before), "deleted/recreated identities")
+
+    def test_baseline_correction_refuses_recreation_within_repair_event(self):
+        creation, endpoint, before = self.malformed_historical_story()
+        self.git("rm", "-f", str(STORY))
+        self.commit()
+        self.write(STORY, self.corrected_story(endpoint, creation))
+        self.commit()
+        self.assert_fail(self.run_event(before=before), "deleted/recreated identities")
+
+    def test_baseline_correction_accepts_feature_creation_introduced_by_merge(self):
+        self.git("switch", "-c", "feature")
+        self.write(STORY, self.story(baseline="f" * 40))
+        creation = self.commit()
+        self.git("switch", "main")
+        self.commit()
+        self.git("merge", "--no-ff", "--no-edit", "feature")
+        self.pointer(NEW)
+        endpoint = self.commit()
+        before = self.commit()
+        self.write(STORY, self.corrected_story(endpoint, creation))
+        self.commit()
+        self.assert_pass(self.run_event(before=before))
+
+    def test_baseline_correction_refuses_original_creation_in_multi_parent_merge(self):
+        self.git("switch", "-c", "feature")
+        self.write("scripts/feature.txt", "Feature branch history.\n")
+        self.commit()
+        self.git("switch", "main")
+        main_parent = self.commit()
+        self.git("merge", "--no-ff", "--no-commit", "feature")
+        self.write(STORY, self.story(baseline="f" * 40))
+        creation = self.commit()
+        self.assertEqual(len(self.git("show", "-s", "--format=%P", creation).split()), 2)
+        self.pointer(NEW)
+        endpoint = self.commit()
+        before = self.commit()
+        self.write(STORY, self.corrected_story(endpoint, creation, baseline=main_parent))
+        self.commit()
+        self.assert_fail(self.run_event(before=before), "exact single parent")
+
+    def test_baseline_correction_cannot_invent_creation_at_import_from_docs(self):
+        source = Path("docs/old-story.md")
+        self.write(source, self.story(baseline="f" * 40))
+        self.git("add", "--", str(source))
+        import_parent = self.commit()
+        (self.repo / ARTIFACTS).mkdir(parents=True, exist_ok=True)
+        self.git("mv", str(source), str(STORY))
+        self.pointer(NEW)
+        imported = self.commit()
+        before = self.commit()
+        self.write(STORY, self.corrected_story(imported, imported, baseline=import_parent))
+        self.commit()
+        self.assert_fail(self.run_event(before=before), "sole original story creation")
+
+    def test_baseline_correction_refuses_rewritten_import_without_git_rename(self):
+        source = Path("docs/old-story.md")
+        self.write(source, self.story(baseline="f" * 40) + "Original source context.\n" * 100)
+        self.git("add", "--", str(source))
+        import_parent = self.commit()
+        self.git("rm", str(source))
+        self.write(STORY, self.story(baseline="f" * 40) + "Completely rewritten artifact.\n" * 150)
+        self.pointer(NEW)
+        imported = self.commit()
+        changes = self.git("diff", "--name-status", "--find-renames", import_parent, imported)
+        self.assertIn(f"A\t{STORY}\n", changes + "\n")
+        self.assertIn(f"D\t{source}\n", changes + "\n")
+        before = self.commit()
+        self.write(STORY, self.corrected_story(imported, imported, baseline=import_parent))
+        self.commit()
+        self.assert_fail(self.run_event(before=before), "competing Markdown sources")
+
+    def test_baseline_correction_refuses_coexisting_historical_identities(self):
+        original = self.story(baseline="f" * 40)
+        self.write(STORY, original)
+        creation = self.commit()
+        alternate = ARTIFACTS / "renamed.md"
+        self.git("mv", str(STORY), str(alternate))
+        self.commit()
+        self.write(STORY, original + "\nCoexisting original name.\n")
+        self.pointer(NEW)
+        endpoint = self.commit()
+        before = self.commit()
+        self.write(alternate, self.corrected_story(endpoint, creation))
+        self.commit()
+        self.assert_fail(self.run_event(before=before), "ambiguous story identities")
+
+    def test_baseline_correction_inventories_absent_addition_and_removal(self):
+        _, before = self.historical_addition_and_removal()
+        self.commit()
+        result = self.run_event(before=before)
+        self.assert_pass(result)
+        self.assertIn("2 references/ pointer change(s) in range", result.stdout)
+        self.assertIn("[declared] references/Added  absent at baseline", result.stdout)
+        self.assertIn(f"[declared] {DEPENDENCY}  {OLD[:7]} -> removed", result.stdout)
+
+    def test_baseline_correction_addition_and_removal_require_correct_targets(self):
+        original, before = self.historical_addition_and_removal()
+        for expected in [NEW, "0" * 40]:
+            for replacement, diagnostic in [("omitted", "UNSTATED"), ("4" * 40, "MISSTATED")]:
+                with self.subTest(expected=expected, replacement=replacement):
+                    self.write(STORY, original.replace(f"`{expected}`", f"`{replacement}`"))
+                    self.commit()
+                    self.assert_fail(self.run_event(before=before), diagnostic)
+
+    def test_baseline_correction_addition_and_removal_require_declarations(self):
+        original, before = self.historical_addition_and_removal()
+        for dependency in ["references/Added", DEPENDENCY]:
+            with self.subTest(dependency=dependency):
+                self.write(STORY, original.replace(f"- `{dependency}`\n", ""))
+                self.commit()
+                self.assert_fail(self.run_event(before=before), "UNDECLARED")
+
+    def test_baseline_correction_follows_unambiguous_historical_rename(self):
+        creation, _, _ = self.malformed_historical_story()
+        alternate = ARTIFACTS / "renamed.md"
+        self.write(STORY, self.story(baseline="f" * 40))
+        self.git("mv", str(STORY), str(alternate))
+        self.commit()
+        # Restore the historical target after the unrelated pointer-only commit.
+        self.pointer(NEW)
+        endpoint = self.commit()
+        before = self.commit()
+        self.write(alternate, self.corrected_story(endpoint, creation))
+        self.commit()
+        self.assert_pass(self.run_event(before=before))
+
+    def test_baseline_correction_refuses_ambiguous_rewritten_rename(self):
+        creation, _, _ = self.malformed_historical_story()
+        alternate = ARTIFACTS / "spec-rewritten.md"
+        self.git("rm", "-f", str(STORY))
+        self.write(alternate, self.story(baseline="f" * 40) + "Different content.\n" * 100)
+        endpoint = self.commit()
+        before = self.commit()
+        self.write(alternate, self.corrected_story(endpoint, creation))
+        self.commit()
+        self.assert_fail(self.run_event(before=before), "competing Markdown sources")
+
+    def test_baseline_correction_refuses_git_selected_rename_between_identical_sources(self):
+        alternate = ARTIFACTS / "spec-other-source.md"
+        destination = ARTIFACTS / "spec-renamed.md"
+        original = self.story(baseline="f" * 40)
+        self.write(STORY, original)
+        first_creation = self.commit()
+        self.write(alternate, original)
+        second_creation = self.commit()
+        self.git("rm", str(STORY), str(alternate))
+        self.write(destination, original)
+        self.pointer(NEW)
+        endpoint = self.commit()
+        # Git may choose either identical source; neither choice proves identity.
+        renamed = next(line.split("\t")[1] for line in self.git(
+            "diff", "--name-status", "--find-renames", endpoint + "^", endpoint,
+        ).splitlines() if line.startswith("R"))
+        creation = first_creation if renamed == str(STORY) else second_creation
+        before = self.commit()
+        self.write(destination, self.corrected_story(
+            endpoint, creation, baseline=self.git("rev-parse", creation + "^"),
+        ))
+        self.commit()
+        self.assert_fail(self.run_event(before=before), "ambiguous rename candidates")
+
+    def test_baseline_correction_cannot_omit_or_misstate_historical_target(self):
+        creation, endpoint, before = self.malformed_historical_story()
+        original = self.corrected_story(endpoint, creation)
+        for target, diagnostic in [("no target", "UNSTATED"), ("4" * 40, "MISSTATED")]:
+            with self.subTest(target=target):
+                self.write(STORY, original.replace(f"`{NEW}`", f"`{target}`"))
+                self.commit()
+                self.assert_fail(self.run_event(before=before), diagnostic)
+
+    def test_baseline_correction_cannot_omit_historical_declaration(self):
+        creation, endpoint, before = self.malformed_historical_story()
+        self.write(STORY, self.corrected_story(endpoint, creation).replace(f"- `{DEPENDENCY}`\n", ""))
+        self.commit()
+        self.assert_fail(self.run_event(before=before), "UNDECLARED")
+
+    def test_baseline_correction_cannot_hide_later_story_associated_pointer(self):
+        creation, endpoint, _ = self.malformed_historical_story()
+        self.write(STORY, self.story(baseline="f" * 40) + "\nLater story work.\n")
+        self.pointer("4" * 40)
+        before = self.commit()
+        self.write(STORY, self.corrected_story(endpoint, creation))
+        self.commit()
+        self.assert_fail(self.run_event(before=before), "omits later story-associated gitlink commit")
+
+    def test_baseline_correction_cannot_hide_pointer_event_or_move_revert(self):
+        _, _, before = self.malformed_historical_story()
+        self.pointer("4" * 40)
+        self.commit()
+        self.assert_fail(self.run_event(before=before), "gitlink-bearing event commits")
+        self.pointer("3" * 40)
+        self.commit()
+        self.assert_fail(self.run_event(before=before), "gitlink-bearing event commits")
 
     def test_historical_repair_without_endpoint_fails_on_later_pointers(self):
         _, before = self.historical_story()

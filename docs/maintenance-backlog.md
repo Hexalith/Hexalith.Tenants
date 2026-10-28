@@ -1,5 +1,7 @@
 # Maintenance backlog
 
+**Historical audit provenance closure, 2026-10-28:** Close exactly DW-133/DW-365/DW-461/DW-467/DW-478 through original tooling attribution and a verified creation-parent correction for the legacy Story 5.4 audit. All seven additions remain inventoried at the final historical endpoint; provenance/identity/target/pointer refusals remain enforced. All 657 numbered IDs remain: 634 done/23 open across 21 exactly covering rows. All 652 other record bodies, selected historical fields, source stories, generated tooling, the five modified submodule checkouts and runtime/release holds remain preserved. [Exact checks, final review and limits](../_bmad-output/implementation-artifacts/dw-133-365-461-467-478-validation-evidence.md).
+
 **Release governance closure, 2026-10-27:** Complete DW-540, DW-554, DW-570, DW-584 and DW-593 under the approved blocking-CI, Server-only technical dependency, standalone provenance, latest three-workflow and recovery execution policies. Independent review corrections and final Contracts 718/718, release controls 70/70, shared provenance controls 59/59, OCI 12/12, package policy 11/11 and 371 workflow assertions pass. All 657 numbered IDs remain: 629 done/28 open across 24 index rows; all 652 unselected bodies and original selected fields remain preserved. Fresh full generic Aspire qualification remains separately open behind the published EventStore routing compile blocker. Concurrent work/pointers and broader release holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-540-554-570-584-593-validation-evidence.md).
 
 **Read/recovery and cleanup closure, 2026-10-27:** Complete DW-114, DW-144, DW-514 and DW-523 plus the existing unnumbered subscription-cleanup test follow-up. All 657 numbered IDs remain: 624 done/33 open across 29 index rows. DW-137 remains open; its encoding draft is preserved and current shared identity restrictions remain in force. Current source, real Redis and Dapr checks and independent review are retained in [validation evidence](../_bmad-output/implementation-artifacts/dw-114-137-144-514-523-validation-evidence.md). Original findings, unselected records, external work/pointers and broader release holds remain preserved.
@@ -242,14 +244,14 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 | Disposition | Records |
 | --- | ---: |
-| done | 629 |
+| done | 634 |
 | actionable | 3 |
 | blocked | 6 |
-| awaiting-decision | 11 |
-| accepted-limitation | 5 |
+| awaiting-decision | 8 |
+| accepted-limitation | 3 |
 | uncertain | 3 |
 
-**Remaining: 28 open records across 24 index rows.**
+**Remaining: 23 open records across 21 index rows.**
 
 **Unnumbered cleanup follow-up resolved, 2026-10-27:** The original navigation-verification finding remains in the ledger with its resolution. Its explicit unsubscribe completion and held-cleanup callback checks are qualified; numbered DW totals exclude this unnumbered item. Disposition counts cover all 657 numbered records. P1 means correctness, confidentiality or command ownership; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. `unassigned` preserves the absence of an established owner.
 
@@ -271,7 +273,7 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 **Current implementation completed:** DW-590; DW-588; DW-216; DW-215; DW-653; DW-652; DW-651 (separate DW-653 follow-up now closed above); DW-424 (separate DW-650 follow-up open); DW-308/DW-314; DW-648; DW-545; DW-528/DW-542; prior DW-243/DW-262/DW-612; prior DW-325/DW-587; prior DW-647; prior DW-646, DW-645, DW-644, DW-480, DW-468, DW-331, DW-470 and DW-285 closures are preserved. Release remains not ready.
 
-**Decisions needed:** authoritative/version-bounded global-administrator revocation (DW-562/DW-617); direct API configuration filtering (DW-599); hidden-search privacy/completeness (DW-127); historical story ranges (DW-461/DW-467/DW-478). Lower-priority UX, manifest and bootstrap-provider choices appear in the index. Previously recorded decisions remain settled and are actionable work, not new approval requests.
+**Decisions needed:** authoritative/version-bounded global-administrator revocation (DW-562/DW-617); direct API configuration filtering (DW-599); hidden-search privacy/completeness (DW-127). Lower-priority UX, manifest and bootstrap-provider choices appear in the index. Previously recorded decisions remain settled and are actionable work, not new approval requests.
 
 **Original reconciliation verification limits (2026-10-12):** source, tests and supporting artifacts were inspected; no .NET or browser suite was rerun for this documentation task. Read-only story-gitlink checks ran. Existing exact-HEAD [CI](https://github.com/Hexalith/Hexalith.Tenants/actions/runs/38269521776) shows the build/test job green and the advisory Aspire lane 183/184 passed (zero skipped), with the generated API `/alive` TLS case failing. [Story Guards](https://github.com/Hexalith/Hexalith.Tenants/actions/runs/38269520326) still times out Chromium. The ledger records exact evidence and missing checks for each item.
 
@@ -288,7 +290,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-122 | P2 | Gap / blocked | Memories | Memories index uniqueness guarantee | Add an owning Memories uniqueness contract test across raw windows. |
 | DW-334, DW-358 | P2 | Gap / blocked | operator | operator-owned live Aspire/secret-provider evidence; Operator environment and intended secret-provider configuration | Capture deployed model, provider binding and healthy startup in the intended package mode. |
 | DW-457 | P2 | Gap / awaiting-decision | Hexalith.Builds | Builds toolchain qualification decision | Builds owners must annotate the historical Aspire split disposition and disambiguate the two Dapr meanings. |
-| DW-461, DW-467, DW-478 | P2 | Gap / awaiting-decision | unassigned | Historical artifact validation policy | Choose a resolvable audited range for the legacy artifact or explicitly retire its executable guard role. |
 | DW-579 | P2 | Gap / blocked | unassigned | Builds-maintainer historical provenance repair | Reconcile missing owning-repository origin revisions and regenerate/validate supported audit evidence. |
 | DW-599 | P2 | Gap / awaiting-decision | unassigned | Configuration read-policy scope decision | Decide whether FR-6 filtering protects API disclosure as well as UI display; specify the owning boundary. |
 
@@ -312,8 +313,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | --- | --- | --- | --- | --- | --- |
 | DW-117 | P3 | Accepted / accepted-limitation | unassigned | none | Revisit containment only if the documented surfacing policy changes. |
 | DW-118 | P3 | Accepted / accepted-limitation | unassigned | none | Revisit if codec callers begin accepting nullable scope or position inputs. |
-| DW-133 | P3 | Accepted / accepted-limitation | unassigned | none | Keep the historical attribution when archiving; use separately scoped tooling work for future changes. |
-| DW-365 | P3 | Accepted / accepted-limitation | unassigned | none | Keep this scope note as history; use the separate pushall safeguards entries for maintenance. |
 | DW-367 | P3 | Accepted / accepted-limitation | unassigned | Explicit contract/product change approval | Keep deliberate role selection; revisit the event schema only through a separately approved contract change. |
 
 **Additional unnumbered verification follow-up (2026-10-24):** One grant Escape focus timeout remains unverified after a passing instrumented trace and final normal nine-case browser run. Its cause and distinguishing reproduction are retained in the deferred ledger and [focus diagnostic](../_bmad-output/implementation-artifacts/dw-391-focus-diagnostic.json). Numbered DW totals and exact index coverage exclude this follow-up until migration.
