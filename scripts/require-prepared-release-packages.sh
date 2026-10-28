@@ -2,10 +2,6 @@
 # Confirm the credential-free preparation already packed this exact version.
 set -euo pipefail
 
-if [ "${HEXALITH_RELEASE_PREPARE:-publish}" = "skip" ]; then
-  exit 0
-fi
-
 expected="${1:?Release version is required}"
 version_file=".hexalith/release-candidate/version"
 [ -f "$version_file" ] || {

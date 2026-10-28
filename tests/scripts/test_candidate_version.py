@@ -138,6 +138,146 @@ os.execv(''' + repr(REAL_GIT) + ''', ['git', *args])
         self.commit('docs: update usage')
         self.propose('5.10.2')
 
+    def run_release_hooks(self, hooks=('verifyRelease', 'prepare', 'publish'), failure='',
+                          api_key=None, legacy_skip=False):
+        self.config = json.loads((ROOT / '.releaserc.json').read_text())
+        self.save_config()
+        trace = self.root / 'hook-trace'
+        trace.unlink(missing_ok=True)
+        stub = '''#!/usr/bin/env python3
+import json, os, sys
+from pathlib import Path
+name = Path(sys.argv[0]).name
+args = sys.argv[1:]
+command = Path(args[0]).name if name == 'bash' else name
+phase = args[-1] if command == 'validate-publication-preflight.sh' else ''
+record = {'command': command, 'args': args,
+          'require_container': os.environ.get('HEXALITH_REQUIRE_CONTAINER_PUBLISHER', '')}
+with Path(os.environ['RELEASE_HOOK_TRACE']).open('a') as output:
+    output.write(json.dumps(record) + '\\n')
+if os.environ.get('RELEASE_HOOK_FAILURE') == command + ':' + phase:
+    raise SystemExit(37)
+'''
+        publisher = self.root / '.hexalith/release/publish-containers.sh'
+        publisher.parent.mkdir(parents=True, exist_ok=True)
+        for path in (self.bin / 'bash', self.bin / 'dotnet', publisher):
+            path.write_text(stub)
+            path.chmod(0o755)
+        packages = self.root / 'nupkgs'
+        packages.mkdir(exist_ok=True)
+        (packages / 'fixture.5.10.2.nupkg').touch()
+        harness = self.root / 'exec-hook-test.mjs'
+        harness.write_text('''import { readFileSync } from 'node:fs';
+import * as exec from '@semantic-release/exec';
+const config = JSON.parse(readFileSync('.releaserc.json', 'utf8'));
+const options = config.plugins.find(plugin => Array.isArray(plugin) && plugin[0] === '@semantic-release/exec')[1];
+const context = { cwd: process.cwd(), env: process.env, stdout: process.stdout, stderr: process.stderr,
+    logger: { log() {} }, nextRelease: { version: '5.10.2' } };
+for (const hook of process.argv.slice(2)) await exec[hook](options, context);
+''')
+        environment = {**self.environment, 'RELEASE_HOOK_TRACE': str(trace),
+                       'RELEASE_HOOK_FAILURE': failure}
+        environment.pop('HEXALITH_REQUIRE_CONTAINER_PUBLISHER', None)
+        environment.pop('HEXALITH_RELEASE_PREPARE', None)
+        if legacy_skip:
+            environment['HEXALITH_RELEASE_PREPARE'] = 'skip'
+        if api_key is not None:
+            environment['NUGET_API_KEY'] = api_key
+        result = subprocess.run(['node', str(harness), *hooks], cwd=self.root, env=environment,
+                                capture_output=True, text=True, timeout=20)
+        records = [json.loads(line) for line in trace.read_text().splitlines()] if trace.exists() else []
+        return result, records
+
+    def test_checked_in_exec_hooks_render_and_run_in_order_without_publication_credentials(self):
+        result, records = self.run_release_hooks()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual([record['command'] for record in records], [
+            'validate-release-secrets.sh', 'validate-publication-preflight.sh',
+            'require-prepared-release-packages.sh', 'validate-release-secrets.sh',
+            'validate-publication-preflight.sh', 'dotnet', 'publish-containers.sh'])
+        self.assertEqual(records[1]['args'][-2:], ['5.10.2', 'verify'])
+        self.assertEqual(records[2]['args'][-1:], ['5.10.2'])
+        self.assertEqual(records[4]['args'][-2:], ['5.10.2', 'publish'])
+        self.assertEqual(records[5]['args'], ['nuget', 'push', './nupkgs/fixture.5.10.2.nupkg',
+                         '--source', 'https://api.nuget.org/v3/index.json', '--api-key', ''])
+        self.assertEqual(records[6]['args'], ['5.10.2'])
+        for record in (records[0], records[3]):
+            self.assertEqual(record['require_container'], 'true')
+
+    def test_exec_verify_preflight_failure_stops_before_prepare_and_publish(self):
+        result, records = self.run_release_hooks(failure='validate-publication-preflight.sh:verify')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual([record['command'] for record in records],
+                         ['validate-release-secrets.sh', 'validate-publication-preflight.sh'])
+
+    def test_exec_prepared_package_failure_stops_before_publish(self):
+        result, records = self.run_release_hooks(failure='require-prepared-release-packages.sh:')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual([record['command'] for record in records],
+                         ['validate-release-secrets.sh', 'validate-publication-preflight.sh',
+                          'require-prepared-release-packages.sh'])
+
+    def test_exec_publish_preflight_failure_stops_before_destination_clients(self):
+        result, records = self.run_release_hooks(hooks=('publish',), failure='validate-publication-preflight.sh:publish')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual([record['command'] for record in records],
+                         ['validate-release-secrets.sh', 'validate-publication-preflight.sh'])
+
+    def test_exec_secret_failure_stops_before_preflight_even_with_obsolete_skip_flag(self):
+        for hook in ('verifyRelease', 'publish'):
+            with self.subTest(hook=hook):
+                result, records = self.run_release_hooks(hooks=(hook,), failure='validate-release-secrets.sh:',
+                                                        legacy_skip=True)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual([record['command'] for record in records], ['validate-release-secrets.sh'])
+
+    def test_exec_nuget_failure_stops_before_container_publication(self):
+        result, records = self.run_release_hooks(hooks=('publish',), failure='dotnet:')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual([record['command'] for record in records],
+                         ['validate-release-secrets.sh', 'validate-publication-preflight.sh', 'dotnet'])
+
+    def test_exec_api_key_reaches_nuget_unchanged_as_one_argument(self):
+        sentinel = 'inert value ' + os.urandom(8).hex() + ' "$() ;&\n'
+        result, records = self.run_release_hooks(hooks=('publish',), api_key=sentinel)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(records[2]['command'], 'dotnet')
+        self.assertEqual(len(records[2]['args']), 7)
+        self.assertEqual(records[2]['args'][-1], sentinel)
+
+    def test_exec_container_failure_rejects_publication(self):
+        result, records = self.run_release_hooks(hooks=('publish',), failure='publish-containers.sh:')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual([record['command'] for record in records],
+                         ['validate-release-secrets.sh', 'validate-publication-preflight.sh',
+                          'dotnet', 'publish-containers.sh'])
+
+    def test_real_prepared_guard_refuses_missing_or_mismatched_identity_even_with_obsolete_skip(self):
+        state = self.root / '.hexalith/release-candidate'
+        state.mkdir(parents=True)
+        for legacy in (False, True):
+            environment = self.environment.copy()
+            environment.pop('HEXALITH_RELEASE_PREPARE', None)
+            if legacy:
+                environment['HEXALITH_RELEASE_PREPARE'] = 'skip'
+            for kind, version, source, diagnostic in (
+                ('missing', None, None, 'Prepared release packages are missing'),
+                ('version', '9.0.0', self.git('rev-parse', 'HEAD'), 'not 5.10.2'),
+                ('source', '5.10.2', '0' * 40, 'not ' + self.git('rev-parse', 'HEAD')),
+            ):
+                with self.subTest(legacy=legacy, kind=kind):
+                    for name, value in (('version', version), ('source-sha', source)):
+                        path = state / name
+                        if value is None:
+                            path.unlink(missing_ok=True)
+                        else:
+                            path.write_text(value + '\n')
+                    result = subprocess.run(['bash', str(ROOT / 'scripts/require-prepared-release-packages.sh'),
+                                             '5.10.2'], cwd=self.root, env=environment,
+                                            capture_output=True, text=True, timeout=20)
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn(diagnostic, result.stderr)
+
     def test_shallow_history_is_rejected_without_fetching(self):
         self.git('tag', 'v5.10.1')
         self.commit('fix: repair behavior')

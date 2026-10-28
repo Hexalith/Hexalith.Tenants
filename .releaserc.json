@@ -7,7 +7,7 @@
     [
       "@semantic-release/exec",
       {
-        "verifyReleaseCmd": "{ [ \"${HEXALITH_RELEASE_PREPARE:-publish}\" = skip ] || HEXALITH_REQUIRE_CONTAINER_PUBLISHER=true bash scripts/validate-release-secrets.sh; } && bash scripts/validate-publication-preflight.sh ${nextRelease.version} verify >&2",
+        "verifyReleaseCmd": "HEXALITH_REQUIRE_CONTAINER_PUBLISHER=true bash scripts/validate-release-secrets.sh && bash scripts/validate-publication-preflight.sh ${nextRelease.version} verify >&2",
         "prepareCmd": "bash scripts/require-prepared-release-packages.sh ${nextRelease.version}",
         "publishCmd": "HEXALITH_REQUIRE_CONTAINER_PUBLISHER=true bash scripts/validate-release-secrets.sh && bash scripts/validate-publication-preflight.sh ${nextRelease.version} publish >&2 && dotnet nuget push ./nupkgs/*.nupkg --source https://api.nuget.org/v3/index.json --api-key \"$NUGET_API_KEY\" && ./.hexalith/release/publish-containers.sh ${nextRelease.version}"
       }
