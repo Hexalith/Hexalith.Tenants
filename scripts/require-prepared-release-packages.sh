@@ -20,5 +20,6 @@ checkout_sha="$(git rev-parse HEAD)"
   exit 1
 }
 
+python3 scripts/release-validation-context.py restore
 python3 scripts/validate-nuget-packages.py ./nupkgs
 python3 scripts/validate-consumer-package-references.py ./nupkgs

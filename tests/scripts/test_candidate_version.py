@@ -300,11 +300,17 @@ for (const hook of process.argv.slice(2)) await exec[hook](options, context);
         dotnet.write_text('#!/bin/bash\nprintf "dotnet %s\\n" "$*" >> "$CANDIDATE_TRACE"\n'
                           'exit "${CANDIDATE_BUILD_EXIT:-0}"\n')
         dotnet.chmod(0o755)
-        for name in ('pack-release-packages', 'validate-nuget-packages', 'validate-consumer-package-references'):
+        for name in ('pack-release-packages', 'validate-nuget-packages', 'validate-consumer-package-references',
+                     'release-validation-context'):
+            record = repr(name + '\n')
+            if name == 'release-validation-context':
+                record = repr(name + ' ') + " + ' '.join(sys.argv[1:]) + '\\n'"
             (scripts / (name + '.py')).write_text(
-                'import os\nfrom pathlib import Path\n'
+                'import os, sys\nfrom pathlib import Path\n'
                 'with Path(os.environ["CANDIDATE_TRACE"]).open("a") as output:\n'
-                '    output.write(' + repr(name + '\n') + ')\n')
+                '    output.write(' + record + ')\n'
+                + ('raise SystemExit(int(os.environ.get("CANDIDATE_CONTEXT_EXIT", "0")))\n'
+                   if name == 'release-validation-context' else ''))
         self.environment['CANDIDATE_TRACE'] = str(self.root / 'candidate-trace')
 
     def run_shell(self, **updates):
@@ -319,6 +325,13 @@ for (const hook of process.argv.slice(2)) await exec[hook](options, context);
         trace = (self.root / 'candidate-trace').read_text().splitlines()
         self.assertEqual(len(trace), 1, trace)
         self.assertTrue(trace[0].startswith('dotnet build '), trace)
+
+    def test_shell_context_capture_failure_rejects_candidate(self):
+        self.prepare_shell()
+        result = self.run_shell(CANDIDATE_CONTEXT_EXIT='31')
+        self.assertEqual(result.returncode, 31, result.stderr)
+        self.assertEqual((self.root / 'candidate-trace').read_text().splitlines()[-1],
+                         'release-validation-context capture')
 
     def test_shell_helper_failure_prevents_preflight_build_and_pack(self):
         self.prepare_shell()
@@ -347,7 +360,7 @@ for (const hook of process.argv.slice(2)) await exec[hook](options, context);
         self.assertTrue(trace[0].startswith('dotnet build '), trace)
         self.assertIn('-p:Version=5.10.2', trace[0])
         self.assertEqual(trace[1:], ['pack-release-packages', 'validate-nuget-packages',
-                                     'validate-consumer-package-references'])
+                                     'validate-consumer-package-references', 'release-validation-context capture'])
         candidate = self.root / '.hexalith/release-candidate'
         self.assertEqual((candidate / 'version').read_text().strip(), '5.10.2')
         self.assertEqual((candidate / 'source-sha').read_text().strip(), self.git('rev-parse', 'HEAD'))

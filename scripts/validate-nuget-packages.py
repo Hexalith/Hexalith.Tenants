@@ -151,9 +151,11 @@ def require_object(value: object, path: str, assets_path: Path) -> dict[str, obj
     return value
 
 
-def load_restore_dependencies(package_id: str, project_path: Path, project_root: Path) -> dict:
+def load_restore_dependencies(
+    package_id: str, project_path: Path, project_root: Path, assets_path: Path | None = None,
+) -> dict:
     """Derive a package boundary from one project's NuGet restore evidence."""
-    assets_path = project_path.parent / "obj" / "project.assets.json"
+    assets_path = assets_path if assets_path is not None else project_path.parent / "obj" / "project.assets.json"
     resolved_assets_path = assets_path.resolve()
     if project_root not in resolved_assets_path.parents:
         raise ValueError(f"Restore assets must stay below '{project_root}': {assets_path}")
@@ -285,8 +287,8 @@ def load_restore_dependencies(package_id: str, project_path: Path, project_root:
     return boundaries
 
 
-def load_dependency_boundaries(manifest_path: Path) -> dict[str, dict]:
-    """Load the release inventory and its restore-backed dependency boundaries."""
+def load_release_projects(manifest_path: Path) -> tuple[Path, list[tuple[str, Path]]]:
+    """Load the authoritative inventory without requiring generated restore metadata."""
     resolved_manifest = manifest_path.resolve()
     if not resolved_manifest.is_file():
         raise ValueError(f"Release package manifest is missing: {manifest_path}")
@@ -342,6 +344,12 @@ def load_dependency_boundaries(manifest_path: Path) -> dict[str, dict]:
         seen_projects.add(normalized_project)
         projects.append((package_id, resolved_project))
 
+    return project_root, projects
+
+
+def load_dependency_boundaries(manifest_path: Path) -> dict[str, dict]:
+    """Load the release inventory and its restore-backed dependency boundaries."""
+    project_root, projects = load_release_projects(manifest_path)
     return {
         package_id: load_restore_dependencies(package_id, project_path, project_root)
         for package_id, project_path in projects

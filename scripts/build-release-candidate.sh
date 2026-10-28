@@ -24,3 +24,4 @@ dotnet build Hexalith.Tenants.slnx --no-restore --configuration Release -warnase
 python3 scripts/pack-release-packages.py ./nupkgs "$version"
 python3 scripts/validate-nuget-packages.py ./nupkgs
 python3 scripts/validate-consumer-package-references.py ./nupkgs
+python3 scripts/release-validation-context.py capture
