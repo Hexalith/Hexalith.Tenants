@@ -4,6 +4,7 @@ type: 'bugfix'
 created: '2026-10-28'
 status: 'done'
 route: 'oneshot'
+baseline_commit: '3d13880bceb43fbbb686ad5089170f9ce5f97eb3'
 review_loop_iteration: 0
 context: []
 ---
@@ -30,3 +31,11 @@ Tenants CI exposes a legacy EventStore delivery race: a duplicate activation at 
 
 - Medium, patched: false completed-proof path needed recovery coverage when the checkpoint persisted before finalization failed. The new injected-save-failure test resumes the original operation and settles its outbox without another handler preparation or notification.
 - Low, patched: duplicate test previously asserted only notifications. It now compares committed model and receipt bytes, save count, and scoped checkpoint before and after duplicate delivery.
+
+## File List
+
+- `references/Hexalith.EventStore`
+
+## Completion Notes List
+
+- The listed root gitlinks declare the complete dependency movement from this record's starting commit through the release source, including independent synchronization commits. The scoped implementation and its validation remain recorded above.

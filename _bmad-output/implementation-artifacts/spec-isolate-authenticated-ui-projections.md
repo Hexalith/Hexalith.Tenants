@@ -4,6 +4,7 @@ type: 'bugfix'
 created: '2026-10-28'
 status: 'done'
 route: 'oneshot'
+baseline_commit: '1436044bf6452bbc5bdb2eaa8b585ab2ce9362ca'
 review_loop_iteration: 0
 context: []
 ---
@@ -31,3 +32,13 @@ The broad Aspire CI suite fails while seeding an authenticated UI route because 
 - Low, patched: initially unset worker setting was absent from restoration coverage. Both startup outcomes now verify restoration of absence as well as an existing true setting, including the next child process's environment.
 
 - Validation completed: Debug source-reference integration build passed with zero warnings/errors; all 5 fixture-isolation cases passed without skips. Full hosted qualification is required before the separately authorized release.
+
+## File List
+
+- `references/Hexalith.Builds`
+- `references/Hexalith.EventStore`
+- `references/Hexalith.Platform`
+
+## Completion Notes List
+
+- The listed root gitlinks declare the complete dependency movement from this record's starting commit through the release source, including independent synchronization commits. The scoped implementation and its validation remain recorded above.
