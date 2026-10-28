@@ -341,3 +341,45 @@ The earlier pre-review staged snapshot
 two selected stories and zero failures. It is an unreferenced validation object,
 not a branch update or final code acceptance; the final corrected committed
 snapshot is replayed and recorded below before the authorized push.
+
+### Corrected implementation commit replay
+
+Implementation commit: `f1e3a079984f91ed9b7ce7324150d455db966182`.
+The actual push-event runner passed on the committed implementation snapshot,
+not on local edits. Event payload:
+
+```json
+{"before":"7ddb864cda5e942925b056391617eae4895c1253","after":"f1e3a079984f91ed9b7ce7324150d455db966182"}
+```
+
+Save that payload as `/tmp/tenants-historical-implementation-event.json` and run:
+
+```bash
+python3 scripts/validate-changed-story-gitlinks.py --event-name push --event-path /tmp/tenants-historical-implementation-event.json
+```
+
+Observed exit **0**: Story 5.4 validates at its exact historical endpoint with
+seven declared additions; the completed repair spec validates at the new
+implementation commit with no dependency pointer changes. Final line:
+
+```text
+Changed stories: 2; failed: 0
+```
+
+The retained provenance/ledger assertion block also passed after that commit,
+including unchanged checked-out submodule HEADs and unchanged superproject
+index/committed gitlinks. The source stories, superseded draft and generated
+tooling remain byte-identical to entry. The fetch before publication showed
+main and origin/main at the same entry revision; no rebase or dependency update
+was needed.
+
+This final evidence-only record uses the pinned 21.2.3 commitlint validation:
+
+```text
+docs: record final historical audit validation
+found 0 problems, 0 warnings
+```
+
+The combined branch range receives the same committed-event replay and a final
+Git pointer-scope check before the explicitly authorized push to main. The
+published branch commit and push result are reported in the completion message.
