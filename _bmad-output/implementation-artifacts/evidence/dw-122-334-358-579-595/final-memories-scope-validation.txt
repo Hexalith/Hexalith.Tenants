@@ -1,0 +1,27 @@
+Selected story key: spec-dw-122-stable-search-windows
+Story source: trailer
+Story artifact: _bmad-output/implementation-artifacts/spec-dw-122-stable-search-windows.md
+Allowed scope entries:
+  - tests/Hexalith.Memories.Server.Tests/Endpoints/SearchEndpointContractTests.cs
+  - src/Hexalith.Memories.Server/Search/SyntacticSearchService.cs
+  - tests/Hexalith.Memories.IntegrationTests/Search/SyntacticSearchIntegrationTests.cs
+  - tests/Hexalith.Memories.IntegrationTests/Fixtures/RedisStackFixture.cs
+  - tests/Hexalith.Memories.Server.Tests/Search/SyntacticSearchServiceTests.cs
+  - _bmad-output/implementation-artifacts/spec-dw-122-stable-search-windows.md
+In-scope changed files:
+  - _bmad-output/implementation-artifacts/spec-dw-122-stable-search-windows.md
+  - src/Hexalith.Memories.Server/Search/SyntacticSearchService.cs
+  - tests/Hexalith.Memories.IntegrationTests/Fixtures/RedisStackFixture.cs
+  - tests/Hexalith.Memories.IntegrationTests/Search/SyntacticSearchIntegrationTests.cs
+  - tests/Hexalith.Memories.Server.Tests/Endpoints/SearchEndpointContractTests.cs
+  - tests/Hexalith.Memories.Server.Tests/Search/SyntacticSearchServiceTests.cs
+Story file scope validation passed.
+No tenant-isolation surface changed; evidence check is a no-op.
+Selected story key: spec-dw-122-stable-search-windows
+Story source: trailer
+Story artifact: _bmad-output/implementation-artifacts/spec-dw-122-stable-search-windows.md
+Declared status: done
+C4: spec artifact carries no development_status row, as expected.
+C1: status 'done' is outside {in-progress, review}; cumulative-diff comparison skipped.
+C6: artifact declares no evidence or checkpoint table; check skipped.
+Story review readiness validation passed.

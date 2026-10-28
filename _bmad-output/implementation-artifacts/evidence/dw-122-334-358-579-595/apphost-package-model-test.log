@@ -1,0 +1,11 @@
+xUnit.net v3 In-Process Runner v4.0.2+0c7aa4991f (64-bit .NET 10.0.13)
+  Discovering: Hexalith.Tenants.AppHost.Tests
+  Discovered:  Hexalith.Tenants.AppHost.Tests
+  Starting:    Hexalith.Tenants.AppHost.Tests
+    Hexalith.Tenants.AppHost.Tests.MemoriesSecretStoreResourceGraphTests.PackageModeAppHostUsesTheConsumerOwnedMemoriesSecretStore [OUTPUT] AppHost assembly: /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.AppHost.Tests/bin/Debug/net10.0/Hexalith.Tenants.AppHost.dll
+    Hexalith.Tenants.AppHost.Tests.MemoriesSecretStoreResourceGraphTests.PackageModeAppHostUsesTheConsumerOwnedMemoriesSecretStore [OUTPUT] UseNuGetDeps=true
+    Hexalith.Tenants.AppHost.Tests.MemoriesSecretStoreResourceGraphTests.PackageModeAppHostUsesTheConsumerOwnedMemoriesSecretStore [OUTPUT] UseHexalithProjectReferences=false
+    Hexalith.Tenants.AppHost.Tests.MemoriesSecretStoreResourceGraphTests.PackageModeAppHostUsesTheConsumerOwnedMemoriesSecretStore [OUTPUT] HexalithMemoriesFromSource=false
+  Finished:    Hexalith.Tenants.AppHost.Tests (ID = '7746e18112183e43d9784469b8e082dc7ad7efb31aafe79554aa8c0be62abcf1')
+=== TEST EXECUTION SUMMARY ===
+   Hexalith.Tenants.AppHost.Tests  Total: 1, Errors: 0, Failed: 0, Skipped: 0, Not Run: 0, Time: 0.483s

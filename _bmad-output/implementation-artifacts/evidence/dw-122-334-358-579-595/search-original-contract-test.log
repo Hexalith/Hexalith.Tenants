@@ -1,0 +1,75 @@
+xUnit.net v3 In-Process Runner v4.0.2+0c7aa4991f (64-bit .NET 10.0.13)
+  Discovering: Hexalith.Memories.IntegrationTests
+  Discovered:  Hexalith.Memories.IntegrationTests
+  Starting:    Hexalith.Memories.IntegrationTests
+    Hexalith.Memories.IntegrationTests.Search.SyntacticSearchIntegrationTests.SearchAsync_TiedScores_ShouldPreserveRelevanceAndIdentityAcrossRawWindows(graphScoped: False) [FAIL]
+      Shouldly.ShouldAssertException : baseline.Results.Select(result => result.MemoryUnitId)
+          should be
+      ["mu-016", "mu-017", "mu-018", "mu-019", "mu-020", "mu-021", "mu-022", "mu-008", "mu-009", "mu-010", "mu-011", "mu-012", "mu-013", "mu-014", "mu-015", "mu-000", "mu-001", "mu-002", "mu-003", "mu-004", "mu-005", "mu-006", "mu-007"]
+          but was (case sensitive comparison)
+      ["mu-022", "mu-020", "mu-021", "mu-019", "mu-018", "mu-017", "mu-016", "mu-015", "mu-014", "mu-013", "mu-012", "mu-011", "mu-010", "mu-009", "mu-008", "mu-007", "mu-006", "mu-005", "mu-004", "mu-003", "mu-002", "mu-001", "mu-000"]
+          difference
+      [*"mu-022"*, *"mu-020"*, *"mu-021"*, "mu-019", *"mu-018"*, *"mu-017"*, *"mu-016"*, *"mu-015"*, *"mu-014"*, *"mu-013"*, *"mu-012"*, *"mu-011"*, *"mu-010"*, *"mu-009"*, *"mu-008"*, *"mu-007"*, *"mu-006"*, *"mu-005"*, *"mu-004"*, *"mu-003"*, *"mu-002"*, *"mu-001"*, *"mu-000"*]
+      Stack Trace:
+        tests/Hexalith.Memories.IntegrationTests/Search/SyntacticSearchIntegrationTests.cs(386,0): at Hexalith.Memories.IntegrationTests.Search.SyntacticSearchIntegrationTests.SearchAsync_TiedScores_ShouldPreserveRelevanceAndIdentityAcrossRawWindows(Boolean graphScoped)
+           at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+           at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
+           at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)
+        --- End of stack trace from previous location ---
+           at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+           at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
+           at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)
+    Hexalith.Memories.IntegrationTests.Search.SyntacticSearchIntegrationTests.SearchAsync_TiedScores_ShouldPreserveRelevanceAndIdentityAcrossRawWindows(graphScoped: True) [FAIL]
+      Shouldly.ShouldAssertException : baseline.Results.Select(result => result.MemoryUnitId)
+          should be
+      ["mu-016", "mu-017", "mu-018", "mu-019", "mu-020", "mu-021", "mu-022", "mu-008", "mu-009", "mu-010", "mu-011", "mu-012", "mu-013", "mu-014", "mu-015", "mu-000", "mu-001", "mu-002", "mu-003", "mu-004", "mu-005", "mu-006", "mu-007"]
+          but was (case sensitive comparison)
+      ["mu-021", "mu-019", "mu-017", "mu-022", "mu-018", "mu-020", "mu-016", "mu-015", "mu-014", "mu-013", "mu-012", "mu-011", "mu-010", "mu-009", "mu-008", "mu-007", "mu-006", "mu-005", "mu-004", "mu-003", "mu-002", "mu-001", "mu-000"]
+          difference
+      [*"mu-021"*, *"mu-019"*, *"mu-017"*, *"mu-022"*, *"mu-018"*, *"mu-020"*, *"mu-016"*, *"mu-015"*, *"mu-014"*, *"mu-013"*, *"mu-012"*, *"mu-011"*, *"mu-010"*, *"mu-009"*, *"mu-008"*, *"mu-007"*, *"mu-006"*, *"mu-005"*, *"mu-004"*, *"mu-003"*, *"mu-002"*, *"mu-001"*, *"mu-000"*]
+      Stack Trace:
+        tests/Hexalith.Memories.IntegrationTests/Search/SyntacticSearchIntegrationTests.cs(386,0): at Hexalith.Memories.IntegrationTests.Search.SyntacticSearchIntegrationTests.SearchAsync_TiedScores_ShouldPreserveRelevanceAndIdentityAcrossRawWindows(Boolean graphScoped)
+           at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+           at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
+           at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)
+        --- End of stack trace from previous location ---
+           at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+           at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
+           at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)
+    Hexalith.Memories.IntegrationTests.Search.SyntacticSearchIntegrationTests.SearchAsync_InvalidDocuments_ShouldConsumeRawPagePositionsAndPreserveTotal(missingField: "sourceUri") [FAIL]
+      Shouldly.ShouldAssertException : baseline.Results.Select(result => result.MemoryUnitId)
+          should be
+      ["mu-0", "mu-1", "mu-2", "mu-3", "mu-4", "mu-5"]
+          but was (case sensitive comparison)
+      ["mu-1", "mu-2", "mu-3", "mu-4", "mu-5", "mu-0"]
+          difference
+      [*"mu-1"*, *"mu-2"*, *"mu-3"*, *"mu-4"*, *"mu-5"*, *"mu-0"*]
+      Stack Trace:
+        tests/Hexalith.Memories.IntegrationTests/Search/SyntacticSearchIntegrationTests.cs(426,0): at Hexalith.Memories.IntegrationTests.Search.SyntacticSearchIntegrationTests.SearchAsync_InvalidDocuments_ShouldConsumeRawPagePositionsAndPreserveTotal(String missingField)
+           at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+           at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
+           at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)
+        --- End of stack trace from previous location ---
+           at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+           at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
+           at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)
+    Hexalith.Memories.IntegrationTests.Search.SyntacticSearchIntegrationTests.SearchAsync_InvalidDocuments_ShouldConsumeRawPagePositionsAndPreserveTotal(missingField: "sourceType") [FAIL]
+      Shouldly.ShouldAssertException : baseline.Results.Select(result => result.MemoryUnitId)
+          should be
+      ["mu-0", "mu-1", "mu-2", "mu-3", "mu-4", "mu-5"]
+          but was (case sensitive comparison)
+      ["mu-1", "mu-2", "mu-0", "mu-4", "mu-3", "mu-5"]
+          difference
+      [*"mu-1"*, *"mu-2"*, *"mu-0"*, *"mu-4"*, *"mu-3"*, "mu-5"]
+      Stack Trace:
+        tests/Hexalith.Memories.IntegrationTests/Search/SyntacticSearchIntegrationTests.cs(426,0): at Hexalith.Memories.IntegrationTests.Search.SyntacticSearchIntegrationTests.SearchAsync_InvalidDocuments_ShouldConsumeRawPagePositionsAndPreserveTotal(String missingField)
+           at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+           at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
+           at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)
+        --- End of stack trace from previous location ---
+           at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+           at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
+           at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)
+  Finished:    Hexalith.Memories.IntegrationTests (ID = '0bc5a9560bfed4b0cde8a55f929cc638c756a567b7ac6f863d3f476ea4031ac6')
+=== TEST EXECUTION SUMMARY ===
+   Hexalith.Memories.IntegrationTests  Total: 21, Errors: 0, Failed: 4, Skipped: 0, Not Run: 0, Time: 5.536s

@@ -1,0 +1,34 @@
+{
+  "logs": [
+    {
+      "resourceName": "memories-dapr-cli",
+      "content": "time=\"2026-10-28T11:07:32.905976399+01:00\" level=info msg=\"Security is initialized successfully\" app_id=memories instance=DESKTOP-VIOG240 scope=dapr.runtime.security type=log ver=1.18.7",
+      "isError": false
+    },
+    {
+      "resourceName": "memories-dapr-cli",
+      "content": "time=\"2026-10-28T11:07:32.915617387+01:00\" level=info msg=\"Dapr trace sampler initialized: ParentBased{root:TraceIDRatioBased{1},remoteParentSampled:AlwaysOnSampler,remoteParentNotSampled:AlwaysOffSampler,localParentSampled:AlwaysOnSampler,localParentNotSampled:AlwaysOffSampler}\" app_id=memories instance=DESKTOP-VIOG240 scope=dapr.runtime type=log ver=1.18.7",
+      "isError": false
+    },
+    {
+      "resourceName": "memories-dapr-cli",
+      "content": "time=\"2026-10-28T11:07:32.916135049+01:00\" level=info msg=\"Initialized name resolution to mdns\" app_id=memories instance=DESKTOP-VIOG240 scope=dapr.runtime type=log ver=1.18.7",
+      "isError": false
+    },
+    {
+      "resourceName": "memories-dapr-cli",
+      "content": "time=\"2026-10-28T11:07:32.917666827+01:00\" level=info msg=\"Scheduler client initialized for address: localhost:17094\" app_id=memories instance=DESKTOP-VIOG240 scope=dapr.runtime.scheduler.clients type=log ver=1.18.7",
+      "isError": false
+    },
+    {
+      "resourceName": "memories-dapr-cli",
+      "content": "time=\"2026-10-28T11:07:32.917700953+01:00\" level=info msg=\"Scheduler clients initialized\" app_id=memories instance=DESKTOP-VIOG240 scope=dapr.runtime.scheduler.clients type=log ver=1.18.7",
+      "isError": false
+    },
+    {
+      "resourceName": "memories-dapr-cli",
+      "content": "time=\"2026-10-28T11:07:37.797252164+01:00\" level=info msg=\"dapr initialized. Status: Running. Init Elapsed 4883ms\" app_id=memories instance=DESKTOP-VIOG240 scope=dapr.runtime type=log ver=1.18.7",
+      "isError": false
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+Story:    spec-dw-122-334-358-579-595-search-and-dependency-qualification.md
+Baseline: db83309
+Compared: HEAD (db83309) + working tree
+
+1 references/ pointer change(s) in range:
+  [declared] references/Hexalith.Memories  72c36c7 -> 35ef40e
+
+RESULT: PASS

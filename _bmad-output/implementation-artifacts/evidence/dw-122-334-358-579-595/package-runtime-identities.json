@@ -1,0 +1,20 @@
+{
+  "references/Hexalith.Memories/src/Hexalith.Memories.Server": {
+    "dependency_manifest_sha256": "bd3dd9991291ab8a5c0286f9cd224929f592f7eaf161d5ed2f0aa735f1194afe",
+    "binary_sha256": "24d0e90871d086615be6270f079db06908f7f970aafc4204ee6879ea7d53a84f",
+    "external_Hexalith_dependencies": {
+      "Hexalith.EventStore.Client/3.128.4": "package",
+      "Hexalith.EventStore.Contracts/3.128.4": "package",
+      "Hexalith.EventStore.DomainService/3.128.4": "package",
+      "Hexalith.EventStore.ServiceDefaults/3.128.4": "package"
+    }
+  },
+  "src/Hexalith.Tenants.AppHost": {
+    "dependency_manifest_sha256": "1535d7c5d1f19fdf25279cc8f8a89ac853aa7a94e8543058827f29855d9184e8",
+    "binary_sha256": "92140621b64a49e30c71fbee5e3cd3589c4c1dd726596a7357f47d540ba2a6d4",
+    "external_Hexalith_dependencies": {
+      "Hexalith.EventStore.Aspire/3.128.4": "package",
+      "Hexalith.Memories.Aspire/3.0.3": "package"
+    }
+  }
+}

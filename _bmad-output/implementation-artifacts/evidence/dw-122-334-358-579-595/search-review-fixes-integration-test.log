@@ -1,0 +1,76 @@
+xUnit.net v3 In-Process Runner v4.0.2+0c7aa4991f (64-bit .NET 10.0.13)
+  Discovering: Hexalith.Memories.IntegrationTests (method display = ClassAndMethod, method display options = None)
+  Discovered:  Hexalith.Memories.IntegrationTests (8 test cases to be run)
+  Starting:    Hexalith.Memories.IntegrationTests (parallel mode = none, stop on fail = off, explicit = off, seed = 553186686)
+[testcontainers.org 00:00:00.10] Connected to Docker:
+  Host: unix:///var/run/docker.sock
+  Server Version: 29.8.2
+  Kernel Version: 6.6.87.2-microsoft-standard-WSL2
+  API Version: 1.56
+  Operating System: Docker Desktop
+  Total Memory: 90.36 GB
+  Labels:
+    com.docker.desktop.address=unix:///var/run/docker-cli.sock
+[testcontainers.org 00:00:00.29] Docker container 0944e470b04b created
+[testcontainers.org 00:00:00.34] Start Docker container 0944e470b04b
+[testcontainers.org 00:00:00.60] Wait for Docker container 0944e470b04b to complete readiness checks
+[testcontainers.org 00:00:01.68] Docker container 0944e470b04b ready
+[testcontainers.org 00:00:01.79] Docker container d61aa0f82e88 created
+[testcontainers.org 00:00:01.81] Start Docker container d61aa0f82e88
+[testcontainers.org 00:00:02.04] Wait for Docker container d61aa0f82e88 to complete readiness checks
+[testcontainers.org 00:00:02.07] Execute "/bin/sh -c true && (grep -i ':0*18EB' /proc/net/tcp* || nc -vz -w 1 localhost 6379 || /bin/bash -c '</dev/tcp/localhost/6379')" at Docker container d61aa0f82e88
+[testcontainers.org 00:00:02.14] Execute "redis-cli PING" at Docker container d61aa0f82e88
+[testcontainers.org 00:00:02.20] Docker container d61aa0f82e88 ready
+[testcontainers.org 00:00:02.44] Docker container adfcb25cdd52 created
+[testcontainers.org 00:00:02.47] Start Docker container adfcb25cdd52
+[testcontainers.org 00:00:02.71] Wait for Docker container adfcb25cdd52 to complete readiness checks
+[testcontainers.org 00:00:02.73] Execute "/bin/sh -c true && (grep -i ':0*18EB' /proc/net/tcp* || nc -vz -w 1 localhost 6379 || /bin/bash -c '</dev/tcp/localhost/6379')" at Docker container adfcb25cdd52
+[testcontainers.org 00:00:02.81] Execute "redis-cli PING" at Docker container adfcb25cdd52
+[testcontainers.org 00:00:02.86] Docker container adfcb25cdd52 ready
+    [D::Hexalith.Memories.IntegrationTests] cap mismatch negative control RESP2 graph=False: total 23, rows 0
+[testcontainers.org 00:00:02.95] Delete Docker container adfcb25cdd52
+[testcontainers.org 00:00:03.41] Docker container a6e21ac8222c created
+[testcontainers.org 00:00:03.43] Start Docker container a6e21ac8222c
+[testcontainers.org 00:00:03.66] Wait for Docker container a6e21ac8222c to complete readiness checks
+[testcontainers.org 00:00:03.68] Execute "/bin/sh -c true && (grep -i ':0*18EB' /proc/net/tcp* || nc -vz -w 1 localhost 6379 || /bin/bash -c '</dev/tcp/localhost/6379')" at Docker container a6e21ac8222c
+[testcontainers.org 00:00:03.76] Execute "redis-cli PING" at Docker container a6e21ac8222c
+[testcontainers.org 00:00:03.81] Docker container a6e21ac8222c ready
+    [D::Hexalith.Memories.IntegrationTests] cap mismatch negative control RESP3 graph=False: total 23, rows 0
+[testcontainers.org 00:00:03.84] Delete Docker container a6e21ac8222c
+[testcontainers.org 00:00:04.31] Docker container a784c8538ff1 created
+[testcontainers.org 00:00:04.33] Start Docker container a784c8538ff1
+[testcontainers.org 00:00:04.55] Wait for Docker container a784c8538ff1 to complete readiness checks
+[testcontainers.org 00:00:04.58] Execute "/bin/sh -c true && (grep -i ':0*18EB' /proc/net/tcp* || nc -vz -w 1 localhost 6379 || /bin/bash -c '</dev/tcp/localhost/6379')" at Docker container a784c8538ff1
+[testcontainers.org 00:00:04.65] Execute "redis-cli PING" at Docker container a784c8538ff1
+[testcontainers.org 00:00:04.70] Docker container a784c8538ff1 ready
+    [D::Hexalith.Memories.IntegrationTests] cap mismatch negative control RESP2 graph=True: total 23, rows 0
+[testcontainers.org 00:00:04.73] Delete Docker container a784c8538ff1
+[testcontainers.org 00:00:05.16] Docker container e475e07bae76 created
+[testcontainers.org 00:00:05.18] Start Docker container e475e07bae76
+[testcontainers.org 00:00:05.43] Wait for Docker container e475e07bae76 to complete readiness checks
+[testcontainers.org 00:00:05.45] Execute "/bin/sh -c true && (grep -i ':0*18EB' /proc/net/tcp* || nc -vz -w 1 localhost 6379 || /bin/bash -c '</dev/tcp/localhost/6379')" at Docker container e475e07bae76
+[testcontainers.org 00:00:05.53] Execute "redis-cli PING" at Docker container e475e07bae76
+[testcontainers.org 00:00:05.57] Docker container e475e07bae76 ready
+    [D::Hexalith.Memories.IntegrationTests] cap mismatch negative control RESP3 graph=True: total 23, rows 0
+[testcontainers.org 00:00:05.60] Delete Docker container e475e07bae76
+[testcontainers.org 00:00:06.53] Docker container 021ac321edd8 created
+[testcontainers.org 00:00:06.56] Start Docker container 021ac321edd8
+[testcontainers.org 00:00:06.80] Wait for Docker container 021ac321edd8 to complete readiness checks
+[testcontainers.org 00:00:06.83] Execute "/bin/sh -c true && (grep -i ':0*18EB' /proc/net/tcp* || nc -vz -w 1 localhost 6379 || /bin/bash -c '</dev/tcp/localhost/6379')" at Docker container 021ac321edd8
+[testcontainers.org 00:00:06.91] Execute "redis-cli PING" at Docker container 021ac321edd8
+[testcontainers.org 00:00:06.96] Docker container 021ac321edd8 ready
+    [D::Hexalith.Memories.IntegrationTests] timeout RETURN control RESP2: partial 4299/5000; normal bounded search 11ms, total 5000, rows 5
+[testcontainers.org 00:00:07.03] Delete Docker container 021ac321edd8
+[testcontainers.org 00:00:07.46] Docker container 43085611fbc2 created
+[testcontainers.org 00:00:07.48] Start Docker container 43085611fbc2
+[testcontainers.org 00:00:07.70] Wait for Docker container 43085611fbc2 to complete readiness checks
+[testcontainers.org 00:00:07.72] Execute "/bin/sh -c true && (grep -i ':0*18EB' /proc/net/tcp* || nc -vz -w 1 localhost 6379 || /bin/bash -c '</dev/tcp/localhost/6379')" at Docker container 43085611fbc2
+[testcontainers.org 00:00:07.79] Execute "redis-cli PING" at Docker container 43085611fbc2
+[testcontainers.org 00:00:07.84] Docker container 43085611fbc2 ready
+    [D::Hexalith.Memories.IntegrationTests] timeout RETURN control RESP3: partial 3799/5000; normal bounded search 11ms, total 5000, rows 5
+[testcontainers.org 00:00:07.92] Delete Docker container 43085611fbc2
+[testcontainers.org 00:00:08.43] Stop Docker container d61aa0f82e88
+[testcontainers.org 00:00:08.80] Delete Docker container d61aa0f82e88
+  Finished:    Hexalith.Memories.IntegrationTests (ID = '0bc5a9560bfed4b0cde8a55f929cc638c756a567b7ac6f863d3f476ea4031ac6')
+=== TEST EXECUTION SUMMARY ===
+   Hexalith.Memories.IntegrationTests  Total: 31, Errors: 0, Failed: 0, Skipped: 0, Not Run: 0, Time: 8.980s

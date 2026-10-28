@@ -1,0 +1,22 @@
+{
+  "owning_revision": "bd248eb09170bfed14bbda61320ddd9c6797e9bf",
+  "source_sha256": "dda55f1f015a168f2d23682f0e04a8dd7d1329ca4ad5090256598fe06f6f2f14",
+  "focused_results": {
+    "syntactic_service_unit": {
+      "total": 40,
+      "failed": 0,
+      "skipped": 0
+    },
+    "real_endpoint_retry_mapping": {
+      "total": 6,
+      "failed": 0,
+      "skipped": 0
+    },
+    "affected_real_integration_contracts": {
+      "total": 31,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "broader_verification": "Delegated to parent; prior package/live binary packets are historical after these source changes."
+}

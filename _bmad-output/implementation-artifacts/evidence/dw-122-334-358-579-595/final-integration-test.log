@@ -1,0 +1,86 @@
+xUnit.net v3 In-Process Runner v4.0.2+0c7aa4991f (64-bit .NET 10.0.13)
+  Discovering: Hexalith.Memories.IntegrationTests
+  Discovered:  Hexalith.Memories.IntegrationTests
+  Starting:    Hexalith.Memories.IntegrationTests
+[testcontainers.org 00:00:00.18] Connected to Docker:
+  Host: unix:///var/run/docker.sock
+  Server Version: 29.8.2
+  Kernel Version: 6.6.87.2-microsoft-standard-WSL2
+  API Version: 1.56
+  Operating System: Docker Desktop
+  Total Memory: 90.36 GB
+  Labels:
+    com.docker.desktop.address=unix:///var/run/docker-cli.sock
+[testcontainers.org 00:00:00.50] Docker container eafd2a9fd97c created
+[testcontainers.org 00:00:00.56] Start Docker container eafd2a9fd97c
+[testcontainers.org 00:00:00.90] Wait for Docker container eafd2a9fd97c to complete readiness checks
+[testcontainers.org 00:00:00.97] Docker container eafd2a9fd97c ready
+[testcontainers.org 00:00:01.15] Docker container e97fec2bec86 created
+[testcontainers.org 00:00:01.16] Docker container bcd3a692a624 created
+[testcontainers.org 00:00:01.20] Start Docker container e97fec2bec86
+[testcontainers.org 00:00:01.20] Start Docker container bcd3a692a624
+[testcontainers.org 00:00:01.50] Wait for Docker container bcd3a692a624 to complete readiness checks
+[testcontainers.org 00:00:01.53] Execute "/bin/sh -c true && (grep -i ':0*18EB' /proc/net/tcp* || nc -vz -w 1 localhost 6379 || /bin/bash -c '</dev/tcp/localhost/6379')" at Docker container bcd3a692a624
+[testcontainers.org 00:00:01.56] Wait for Docker container e97fec2bec86 to complete readiness checks
+[testcontainers.org 00:00:01.59] Execute "/bin/sh -c true && (grep -i ':0*18EB' /proc/net/tcp* || nc -vz -w 1 localhost 6379 || /bin/bash -c '</dev/tcp/localhost/6379')" at Docker container e97fec2bec86
+[testcontainers.org 00:00:01.65] Execute "redis-cli PING" at Docker container bcd3a692a624
+[testcontainers.org 00:00:01.67] Execute "redis-cli PING" at Docker container e97fec2bec86
+[testcontainers.org 00:00:01.71] Docker container bcd3a692a624 ready
+[testcontainers.org 00:00:01.74] Docker container e97fec2bec86 ready
+[testcontainers.org 00:00:02.87] Stop Docker container e97fec2bec86
+[testcontainers.org 00:00:03.51] Delete Docker container e97fec2bec86
+[testcontainers.org 00:00:03.65] Stop Docker container bcd3a692a624
+[testcontainers.org 00:00:04.11] Delete Docker container bcd3a692a624
+[testcontainers.org 00:00:04.28] Docker container e747e4c9f959 created
+[testcontainers.org 00:00:04.31] Start Docker container e747e4c9f959
+[testcontainers.org 00:00:04.68] Wait for Docker container e747e4c9f959 to complete readiness checks
+[testcontainers.org 00:00:04.72] Execute "/bin/sh -c true && (grep -i ':0*18EB' /proc/net/tcp* || nc -vz -w 1 localhost 6379 || /bin/bash -c '</dev/tcp/localhost/6379')" at Docker container e747e4c9f959
+[testcontainers.org 00:00:04.80] Execute "redis-cli PING" at Docker container e747e4c9f959
+[testcontainers.org 00:00:04.88] Docker container e747e4c9f959 ready
+[testcontainers.org 00:00:07.28] Docker container 52c1261cbaee created
+[testcontainers.org 00:00:07.30] Start Docker container 52c1261cbaee
+[testcontainers.org 00:00:07.62] Wait for Docker container 52c1261cbaee to complete readiness checks
+[testcontainers.org 00:00:07.66] Execute "/bin/sh -c true && (grep -i ':0*18EB' /proc/net/tcp* || nc -vz -w 1 localhost 6379 || /bin/bash -c '</dev/tcp/localhost/6379')" at Docker container 52c1261cbaee
+[testcontainers.org 00:00:07.76] Execute "redis-cli PING" at Docker container 52c1261cbaee
+[testcontainers.org 00:00:07.83] Docker container 52c1261cbaee ready
+[testcontainers.org 00:00:07.92] Delete Docker container 52c1261cbaee
+[testcontainers.org 00:00:08.62] Docker container da842fa037d0 created
+[testcontainers.org 00:00:08.66] Start Docker container da842fa037d0
+[testcontainers.org 00:00:08.99] Wait for Docker container da842fa037d0 to complete readiness checks
+[testcontainers.org 00:00:09.03] Execute "/bin/sh -c true && (grep -i ':0*18EB' /proc/net/tcp* || nc -vz -w 1 localhost 6379 || /bin/bash -c '</dev/tcp/localhost/6379')" at Docker container da842fa037d0
+[testcontainers.org 00:00:09.16] Execute "redis-cli PING" at Docker container da842fa037d0
+[testcontainers.org 00:00:09.23] Docker container da842fa037d0 ready
+[testcontainers.org 00:00:09.26] Delete Docker container da842fa037d0
+[testcontainers.org 00:00:09.86] Docker container 3aba3e64fe2a created
+[testcontainers.org 00:00:09.90] Start Docker container 3aba3e64fe2a
+[testcontainers.org 00:00:10.23] Wait for Docker container 3aba3e64fe2a to complete readiness checks
+[testcontainers.org 00:00:10.28] Execute "/bin/sh -c true && (grep -i ':0*18EB' /proc/net/tcp* || nc -vz -w 1 localhost 6379 || /bin/bash -c '</dev/tcp/localhost/6379')" at Docker container 3aba3e64fe2a
+[testcontainers.org 00:00:10.44] Execute "redis-cli PING" at Docker container 3aba3e64fe2a
+[testcontainers.org 00:00:10.50] Docker container 3aba3e64fe2a ready
+[testcontainers.org 00:00:10.53] Delete Docker container 3aba3e64fe2a
+[testcontainers.org 00:00:11.26] Docker container 94adda67f60d created
+[testcontainers.org 00:00:11.34] Start Docker container 94adda67f60d
+[testcontainers.org 00:00:11.69] Wait for Docker container 94adda67f60d to complete readiness checks
+[testcontainers.org 00:00:11.72] Execute "/bin/sh -c true && (grep -i ':0*18EB' /proc/net/tcp* || nc -vz -w 1 localhost 6379 || /bin/bash -c '</dev/tcp/localhost/6379')" at Docker container 94adda67f60d
+[testcontainers.org 00:00:11.88] Execute "redis-cli PING" at Docker container 94adda67f60d
+[testcontainers.org 00:00:11.96] Docker container 94adda67f60d ready
+[testcontainers.org 00:00:12.02] Delete Docker container 94adda67f60d
+[testcontainers.org 00:00:16.40] Docker container 83d627f935a9 created
+[testcontainers.org 00:00:16.43] Start Docker container 83d627f935a9
+[testcontainers.org 00:00:16.92] Wait for Docker container 83d627f935a9 to complete readiness checks
+[testcontainers.org 00:00:16.96] Execute "/bin/sh -c true && (grep -i ':0*18EB' /proc/net/tcp* || nc -vz -w 1 localhost 6379 || /bin/bash -c '</dev/tcp/localhost/6379')" at Docker container 83d627f935a9
+[testcontainers.org 00:00:17.05] Execute "redis-cli PING" at Docker container 83d627f935a9
+[testcontainers.org 00:00:17.11] Docker container 83d627f935a9 ready
+[testcontainers.org 00:00:17.18] Delete Docker container 83d627f935a9
+[testcontainers.org 00:00:17.83] Docker container 4e2f6aff9253 created
+[testcontainers.org 00:00:17.86] Start Docker container 4e2f6aff9253
+[testcontainers.org 00:00:18.23] Wait for Docker container 4e2f6aff9253 to complete readiness checks
+[testcontainers.org 00:00:18.26] Execute "/bin/sh -c true && (grep -i ':0*18EB' /proc/net/tcp* || nc -vz -w 1 localhost 6379 || /bin/bash -c '</dev/tcp/localhost/6379')" at Docker container 4e2f6aff9253
+[testcontainers.org 00:00:18.38] Execute "redis-cli PING" at Docker container 4e2f6aff9253
+[testcontainers.org 00:00:18.45] Docker container 4e2f6aff9253 ready
+[testcontainers.org 00:00:18.54] Delete Docker container 4e2f6aff9253
+[testcontainers.org 00:00:19.15] Stop Docker container e747e4c9f959
+[testcontainers.org 00:00:19.53] Delete Docker container e747e4c9f959
+  Finished:    Hexalith.Memories.IntegrationTests (ID = '0bc5a9560bfed4b0cde8a55f929cc638c756a567b7ac6f863d3f476ea4031ac6')
+=== TEST EXECUTION SUMMARY ===
+   Hexalith.Memories.IntegrationTests  Total: 82, Errors: 0, Failed: 0, Skipped: 0, Not Run: 0, Time: 19.735s

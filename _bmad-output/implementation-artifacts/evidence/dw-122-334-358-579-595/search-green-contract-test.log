@@ -1,0 +1,7 @@
+xUnit.net v3 In-Process Runner v4.0.2+0c7aa4991f (64-bit .NET 10.0.13)
+  Discovering: Hexalith.Memories.IntegrationTests
+  Discovered:  Hexalith.Memories.IntegrationTests
+  Starting:    Hexalith.Memories.IntegrationTests
+  Finished:    Hexalith.Memories.IntegrationTests (ID = '0bc5a9560bfed4b0cde8a55f929cc638c756a567b7ac6f863d3f476ea4031ac6')
+=== TEST EXECUTION SUMMARY ===
+   Hexalith.Memories.IntegrationTests  Total: 21, Errors: 0, Failed: 0, Skipped: 0, Not Run: 0, Time: 5.682s

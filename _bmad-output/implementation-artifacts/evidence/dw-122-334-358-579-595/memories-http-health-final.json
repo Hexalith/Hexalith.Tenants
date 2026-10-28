@@ -1,0 +1,131 @@
+[
+  {
+    "url": "http://localhost:38895/health",
+    "status": 200,
+    "body": {
+      "schemaVersion": 1,
+      "status": "Healthy",
+      "totalDurationMs": 22,
+      "entries": {
+        "self": {
+          "status": "Healthy",
+          "description": "",
+          "durationMs": 0,
+          "affectedCapabilities": []
+        },
+        "redis-ping": {
+          "status": "Healthy",
+          "description": "Redis PING succeeded in 6 ms.",
+          "durationMs": 10,
+          "affectedCapabilities": []
+        },
+        "access-telemetry-lifecycle": {
+          "status": "Healthy",
+          "description": "Access telemetry lifecycle has no data in the bounded window.",
+          "durationMs": 0,
+          "affectedCapabilities": []
+        },
+        "dapr-sidecar": {
+          "status": "Healthy",
+          "description": "Dapr sidecar is responsive.",
+          "durationMs": 4,
+          "affectedCapabilities": []
+        },
+        "dapr-statestore": {
+          "status": "Healthy",
+          "description": "Dapr state store 'statestore' is accessible.",
+          "durationMs": 6,
+          "affectedCapabilities": []
+        },
+        "redisearch": {
+          "status": "Healthy",
+          "description": "RediSearch module reachable; 0 indexes loaded.",
+          "durationMs": 1,
+          "affectedCapabilities": []
+        },
+        "redis-vector": {
+          "status": "Healthy",
+          "description": "Redis Vector capability reachable.",
+          "durationMs": 9,
+          "affectedCapabilities": []
+        },
+        "falkordb": {
+          "status": "Healthy",
+          "description": "FalkorDB reachable; 0 graphs.",
+          "durationMs": 3,
+          "affectedCapabilities": []
+        }
+      }
+    }
+  },
+  {
+    "url": "http://localhost:38895/alive",
+    "status": 200,
+    "body": {
+      "schemaVersion": 1,
+      "status": "Healthy",
+      "totalDurationMs": 1,
+      "entries": {
+        "self": {
+          "status": "Healthy",
+          "description": "",
+          "durationMs": 0,
+          "affectedCapabilities": []
+        },
+        "dapr-sidecar": {
+          "status": "Healthy",
+          "description": "Dapr sidecar is responsive.",
+          "durationMs": 1,
+          "affectedCapabilities": []
+        }
+      }
+    }
+  },
+  {
+    "url": "http://localhost:38895/ready",
+    "status": 200,
+    "body": {
+      "schemaVersion": 1,
+      "status": "Healthy",
+      "totalDurationMs": 3,
+      "entries": {
+        "redis-ping": {
+          "status": "Healthy",
+          "description": "Redis PING succeeded in 1 ms.",
+          "durationMs": 0,
+          "affectedCapabilities": []
+        },
+        "dapr-sidecar": {
+          "status": "Healthy",
+          "description": "Dapr sidecar is responsive.",
+          "durationMs": 2,
+          "affectedCapabilities": []
+        },
+        "dapr-statestore": {
+          "status": "Healthy",
+          "description": "Dapr state store 'statestore' is accessible.",
+          "durationMs": 1,
+          "affectedCapabilities": []
+        },
+        "redisearch": {
+          "status": "Healthy",
+          "description": "RediSearch module reachable; 0 indexes loaded.",
+          "durationMs": 0,
+          "affectedCapabilities": []
+        },
+        "redis-vector": {
+          "status": "Healthy",
+          "description": "Redis Vector capability reachable.",
+          "durationMs": 0,
+          "affectedCapabilities": []
+        },
+        "falkordb": {
+          "status": "Healthy",
+          "description": "FalkorDB reachable; 0 graphs.",
+          "durationMs": 0,
+          "affectedCapabilities": []
+        }
+      }
+    }
+  }
+]

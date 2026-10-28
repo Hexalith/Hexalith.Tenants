@@ -1,0 +1,155 @@
+[
+  {
+    "name": "memories-dapr",
+    "displayName": "memories-dapr",
+    "resourceType": "DaprSidecar",
+    "urls": [],
+    "relationships": []
+  },
+  {
+    "name": "memories-dapr-cli-vkndqqgd",
+    "displayName": "memories-dapr-cli",
+    "state": "Running",
+    "resourceType": "Executable",
+    "healthStatus": "Healthy",
+    "source": "daprd",
+    "urls": [
+      {
+        "name": "metrics",
+        "url": "http://localhost:10849"
+      },
+      {
+        "name": "http",
+        "url": "http://localhost:3502"
+      },
+      {
+        "name": "grpc",
+        "url": "http://localhost:50002"
+      }
+    ],
+    "relationships": [
+      {
+        "type": "Parent",
+        "resourceName": "memories-xxpzzgbz"
+      }
+    ],
+    "startTimestamp": "2026-10-28T09:32:21.53+00:00"
+  },
+  {
+    "name": "memories-graphs-cefapqgm",
+    "displayName": "memories-graphs",
+    "state": "Running",
+    "resourceType": "Container",
+    "healthStatus": "Healthy",
+    "source": "falkordb/falkordb@sha256:4b7c79901ad409a39655f049b772adbc499b92ee2e01db80c3502572444df84d",
+    "urls": [
+      {
+        "name": "falkordb",
+        "url": "tcp://localhost:43533"
+      }
+    ],
+    "relationships": [],
+    "startTimestamp": "2026-10-28T09:32:19.530507+00:00"
+  },
+  {
+    "name": "memories-llm",
+    "displayName": "memories-llm",
+    "state": "Running",
+    "resourceType": "DaprComponent",
+    "healthStatus": "Healthy",
+    "urls": [],
+    "relationships": []
+  },
+  {
+    "name": "memories-rebuilder-trvnyeur",
+    "displayName": "memories-rebuilder",
+    "state": "NotStarted",
+    "resourceType": "Executable",
+    "source": "dotnet",
+    "urls": [],
+    "relationships": [
+      {
+        "type": "Parent",
+        "resourceName": "memories-xxpzzgbz"
+      }
+    ]
+  },
+  {
+    "name": "memories-secretstore",
+    "displayName": "memories-secretstore",
+    "state": "Running",
+    "resourceType": "DaprComponent",
+    "healthStatus": "Healthy",
+    "urls": [],
+    "relationships": []
+  },
+  {
+    "name": "memories-vectors-wbfktnam",
+    "displayName": "memories-vectors",
+    "state": "Running",
+    "resourceType": "Container",
+    "healthStatus": "Healthy",
+    "source": "redis/redis-stack:latest",
+    "urls": [
+      {
+        "name": "redis",
+        "url": "tcp://localhost:32977"
+      }
+    ],
+    "relationships": [],
+    "startTimestamp": "2026-10-28T09:32:19.647098+00:00"
+  },
+  {
+    "name": "memories-xxpzzgbz",
+    "displayName": "memories",
+    "state": "Running",
+    "resourceType": "Project",
+    "healthStatus": "Healthy",
+    "source": "Hexalith.Memories.Server.csproj",
+    "urls": [
+      {
+        "name": "http",
+        "url": "http://localhost:44257"
+      }
+    ],
+    "relationships": [
+      {
+        "type": "Reference",
+        "resourceName": "memories-graphs-cefapqgm"
+      },
+      {
+        "type": "WaitFor",
+        "resourceName": "memories-graphs-cefapqgm"
+      },
+      {
+        "type": "WaitFor",
+        "resourceName": "memories-secretstore"
+      },
+      {
+        "type": "WaitFor",
+        "resourceName": "memories-llm"
+      },
+      {
+        "type": "Reference",
+        "resourceName": "memories-vectors-wbfktnam"
+      },
+      {
+        "type": "WaitFor",
+        "resourceName": "memories-vectors-wbfktnam"
+      },
+      {
+        "type": "WaitFor",
+        "resourceName": "dapr-sentry-aucdrqep"
+      },
+      {
+        "type": "WaitFor",
+        "resourceName": "dapr-placement-mtls-rykcjbpu"
+      },
+      {
+        "type": "WaitFor",
+        "resourceName": "dapr-scheduler-mtls-ykxujqyn"
+      }
+    ],
+    "startTimestamp": "2026-10-28T09:32:21.54+00:00"
+  }
+]

@@ -1,0 +1,5 @@
+{
+  "references/Hexalith.Memories/src/Hexalith.Memories.Server/Search/SyntacticSearchService.cs": "dda55f1f015a168f2d23682f0e04a8dd7d1329ca4ad5090256598fe06f6f2f14",
+  "references/Hexalith.Memories/tests/Hexalith.Memories.IntegrationTests/bin/Debug/net10.0/Hexalith.Memories.IntegrationTests.dll": "a779d3686c183300710ee9ce345f931916a48f6dc58fb1c1ff783fb21400d1c8",
+  "references/Hexalith.Memories/tests/Hexalith.Memories.Server.Tests/bin/Debug/net10.0/Hexalith.Memories.Server.Tests.dll": "630b1f349c09aeb8ec11ecc427a4bd4f53b54abbc16e37e5d555a6997ee46124"
+}

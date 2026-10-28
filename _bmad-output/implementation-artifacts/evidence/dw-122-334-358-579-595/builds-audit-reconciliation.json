@@ -1,0 +1,13 @@
+{
+  "owning_revision": "2574bf2f3da5367d8801f0d7661d66155e5d90b0",
+  "audit_sha256": "87d3ce5009b967ea1932a6312238e03589bf0d5dc8d1483d9f8c9115c95347c0",
+  "current_distinct_origin_count": 67,
+  "current_missing_origins": [],
+  "historical_missing_origins_still_absent": [
+    "200a01334b97bc1f254be0be22575b52960abac5",
+    "9566bafbc93118bd717cc610e11fc6584362ad18"
+  ],
+  "historical_repair_revision": "85c5fb3bff144be5dc184c478a49235a5e17b4bb",
+  "current_audit_accepted": true,
+  "historical_october_10_audit_accepted": false
+}

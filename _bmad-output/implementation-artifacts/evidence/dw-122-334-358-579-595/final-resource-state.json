@@ -1,0 +1,103 @@
+[
+  {
+    "name": "memories-cgapeeet",
+    "displayName": "memories",
+    "resourceType": "Project",
+    "state": "Running",
+    "startTimestamp": "2026-10-28T10:39:24.3+00:00",
+    "healthStatus": "Healthy",
+    "relationships": [
+      {
+        "type": "Reference",
+        "resourceName": "memories-graphs-rwugejjz"
+      },
+      {
+        "type": "WaitFor",
+        "resourceName": "memories-graphs-rwugejjz"
+      },
+      {
+        "type": "WaitFor",
+        "resourceName": "memories-secretstore"
+      },
+      {
+        "type": "WaitFor",
+        "resourceName": "memories-llm"
+      },
+      {
+        "type": "Reference",
+        "resourceName": "memories-vectors-ykmxvvkz"
+      },
+      {
+        "type": "WaitFor",
+        "resourceName": "memories-vectors-ykmxvvkz"
+      },
+      {
+        "type": "WaitFor",
+        "resourceName": "dapr-sentry-jrvxruys"
+      },
+      {
+        "type": "WaitFor",
+        "resourceName": "dapr-placement-mtls-utewpaem"
+      },
+      {
+        "type": "WaitFor",
+        "resourceName": "dapr-scheduler-mtls-fbztzbbg"
+      }
+    ],
+    "urls": [
+      {
+        "name": "http",
+        "url": "http://localhost:36125"
+      }
+    ],
+    "launch": {
+      "executable.path": "dotnet",
+      "executable.pid": 3261793,
+      "executable.workDir": "/home/administrator/projects/hexalith/tenants/references/Hexalith.Memories/src/Hexalith.Memories.Server",
+      "project.path": "/home/administrator/projects/hexalith/tenants/references/Hexalith.Memories/src/Hexalith.Memories.Server/Hexalith.Memories.Server.csproj"
+    }
+  },
+  {
+    "name": "memories-dapr-cli-wpnwezum",
+    "displayName": "memories-dapr-cli",
+    "resourceType": "Executable",
+    "state": "Running",
+    "startTimestamp": "2026-10-28T10:39:24.3+00:00",
+    "healthStatus": "Healthy",
+    "relationships": [
+      {
+        "type": "Parent",
+        "resourceName": "memories-cgapeeet"
+      }
+    ],
+    "urls": [
+      {
+        "name": "metrics",
+        "url": "http://localhost:13786"
+      },
+      {
+        "name": "http",
+        "url": "http://localhost:3502"
+      },
+      {
+        "name": "grpc",
+        "url": "http://localhost:50002"
+      }
+    ],
+    "launch": {
+      "executable.path": "/home/administrator/.dapr/bin/daprd",
+      "executable.pid": 3261790,
+      "executable.workDir": "/home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.AppHost"
+    }
+  },
+  {
+    "name": "memories-secretstore",
+    "displayName": "memories-secretstore",
+    "resourceType": "DaprComponent",
+    "state": "Running",
+    "healthStatus": "Healthy",
+    "relationships": [],
+    "urls": [],
+    "launch": {}
+  }
+]

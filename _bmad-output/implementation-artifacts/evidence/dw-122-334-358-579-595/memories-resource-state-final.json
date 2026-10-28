@@ -1,0 +1,173 @@
+[
+  {
+    "name": "memories-bsmgymyp",
+    "displayName": "memories",
+    "state": "Running",
+    "resourceType": "Project",
+    "healthStatus": "Healthy",
+    "source": "Hexalith.Memories.Server.csproj",
+    "urls": [
+      {
+        "name": "http",
+        "url": "http://localhost:38895"
+      }
+    ],
+    "relationships": [
+      {
+        "type": "Reference",
+        "resourceName": "memories-graphs-amjzyync"
+      },
+      {
+        "type": "WaitFor",
+        "resourceName": "memories-graphs-amjzyync"
+      },
+      {
+        "type": "WaitFor",
+        "resourceName": "memories-secretstore"
+      },
+      {
+        "type": "WaitFor",
+        "resourceName": "memories-llm"
+      },
+      {
+        "type": "Reference",
+        "resourceName": "memories-vectors-ayndtqkz"
+      },
+      {
+        "type": "WaitFor",
+        "resourceName": "memories-vectors-ayndtqkz"
+      },
+      {
+        "type": "WaitFor",
+        "resourceName": "dapr-sentry-gjuhzuwq"
+      },
+      {
+        "type": "WaitFor",
+        "resourceName": "dapr-placement-mtls-pzrfvmgk"
+      },
+      {
+        "type": "WaitFor",
+        "resourceName": "dapr-scheduler-mtls-qrnvnmaa"
+      }
+    ],
+    "startTimestamp": "2026-10-28T09:36:07.43+00:00",
+    "launch": {
+      "executable.args": null,
+      "executable.pid": 662838,
+      "project.path": "/home/administrator/projects/hexalith/tenants/references/Hexalith.Memories/src/Hexalith.Memories.Server/Hexalith.Memories.Server.csproj"
+    }
+  },
+  {
+    "name": "memories-dapr",
+    "displayName": "memories-dapr",
+    "resourceType": "DaprSidecar",
+    "urls": [],
+    "relationships": [],
+    "launch": {}
+  },
+  {
+    "name": "memories-dapr-cli-tjrmudky",
+    "displayName": "memories-dapr-cli",
+    "state": "Running",
+    "resourceType": "Executable",
+    "healthStatus": "Healthy",
+    "source": "daprd",
+    "urls": [
+      {
+        "name": "metrics",
+        "url": "http://localhost:29798"
+      },
+      {
+        "name": "http",
+        "url": "http://localhost:3502"
+      },
+      {
+        "name": "grpc",
+        "url": "http://localhost:50002"
+      }
+    ],
+    "relationships": [
+      {
+        "type": "Parent",
+        "resourceName": "memories-bsmgymyp"
+      }
+    ],
+    "startTimestamp": "2026-10-28T09:36:07.43+00:00",
+    "launch": {
+      "executable.args": null,
+      "executable.pid": 662832
+    }
+  },
+  {
+    "name": "memories-graphs-amjzyync",
+    "displayName": "memories-graphs",
+    "state": "Running",
+    "resourceType": "Container",
+    "healthStatus": "Healthy",
+    "source": "falkordb/falkordb@sha256:4b7c79901ad409a39655f049b772adbc499b92ee2e01db80c3502572444df84d",
+    "urls": [
+      {
+        "name": "falkordb",
+        "url": "tcp://localhost:41917"
+      }
+    ],
+    "relationships": [],
+    "startTimestamp": "2026-10-28T09:36:05.184002+00:00",
+    "launch": {}
+  },
+  {
+    "name": "memories-llm",
+    "displayName": "memories-llm",
+    "state": "Running",
+    "resourceType": "DaprComponent",
+    "healthStatus": "Healthy",
+    "urls": [],
+    "relationships": [],
+    "launch": {}
+  },
+  {
+    "name": "memories-rebuilder-cnbxnhet",
+    "displayName": "memories-rebuilder",
+    "state": "NotStarted",
+    "resourceType": "Executable",
+    "source": "dotnet",
+    "urls": [],
+    "relationships": [
+      {
+        "type": "Parent",
+        "resourceName": "memories-bsmgymyp"
+      }
+    ],
+    "launch": {
+      "executable.args": null,
+      "executable.pid": null
+    }
+  },
+  {
+    "name": "memories-secretstore",
+    "displayName": "memories-secretstore",
+    "state": "Running",
+    "resourceType": "DaprComponent",
+    "healthStatus": "Healthy",
+    "urls": [],
+    "relationships": [],
+    "launch": {}
+  },
+  {
+    "name": "memories-vectors-ayndtqkz",
+    "displayName": "memories-vectors",
+    "state": "Running",
+    "resourceType": "Container",
+    "healthStatus": "Healthy",
+    "source": "redis/redis-stack:latest",
+    "urls": [
+      {
+        "name": "redis",
+        "url": "tcp://localhost:43603"
+      }
+    ],
+    "relationships": [],
+    "startTimestamp": "2026-10-28T09:36:05.368027+00:00",
+    "launch": {}
+  }
+]

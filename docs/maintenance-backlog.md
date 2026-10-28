@@ -1,5 +1,7 @@
 # Maintenance backlog
 
+**DW-122/DW-334/DW-358/DW-579/DW-595 qualification (2026-10-28):** Deterministic BM25 raw windows, actual package-mode local Memories provider initialization, a validated current Builds audit and exact-adopted-pin EventStore CI complete the selected five records. All 657 IDs remain: 639 done/18 open across 17 maintenance rows. Historical failures and selected original fields, all 652 unselected numbered bodies, unrelated dependencies and broader runtime/release holds remain preserved. See [exact verification and limits](../_bmad-output/implementation-artifacts/dw-122-334-358-579-595-validation-evidence.md).
+
 **Historical audit provenance closure, 2026-10-28:** Close exactly DW-133/DW-365/DW-461/DW-467/DW-478 through original tooling attribution and a verified creation-parent correction for the legacy Story 5.4 audit. All seven additions remain inventoried at the final historical endpoint; provenance/identity/target/pointer refusals remain enforced. All 657 numbered IDs remain: 634 done/23 open across 21 exactly covering rows. All 652 other record bodies, selected historical fields, source stories, generated tooling, the five modified submodule checkouts and runtime/release holds remain preserved. [Exact checks, final review and limits](../_bmad-output/implementation-artifacts/dw-133-365-461-467-478-validation-evidence.md).
 
 **Release governance closure, 2026-10-27:** Complete DW-540, DW-554, DW-570, DW-584 and DW-593 under the approved blocking-CI, Server-only technical dependency, standalone provenance, latest three-workflow and recovery execution policies. Independent review corrections and final Contracts 718/718, release controls 70/70, shared provenance controls 59/59, OCI 12/12, package policy 11/11 and 371 workflow assertions pass. All 657 numbered IDs remain: 629 done/28 open across 24 index rows; all 652 unselected bodies and original selected fields remain preserved. Fresh full generic Aspire qualification remains separately open behind the published EventStore routing compile blocker. Concurrent work/pointers and broader release holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-540-554-570-584-593-validation-evidence.md).
@@ -244,14 +246,14 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 | Disposition | Records |
 | --- | ---: |
-| done | 634 |
+| done | 639 |
 | actionable | 3 |
-| blocked | 6 |
+| blocked | 1 |
 | awaiting-decision | 8 |
 | accepted-limitation | 3 |
 | uncertain | 3 |
 
-**Remaining: 23 open records across 21 index rows.**
+**Remaining: 18 open records across 17 index rows.**
 
 **Unnumbered cleanup follow-up resolved, 2026-10-27:** The original navigation-verification finding remains in the ledger with its resolution. Its explicit unsubscribe completion and held-cleanup callback checks are qualified; numbered DW totals exclude this unnumbered item. Disposition counts cover all 657 numbered records. P1 means correctness, confidentiality or command ownership; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. `unassigned` preserves the absence of an established owner.
 
@@ -285,12 +287,8 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | --- | --- | --- | --- | --- | --- |
 | DW-562, DW-617 | P1 | Gap / awaiting-decision | global-administrator authority owner; other records unassigned | Platform authorization and revocation contract; DW-562 revocation contract decision | Define the authoritative/version-bounded revocation guarantee and responsible authority before changing command/query gates. |
 | DW-521 | P2 | Defect / actionable | Hexalith.EventStore | EventStore lookup compatibility decision | Choose explicit message-primary versus compatibility lookup semantics across authorized tenants and test caller-chosen cross-tenant collisions. |
-| DW-595 | P2 | Defect / blocked | EventStore (Story 6.1-P1R evidence, contracts packaging) | EventStore-maintainer fixes at adopted source revision | Route current failing upstream tests to EventStore and capture a green exact-pin CI result. |
 | DW-618 | P2 | Defect / actionable | unassigned | Authorization-safe index paging design | Design bounded authorized paging that continues through hidden windows without exposing raw-result pagination facts. |
-| DW-122 | P2 | Gap / blocked | Memories | Memories index uniqueness guarantee | Add an owning Memories uniqueness contract test across raw windows. |
-| DW-334, DW-358 | P2 | Gap / blocked | operator | operator-owned live Aspire/secret-provider evidence; Operator environment and intended secret-provider configuration | Capture deployed model, provider binding and healthy startup in the intended package mode. |
 | DW-457 | P2 | Gap / awaiting-decision | Hexalith.Builds | Builds toolchain qualification decision | Builds owners must annotate the historical Aspire split disposition and disambiguate the two Dapr meanings. |
-| DW-579 | P2 | Gap / blocked | unassigned | Builds-maintainer historical provenance repair | Reconcile missing owning-repository origin revisions and regenerate/validate supported audit evidence. |
 | DW-599 | P2 | Gap / awaiting-decision | unassigned | Configuration read-policy scope decision | Decide whether FR-6 filtering protects API disclosure as well as UI display; specify the owning boundary. |
 
 ## Unverified risks and recommendations

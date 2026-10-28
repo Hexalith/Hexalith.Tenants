@@ -1,0 +1,9 @@
+{
+  "captured_utc": "2026-10-28T10:07:17.769936+00:00",
+  "source_revision": "72c36c7113c750c8b809f9d72b945a2a8c2d4555",
+  "production_source_sha256": "5fc3672f386af0599d337d190e5a99d8814a1040b178b3c902595aa662cdbeac",
+  "source_integration_binary_identities": {
+    "Hexalith.Memories.IntegrationTests.dll": "7d45d35f862ae737f40b4782aa64ac959632073aada2feb98a16c4bd7efb7b26",
+    "Hexalith.Memories.Server.dll": "f529a9e2e270f9404483214997093cbc8a9017616c32000b44703ce0bb174d59"
+  }
+}

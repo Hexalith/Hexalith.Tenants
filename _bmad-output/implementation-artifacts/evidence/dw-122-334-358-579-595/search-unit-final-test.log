@@ -1,0 +1,7 @@
+xUnit.net v3 In-Process Runner v4.0.2+0c7aa4991f (64-bit .NET 10.0.13)
+  Discovering: Hexalith.Memories.Server.Tests
+  Discovered:  Hexalith.Memories.Server.Tests
+  Starting:    Hexalith.Memories.Server.Tests
+  Finished:    Hexalith.Memories.Server.Tests (ID = '5fa34c8828a9570d9df5fd25e28e0fa9aed55f61be5db70d6218153703e2a412')
+=== TEST EXECUTION SUMMARY ===
+   Hexalith.Memories.Server.Tests  Total: 271, Errors: 0, Failed: 0, Skipped: 0, Not Run: 0, Time: 0.395s

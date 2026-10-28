@@ -1,0 +1,78 @@
+xUnit.net v3 In-Process Runner v4.0.2+0c7aa4991f (64-bit .NET 10.0.13)
+  Discovering: Hexalith.Memories.IntegrationTests (method display = ClassAndMethod, method display options = None)
+  Discovered:  Hexalith.Memories.IntegrationTests (42 test cases to be run)
+  Starting:    Hexalith.Memories.IntegrationTests (parallel mode = none, stop on fail = off, explicit = off, seed = 612952411)
+[testcontainers.org 00:00:00.15] Connected to Docker:
+  Host: unix:///var/run/docker.sock
+  Server Version: 29.8.2
+  Kernel Version: 6.6.87.2-microsoft-standard-WSL2
+  API Version: 1.56
+  Operating System: Docker Desktop
+  Total Memory: 90.36 GB
+  Labels:
+    com.docker.desktop.address=unix:///var/run/docker-cli.sock
+[testcontainers.org 00:00:00.50] Docker container ec5e93110e9f created
+[testcontainers.org 00:00:00.59] Start Docker container ec5e93110e9f
+[testcontainers.org 00:00:00.93] Wait for Docker container ec5e93110e9f to complete readiness checks
+[testcontainers.org 00:00:01.01] Docker container ec5e93110e9f ready
+[testcontainers.org 00:00:01.15] Docker container ff5d72901463 created
+[testcontainers.org 00:00:01.17] Docker container 84795aeb2440 created
+[testcontainers.org 00:00:01.20] Start Docker container ff5d72901463
+[testcontainers.org 00:00:01.22] Start Docker container 84795aeb2440
+[testcontainers.org 00:00:01.57] Wait for Docker container ff5d72901463 to complete readiness checks
+[testcontainers.org 00:00:01.60] Wait for Docker container 84795aeb2440 to complete readiness checks
+[testcontainers.org 00:00:01.63] Execute "/bin/sh -c true && (grep -i ':0*18EB' /proc/net/tcp* || nc -vz -w 1 localhost 6379 || /bin/bash -c '</dev/tcp/localhost/6379')" at Docker container ff5d72901463
+[testcontainers.org 00:00:01.63] Execute "/bin/sh -c true && (grep -i ':0*18EB' /proc/net/tcp* || nc -vz -w 1 localhost 6379 || /bin/bash -c '</dev/tcp/localhost/6379')" at Docker container 84795aeb2440
+[testcontainers.org 00:00:01.76] Execute "redis-cli PING" at Docker container 84795aeb2440
+[testcontainers.org 00:00:01.76] Execute "redis-cli PING" at Docker container ff5d72901463
+[testcontainers.org 00:00:01.84] Docker container 84795aeb2440 ready
+[testcontainers.org 00:00:01.85] Docker container ff5d72901463 ready
+[testcontainers.org 00:00:02.78] Stop Docker container ff5d72901463
+[testcontainers.org 00:00:03.28] Delete Docker container ff5d72901463
+[testcontainers.org 00:00:03.39] Stop Docker container 84795aeb2440
+[testcontainers.org 00:00:03.92] Delete Docker container 84795aeb2440
+[testcontainers.org 00:00:09.69] Docker container 87f4e27f0b64 created
+[testcontainers.org 00:00:09.73] Start Docker container 87f4e27f0b64
+[testcontainers.org 00:00:10.00] Wait for Docker container 87f4e27f0b64 to complete readiness checks
+[testcontainers.org 00:00:10.03] Execute "redis-cli PING" at Docker container 87f4e27f0b64
+[testcontainers.org 00:00:10.09] Docker container 87f4e27f0b64 ready
+    [D::Hexalith.Memories.IntegrationTests] cap mismatch negative control RESP2 graph=False: total 23, rows 0
+[testcontainers.org 00:00:10.15] Delete Docker container 87f4e27f0b64
+[testcontainers.org 00:00:10.80] Docker container b42047abeb75 created
+[testcontainers.org 00:00:10.84] Start Docker container b42047abeb75
+[testcontainers.org 00:00:11.15] Wait for Docker container b42047abeb75 to complete readiness checks
+[testcontainers.org 00:00:11.18] Execute "redis-cli PING" at Docker container b42047abeb75
+[testcontainers.org 00:00:11.25] Docker container b42047abeb75 ready
+    [D::Hexalith.Memories.IntegrationTests] cap mismatch negative control RESP3 graph=False: total 23, rows 0
+[testcontainers.org 00:00:11.30] Delete Docker container b42047abeb75
+[testcontainers.org 00:00:11.88] Docker container ffe908e072a6 created
+[testcontainers.org 00:00:11.91] Start Docker container ffe908e072a6
+[testcontainers.org 00:00:12.18] Wait for Docker container ffe908e072a6 to complete readiness checks
+[testcontainers.org 00:00:12.21] Execute "redis-cli PING" at Docker container ffe908e072a6
+[testcontainers.org 00:00:12.28] Docker container ffe908e072a6 ready
+    [D::Hexalith.Memories.IntegrationTests] cap mismatch negative control RESP2 graph=True: total 23, rows 0
+[testcontainers.org 00:00:12.31] Delete Docker container ffe908e072a6
+[testcontainers.org 00:00:12.83] Docker container 3dd9a6fb1a23 created
+[testcontainers.org 00:00:12.86] Start Docker container 3dd9a6fb1a23
+[testcontainers.org 00:00:13.13] Wait for Docker container 3dd9a6fb1a23 to complete readiness checks
+[testcontainers.org 00:00:13.17] Execute "redis-cli PING" at Docker container 3dd9a6fb1a23
+[testcontainers.org 00:00:13.23] Docker container 3dd9a6fb1a23 ready
+    [D::Hexalith.Memories.IntegrationTests] cap mismatch negative control RESP3 graph=True: total 23, rows 0
+[testcontainers.org 00:00:13.27] Delete Docker container 3dd9a6fb1a23
+[testcontainers.org 00:00:20.41] Docker container 86ce2fccda34 created
+[testcontainers.org 00:00:20.44] Start Docker container 86ce2fccda34
+[testcontainers.org 00:00:20.69] Wait for Docker container 86ce2fccda34 to complete readiness checks
+[testcontainers.org 00:00:20.72] Execute "redis-cli PING" at Docker container 86ce2fccda34
+[testcontainers.org 00:00:20.81] Docker container 86ce2fccda34 ready
+    [D::Hexalith.Memories.IntegrationTests] timeout RETURN negative control RESP2: partial raw count 1799/50000
+[testcontainers.org 00:00:21.39] Delete Docker container 86ce2fccda34
+[testcontainers.org 00:00:22.06] Docker container 342698ae362b created
+[testcontainers.org 00:00:22.10] Start Docker container 342698ae362b
+[testcontainers.org 00:00:22.52] Wait for Docker container 342698ae362b to complete readiness checks
+[testcontainers.org 00:00:22.55] Execute "redis-cli PING" at Docker container 342698ae362b
+[testcontainers.org 00:00:22.64] Docker container 342698ae362b ready
+    [D::Hexalith.Memories.IntegrationTests] timeout RETURN negative control RESP3: partial raw count 1699/50000
+[testcontainers.org 00:00:23.26] Delete Docker container 342698ae362b
+  Finished:    Hexalith.Memories.IntegrationTests (ID = '0bc5a9560bfed4b0cde8a55f929cc638c756a567b7ac6f863d3f476ea4031ac6')
+=== TEST EXECUTION SUMMARY ===
+   Hexalith.Memories.IntegrationTests  Total: 62, Errors: 0, Failed: 0, Skipped: 0, Not Run: 0, Time: 24.478s

@@ -1,0 +1,22 @@
+xUnit.net v3 In-Process Runner v4.0.2+0c7aa4991f (64-bit .NET 10.0.13)
+  Discovering: Hexalith.Memories.Server.Tests
+  Discovered:  Hexalith.Memories.Server.Tests
+  Starting:    Hexalith.Memories.Server.Tests
+    Hexalith.Memories.Server.Tests.Search.SyntacticSearchServiceTests.SearchAsync_WithGraphScopeKeys_ShouldApplyInKeysBeforeLimit [FAIL]
+      Shouldly.ShouldAssertException : hydration[hydrationKeys + 2]
+          should be
+      "tenant1:mu:mu-001"
+          but was
+      tenant1:mu:mu-001
+      Stack Trace:
+        tests/Hexalith.Memories.Server.Tests/Search/SyntacticSearchServiceTests.cs(446,0): at Hexalith.Memories.Server.Tests.Search.SyntacticSearchServiceTests.SearchAsync_WithGraphScopeKeys_ShouldApplyInKeysBeforeLimit()
+           at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+           at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
+           at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)
+        --- End of stack trace from previous location ---
+           at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+           at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
+           at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)
+  Finished:    Hexalith.Memories.Server.Tests (ID = '5fa34c8828a9570d9df5fd25e28e0fa9aed55f61be5db70d6218153703e2a412')
+=== TEST EXECUTION SUMMARY ===
+   Hexalith.Memories.Server.Tests  Total: 40, Errors: 0, Failed: 1, Skipped: 0, Not Run: 0, Time: 0.355s

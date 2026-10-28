@@ -1,0 +1,10 @@
+{
+  "commit": "35ef40e3fdcc7a490e04cf49e6a532fd5bf32285",
+  "parent": "6249e6bafc577934be959a3f248fbb27c8951ffc",
+  "branch": "main",
+  "source_path": "src/Hexalith.Memories.Server/Search/SyntacticSearchService.cs",
+  "source_blob": "4c9c72f7a80f213922b07dad073df9372f091d04",
+  "materialized_source_sha256": "dda55f1f015a168f2d23682f0e04a8dd7d1329ca4ad5090256598fe06f6f2f14",
+  "reviewed_source_unchanged_by_rebase": true,
+  "published_remote": "https://github.com/Hexalith/Hexalith.Memories.git"
+}

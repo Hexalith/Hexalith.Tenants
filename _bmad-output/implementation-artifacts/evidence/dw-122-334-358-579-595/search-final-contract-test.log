@@ -1,0 +1,36 @@
+xUnit.net v3 In-Process Runner v4.0.2+0c7aa4991f (64-bit .NET 10.0.13)
+  Discovering: Hexalith.Memories.IntegrationTests
+  Discovered:  Hexalith.Memories.IntegrationTests
+  Starting:    Hexalith.Memories.IntegrationTests
+[testcontainers.org 00:00:00.10] Connected to Docker:
+  Host: unix:///var/run/docker.sock
+  Server Version: 29.8.2
+  Kernel Version: 6.6.87.2-microsoft-standard-WSL2
+  API Version: 1.56
+  Operating System: Docker Desktop
+  Total Memory: 90.36 GB
+  Labels:
+    com.docker.desktop.address=unix:///var/run/docker-cli.sock
+[testcontainers.org 00:00:00.27] Docker container c97627c52a5a created
+[testcontainers.org 00:00:00.31] Start Docker container c97627c52a5a
+[testcontainers.org 00:00:00.53] Wait for Docker container c97627c52a5a to complete readiness checks
+[testcontainers.org 00:00:01.61] Docker container c97627c52a5a ready
+[testcontainers.org 00:00:01.71] Docker container 584fe06c892c created
+[testcontainers.org 00:00:01.71] Docker container 1b63cdfb0677 created
+[testcontainers.org 00:00:01.73] Start Docker container 584fe06c892c
+[testcontainers.org 00:00:01.73] Start Docker container 1b63cdfb0677
+[testcontainers.org 00:00:01.98] Wait for Docker container 1b63cdfb0677 to complete readiness checks
+[testcontainers.org 00:00:02.01] Execute "/bin/sh -c true && (grep -i ':0*18EB' /proc/net/tcp* || nc -vz -w 1 localhost 6379 || /bin/bash -c '</dev/tcp/localhost/6379')" at Docker container 1b63cdfb0677
+[testcontainers.org 00:00:02.03] Wait for Docker container 584fe06c892c to complete readiness checks
+[testcontainers.org 00:00:02.06] Execute "/bin/sh -c true && (grep -i ':0*18EB' /proc/net/tcp* || nc -vz -w 1 localhost 6379 || /bin/bash -c '</dev/tcp/localhost/6379')" at Docker container 584fe06c892c
+[testcontainers.org 00:00:02.10] Execute "redis-cli PING" at Docker container 1b63cdfb0677
+[testcontainers.org 00:00:02.13] Execute "redis-cli PING" at Docker container 584fe06c892c
+[testcontainers.org 00:00:02.16] Docker container 1b63cdfb0677 ready
+[testcontainers.org 00:00:02.19] Docker container 584fe06c892c ready
+[testcontainers.org 00:00:02.89] Stop Docker container 584fe06c892c
+[testcontainers.org 00:00:03.31] Delete Docker container 584fe06c892c
+[testcontainers.org 00:00:03.36] Stop Docker container 1b63cdfb0677
+[testcontainers.org 00:00:03.73] Delete Docker container 1b63cdfb0677
+  Finished:    Hexalith.Memories.IntegrationTests (ID = '0bc5a9560bfed4b0cde8a55f929cc638c756a567b7ac6f863d3f476ea4031ac6')
+=== TEST EXECUTION SUMMARY ===
+   Hexalith.Memories.IntegrationTests  Total: 43, Errors: 0, Failed: 0, Skipped: 0, Not Run: 0, Time: 10.908s

@@ -1,0 +1,50 @@
+{
+  "captured_utc": "2026-10-28T10:08:25.157165+00:00",
+  "server_process_id": 1751089,
+  "server_start_timestamp": "2026-10-28T10:07:32.6+00:00",
+  "source_sha256": "5fc3672f386af0599d337d190e5a99d8814a1040b178b3c902595aa662cdbeac",
+  "runtime": {
+    "references/Hexalith.Memories/src/Hexalith.Memories.Server": {
+      "dependency_manifest_sha256": "bd3dd9991291ab8a5c0286f9cd224929f592f7eaf161d5ed2f0aa735f1194afe",
+      "binary_sha256": "b68357f37207af83b67750b9b1a5101504737315473ad72cb231418afccc9e6c",
+      "external_Hexalith_dependencies": {
+        "Hexalith.EventStore.Client/3.128.4": "package",
+        "Hexalith.EventStore.Contracts/3.128.4": "package",
+        "Hexalith.EventStore.DomainService/3.128.4": "package",
+        "Hexalith.EventStore.ServiceDefaults/3.128.4": "package"
+      }
+    },
+    "src/Hexalith.Tenants.AppHost": {
+      "dependency_manifest_sha256": "0668bbfbe19ff6f552d476b15cfbd839093bc65359965c263549cf96f81e9d78",
+      "binary_sha256": "abe5e5d785d21261d5b695134eb8a5313e63e95acbe7adcf2c9f819c330e10dc",
+      "external_Hexalith_dependencies": {
+        "Hexalith.EventStore.Aspire/3.128.4": "package",
+        "Hexalith.Memories.Aspire/3.0.3": "package"
+      }
+    }
+  },
+  "server_command_line": [
+    "dotnet",
+    "run",
+    "--project",
+    "/home/administrator/projects/hexalith/tenants/references/Hexalith.Memories/src/Hexalith.Memories.Server/Hexalith.Memories.Server.csproj",
+    "--no-build",
+    "--configuration",
+    "Debug",
+    "--no-launch-profile"
+  ],
+  "server_child_processes": [
+    {
+      "pid": 1751977,
+      "command_line": [
+        "/home/administrator/projects/hexalith/tenants/references/Hexalith.Memories/src/Hexalith.Memories.Server/bin/Debug/net10.0/Hexalith.Memories.Server"
+      ],
+      "loaded_server_modules": [
+        {
+          "path": "/home/administrator/projects/hexalith/tenants/references/Hexalith.Memories/src/Hexalith.Memories.Server/bin/Debug/net10.0/Hexalith.Memories.Server.dll",
+          "sha256": "b68357f37207af83b67750b9b1a5101504737315473ad72cb231418afccc9e6c"
+        }
+      ]
+    }
+  ]
+}

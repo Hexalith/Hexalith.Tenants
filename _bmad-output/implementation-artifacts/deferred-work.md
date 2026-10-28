@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-122/DW-334/DW-358/DW-579/DW-595 qualification (2026-10-28):** Deterministic BM25 raw windows, actual package-mode local Memories provider initialization, a validated current Builds audit and exact-adopted-pin EventStore CI complete the selected five records. All 657 IDs remain: 639 done/18 open across 17 maintenance rows. Historical failures and selected original fields, all 652 unselected numbered bodies, unrelated dependencies and broader runtime/release holds remain preserved. See [exact verification and limits](dw-122-334-358-579-595-validation-evidence.md).
+
 **Historical audit provenance closure, 2026-10-28:** DW-133/DW-365 retain reproducible original tooling attribution; DW-461/DW-467/DW-478 share the verified Story 5.4 baseline correction, explicit final endpoint and seven exact historical additions. The production guard and committed-history regressions pass. All 657 IDs remain: 634 done/23 open across 21 maintenance rows; all 652 other record bodies and original selected fields remain preserved. Source stories, generated tooling, dependency pointers and broader runtime/release holds are preserved. [Exact verification, final review and limits](dw-133-365-461-467-478-validation-evidence.md).
 
 **DW-154/DW-387/DW-390/DW-568/DW-625 acceptance (2026-10-26):** Original-caller-bound MessageId recovery, distinguishing teardown controls, browser-qualified whitespace annotations and opaque index authority satisfy the selected five records. Debug/source UI 7,835/7,835, Server 1,527/1,527, focused generated-controller Integration 47/47, both teardown mutations and maintained/targeted Chromium checks pass. All 657 IDs remain: 620 done/37 open across 33 maintenance rows; all 652 unselected record bodies and original selected fields remain preserved. Broader Integration/runtime/release holds remain. See [validation evidence](validation-dw-154-387-390-568-625.md).
@@ -1090,10 +1092,10 @@ location: spec-1-9-…-paging.md:238
 source_spec: `_bmad-output/implementation-artifacts/spec-1-9-authoritative-memories-search-with-protected-paging.md`
 reason: The legacy ledger defers this issue: Per-page candidate dedup lets one tenant render on two consecutive authoritative search pages. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-1-9-authoritative-memories-search-with-protected-paging.md` summary: Per-page candidate dedup lets one tenant render on two consecutive authoritative search pages. evidence: `TenantQueryGateway.BuildAuthoritativeSearchSnapshotAsync` builds its `seen` set per raw window, so a tenant the index returns in two overlapping windows is rendered twice across consecutive pages. Closing it needs either an index uniqueness guarantee (upstream, barred by this spec's Block-If) or a cross-page seen-set carried in the protected cursor, which would place reconstructable index material into protected state and violate this story's own cursor constraints. Reclassified from patch to deferred during the 2026-07-27 pass-2 application and marked `[x]` at `spec-1-9-…-paging.md:238`, but never entered this ledger — the pass-3 review found it invisible to ledger triage. Recorded here now. status: open — blocked on an upstream index uniqueness guarantee or a cursor design that carries no reconstructable index material.
-status: open
+status: done 2026-10-28
 decision: 2026-08-26 Upstream uniqueness — Make Memories guarantee stable unique tenant candidates and add an owning contract test.
 decision: 2026-08-25 Upstream uniqueness — Make Memories guarantee stable unique tenant candidates and add a contract test.
-disposition: blocked
+disposition: done
 verification-date: 2026-10-12
 verification: src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs BuildAuthoritativeSearchSnapshotAsync uses a per-window seen set. No cross-page uniqueness contract/test was found; the recorded 2026-08-25/26 decision chooses upstream Memories uniqueness.
 verification-files: src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs
@@ -1101,8 +1103,15 @@ evidence-kind: verified-gap
 priority: P2
 owner: Memories
 dependencies: Memories index uniqueness guarantee
-next-action: Add an owning Memories uniqueness contract test across raw windows.
+next-action: none; selected requirement completed with retained qualification limits.
 related: DW-114
+pre-closure-status: open
+pre-closure-disposition: blocked
+pre-closure-next-action: Add an owning Memories uniqueness contract test across raw windows.
+closure-date: 2026-10-28
+closure-verification: Memories selects raw windows by BM25 score then unique key before hydration. Real Redis RESP2/RESP3 tied-score and invalid-entry contracts pass; original production source fails four new cases. Final focused integration 82/82 and search/endpoint unit 296/296 pass. Profile warnings and cap-truncated windows fail explicitly, and whitespace case IDs retain prior normalization. The unchanged-query/index guarantee does not claim mutation snapshot isolation or package publication.
+closure-evidence: dw-122-334-358-579-595-validation-evidence.md
+
 
 ### DW-123: A partially hidden search window still advertises, through a live Next control beside its surviving rows, that the window held more than it rendered
 
@@ -2857,8 +2866,8 @@ location: src/Hexalith.Tenants.AppHost/Program.cs:117
 source_spec: `spec-4-2-grant-global-administrator-with-projection-confirmation.md`
 severity: medium
 reason: The AppHost secret-store change arrived in a separate concurrent commit and is outside Story 4.2. An Aspire resource-model inspection plus a healthy deployed startup using the intended secret provider would settle the topology risk.
-status: open
-disposition: blocked
+status: done 2026-10-28
+disposition: done
 verification-date: 2026-10-12
 verification: src/Hexalith.Tenants.AppHost/Program.cs supplies the Memories secret store and tests/Hexalith.Tenants.IntegrationTests/MemoriesSecretStoreResourceGraphTests.cs inspects its model; no current deployed-startup health packet using the intended provider settles the original full requirement.
 verification-files: tests/Hexalith.Tenants.IntegrationTests/MemoriesSecretStoreResourceGraphTests.cs
@@ -2866,8 +2875,15 @@ evidence-kind: verified-gap
 priority: P2
 owner: operator
 dependencies: operator-owned live Aspire/secret-provider evidence
-next-action: Capture deployed model, provider binding and healthy startup in the intended package mode.
+next-action: none; selected requirement completed with retained qualification limits.
 related: DW-344, DW-358
+pre-closure-status: open
+pre-closure-disposition: blocked
+pre-closure-next-action: Capture deployed model, provider binding and healthy startup in the intended package mode.
+closure-date: 2026-10-28
+closure-verification: The actual package-mode AppHost model passes, and isolated live Memories/sidecar initialize with the selected secretstores.local.file/v1 provider. Final runtime dependency manifests and binary identities, loaded component metadata and healthy HTTP health/alive/ready evidence are retained. Production providers and ingestion qualification remain separate.
+closure-evidence: dw-122-334-358-579-595-validation-evidence.md
+
 
 ### DW-335: The tenant-workspace tab migration removed every inactive-panel visibility assertion inside this story's own commit, not a concurrent one.
 
@@ -3048,16 +3064,23 @@ origin: migrated from unnumbered ledger ("Deferred from: code review of spec-4-2
 location: n/a
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- Package-reference Memories secret-store AC9 is outside this grant-core chunk. Already DW-334 / operator-owned; AppHost and the published `Hexalith.Memories.Aspire` pin belong to group 3 of this review, not this pass."
-status: open
-disposition: blocked
+status: done 2026-10-28
+disposition: done
 verification-date: 2026-10-12
 verification: src/Hexalith.Tenants.AppHost/Program.cs:119-135 now passes the explicit memories-secretstore resource to the hosting recipe, and the source/package signature prerequisite is documented as available (2.25.0). The retained evidence does not establish a deployed package-mode Memories resource model and healthy startup using the intended secret provider; fixture health targets in tests/Hexalith.Tenants.IntegrationTests/Fixtures/AspireTopologyFixture.cs omit Memories.
 evidence-kind: verified-gap
 priority: P2
 owner: operator
 dependencies: Operator environment and intended secret-provider configuration
-next-action: Operator: inspect the intended package-mode Aspire resource model and retain healthy Memories startup/provider evidence.
+next-action: none; selected requirement completed with retained qualification limits.
 related: DW-334
+pre-closure-status: open
+pre-closure-disposition: blocked
+pre-closure-next-action: Operator: inspect the intended package-mode Aspire resource model and retain healthy Memories startup/provider evidence.
+closure-date: 2026-10-28
+closure-verification: Duplicate of DW-334: the genuine package-mode Memories.Aspire model and explicitly package-dependency-built owning Memories Server pass live local-provider initialization/health. Exact binary/package identities rule out stale source-output ambiguity; this does not claim an unpublished server package or production-provider qualification.
+closure-evidence: dw-122-334-358-579-595-validation-evidence.md
+
 duplicate-of: DW-334
 
 
@@ -5515,8 +5538,8 @@ location: _bmad-output/implementation-artifacts/dependency-refresh-eventstore-3.
 source_spec: `_bmad-output/implementation-artifacts/spec-eventstore-3-117-1.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-eventstore-3-117-1.md`\n  summary: Restore or reconcile missing historical Git revisions referenced by the Builds package audit before accepting the EventStore 3.120.0 audit.\n  evidence: The supported full pre-edit audit was generated against committed Builds `2cf00028bbe563d80d4d12b5fb2054914f14fcb6`, but deterministic validation of its saved snapshot exits 1 with 50 unavailable historical origin-revision errors in addition to a temporary catalog-path mismatch. The checked-in audit validator exits 1 with 1,563 errors, including unavailable historical revisions; logs and exact commands are archived in `dependency-refresh-eventstore-3.120.0-raw-logs-2026-10-10.zip`. This inherited provenance gap blocks accepted audit evidence even after a governed catalog commit."
-status: open
-disposition: blocked
+status: done 2026-10-28
+disposition: done
 verification-date: 2026-10-12
 verification: dependency-refresh-eventstore-3.120.0-evidence-2026-10-10.json preserves failed supported audit acceptance (50 unavailable historical origins). Current Builds package-version-audit.json still references locally missing commits 200a0133 and 9566bafb (read-only cat-file check); no replacement accepted audit is present.
 verification-files: _bmad-output/implementation-artifacts/dependency-refresh-eventstore-3.120.0-evidence-2026-10-10.json; references/Hexalith.Builds/Tools/package-version-audit.json
@@ -5524,8 +5547,15 @@ evidence-kind: verified-gap
 priority: P2
 owner: unassigned
 dependencies: Builds-maintainer historical provenance repair
-next-action: Reconcile missing owning-repository origin revisions and regenerate/validate supported audit evidence.
+next-action: none; selected requirement completed with retained qualification limits.
 related: DW-596
+pre-closure-status: open
+pre-closure-disposition: blocked
+pre-closure-next-action: Reconcile missing owning-repository origin revisions and regenerate/validate supported audit evidence.
+closure-date: 2026-10-28
+closure-verification: At Builds 2574bf2f3da5367d8801f0d7661d66155e5d90b0 the supported validator passes for 307 packages, 151 families and one source; all 67 current origin revisions resolve. Current accepted evidence supersedes the current blocker. The October 10 snapshot remains rejected and its two missing origins remain unavailable.
+closure-evidence: dw-122-334-358-579-595-validation-evidence.md
+
 
 
 ## Deferred from: spec-gh-actions-28944933021-85877006572.md (2026-10-10)
@@ -5724,16 +5754,23 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: medium; EventStore's own CI is red at the pinned `a5405602` (secret scan and a contracts packaging test). Owner: EventStore (Story 6.1-P1R evidence, contracts packaging).\n  evidence: EventStore CI run 38050087596 at `a5405602`: `build-and-test` job 114207290957 fails `SecretsProtectionTests.TrackedReusableContent_DoesNotContainUsableSecrets` with 152 violations, all under `_bmad-output/implementation-artifacts/evidence/6-1-p1r-31190-published-run/`. The previously adopted pin `37451b52` (run 37965432920, job 113938609179) already failed it with 19 violations under `6-1-p1r-current-source-2026-10-09/`, so the failure predates this range. These are not Story 5.6's four historical locations. The `contracts` job 114207290744 newly fails `ContractsPackageDependencyTests.SharedConsumerAuthorityValidatorPassesForEveryTrackedMsBuildSurfaceAsync` (it passed at `37451b52`). Tenants `build-and-test` stays green on the 3.120.0 package lane."
-status: open
-disposition: blocked
+status: done 2026-10-28
+disposition: done
 verification-date: 2026-10-12
 verification: Pinned source is now 3d0b738d. CI run 38266659178 still fails build-and-test/contracts, but current logs no longer show the original secret-scan or SharedConsumerAuthorityValidator failures. Remaining failures are SharedProjectionChunkedStage/CopyOnWrite, DomainServiceIsolation, ReleasePackageManifest and ProjectionDispatchContract tests. Historical failures retained; current upstream CI blocker differs.
 evidence-kind: verified-defect
 priority: P2
 owner: EventStore (Story 6.1-P1R evidence, contracts packaging)
 dependencies: EventStore-maintainer fixes at adopted source revision
-next-action: Route current failing upstream tests to EventStore and capture a green exact-pin CI result.
+next-action: none; selected requirement completed with retained qualification limits.
 related: none
+pre-closure-status: open
+pre-closure-disposition: blocked
+pre-closure-next-action: Route current failing upstream tests to EventStore and capture a green exact-pin CI result.
+closure-date: 2026-10-28
+closure-verification: Adopted EventStore 717a06e16c3afd81b904eaf4de646b74b13262d2 has successful exact-pin CI 40653941080 including contracts/build-and-test, plus successful independent Integration Tests 40653940590. Payload protection workflows also pass. Earlier failed/cancelled runs and current skipped advisory CI jobs remain explicitly distinguished.
+closure-evidence: dw-122-334-358-579-595-validation-evidence.md
+
 
 
 ### DW-596: low; `_bmad-output/project-context.md` is stale about the EventStore 3.120.0 catalog commit. Owner: EventStore 3.120.0 dependency refresh (`spec-eventstore-3-117-1.md`) and agent-context maintenance.

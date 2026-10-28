@@ -1,0 +1,24 @@
+{
+  "baseline": "db83309146816602033320270f10b1cea28d3100",
+  "total_ids": 657,
+  "done": 639,
+  "open": 18,
+  "maintenance_rows": 17,
+  "closed_ids": [
+    122,
+    334,
+    358,
+    579,
+    595
+  ],
+  "unselected_bodies_preserved": 652,
+  "selected_original_fields_preserved": true,
+  "exact_index_coverage": true,
+  "remaining_dispositions": {
+    "awaiting-decision": 8,
+    "actionable": 3,
+    "uncertain": 3,
+    "accepted-limitation": 3,
+    "blocked": 1
+  }
+}

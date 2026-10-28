@@ -1,0 +1,16 @@
+Final blind scoped recheck: No unresolved concrete issue found.
+Recognized exceptions reach existing 503 handlers; hydration validates raw identities before
+filtering; deletion, truncation and hydration-only warning controls cover both protocols
+and graph modes. Timeout establishment is bounded, with a successful normal-corpus measurement.
+The standard-fixture command is present; the independent reviewer ran the read-only ledger
+verifier successfully: 657 IDs, 652 unselected bodies preserved, 639 done/18 open, 17 rows.
+
+Final verification scoped recheck: The hydration-mismatch gap is resolved.
+The test deletes a real Redis hash between selection and hydration, verifies persisted deletion,
+and asserts rejection across protocols and graph modes. Truncation verifies rejection when
+advertised totals remain unchanged but returned identities are incomplete. The hydration-warning
+control reaches successful selection first. Actual endpoint delegates assert HTTP 503, the error
+code and Retry-After. No direct verification issues found. The recheck did not run suites.
+
+Final edge layer: no findings.
+All findings are individually triaged in the coordinating spec. No new work was deferred.

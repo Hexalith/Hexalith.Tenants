@@ -1,0 +1,25 @@
+Selected story key: spec-dw-122-stable-search-windows
+Story source: cli
+Story artifact: _bmad-output/implementation-artifacts/spec-dw-122-stable-search-windows.md
+Allowed scope entries:
+  - src/Hexalith.Memories.Server/Search/SyntacticSearchService.cs
+  - tests/Hexalith.Memories.IntegrationTests/Search/SyntacticSearchIntegrationTests.cs
+  - tests/Hexalith.Memories.IntegrationTests/Fixtures/RedisStackFixture.cs
+  - tests/Hexalith.Memories.Server.Tests/Search/SyntacticSearchServiceTests.cs
+  - _bmad-output/implementation-artifacts/spec-dw-122-stable-search-windows.md
+In-scope changed files:
+  - src/Hexalith.Memories.Server/Search/SyntacticSearchService.cs
+  - tests/Hexalith.Memories.IntegrationTests/Fixtures/RedisStackFixture.cs
+  - tests/Hexalith.Memories.IntegrationTests/Search/SyntacticSearchIntegrationTests.cs
+  - tests/Hexalith.Memories.Server.Tests/Search/SyntacticSearchServiceTests.cs
+  - _bmad-output/implementation-artifacts/spec-dw-122-stable-search-windows.md
+Story file scope validation passed.
+No tenant-isolation surface changed; evidence check is a no-op.
+Selected story key: spec-dw-122-stable-search-windows
+Story source: cli
+Story artifact: _bmad-output/implementation-artifacts/spec-dw-122-stable-search-windows.md
+Declared status: in-progress
+C4: spec artifact carries no development_status row, as expected.
+C1 SKIPPED: HEAD is on default branch 'main', where baseline..HEAD returns unrelated work. C1 is enforced in CI against the PR diff.
+C6: artifact declares no evidence or checkpoint table; check skipped.
+Story review readiness validation passed.

@@ -1,0 +1,49 @@
+  Determining projects to restore...
+  Restored /home/administrator/projects/hexalith/tenants/references/Hexalith.Memories/src/Hexalith.Memories.Contracts/Hexalith.Memories.Contracts.csproj (in 115 ms).
+  Restored /home/administrator/projects/hexalith/tenants/references/Hexalith.Memories/src/Hexalith.Memories.Telemetry/Hexalith.Memories.Telemetry.csproj (in 115 ms).
+  Restored /home/administrator/projects/hexalith/tenants/references/Hexalith.Commons/src/libraries/Hexalith.Commons.UniqueIds/Hexalith.Commons.UniqueIds.csproj (in 140 ms).
+  Restored /home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.Contracts/Hexalith.EventStore.Contracts.csproj (in 66 ms).
+  Restored /home/administrator/projects/hexalith/tenants/references/Hexalith.Memories/tests/Hexalith.Memories.TestHelpers/Hexalith.Memories.TestHelpers.csproj (in 145 ms).
+  Restored /home/administrator/projects/hexalith/tenants/references/Hexalith.Memories/src/Hexalith.Memories.AccessTelemetry.Contracts/Hexalith.Memories.AccessTelemetry.Contracts.csproj (in 2 ms).
+  Restored /home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.Client/Hexalith.EventStore.Client.csproj (in 209 ms).
+  Restored /home/administrator/projects/hexalith/tenants/references/Hexalith.Memories/src/Hexalith.Memories.AccessTelemetry.Clock/Hexalith.Memories.AccessTelemetry.Clock.csproj (in 211 ms).
+  Restored /home/administrator/projects/hexalith/tenants/references/Hexalith.Memories/src/Hexalith.Memories.Cli/Hexalith.Memories.Cli.csproj (in 210 ms).
+  Restored /home/administrator/projects/hexalith/tenants/references/Hexalith.Memories/src/Hexalith.Memories.AccessTelemetry/Hexalith.Memories.AccessTelemetry.csproj (in 212 ms).
+  Restored /home/administrator/projects/hexalith/tenants/references/Hexalith.Memories/src/Hexalith.Memories.Client.Rest/Hexalith.Memories.Client.Rest.csproj (in 209 ms).
+  Restored /home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.DomainService/Hexalith.EventStore.DomainService.csproj (in 212 ms).
+  Restored /home/administrator/projects/hexalith/tenants/references/Hexalith.Memories/src/Hexalith.Memories.Mcp/Hexalith.Memories.Mcp.csproj (in 70 ms).
+  Restored /home/administrator/projects/hexalith/tenants/references/Hexalith.Memories/src/Hexalith.Memories.ServiceDefaults/Hexalith.Memories.ServiceDefaults.csproj (in 5 ms).
+  Restored /home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.ServiceDefaults/Hexalith.EventStore.ServiceDefaults.csproj (in 8 ms).
+  Restored /home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.Aspire/Hexalith.EventStore.Aspire.csproj (in 230 ms).
+  Restored /home/administrator/projects/hexalith/tenants/references/Hexalith.Memories/src/Hexalith.Memories.AppHost/Hexalith.Memories.AppHost.csproj (in 230 ms).
+  Restored /home/administrator/projects/hexalith/tenants/references/Hexalith.Memories/src/Hexalith.Memories.EventStore/Hexalith.Memories.EventStore.csproj (in 1.15 sec).
+  Restored /home/administrator/projects/hexalith/tenants/references/Hexalith.Memories/src/Hexalith.Memories.Server/Hexalith.Memories.Server.csproj (in 945 ms).
+  Restored /home/administrator/projects/hexalith/tenants/references/Hexalith.Memories/tests/Hexalith.Memories.IntegrationTests/Hexalith.Memories.IntegrationTests.csproj (in 1.17 sec).
+  Hexalith.Memories.AccessTelemetry.Contracts -> /home/administrator/projects/hexalith/tenants/references/Hexalith.Memories/src/Hexalith.Memories.AccessTelemetry.Contracts/bin/Debug/net10.0/Hexalith.Memories.AccessTelemetry.Contracts.dll
+  Hexalith.Memories.Contracts -> /home/administrator/projects/hexalith/tenants/references/Hexalith.Memories/src/Hexalith.Memories.Contracts/bin/Debug/net10.0/Hexalith.Memories.Contracts.dll
+  Hexalith.Memories.Telemetry -> /home/administrator/projects/hexalith/tenants/references/Hexalith.Memories/src/Hexalith.Memories.Telemetry/bin/Debug/net10.0/Hexalith.Memories.Telemetry.dll
+  Hexalith.Memories.ServiceDefaults -> /home/administrator/projects/hexalith/tenants/references/Hexalith.Memories/src/Hexalith.Memories.ServiceDefaults/bin/Debug/net10.0/Hexalith.Memories.ServiceDefaults.dll
+  Hexalith.Memories.AccessTelemetry.Clock -> /home/administrator/projects/hexalith/tenants/references/Hexalith.Memories/src/Hexalith.Memories.AccessTelemetry.Clock/bin/Debug/net10.0/Hexalith.Memories.AccessTelemetry.Clock.dll
+  Hexalith.Memories.AccessTelemetry -> /home/administrator/projects/hexalith/tenants/references/Hexalith.Memories/src/Hexalith.Memories.AccessTelemetry/bin/Debug/net10.0/Hexalith.Memories.AccessTelemetry.dll
+  Hexalith.Memories.Client.Rest -> /home/administrator/projects/hexalith/tenants/references/Hexalith.Memories/src/Hexalith.Memories.Client.Rest/bin/Debug/net10.0/Hexalith.Memories.Client.Rest.dll
+  Hexalith.Memories.Mcp -> /home/administrator/projects/hexalith/tenants/references/Hexalith.Memories/src/Hexalith.Memories.Mcp/bin/Debug/net10.0/Hexalith.Memories.Mcp.dll
+  Hexalith.Commons.UniqueIds -> /home/administrator/projects/hexalith/tenants/references/Hexalith.Commons/src/libraries/Hexalith.Commons.UniqueIds/bin/Debug/net10.0/Hexalith.Commons.UniqueIds.dll
+  Successfully created package '/home/administrator/projects/hexalith/tenants/references/Hexalith.Commons/src/libraries/Hexalith.Commons.UniqueIds/bin/Debug/Hexalith.Commons.UniqueIds.1.0.0.nupkg'.
+  Successfully created package '/home/administrator/projects/hexalith/tenants/references/Hexalith.Commons/src/libraries/Hexalith.Commons.UniqueIds/bin/Debug/Hexalith.Commons.UniqueIds.1.0.0.snupkg'.
+  Hexalith.EventStore.Contracts -> /home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.Contracts/bin/Debug/net10.0/Hexalith.EventStore.Contracts.dll
+  Hexalith.Memories.EventStore -> /home/administrator/projects/hexalith/tenants/references/Hexalith.Memories/src/Hexalith.Memories.EventStore/bin/Debug/net10.0/Hexalith.Memories.EventStore.dll
+  Hexalith.EventStore.Client -> /home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.Client/bin/Debug/net10.0/Hexalith.EventStore.Client.dll
+  Hexalith.EventStore.ServiceDefaults -> /home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.ServiceDefaults/bin/Debug/net10.0/Hexalith.EventStore.ServiceDefaults.dll
+  Hexalith.EventStore.DomainService -> /home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.DomainService/bin/Debug/net10.0/Hexalith.EventStore.DomainService.dll
+  Hexalith.Memories.Server -> /home/administrator/projects/hexalith/tenants/references/Hexalith.Memories/src/Hexalith.Memories.Server/bin/Debug/net10.0/Hexalith.Memories.Server.dll
+  Hexalith.EventStore.Aspire -> /home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.Aspire/bin/Debug/net10.0/Hexalith.EventStore.Aspire.dll
+  Hexalith.Memories.AppHost -> /home/administrator/projects/hexalith/tenants/references/Hexalith.Memories/src/Hexalith.Memories.AppHost/bin/Debug/net10.0/Hexalith.Memories.AppHost.dll
+  Hexalith.Memories.Cli -> /home/administrator/projects/hexalith/tenants/references/Hexalith.Memories/src/Hexalith.Memories.Cli/bin/Debug/net10.0/Hexalith.Memories.Cli.dll
+  Hexalith.Memories.TestHelpers -> /home/administrator/projects/hexalith/tenants/references/Hexalith.Memories/tests/Hexalith.Memories.TestHelpers/bin/Debug/net10.0/Hexalith.Memories.TestHelpers.dll
+  Hexalith.Memories.IntegrationTests -> /home/administrator/projects/hexalith/tenants/references/Hexalith.Memories/tests/Hexalith.Memories.IntegrationTests/bin/Debug/net10.0/Hexalith.Memories.IntegrationTests.dll
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:13.47

@@ -1,0 +1,85 @@
+xUnit.net v3 In-Process Runner v4.0.2+0c7aa4991f (64-bit .NET 10.0.13)
+  Discovering: Hexalith.Memories.IntegrationTests (method display = ClassAndMethod, method display options = None)
+  Discovered:  Hexalith.Memories.IntegrationTests (43 test cases to be run)
+  Starting:    Hexalith.Memories.IntegrationTests (parallel mode = none, stop on fail = off, explicit = off, seed = 1422336533)
+[testcontainers.org 00:00:00.10] Connected to Docker:
+  Host: unix:///var/run/docker.sock
+  Server Version: 29.8.2
+  Kernel Version: 6.6.87.2-microsoft-standard-WSL2
+  API Version: 1.56
+  Operating System: Docker Desktop
+  Total Memory: 90.36 GB
+  Labels:
+    com.docker.desktop.address=unix:///var/run/docker-cli.sock
+[testcontainers.org 00:00:00.46] Docker container 200eb52e40b8 created
+[testcontainers.org 00:00:00.51] Start Docker container 200eb52e40b8
+[testcontainers.org 00:00:00.90] Wait for Docker container 200eb52e40b8 to complete readiness checks
+[testcontainers.org 00:00:01.98] Docker container 200eb52e40b8 ready
+[testcontainers.org 00:00:02.28] Docker container 0d9f977c296a created
+[testcontainers.org 00:00:02.28] Docker container 13ef28af6264 created
+[testcontainers.org 00:00:02.32] Start Docker container 0d9f977c296a
+[testcontainers.org 00:00:02.32] Start Docker container 13ef28af6264
+[testcontainers.org 00:00:02.72] Wait for Docker container 0d9f977c296a to complete readiness checks
+[testcontainers.org 00:00:02.74] Execute "/bin/sh -c true && (grep -i ':0*18EB' /proc/net/tcp* || nc -vz -w 1 localhost 6379 || /bin/bash -c '</dev/tcp/localhost/6379')" at Docker container 0d9f977c296a
+[testcontainers.org 00:00:02.78] Wait for Docker container 13ef28af6264 to complete readiness checks
+[testcontainers.org 00:00:02.80] Execute "/bin/sh -c true && (grep -i ':0*18EB' /proc/net/tcp* || nc -vz -w 1 localhost 6379 || /bin/bash -c '</dev/tcp/localhost/6379')" at Docker container 13ef28af6264
+[testcontainers.org 00:00:02.86] Execute "redis-cli PING" at Docker container 0d9f977c296a
+[testcontainers.org 00:00:02.87] Execute "redis-cli PING" at Docker container 13ef28af6264
+[testcontainers.org 00:00:02.92] Docker container 0d9f977c296a ready
+[testcontainers.org 00:00:02.93] Docker container 13ef28af6264 ready
+[testcontainers.org 00:00:03.74] Stop Docker container 0d9f977c296a
+[testcontainers.org 00:00:04.51] Delete Docker container 0d9f977c296a
+[testcontainers.org 00:00:04.67] Stop Docker container 13ef28af6264
+[testcontainers.org 00:00:05.28] Delete Docker container 13ef28af6264
+[testcontainers.org 00:00:07.74] Docker container f47b3c95ea4e created
+[testcontainers.org 00:00:07.76] Start Docker container f47b3c95ea4e
+[testcontainers.org 00:00:08.07] Wait for Docker container f47b3c95ea4e to complete readiness checks
+[testcontainers.org 00:00:08.09] Execute "redis-cli PING" at Docker container f47b3c95ea4e
+[testcontainers.org 00:00:08.14] Docker container f47b3c95ea4e ready
+    [D::Hexalith.Memories.IntegrationTests] cap mismatch negative control RESP2 graph=False: total 23, rows 0
+[testcontainers.org 00:00:08.18] Delete Docker container f47b3c95ea4e
+[testcontainers.org 00:00:08.86] Docker container 3d78609bcfc0 created
+[testcontainers.org 00:00:08.89] Start Docker container 3d78609bcfc0
+[testcontainers.org 00:00:09.21] Wait for Docker container 3d78609bcfc0 to complete readiness checks
+[testcontainers.org 00:00:09.23] Execute "redis-cli PING" at Docker container 3d78609bcfc0
+[testcontainers.org 00:00:09.30] Docker container 3d78609bcfc0 ready
+    [D::Hexalith.Memories.IntegrationTests] cap mismatch negative control RESP3 graph=False: total 23, rows 0
+[testcontainers.org 00:00:09.33] Delete Docker container 3d78609bcfc0
+[testcontainers.org 00:00:10.04] Docker container 4806ee7fc4b5 created
+[testcontainers.org 00:00:10.06] Start Docker container 4806ee7fc4b5
+[testcontainers.org 00:00:10.38] Wait for Docker container 4806ee7fc4b5 to complete readiness checks
+[testcontainers.org 00:00:10.40] Execute "redis-cli PING" at Docker container 4806ee7fc4b5
+[testcontainers.org 00:00:10.46] Docker container 4806ee7fc4b5 ready
+    [D::Hexalith.Memories.IntegrationTests] cap mismatch negative control RESP2 graph=True: total 23, rows 0
+[testcontainers.org 00:00:10.49] Delete Docker container 4806ee7fc4b5
+[testcontainers.org 00:00:11.13] Docker container 7f0fdd276b13 created
+[testcontainers.org 00:00:11.15] Start Docker container 7f0fdd276b13
+[testcontainers.org 00:00:11.45] Wait for Docker container 7f0fdd276b13 to complete readiness checks
+[testcontainers.org 00:00:11.49] Execute "redis-cli PING" at Docker container 7f0fdd276b13
+[testcontainers.org 00:00:11.55] Docker container 7f0fdd276b13 ready
+    [D::Hexalith.Memories.IntegrationTests] cap mismatch negative control RESP3 graph=True: total 23, rows 0
+[testcontainers.org 00:00:11.58] Delete Docker container 7f0fdd276b13
+[testcontainers.org 00:00:15.25] Docker container e57cefac65ad created
+[testcontainers.org 00:00:15.28] Start Docker container e57cefac65ad
+[testcontainers.org 00:00:15.68] Wait for Docker container e57cefac65ad to complete readiness checks
+[testcontainers.org 00:00:15.71] Execute "redis-cli PING" at Docker container e57cefac65ad
+[testcontainers.org 00:00:15.77] Docker container e57cefac65ad ready
+[testcontainers.org 00:00:15.78] Delete Docker container e57cefac65ad
+    Hexalith.Memories.IntegrationTests.Search.SyntacticSearchIntegrationTests.SearchAsync_TimeoutReturnPolicy_ShouldRejectIncompleteExecutionInBothProtocols(resp3: False) [FAIL]
+      StackExchange.Redis.RedisConnectionException : It was not possible to connect to the redis server(s). Error connecting right now. To allow this multiplexer to continue retrying until it's able to connect, use abortConnect=false in your connection string or AbortOnConnectFail=false; in your code.
+      Stack Trace:
+        /_/src/StackExchange.Redis/ConnectionMultiplexer.cs(663,0): at StackExchange.Redis.ConnectionMultiplexer.ConnectImplAsync(ConfigurationOptions configuration, TextWriter writer, Nullable`1 serverType, CircuitBreaker groupCircuitBreaker, Boolean isGroupMember)
+        tests/Hexalith.Memories.IntegrationTests/Search/SyntacticSearchIntegrationTests.cs(810,0): at Hexalith.Memories.IntegrationTests.Search.SyntacticSearchIntegrationTests.ConnectAsync(Boolean resp3, String connectionString)
+        tests/Hexalith.Memories.IntegrationTests/Search/SyntacticSearchIntegrationTests.cs(712,0): at Hexalith.Memories.IntegrationTests.Search.SyntacticSearchIntegrationTests.SearchAsync_TimeoutReturnPolicy_ShouldRejectIncompleteExecutionInBothProtocols(Boolean resp3)
+        tests/Hexalith.Memories.IntegrationTests/Search/SyntacticSearchIntegrationTests.cs(756,0): at Hexalith.Memories.IntegrationTests.Search.SyntacticSearchIntegrationTests.SearchAsync_TimeoutReturnPolicy_ShouldRejectIncompleteExecutionInBothProtocols(Boolean resp3)
+        --- End of stack trace from previous location ---
+[testcontainers.org 00:00:16.36] Docker container b8ea895e21c1 created
+[testcontainers.org 00:00:16.39] Start Docker container b8ea895e21c1
+[testcontainers.org 00:00:16.79] Wait for Docker container b8ea895e21c1 to complete readiness checks
+[testcontainers.org 00:00:16.82] Execute "redis-cli PING" at Docker container b8ea895e21c1
+[testcontainers.org 00:00:16.87] Docker container b8ea895e21c1 ready
+    [D::Hexalith.Memories.IntegrationTests] timeout RETURN negative control RESP3: partial raw count 2199/50000
+[testcontainers.org 00:00:17.43] Delete Docker container b8ea895e21c1
+  Finished:    Hexalith.Memories.IntegrationTests (ID = '0bc5a9560bfed4b0cde8a55f929cc638c756a567b7ac6f863d3f476ea4031ac6')
+=== TEST EXECUTION SUMMARY ===
+   Hexalith.Memories.IntegrationTests  Total: 66, Errors: 0, Failed: 1, Skipped: 0, Not Run: 0, Time: 18.194s
