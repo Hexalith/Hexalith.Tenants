@@ -9,10 +9,6 @@
     <Import Project="$(HexalithBuildPackageVersions3)" Condition="Exists('$(HexalithBuildPackageVersions3)') And '$(HexalithVersionsLoaded)' != 'true'" />
 
     <PropertyGroup>
-        <!-- Source builds follow the centralized EventStore source identity; packaged dependencies
-             retain the published 3.128.4 pin with bounded legacy completion reconciliation. Restore does not propagate every edge override. -->
-        <HexalithEventStoreSourceVersion>$(HexalithEventStoreVersion)</HexalithEventStoreSourceVersion>
-        <HexalithEventStoreVersion>3.128.4</HexalithEventStoreVersion>
         <!-- Auto-detect Hexalith.EventStore location:
              1. Tenants is a submodule inside Hexalith.EventStore
              2. EventStore is a references/ submodule inside Tenants (standalone) — prioritized over sibling
@@ -86,7 +82,9 @@
         <UseNuGetDeps Condition="'$(UseNuGetDeps)' == ''">true</UseNuGetDeps>
         <HexalithCommonsFromSource Condition="'$(UseHexalithProjectReferences)' == 'true' and Exists('$(HexalithCommonsRoot)\src\libraries\Hexalith.Commons.ServiceDefaults\Hexalith.Commons.ServiceDefaults.csproj')">true</HexalithCommonsFromSource>
         <HexalithEventStoreFromSource Condition="'$(UseHexalithProjectReferences)' == 'true' and Exists('$(HexalithEventStoreRoot)\src\Hexalith.EventStore.Contracts\Hexalith.EventStore.Contracts.csproj')">true</HexalithEventStoreFromSource>
-        <HexalithEventStoreVersion Condition="'$(HexalithEventStoreFromSource)' == 'true'">$(HexalithEventStoreSourceVersion)</HexalithEventStoreVersion>
+        <!-- Package consumers keep the completion-recovery floor while honoring newer central selections.
+             Source mappings remain authoritative for their exact producer identity. -->
+        <HexalithEventStoreVersion Condition="'$(HexalithEventStoreFromSource)' != 'true' and ('$(HexalithEventStoreVersion)' == '' or $([MSBuild]::VersionLessThan('$(HexalithEventStoreVersion)', '3.128.4')) or ($([MSBuild]::VersionEquals('$(HexalithEventStoreVersion)', '3.128.4')) and $([System.Text.RegularExpressions.Regex]::IsMatch('$(HexalithEventStoreVersion)', '^[^+]*-'))))">3.128.4</HexalithEventStoreVersion>
         <HexalithFrontComposerSourceConsumer Condition="'$(MSBuildProjectName)' == 'Hexalith.Tenants.UI' or '$(MSBuildProjectName)' == 'Hexalith.Tenants.UI.Tests'">true</HexalithFrontComposerSourceConsumer>
         <HexalithFrontComposerSourceAvailable Condition="'$(HexalithFrontComposerSourceAvailable)' == '' and Exists('$(HexalithFrontComposerRoot)\src\Hexalith.FrontComposer.Contracts\Hexalith.FrontComposer.Contracts.csproj') and Exists('$(HexalithFrontComposerRoot)\src\Hexalith.FrontComposer.Shell\Hexalith.FrontComposer.Shell.csproj') and Exists('$(HexalithFrontComposerRoot)\src\Hexalith.FrontComposer.Testing\Hexalith.FrontComposer.Testing.csproj')">true</HexalithFrontComposerSourceAvailable>
         <HexalithFrontComposerSourceAvailable Condition="'$(HexalithFrontComposerSourceAvailable)' == ''">false</HexalithFrontComposerSourceAvailable>

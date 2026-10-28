@@ -754,6 +754,138 @@ public class PackageGovernanceTests {
         }
     }
 
+    [Theory]
+    [InlineData("", false, "3.128.4")]
+    [InlineData("3.128.2", false, "3.128.4")]
+    [InlineData("3.128.3", false, "3.128.4")]
+    [InlineData("3.128.4-preview.1", false, "3.128.4")]
+    [InlineData("3.128.4", false, "3.128.4")]
+    [InlineData("3.128.4+metadata-with-dash", false, "3.128.4+metadata-with-dash")]
+    [InlineData("3.128.4-preview.1+metadata-with-dash", false, "3.128.4")]
+    [InlineData("3.128.10", false, "3.128.10")]
+    [InlineData("3.128.5", false, "3.128.5")]
+    [InlineData("3.129.0-preview.1", false, "3.129.0-preview.1")]
+    [InlineData("3.128.2", true, "3.128.2")]
+    [InlineData("3.128.5", true, "3.128.5")]
+    [InlineData("3.128.4-preview.1", true, "3.128.4-preview.1")]
+    [InlineData("test-source-version", true, "test-source-version")]
+    public Task EventStore_package_floor_preserves_newer_catalog_and_explicit_source_selectionsAsync(
+        string selectedVersion,
+        bool useSource,
+        string expectedVersion)
+        => EvaluateEventStoreVersionSelectionAsync(selectedVersion, useSource, expectedVersion, globalOverride: false, accepted: true);
+
+    [Theory]
+    [InlineData("3.128.2", false, false)]
+    [InlineData("3.128.3", false, false)]
+    [InlineData("3.128.4-preview.1", false, false)]
+    [InlineData("3.128.4", false, true)]
+    [InlineData("3.128.4+metadata-with-dash", false, true)]
+    [InlineData("3.128.4-preview.1+metadata-with-dash", false, false)]
+    [InlineData("3.128.10", false, true)]
+    [InlineData("3.128.5", false, true)]
+    [InlineData("3.129.0-preview.1", false, true)]
+    [InlineData("3.128.2", true, true)]
+    [InlineData("test-source-version", true, true)]
+    public Task EventStore_package_floor_rejects_older_global_package_overridesAsync(
+        string selectedVersion,
+        bool useSource,
+        bool accepted)
+        => EvaluateEventStoreVersionSelectionAsync(selectedVersion, useSource, selectedVersion, globalOverride: true, accepted);
+
+    private static async Task EvaluateEventStoreVersionSelectionAsync(
+        string selectedVersion,
+        bool useSource,
+        string expectedVersion,
+        bool globalOverride,
+        bool accepted) {
+        string repoRoot = FindRepoRoot();
+        string fixtureRoot = Path.Combine(Path.GetTempPath(), $"hexalith-tenants-eventstore-floor-{Guid.NewGuid():N}");
+        string contractsDirectory = Path.Combine(fixtureRoot, "src", "Hexalith.EventStore.Contracts");
+        _ = Directory.CreateDirectory(contractsDirectory);
+
+        try {
+            File.WriteAllText(Path.Combine(contractsDirectory, "Hexalith.EventStore.Contracts.csproj"), "<Project />");
+            string projectPath = Path.Combine(fixtureRoot, "PackageFloor.proj");
+            new XDocument(new XElement("Project",
+                new XElement("PropertyGroup",
+                    new XElement("HexalithVersionsLoaded", "true"),
+                    new XElement("HexalithEventStoreVersion", selectedVersion),
+                    new XElement("HexalithEventStoreRoot", fixtureRoot),
+                    new XElement("UseHexalithProjectReferences", useSource ? "true" : "false")),
+                new XElement("ItemGroup",
+                    new[] { "Contracts", "DomainService", "Gateway" }.Select(package => new XElement("PackageVersion",
+                        new XAttribute("Include", $"Hexalith.EventStore.{package}"),
+                        new XAttribute("Version", selectedVersion)))),
+                new XElement("Import", new XAttribute("Project", Path.Combine(repoRoot, "Directory.Build.props"))),
+                new XElement("Import", new XAttribute("Project", Path.Combine(repoRoot, "Directory.Build.targets")))))
+                .Save(projectPath);
+
+            var startInfo = new ProcessStartInfo("dotnet") {
+                WorkingDirectory = repoRoot,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+            };
+            foreach (string property in new[] {
+                "CustomBeforeDirectoryBuildProps", "CustomAfterMicrosoftCommonProps", "CustomBeforeDirectoryBuildTargets",
+                "CustomAfterDirectoryBuildTargets", "AfterMicrosoftNETSdkTargets", "HEXALITH_SOURCE_MAPPING_HASH",
+            }) {
+                _ = startInfo.Environment.Remove(property);
+            }
+            foreach (string argument in new[] {
+                "msbuild", projectPath, "-nologo", "-target:ValidateEventStorePackageFloor",
+                "-getProperty:HexalithEventStoreVersion,HexalithEventStoreFromSource", "-getItem:PackageVersion",
+            }) {
+                startInfo.ArgumentList.Add(argument);
+            }
+            if (globalOverride) {
+                startInfo.ArgumentList.Add($"-property:HexalithEventStoreVersion={selectedVersion}");
+            }
+
+            using Process process = Process.Start(startInfo)
+                ?? throw new InvalidOperationException("Could not start dotnet msbuild for EventStore version evaluation.");
+            Task<string> output = process.StandardOutput.ReadToEndAsync();
+            Task<string> error = process.StandardError.ReadToEndAsync();
+            try {
+                await Task.WhenAll(process.WaitForExitAsync(), output, error).WaitAsync(TimeSpan.FromSeconds(45));
+            }
+            catch (TimeoutException) {
+                try {
+                    if (!process.HasExited) {
+                        process.Kill(entireProcessTree: true);
+                    }
+                }
+                catch (InvalidOperationException) when (process.HasExited) {
+                    // The process exited between the deadline and tree cleanup.
+                }
+                _ = process.WaitForExit(5_000);
+                throw new TimeoutException("EventStore version evaluation exceeded its 45-second deadline.");
+            }
+            string standardOutput = await output;
+            string standardError = await error;
+            if (!accepted) {
+                process.ExitCode.ShouldNotBe(0, "An older global package override must fail before restore or build.");
+                (standardOutput + standardError).ShouldContain("must be at least 3.128.4 for completion recovery");
+                return;
+            }
+            process.ExitCode.ShouldBe(0, $"EventStore version evaluation failed. stdout: {standardOutput}{Environment.NewLine}stderr: {standardError}");
+
+            using JsonDocument evaluation = JsonDocument.Parse(standardOutput);
+            JsonElement properties = evaluation.RootElement.GetProperty("Properties");
+            properties.GetProperty("HexalithEventStoreVersion").GetString().ShouldBe(expectedVersion);
+            properties.GetProperty("HexalithEventStoreFromSource").GetString().ShouldBe(useSource ? "true" : string.Empty);
+            JsonElement[] packages = evaluation.RootElement.GetProperty("Items").GetProperty("PackageVersion").EnumerateArray().ToArray();
+            packages.Length.ShouldBe(3);
+            foreach (JsonElement package in packages) {
+                package.GetProperty("Version").GetString().ShouldBe(expectedVersion, package.GetProperty("Identity").GetString());
+            }
+        }
+        finally {
+            Directory.Delete(fixtureRoot, recursive: true);
+        }
+    }
+
     /// <summary>
     /// Collects the <c>Hexalith.EventStore*</c> references of the requested item type, keyed by
     /// package id. A <c>ProjectReference</c> id is derived from its project file name so the rule is

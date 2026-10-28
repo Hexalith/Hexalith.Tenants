@@ -9,6 +9,14 @@
     </ProjectReference>
   </ItemGroup>
 
+  <!-- Global command-line properties cannot be raised by the default floor in props.
+       Refuse an older package selection before restore or compilation consumes it. -->
+  <Target Name="ValidateEventStorePackageFloor" BeforeTargets="CollectPackageReferences;PrepareForBuild"
+          Condition="'$(HexalithEventStoreFromSource)' != 'true'">
+    <Error Condition="'$(HexalithEventStoreVersion)' == '' or $([MSBuild]::VersionLessThan('$(HexalithEventStoreVersion)', '3.128.4')) or ($([MSBuild]::VersionEquals('$(HexalithEventStoreVersion)', '3.128.4')) and $([System.Text.RegularExpressions.Regex]::IsMatch('$(HexalithEventStoreVersion)', '^[^+]*-')))"
+           Text="EventStore package selection '$(HexalithEventStoreVersion)' must be at least 3.128.4 for completion recovery. Source mappings retain their exact producer identity." />
+  </Target>
+
   <!--
     Container image defaults (.NET SDK container support).
     Opt-in per project with:
