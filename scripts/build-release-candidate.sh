@@ -14,7 +14,8 @@ if [ "$version" = none ]; then
   exit 0
 fi
 
-HEXALITH_RELEASE_PREPARE=skip bash scripts/validate-publication-preflight.sh "$version" verify
+# Authenticated destination checks run in Semantic Release's protected verifyRelease
+# hook. This job only prepares artifacts and must never receive registry credentials.
 
 printf '%s\n' "$version" > .hexalith/release-candidate/version
 git rev-parse HEAD > .hexalith/release-candidate/source-sha

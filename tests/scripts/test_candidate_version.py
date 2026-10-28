@@ -155,9 +155,10 @@ os.execv(''' + repr(REAL_GIT) + ''', ['git', *args])
         (scripts / 'calculate-release-version.mjs').symlink_to(SCRIPT)
         (scripts / 'validate-publication-preflight.sh').write_text(
             '#!/bin/bash\nprintf "preflight %s %s\\n" "$1" "$2" >> "$CANDIDATE_TRACE"\n'
-            'exit "${CANDIDATE_PREFLIGHT_EXIT:-0}"\n')
+            'exit 91\n')
         dotnet = self.bin / 'dotnet'
-        dotnet.write_text('#!/bin/bash\nprintf "dotnet %s\\n" "$*" >> "$CANDIDATE_TRACE"\n')
+        dotnet.write_text('#!/bin/bash\nprintf "dotnet %s\\n" "$*" >> "$CANDIDATE_TRACE"\n'
+                          'exit "${CANDIDATE_BUILD_EXIT:-0}"\n')
         dotnet.chmod(0o755)
         for name in ('pack-release-packages', 'validate-nuget-packages', 'validate-consumer-package-references'):
             (scripts / (name + '.py')).write_text(
@@ -171,13 +172,13 @@ os.execv(''' + repr(REAL_GIT) + ''', ['git', *args])
                               cwd=self.root, env={**self.environment, **updates},
                               capture_output=True, text=True, timeout=20)
 
-    def test_shell_preflight_failure_prevents_build_pack_and_prepared_identity(self):
+    def test_shell_build_failure_prevents_pack_and_package_validation(self):
         self.prepare_shell()
-        result = self.run_shell(CANDIDATE_PREFLIGHT_EXIT='9')
+        result = self.run_shell(CANDIDATE_BUILD_EXIT='9')
         self.assertEqual(result.returncode, 9, result.stderr)
-        self.assertEqual((self.root / 'candidate-trace').read_text(), 'preflight 5.10.2 verify\n')
-        self.assertFalse((self.root / '.hexalith/release-candidate/version').exists())
-        self.assertFalse((self.root / '.hexalith/release-candidate/disposition').exists())
+        trace = (self.root / 'candidate-trace').read_text().splitlines()
+        self.assertEqual(len(trace), 1, trace)
+        self.assertTrue(trace[0].startswith('dotnet build '), trace)
 
     def test_shell_helper_failure_prevents_preflight_build_and_pack(self):
         self.prepare_shell()
@@ -198,15 +199,14 @@ os.execv(''' + repr(REAL_GIT) + ''', ['git', *args])
                 self.assertFalse((self.root / 'candidate-trace').exists())
                 self.assertFalse((self.root / '.hexalith').exists())
 
-    def test_shell_prepares_exact_version_and_source_only_after_successful_preflight(self):
+    def test_shell_prepares_exact_version_and_source_without_authenticated_preflight(self):
         self.prepare_shell()
         result = self.run_shell()
         self.assertEqual(result.returncode, 0, result.stderr)
         trace = (self.root / 'candidate-trace').read_text().splitlines()
-        self.assertEqual(trace[0], 'preflight 5.10.2 verify')
-        self.assertTrue(trace[1].startswith('dotnet build '), trace)
-        self.assertIn('-p:Version=5.10.2', trace[1])
-        self.assertEqual(trace[2:], ['pack-release-packages', 'validate-nuget-packages',
+        self.assertTrue(trace[0].startswith('dotnet build '), trace)
+        self.assertIn('-p:Version=5.10.2', trace[0])
+        self.assertEqual(trace[1:], ['pack-release-packages', 'validate-nuget-packages',
                                      'validate-consumer-package-references'])
         candidate = self.root / '.hexalith/release-candidate'
         self.assertEqual((candidate / 'version').read_text().strip(), '5.10.2')
