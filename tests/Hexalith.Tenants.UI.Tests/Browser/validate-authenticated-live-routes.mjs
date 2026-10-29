@@ -17,7 +17,11 @@ const evidence = { startedUtc: new Date().toISOString(), mode: 'Authenticated li
         otherDependencyWorkingSources: 'Gitlink state only; source contents are not bound by this artifact' },
     cases: [], passed: false };
 let browser;
+let captureReadiness;
 let phase = 'session';
+// Geometry and focus groups perform fresh native reads. Give their shared partition
+// (1,000 permits per 60 seconds) a complete window; the separate 20-row control qualifies burst capacity.
+const nextNativeAdmissionGroup = () => new Promise(resolve => setTimeout(resolve, 60_000));
 const check = (condition, label) => { if (!condition) throw Object.assign(new Error(), { safeLabel: label }); };
 const hash = value => createHash('sha256').update(value).digest('hex');
 const git = (...args) => execFileSync('git', args, { cwd: root, encoding: 'utf8' }).trim();
@@ -81,6 +85,34 @@ try {
     const listPath = session.listPath || '/tenants';
     const myTenantsPath = session.myTenantsPath || '/tenants/my';
     const seededListRow = () => page.locator('fluent-data-grid-row, [role="row"], tr').filter({ has: testId('tenants-list-tenant-id').filter({ hasText: session.tenantId }) });
+    // Keep session-bound selectors private. Only bounded flags and counts cross into evidence.
+    captureReadiness = async () => {
+        const row = seededListRow();
+        const current = row.locator('.truth-state-badge--current');
+        return {
+            available: true,
+            seededRowCount: Math.min(await row.count(), 100),
+            currentBadgeCount: Math.min(await current.count(), 100),
+            currentBadgeVisible: await current.first().isVisible(),
+            requestedCursorPresent: new URL(listPath, base).searchParams.has('cursor'),
+            ...await page.evaluate(() => {
+                const exists = id => Boolean(document.querySelector(`[data-testid="${id}"]`));
+                const selector = document.querySelector('[data-testid="tenants-list-page-size"]');
+                const size = Number(selector?.value ?? selector?.querySelector('select')?.value);
+                const query = new URL(location.href).searchParams;
+                return {
+                    workspace: exists('tenants-workspace'), grid: exists('tenants-list-grid'),
+                    listRowCount: Math.min(document.querySelectorAll('[data-testid="tenants-list-tenant-id"]').length, 100),
+                    loading: exists('tenants-list-loading'), error: exists('tenants-list-error'),
+                    unauthorized: exists('tenants-list-unauthorized'), degraded: exists('tenants-list-degraded'),
+                    pagingRecovered: exists('tenants-list-refreshed-notice') || exists('tenants-list-search-refreshed-notice')
+                        || exists('tenants-list-search-paging-restarted-notice'),
+                    pageSize: [20, 50, 100].includes(size) ? size : null,
+                    cursorPresent: query.has('cursor'), searchCursorPresent: query.has('searchCursor'),
+                };
+            }),
+        };
+    };
     const focused = locator => locator.evaluate(element => {
         let active = document.activeElement;
         while (active?.shadowRoot?.activeElement) active = active.shadowRoot.activeElement;
@@ -166,6 +198,7 @@ try {
     await testId('tenants-audit-filter-pending').waitFor({ state: 'hidden' });
     check(await fromInput.inputValue() === '', 'server-rendered-filter-reset');
     evidence.cases.push({ name: 'interactive-circuit', passed: true });
+    await nextNativeAdmissionGroup();
 
     for (const width of [390, 768, 1440]) {
         for (const forcedColors of ['none', 'active']) {
@@ -287,6 +320,7 @@ try {
         }
     }
 
+    await nextNativeAdmissionGroup();
     await page.emulateMedia({ forcedColors: 'none' });
     await page.setViewportSize({ width: 1440, height: 1000 });
     const completeContext = value => {
@@ -353,6 +387,7 @@ try {
     };
     for (const width of [390, 768, 1440]) {
         const contextPhase = `contextual-audit-back-tenant-list-${width}`;
+        if (width !== 390) await nextNativeAdmissionGroup();
         phase = `${contextPhase}-source`;
         await page.setViewportSize({ width, height: 1000 });
         await page.emulateMedia({ forcedColors: 'none' });
@@ -425,6 +460,10 @@ try {
         : error.name === 'TypeError' ? 'browser-type-error'
         : 'live-browser-assertion-failed';
     evidence.failure = { phase, label: error.safeLabel || category };
+    if (captureReadiness) {
+        try { evidence.readiness = await captureReadiness(); }
+        catch { evidence.readiness = { available: false }; }
+    }
     process.exitCode = 1;
 } finally {
     await browser?.close();

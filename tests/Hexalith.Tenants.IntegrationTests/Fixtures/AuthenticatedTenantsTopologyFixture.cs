@@ -14,6 +14,8 @@ namespace Hexalith.Tenants.IntegrationTests.Fixtures;
 public sealed class AuthenticatedTenantsTopologyFixture : AspireTopologyFixture, IAsyncLifetime
 {
     private const string Scheme = "Hexalith.FrontComposer.Cookie";
+    private static readonly TimeSpan NativeReadAdmissionWindow = TimeSpan.FromSeconds(60);
+    private bool _nativeReadQualificationStarted;
     private Process? _identityProvider;
     private Task<string>? _providerErrors;
     private Uri? _issuer;
@@ -90,6 +92,20 @@ public sealed class AuthenticatedTenantsTopologyFixture : AspireTopologyFixture,
                 Environment.SetEnvironmentVariable(setting.Key, setting.Value);
             }
         }
+    }
+
+    /// <summary>Separates repeated native-read qualifications by the existing published admission window.</summary>
+    /// <param name="cancellationToken">The qualification's unchanged cancellation/deadline boundary.</param>
+    internal async Task BeginNativeReadQualificationAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        // The existing collection/Dapr gate serializes these calls. Either test order gets a fresh
+        // window for the second qualification; all source reads and quota settings stay unchanged.
+        if (_nativeReadQualificationStarted)
+        {
+            await Task.Delay(NativeReadAdmissionWindow, cancellationToken);
+        }
+        _nativeReadQualificationStarted = true;
     }
 
     /// <summary>Signs in through the production code exchange and retains only the encrypted cookie header.</summary>

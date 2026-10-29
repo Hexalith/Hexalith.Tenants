@@ -7,6 +7,24 @@ namespace Hexalith.Tenants.IntegrationTests;
 /// <summary>Checks safe wrapper artifacts without launching authentication, Dapr, or a browser.</summary>
 public sealed class AuthenticatedRouteEvidenceTests
 {
+    [Fact]
+    public void BrowserFailureSummaryKeepsOnlyBoundedReadinessAndCategories()
+    {
+        using var evidence = JsonDocument.Parse("""
+            {"failure":{"phase":"tenant-list-layout-1440-none-ready","label":"browser-timeout"},
+             "readiness":{"available":true,"seededRowCount":1,"currentBadgeCount":1,"currentBadgeVisible":false,
+                "workspace":true,"grid":true,"loading":false,"error":false,"unauthorized":false,"degraded":false,
+                "pagingRecovered":false,"pageSize":20,"cursorPresent":true,"searchCursorPresent":false,
+                "private":"raw-cookie-token-cursor-sentinel"}}
+            """);
+        string summary = AuthenticatedTenantsUiRouteTests.DescribeBrowserFailure(evidence.RootElement);
+        summary.ShouldContain("Phase=tenant-list-layout-1440-none-ready");
+        summary.ShouldContain("Label=browser-timeout");
+        summary.ShouldContain("\"currentBadgeVisible\":false");
+        summary.ShouldContain("\"pageSize\":20");
+        summary.ShouldNotContain("raw-cookie-token-cursor-sentinel");
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

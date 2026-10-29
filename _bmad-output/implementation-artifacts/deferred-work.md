@@ -6535,3 +6535,8 @@ archived: 2026-10-22
 - source_spec: `_bmad-output/implementation-artifacts/spec-five-deferred-authority-and-read-bounds.md`
   summary: Unverified medium — determine the cause of the published-profile browser timeout before the 1440-pixel tenant-list check.
   evidence: Exact-source CI40783107965 on22644726 passed16 authenticated route/layout cases, then reported browser-timeout under tenant-list-layout-1440-none. That phase covered both navigation/network-idle and seeded Current readiness; finer fixed phase labels now distinguish them without changing waits or assertions. Native transport responses in the captured logs were200, which does not prove a cause. Preserve the original safe result and compare a fresh exact-source run plus a same-corpus baseline/control if it recurs before changing production behavior or timeouts. Generic and explicit published qualification profiles remain distinct; this unnumbered risk is excluded from numbered totals.
+  status: done
+  resolution-date: 2026-10-29
+  resolution-spec: spec-five-deferred-authority-and-read-bounds.md
+  resolution: Exact-order four-CPU controls reproduce native actor admission-window pressure with retained cursor flags,995 completed known callbacks in22.224s and a31.219s queued cancellation at maximum queue depth one. Independent test groups now observe the unchanged60-second policy window; fresh reads, seeded Current assertions and existing deadlines remain mandatory. Both method orders pass25 browser cases and the complete local strict generic tier passes530/530 with zero skips. This resolves the cause investigation; actual post-push generic CI acceptance remains separately open.
+  resolution-evidence: five-deferred-authority-and-read-bounds-validation-evidence.md

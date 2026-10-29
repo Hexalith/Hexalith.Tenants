@@ -27,6 +27,8 @@ public sealed class AuthenticatedTenantsUiRouteTests(AuthenticatedTenantsTopolog
         fixture.ProjectionWorkersEnabledAtStartup.ShouldBeFalse("authenticated UI routes qualify the independent request-path profile");
         await WithSafeEvidenceAsync(TimeSpan.FromMinutes(5), async (_, phase, cancellationToken) =>
         {
+            phase("native-admission-window");
+            await fixture.BeginNativeReadQualificationAsync(cancellationToken);
             phase("sign-in");
             string cookie = await fixture.SignInAsync(cancellationToken);
             string scopeMarkup = await GetMarkupAsync("/tenants", cookie, cancellationToken);
@@ -79,6 +81,8 @@ public sealed class AuthenticatedTenantsUiRouteTests(AuthenticatedTenantsTopolog
         fixture.ProjectionWorkersEnabledAtStartup.ShouldBeFalse("authenticated UI routes qualify the independent request-path profile");
         await WithSafeEvidenceAsync(TimeSpan.FromMinutes(8), async (outputPath, phase, cancellationToken) =>
         {
+            phase("native-admission-window");
+            await fixture.BeginNativeReadQualificationAsync(cancellationToken);
             phase("sign-in");
             string cookie = await fixture.SignInAsync(cancellationToken);
             phase("command-seed");
@@ -140,6 +144,10 @@ public sealed class AuthenticatedTenantsUiRouteTests(AuthenticatedTenantsTopolog
                 phase("browser-result");
                 File.Exists(outputPath).ShouldBeTrue("The live validator must produce its support-safe result artifact.");
                 using JsonDocument evidence = JsonDocument.Parse(await File.ReadAllTextAsync(outputPath, cancellationToken));
+                if (process.ExitCode != 0)
+                {
+                    TestContext.Current.TestOutputHelper?.WriteLine(DescribeBrowserFailure(evidence.RootElement));
+                }
                 process.ExitCode.ShouldBe(0, evidence.RootElement.GetRawText());
                 evidence.RootElement.GetProperty("passed").GetBoolean().ShouldBeTrue();
                 evidence.RootElement.GetProperty("cases").GetArrayLength().ShouldBeGreaterThanOrEqualTo(25);
@@ -150,6 +158,33 @@ public sealed class AuthenticatedTenantsUiRouteTests(AuthenticatedTenantsTopolog
                 File.Delete(inputPath);
             }
         });
+    }
+
+    /// <summary>Retains only authored failure categories and bounded readiness values in generic TRX output.</summary>
+    internal static string DescribeBrowserFailure(JsonElement evidence)
+    {
+        string Category(JsonElement value, string property)
+        {
+            if (!value.TryGetProperty(property, out JsonElement item) || item.ValueKind != JsonValueKind.String)
+                return "unavailable";
+            string? text = item.GetString();
+            return text is { Length: > 0 and <= 96 } && text.All(character => character is >= 'a' and <= 'z' or >= '0' and <= '9' or '-')
+                ? text : "unavailable";
+        }
+        if (!evidence.TryGetProperty("failure", out JsonElement failure)) return "Live browser failure: unavailable.";
+        var flags = new Dictionary<string, object?>();
+        if (evidence.TryGetProperty("readiness", out JsonElement readiness))
+        {
+            foreach (string name in new[] { "available", "currentBadgeVisible", "workspace", "grid", "loading", "error", "unauthorized", "degraded", "pagingRecovered", "cursorPresent", "requestedCursorPresent", "searchCursorPresent" })
+                if (readiness.TryGetProperty(name, out JsonElement flag) && flag.ValueKind is JsonValueKind.True or JsonValueKind.False)
+                    flags[name] = flag.GetBoolean();
+            foreach (string name in new[] { "seededRowCount", "currentBadgeCount", "listRowCount" })
+                if (readiness.TryGetProperty(name, out JsonElement count) && count.ValueKind == JsonValueKind.Number && count.TryGetInt32(out int bounded) && bounded is >= 0 and <= 100)
+                    flags[name] = bounded;
+            if (readiness.TryGetProperty("pageSize", out JsonElement pageSize) && pageSize.ValueKind == JsonValueKind.Number && pageSize.TryGetInt32(out int size) && size is 20 or 50 or 100)
+                flags["pageSize"] = size;
+        }
+        return $"Live browser failure: Phase={Category(failure, "phase")}, Label={Category(failure, "label")}, Readiness={JsonSerializer.Serialize(flags)}.";
     }
 
     private static IEnumerable<(string Route, string Marker)> Routes(AuthenticatedRouteState state, string? listCursor, string? membershipCursor)

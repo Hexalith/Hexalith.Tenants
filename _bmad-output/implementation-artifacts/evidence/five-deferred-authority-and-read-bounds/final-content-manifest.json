@@ -1,10 +1,10 @@
 {
-  "capturedUtc": "2026-10-28T23:17:14.993911+00:00",
+  "capturedUtc": "2026-10-29T03:00:39.964683+00:00",
   "baseline": "8127cb3b47dcfcf4086d07e4af0730c2f4920f9e",
-  "phase": "CI first attempt blocked; test-only corrections verified; fresh generic CI required",
+  "phase": "Browser admission cause verified; test cadence and complete local 530-test generic tier passed; exact-source CI pending",
   "frozenIntentSha256": "6d8aa8fdd9b7d885787043252bde110fe1d5607f17408a7963f5886c016b1225",
   "productionInputsUnchangedSinceAcceptedGenericTier": true,
-  "postTestChanges": "Whitespace only in five new test files; post-test-formatting-audit.json binds both versions. Separate published rebuilds passed afterward.",
+  "postTestChanges": "Earlier five-file whitespace-only change is separately audited. Four later test-only cadence/diagnostic files match the final 530-test local generic run.",
   "testedAssembliesPhase": "post-review-tested-assemblies.json records accepted generic graph before the later explicit published rebuild; no identity equivalence between graphs is claimed.",
   "qualificationInputs": [
     {
@@ -212,6 +212,12 @@
       "gitBlob": "2d80575ccfa5e6a37c78cd09f2e3acf0ef0a93ea"
     },
     {
+      "path": "tests/Hexalith.Tenants.IntegrationTests/AuthenticatedRouteEvidenceTests.cs",
+      "bytes": 4743,
+      "sha256": "76de4375477cd246f7683d6bd4b62526f326166a6873327ebab1796762f8d9c8",
+      "gitBlob": "52c46d3e21d356baa9e57e915c44b9987d3fefc3"
+    },
+    {
       "path": "tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsRouteTests.cs",
       "bytes": 27636,
       "sha256": "fc53751126519a39e5110ffdeb47cfe10f97ed4295625aa71bb0fdd9dde5b9c8",
@@ -219,9 +225,9 @@
     },
     {
       "path": "tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsUiRouteTests.cs",
-      "bytes": 18233,
-      "sha256": "466bd85e3f17e28e64e0f772d72532c28b8dfe816e5d703681b168c063a4d124",
-      "gitBlob": "acf292133d0649a702c601485a1252d0eec48523"
+      "bytes": 20791,
+      "sha256": "b43c1fdb3ee88feda4a16ac9101cb9a95fea2860d6b1b72625578ac20a3999a9",
+      "gitBlob": "41a9180bee4021160a88ff468e616f0e5990a40a"
     },
     {
       "path": "tests/Hexalith.Tenants.IntegrationTests/CommandApiRuntimeIntegrationTests.NativeAuthority.cs",
@@ -252,6 +258,12 @@
       "bytes": 9873,
       "sha256": "6533b50fd9747fd44ede0e123dba7b57ac81bb2abcedc7b8e929c020902cee9c",
       "gitBlob": "718cd54e1f822ff2454af37fcae289e8ae37724f"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.IntegrationTests/Fixtures/AuthenticatedTenantsTopologyFixture.cs",
+      "bytes": 11387,
+      "sha256": "118f69a205fac9820ad901ddabe77176aeccfebedd28a94a85d8620dd27b9c84",
+      "gitBlob": "a47ae4bc59eb793f0716767b8c438bb5a85fa85d"
     },
     {
       "path": "tests/Hexalith.Tenants.IntegrationTests/Fixtures/GlobalAdministratorTestAuthority.cs",
@@ -345,9 +357,9 @@
     },
     {
       "path": "tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-live-routes.mjs",
-      "bytes": 31831,
-      "sha256": "20213032db7d746f386110a796f8bc9c3587277dd3ee6047a3de781d822a9e6b",
-      "gitBlob": "568438fbb1b24d6b0a64b2d6d3bf49cb890996a4"
+      "bytes": 34302,
+      "sha256": "64c4421f255371dbc56a90dc9a01064d8ee61aa1b3c30a1d956a73ddfba050ef",
+      "gitBlob": "ad4dcfdac388a75d123f3a8d73305994efcf27e9"
     },
     {
       "path": "tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.Deadlines.cs",
@@ -388,6 +400,14 @@
     "bundle-manifest.json": {
       "bytes": 452,
       "sha256": "4a2b2d93e2ce1cc3823c6f39effa90966edb7043bd991e05572ae30341ef3fb5"
+    },
+    "ci-browser-cadence-and-generic-validation.json": {
+      "bytes": 444,
+      "sha256": "ef958410c85d476838dbca94057bd0f6d3656128a9583a2ca78bd846067f356e"
+    },
+    "ci-browser-cadence-and-generic-validation.tar.gz": {
+      "bytes": 38631,
+      "sha256": "32aea0c56540d005932d8197c6f83ed327e9a2a1584dde6e958522d0c44bfcbb"
     },
     "ci-first-attempt-and-followup.json": {
       "bytes": 1557,
@@ -492,8 +512,9 @@
   },
   "validationIndex": {
     "path": "_bmad-output/implementation-artifacts/five-deferred-authority-and-read-bounds-validation-evidence.md",
-    "bytes": 18534,
-    "sha256": "852d5ae6b6dfd33f267571e732bd6dc30fc513cd45d72a115fd6c246a92f4a6b"
+    "bytes": 21587,
+    "sha256": "050d43339f31a1eb1b8019b9a4caba498bba4b854312ce3389b4381675f13cc4"
   },
-  "ciFirstAttempt": "ci-first-attempt-and-followup.json"
+  "ciFirstAttempt": "ci-first-attempt-and-followup.json",
+  "cadenceQualification": "ci-browser-cadence-and-generic-validation.json"
 }

@@ -1,0 +1,16 @@
+{
+  "archive": "ci-browser-cadence-and-generic-validation.tar.gz",
+  "bytes": 38631,
+  "sha256": "32aea0c56540d005932d8197c6f83ed327e9a2a1584dde6e958522d0c44bfcbb",
+  "memberCount": 23,
+  "manifest": "member-hashes.json",
+  "completeGenericLocalResult": {
+    "total": 530,
+    "passed": 530,
+    "failed": 0,
+    "skipped": 0
+  },
+  "actualGenericCiStatus": "pending",
+  "productionInputsUnchanged": true,
+  "rawCapturesRemainPrivate": true
+}
