@@ -6555,3 +6555,11 @@ archived: 2026-10-22
   resolution-spec: spec-five-deferred-authority-and-read-bounds.md
   resolution: Exact-order four-CPU controls reproduce native actor admission-window pressure with retained cursor flags,995 completed known callbacks in22.224s and a31.219s queued cancellation at maximum queue depth one. Independent test groups now observe the unchanged60-second policy window; fresh reads, seeded Current assertions and existing deadlines remain mandatory. Both method orders pass25 browser cases and the complete local strict generic tier passes530/530 with zero skips. This resolves the cause investigation; actual post-push generic CI acceptance remains separately open.
   resolution-evidence: five-deferred-authority-and-read-bounds-validation-evidence.md
+
+
+## Deferred from: latest EventStore package verification (2026-10-29)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-eventstore-3-117-1.md`
+  summary: Reconcile the long-lived EventStore spec gitlink audit scope while preserving its original baseline and unrelated committed dependency updates.
+  evidence: Review R1. The retained historical endpoint ef4b7f2f99b2a60910b94481a198f591c51bfe5c passes with --ref, while the default validate-story-gitlinks.py command exits 1 for eight intervening undeclared pointers since baseline 9e9e04308ea1060010a64bb8b800e755c4aaf99d. This continuation starts at 03615cc91d940ca37b47fb13413a90a31151dd71 and has zero gitlink diff. Package currency, both Release builds and 10887 tests pass. Resolve historical attribution without resetting the baseline, reverting independent changes or inventing story ownership; exact commands/logs are in dependency-refresh-eventstore-3.128.4-evidence-2026-10-29.json and its raw-log archive.
+  resolution: done — Restored the creation snapshot's original 1846c7128cf0f6b16f9e62f38032bcab78e26e38 start instead of the narrowed October 10 checkpoint, retired the incompatible active historical endpoint, and inventoried all nine exact current range targets without claiming independent commits as story-owned. Default guard, original-range/history verifier with 23 controls, guard suite 77/77 and changed-story suite 78/78 pass. Evidence: eventstore-gitlink-reconciliation-2026-10-29.md; original review evidence above is preserved.

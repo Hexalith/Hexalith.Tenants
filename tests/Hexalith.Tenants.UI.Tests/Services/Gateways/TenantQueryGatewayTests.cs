@@ -47,6 +47,95 @@ namespace Hexalith.Tenants.UI.Tests.Services.Gateways;
 public sealed partial class TenantQueryGatewayTests
 {
     [Theory]
+    [InlineData(false, false, "must-not-be-hidden")]
+    [InlineData(false, true, "must-not-be-hidden")]
+    [InlineData(true, false, "must-not-be-hidden")]
+    [InlineData(true, true, "must-not-be-hidden")]
+    [InlineData(false, true, null)]
+    [InlineData(true, true, null)]
+    public async Task CompleteGlobalAdministratorWalkRejectsEmptyPagesWithPagingSignals(
+        bool continuation, bool hasMore, string? cursor)
+    {
+        ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
+        int calls = 0;
+        client.GetGlobalAdministratorsAsync(Arg.Any<GetGlobalAdministratorsQuery>(),
+                Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                GetGlobalAdministratorsQuery request = call.Arg<GetGlobalAdministratorsQuery>();
+                calls++;
+                return DirectResponse(continuation && request.Cursor is null
+                    ? new PaginatedResult<GlobalAdministratorSummary>([new("other-admin")], "page-two", true)
+                    : new PaginatedResult<GlobalAdministratorSummary>([], cursor, hasMore),
+                    projectionVersion: "tenant-sequence:2");
+            });
+        using TenantQueryGateway gateway = CreateGateway(client);
+
+        GlobalAdministratorsSnapshot result = await GlobalAdministratorsProjectionLoader.LoadAsync(
+            gateway, cancellationToken: TestContext.Current.CancellationToken);
+
+        result.IsCompleteEvidence.ShouldBeFalse();
+        result.Kind.ShouldBe(GlobalAdministratorsSurfaceKind.Unavailable);
+        result.Rows.ShouldBeEmpty();
+        result.NextCursor.ShouldBeNull();
+        result.CallerScope.ShouldBeNull();
+        calls.ShouldBe(continuation ? 2 : 1);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task CompleteGlobalAdministratorWalkRejectsRealGatewayPermissionRevisionChanges(bool notify)
+    {
+        AuthenticationStateProvider provider = GatewayAuthenticationProvider("operator-user");
+        ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
+        client.GetGlobalAdministratorsAsync(Arg.Any<GetGlobalAdministratorsQuery>(),
+                Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(call => DirectResponse(call.Arg<GetGlobalAdministratorsQuery>().Cursor is null
+                ? new PaginatedResult<GlobalAdministratorSummary>([new("old-authority-admin")], "page-two", true)
+                : new PaginatedResult<GlobalAdministratorSummary>([new("new-authority-admin")], null, false),
+                projectionVersion: "tenant-sequence:2"));
+        using TenantQueryGateway gateway = CreateGateway(client, authenticationStateProvider: provider);
+        ITenantQueryGateway walkingGateway = Substitute.For<ITenantQueryGateway>();
+        List<GlobalAdministratorsSnapshot> pages = [];
+        walkingGateway.GetGlobalAdministratorsAsync(Arg.Any<GlobalAdministratorsRequest>(),
+                Arg.Any<GlobalAdministratorsSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(async call =>
+            {
+                GlobalAdministratorsSnapshot page = await gateway.GetGlobalAdministratorsAsync(
+                    call.Arg<GlobalAdministratorsRequest>(), previous: null, call.Arg<CancellationToken>());
+                pages.Add(page);
+                if (pages.Count == 1)
+                {
+                    Task<AuthenticationState> revised = Task.FromResult(new AuthenticationState(new ClaimsPrincipal(
+                        new ClaimsIdentity([new Claim("sub", "operator-user"), new Claim("global_admin", "false"),
+                            new Claim("permission", "revised")], "test"))));
+                    if (notify)
+                    {
+                        NotifyGatewayAuthentication(provider, revised);
+                    }
+                    else
+                    {
+                        provider.GetAuthenticationStateAsync().Returns(revised);
+                    }
+                }
+                return page;
+            });
+
+        GlobalAdministratorsSnapshot result = await GlobalAdministratorsProjectionLoader.LoadAsync(
+            walkingGateway, cancellationToken: TestContext.Current.CancellationToken);
+
+        pages.Count.ShouldBe(2);
+        pages.ShouldAllBe(page => page.Kind == GlobalAdministratorsSurfaceKind.Ready);
+        pages[1].CallerScope.ShouldBe(pages[0].CallerScope);
+        pages[1].AuthorizationRevision.ShouldNotBe(pages[0].AuthorizationRevision);
+        result.Kind.ShouldBe(GlobalAdministratorsSurfaceKind.Unavailable);
+        result.IsCompleteEvidence.ShouldBeFalse();
+        result.Rows.ShouldBeEmpty();
+        result.CallerScope.ShouldBeNull();
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task OrdinaryAndFallbackEnrichmentPreserveOriginalFatalCancellationWrapper(bool fallback)

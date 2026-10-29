@@ -1205,6 +1205,9 @@ internal sealed class TenantQueryGateway(
 
             if (rows.Count == 0) {
                 return GlobalAdministratorsSnapshot.Empty(isAuthorizationScoped: true, freshness, result.ETag) with {
+                    // Preserve contradictory paging evidence so a full walk cannot mistake it for completion.
+                    NextCursor = payload.Cursor,
+                    HasMore = payload.HasMore,
                     Lifecycle = lifecycle,
                     ProjectionVersion = result.Metadata?.ProjectionVersion,
                     IsCompleteEvidence = IsCompleteGlobalAdministratorsEvidence(request, payload, result.Metadata, freshness, lifecycle),

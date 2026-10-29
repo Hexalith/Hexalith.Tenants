@@ -1,0 +1,11 @@
+{
+  "preexisting_unchanged": [
+    "_bmad-output/implementation-artifacts/dependency-refresh-eventstore-3.128.4-evidence-2026-10-29.json",
+    "_bmad-output/implementation-artifacts/dependency-refresh-eventstore-3.128.4-raw-logs-2026-10-29.zip"
+  ],
+  "externally_changed_since_start": [
+    "_bmad-output/implementation-artifacts/deferred-work.md",
+    "_bmad-output/implementation-artifacts/spec-eventstore-3-117-1.md",
+    "_bmad-output/project-context.md"
+  ]
+}

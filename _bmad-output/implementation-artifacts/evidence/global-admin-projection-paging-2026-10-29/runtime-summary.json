@@ -1,0 +1,27 @@
+[
+  {
+    "name": "eventstore",
+    "state": "Running",
+    "health": "Healthy"
+  },
+  {
+    "name": "security",
+    "state": "Running",
+    "health": "Healthy"
+  },
+  {
+    "name": "tenants-api",
+    "state": "Running",
+    "health": "Healthy"
+  },
+  {
+    "name": "tenants-ui",
+    "state": "Running",
+    "health": "Healthy"
+  },
+  {
+    "name": "tenants",
+    "state": "Running",
+    "health": "Healthy"
+  }
+]

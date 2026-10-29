@@ -1,0 +1,62 @@
+Reviewed HEAD: 73478ea3b21dbdc416d5b54b59260f851fbcd965
+Original baseline: 6bd5fc29cf66e0238a4ea5ceb8c743c358fe3513
+Creation: 7716f0b11423eb54d74935b6cc6e3edf405dc400
+Historical implementation endpoint: ded413dfd4786983585c7f56a399825cc1afbae3
+
+Independent reviews: blind, edge-case and verification-gap completed with fresh contexts.
+All findings individually triaged in the spec. Three confirmed paging defects patched.
+
+Build (before and after patches):
+dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release -m:1 -p:NuGetAudit=false -p:MinVerVersionOverride=1.0.0
+Exit 0, zero warnings and errors.
+
+Full verification:
+tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -noLogo -noColor -parallel none
+Before patches: exit 0, 8,011 tests, 0 errors/failures/skips/not-run, 108.336s.
+After patches: exit 0, 8,027 tests, 0 errors/failures/skips/not-run, 97.718s.
+
+Regression reproduction (same executable and flags, restricted with single-dash -method):
+*CompleteGlobalAdministratorWalkRejectsEmptyPagesWithPagingSignals
+*CompleteProjectionWalkRejectsSameCallerAuthorizationRevisionChanges
+*FailedGlobalAdministratorRefreshPreservesOnlyAuthorizedIncompleteEvidence
+Before production patches: 9 cases, 7 failed, 2 passed (exception-retention and unauthorized-redaction controls).
+
+Focused final regressions add these -method patterns:
+*CompleteScopedEmptyWalkSupportsFirstAdministratorRestoration
+*TerminalPageAtExactWalkLimitCompletesWithoutAnotherRequest
+*TerminalContinuationWithStrayCursorCannotProveCompleteness
+*CorrectionCompletenessSignalsIndependentlyBlockPreviewAndConfirmation
+After patches: exit 0, all 17 cases passed, none skipped/not-run.
+
+Historical gitlink gate:
+python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-global-admin-projection-paging.md --ref ded413dfd4786983585c7f56a399825cc1afbae3
+Exit 0, RESULT: PASS, all nine full historical targets declared. Validator unchanged.
+The original creation moves no gitlinks. Current git diff --exit-code HEAD -- references/ exits 0.
+
+Applicable CI historical-provenance preflight:
+python3 _bmad-output/implementation-artifacts/evidence/global-admin-projection-paging-2026-10-29/check-ci-provenance.py
+Exit 1, RESULT: FAIL:
+_bmad-output/implementation-artifacts/spec-global-admin-projection-paging.md: historical audit must retain the endpoint story's baseline_commit.
+
+This invokes the unchanged CI audit_ref function on the repaired uncommitted Markdown and
+existing HEAD; it is not a committed-event CI run. The endpoint records the erroneous
+23b2a7691ae667fd160a48a5d7293f3cf38d48fe, while the verified original baseline is
+6bd5fc29cf66e0238a4ea5ceb8c743c358fe3513. The documented correction exception requires an
+unavailable original object; 23b2a7691ae667fd160a48a5d7293f3cf38d48fe is available, so that
+exception cannot authorize this repair. No baseline reset, fabricated ownership,
+CI/validator weakening, history rewrite, or submodule restoration was used.
+Status remains in-review. A separately authorized guard-policy correction is needed before
+this historical metadata can pass the existing CI gate.
+
+Runtime prerequisite:
+aspire start --apphost src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj
+aspire describe --apphost src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj --format Json
+Exit 0; eventstore, security, tenants, tenants-api and tenants-ui Running/Healthy.
+aspire stop --apphost src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj
+Exit 0; stopped only this run's previously unstarted AppHost. No live command was submitted.
+The historical missing-workload-issuer warning was not reproduced in this runtime.
+
+Whitespace gate: scoped git diff --check exits 0 (only existing CRLF normalization notices).
+No staging, commits, branches, pushes, dependency changes or submodule updates by this run.
+Unrelated concurrent files and submodule checkouts preserved. See preservation.json for
+preexisting hashes; other sessions changed three unrelated documents during this run.

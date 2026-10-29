@@ -15,6 +15,58 @@ namespace Hexalith.Tenants.UI.Tests.State;
 public sealed class GlobalAdministratorCorrectionSnapshotTests
 {
     [Theory]
+    [InlineData(false, false, false)]
+    [InlineData(false, true, true)]
+    [InlineData(true, false, false)]
+    [InlineData(true, true, true)]
+    public void CorrectionCompletenessSignalsIndependentlyBlockPreviewAndConfirmation(
+        bool revoke, bool hasMore, bool isCompleteEvidence)
+    {
+        GlobalAdministratorsSnapshot baseline = revoke
+            ? ProjectionReady("admin-user", "other-admin")
+            : ProjectionReady("other-admin");
+        GlobalAdministratorsSnapshot previewEvidence = baseline with
+        {
+            HasMore = hasMore,
+            NextCursor = hasMore ? "page-two" : null,
+            IsCompleteEvidence = isCompleteEvidence,
+        };
+        GlobalAdministratorCorrectionSnapshot blockedPreview = GlobalAdministratorCorrectionSnapshot.FromIntent(
+            revoke ? RevokeIntent() : RestoreIntent(), previewEvidence);
+        blockedPreview.LifecycleState.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        blockedPreview.CanSubmit.ShouldBeFalse();
+
+        GlobalAdministratorCorrectionSnapshot preview = GlobalAdministratorCorrectionSnapshot.FromIntent(
+            revoke ? RevokeIntent() : RestoreIntent(), baseline);
+        if (revoke)
+        {
+            preview = preview.WithRemovePreview(RemovePreview());
+        }
+        GlobalAdministratorCorrectionSnapshot pending = preview
+            .RequestSent("message-safe", DateTimeOffset.Parse("2026-06-01T10:01:00Z", CultureInfo.InvariantCulture))
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-safe", "tracking-safe"))
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true)
+            {
+                CommittedEventSequence = 2,
+            });
+        GlobalAdministratorsSnapshot completePostcondition = revoke
+            ? ProjectionReadyAtVersion("tenant-sequence:2", "other-admin")
+            : ProjectionReadyAtVersion("tenant-sequence:2", "admin-user", "other-admin");
+        GlobalAdministratorCorrectionSnapshot result = pending.ConfirmProjection(completePostcondition with
+        {
+            HasMore = hasMore,
+            NextCursor = hasMore ? "page-two" : null,
+            IsCompleteEvidence = isCompleteEvidence,
+        });
+
+        result.LifecycleState.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
+        result.LastConfirmedProjectionEvidence.ShouldBe(pending.LastConfirmedProjectionEvidence);
+        result.FocusTarget.ShouldBe(TenantCommandFocusTarget.Refresh);
+        result.SafeMessageKey.ShouldBe("Tenants.Correction.Unavailable.CurrentProjectionUnavailable");
+        pending.ConfirmProjection(completePostcondition).LifecycleState.ShouldBe(TenantCommandLifecycleState.Confirmed);
+    }
+
+    [Theory]
     [InlineData(CommandStatus.EventsStored, false)]
     [InlineData(CommandStatus.EventsPublished, false)]
     [InlineData(CommandStatus.EventsStored, true)]

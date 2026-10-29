@@ -1,0 +1,16 @@
+Story:    spec-global-admin-projection-paging.md
+Baseline: 6bd5fc2
+Compared: ded413dfd4786983585c7f56a399825cc1afbae3 (ded413d)
+
+9 references/ pointer change(s) in range:
+  [declared] references/Hexalith.AI.Tools  de38f78 -> 3f194e1
+  [declared] references/Hexalith.Builds  5c3ff35 -> 58d9b54
+  [declared] references/Hexalith.Commons  feab4ef -> b247ed1
+  [declared] references/Hexalith.EventStore  5ddda34 -> 07d1e23
+  [declared] references/Hexalith.FrontComposer  dca2d63 -> 0e11421
+  [declared] references/Hexalith.McpCli  absent at baseline -> 342e072
+  [declared] references/Hexalith.Memories  6470938 -> 906bc07
+  [declared] references/Hexalith.Platform  absent at baseline -> f5a0d72
+  [declared] references/Hexalith.PolymorphicSerializations  65fc336 -> 98de6e0
+
+RESULT: PASS

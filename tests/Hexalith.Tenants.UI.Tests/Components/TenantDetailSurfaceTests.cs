@@ -928,8 +928,15 @@ public sealed partial class TenantDetailSurfaceTests : BunitContext
         access.AuditProofCapabilityAvailable.ShouldBeFalse();
     }
 
-    [Fact]
-    public async Task Failed_global_administrator_refresh_retains_rows_only_as_incomplete_unknown_evidence()
+    [Theory]
+    [InlineData("exception", true)]
+    [InlineData("unavailable", true)]
+    [InlineData("missing-payload", true)]
+    [InlineData("unauthorized", false)]
+    [InlineData("continuation-unavailable", true)]
+    [InlineData("continuation-revision", true)]
+    public async Task FailedGlobalAdministratorRefreshPreservesOnlyAuthorizedIncompleteEvidence(
+        string failure, bool retainRows)
     {
         ITenantQueryGateway gateway = CreateCurrentDetailPageGateway();
         int calls = 0;
@@ -937,7 +944,7 @@ public sealed partial class TenantDetailSurfaceTests : BunitContext
                 Arg.Any<GlobalAdministratorsRequest>(),
                 Arg.Any<GlobalAdministratorsSnapshot?>(),
                 Arg.Any<CancellationToken>())
-            .Returns(_ => ++calls == 1
+            .Returns(call => ++calls == 1
                 ? GlobalAdministratorsSnapshot.Ready(
                     [new GlobalAdministratorRow("reader-user", ReadModelFreshnessState.Current, ProjectionLifecycleState.Current)],
                     null,
@@ -949,7 +956,18 @@ public sealed partial class TenantDetailSurfaceTests : BunitContext
                     Lifecycle = ProjectionLifecycleState.Current,
                     ProjectionVersion = "ga-v1",
                 }
-                : throw new InvalidOperationException("supplementary refresh fault"));
+                : calls == 2 && failure is "continuation-unavailable" or "continuation-revision"
+                    ? RefreshPage("partial-admin", "page-two", true, call.Arg<GlobalAdministratorsRequest>(), 4)
+                : failure switch
+                {
+                    "unavailable" => GlobalAdministratorsSnapshot.Unavailable(),
+                    "missing-payload" => GlobalAdministratorsSnapshot.Unavailable(GlobalAdministratorsReason.MissingPayload),
+                    "unauthorized" => GlobalAdministratorsSnapshot.Unauthorized(),
+                    "continuation-unavailable" => GlobalAdministratorsSnapshot.Unavailable(),
+                    "continuation-revision" => RefreshPage("new-authority-admin", null, false,
+                        call.Arg<GlobalAdministratorsRequest>(), 5),
+                    _ => throw new InvalidOperationException("supplementary refresh fault"),
+                });
         RegisterDetailPageServices(gateway);
 
         IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
@@ -963,12 +981,34 @@ public sealed partial class TenantDetailSurfaceTests : BunitContext
         {
             GlobalAdministratorsSnapshot retained = cut.FindComponent<MemberAccessReview>()
                 .Instance.GlobalAdministrators.ShouldNotBeNull();
-            retained.Rows.ShouldContain(row => row.UserId == "reader-user");
+            if (retainRows)
+            {
+                retained.Rows.Select(row => row.UserId).ShouldBe(["reader-user"]);
+            }
+            else
+            {
+                retained.Rows.ShouldBeEmpty();
+            }
             retained.IsCompleteEvidence.ShouldBeFalse();
             retained.Freshness.ShouldBe(ReadModelFreshnessState.Unknown);
             retained.Lifecycle.ShouldBe(ProjectionLifecycleState.Unknown);
             retained.ProjectionVersion.ShouldBeNull();
         });
+        calls.ShouldBe(failure is "continuation-unavailable" or "continuation-revision" ? 3 : 2);
+
+        static GlobalAdministratorsSnapshot RefreshPage(
+            string userId, string? cursor, bool hasMore, GlobalAdministratorsRequest request, long revision)
+            => GlobalAdministratorsSnapshot.Ready(
+                [new GlobalAdministratorRow(userId, ReadModelFreshnessState.Current, ProjectionLifecycleState.Current)],
+                cursor, hasMore, null, ReadModelFreshnessState.Current) with
+            {
+                CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"),
+                Lifecycle = ProjectionLifecycleState.Current,
+                ProjectionVersion = "ga-v2",
+                RequestCursor = request.Cursor,
+                RequestPageSize = request.PageSize,
+                AuthorizationRevision = revision,
+            };
     }
 
     [Fact]

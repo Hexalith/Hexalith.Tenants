@@ -1,0 +1,10 @@
+{
+  "baseline": "6bd5fc29cf66e0238a4ea5ceb8c743c358fe3513",
+  "creation": "7716f0b11423eb54d74935b6cc6e3edf405dc400",
+  "patched_bundle": "5a3bc6dd4c1aa77cec50d0a960e986aa89c08cbe",
+  "scope_cleanup": "ded413dfd4786983585c7f56a399825cc1afbae3",
+  "current_head": "73478ea3b21dbdc416d5b54b59260f851fbcd965",
+  "creation_gitlink_diff": "",
+  "historical_gitlink_diff": ":160000 160000 de38f78ef7672df2a0997ddc60bf35ba0d02fa25 3f194e17174994d308ec84af9ee2b5aa68674d0d M\treferences/Hexalith.AI.Tools\n:160000 160000 5c3ff35c590cfae9f3a9784b75d08dd065c55cef 58d9b546b4741a246121ab40fc3945703db2e19b M\treferences/Hexalith.Builds\n:160000 160000 feab4efc8804692fbe3c522a9d753559959ea22d b247ed116c6523f8c596ec0a933eff8973d11568 M\treferences/Hexalith.Commons\n:160000 160000 5ddda34f2ff0ffb0f72a60c44b265f2e4838a332 07d1e23a6c5b06bbbb1fc8ddb5174cc3382d3d93 M\treferences/Hexalith.EventStore\n:160000 160000 dca2d63a2542e72d6fe6d24142f3c267a6b8fde5 0e114214007c22f5cdbac21a6853cff4208340ee M\treferences/Hexalith.FrontComposer\n:000000 160000 0000000000000000000000000000000000000000 342e072231279831c2fca0a85cbcd9205444fbec A\treferences/Hexalith.McpCli\n:160000 160000 647093889d2231d13b9d8c9544670ffc8c174843 906bc07ad6a8e4912a7222d9d097da434148266a M\treferences/Hexalith.Memories\n:000000 160000 0000000000000000000000000000000000000000 f5a0d72f9b72e88008562147a7085da0607d55f7 A\treferences/Hexalith.Platform\n:160000 160000 65fc33613db30f562dfe7daf92bf84b5cbb7eb4c 98de6e013840ece9f0fa7c68ab7dcdf2bba3b375 M\treferences/Hexalith.PolymorphicSerializations\n",
+  "new_worktree_gitlink_diff": ""
+}

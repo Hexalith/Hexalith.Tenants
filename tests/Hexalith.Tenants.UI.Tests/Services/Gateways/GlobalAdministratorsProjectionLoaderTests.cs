@@ -12,6 +12,106 @@ namespace Hexalith.Tenants.UI.Tests.Services.Gateways;
 
 public sealed class GlobalAdministratorsProjectionLoaderTests
 {
+    [Fact]
+    public async Task CompleteProjectionWalkRejectsSameCallerAuthorizationRevisionChanges()
+    {
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        int calls = 0;
+        gateway.GetGlobalAdministratorsAsync(Arg.Any<GlobalAdministratorsRequest>(),
+                Arg.Any<GlobalAdministratorsSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                GlobalAdministratorsRequest request = call.Arg<GlobalAdministratorsRequest>();
+                return ++calls == 1
+                    ? Page(["old-authority-admin"], "page-two", true, request: request) with { AuthorizationRevision = 4 }
+                    : Page(["new-authority-admin"], null, false, request: request) with { AuthorizationRevision = 5 };
+            });
+
+        GlobalAdministratorsSnapshot result = await GlobalAdministratorsProjectionLoader.LoadAsync(
+            gateway, cancellationToken: TestContext.Current.CancellationToken);
+
+        AssertCanonicalIncomplete(result);
+        calls.ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task CompleteScopedEmptyWalkSupportsFirstAdministratorRestoration()
+    {
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.GetGlobalAdministratorsAsync(Arg.Any<GlobalAdministratorsRequest>(),
+                Arg.Any<GlobalAdministratorsSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(GlobalAdministratorsSnapshot.Empty(true, ReadModelFreshnessState.Current, "page-validator") with
+            {
+                CallerScope = TenantQueryGateway.AuditCallerScope("operator-user"),
+                Lifecycle = ProjectionLifecycleState.Current,
+                ProjectionVersion = "tenant-sequence:1",
+                AuthorizationRevision = 4,
+            });
+
+        GlobalAdministratorsSnapshot result = await GlobalAdministratorsProjectionLoader.LoadAsync(
+            gateway, cancellationToken: TestContext.Current.CancellationToken);
+
+        result.Kind.ShouldBe(GlobalAdministratorsSurfaceKind.Empty);
+        result.Rows.ShouldBeEmpty();
+        result.IsCompleteEvidence.ShouldBeTrue();
+        result.IsAuthorizationScopedEmpty.ShouldBeTrue();
+        result.HasMore.ShouldBeFalse();
+        result.NextCursor.ShouldBeNull();
+        result.RequestCursor.ShouldBeNull();
+        result.ETag.ShouldBeNull();
+        result.CallerScope.ShouldBe(TenantQueryGateway.AuditCallerScope("operator-user"));
+        result.AuthorizationRevision.ShouldBe(4);
+        GlobalAdministratorGrantPreview.Create("first-admin", result, isAuthorized: true).IsComplete.ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(3)]
+    public async Task TerminalPageAtExactWalkLimitCompletesWithoutAnotherRequest(int limit)
+    {
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        int calls = 0;
+        gateway.GetGlobalAdministratorsAsync(Arg.Any<GlobalAdministratorsRequest>(),
+                Arg.Any<GlobalAdministratorsSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                GlobalAdministratorsRequest request = call.Arg<GlobalAdministratorsRequest>();
+                bool hasMore = ++calls < limit;
+                return Page([$"admin-{calls}"], hasMore ? $"page-{calls + 1}" : null, hasMore, request: request);
+            });
+
+        GlobalAdministratorsSnapshot result = await GlobalAdministratorsProjectionLoader.LoadAsync(
+            gateway, cancellationToken: TestContext.Current.CancellationToken, maximumPageCount: limit);
+
+        result.IsCompleteEvidence.ShouldBeTrue();
+        result.Rows.Count.ShouldBe(limit);
+        result.HasMore.ShouldBeFalse();
+        result.NextCursor.ShouldBeNull();
+        calls.ShouldBe(limit);
+    }
+
+    [Fact]
+    public async Task TerminalContinuationWithStrayCursorCannotProveCompleteness()
+    {
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        int calls = 0;
+        gateway.GetGlobalAdministratorsAsync(Arg.Any<GlobalAdministratorsRequest>(),
+                Arg.Any<GlobalAdministratorsSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                GlobalAdministratorsRequest request = call.Arg<GlobalAdministratorsRequest>();
+                return ++calls == 1
+                    ? Page(["admin-a"], "page-two", true, request: request)
+                    : Page(["admin-b"], "stray-cursor", false, request: request);
+            });
+
+        GlobalAdministratorsSnapshot result = await GlobalAdministratorsProjectionLoader.LoadAsync(
+            gateway, cancellationToken: TestContext.Current.CancellationToken);
+
+        AssertCanonicalIncomplete(result);
+        calls.ShouldBe(2);
+    }
+
     [Theory]
     [InlineData(null)]
     [InlineData("caller-two")]

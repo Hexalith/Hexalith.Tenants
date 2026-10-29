@@ -38,6 +38,7 @@ internal static class GlobalAdministratorsProjectionLoader
         var visitedCursors = new HashSet<string>(StringComparer.Ordinal);
         string? projectionVersion = null;
         string? callerScope = null;
+        long? authorizationRevision = null;
         GlobalAdministratorsSnapshot? page = null;
 
         for (int pageNumber = 0; pageNumber < maximumPageCount; pageNumber++)
@@ -58,8 +59,10 @@ internal static class GlobalAdministratorsProjectionLoader
             }
 
             callerScope ??= page.CallerScope;
+            authorizationRevision ??= page.AuthorizationRevision;
             if (string.IsNullOrWhiteSpace(callerScope)
                 || !string.Equals(callerScope, page.CallerScope, StringComparison.Ordinal)
+                || authorizationRevision != page.AuthorizationRevision
                 || !IsCurrentStablePage(page, request, projectionVersion))
             {
                 return ToIncomplete(page);

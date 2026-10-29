@@ -2318,9 +2318,14 @@
             {
                 if (CanApply(generation, tenantId))
                 {
-                    _globalAdministratorsSnapshot = IsCurrentCallerScope(snapshot.CallerScope)
-                        ? snapshot
-                        : GlobalAdministratorsSnapshot.Unavailable();
+                    // Ordinary gateway failures are returned snapshots. Keep only previously authorized
+                    // display evidence, with mutation gates closed, just as for a thrown read failure.
+                    _globalAdministratorsSnapshot = snapshot.Kind is GlobalAdministratorsSurfaceKind.Unavailable
+                        && IsCurrentCallerScope(retained?.CallerScope)
+                        ? ToFailClosedGlobalAdministrators(retained)
+                        : IsCurrentCallerScope(snapshot.CallerScope)
+                            ? snapshot
+                            : GlobalAdministratorsSnapshot.Unavailable();
                     StateHasChanged();
                 }
             }).ConfigureAwait(false);

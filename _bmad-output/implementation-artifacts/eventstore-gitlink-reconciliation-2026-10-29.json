@@ -1,0 +1,3777 @@
+{
+  "capturedUtc": "2026-10-29T10:00:55.987783+00:00",
+  "entryCommit": "73478ea3b21dbdc416d5b54b59260f851fbcd965",
+  "story": "_bmad-output/implementation-artifacts/spec-eventstore-3-117-1.md",
+  "originalBaseline": "1846c7128cf0f6b16f9e62f38032bcab78e26e38",
+  "creationCommit": "1dffe336c9fde823b7b8ed6df9d63019dae64b90",
+  "retiredNarrowedBaseline": "9e9e04308ea1060010a64bb8b800e755c4aaf99d",
+  "retiredAuditRef": "ef4b7f2f99b2a60910b94481a198f591c51bfe5c",
+  "originalCreationBaseline": "1846c7128cf0f6b16f9e62f38032bcab78e26e38",
+  "associationPaths": [
+    "_bmad-output/implementation-artifacts/dependency-refresh-eventstore-3.117.1-evidence-2026-10-08.json",
+    "_bmad-output/implementation-artifacts/dependency-refresh-eventstore-3.117.1-raw-logs-2026-10-08.zip",
+    "_bmad-output/implementation-artifacts/dependency-refresh-eventstore-3.120.0-evidence-2026-10-10.json",
+    "_bmad-output/implementation-artifacts/dependency-refresh-eventstore-3.120.0-raw-logs-2026-10-10.zip",
+    "_bmad-output/implementation-artifacts/dependency-refresh-eventstore-3.128.4-evidence-2026-10-29.json",
+    "_bmad-output/implementation-artifacts/dependency-refresh-eventstore-3.128.4-raw-logs-2026-10-29.zip",
+    "_bmad-output/implementation-artifacts/spec-eventstore-3-117-1.md"
+  ],
+  "associationMeaning": "Only these exact story/evidence paths establish a story-associated landing. Full changed file lists are retained for inspection; common project-context/ledger edits do not establish ownership. No Story-Owned Gitlink Commits record is invented.",
+  "originalToCreation": [
+    {
+      "path": "references/Hexalith.Builds",
+      "before": "893db14b25843db140942d839e4d659584221315",
+      "after": "6f07763bd955d22ace0123798add528dc933bf51"
+    },
+    {
+      "path": "references/Hexalith.EventStore",
+      "before": "0dad344d37343f589d859d6d8d6701283122b338",
+      "after": "9542d3c9f48bf9ce1c57f2ef68904703eaba56cc"
+    },
+    {
+      "path": "references/Hexalith.Memories",
+      "before": "aac6d9054cb138881e6e49c8e48233553123ffce",
+      "after": "3e18d0dcdceb387eff89862c382637da89ad7e47"
+    },
+    {
+      "path": "references/Hexalith.Platform",
+      "before": "f043a2f242762233091abdaa5bbe1ab777bd0f12",
+      "after": "eb864b75439371d2bd8fd8047bccb291c699d84c"
+    }
+  ],
+  "originalToRetiredEndpoint": [
+    {
+      "path": "references/Hexalith.Builds",
+      "before": "893db14b25843db140942d839e4d659584221315",
+      "after": "2cf00028bbe563d80d4d12b5fb2054914f14fcb6"
+    },
+    {
+      "path": "references/Hexalith.Commons",
+      "before": "116d26815eb81e35b3c161e1799e5ee12805fc0a",
+      "after": "b247ed116c6523f8c596ec0a933eff8973d11568"
+    },
+    {
+      "path": "references/Hexalith.EventStore",
+      "before": "0dad344d37343f589d859d6d8d6701283122b338",
+      "after": "37451b529ab21869fa4e2806968b5143ddeea14b"
+    },
+    {
+      "path": "references/Hexalith.McpCli",
+      "before": "e159f82b7528797fc245045625ff387d65294ba9",
+      "after": "f83bac4939a24402e4386cd56c70cd3f2dfd22ac"
+    },
+    {
+      "path": "references/Hexalith.Memories",
+      "before": "aac6d9054cb138881e6e49c8e48233553123ffce",
+      "after": "7b33e016a52907989181139298db18edef1a05d7"
+    },
+    {
+      "path": "references/Hexalith.Platform",
+      "before": "f043a2f242762233091abdaa5bbe1ab777bd0f12",
+      "after": "2c3f0fd4befe4e7e2aa1a3f7ce8ae1d5e1808f3c"
+    }
+  ],
+  "originalToEntry": [
+    {
+      "path": "references/Hexalith.AI.Tools",
+      "before": "3f194e17174994d308ec84af9ee2b5aa68674d0d",
+      "after": "70dbf73e80787299c832d30d911b16b105ab194d"
+    },
+    {
+      "path": "references/Hexalith.Builds",
+      "before": "893db14b25843db140942d839e4d659584221315",
+      "after": "4775fb72e3ca3c05059830733e31a98995818cb6"
+    },
+    {
+      "path": "references/Hexalith.Commons",
+      "before": "116d26815eb81e35b3c161e1799e5ee12805fc0a",
+      "after": "3edfbdafc7d4fa915286dce8a37dc4cc7c06085a"
+    },
+    {
+      "path": "references/Hexalith.EventStore",
+      "before": "0dad344d37343f589d859d6d8d6701283122b338",
+      "after": "4cf93f91e760e2d09e4fc64e1bd33a3c0a79a24d"
+    },
+    {
+      "path": "references/Hexalith.FrontComposer",
+      "before": "0e114214007c22f5cdbac21a6853cff4208340ee",
+      "after": "612d23485d7e2845d22102621a38d6c904e1ea90"
+    },
+    {
+      "path": "references/Hexalith.McpCli",
+      "before": "e159f82b7528797fc245045625ff387d65294ba9",
+      "after": "9ba8e5bd0e213501b39d33cedf46859566fc89a4"
+    },
+    {
+      "path": "references/Hexalith.Memories",
+      "before": "aac6d9054cb138881e6e49c8e48233553123ffce",
+      "after": "daa06183c0c9baa8bda71df259a7264d34684e2a"
+    },
+    {
+      "path": "references/Hexalith.Platform",
+      "before": "f043a2f242762233091abdaa5bbe1ab777bd0f12",
+      "after": "3659a44d86c08645215689eaeff8b3624d357dd5"
+    },
+    {
+      "path": "references/Hexalith.PolymorphicSerializations",
+      "before": "98de6e013840ece9f0fa7c68ab7dcdf2bba3b375",
+      "after": "221ac4592ba908ae7661ba1fa9e2d1fcc23baee0"
+    }
+  ],
+  "narrowedBaselineToEntry": [
+    {
+      "path": "references/Hexalith.AI.Tools",
+      "before": "3f194e17174994d308ec84af9ee2b5aa68674d0d",
+      "after": "70dbf73e80787299c832d30d911b16b105ab194d"
+    },
+    {
+      "path": "references/Hexalith.Builds",
+      "before": "2cf00028bbe563d80d4d12b5fb2054914f14fcb6",
+      "after": "4775fb72e3ca3c05059830733e31a98995818cb6"
+    },
+    {
+      "path": "references/Hexalith.Commons",
+      "before": "b247ed116c6523f8c596ec0a933eff8973d11568",
+      "after": "3edfbdafc7d4fa915286dce8a37dc4cc7c06085a"
+    },
+    {
+      "path": "references/Hexalith.EventStore",
+      "before": "37451b529ab21869fa4e2806968b5143ddeea14b",
+      "after": "4cf93f91e760e2d09e4fc64e1bd33a3c0a79a24d"
+    },
+    {
+      "path": "references/Hexalith.FrontComposer",
+      "before": "0e114214007c22f5cdbac21a6853cff4208340ee",
+      "after": "612d23485d7e2845d22102621a38d6c904e1ea90"
+    },
+    {
+      "path": "references/Hexalith.McpCli",
+      "before": "f83bac4939a24402e4386cd56c70cd3f2dfd22ac",
+      "after": "9ba8e5bd0e213501b39d33cedf46859566fc89a4"
+    },
+    {
+      "path": "references/Hexalith.Memories",
+      "before": "7b33e016a52907989181139298db18edef1a05d7",
+      "after": "daa06183c0c9baa8bda71df259a7264d34684e2a"
+    },
+    {
+      "path": "references/Hexalith.Platform",
+      "before": "2c3f0fd4befe4e7e2aa1a3f7ce8ae1d5e1808f3c",
+      "after": "3659a44d86c08645215689eaeff8b3624d357dd5"
+    },
+    {
+      "path": "references/Hexalith.PolymorphicSerializations",
+      "before": "98de6e013840ece9f0fa7c68ab7dcdf2bba3b375",
+      "after": "221ac4592ba908ae7661ba1fa9e2d1fcc23baee0"
+    }
+  ],
+  "pointerHistory": [
+    {
+      "commit": "1dffe336c9fde823b7b8ed6df9d63019dae64b90",
+      "parent": "38c162e81839fb585d2cbd5763b9b7a2badfe1ea",
+      "subject": "fix: update EventStore dependency to version 3.117.1",
+      "changedPaths": [
+        "_bmad-output/implementation-artifacts/deferred-work.md",
+        "_bmad-output/implementation-artifacts/dependency-refresh-eventstore-3.117.0-evidence-2026-10-08.json",
+        "_bmad-output/implementation-artifacts/dependency-refresh-eventstore-3.117.0-final-evidence-2026-10-08.json",
+        "_bmad-output/implementation-artifacts/dependency-refresh-eventstore-3.117.0-raw-logs-2026-10-08.zip",
+        "_bmad-output/implementation-artifacts/dependency-refresh-eventstore-3.117.1-evidence-2026-10-08.json",
+        "_bmad-output/implementation-artifacts/dependency-refresh-eventstore-3.117.1-raw-logs-2026-10-08.zip",
+        "_bmad-output/implementation-artifacts/spec-eventstore-3-117-1.md",
+        "_bmad-output/implementation-artifacts/spec-refresh-dependencies.md",
+        "_bmad-output/project-context.md",
+        "references/Hexalith.Builds",
+        "references/Hexalith.EventStore",
+        "references/Hexalith.Memories",
+        "references/Hexalith.Platform"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "893db14b25843db140942d839e4d659584221315",
+          "after": "6f07763bd955d22ace0123798add528dc933bf51"
+        },
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "0dad344d37343f589d859d6d8d6701283122b338",
+          "after": "9542d3c9f48bf9ce1c57f2ef68904703eaba56cc"
+        },
+        {
+          "path": "references/Hexalith.Memories",
+          "before": "aac6d9054cb138881e6e49c8e48233553123ffce",
+          "after": "3e18d0dcdceb387eff89862c382637da89ad7e47"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "f043a2f242762233091abdaa5bbe1ab777bd0f12",
+          "after": "eb864b75439371d2bd8fd8047bccb291c699d84c"
+        }
+      ],
+      "storyArtifacts": [
+        "_bmad-output/implementation-artifacts/dependency-refresh-eventstore-3.117.1-evidence-2026-10-08.json",
+        "_bmad-output/implementation-artifacts/dependency-refresh-eventstore-3.117.1-raw-logs-2026-10-08.zip",
+        "_bmad-output/implementation-artifacts/spec-eventstore-3-117-1.md"
+      ],
+      "attribution": "mixed landing carrying this story and dependency pointers; association does not prove dependency necessity or assistant ownership"
+    },
+    {
+      "commit": "fcdcb4205a3f6e46f736cdd3e6f2b20ca2f241df",
+      "parent": "1dffe336c9fde823b7b8ed6df9d63019dae64b90",
+      "subject": "fix: update allowed dependency IDs and validation logic in NuGet package validation script",
+      "changedPaths": [
+        "references/Hexalith.Builds",
+        "scripts/validate-nuget-packages.py"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "6f07763bd955d22ace0123798add528dc933bf51",
+          "after": "f717a87c26a8266bdde95d18f998ef2ab366d43a"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "5bfe0715591ecae8790472b29bb0e7d8986da4ae",
+      "parent": "fcdcb4205a3f6e46f736cdd3e6f2b20ca2f241df",
+      "subject": "chore: reverify tenant correction flow and update dependency records",
+      "changedPaths": [
+        "_bmad-output/implementation-artifacts/epic-5-context.md",
+        "_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction-2.md",
+        "_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md",
+        "_bmad-output/implementation-artifacts/story-5-6-reverification-2026-10-08.json",
+        "references/Hexalith.Memories",
+        "references/Hexalith.Platform"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Memories",
+          "before": "3e18d0dcdceb387eff89862c382637da89ad7e47",
+          "after": "c46973679fcf09bdc5aab19928f2fe03dae82226"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "eb864b75439371d2bd8fd8047bccb291c699d84c",
+          "after": "495d1d0dfceb33e6bb628809a42a284526707ff6"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "9ee73062b7e540b69f824803d182f151c96ddb24",
+      "parent": "fe5f6aa2e1fb158298a66ffad0fa3ee8064021d6",
+      "subject": "chore: update tenant correction spec status and review findings",
+      "changedPaths": [
+        "_bmad-output/implementation-artifacts/deferred-work.md",
+        "_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md",
+        "_bmad-output/implementation-artifacts/sprint-status.yaml",
+        "references/Hexalith.Builds",
+        "references/Hexalith.Memories",
+        "references/Hexalith.Platform",
+        "tests/Hexalith.Tenants.Server.Tests/Architecture/StatelessHostStateTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh",
+        "tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "f717a87c26a8266bdde95d18f998ef2ab366d43a",
+          "after": "a283481c69393dcba911db6a0edcb152167238cc"
+        },
+        {
+          "path": "references/Hexalith.Memories",
+          "before": "c46973679fcf09bdc5aab19928f2fe03dae82226",
+          "after": "dbe4ce0a97c6a3a883af800f7873a99b79434d44"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "495d1d0dfceb33e6bb628809a42a284526707ff6",
+          "after": "2c4f788a6ffde2646de1686492dc817f5505c922"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "416ab32cca5d4b9d1f56bc5558bc2c974912a8cf",
+      "parent": "9ee73062b7e540b69f824803d182f151c96ddb24",
+      "subject": "build: sync local changes via /pushall",
+      "changedPaths": [
+        "references/Hexalith.Platform"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "2c4f788a6ffde2646de1686492dc817f5505c922",
+          "after": "3a99380e022bb5ba542eb1a191400f8b9e4b913c"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "a30ae90b435e4e705874d5c2270905bbc48adebe",
+      "parent": "390da330337e09cf95bac51cb33cce934bd9fc6c",
+      "subject": "chore: update submodule references for Hexalith components",
+      "changedPaths": [
+        "references/Hexalith.Builds",
+        "references/Hexalith.Commons",
+        "references/Hexalith.EventStore",
+        "references/Hexalith.Memories"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "a283481c69393dcba911db6a0edcb152167238cc",
+          "after": "58d9b546b4741a246121ab40fc3945703db2e19b"
+        },
+        {
+          "path": "references/Hexalith.Commons",
+          "before": "116d26815eb81e35b3c161e1799e5ee12805fc0a",
+          "after": "b247ed116c6523f8c596ec0a933eff8973d11568"
+        },
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "9542d3c9f48bf9ce1c57f2ef68904703eaba56cc",
+          "after": "8dd7dc2ecdb2c06ecb900676042aa42b66619ee0"
+        },
+        {
+          "path": "references/Hexalith.Memories",
+          "before": "dbe4ce0a97c6a3a883af800f7873a99b79434d44",
+          "after": "8c7c1e9621ecae31150f0e6ae65f3ce6ca81cbed"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "032573384d3df4bc7a5bc0e69945ecca4e00967f",
+      "parent": "a30ae90b435e4e705874d5c2270905bbc48adebe",
+      "subject": "chore: update Hexalith.Platform submodule reference",
+      "changedPaths": [
+        "references/Hexalith.Platform"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "3a99380e022bb5ba542eb1a191400f8b9e4b913c",
+          "after": "d103ab8cdd3e523ca42ded8135cf7fdb0eeb792b"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "57ee33ef2511eebdf15a401dc19787423696039e",
+      "parent": "032573384d3df4bc7a5bc0e69945ecca4e00967f",
+      "subject": "feat: add raw logs for story 5-6 implementation artifacts",
+      "changedPaths": [
+        "_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction-3.md",
+        "_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md",
+        "_bmad-output/implementation-artifacts/story-5-6-current-head-2026-10-08.json",
+        "_bmad-output/implementation-artifacts/story-5-6-current-head-raw-logs-2026-10-08.zip",
+        "references/Hexalith.EventStore",
+        "references/Hexalith.McpCli",
+        "references/Hexalith.Memories",
+        "references/Hexalith.Platform"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "8dd7dc2ecdb2c06ecb900676042aa42b66619ee0",
+          "after": "07d1e23a6c5b06bbbb1fc8ddb5174cc3382d3d93"
+        },
+        {
+          "path": "references/Hexalith.McpCli",
+          "before": "e159f82b7528797fc245045625ff387d65294ba9",
+          "after": "342e072231279831c2fca0a85cbcd9205444fbec"
+        },
+        {
+          "path": "references/Hexalith.Memories",
+          "before": "8c7c1e9621ecae31150f0e6ae65f3ce6ca81cbed",
+          "after": "906bc07ad6a8e4912a7222d9d097da434148266a"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "d103ab8cdd3e523ca42ded8135cf7fdb0eeb792b",
+          "after": "f5a0d72f9b72e88008562147a7085da0607d55f7"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "42d1e30044c8aaa16627c87c197e6e1a17bedbe4",
+      "parent": "6e6a7f5b769139372f14c2dc4248526fd8164074",
+      "subject": "feat: finalize tenant correction linking and metadata handling",
+      "changedPaths": [
+        "_bmad-output/implementation-artifacts/deferred-work.md",
+        "_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md",
+        "_bmad-output/implementation-artifacts/sprint-status.yaml",
+        "references/Hexalith.Builds",
+        "references/Hexalith.EventStore",
+        "references/Hexalith.McpCli",
+        "references/Hexalith.Memories",
+        "references/Hexalith.Platform",
+        "src/Hexalith.Tenants/Queries/TenantQueryResult.cs",
+        "tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs",
+        "tests/Hexalith.Tenants.IntegrationTests/TenantsApiGeneratedControllerTests.cs",
+        "tests/Hexalith.Tenants.Server.Tests/Queries/TenantQueryFreshnessTests.cs",
+        "tests/Hexalith.Tenants.Server.Tests/Queries/TenantQueryResultTests.cs"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "58d9b546b4741a246121ab40fc3945703db2e19b",
+          "after": "d536c0d7f309a6febe293306d3751de011166c26"
+        },
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "07d1e23a6c5b06bbbb1fc8ddb5174cc3382d3d93",
+          "after": "28d3a8aae85fd37f5862cd954658d494f9976e07"
+        },
+        {
+          "path": "references/Hexalith.McpCli",
+          "before": "342e072231279831c2fca0a85cbcd9205444fbec",
+          "after": "bfb2ae376bfe0243e6283d24a6cad44315c48208"
+        },
+        {
+          "path": "references/Hexalith.Memories",
+          "before": "906bc07ad6a8e4912a7222d9d097da434148266a",
+          "after": "858a828d7cdb648d18f07a4a568e8d8a52f92113"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "f5a0d72f9b72e88008562147a7085da0607d55f7",
+          "after": "d6fa51e90f3f224c8068952e71f4d12aa9b308d2"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "4b0cfa3440d2a0b623c4e9d4d1ba4b6aba9de100",
+      "parent": "96cc6f115865f9e2307aedc3748e60e0f99edeae",
+      "subject": "fix: update status of tenant correction story to in-progress",
+      "changedPaths": [
+        "_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md",
+        "_bmad-output/implementation-artifacts/sprint-status.yaml",
+        "references/Hexalith.Builds",
+        "references/Hexalith.EventStore",
+        "references/Hexalith.McpCli",
+        "references/Hexalith.Memories",
+        "references/Hexalith.Platform"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "d536c0d7f309a6febe293306d3751de011166c26",
+          "after": "468fdbba04e2d9a27d251298875125b57fa6d836"
+        },
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "28d3a8aae85fd37f5862cd954658d494f9976e07",
+          "after": "f463442cca19e4199982a23a08bae4a490767d4a"
+        },
+        {
+          "path": "references/Hexalith.McpCli",
+          "before": "bfb2ae376bfe0243e6283d24a6cad44315c48208",
+          "after": "fbc76845cc2e7dfa21088d810fa5a1daf8f85c88"
+        },
+        {
+          "path": "references/Hexalith.Memories",
+          "before": "858a828d7cdb648d18f07a4a568e8d8a52f92113",
+          "after": "7b33e016a52907989181139298db18edef1a05d7"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "d6fa51e90f3f224c8068952e71f4d12aa9b308d2",
+          "after": "2c3f0fd4befe4e7e2aa1a3f7ce8ae1d5e1808f3c"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "cdd0c80c111109125f6bec63d7cf1fd7a3d64885",
+      "parent": "4b0cfa3440d2a0b623c4e9d4d1ba4b6aba9de100",
+      "subject": "feat: update tenant correction user ID and improve authentication flow",
+      "changedPaths": [
+        "_bmad-output/implementation-artifacts/deferred-work.md",
+        "_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md",
+        "_bmad-output/implementation-artifacts/sprint-status.yaml",
+        "docs/demo.md",
+        "docs/sample-consuming-service-walkthrough.md",
+        "references/Hexalith.Builds",
+        "references/Hexalith.EventStore",
+        "references/Hexalith.McpCli",
+        "samples/Hexalith.Tenants.Sample.Tests/Hexalith.Tenants.Sample.Tests.csproj",
+        "samples/Hexalith.Tenants.Sample.Tests/Registration/SampleSubscriptionHostTests.cs",
+        "samples/Hexalith.Tenants.Sample/Hexalith.Tenants.Sample.csproj",
+        "samples/Hexalith.Tenants.Sample/Program.cs",
+        "scripts/demo.ps1",
+        "scripts/demo.sh",
+        "src/Hexalith.Tenants.AppHost/KeycloakRealms/hexalith-realm.json",
+        "src/Hexalith.Tenants.AppHost/Program.cs",
+        "src/Hexalith.Tenants/Queries/TenantQueryResult.cs",
+        "tests/Hexalith.Tenants.IntegrationTests/AppHostSecurityResourceGraphTests.cs",
+        "tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs",
+        "tests/Hexalith.Tenants.IntegrationTests/TenantsApiGeneratedControllerTests.cs",
+        "tests/Hexalith.Tenants.Server.Tests/Configuration/EventPublicationConfigurationTests.cs",
+        "tests/Hexalith.Tenants.Server.Tests/Documentation/AhaMomentDemoDocumentationTests.cs",
+        "tests/Hexalith.Tenants.Server.Tests/Queries/TenantQueryFreshnessTests.cs",
+        "tests/Hexalith.Tenants.Server.Tests/Queries/TenantQueryResultTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "468fdbba04e2d9a27d251298875125b57fa6d836",
+          "after": "2cf00028bbe563d80d4d12b5fb2054914f14fcb6"
+        },
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "f463442cca19e4199982a23a08bae4a490767d4a",
+          "after": "37451b529ab21869fa4e2806968b5143ddeea14b"
+        },
+        {
+          "path": "references/Hexalith.McpCli",
+          "before": "fbc76845cc2e7dfa21088d810fa5a1daf8f85c88",
+          "after": "f83bac4939a24402e4386cd56c70cd3f2dfd22ac"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "ef4b7f2f99b2a60910b94481a198f591c51bfe5c",
+      "parent": "9e9e04308ea1060010a64bb8b800e755c4aaf99d",
+      "subject": "chore: update repository structure and clean up unused code",
+      "changedPaths": [
+        "_bmad-output/implementation-artifacts/deferred-work.md",
+        "_bmad-output/implementation-artifacts/dependency-refresh-eventstore-3.120.0-evidence-2026-10-10.json",
+        "_bmad-output/implementation-artifacts/dependency-refresh-eventstore-3.120.0-raw-logs-2026-10-10.zip",
+        "_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md",
+        "_bmad-output/implementation-artifacts/spec-eventstore-3-117-1.md",
+        "_bmad-output/implementation-artifacts/sprint-status.yaml",
+        "_bmad-output/project-context.md"
+      ],
+      "gitlinks": [],
+      "storyArtifacts": [
+        "_bmad-output/implementation-artifacts/dependency-refresh-eventstore-3.120.0-evidence-2026-10-10.json",
+        "_bmad-output/implementation-artifacts/dependency-refresh-eventstore-3.120.0-raw-logs-2026-10-10.zip",
+        "_bmad-output/implementation-artifacts/spec-eventstore-3-117-1.md"
+      ],
+      "attribution": "story documentation/evidence only"
+    },
+    {
+      "commit": "b3878f1488d2a4a097bac2e5c233fa07da6eb2cf",
+      "parent": "ef4b7f2f99b2a60910b94481a198f591c51bfe5c",
+      "subject": "fix: update submodule reference to indicate dirty state",
+      "changedPaths": [
+        "references/Hexalith.Builds",
+        "references/Hexalith.EventStore",
+        "references/Hexalith.McpCli",
+        "references/Hexalith.Memories",
+        "references/Hexalith.Platform"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "2cf00028bbe563d80d4d12b5fb2054914f14fcb6",
+          "after": "9e6b6ca3e8b4e22e6642d4f0d70d25edbf2db08b"
+        },
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "37451b529ab21869fa4e2806968b5143ddeea14b",
+          "after": "a540560246d05d1ec51b78d3682b67f04185be79"
+        },
+        {
+          "path": "references/Hexalith.McpCli",
+          "before": "f83bac4939a24402e4386cd56c70cd3f2dfd22ac",
+          "after": "faf55bf9c299aaa8d577145813e35ca9c6cb83fd"
+        },
+        {
+          "path": "references/Hexalith.Memories",
+          "before": "7b33e016a52907989181139298db18edef1a05d7",
+          "after": "ceda28ac420e59f6555c681279f51ad130e81833"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "2c3f0fd4befe4e7e2aa1a3f7ce8ae1d5e1808f3c",
+          "after": "5649318966792064444f6f7cb8238fa6075e7302"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "66072cc410834e2c34f7d30f121e447940ea6fc6",
+      "parent": "5730ef35113af40a1e3c79b72c1272227f5e51be",
+      "subject": "fix: update README and sprint status for tenant correction completion",
+      "changedPaths": [
+        "README.md",
+        "_bmad-output/implementation-artifacts/deferred-work.md",
+        "_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md",
+        "_bmad-output/implementation-artifacts/sprint-status.yaml",
+        "references/Hexalith.EventStore",
+        "references/Hexalith.McpCli",
+        "references/Hexalith.Memories",
+        "references/Hexalith.Platform",
+        "tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "a540560246d05d1ec51b78d3682b67f04185be79",
+          "after": "423dfc55c272df33e35b231dba02e65aad31bd06"
+        },
+        {
+          "path": "references/Hexalith.McpCli",
+          "before": "faf55bf9c299aaa8d577145813e35ca9c6cb83fd",
+          "after": "b2820d21ca34ee7a873772b312ac16569bb8a8ce"
+        },
+        {
+          "path": "references/Hexalith.Memories",
+          "before": "ceda28ac420e59f6555c681279f51ad130e81833",
+          "after": "26d69d4f111d341e02c24d5c2c597cf128e40bf9"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "5649318966792064444f6f7cb8238fa6075e7302",
+          "after": "72ba792574926897758bf474021336a114c705ca"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "b9e9cc926360c802b9de94dc3dd3a8c56e4caba6",
+      "parent": "d54b6d51d38e77a720a6020608d014c39dcda0f5",
+      "subject": "feat: enhance global administrator correction functionality",
+      "changedPaths": [
+        "_bmad-output/implementation-artifacts/deferred-work.md",
+        "_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md",
+        "references/Hexalith.Builds",
+        "references/Hexalith.EventStore",
+        "references/Hexalith.FrontComposer",
+        "references/Hexalith.McpCli",
+        "references/Hexalith.Memories",
+        "references/Hexalith.Platform",
+        "src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor",
+        "src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor",
+        "src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor",
+        "src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx",
+        "src/Hexalith.Tenants.UI/Resources/TenantsResources.resx",
+        "src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorReconciliationState.cs",
+        "src/Hexalith.Tenants.UI/State/TenantAudit/GlobalAdministratorCorrectionProofRegistry.cs",
+        "src/Hexalith.Tenants.UI/State/TenantAudit/GlobalAdministratorCorrectionSnapshot.cs",
+        "src/Hexalith.Tenants.UI/State/TenantCommands/TenantAggregateCommandAdmissionGate.cs",
+        "tests/Hexalith.Tenants.Server.Tests/Projections/TenantAuditReadModelTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorCorrectionPanelTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Services/Gateways/GlobalAdministratorAuditProofLookupTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/State/TenantAggregateCommandAdmissionGateTests.cs"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "9e6b6ca3e8b4e22e6642d4f0d70d25edbf2db08b",
+          "after": "1bde4d92bb9a9ce48b19a6ca17236075ea28a78b"
+        },
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "423dfc55c272df33e35b231dba02e65aad31bd06",
+          "after": "2841e0c8dcd7e9d1ffd5672256d78fd00f6aabb3"
+        },
+        {
+          "path": "references/Hexalith.FrontComposer",
+          "before": "0e114214007c22f5cdbac21a6853cff4208340ee",
+          "after": "19f4839231ae6ec7cc6318842eb329c2d04caaa9"
+        },
+        {
+          "path": "references/Hexalith.McpCli",
+          "before": "b2820d21ca34ee7a873772b312ac16569bb8a8ce",
+          "after": "7e99305a621e1bdf7119b6e924348857e2b5a5a4"
+        },
+        {
+          "path": "references/Hexalith.Memories",
+          "before": "26d69d4f111d341e02c24d5c2c597cf128e40bf9",
+          "after": "499b7a838a36a4cd500ab517d86acf07b1d74ad4"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "72ba792574926897758bf474021336a114c705ca",
+          "after": "6f703dd0227d8fac023ad97d909c5aaa42115578"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "85a5a6cc18ef6a0f2da69e4fd2c2a1a408f32359",
+      "parent": "711e100858e59cf8de2b626ea21790d59f969023",
+      "subject": "feat: enhance global administrator correction panel and audit page functionality",
+      "changedPaths": [
+        "_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md",
+        "references/Hexalith.EventStore",
+        "references/Hexalith.Platform",
+        "src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor",
+        "src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor",
+        "src/Hexalith.Tenants.UI/State/TenantCommands/TenantAggregateCommandAdmissionGate.cs",
+        "tests/Hexalith.Tenants.Server.Tests/Projections/TenantsProjectionActorTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorCorrectionPanelTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/State/TenantAggregateCommandAdmissionGateTests.cs"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "2841e0c8dcd7e9d1ffd5672256d78fd00f6aabb3",
+          "after": "b57310fb44ef2231815f3c3cfea09714d942334d"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "6f703dd0227d8fac023ad97d909c5aaa42115578",
+          "after": "053ee05abff2d60d06c62734fd9d9e0e8953df43"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "6869ec4acf43b4ea9c59c2823699ad99e6e6527f",
+      "parent": "2315aad97595c5dd3d0f222685d9e72e0f2fb10b",
+      "subject": "fix(audit): update status of global administrator authority correction spec to in-progress and document review findings",
+      "changedPaths": [
+        "_bmad-output/implementation-artifacts/deferred-work.md",
+        "_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md",
+        "_bmad-output/implementation-artifacts/sprint-status.yaml",
+        "references/Hexalith.Builds",
+        "references/Hexalith.EventStore",
+        "references/Hexalith.FrontComposer",
+        "references/Hexalith.Memories",
+        "references/Hexalith.Platform"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "1bde4d92bb9a9ce48b19a6ca17236075ea28a78b",
+          "after": "608c164c3637240fed2dd92dbfdaaf581ba9846d"
+        },
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "b57310fb44ef2231815f3c3cfea09714d942334d",
+          "after": "1b7b8ce287d510487946b7db3babd3323b4c52b3"
+        },
+        {
+          "path": "references/Hexalith.FrontComposer",
+          "before": "19f4839231ae6ec7cc6318842eb329c2d04caaa9",
+          "after": "c7491c7c3baa1fc7d8c4c780bc4ede2f6e5a8425"
+        },
+        {
+          "path": "references/Hexalith.Memories",
+          "before": "499b7a838a36a4cd500ab517d86acf07b1d74ad4",
+          "after": "b16ab01bbb0f4575ea02e996d1f8bbf34cea5e40"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "053ee05abff2d60d06c62734fd9d9e0e8953df43",
+          "after": "3217e6329ec015532061f262c55de1f3956fdd46"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "3440ff017d97773ffc008969e98d80ebb1a22d4e",
+      "parent": "6869ec4acf43b4ea9c59c2823699ad99e6e6527f",
+      "subject": "fix(submodule): update Hexalith.FrontComposer and Hexalith.Memories submodule pointers",
+      "changedPaths": [
+        "references/Hexalith.FrontComposer",
+        "references/Hexalith.Memories"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.FrontComposer",
+          "before": "c7491c7c3baa1fc7d8c4c780bc4ede2f6e5a8425",
+          "after": "29c95846317902dac5da7c40eb890eca7e21bfae"
+        },
+        {
+          "path": "references/Hexalith.Memories",
+          "before": "b16ab01bbb0f4575ea02e996d1f8bbf34cea5e40",
+          "after": "b1d8014fa0dbacaf71528ddda74ff83cf19ca3ca"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "b71a53ea27b20a0df9fa105c256d3241ce2794aa",
+      "parent": "9345d9d0fc8666205816ec960b9f9328e7602f93",
+      "subject": "fix(submodule): update submodule pointers for EventStore, FrontComposer, and Platform",
+      "changedPaths": [
+        "_bmad-output/implementation-artifacts/deferred-work.md",
+        "_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md",
+        "references/Hexalith.EventStore",
+        "references/Hexalith.FrontComposer",
+        "references/Hexalith.Platform"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "1b7b8ce287d510487946b7db3babd3323b4c52b3",
+          "after": "cf43d21aa48b14af869326b75abfa2d2bebc4325"
+        },
+        {
+          "path": "references/Hexalith.FrontComposer",
+          "before": "29c95846317902dac5da7c40eb890eca7e21bfae",
+          "after": "167309a9bdbf6a32a153d094c544bbfc3054b4e5"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "3217e6329ec015532061f262c55de1f3956fdd46",
+          "after": "e229df9a58ee6899f2b24ba51f652435bc36dc62"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "41bc53bbea3db06fc0041ea7fcd90b497043d34f",
+      "parent": "6a81aee138518cd2509a5ecf3cd52feb95e5c3c4",
+      "subject": "fix(audit): update global administrator authority status to done and adjust related references",
+      "changedPaths": [
+        "_bmad-output/implementation-artifacts/deferred-work.md",
+        "_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md",
+        "_bmad-output/implementation-artifacts/sprint-status.yaml",
+        "references/Hexalith.EventStore",
+        "references/Hexalith.FrontComposer",
+        "references/Hexalith.Memories",
+        "references/Hexalith.Platform",
+        "src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor",
+        "tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/GeneratedTenantsSurfaceTests.cs"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "cf43d21aa48b14af869326b75abfa2d2bebc4325",
+          "after": "3d0b738d23e51ff765004e3f76ee7863e83b5ee6"
+        },
+        {
+          "path": "references/Hexalith.FrontComposer",
+          "before": "167309a9bdbf6a32a153d094c544bbfc3054b4e5",
+          "after": "7ec0ec51a05d59d5fb89b17fb057d3db05540c29"
+        },
+        {
+          "path": "references/Hexalith.Memories",
+          "before": "b1d8014fa0dbacaf71528ddda74ff83cf19ca3ca",
+          "after": "f4c7d68f619f376debca440387428139a61080cc"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "e229df9a58ee6899f2b24ba51f652435bc36dc62",
+          "after": "977f2e01347226ac727b707aee4f140f5dc8b010"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "68682ee0515161bce0f206f98e671336369048d1",
+      "parent": "41bc53bbea3db06fc0041ea7fcd90b497043d34f",
+      "subject": "fix(sprint-status): update last_updated timestamp and change epic-5 status to done",
+      "changedPaths": [
+        "_bmad-output/implementation-artifacts/sprint-status.yaml",
+        "references/Hexalith.FrontComposer"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.FrontComposer",
+          "before": "7ec0ec51a05d59d5fb89b17fb057d3db05540c29",
+          "after": "985d3e70ac8e9d5492fa857bc3a31208a9543670"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "2638d7f8e5347f5cba6aba123bc95f5b13c6f2a1",
+      "parent": "7a2a126f09274e9324d72fe20d1c086a4a6b7276",
+      "subject": "chore: consolidate multiple empty code change entries",
+      "changedPaths": [
+        ".claude/settings.json",
+        ".codex/hooks.json",
+        "_bmad-output/implementation-artifacts/deferred-work-archive.md",
+        "_bmad-output/implementation-artifacts/deferred-work.md",
+        "_bmad-output/implementation-artifacts/release-readiness.md",
+        "docs/maintenance-backlog.md",
+        "references/Hexalith.EventStore",
+        "references/Hexalith.FrontComposer",
+        "references/Hexalith.Memories"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "3d0b738d23e51ff765004e3f76ee7863e83b5ee6",
+          "after": "51401a0ff862e49b7fc91097a468fc10ef891eab"
+        },
+        {
+          "path": "references/Hexalith.FrontComposer",
+          "before": "985d3e70ac8e9d5492fa857bc3a31208a9543670",
+          "after": "99d31edac062e251cb3a90fe2de5f9a92a24a3ab"
+        },
+        {
+          "path": "references/Hexalith.Memories",
+          "before": "f4c7d68f619f376debca440387428139a61080cc",
+          "after": "f68fb6d60d8b4d0510d5f6584c71fff0455ea508"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "bd81ec6e63acdc2301eb82562eed184813f3c808",
+      "parent": "2638d7f8e5347f5cba6aba123bc95f5b13c6f2a1",
+      "subject": "feat: enhance tenant bootstrap process with authority validation and diagnostics",
+      "changedPaths": [
+        "_bmad-output/implementation-artifacts/deferred-work.md",
+        "_bmad-output/implementation-artifacts/release-readiness.md",
+        "docs/maintenance-backlog.md",
+        "references/Hexalith.EventStore",
+        "src/Hexalith.Tenants.Server/Aggregates/GlobalAdministratorsAggregate.cs",
+        "src/Hexalith.Tenants.Server/Aggregates/GlobalAdministratorsState.cs",
+        "src/Hexalith.Tenants.Testing/Fakes/InMemoryTenantService.cs",
+        "src/Hexalith.Tenants/Bootstrap/TenantBootstrapCredentialProvider.cs",
+        "src/Hexalith.Tenants/Bootstrap/TenantBootstrapHostedService.cs",
+        "tests/Hexalith.Tenants.IntegrationTests/CommandApiRuntimeIntegrationTests.cs",
+        "tests/Hexalith.Tenants.IntegrationTests/DaprEndToEndTests.cs",
+        "tests/Hexalith.Tenants.Server.Tests/Aggregates/GlobalAdministratorsAggregateTests.cs",
+        "tests/Hexalith.Tenants.Server.Tests/Bootstrap/TenantBootstrapHostedServiceTests.cs",
+        "tests/Hexalith.Tenants.Server.Tests/CommandPipeline/CommandPipelineIntegrationTests.cs",
+        "tests/Hexalith.Tenants.Testing.Tests/Conformance/TenantConformanceTests.cs",
+        "tests/Hexalith.Tenants.Testing.Tests/Fakes/Story62ProductionAggregateParityTests.cs"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "51401a0ff862e49b7fc91097a468fc10ef891eab",
+          "after": "13b3e92a205c8327ea4cf6fe8a42ce454d051767"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "b4b65dce017bcb3ea0a676f14b3156d908c1e9c0",
+      "parent": "bd81ec6e63acdc2301eb82562eed184813f3c808",
+      "subject": "fix: update submodule reference for Hexalith.Memories",
+      "changedPaths": [
+        "references/Hexalith.Memories"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Memories",
+          "before": "f68fb6d60d8b4d0510d5f6584c71fff0455ea508",
+          "after": "0281b30fb2618668efa9b8904afc75e18820eed8"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "facc0a41e495c8a66b7797f49d61d2db7d8d6b49",
+      "parent": "092dae86a273eb4de4136a92805a82766ae3f282",
+      "subject": "fix: update submodule references for Hexalith.EventStore and Hexalith.Memories",
+      "changedPaths": [
+        "references/Hexalith.EventStore",
+        "references/Hexalith.Memories"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "13b3e92a205c8327ea4cf6fe8a42ce454d051767",
+          "after": "1738fff4e301b8b8ddbaace98dc96eaca4d70fa7"
+        },
+        {
+          "path": "references/Hexalith.Memories",
+          "before": "0281b30fb2618668efa9b8904afc75e18820eed8",
+          "after": "47187a8acdda52b56b110adee4067173872161ee"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "2156db8c59e71bbaf6edfc6a6bebc7026c191631",
+      "parent": "facc0a41e495c8a66b7797f49d61d2db7d8d6b49",
+      "subject": "feat(tests): enhance tenant command tests with authoritative proof and fixture updates",
+      "changedPaths": [
+        "_bmad-output/implementation-artifacts/deferred-work.md",
+        "_bmad-output/implementation-artifacts/release-readiness.md",
+        "docs/maintenance-backlog.md",
+        "references/Hexalith.Builds",
+        "references/Hexalith.EventStore",
+        "references/Hexalith.FrontComposer",
+        "src/Hexalith.Tenants.Server/Projections/TenantAuditReadModel.cs",
+        "src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor",
+        "src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor",
+        "src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor",
+        "src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor",
+        "src/Hexalith.Tenants.UI/Components/Tenants/Members/ChangeTenantMemberRoleFlow.razor",
+        "src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor",
+        "src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor",
+        "src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor",
+        "src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs",
+        "src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs",
+        "src/Hexalith.Tenants.UI/State/TenantCommands/TenantMembershipCommandProvenance.cs",
+        "tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs",
+        "tests/Hexalith.Tenants.IntegrationTests/TenantsApiGeneratedControllerTests.cs",
+        "tests/Hexalith.Tenants.Server.Tests/Projections/TenantAuditProjectionTests.cs",
+        "tests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionHandlerTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/AddTenantMemberFlowTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/ChangeTenantMemberRoleFlowTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/CreateTenantFlowTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/EditTenantMetadataFlowTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/RemoveTenantMemberFlowTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/State/TenantAddMemberCommandSnapshotTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/State/TenantChangeRoleCommandSnapshotTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/State/TenantCommandAuditStatesTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/State/TenantCommandAuthoritativeProofTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/State/TenantCreateCommandSnapshotTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipCommandProvenanceTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/State/TenantRemoveMemberCommandSnapshotTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/State/TenantUpdateMetadataCommandSnapshotTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/TenantCommandProofFixtures.cs",
+        "tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.cs"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "608c164c3637240fed2dd92dbfdaaf581ba9846d",
+          "after": "b2f59c59d16fc2234af6a0f850297958c6143e0d"
+        },
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "1738fff4e301b8b8ddbaace98dc96eaca4d70fa7",
+          "after": "e88553d3656497091db25d7f48134517b2652a98"
+        },
+        {
+          "path": "references/Hexalith.FrontComposer",
+          "before": "99d31edac062e251cb3a90fe2de5f9a92a24a3ab",
+          "after": "56eaaf3061ff11b92bade84dd2173c1f0d2ecf2b"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "dc57e0bdeca062050bfa0933cfb88b8641fe0342",
+      "parent": "2156db8c59e71bbaf6edfc6a6bebc7026c191631",
+      "subject": "test: add unit tests for TenantRetainedCommandAttempt functionality",
+      "changedPaths": [
+        "_bmad-output/implementation-artifacts/deferred-work-archive.md",
+        "_bmad-output/implementation-artifacts/deferred-work.md",
+        "_bmad-output/implementation-artifacts/release-readiness.md",
+        "docs/maintenance-backlog.md",
+        "references/Hexalith.FrontComposer",
+        "references/Hexalith.Memories",
+        "references/Hexalith.Platform",
+        "src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor",
+        "src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor",
+        "src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor",
+        "src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor",
+        "src/Hexalith.Tenants.UI/Components/Tenants/Members/ChangeTenantMemberRoleFlow.razor",
+        "src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor",
+        "src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor",
+        "src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor",
+        "src/Hexalith.Tenants.UI/Extensions/TenantsUiServiceCollectionExtensions.cs",
+        "src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs",
+        "src/Hexalith.Tenants.UI/State/TenantCommands/TenantCommandAttemptTracker.cs",
+        "src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateAttemptTracker.cs",
+        "src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs",
+        "src/Hexalith.Tenants.UI/State/TenantCommands/TenantRetainedCommandAttempt.cs",
+        "tests/Hexalith.Tenants.IntegrationTests/DaprEndToEndTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/AddTenantMemberFlowTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/ChangeTenantMemberRoleFlowTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/CreateTenantFlowTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/EditTenantMetadataFlowTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/FluentBunitContext.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/RemoveTenantMemberFlowTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/TenantRetainedCommandFlowTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/State/TenantRetainedCommandAttemptTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/TenantsUiCompositionTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.cs"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.FrontComposer",
+          "before": "56eaaf3061ff11b92bade84dd2173c1f0d2ecf2b",
+          "after": "b3aafdc5b89f2ccc637c8e0845687b2e3b692a9d"
+        },
+        {
+          "path": "references/Hexalith.Memories",
+          "before": "47187a8acdda52b56b110adee4067173872161ee",
+          "after": "24b1fa7408eabc1db24b7536fd35f575c7a572a7"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "977f2e01347226ac727b707aee4f140f5dc8b010",
+          "after": "be294641fe06490b7f1d9788f383512088842e7d"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "ed7cef6e327156628c0479071f3bf419fd64612c",
+      "parent": "dc57e0bdeca062050bfa0933cfb88b8641fe0342",
+      "subject": "fix: update submodule reference for Hexalith.FrontComposer",
+      "changedPaths": [
+        "references/Hexalith.FrontComposer"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.FrontComposer",
+          "before": "b3aafdc5b89f2ccc637c8e0845687b2e3b692a9d",
+          "after": "c3174dc917b094f3736b098ac78a531f197dbe56"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "b4329b7ccea960c4eb1ddfed4eb984f75169ae8b",
+      "parent": "ed7cef6e327156628c0479071f3bf419fd64612c",
+      "subject": "feat: enhance tenant command snapshots to retain fresh safe message keys",
+      "changedPaths": [
+        "references/Hexalith.Builds",
+        "references/Hexalith.EventStore",
+        "src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditDataGrid.razor",
+        "src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditEvidenceReceipt.razor",
+        "src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor",
+        "src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor",
+        "src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx",
+        "src/Hexalith.Tenants.UI/Resources/TenantsResources.resx",
+        "src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs",
+        "src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditNarrative.cs",
+        "src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditReceipt.cs",
+        "src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditSupportSafety.cs",
+        "src/Hexalith.Tenants.UI/State/TenantAudit/TenantCorrectionPreviewSnapshot.cs",
+        "src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/CultureBoundTenantsLocalizer.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/SupportSafetyBoundaryTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/SupportSafetyCommandStatusHandler.cs",
+        "tests/Hexalith.Tenants.UI.Tests/State/TenantAuditSupportSafetyTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/State/TenantCommandSafeMessageTests.cs"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "b2f59c59d16fc2234af6a0f850297958c6143e0d",
+          "after": "8f014f180a0ba99615cbd8942118bc66d2de2b7b"
+        },
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "e88553d3656497091db25d7f48134517b2652a98",
+          "after": "2a7b80a4ec639bdba7ff8acc74cacb4f8880b24c"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "8216f9927700e39d67b2235ed83a4dbcef03d35a",
+      "parent": "b4329b7ccea960c4eb1ddfed4eb984f75169ae8b",
+      "subject": "fix: update submodule reference for Hexalith.Builds",
+      "changedPaths": [
+        "references/Hexalith.Builds"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "8f014f180a0ba99615cbd8942118bc66d2de2b7b",
+          "after": "d357d68d11c3b8c65e49ce95a0c21c9a11ca844e"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "57b881beebfbcdf0fe6d7bc4c23a0fc70903136d",
+      "parent": "b185ae80de474bedc6c60af38bacc5550d4e8cd7",
+      "subject": "fix: close DW-315 and DW-441 by enhancing support-safe failure and audit identifier handling",
+      "changedPaths": [
+        "_bmad-output/implementation-artifacts/deferred-work.md",
+        "_bmad-output/implementation-artifacts/release-readiness.md",
+        "_bmad-output/implementation-artifacts/spec-b5-support-safe-failure-and-audit-identifiers.md",
+        "docs/maintenance-backlog.md",
+        "references/Hexalith.Builds",
+        "references/Hexalith.EventStore",
+        "references/Hexalith.Memories",
+        "references/Hexalith.Platform",
+        "tests/Hexalith.Tenants.UI.Tests/Components/CultureBoundTenantsLocalizer.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/SupportSafetyBoundaryTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/State/TenantAuditSupportSafetyTests.cs"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "d357d68d11c3b8c65e49ce95a0c21c9a11ca844e",
+          "after": "01dfb167754ca408c4e00645bb4d1a5b03f16e7e"
+        },
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "2a7b80a4ec639bdba7ff8acc74cacb4f8880b24c",
+          "after": "93982b4e1fe312169c57e2735c90be24b49460fb"
+        },
+        {
+          "path": "references/Hexalith.Memories",
+          "before": "24b1fa7408eabc1db24b7536fd35f575c7a572a7",
+          "after": "7034b839791fd8dbe0c6aff50b907fbecd90701a"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "be294641fe06490b7f1d9788f383512088842e7d",
+          "after": "8c1fcbc115b21b26528fb00e47edc5105fdafc6b"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "a8c18a6e435280eb56b866cc4693683716e81ee4",
+      "parent": "57b881beebfbcdf0fe6d7bc4c23a0fc70903136d",
+      "subject": "feat(audit): implement tenant audit query payload and system audit reader",
+      "changedPaths": [
+        ".github/workflows/ci.yml",
+        "_bmad-output/implementation-artifacts/spec-b6-audit-stream-separation.md",
+        "docs/audit-stream-rollout.md",
+        "docs/event-contract-reference.md",
+        "references/Hexalith.Builds",
+        "references/Hexalith.Memories",
+        "scripts/validate-coverage.py",
+        "src/Hexalith.Tenants.Contracts/Queries/GetTenantAuditQuery.cs",
+        "src/Hexalith.Tenants.Server/Projections/TenantAuditOwnership.cs",
+        "src/Hexalith.Tenants.Server/Projections/TenantAuditReadModel.cs",
+        "src/Hexalith.Tenants.Server/Projections/TenantAuditStreams.cs",
+        "src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor",
+        "src/Hexalith.Tenants.UI/Services/Gateways/GlobalAdministratorAuditProofLookup.cs",
+        "src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs",
+        "src/Hexalith.Tenants.UI/Services/Gateways/TenantsRestQueryClient.cs",
+        "src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditRequest.cs",
+        "src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditSnapshot.cs",
+        "src/Hexalith.Tenants/Projections/GlobalAdministratorProjectionHandler.cs",
+        "src/Hexalith.Tenants/Projections/TenantProjectionHandler.cs",
+        "src/Hexalith.Tenants/Queries/Handlers/GetTenantAuditQueryHandler.cs",
+        "src/Hexalith.Tenants/Queries/Handlers/TenantAuditQueryPayload.cs",
+        "src/Hexalith.Tenants/Queries/Handlers/TenantQueryHandlerBase.cs",
+        "src/Hexalith.Tenants/Queries/TenantQueryCursorScopes.cs",
+        "src/Hexalith.Tenants/Queries/TenantSystemAuditReader.cs",
+        "tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs",
+        "tests/Hexalith.Tenants.IntegrationTests/AuditStreamPersistenceTests.cs",
+        "tests/Hexalith.Tenants.IntegrationTests/TenantsApiGeneratedControllerTests.cs",
+        "tests/Hexalith.Tenants.Server.Tests/Projections/GlobalAdministratorProjectionHandlerTests.cs",
+        "tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionDispatcherTests.cs",
+        "tests/Hexalith.Tenants.Server.Tests/Projections/TenantAuditOwnershipTests.cs",
+        "tests/Hexalith.Tenants.Server.Tests/Telemetry/ProjectionDispatcherTelemetryTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorCorrectionPanelTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Services/Gateways/AuditStreamIsolationTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantsRestQueryClientTests.cs"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "01dfb167754ca408c4e00645bb4d1a5b03f16e7e",
+          "after": "e3be1d4e997f5f81c7d67c87d5857f8be3a8c69e"
+        },
+        {
+          "path": "references/Hexalith.Memories",
+          "before": "7034b839791fd8dbe0c6aff50b907fbecd90701a",
+          "after": "42b4dc4d58731d4e9ee777285ba1f65f26e4a0c0"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "a5de755d204f5adeda60f883834fe8bf0075f261",
+      "parent": "a8c18a6e435280eb56b866cc4693683716e81ee4",
+      "subject": "feat(tests): add integration and telemetry tests for tenant audit and error handling",
+      "changedPaths": [
+        "_bmad-output/implementation-artifacts/b6-validation-evidence.md",
+        "_bmad-output/implementation-artifacts/deferred-work.md",
+        "_bmad-output/implementation-artifacts/release-readiness.md",
+        "_bmad-output/implementation-artifacts/spec-b6-audit-stream-separation.md",
+        "docs/audit-stream-rollout.md",
+        "docs/maintenance-backlog.md",
+        "references/Hexalith.Builds",
+        "references/Hexalith.EventStore",
+        "references/Hexalith.Platform",
+        "src/Hexalith.Tenants.Server/Projections/TenantAuditOwnership.cs",
+        "src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs",
+        "src/Hexalith.Tenants/Projections/GlobalAdministratorProjectionHandler.cs",
+        "src/Hexalith.Tenants/Projections/ProjectionDispatcher.cs",
+        "src/Hexalith.Tenants/Queries/Handlers/GetTenantAuditQueryHandler.cs",
+        "src/Hexalith.Tenants/Queries/Handlers/TenantAuditQueryPayload.cs",
+        "src/Hexalith.Tenants/Queries/TenantSystemAuditReader.cs",
+        "tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs",
+        "tests/Hexalith.Tenants.IntegrationTests/AuditStreamPersistenceTests.cs",
+        "tests/Hexalith.Tenants.IntegrationTests/TenantsApiGeneratedControllerTests.cs",
+        "tests/Hexalith.Tenants.Server.Tests/Telemetry/ProjectionDispatcherTelemetryTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "e3be1d4e997f5f81c7d67c87d5857f8be3a8c69e",
+          "after": "9b44fedd0017d42ee1b3e887730ab667046bda4d"
+        },
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "93982b4e1fe312169c57e2735c90be24b49460fb",
+          "after": "21b34c01ec919769cfba9cfe0d47e50886b57ded"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "8c1fcbc115b21b26528fb00e47edc5105fdafc6b",
+          "after": "416878a74975b1023b3a00ab5d35aad4ce6365d9"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "91faf19d8a3e9f254596363330a9130a970f4875",
+      "parent": "7ad54431996f9f1f0d277005eb2a73b67b55fea6",
+      "subject": "feat: add B7 validation evidence, entry state, and live admission spec",
+      "changedPaths": [
+        "_bmad-output/implementation-artifacts/b7-command-results.json",
+        "_bmad-output/implementation-artifacts/b7-entry-state.json",
+        "_bmad-output/implementation-artifacts/b7-validation-evidence.md",
+        "_bmad-output/implementation-artifacts/deferred-work.md",
+        "_bmad-output/implementation-artifacts/release-readiness.md",
+        "_bmad-output/implementation-artifacts/spec-b7-live-admission.md",
+        "docs/maintenance-backlog.md",
+        "references/Hexalith.EventStore",
+        "references/Hexalith.Platform",
+        "src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor",
+        "src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor",
+        "src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor",
+        "src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor",
+        "src/Hexalith.Tenants.UI/Components/Tenants/Members/ChangeTenantMemberRoleFlow.razor",
+        "src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor",
+        "src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor",
+        "src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor.css",
+        "src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor",
+        "src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx",
+        "src/Hexalith.Tenants.UI/Resources/TenantsResources.resx",
+        "src/Hexalith.Tenants.UI/Services/Gateways/ITenantsBffComposition.cs",
+        "src/Hexalith.Tenants.UI/Services/Gateways/TenantsBffComposition.cs",
+        "src/Hexalith.Tenants.UI/State/TenantDetail/TenantMutationAuthorizationReflection.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Browser/tenant-live-admission-browser-validation.html",
+        "tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh",
+        "tests/Hexalith.Tenants.UI.Tests/Components/AddTenantMemberFlowTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/ChangeTenantMemberRoleFlowTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/CreateTenantFlowTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/EditTenantMetadataFlowTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/RemoveTenantMemberFlowTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/SupportSafetyBoundaryTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/TenantRetainedCommandFlowTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantsBffCompositionTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.cs"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "21b34c01ec919769cfba9cfe0d47e50886b57ded",
+          "after": "173ad7f4e56a72f44621c7d3d7be86a5ec19dc03"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "416878a74975b1023b3a00ab5d35aad4ce6365d9",
+          "after": "92a02924894f6f2f219801a90e5bf25716abd028"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "b58da5f0846c0c78ccfc71c82052056fca0f44f5",
+      "parent": "91faf19d8a3e9f254596363330a9130a970f4875",
+      "subject": "fix: update submodule reference for Hexalith.Memories",
+      "changedPaths": [
+        "references/Hexalith.Memories"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Memories",
+          "before": "42b4dc4d58731d4e9ee777285ba1f65f26e4a0c0",
+          "after": "ed70998ddb0a26407b08724e347e490f10b67305"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "d6c82d667d3448f2111c15c0c0e8a2bcba95e399",
+      "parent": "b58da5f0846c0c78ccfc71c82052056fca0f44f5",
+      "subject": "feat(eventstore): add command recovery integrity specification and entry state tracking",
+      "changedPaths": [
+        "_bmad-output/implementation-artifacts/b8-command-results.json",
+        "_bmad-output/implementation-artifacts/b8-entry-state.json",
+        "_bmad-output/implementation-artifacts/spec-b8-eventstore-command-recovery.md",
+        "references/Hexalith.Builds",
+        "references/Hexalith.FrontComposer",
+        "references/Hexalith.Memories",
+        "references/Hexalith.Platform"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "9b44fedd0017d42ee1b3e887730ab667046bda4d",
+          "after": "9f0121c77e3f085c58f5c926057606db8e6511a7"
+        },
+        {
+          "path": "references/Hexalith.FrontComposer",
+          "before": "c3174dc917b094f3736b098ac78a531f197dbe56",
+          "after": "0e151a139d178c1f5d90df50ee3d066ce4d4f35a"
+        },
+        {
+          "path": "references/Hexalith.Memories",
+          "before": "ed70998ddb0a26407b08724e347e490f10b67305",
+          "after": "e864054d518021ba4a7870f42c07e9101178dd2f"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "92a02924894f6f2f219801a90e5bf25716abd028",
+          "after": "40ea496c76cf7355d48b42c4a6b0f3789a0e4945"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "5792099d432df44eb84aecee4b7b629b53f60957",
+      "parent": "d6c82d667d3448f2111c15c0c0e8a2bcba95e399",
+      "subject": "fix: update Hexalith.EventStore submodule to dirty state",
+      "changedPaths": [
+        "references/Hexalith.EventStore"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "173ad7f4e56a72f44621c7d3d7be86a5ec19dc03",
+          "after": "34c97acf9812c30ff610398baf3e00c9c9ed6c19"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "23aeb38f9784cd67b3c2fa66fe1c007799df6826",
+      "parent": "5792099d432df44eb84aecee4b7b629b53f60957",
+      "subject": "feat(recovery): close DW-499/DW-502 with bounded local evidence; update release readiness assessment",
+      "changedPaths": [
+        "_bmad-output/implementation-artifacts/b8-command-results.json",
+        "_bmad-output/implementation-artifacts/b8-entry-state.json",
+        "_bmad-output/implementation-artifacts/b8-validation-evidence.md",
+        "_bmad-output/implementation-artifacts/deferred-work.md",
+        "_bmad-output/implementation-artifacts/release-readiness.md",
+        "_bmad-output/implementation-artifacts/spec-b8-eventstore-command-recovery.md",
+        "docs/maintenance-backlog.md",
+        "references/Hexalith.EventStore",
+        "references/Hexalith.Platform"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "34c97acf9812c30ff610398baf3e00c9c9ed6c19",
+          "after": "24d719292b06d8a9d09771d837f8dd4d8d9b8997"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "40ea496c76cf7355d48b42c4a6b0f3789a0e4945",
+          "after": "8580eb64ac8a9ac3c025dd6c7f64aa6f39ce5cbb"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "6cb020e5c4a50169df2abf973d824faec9ee2e52",
+      "parent": "51f404513f2657e98f949f58f0df43b99b68a7d0",
+      "subject": "fix: deferrred work",
+      "changedPaths": [
+        "_bmad-output/implementation-artifacts/deferred-work.md",
+        "_bmad-output/implementation-artifacts/dw-105-108-command-results.json",
+        "_bmad-output/implementation-artifacts/dw-105-108-entry-state.json",
+        "_bmad-output/implementation-artifacts/dw-105-108-full-ui-summary.json",
+        "_bmad-output/implementation-artifacts/dw-105-108-ledger-validation.json",
+        "_bmad-output/implementation-artifacts/dw-105-108-preservation.json",
+        "_bmad-output/implementation-artifacts/dw-105-108-validation-evidence.md",
+        "_bmad-output/implementation-artifacts/dw-112-command-results.json",
+        "_bmad-output/implementation-artifacts/dw-112-entry-state.json",
+        "_bmad-output/implementation-artifacts/dw-112-ledger-validation.json",
+        "_bmad-output/implementation-artifacts/dw-112-preservation.json",
+        "_bmad-output/implementation-artifacts/dw-112-ui-summary.json",
+        "_bmad-output/implementation-artifacts/dw-112-validation-evidence.md",
+        "_bmad-output/implementation-artifacts/dw-150-command-results.json",
+        "_bmad-output/implementation-artifacts/dw-150-entry-state.json",
+        "_bmad-output/implementation-artifacts/dw-150-ledger-validation.json",
+        "_bmad-output/implementation-artifacts/dw-150-preservation.json",
+        "_bmad-output/implementation-artifacts/dw-150-ui-summary.json",
+        "_bmad-output/implementation-artifacts/dw-150-validation-evidence.md",
+        "_bmad-output/implementation-artifacts/dw-164-command-results.json",
+        "_bmad-output/implementation-artifacts/dw-164-entry-state.json",
+        "_bmad-output/implementation-artifacts/dw-164-ledger-validation.json",
+        "_bmad-output/implementation-artifacts/dw-164-preservation.json",
+        "_bmad-output/implementation-artifacts/dw-164-ui-summary.json",
+        "_bmad-output/implementation-artifacts/dw-164-validation-evidence.md",
+        "_bmad-output/implementation-artifacts/dw-517-command-results.json",
+        "_bmad-output/implementation-artifacts/dw-517-configuration-preservation.json",
+        "_bmad-output/implementation-artifacts/dw-517-entry-state.json",
+        "_bmad-output/implementation-artifacts/dw-517-full-server-summary.json",
+        "_bmad-output/implementation-artifacts/dw-517-ledger-validation.json",
+        "_bmad-output/implementation-artifacts/dw-517-mutation-evidence.json",
+        "_bmad-output/implementation-artifacts/dw-517-secret-scan-comparison.json",
+        "_bmad-output/implementation-artifacts/dw-517-validation-evidence.md",
+        "_bmad-output/implementation-artifacts/release-readiness.md",
+        "_bmad-output/implementation-artifacts/spec-dw-105-108-dom-safe-tenant-identity.md",
+        "_bmad-output/implementation-artifacts/spec-dw-112-status-filter-labeling.md",
+        "_bmad-output/implementation-artifacts/spec-dw-150-combined-refresh-coordination.md",
+        "_bmad-output/implementation-artifacts/spec-dw-164-183-refresh-subscription-handoff.md",
+        "_bmad-output/implementation-artifacts/spec-dw-517-evidence-content-scanning.md",
+        "docs/maintenance-backlog.md",
+        "references/Hexalith.EventStore",
+        "src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor",
+        "src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor",
+        "src/Hexalith.Tenants.UI/Components/Tenants/TenantDataGrid.razor",
+        "src/Hexalith.Tenants.UI/Components/Tenants/TenantDataGrid.razor.css",
+        "src/Hexalith.Tenants.UI/Components/Users/MyTenantsDataGrid.razor",
+        "src/Hexalith.Tenants.UI/Components/Users/MyTenantsPanel.razor",
+        "src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditNavigationSafety.cs",
+        "src/Hexalith.Tenants.UI/State/TenantList/TenantDomIdentity.cs",
+        "src/Hexalith.Tenants.UI/State/TenantList/TenantListNavigationContext.cs",
+        "src/Hexalith.Tenants.UI/State/TenantList/TenantWorkspaceState.cs",
+        "src/Hexalith.Tenants.UI/wwwroot/js/tenantsStatusFilter.js",
+        "tests/Hexalith.Tenants.UI.Tests/Browser/tenant-identity-browser-validation.html",
+        "tests/Hexalith.Tenants.UI.Tests/Browser/validate-status-filter-label-browser.mjs",
+        "tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh",
+        "tests/Hexalith.Tenants.UI.Tests/Components/MyTenantsSurfaceTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/StatusFilterLabelRenderingTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/TenantDomIdentityRenderingTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/State/TenantDomIdentityTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.cs"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "24d719292b06d8a9d09771d837f8dd4d8d9b8997",
+          "after": "241652627a52e47c189b2b052db407cec172f813"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "43831f77bd18055d8ceb4bb203687a040d3989fe",
+      "parent": "6cb020e5c4a50169df2abf973d824faec9ee2e52",
+      "subject": "build: sync local changes via /pushall",
+      "changedPaths": [
+        "_bmad-output/implementation-artifacts/dw-166-command-results.json",
+        "_bmad-output/implementation-artifacts/dw-166-entry-state.json",
+        "_bmad-output/implementation-artifacts/spec-dw-166-173-finite-authorization-subscription-bounds.md",
+        "references/Hexalith.Commons",
+        "references/Hexalith.EventStore",
+        "references/Hexalith.FrontComposer",
+        "references/Hexalith.Memories",
+        "references/Hexalith.Platform"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Commons",
+          "before": "b247ed116c6523f8c596ec0a933eff8973d11568",
+          "after": "9e874b1a3c6e7b6ff07b6f40b81d36e4e1403798"
+        },
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "241652627a52e47c189b2b052db407cec172f813",
+          "after": "f359f65e130575ea52a3a8ea8511004d2adcc7dd"
+        },
+        {
+          "path": "references/Hexalith.FrontComposer",
+          "before": "0e151a139d178c1f5d90df50ee3d066ce4d4f35a",
+          "after": "b06f86d554363ea5b8192cbc149a75c820dab2b8"
+        },
+        {
+          "path": "references/Hexalith.Memories",
+          "before": "e864054d518021ba4a7870f42c07e9101178dd2f",
+          "after": "99431f0fed102ea6ddbae33d28b9da4fc7f215a0"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "8580eb64ac8a9ac3c025dd6c7f64aa6f39ce5cbb",
+          "after": "c3af1f2c9e7b0d1b003a1bd5978545f664e38167"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "a3f43655d68370389439c7d2c212ab7939bd164e",
+      "parent": "a9d4eb5ce2f73458e4d2a2df42cbb154c5a0f920",
+      "subject": "build: sync local changes via /pushall",
+      "changedPaths": [
+        "_bmad-output/implementation-artifacts/dw-166-command-results.json",
+        "_bmad-output/implementation-artifacts/dw-166-external-movements.json",
+        "_bmad-output/implementation-artifacts/dw-166-preservation.json",
+        "_bmad-output/implementation-artifacts/spec-dw-166-173-finite-authorization-subscription-bounds.md",
+        "docs/quickstart.md",
+        "references/Hexalith.Builds",
+        "references/Hexalith.EventStore",
+        "references/Hexalith.Platform",
+        "src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor",
+        "src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor",
+        "src/Hexalith.Tenants.UI/Services/TenantReadRefreshSubscription.cs",
+        "src/Hexalith.Tenants.UI/Services/TenantUiOperationPolicy.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.FiniteBounds.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Services/TenantReadRefreshSubscriptionTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Services/TenantUiOperationPolicyTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/TenantsUiCompositionTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.FiniteBounds.cs"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "9f0121c77e3f085c58f5c926057606db8e6511a7",
+          "after": "f9f115528e43060d5f0af7dfbd8b22addc3c9a89"
+        },
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "f359f65e130575ea52a3a8ea8511004d2adcc7dd",
+          "after": "746b843a24f18b17a7572be25b76b735fa8e4ca6"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "c3af1f2c9e7b0d1b003a1bd5978545f664e38167",
+          "after": "3a29fe039320ab13d95ff7d9801761dad72bfed9"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "8a678be7d05985ab366eae0156c4094a02d90b02",
+      "parent": "ad95fdb4490fbac0c3d9fe93d9daa6ef6646d3e1",
+      "subject": "build(deps): synchronize EventStore and FrontComposer revisions",
+      "changedPaths": [
+        "references/Hexalith.EventStore",
+        "references/Hexalith.FrontComposer"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "746b843a24f18b17a7572be25b76b735fa8e4ca6",
+          "after": "3dde45104b4be4eab8408cbaa0ce89b04a5d9052"
+        },
+        {
+          "path": "references/Hexalith.FrontComposer",
+          "before": "b06f86d554363ea5b8192cbc149a75c820dab2b8",
+          "after": "0129bd39095892283371f97836ade5768fef3809"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "e667d5391dae306e631dec23acd191863e54130c",
+      "parent": "0e1fe111a5b4cce684455948b4fd12960589ef55",
+      "subject": "build: sync local changes via /pushall",
+      "changedPaths": [
+        "_bmad-output/implementation-artifacts/deferred-work.md",
+        "_bmad-output/implementation-artifacts/dw-644-validation-evidence.md",
+        "_bmad-output/implementation-artifacts/spec-dw-644-predispatch-freshness-recovery.md",
+        "docs/maintenance-backlog.md",
+        "references/Hexalith.Builds",
+        "references/Hexalith.EventStore",
+        "references/Hexalith.FrontComposer",
+        "references/Hexalith.McpCli",
+        "references/Hexalith.Memories",
+        "references/Hexalith.Platform",
+        "src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor",
+        "tests/Hexalith.Tenants.UI.Tests/Components/RemoveTenantMemberFlowTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/TenantRetainedCommandFlowTests.cs"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "f9f115528e43060d5f0af7dfbd8b22addc3c9a89",
+          "after": "4f53d9f37c5b86cfd43fbcc8fa5dd4df19b84c77"
+        },
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "3dde45104b4be4eab8408cbaa0ce89b04a5d9052",
+          "after": "77d9af18a54d92506e310fe5a45021a395e66f60"
+        },
+        {
+          "path": "references/Hexalith.FrontComposer",
+          "before": "0129bd39095892283371f97836ade5768fef3809",
+          "after": "b102b85b148f21fb26d5742e120c344109df7084"
+        },
+        {
+          "path": "references/Hexalith.McpCli",
+          "before": "7e99305a621e1bdf7119b6e924348857e2b5a5a4",
+          "after": "b35b0975a234f1f97e2e35e9dad381d0a988f4af"
+        },
+        {
+          "path": "references/Hexalith.Memories",
+          "before": "99431f0fed102ea6ddbae33d28b9da4fc7f215a0",
+          "after": "f6b60d5a2e9b81d84fddad789c7d9bed40d3a533"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "3a29fe039320ab13d95ff7d9801761dad72bfed9",
+          "after": "b4b6d4a1efcd2f13c6d03270f8e952f27ed8148b"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "20a395af8086db9e62ec64fd9ce5f4b1e6e3a09e",
+      "parent": "664a379a95d5555bcd5e674060375412c038c9f3",
+      "subject": "build: sync local changes via /pushall",
+      "changedPaths": [
+        "references/Hexalith.Builds",
+        "references/Hexalith.EventStore",
+        "references/Hexalith.FrontComposer",
+        "references/Hexalith.McpCli",
+        "references/Hexalith.Memories",
+        "references/Hexalith.Platform"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "4f53d9f37c5b86cfd43fbcc8fa5dd4df19b84c77",
+          "after": "544fd2e907d62ccdc4b8f24168b8ab5dfcc13eb9"
+        },
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "77d9af18a54d92506e310fe5a45021a395e66f60",
+          "after": "ab8fa115c486875be3a22860a273d5d68a26c749"
+        },
+        {
+          "path": "references/Hexalith.FrontComposer",
+          "before": "b102b85b148f21fb26d5742e120c344109df7084",
+          "after": "acfc74c7e90acf7f55d0a9af7137859c77a4a09f"
+        },
+        {
+          "path": "references/Hexalith.McpCli",
+          "before": "b35b0975a234f1f97e2e35e9dad381d0a988f4af",
+          "after": "4a84c16415c39b22e0c0855b25a1c6b018de6a19"
+        },
+        {
+          "path": "references/Hexalith.Memories",
+          "before": "f6b60d5a2e9b81d84fddad789c7d9bed40d3a533",
+          "after": "ef842c9abca9b9a0f77699ba1232e97c23405693"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "b4b6d4a1efcd2f13c6d03270f8e952f27ed8148b",
+          "after": "2ac8e73c09fe631c5620723b54784d2e28e8941f"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "6d36b3446e79607579bf4bee326adf4036fa960c",
+      "parent": "784b468e455150933585fec7b84fee2a18f3713e",
+      "subject": "build: sync local changes via /pushall",
+      "changedPaths": [
+        "_bmad-output/implementation-artifacts/spec-dw-588-recovery-release-without-tag.md",
+        "references/Hexalith.Builds",
+        "references/Hexalith.EventStore",
+        "references/Hexalith.FrontComposer",
+        "references/Hexalith.McpCli",
+        "references/Hexalith.Memories",
+        "references/Hexalith.Platform",
+        "tests/Hexalith.Tenants.Contracts.Tests/PartialReleaseRecoveryTests.cs"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "544fd2e907d62ccdc4b8f24168b8ab5dfcc13eb9",
+          "after": "4629ff2d3bd66376b29a553663c241d3a7b87853"
+        },
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "ab8fa115c486875be3a22860a273d5d68a26c749",
+          "after": "39b366bca3dbe508b4cf3c5afa69db1ddadb6dd2"
+        },
+        {
+          "path": "references/Hexalith.FrontComposer",
+          "before": "acfc74c7e90acf7f55d0a9af7137859c77a4a09f",
+          "after": "1f8c7b2b4424b6232121a7cc567f7129e46577d3"
+        },
+        {
+          "path": "references/Hexalith.McpCli",
+          "before": "4a84c16415c39b22e0c0855b25a1c6b018de6a19",
+          "after": "ce9ffdbea051ea6410c4dd8db1617e79dedb8fe3"
+        },
+        {
+          "path": "references/Hexalith.Memories",
+          "before": "ef842c9abca9b9a0f77699ba1232e97c23405693",
+          "after": "64e09a1f3c15e78d500511ff2948d674158da446"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "2ac8e73c09fe631c5620723b54784d2e28e8941f",
+          "after": "2cc03cdee1261fa256546992e28b111a11f3faf8"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "d42e47648d22fea2e51b2bf059413bb427eb6961",
+      "parent": "a3989d02f80a2871cff7bf52d491aa0ba3211e18",
+      "subject": "build: sync local changes via /pushall",
+      "changedPaths": [
+        "references/Hexalith.Builds",
+        "references/Hexalith.Commons",
+        "references/Hexalith.EventStore",
+        "references/Hexalith.FrontComposer",
+        "references/Hexalith.McpCli",
+        "references/Hexalith.Memories",
+        "references/Hexalith.Platform",
+        "references/Hexalith.PolymorphicSerializations"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "4629ff2d3bd66376b29a553663c241d3a7b87853",
+          "after": "c6f56c011ce3a83cdf6100c322352daf125c6af9"
+        },
+        {
+          "path": "references/Hexalith.Commons",
+          "before": "9e874b1a3c6e7b6ff07b6f40b81d36e4e1403798",
+          "after": "5c23c818f639c5bb3175f964c5549440bd5b876d"
+        },
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "39b366bca3dbe508b4cf3c5afa69db1ddadb6dd2",
+          "after": "d55c6f7c11e9bce6f17d490a84c83f1561979d63"
+        },
+        {
+          "path": "references/Hexalith.FrontComposer",
+          "before": "1f8c7b2b4424b6232121a7cc567f7129e46577d3",
+          "after": "1513fe3ed21a554eeee7a9d807f9b9e25fdb4cd2"
+        },
+        {
+          "path": "references/Hexalith.McpCli",
+          "before": "ce9ffdbea051ea6410c4dd8db1617e79dedb8fe3",
+          "after": "c25e2140e14a76b696a76aed30c8302107714fd6"
+        },
+        {
+          "path": "references/Hexalith.Memories",
+          "before": "64e09a1f3c15e78d500511ff2948d674158da446",
+          "after": "4f6b3b1265d15d208761e6419e5c825d3f39fea3"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "2cc03cdee1261fa256546992e28b111a11f3faf8",
+          "after": "1fae05d715cbbda88221ab0e156daf3048c240f0"
+        },
+        {
+          "path": "references/Hexalith.PolymorphicSerializations",
+          "before": "98de6e013840ece9f0fa7c68ab7dcdf2bba3b375",
+          "after": "221ac4592ba908ae7661ba1fa9e2d1fcc23baee0"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "26e8fd72b3799d1c091a606136c237bbdc9c990c",
+      "parent": "d42e47648d22fea2e51b2bf059413bb427eb6961",
+      "subject": "build(deps): update Builds for Commons 2.30.3",
+      "changedPaths": [
+        "references/Hexalith.Builds"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "c6f56c011ce3a83cdf6100c322352daf125c6af9",
+          "after": "1dfc39e3a3e6ab1c8ce95138490b39d76e7feb2c"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "1532aef62d4532562a5837447463297e64358333",
+      "parent": "26e8fd72b3799d1c091a606136c237bbdc9c990c",
+      "subject": "build(deps): sync FrontComposer, McpCli and Platform",
+      "changedPaths": [
+        "references/Hexalith.FrontComposer",
+        "references/Hexalith.McpCli",
+        "references/Hexalith.Platform"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.FrontComposer",
+          "before": "1513fe3ed21a554eeee7a9d807f9b9e25fdb4cd2",
+          "after": "50f4acbc56192b2ad42b912aa6a83edf3bf2c264"
+        },
+        {
+          "path": "references/Hexalith.McpCli",
+          "before": "c25e2140e14a76b696a76aed30c8302107714fd6",
+          "after": "ef2d9e508609e6f645baa88b1b3956c02e5878a9"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "1fae05d715cbbda88221ab0e156daf3048c240f0",
+          "after": "5151bef5b68d6bd1f33d94f0a3a1b11d32dd48a6"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "8c1e1aa5fe579884477ebfe1454b95bc0a5815fc",
+      "parent": "20293a86babf337299639770efb3209aac9f192e",
+      "subject": "build: sync local changes via /pushall",
+      "changedPaths": [
+        "references/Hexalith.Builds",
+        "references/Hexalith.EventStore",
+        "references/Hexalith.FrontComposer",
+        "references/Hexalith.McpCli",
+        "references/Hexalith.Memories",
+        "references/Hexalith.Platform"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "1dfc39e3a3e6ab1c8ce95138490b39d76e7feb2c",
+          "after": "5c04dab754e269f52306b9582cacd7cf1dc1540f"
+        },
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "d55c6f7c11e9bce6f17d490a84c83f1561979d63",
+          "after": "fcf78d6cafb6c0c9f52dc350a9a09aff54ded288"
+        },
+        {
+          "path": "references/Hexalith.FrontComposer",
+          "before": "50f4acbc56192b2ad42b912aa6a83edf3bf2c264",
+          "after": "c4f5c12e32182739ce1478a6cdefe602c4daeb18"
+        },
+        {
+          "path": "references/Hexalith.McpCli",
+          "before": "ef2d9e508609e6f645baa88b1b3956c02e5878a9",
+          "after": "447085c42ec606f642240c4cae0415e7c2f97467"
+        },
+        {
+          "path": "references/Hexalith.Memories",
+          "before": "4f6b3b1265d15d208761e6419e5c825d3f39fea3",
+          "after": "3b895163424f9a4b5fb9cc579ec96fdd79f57546"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "5151bef5b68d6bd1f33d94f0a3a1b11d32dd48a6",
+          "after": "2d5178f15ea0c36157ea2c56259a8479b6b8cea5"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "fd155028bddd61f6b20a2750c797199ec9778246",
+      "parent": "ce88a70b6af777c059b5fb4335d429b9272911bd",
+      "subject": "build: sync local changes via /pushall",
+      "changedPaths": [
+        ".agents/skills/pushall/SKILL.md",
+        ".claude/skills/pushall/SKILL.md",
+        ".github/skills/pushall/SKILL.md",
+        ".github/workflows/story-guards.yml",
+        "_bmad-output/implementation-artifacts/spec-dw-429-pushall-remote-default.md",
+        "references/Hexalith.Builds",
+        "references/Hexalith.EventStore",
+        "references/Hexalith.FrontComposer",
+        "references/Hexalith.McpCli",
+        "references/Hexalith.Memories",
+        "references/Hexalith.Platform",
+        "tests/scripts/test_pushall_default_branch.py"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "5c04dab754e269f52306b9582cacd7cf1dc1540f",
+          "after": "6a38cb0f2e74977d7457fc59e6af79457ed8196a"
+        },
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "fcf78d6cafb6c0c9f52dc350a9a09aff54ded288",
+          "after": "c9f47dd5ba72918445dfd24a674a5b2c310589bd"
+        },
+        {
+          "path": "references/Hexalith.FrontComposer",
+          "before": "c4f5c12e32182739ce1478a6cdefe602c4daeb18",
+          "after": "d52526a4bd1272760543e6a65840dc2b0ed93cee"
+        },
+        {
+          "path": "references/Hexalith.McpCli",
+          "before": "447085c42ec606f642240c4cae0415e7c2f97467",
+          "after": "b616db3092a9b1c5af196538a3de37a5c7f2d7ca"
+        },
+        {
+          "path": "references/Hexalith.Memories",
+          "before": "3b895163424f9a4b5fb9cc579ec96fdd79f57546",
+          "after": "c082f8151328b1ac91939cda8733ab78ae68e1c4"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "2d5178f15ea0c36157ea2c56259a8479b6b8cea5",
+          "after": "bb81fc9e98533246cfeed43ffcce08866a2a57f6"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "9a94131a26d0c5d80d5540706e267ee123d54b68",
+      "parent": "18e73d5b43abd687199db3313467b5a60c0d2691",
+      "subject": "build: merge origin/main into main via /pushall",
+      "changedPaths": [
+        ".github/workflows/story-guards.yml",
+        "_bmad-output/implementation-artifacts/deferred-work.md",
+        "_bmad-output/implementation-artifacts/dw-113-validation-evidence.md",
+        "_bmad-output/implementation-artifacts/dw-155-validation-evidence.md",
+        "_bmad-output/implementation-artifacts/dw-437-validation-evidence.md",
+        "_bmad-output/implementation-artifacts/dw-439-validation-evidence.md",
+        "_bmad-output/implementation-artifacts/spec-dw-113-list-reason-fallback.md",
+        "_bmad-output/implementation-artifacts/spec-dw-155-rendered-member-paging.md",
+        "_bmad-output/implementation-artifacts/spec-dw-437-changed-story-ci-gate.md",
+        "_bmad-output/implementation-artifacts/spec-dw-439-french-receipt-copy.md",
+        "docs/maintenance-backlog.md",
+        "docs/story-gitlink-ci.md",
+        "references/Hexalith.Builds",
+        "references/Hexalith.EventStore",
+        "references/Hexalith.FrontComposer",
+        "references/Hexalith.McpCli",
+        "references/Hexalith.Platform",
+        "scripts/validate-changed-story-gitlinks.py",
+        "src/Hexalith.Tenants.UI/Components/Shared/ListSurfaceStates.razor",
+        "src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor",
+        "src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx",
+        "tests/Hexalith.Tenants.UI.Tests/Components/ListSurfaceStatesTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/SupportSafetyBoundaryTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs",
+        "tests/scripts/test_validate_changed_story_gitlinks.py"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "6a38cb0f2e74977d7457fc59e6af79457ed8196a",
+          "after": "5d03f1db9c38db34ecac7fe6048937478ffb82cc"
+        },
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "c9f47dd5ba72918445dfd24a674a5b2c310589bd",
+          "after": "f6b545cd02632f662136d0b4b8e6952baa7afec3"
+        },
+        {
+          "path": "references/Hexalith.FrontComposer",
+          "before": "d52526a4bd1272760543e6a65840dc2b0ed93cee",
+          "after": "a706a8ae261268f839feb743e930e5311bb2a95b"
+        },
+        {
+          "path": "references/Hexalith.McpCli",
+          "before": "b616db3092a9b1c5af196538a3de37a5c7f2d7ca",
+          "after": "040fd406d71723772fb14cb3a3bac9434003b6a4"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "bb81fc9e98533246cfeed43ffcce08866a2a57f6",
+          "after": "11893ca9fd85644cab8a0414b2076bf346f108f6"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "a83021d9efa259c1afa014078d2c5fcf61c4d42c",
+      "parent": "54bfac8da66b60aa8aa19a77d23676a7662113b4",
+      "subject": "build: sync local changes via /pushall",
+      "changedPaths": [
+        "_bmad-output/implementation-artifacts/dw-178-validation-evidence.md",
+        "_bmad-output/implementation-artifacts/spec-dw-178-detail-authorization-refresh.md",
+        "references/Hexalith.Builds",
+        "references/Hexalith.EventStore",
+        "references/Hexalith.FrontComposer",
+        "references/Hexalith.McpCli",
+        "references/Hexalith.Memories",
+        "references/Hexalith.Platform",
+        "src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor",
+        "tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.AuthorizationRefresh.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "5d03f1db9c38db34ecac7fe6048937478ffb82cc",
+          "after": "fff4a212180d8cd1c5c0759655a9bc4fb6963c45"
+        },
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "f6b545cd02632f662136d0b4b8e6952baa7afec3",
+          "after": "a07265f00994a3ad093184cec0f329d11184c3e9"
+        },
+        {
+          "path": "references/Hexalith.FrontComposer",
+          "before": "a706a8ae261268f839feb743e930e5311bb2a95b",
+          "after": "1a1cd1e89f59b05ed2621a31f157f9d940356ef8"
+        },
+        {
+          "path": "references/Hexalith.McpCli",
+          "before": "040fd406d71723772fb14cb3a3bac9434003b6a4",
+          "after": "9354dc08176744c75c2ddb61d924c0948b373b98"
+        },
+        {
+          "path": "references/Hexalith.Memories",
+          "before": "c082f8151328b1ac91939cda8733ab78ae68e1c4",
+          "after": "35df7e2080c369003cacac12f5b44117d7f3ed35"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "11893ca9fd85644cab8a0414b2076bf346f108f6",
+          "after": "642b5bdbdf33ec1588eeef3b9a7e9f1a02aebc40"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "ec10b2575c836d650a68ffcbe14a16ccc9257528",
+      "parent": "8ca1db8d5662d94272811951803974b8ed1c3e0d",
+      "subject": "build: sync local changes via /pushall",
+      "changedPaths": [
+        "_bmad-output/implementation-artifacts/spec-dw-181-detail-cancellation-lifetime.md",
+        "references/Hexalith.Builds",
+        "references/Hexalith.EventStore",
+        "references/Hexalith.FrontComposer",
+        "references/Hexalith.McpCli",
+        "references/Hexalith.Memories",
+        "references/Hexalith.Platform",
+        "tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.CancellationLifetime.cs"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "fff4a212180d8cd1c5c0759655a9bc4fb6963c45",
+          "after": "17d0c6ffec5fb3c8d8058e67cb85644460cb5256"
+        },
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "a07265f00994a3ad093184cec0f329d11184c3e9",
+          "after": "ae917d3e4dbab20b8982c5222a13611c3e3faf35"
+        },
+        {
+          "path": "references/Hexalith.FrontComposer",
+          "before": "1a1cd1e89f59b05ed2621a31f157f9d940356ef8",
+          "after": "247410b8b35050abf3f06ec72d6bcf3f1552b150"
+        },
+        {
+          "path": "references/Hexalith.McpCli",
+          "before": "9354dc08176744c75c2ddb61d924c0948b373b98",
+          "after": "39f75e8c8e2bec0824e8f0b93f72bd94c9a73789"
+        },
+        {
+          "path": "references/Hexalith.Memories",
+          "before": "35df7e2080c369003cacac12f5b44117d7f3ed35",
+          "after": "7d1e21f91ac58e427e1440ba34d1c8c141d7e98c"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "642b5bdbdf33ec1588eeef3b9a7e9f1a02aebc40",
+          "after": "7b5548f0d308d27af9d5fda5b68c6b959c053185"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "2cd3cc270e88d3cdbb47a1a938fd6a0951b6f0d4",
+      "parent": "092bcd0eafffb9e85b6c3506ee532f1340d6e87f",
+      "subject": "docs: reconcile five deferred evidence and guidance records",
+      "changedPaths": [
+        "_bmad-output/implementation-artifacts/5-6-preview-and-confirm-correction-with-linked-proof.md",
+        "_bmad-output/implementation-artifacts/deferred-work.md",
+        "_bmad-output/implementation-artifacts/dw-504-532-564-578-596-ledger-validation.json",
+        "_bmad-output/implementation-artifacts/dw-504-532-564-578-596-validation-evidence.md",
+        "_bmad-output/implementation-artifacts/spec-dw-504-532-564-578-596-evidence-reconciliation.md",
+        "_bmad-output/implementation-artifacts/spec-eventstore-3-117-1.md",
+        "_bmad-output/project-context.md",
+        "docs/maintenance-backlog.md",
+        "docs/production-auth-readiness.md"
+      ],
+      "gitlinks": [],
+      "storyArtifacts": [
+        "_bmad-output/implementation-artifacts/spec-eventstore-3-117-1.md"
+      ],
+      "attribution": "story documentation/evidence only"
+    },
+    {
+      "commit": "0c10ef637171f9ac2639d4b5ac42f513ea9ef133",
+      "parent": "dc936d9ea042d139e69bffdbcad1bc92ff8e9927",
+      "subject": "build: advance root submodule pointers to current main",
+      "changedPaths": [
+        "references/Hexalith.Builds",
+        "references/Hexalith.EventStore",
+        "references/Hexalith.FrontComposer",
+        "references/Hexalith.McpCli",
+        "references/Hexalith.Memories",
+        "references/Hexalith.Platform"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "17d0c6ffec5fb3c8d8058e67cb85644460cb5256",
+          "after": "359fee24aeca4d9eabed4b425d4cfa2520b2adda"
+        },
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "ae917d3e4dbab20b8982c5222a13611c3e3faf35",
+          "after": "5ce5f1d84b88c808cc8a526b9decf149de977e55"
+        },
+        {
+          "path": "references/Hexalith.FrontComposer",
+          "before": "247410b8b35050abf3f06ec72d6bcf3f1552b150",
+          "after": "7fcfb019bf94fa858410726fe9a1506f3a2e36a7"
+        },
+        {
+          "path": "references/Hexalith.McpCli",
+          "before": "39f75e8c8e2bec0824e8f0b93f72bd94c9a73789",
+          "after": "7f4a08cb4b7ff9402d1dcf0826ad45ab0256ba65"
+        },
+        {
+          "path": "references/Hexalith.Memories",
+          "before": "7d1e21f91ac58e427e1440ba34d1c8c141d7e98c",
+          "after": "921fee32fb1d03da1e1770a9747ecaeacc8abd7c"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "7b5548f0d308d27af9d5fda5b68c6b959c053185",
+          "after": "c65d87a6f8f4a05fa3bea4e24ac778bf23f12cd6"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "237680c43f7b373a636cc21581405b94d0e08521",
+      "parent": "66def172379f37d12e746fe6eb9195801929c572",
+      "subject": "build(deps): pin EventStore 3.126.1",
+      "changedPaths": [
+        "references/Hexalith.Builds"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "359fee24aeca4d9eabed4b425d4cfa2520b2adda",
+          "after": "3fcb8f38919bb0961b06a19b57aa45623b35a33e"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "205cbc5019343d344643b530fb03aee82af2840d",
+      "parent": "82c2e9ad51f4d9ceeae9dcde33d7e0273524a105",
+      "subject": "fix(build): preserve published container provenance",
+      "changedPaths": [
+        ".github/workflows/release.yml",
+        "Directory.Build.targets",
+        "references/Hexalith.Builds",
+        "tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "3fcb8f38919bb0961b06a19b57aa45623b35a33e",
+          "after": "c0cbbbd4366d512cc1731397f14dd53a7a01580d"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "1012e1e9a7a31c85a4df9c8ab08b2c37407c12b7",
+      "parent": "1ccdacd11acb27fa9b7055ea2c44c98828867489",
+      "subject": "build: sync local changes via /pushall",
+      "changedPaths": [
+        "_bmad-output/implementation-artifacts/deferred-work.md",
+        "_bmad-output/implementation-artifacts/dw-507-509-510-513-518-validation-evidence.md",
+        "_bmad-output/implementation-artifacts/spec-dw-507-509-510-513-518-status-documentation.md",
+        "references/Hexalith.Builds",
+        "references/Hexalith.Commons",
+        "references/Hexalith.EventStore",
+        "references/Hexalith.FrontComposer",
+        "references/Hexalith.McpCli",
+        "references/Hexalith.Memories",
+        "references/Hexalith.Platform"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "c0cbbbd4366d512cc1731397f14dd53a7a01580d",
+          "after": "5e54e892e69c31f346d69cb79f19f04bce8b79cc"
+        },
+        {
+          "path": "references/Hexalith.Commons",
+          "before": "5c23c818f639c5bb3175f964c5549440bd5b876d",
+          "after": "1663028fb6d9f46a0bf17919edeb21bb99be1587"
+        },
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "5ce5f1d84b88c808cc8a526b9decf149de977e55",
+          "after": "92b22bac631cd27f67e81e48e800459bd91af77b"
+        },
+        {
+          "path": "references/Hexalith.FrontComposer",
+          "before": "7fcfb019bf94fa858410726fe9a1506f3a2e36a7",
+          "after": "9b8cbf28c621cbf45429eab8db1a50cfc4bf1c38"
+        },
+        {
+          "path": "references/Hexalith.McpCli",
+          "before": "7f4a08cb4b7ff9402d1dcf0826ad45ab0256ba65",
+          "after": "6b01b3dc57a241ebe5b3096be635469ff00d8221"
+        },
+        {
+          "path": "references/Hexalith.Memories",
+          "before": "921fee32fb1d03da1e1770a9747ecaeacc8abd7c",
+          "after": "63327920814a293e0168986be212deb10b81dc00"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "c65d87a6f8f4a05fa3bea4e24ac778bf23f12cd6",
+          "after": "4ebe6798fe8bd6c22258f20c90d6861b7137c927"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "7add1a2ac74ca96b580f3ffb4c66e8aa3fb78278",
+      "parent": "e52601d1ce0426dc07d93d251c4cc1c6a7bfacb0",
+      "subject": "build: sync local changes via /pushall",
+      "changedPaths": [
+        "_bmad-output/implementation-artifacts/deferred-work.md",
+        "_bmad-output/implementation-artifacts/dw-507-509-510-513-518-validation-evidence.md",
+        "_bmad-output/implementation-artifacts/spec-dw-507-509-510-513-518-status-documentation.md",
+        "references/Hexalith.EventStore"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "92b22bac631cd27f67e81e48e800459bd91af77b",
+          "after": "f4df781cb7247c6a5f7549106b90d3748151edba"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "09a545ff0323f5f16d13934fba01bfea4f1db9fa",
+      "parent": "01b8c79d48a73c44d5ffd349f241a0c059eb34a8",
+      "subject": "build: merge origin/main into main",
+      "changedPaths": [
+        ".github/workflows/ci.yml",
+        ".github/workflows/story-guards.yml",
+        "_bmad-output/implementation-artifacts/deferred-work.md",
+        "_bmad-output/implementation-artifacts/dw-119-211-212-213-444-browser-results.json",
+        "_bmad-output/implementation-artifacts/dw-119-211-212-213-444-idp-unavailable-public-base.json",
+        "_bmad-output/implementation-artifacts/dw-119-211-212-213-444-idp-unavailable.json",
+        "_bmad-output/implementation-artifacts/dw-119-211-212-213-444-initial-browser-failures.json",
+        "_bmad-output/implementation-artifacts/dw-119-211-212-213-444-ledger-validation.json",
+        "_bmad-output/implementation-artifacts/dw-119-211-212-213-444-test-results.json",
+        "_bmad-output/implementation-artifacts/dw-119-211-212-213-444-validate-ledger.py",
+        "_bmad-output/implementation-artifacts/dw-119-211-212-213-444-validation-evidence.md",
+        "_bmad-output/implementation-artifacts/dw-225-372-382-623-642-hosted-log-excerpt.txt",
+        "_bmad-output/implementation-artifacts/dw-225-372-382-623-642-hosted-source-results.json",
+        "_bmad-output/implementation-artifacts/dw-225-372-382-623-642-test-results.json",
+        "_bmad-output/implementation-artifacts/dw-225-372-382-623-642-validation-evidence.md",
+        "_bmad-output/implementation-artifacts/dw-227-241-242-299-317-input-sha256.json",
+        "_bmad-output/implementation-artifacts/dw-227-241-242-299-317-ledger-validation.json",
+        "_bmad-output/implementation-artifacts/dw-227-241-242-299-317-raw-logs.zip",
+        "_bmad-output/implementation-artifacts/dw-227-241-242-299-317-validation-evidence.md",
+        "_bmad-output/implementation-artifacts/dw-268-328-391-434-489-ledger-negative-controls.json",
+        "_bmad-output/implementation-artifacts/dw-268-328-391-434-489-ledger-validation.json",
+        "_bmad-output/implementation-artifacts/dw-268-328-391-434-489-main-integration-logs.zip",
+        "_bmad-output/implementation-artifacts/dw-268-328-391-434-489-main-integration.json",
+        "_bmad-output/implementation-artifacts/dw-268-328-391-434-489-raw-validation.zip",
+        "_bmad-output/implementation-artifacts/dw-268-328-391-434-489-test-results.json",
+        "_bmad-output/implementation-artifacts/dw-268-328-391-434-489-validate-ledger.py",
+        "_bmad-output/implementation-artifacts/dw-268-328-391-434-489-validation-evidence.md",
+        "_bmad-output/implementation-artifacts/dw-268-489-authenticated-browser-evidence.json",
+        "_bmad-output/implementation-artifacts/dw-268-489-final-authentication-unavailable.json",
+        "_bmad-output/implementation-artifacts/dw-268-489-pre-review-authenticated-browser-evidence.json",
+        "_bmad-output/implementation-artifacts/dw-328-independent-review.md",
+        "_bmad-output/implementation-artifacts/dw-333-335-336-357-359-auth-unavailable.json",
+        "_bmad-output/implementation-artifacts/dw-333-335-336-357-359-browser-results.json",
+        "_bmad-output/implementation-artifacts/dw-333-335-336-357-359-initial-focus-failure.json",
+        "_bmad-output/implementation-artifacts/dw-333-335-336-357-359-test-results.json",
+        "_bmad-output/implementation-artifacts/dw-333-335-336-357-359-validation-evidence.md",
+        "_bmad-output/implementation-artifacts/dw-391-authenticated-browser-evidence.json",
+        "_bmad-output/implementation-artifacts/dw-391-development-attempts.json",
+        "_bmad-output/implementation-artifacts/dw-391-development-attempts.zip",
+        "_bmad-output/implementation-artifacts/dw-391-final-authentication-unavailable.json",
+        "_bmad-output/implementation-artifacts/dw-391-final-grant-focus-unavailable.json",
+        "_bmad-output/implementation-artifacts/dw-391-focus-diagnostic.json",
+        "_bmad-output/implementation-artifacts/dw-391-focus-diagnostic.zip",
+        "_bmad-output/implementation-artifacts/dw-391-harness-fault-preload.mjs",
+        "_bmad-output/implementation-artifacts/dw-391-harness-fault-results.json",
+        "_bmad-output/implementation-artifacts/dw-391-harness-missing-child.json",
+        "_bmad-output/implementation-artifacts/dw-391-media-authentication-unavailable.json",
+        "_bmad-output/implementation-artifacts/dw-391-media-reused-build-diagnostic.json",
+        "_bmad-output/implementation-artifacts/dw-391-pre-review-authenticated-browser-evidence.json",
+        "_bmad-output/implementation-artifacts/dw-391-source-guard-negative.json",
+        "_bmad-output/implementation-artifacts/dw-391-source-guard-preload.mjs",
+        "_bmad-output/implementation-artifacts/dw-434-browser-acceptance.json",
+        "_bmad-output/implementation-artifacts/dw-434-browser-evidence-manifest.json",
+        "_bmad-output/implementation-artifacts/dw-434-browser-rejected-attempts.zip",
+        "_bmad-output/implementation-artifacts/dw-434-final-validation-logs.zip",
+        "_bmad-output/implementation-artifacts/dw-434-validation-commands.json",
+        "_bmad-output/implementation-artifacts/dw-524-525-529-604-627-validation-evidence.md",
+        "_bmad-output/implementation-artifacts/dw-569-571-572-577-592-runtime-results.json",
+        "_bmad-output/implementation-artifacts/dw-569-571-572-577-592-source-checks.json",
+        "_bmad-output/implementation-artifacts/dw-569-571-572-577-592-validation-evidence.md",
+        "_bmad-output/implementation-artifacts/spec-dw-119-211-212-213-444-navigation-accessibility.md",
+        "_bmad-output/implementation-artifacts/spec-dw-225-372-382-623-642-proof-and-validation.md",
+        "_bmad-output/implementation-artifacts/spec-dw-227-241-242-299-317-responsive-command-forms.md",
+        "_bmad-output/implementation-artifacts/spec-dw-268-328-391-434-489-ui-runtime-qualification.md",
+        "_bmad-output/implementation-artifacts/spec-dw-333-335-336-357-359-authenticated-focus.md",
+        "_bmad-output/implementation-artifacts/spec-dw-524-525-529-604-627-projection-integrity.md",
+        "_bmad-output/implementation-artifacts/spec-dw-569-571-572-577-592-runtime-contracts.md",
+        "docs/audit-stream-rollout.md",
+        "docs/event-contract-reference.md",
+        "docs/maintenance-backlog.md",
+        "docs/tenant-projection-schema-rebuild.md",
+        "references/Hexalith.FrontComposer",
+        "scripts/run-tenant-audit-performance.sh",
+        "scripts/tenant-audit-source-provenance.py",
+        "scripts/validate-runtime-auth-contracts.py",
+        "src/Hexalith.Tenants.AppHost/Program.cs",
+        "src/Hexalith.Tenants.Server/Projections/TenantIndexReadModel.cs",
+        "src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor",
+        "src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor.css",
+        "src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor",
+        "src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor.css",
+        "src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor",
+        "src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditEvidenceEntryPoint.razor",
+        "src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditEvidenceEntryPoint.razor.css",
+        "src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditEvidenceReceipt.razor.css",
+        "src/Hexalith.Tenants.UI/Components/Tenants/Configuration/RemoveTenantConfigurationFlow.razor",
+        "src/Hexalith.Tenants.UI/Components/Tenants/Configuration/RemoveTenantConfigurationFlow.razor.css",
+        "src/Hexalith.Tenants.UI/Components/Tenants/Configuration/SetTenantConfigurationFlow.razor.css",
+        "src/Hexalith.Tenants.UI/Components/Tenants/Configuration/TenantConfigurationManagement.razor",
+        "src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleCommandFlow.razor",
+        "src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleCommandFlow.razor.css",
+        "src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor",
+        "src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor",
+        "src/Hexalith.Tenants.UI/Components/Users/UserMembershipLookupPanel.razor",
+        "src/Hexalith.Tenants.UI/Components/Users/UserMembershipLookupPanel.razor.css",
+        "src/Hexalith.Tenants.UI/Services/Gateways/GlobalAdministratorAuditProofLookup.cs",
+        "src/Hexalith.Tenants.UI/State/TenantAudit/GlobalAdministratorCorrectionSnapshot.cs",
+        "src/Hexalith.Tenants.UI/wwwroot/js/tenantsFocus.js",
+        "src/Hexalith.Tenants/Projections/GlobalAdministratorProjectionHandler.cs",
+        "src/Hexalith.Tenants/Projections/ProjectionDispatcher.cs",
+        "src/Hexalith.Tenants/Projections/TenantProjectionHandler.cs",
+        "tests/Hexalith.Tenants.AppHost.Tests/AppHostSecurityResourceGraphTests.cs",
+        "tests/Hexalith.Tenants.IntegrationTests/AuditStreamPersistenceTests.cs",
+        "tests/Hexalith.Tenants.IntegrationTests/CommandApiRuntimeIntegrationTests.cs",
+        "tests/Hexalith.Tenants.IntegrationTests/ProjectionReplayIntegrityTests.cs",
+        "tests/Hexalith.Tenants.Server.Tests/Projections/GlobalAdministratorProjectionHandlerTests.cs",
+        "tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionDispatcherTests.cs",
+        "tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceFixture.cs",
+        "tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceTests.cs",
+        "tests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionHandlerTests.cs",
+        "tests/Hexalith.Tenants.Server.Tests/Telemetry/ProjectionDispatcherTelemetryTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Browser/command-form-browser-validation.html",
+        "tests/Hexalith.Tenants.UI.Tests/Browser/dump-validation-dom.mjs",
+        "tests/Hexalith.Tenants.UI.Tests/Browser/tenants-focus-browser-validation.html",
+        "tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-administrator-dialogs.mjs",
+        "tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-audit-layout.mjs",
+        "tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-detail-audit-return.mjs",
+        "tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-navigation-focus.mjs",
+        "tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-workspace-focus.mjs",
+        "tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh",
+        "tests/Hexalith.Tenants.UI.Tests/Components/CreateTenantFlowTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.FocusBrowserFixtures.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/RemoveTenantConfigurationFlowTests.OwnAdmission.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/RemoveTenantConfigurationFlowTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/RemoveTenantMemberFlowTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/SetTenantConfigurationFlowTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.MemberFocus.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.RetainedConfigurationReturn.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/TenantLifecycleActionAvailabilityTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Services/Gateways/GlobalAdministratorAuditProofLookupTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/State/GlobalAdministratorCorrectionSnapshotTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.cs",
+        "tests/scripts/test_tenant_audit_source_provenance.py",
+        "tests/test-summary.md"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.FrontComposer",
+          "before": "9b8cbf28c621cbf45429eab8db1a50cfc4bf1c38",
+          "after": "adc0dbe2228d6291df8b1fe5ba1dc8fb0080f631"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "b52747d8ebb23455a7d4323b871fcc167cfd9a85",
+      "parent": "918569dba4d67f0dc56f5062d97e5315b20e89e7",
+      "subject": "build: sync local changes via /pushall",
+      "changedPaths": [
+        "references/Hexalith.Builds",
+        "references/Hexalith.FrontComposer",
+        "references/Hexalith.McpCli",
+        "references/Hexalith.Memories",
+        "references/Hexalith.Platform"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "5e54e892e69c31f346d69cb79f19f04bce8b79cc",
+          "after": "857558036530a389ccb4ba16fa9777416af9b12e"
+        },
+        {
+          "path": "references/Hexalith.FrontComposer",
+          "before": "adc0dbe2228d6291df8b1fe5ba1dc8fb0080f631",
+          "after": "c7f1666508e6582cfe168b12efb4a71638abc328"
+        },
+        {
+          "path": "references/Hexalith.McpCli",
+          "before": "6b01b3dc57a241ebe5b3096be635469ff00d8221",
+          "after": "253b21bac56c99ae30adab56f7991724c0ba04a3"
+        },
+        {
+          "path": "references/Hexalith.Memories",
+          "before": "63327920814a293e0168986be212deb10b81dc00",
+          "after": "15be1d88b2f7113acea3ad01f092a1e06c0cb7f5"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "4ebe6798fe8bd6c22258f20c90d6861b7137c927",
+          "after": "ce90c4215f3343c2d78d8aee2ebada92405227ff"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "f364406dcfb7501c93db109d1ab99db562520fb2",
+      "parent": "b52747d8ebb23455a7d4323b871fcc167cfd9a85",
+      "subject": "build: record rebased EventStore main",
+      "changedPaths": [
+        "references/Hexalith.EventStore"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "f4df781cb7247c6a5f7549106b90d3748151edba",
+          "after": "115a9ee4e137ffc88370897cbc0adfde085e8d7b"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "93fa7a7890f9a44d175b58e5de9f146bc97a232c",
+      "parent": "f364406dcfb7501c93db109d1ab99db562520fb2",
+      "subject": "fix: resolve five deferred release and status records",
+      "changedPaths": [
+        "_bmad-output/implementation-artifacts/deferred-work.md",
+        "_bmad-output/implementation-artifacts/dw-121-456-508-511-522-ledger-validation.json",
+        "_bmad-output/implementation-artifacts/dw-121-456-508-511-522-test-results.json",
+        "_bmad-output/implementation-artifacts/dw-121-456-508-511-522-validation-evidence.md",
+        "_bmad-output/implementation-artifacts/dw-121-456-508-511-522-validation-logs.zip",
+        "_bmad-output/implementation-artifacts/spec-dw-121-456-508-511-522-diagnostics.md",
+        "docs/maintenance-backlog.md",
+        "references/Hexalith.Builds",
+        "references/Hexalith.EventStore"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "857558036530a389ccb4ba16fa9777416af9b12e",
+          "after": "1783c0a377615063f3222c1d28f3ab513af4e72f"
+        },
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "115a9ee4e137ffc88370897cbc0adfde085e8d7b",
+          "after": "38393a15659eeb8a979764a97d185e868c2b33e6"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "c97283c1a301946102e58005fc7bd3f310657dcd",
+      "parent": "86293c99ff1b4dfe2c81474eaae5bd934ec18f3a",
+      "subject": "fix: close five deferred search audit and release records",
+      "changedPaths": [
+        ".github/workflows/release.yml",
+        ".releaserc.json",
+        "_bmad-output/implementation-artifacts/deferred-work.md",
+        "_bmad-output/implementation-artifacts/dw-128-272-519-560-563-validation-evidence.md",
+        "_bmad-output/implementation-artifacts/spec-dw-128-272-519-560-563-deferred.md",
+        "docs/maintenance-backlog.md",
+        "references/Hexalith.EventStore",
+        "scripts/build-release-candidate.sh",
+        "scripts/require-prepared-release-packages.sh",
+        "src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor",
+        "src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor",
+        "src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor",
+        "src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx",
+        "src/Hexalith.Tenants.UI/Resources/TenantsResources.resx",
+        "src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs",
+        "tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs",
+        "tests/Hexalith.Tenants.Contracts.Tests/PartialReleaseRecoveryWorkflowTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.AuditProbePending.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.MemberFocus.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "38393a15659eeb8a979764a97d185e868c2b33e6",
+          "after": "9fbba03c6419643858b5e2b477882722c5c84cce"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "0cd4e706e52a775028ead073e327c4e1f5ea1076",
+      "parent": "c97283c1a301946102e58005fc7bd3f310657dcd",
+      "subject": "build: record rebased EventStore main",
+      "changedPaths": [
+        "references/Hexalith.EventStore"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "9fbba03c6419643858b5e2b477882722c5c84cce",
+          "after": "4e905980a58c9641d800be062667cac24a50d0b3"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "14133e96d2c5efb13270580f920133079707398b",
+      "parent": "332362168abab554e51de36a49dc404966699435",
+      "subject": "build: sync local changes via /pushall",
+      "changedPaths": [
+        "_bmad-output/implementation-artifacts/spec-dw-117-118-133-365-367-accepted-dispositions.md",
+        "references/Hexalith.FrontComposer",
+        "references/Hexalith.McpCli",
+        "references/Hexalith.Memories",
+        "references/Hexalith.Platform"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.FrontComposer",
+          "before": "c7f1666508e6582cfe168b12efb4a71638abc328",
+          "after": "25e8a07198987b33cef052bdbc745f836cb6cbbf"
+        },
+        {
+          "path": "references/Hexalith.McpCli",
+          "before": "253b21bac56c99ae30adab56f7991724c0ba04a3",
+          "after": "aabc03c68c56ac8085ee1b145654576f5fd201a4"
+        },
+        {
+          "path": "references/Hexalith.Memories",
+          "before": "15be1d88b2f7113acea3ad01f092a1e06c0cb7f5",
+          "after": "cdd73d7361f67781a523f63f04853491a687f426"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "ce90c4215f3343c2d78d8aee2ebada92405227ff",
+          "after": "eecea3fa467d27226ef6173c19f853add36bb26c"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "a569b48531d1567a12baab4d423f5426ce5c9c25",
+      "parent": "692c17b27d94677a3a4d065330d150b262cdb570",
+      "subject": "fix(queries): consume shared conditional authority repair",
+      "changedPaths": [
+        "Directory.Build.props",
+        "_bmad-output/implementation-artifacts/dw-161-consumer-binding-local.json",
+        "_bmad-output/implementation-artifacts/dw-161-live-browser-local.json",
+        "_bmad-output/implementation-artifacts/dw-161-published-package-comparison.json",
+        "_bmad-output/implementation-artifacts/dw-161-shared-conditional-authority-validation-evidence.md",
+        "_bmad-output/implementation-artifacts/spec-dw-104-161-432-436-594-authenticated-routes.md",
+        "_bmad-output/implementation-artifacts/spec-dw-161-shared-conditional-authority.md",
+        "references/Hexalith.EventStore",
+        "tests/Hexalith.Tenants.IntegrationTests/AuditStreamPersistenceTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/MyTenantsSurfaceTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/StatusFilterLabelRenderingTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.EarlyMembershipNudge.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.EarlyMembershipNudgeBoundaries.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/TenantDomIdentityRenderingTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.cs"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "4e905980a58c9641d800be062667cac24a50d0b3",
+          "after": "935c21ac5ebc5e50738ae6ee79dc661acd2fd5a8"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "2cf3a9660f71f6877923772cd145aa6856907945",
+      "parent": "20100fc33b837fb5d85688afe3e3c6529c535080",
+      "subject": "fix(tenants): apply deferred read and recovery recommendations",
+      "changedPaths": [
+        ".github/workflows/ci.yml",
+        "Directory.Build.props",
+        "_bmad-output/implementation-artifacts/deferred-work.md",
+        "_bmad-output/implementation-artifacts/dw-114-137-144-514-523-validation-evidence.md",
+        "_bmad-output/implementation-artifacts/evidence/dw-114-137-144-514-523/recommended-resume/apphost-baseline-state.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-114-137-144-514-523/recommended-resume/apphost-live-literal-probe.py",
+        "_bmad-output/implementation-artifacts/evidence/dw-114-137-144-514-523/recommended-resume/apphost-live-literal-results.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-114-137-144-514-523/recommended-resume/command-metadata.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-114-137-144-514-523/recommended-resume/commitlint-records.tar.gz",
+        "_bmad-output/implementation-artifacts/evidence/dw-114-137-144-514-523/recommended-resume/completed-module-commits.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-114-137-144-514-523/recommended-resume/dw-137-encoding-patches.tar.gz",
+        "_bmad-output/implementation-artifacts/evidence/dw-114-137-144-514-523/recommended-resume/dw-137-preserved-patch-manifest.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-114-137-144-514-523/recommended-resume/final-command-metadata.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-114-137-144-514-523/recommended-resume/final-source-hashes.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-114-137-144-514-523/recommended-resume/final-validation-records.tar.gz",
+        "_bmad-output/implementation-artifacts/evidence/dw-114-137-144-514-523/recommended-resume/gitlink-precommit.txt",
+        "_bmad-output/implementation-artifacts/evidence/dw-114-137-144-514-523/recommended-resume/ledger-preservation-audit.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-114-137-144-514-523/recommended-resume/manifest.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-114-137-144-514-523/recommended-resume/parent-validation-records.tar.gz",
+        "_bmad-output/implementation-artifacts/evidence/dw-114-137-144-514-523/recommended-resume/platform-source-hash-match.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-114-137-144-514-523/recommended-resume/resumed-repository-heads.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-114-137-144-514-523/recommended-resume/review-fixes/command-metadata.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-114-137-144-514-523/recommended-resume/review-fixes/dapr-no-retry.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-114-137-144-514-523/recommended-resume/review-fixes/dapr-retry-mutation.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-114-137-144-514-523/recommended-resume/review-fixes/legacy-loopback-compatibility.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-114-137-144-514-523/recommended-resume/review-fixes/legacy-loopback-validation.tar.gz",
+        "_bmad-output/implementation-artifacts/evidence/dw-114-137-144-514-523/recommended-resume/review-fixes/literal-probe-controls.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-114-137-144-514-523/recommended-resume/review-fixes/manifest.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-114-137-144-514-523/recommended-resume/review-fixes/source-hashes.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-114-137-144-514-523/recommended-resume/review-fixes/source-root-layout-checks.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-114-137-144-514-523/recommended-resume/review-fixes/validation-output-manifest.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-114-137-144-514-523/recommended-resume/review-fixes/validation-outputs.tar.gz",
+        "_bmad-output/implementation-artifacts/evidence/dw-114-137-144-514-523/recommended-resume/source-hashes.json",
+        "_bmad-output/implementation-artifacts/spec-dw-114-137-144-514-523-read-and-recovery-contracts.md",
+        "deploy/dapr/README.md",
+        "docs/maintenance-backlog.md",
+        "references/Hexalith.EventStore",
+        "references/Hexalith.Memories",
+        "references/Hexalith.Platform",
+        "src/Hexalith.Tenants.AppHost/DaprComponents/llm.memories.yaml",
+        "src/Hexalith.Tenants.AppHost/DaprComponents/secretstore.memories.yaml",
+        "src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj",
+        "src/Hexalith.Tenants.AppHost/Program.cs",
+        "src/Hexalith.Tenants.UI/Services/Gateways/TenantsRestQueryClient.cs",
+        "tests/Hexalith.Tenants.AppHost.Tests/AppHostSecurityResourceGraphTests.cs",
+        "tests/Hexalith.Tenants.AppHost.Tests/LocalDaprIdentityTests.cs",
+        "tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsRouteTests.cs",
+        "tests/Hexalith.Tenants.IntegrationTests/Fixtures/AspireTopologyFixture.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantsRestQueryClientTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Services/TenantReadRefreshSubscriptionTests.cs",
+        "tests/integration/qualify-dapr-read-retries.py"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "935c21ac5ebc5e50738ae6ee79dc661acd2fd5a8",
+          "after": "b1dd186ad49aba1c0c21d452c75fc7769feba1da"
+        },
+        {
+          "path": "references/Hexalith.Memories",
+          "before": "cdd73d7361f67781a523f63f04853491a687f426",
+          "after": "2bfc735600ed153bce9069570a43ba93fe77ac0f"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "eecea3fa467d27226ef6173c19f853add36bb26c",
+          "after": "f187f346bb2a1136f4be7221af82136f779c2928"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "a4489bc79f3178437f2491e0bb9e0bed983697ea",
+      "parent": "83c1998161045e4f20158f88dd47dd4ace2639c4",
+      "subject": "build: merge origin/main into main via /pushall",
+      "changedPaths": [
+        ".github/workflows/ci.yml",
+        ".github/workflows/recover-partial-release.yml",
+        ".github/workflows/release.yml",
+        "CONTRIBUTING.md",
+        "_bmad-output/implementation-artifacts/deferred-work.md",
+        "_bmad-output/implementation-artifacts/dw-540-554-570-584-593-raw-validation.zip",
+        "_bmad-output/implementation-artifacts/dw-540-554-570-584-593-validation-evidence.md",
+        "_bmad-output/implementation-artifacts/spec-dw-540-554-570-584-593-release-governance.md",
+        "docs/maintenance-backlog.md",
+        "references/Hexalith.Builds",
+        "references/Hexalith.EventStore",
+        "references/Hexalith.FrontComposer",
+        "references/Hexalith.McpCli",
+        "references/Hexalith.Memories",
+        "references/Hexalith.Platform",
+        "scripts/partial-release-recovery-common.sh",
+        "scripts/prepare-partial-release.sh",
+        "scripts/publish-partial-release.sh",
+        "scripts/validate-nuget-packages.py",
+        "scripts/validate-partial-release-recovery.sh",
+        "scripts/validate-publication-preflight.sh",
+        "tests/Hexalith.Tenants.Contracts.Tests/CiQualityGateScriptTests.cs",
+        "tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs",
+        "tests/Hexalith.Tenants.Contracts.Tests/PartialReleasePublicationTests.cs",
+        "tests/Hexalith.Tenants.Contracts.Tests/PartialReleaseRecoveryTests.cs",
+        "tests/Hexalith.Tenants.Contracts.Tests/PartialReleaseRecoveryWorkflowTests.cs",
+        "tests/Hexalith.Tenants.Contracts.Tests/PartialReleaseVerificationTests.cs",
+        "tests/scripts/recovery_execution_fixture.py",
+        "tests/scripts/release_registry_fixture.py",
+        "tests/scripts/test_nuget_dependency_ranges.py",
+        "tests/scripts/test_partial_release_recovery.py",
+        "tests/scripts/test_release_artifact_verification.py",
+        "tests/scripts/test_release_workflow_governance.py"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "1783c0a377615063f3222c1d28f3ab513af4e72f",
+          "after": "35f185abdec37a3ae92d82f85a21e0f3c971d82d"
+        },
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "b1dd186ad49aba1c0c21d452c75fc7769feba1da",
+          "after": "4e4a7e9b8fcc8cb6fb47107d916489ada7c08cfc"
+        },
+        {
+          "path": "references/Hexalith.FrontComposer",
+          "before": "25e8a07198987b33cef052bdbc745f836cb6cbbf",
+          "after": "8d2b47bd206ffd5c5e77a5ac0461b9cfe52ea4fd"
+        },
+        {
+          "path": "references/Hexalith.McpCli",
+          "before": "aabc03c68c56ac8085ee1b145654576f5fd201a4",
+          "after": "8bfd1e0592bfee258b381f41b098fe3b35170fdd"
+        },
+        {
+          "path": "references/Hexalith.Memories",
+          "before": "2bfc735600ed153bce9069570a43ba93fe77ac0f",
+          "after": "ff0978d6c38c083ac410830dd2e2f9ffe7d6c4cc"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "f187f346bb2a1136f4be7221af82136f779c2928",
+          "after": "dc83a208930b95f1a0164229bebc8359024f2e48"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "e3901469fe3e931c89fa0df01ba5faa83556f82d",
+      "parent": "e38018c646d3505a67b16de4c5f98e6ddb3cb8d5",
+      "subject": "build: merge origin/main into main via /pushall",
+      "changedPaths": [
+        "references/Hexalith.Builds",
+        "references/Hexalith.EventStore",
+        "references/Hexalith.Memories",
+        "references/Hexalith.Platform"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "35f185abdec37a3ae92d82f85a21e0f3c971d82d",
+          "after": "12e48f1dc3d3a4e0c2e6d09e16ad4841216b83a4"
+        },
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "4e4a7e9b8fcc8cb6fb47107d916489ada7c08cfc",
+          "after": "5c198ae56a7ad4029cea883a82a8995c7f2111d4"
+        },
+        {
+          "path": "references/Hexalith.Memories",
+          "before": "ff0978d6c38c083ac410830dd2e2f9ffe7d6c4cc",
+          "after": "3e7dcb504b3d816366427f53be51df187f837376"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "dc83a208930b95f1a0164229bebc8359024f2e48",
+          "after": "9ead86f9061695bf3e30bcb0e020c0b830ddaf7e"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "7d6413c4a1011b05ea24cdbfa2dd2ff736b632e4",
+      "parent": "d73bc3dcb9d5aa1741b63929eaa8b11de4a4e021",
+      "subject": "fix(build): consume published EventStore routing contracts",
+      "changedPaths": [
+        "Directory.Build.props",
+        "references/Hexalith.EventStore",
+        "tests/scripts/test_tenant_audit_source_provenance.py"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "5c198ae56a7ad4029cea883a82a8995c7f2111d4",
+          "after": "aff4efed59ed51ca34e6106030854b8616971521"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "4c9503bb7f7d363f5c90ba81f73418a7b83a05c6",
+      "parent": "3fd98035a6db1f5b21fedc4a7c6a159d3fd609c9",
+      "subject": "build(deps): align builds with published eventstore pin",
+      "changedPaths": [
+        "references/Hexalith.Builds"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "12e48f1dc3d3a4e0c2e6d09e16ad4841216b83a4",
+          "after": "5cf7a32df99099a982b3c751285debb2082ae382"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "70fa4969563bc24bdd0569067af795e96970badd",
+      "parent": "610d71b02303411c16ecd7bc4479d9c57992925e",
+      "subject": "build: record the Builds dev-cert trust fix",
+      "changedPaths": [
+        "references/Hexalith.Builds"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "5cf7a32df99099a982b3c751285debb2082ae382",
+          "after": "b2eb15c8839093de94bfbc6b7f10cdfb02a50f3b"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "1436044bf6452bbc5bdb2eaa8b585ab2ce9362ca",
+      "parent": "a846c1a4ad4d21ae1efa306a35a1988759803b6c",
+      "subject": "build(deps): sync root submodules with upstream main",
+      "changedPaths": [
+        "references/Hexalith.Builds",
+        "references/Hexalith.FrontComposer",
+        "references/Hexalith.McpCli",
+        "references/Hexalith.Memories",
+        "references/Hexalith.Platform"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "b2eb15c8839093de94bfbc6b7f10cdfb02a50f3b",
+          "after": "16ff70a2321ad576faaac3fe53088c2f1bdacae3"
+        },
+        {
+          "path": "references/Hexalith.FrontComposer",
+          "before": "8d2b47bd206ffd5c5e77a5ac0461b9cfe52ea4fd",
+          "after": "5688c3eba98567133285b0f51843d9daa8f24f0b"
+        },
+        {
+          "path": "references/Hexalith.McpCli",
+          "before": "8bfd1e0592bfee258b381f41b098fe3b35170fdd",
+          "after": "8d4a8c07636c1ad065dfc8dc28dbfc956d5deb82"
+        },
+        {
+          "path": "references/Hexalith.Memories",
+          "before": "3e7dcb504b3d816366427f53be51df187f837376",
+          "after": "790670897c1fc684d41b980fc5e40934be796122"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "9ead86f9061695bf3e30bcb0e020c0b830ddaf7e",
+          "after": "9658932b0f04d9fc9daf7c30cc0d9afc2146ed7c"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "580b20410a98a772c2b11b142c8723f0928b987a",
+      "parent": "4694c4e1d10e918c679ade58bffaf71c9ef2a1c9",
+      "subject": "build(deps): record upstream advances before release",
+      "changedPaths": [
+        "references/Hexalith.Builds",
+        "references/Hexalith.EventStore",
+        "references/Hexalith.Platform"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "16ff70a2321ad576faaac3fe53088c2f1bdacae3",
+          "after": "51a71cb1cfe860d5fc135eb3b8521fd80c413810"
+        },
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "aff4efed59ed51ca34e6106030854b8616971521",
+          "after": "eff7066ed5c8c7ec57e1b42862fddee479044134"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "9658932b0f04d9fc9daf7c30cc0d9afc2146ed7c",
+          "after": "b742b1b7a496ac72d6961ca6db5213d3df42d234"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "3d13880bceb43fbbb686ad5089170f9ce5f97eb3",
+      "parent": "2079f25448625cf7a6a4bc1417ff9889e11d5781",
+      "subject": "fix(build): align the shared catalog with Aspire 13.6.4",
+      "changedPaths": [
+        "references/Hexalith.Builds"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "51a71cb1cfe860d5fc135eb3b8521fd80c413810",
+          "after": "1745ea0f09df9e518aeea3eeb1a7df836f67e09d"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "45c592ff8a2657880426610762cbb26e2b9656d1",
+      "parent": "3d13880bceb43fbbb686ad5089170f9ce5f97eb3",
+      "subject": "fix(ci): consume the legacy projection replay settlement fix",
+      "changedPaths": [
+        "_bmad-output/implementation-artifacts/spec-settle-completed-legacy-projection-replays.md",
+        "references/Hexalith.EventStore"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "eff7066ed5c8c7ec57e1b42862fddee479044134",
+          "after": "de940071c0085b68a6e9f146aade0ccd18bb1d9a"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "9202960cc31e4d6f4fa82a9f6a957ec0e12dba18",
+      "parent": "087e60a5d1e89be7a7d332cda8cbb17e3c93525c",
+      "subject": "fix(ci): consume runtime-generated qualification credentials",
+      "changedPaths": [
+        "references/Hexalith.EventStore"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "de940071c0085b68a6e9f146aade0ccd18bb1d9a",
+          "after": "903174461632e7bcabd6111092aa059f16e1b1c7"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "0a2adfcdc843cca34e1aad65b4324253a4642b19",
+      "parent": "fb290fe7b15a33213e2a70df8093b22dec31a2e1",
+      "subject": "build(deps): sync upstream CI repairs",
+      "changedPaths": [
+        "references/Hexalith.Builds",
+        "references/Hexalith.Memories"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "1745ea0f09df9e518aeea3eeb1a7df836f67e09d",
+          "after": "9f85d8e66e5c16675cee8c224f1fd88430d96007"
+        },
+        {
+          "path": "references/Hexalith.Memories",
+          "before": "790670897c1fc684d41b980fc5e40934be796122",
+          "after": "fecd80ed0b01994b6ede45bbb59cdef35325bb3b"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "d37f7f29256707f2f32dad07c6b03d51079d398b",
+      "parent": "0a2adfcdc843cca34e1aad65b4324253a4642b19",
+      "subject": "fix(release): restore protected container prerequisites",
+      "changedPaths": [
+        ".github/workflows/release.yml",
+        "_bmad-output/implementation-artifacts/spec-restore-protected-container-prerequisites.md",
+        "references/Hexalith.Memories",
+        "tests/Hexalith.Tenants.Contracts.Tests/PartialReleaseRecoveryWorkflowTests.cs"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Memories",
+          "before": "fecd80ed0b01994b6ede45bbb59cdef35325bb3b",
+          "after": "86011d4dc1e16d0d8222e07e6a492faf8e2347c0"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "7ddb864cda5e942925b056391617eae4895c1253",
+      "parent": "750bdc2e8de77595a55bf595c335094cce0d580c",
+      "subject": "build: sync local changes via /pushall",
+      "changedPaths": [
+        "references/Hexalith.Builds",
+        "references/Hexalith.Commons",
+        "references/Hexalith.FrontComposer",
+        "references/Hexalith.McpCli",
+        "references/Hexalith.Platform"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "9f85d8e66e5c16675cee8c224f1fd88430d96007",
+          "after": "abc0e1be8069d1c7a567515a13bb015adc407536"
+        },
+        {
+          "path": "references/Hexalith.Commons",
+          "before": "1663028fb6d9f46a0bf17919edeb21bb99be1587",
+          "after": "3edfbdafc7d4fa915286dce8a37dc4cc7c06085a"
+        },
+        {
+          "path": "references/Hexalith.FrontComposer",
+          "before": "5688c3eba98567133285b0f51843d9daa8f24f0b",
+          "after": "5f665c4d38afb2255a7dde4620330e09824a40a1"
+        },
+        {
+          "path": "references/Hexalith.McpCli",
+          "before": "8d4a8c07636c1ad065dfc8dc28dbfc956d5deb82",
+          "after": "3a8fbf215d52a5573ea509f09bccf20a58c97993"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "b742b1b7a496ac72d6961ca6db5213d3df42d234",
+          "after": "eee6ce27965b7c7108bbfcc02d447038e0553751"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "e3cefcb0b0d01930b89eec9b30ffb55aab16afdf",
+      "parent": "8e87ca84c5a468e4ed764c12a723840f7eb8d17f",
+      "subject": "build(deps): align published EventStore and Builds sources",
+      "changedPaths": [
+        "references/Hexalith.Builds",
+        "references/Hexalith.EventStore"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "abc0e1be8069d1c7a567515a13bb015adc407536",
+          "after": "60e42d0227596153dc31777de80181bb06829b1d"
+        },
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "903174461632e7bcabd6111092aa059f16e1b1c7",
+          "after": "717a06e16c3afd81b904eaf4de646b74b13262d2"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "762341a0cf6179263be437522ee35f956e0d7443",
+      "parent": "e3cefcb0b0d01930b89eec9b30ffb55aab16afdf",
+      "subject": "fix: submodules",
+      "changedPaths": [
+        "references/Hexalith.Builds",
+        "references/Hexalith.EventStore",
+        "references/Hexalith.McpCli",
+        "references/Hexalith.Memories",
+        "references/Hexalith.Platform"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "60e42d0227596153dc31777de80181bb06829b1d",
+          "after": "3d7f49a5430294da5bcd437cbdace85c62c42027"
+        },
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "717a06e16c3afd81b904eaf4de646b74b13262d2",
+          "after": "36c78f3435d2d492a73f1b0707cf865c8735d740"
+        },
+        {
+          "path": "references/Hexalith.McpCli",
+          "before": "3a8fbf215d52a5573ea509f09bccf20a58c97993",
+          "after": "2d7311cbbcc592c0ea0348463037389251d1cb4b"
+        },
+        {
+          "path": "references/Hexalith.Memories",
+          "before": "86011d4dc1e16d0d8222e07e6a492faf8e2347c0",
+          "after": "72c36c7113c750c8b809f9d72b945a2a8c2d4555"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "eee6ce27965b7c7108bbfcc02d447038e0553751",
+          "after": "8de90958bc41b7fd01b7ed22b8ab364447a800e4"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "5de64df9db0f37fafe6e3c43953f982287b3d903",
+      "parent": "762341a0cf6179263be437522ee35f956e0d7443",
+      "subject": "build(deps): retain the released completion recovery sources",
+      "changedPaths": [
+        "references/Hexalith.Builds",
+        "references/Hexalith.EventStore"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "3d7f49a5430294da5bcd437cbdace85c62c42027",
+          "after": "60e42d0227596153dc31777de80181bb06829b1d"
+        },
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "36c78f3435d2d492a73f1b0707cf865c8735d740",
+          "after": "717a06e16c3afd81b904eaf4de646b74b13262d2"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "db83309146816602033320270f10b1cea28d3100",
+      "parent": "5de64df9db0f37fafe6e3c43953f982287b3d903",
+      "subject": "build(deps): reconcile the published completion recovery sources",
+      "changedPaths": [
+        "references/Hexalith.Builds"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "60e42d0227596153dc31777de80181bb06829b1d",
+          "after": "2574bf2f3da5367d8801f0d7661d66155e5d90b0"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "0b07d279aacce430b04b42ee9abd8aa5a6d6dafc",
+      "parent": "db83309146816602033320270f10b1cea28d3100",
+      "subject": "fix(search): adopt stable paging and qualify deferred dependencies",
+      "changedPaths": [
+        "_bmad-output/implementation-artifacts/deferred-work.md",
+        "_bmad-output/implementation-artifacts/dw-122-334-358-579-595-validation-evidence.md",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/apphost-memories-wait-baseline.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/apphost-memories-wait-final.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/apphost-memories-wait-iteration1-final.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/apphost-memories-wait-iteration1.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/apphost-memories-wait-package-pass1.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/apphost-package-build.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/apphost-package-iteration1-build.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/apphost-package-iteration1-model-test.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/apphost-package-model-test.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/apphost-sidecar-wait-baseline.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/apphost-sidecar-wait-final.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/apphost-sidecar-wait-iteration1-final.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/apphost-sidecar-wait-iteration1.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/apphost-sidecar-wait-package-pass1.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/apphost-start-baseline.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/apphost-start-final.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/apphost-start-iteration1-final.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/apphost-start-iteration1.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/apphost-start-package-pass1.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/apphost-stop-baseline.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/apphost-stop-final.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/apphost-stop-iteration1-final.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/apphost-stop-iteration1.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/apphost-stop-package-pass1.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/builds-audit-reconciliation.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/builds-current-audit-validation.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/eventstore-exact-pin-ci-jobs.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/eventstore-exact-pin-integration-jobs.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/eventstore-exact-pin-runs.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/final-apphost-build.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/final-apphost-model-test.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/final-aspire-start.txt",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/final-aspire-stop.txt",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/final-component-metadata.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/final-http-health.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/final-integration-build.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/final-integration-test.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/final-memories-scope-validation.txt",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/final-memories-wait.txt",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/final-package-server-build.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/final-provider-binding.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/final-resource-state.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/final-runtime-identities.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/final-sidecar-initialized.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/final-sidecar-wait.txt",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/final-source-test-identities.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/final-story-gitlink-validation.txt",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/final-unit-build.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/final-unit-test.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/independent-review-recheck.txt",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/ledger-preservation.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/log-normalization.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/memories-commitlint-validation.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/memories-dapr-component-metadata-final.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/memories-dapr-component-metadata-iteration1-final.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/memories-dapr-component-metadata-iteration1.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/memories-http-health-final.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/memories-http-health-iteration1-final.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/memories-http-health-iteration1.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/memories-http-health-package-pass1.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/memories-initialized-live-baseline.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/memories-initialized-live-final.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/memories-initialized-live-iteration1-final.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/memories-initialized-live-iteration1.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/memories-initialized-live-package-pass1.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/memories-post-commitlint-validation.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/memories-publication.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/memories-resource-state-final.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/memories-resource-state-iteration1-final.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/memories-resource-state-iteration1.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/memories-resource-state-package-pass1.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/memories-scope-validation.txt",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/memories-secretstore-live-baseline.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/memories-secretstore-live-final.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/memories-secretstore-live-iteration1-final.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/memories-secretstore-live-iteration1.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/memories-secretstore-live-package-pass1.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/memories-server-package-build.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/memories-server-package-final-build.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/memories-server-package-iteration1-build.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/memories-server-package-iteration1-final-build.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/package-runtime-identities-iteration1-final.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/package-runtime-identities-iteration1.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/package-runtime-identities.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/raw-command-logs.zip",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/search-baseline-build.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/search-final-build.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/search-final-contract-test.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/search-green-build.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/search-green-contract-test.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/search-iteration1-build-pass2.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/search-iteration1-build-pass3.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/search-iteration1-build-pass4.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/search-iteration1-build.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/search-iteration1-completeness-controls.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/search-iteration1-contract-test.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/search-iteration1-final-build.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/search-iteration1-final-contract-test.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/search-iteration1-final-identities.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/search-iteration1-final-qualified-test.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/search-iteration1-final-ready-build.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/search-iteration1-final-ready-test.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/search-iteration1-final-unit-build.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/search-iteration1-final-unit-test.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/search-iteration1-identities.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/search-iteration1-original-build.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/search-iteration1-original-test.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/search-iteration1-profile-term-build.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/search-iteration1-unit-build.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/search-iteration1-unit-test.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/search-original-contract-test.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/search-owned-container-cleanup.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/search-owned-container-iteration1-cleanup.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/search-owned-container-iteration1-final-cleanup.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/search-red-build.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/search-repeated-score-equality-failure.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/search-review-fixes-empty-filter.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/search-review-fixes-endpoint-test.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/search-review-fixes-integration-build.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/search-review-fixes-integration-test.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/search-review-fixes-unit-build.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/search-review-fixes-unit-test.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/search-review-fixes-validation.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/search-unit-build.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/search-unit-final-build.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/search-unit-final-test.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/search-unit-initial-failure.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/search-unit-test.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/tenants-commitlint-validation.log",
+        "_bmad-output/implementation-artifacts/evidence/dw-122-334-358-579-595/verify-ledger-preservation.py",
+        "_bmad-output/implementation-artifacts/spec-dw-122-334-358-579-595-search-and-dependency-qualification.md",
+        "docs/maintenance-backlog.md",
+        "references/Hexalith.Memories"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Memories",
+          "before": "72c36c7113c750c8b809f9d72b945a2a8c2d4555",
+          "after": "35ef40e3fdcc7a490e04cf49e6a532fd5bf32285"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "d490461f4d6baeff4b2373ef9c54edfcd5e363a2",
+      "parent": "983ba9d51027a287db0efa6860058b56dcb8ff44",
+      "subject": "fix: complete five deferred evidence and lookup policies",
+      "changedPaths": [
+        "_bmad-output/implementation-artifacts/deferred-work.md",
+        "_bmad-output/implementation-artifacts/dw-438-457-498-521-600-validation-evidence.md",
+        "_bmad-output/implementation-artifacts/evidence/dw-438-457-498-521-600/manifest.json",
+        "_bmad-output/implementation-artifacts/evidence/dw-438-457-498-521-600/validation-records.tar.gz",
+        "_bmad-output/implementation-artifacts/spec-dw-438-457-498-521-600-deferred-policies.md",
+        "docs/maintenance-backlog.md",
+        "docs/tenants-ui-audit-evidence-and-compensating-recovery-spec.md",
+        "references/Hexalith.Builds",
+        "references/Hexalith.EventStore",
+        "src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditEvidenceReceipt.razor",
+        "src/Hexalith.Tenants.UI/Components/Tenants/Audit/CorrectionStartPanel.razor",
+        "src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx",
+        "src/Hexalith.Tenants.UI/Resources/TenantsResources.resx",
+        "src/Hexalith.Tenants.UI/Services/Gateways/GlobalAdministratorsProjectionLoader.cs",
+        "src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditNavigationSafety.cs",
+        "src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditSupportSafety.cs",
+        "tests/Hexalith.Tenants.Server.Tests/Queries/GetTenantAuditQueryHandlerTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/AuditEvidenceReceiptTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/CorrectionStartPanelTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Components/SupportSafeCopyButtonTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Services/Gateways/GlobalAdministratorsProjectionLoaderTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantsBffCompositionTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/State/TenantAuditNavigationSafetyTests.cs",
+        "tests/Hexalith.Tenants.UI.Tests/State/TenantAuditSupportSafetyTests.cs"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "2574bf2f3da5367d8801f0d7661d66155e5d90b0",
+          "after": "505230a24339070aa2dbf5ac927cd430050bb902"
+        },
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "717a06e16c3afd81b904eaf4de646b74b13262d2",
+          "after": "be4aba873d09736abb4caacf1fae8ad870f0b3b6"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    },
+    {
+      "commit": "03615cc91d940ca37b47fb13413a90a31151dd71",
+      "parent": "f61c6678cf9ac3d50240b0b1afd7aa261e611eaf",
+      "subject": "build: sync local changes via /pushall",
+      "changedPaths": [
+        "references/Hexalith.AI.Tools",
+        "references/Hexalith.Builds",
+        "references/Hexalith.EventStore",
+        "references/Hexalith.FrontComposer",
+        "references/Hexalith.McpCli",
+        "references/Hexalith.Memories",
+        "references/Hexalith.Platform"
+      ],
+      "gitlinks": [
+        {
+          "path": "references/Hexalith.AI.Tools",
+          "before": "3f194e17174994d308ec84af9ee2b5aa68674d0d",
+          "after": "70dbf73e80787299c832d30d911b16b105ab194d"
+        },
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "505230a24339070aa2dbf5ac927cd430050bb902",
+          "after": "4775fb72e3ca3c05059830733e31a98995818cb6"
+        },
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "be4aba873d09736abb4caacf1fae8ad870f0b3b6",
+          "after": "4cf93f91e760e2d09e4fc64e1bd33a3c0a79a24d"
+        },
+        {
+          "path": "references/Hexalith.FrontComposer",
+          "before": "5f665c4d38afb2255a7dde4620330e09824a40a1",
+          "after": "612d23485d7e2845d22102621a38d6c904e1ea90"
+        },
+        {
+          "path": "references/Hexalith.McpCli",
+          "before": "2d7311cbbcc592c0ea0348463037389251d1cb4b",
+          "after": "9ba8e5bd0e213501b39d33cedf46859566fc89a4"
+        },
+        {
+          "path": "references/Hexalith.Memories",
+          "before": "35ef40e3fdcc7a490e04cf49e6a532fd5bf32285",
+          "after": "daa06183c0c9baa8bda71df259a7264d34684e2a"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "8de90958bc41b7fd01b7ed22b8ab364447a800e4",
+          "after": "3659a44d86c08645215689eaeff8b3624d357dd5"
+        }
+      ],
+      "storyArtifacts": [],
+      "attribution": "independent range contents; no changes to the named story artifacts; no story ownership claimed"
+    }
+  ],
+  "baselineCorrection": "Restores the available original start; broadens the October 10 range. No unavailable-baseline exception or later starting point is used.",
+  "endpointDisposition": "Removed active gitlink_audit_ref. It binds the narrowed October 10 baseline, cannot cover the original creation under that baseline, and is unnecessary for the full baseline-to-current inventory. Preserved here and in the spec as historical evidence.",
+  "scope": "Audit records only. All range pointers are inventoried without claiming independent landings as story-owned. No validator, dependency, gitlink, index, branch, commit or remote mutation.",
+  "initialIndexSha256": "4241a70d02deaf518c92dc1e36449c42634fb0184c3506387979834c8e2788c5",
+  "initialGitlinks": "160000 70dbf73e80787299c832d30d911b16b105ab194d 0\treferences/Hexalith.AI.Tools\n160000 4775fb72e3ca3c05059830733e31a98995818cb6 0\treferences/Hexalith.Builds\n160000 3edfbdafc7d4fa915286dce8a37dc4cc7c06085a 0\treferences/Hexalith.Commons\n160000 4cf93f91e760e2d09e4fc64e1bd33a3c0a79a24d 0\treferences/Hexalith.EventStore\n160000 612d23485d7e2845d22102621a38d6c904e1ea90 0\treferences/Hexalith.FrontComposer\n160000 9ba8e5bd0e213501b39d33cedf46859566fc89a4 0\treferences/Hexalith.McpCli\n160000 daa06183c0c9baa8bda71df259a7264d34684e2a 0\treferences/Hexalith.Memories\n160000 3659a44d86c08645215689eaeff8b3624d357dd5 0\treferences/Hexalith.Platform\n160000 221ac4592ba908ae7661ba1fa9e2d1fcc23baee0 0\treferences/Hexalith.PolymorphicSerializations\n",
+  "initialWorktreeFileHashes": {
+    "_bmad-output/implementation-artifacts/dependency-refresh-eventstore-3.128.4-evidence-2026-10-29.json": "5f8de1f038114b84c0eaddd0528309a1bce993eeb308f3f2e6cc644ec31bb5c2",
+    "_bmad-output/implementation-artifacts/dependency-refresh-eventstore-3.128.4-raw-logs-2026-10-29.zip": "ac073265a44ed293afe7bc8478e94658d6098c68140182eeb7a102172783b5cf",
+    "_bmad-output/implementation-artifacts/deferred-work.md": "c7b72e5de1ee85a606af40c8a496b0c91489fb94af97ad5b05694c85a723d549",
+    "_bmad-output/implementation-artifacts/spec-eventstore-3-117-1.md": "508cf20e3acd49f68367c384f17ac3f66f5dcd6181697189539a2b64b007384b",
+    "_bmad-output/implementation-artifacts/spec-global-admin-projection-paging.md": "ec62cada80f449206adc35f5fa88df50972fe33ba3488e7b111340885bb2ae5a",
+    "_bmad-output/project-context.md": "f66cd0c3fd47743cb8b1bff2c5e01e2708e4aca6fe8a4e6953d27371de7728c3"
+  },
+  "packageVerificationEvidence": [
+    {
+      "path": "_bmad-output/implementation-artifacts/dependency-refresh-eventstore-3.117.0-evidence-2026-10-08.json",
+      "sha256": "6437fa9009bdff227b1f678492498f9e6534b0ca616bc5f20cd595dd8797a710"
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/dependency-refresh-eventstore-3.117.0-final-evidence-2026-10-08.json",
+      "sha256": "713507dae78ec508e547728215626f5a0bf9d2c2ff95b6df991fb2e6a15b711d"
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/dependency-refresh-eventstore-3.117.0-raw-logs-2026-10-08.zip",
+      "sha256": "48eeb30c531e1d266e30dc46d573c7e87fd1d2e233fa0109187e11c31c480bbc"
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/dependency-refresh-eventstore-3.117.1-evidence-2026-10-08.json",
+      "sha256": "085ecc1385030c34b9d7c477a487c00db1af9d504458dda09d9d8f13ab7ec73c"
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/dependency-refresh-eventstore-3.117.1-raw-logs-2026-10-08.zip",
+      "sha256": "d46bd717481c33cfe574915685fc8cef32eeee8773a607b0e37f009e8cbbdaf5"
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/dependency-refresh-eventstore-3.120.0-evidence-2026-10-10.json",
+      "sha256": "46a1e27c8ba32618fb8c01d1459b06e739cb492bc5ac1e2718a4932cc766664a"
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/dependency-refresh-eventstore-3.120.0-raw-logs-2026-10-10.zip",
+      "sha256": "28a1bedeaab1c757e4b1dd6941120d9150daa6e03d8a3bdd556dd05aa13eb39b"
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/dependency-refresh-eventstore-3.128.4-evidence-2026-10-29.json",
+      "sha256": "5f8de1f038114b84c0eaddd0528309a1bce993eeb308f3f2e6cc644ec31bb5c2"
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/dependency-refresh-eventstore-3.128.4-raw-logs-2026-10-29.zip",
+      "sha256": "ac073265a44ed293afe7bc8478e94658d6098c68140182eeb7a102172783b5cf"
+    }
+  ],
+  "frozenIntentSha256": "86166b9a795297e6bba040acccf366c516f90bf8464a1fdd2cebf64151fb79bb",
+  "validation": {
+    "capturedUtc": "2026-10-29T10:14:07.078690+00:00",
+    "commands": [
+      {
+        "name": "default-before",
+        "command": [
+          "python3",
+          "scripts/validate-story-gitlinks.py",
+          "/tmp/tenants-gitlink-reconcile-m5zmhxoq/before/_bmad-output/implementation-artifacts/spec-eventstore-3-117-1.md"
+        ],
+        "cwd": "/home/administrator/projects/hexalith/tenants",
+        "exitCode": 1,
+        "expectedExitCode": 1,
+        "archiveEntry": "commands/default-before.log",
+        "sha256": "5d5b128b3214545325eaae134d35c6beb6bbc2b7d6c7b8197b47c4cee6c6e326"
+      },
+      {
+        "name": "retired-endpoint-before",
+        "command": [
+          "python3",
+          "scripts/validate-story-gitlinks.py",
+          "/tmp/tenants-gitlink-reconcile-m5zmhxoq/before/_bmad-output/implementation-artifacts/spec-eventstore-3-117-1.md",
+          "--ref",
+          "ef4b7f2f99b2a60910b94481a198f591c51bfe5c"
+        ],
+        "cwd": "/home/administrator/projects/hexalith/tenants",
+        "exitCode": 0,
+        "expectedExitCode": 0,
+        "archiveEntry": "commands/retired-endpoint-before.log",
+        "sha256": "4d54b47a2227213bd04e804935ffd76ab646db8f66ed399a0dd8cc3d1051fb80"
+      },
+      {
+        "name": "default-after",
+        "command": [
+          "python3",
+          "scripts/validate-story-gitlinks.py",
+          "_bmad-output/implementation-artifacts/spec-eventstore-3-117-1.md"
+        ],
+        "cwd": "/home/administrator/projects/hexalith/tenants",
+        "exitCode": 0,
+        "expectedExitCode": 0,
+        "archiveEntry": "commands/default-after.log",
+        "sha256": "42ca62dd4690ffaf6d3037122be299a9c46edd688505afd7bed3d16debb4ceb3"
+      },
+      {
+        "name": "reproduce",
+        "command": [
+          "python3",
+          "_bmad-output/implementation-artifacts/eventstore-gitlink-reconciliation-verify.py"
+        ],
+        "cwd": "/home/administrator/projects/hexalith/tenants",
+        "exitCode": 0,
+        "expectedExitCode": 0,
+        "archiveEntry": "commands/reproduce.log",
+        "sha256": "32e48118502aed9a86dd96e152d03ea8dc717da93b66b0b836aa64d0c96a83a0"
+      },
+      {
+        "name": "whitespace",
+        "command": [
+          "git",
+          "diff",
+          "--check"
+        ],
+        "cwd": "/home/administrator/projects/hexalith/tenants",
+        "exitCode": 0,
+        "expectedExitCode": 0,
+        "archiveEntry": "commands/whitespace.log",
+        "sha256": "5ce5ea933b0ef46e5390dd8b68e821054452617469559798dddf89505e329b9e"
+      },
+      {
+        "name": "guard-suite",
+        "command": [
+          "python3",
+          "tests/scripts/test_validate_story_gitlinks.py"
+        ],
+        "cwd": "/home/administrator/projects/hexalith/tenants",
+        "exitCode": 0,
+        "archiveEntry": "commands/guard-suite.log",
+        "sha256": "9e6d8a7347ff54e1988ed12321a9ac32d0d432528774d6ef9744b27f436105be"
+      },
+      {
+        "name": "ci-suite",
+        "command": [
+          "python3",
+          "tests/scripts/test_validate_changed_story_gitlinks.py"
+        ],
+        "cwd": "/home/administrator/projects/hexalith/tenants",
+        "exitCode": 0,
+        "archiveEntry": "commands/ci-suite.log",
+        "sha256": "729cb841c1b433f133b6803611bd639b4f118b9cf4ae863b93023e4c5c5576d6"
+      },
+      {
+        "name": "pointer-history",
+        "command": [
+          "git",
+          "log",
+          "--first-parent",
+          "--reverse",
+          "--format=commit %H%nparent %P%nsubject %s",
+          "--raw",
+          "--no-renames",
+          "--no-abbrev",
+          "1846c7128cf0f6b16f9e62f38032bcab78e26e38..73478ea3b21dbdc416d5b54b59260f851fbcd965",
+          "--",
+          "references/"
+        ],
+        "cwd": "/home/administrator/projects/hexalith/tenants",
+        "exitCode": 0,
+        "expectedExitCode": 0,
+        "archiveEntry": "commands/pointer-history.log",
+        "sha256": "c8df43750ac33c0045a2947e464165e56381598d09e6a4ae732df5fde1bf2597"
+      },
+      {
+        "name": "story-history",
+        "command": [
+          "git",
+          "log",
+          "--full-history",
+          "--format=commit %H%nparent %P%nsubject %s",
+          "--raw",
+          "--no-abbrev",
+          "--diff-merges=first-parent",
+          "1846c7128cf0f6b16f9e62f38032bcab78e26e38..73478ea3b21dbdc416d5b54b59260f851fbcd965",
+          "--",
+          "_bmad-output/implementation-artifacts/dependency-refresh-eventstore-3.117.1-evidence-2026-10-08.json",
+          "_bmad-output/implementation-artifacts/dependency-refresh-eventstore-3.117.1-raw-logs-2026-10-08.zip",
+          "_bmad-output/implementation-artifacts/dependency-refresh-eventstore-3.120.0-evidence-2026-10-10.json",
+          "_bmad-output/implementation-artifacts/dependency-refresh-eventstore-3.120.0-raw-logs-2026-10-10.zip",
+          "_bmad-output/implementation-artifacts/dependency-refresh-eventstore-3.128.4-evidence-2026-10-29.json",
+          "_bmad-output/implementation-artifacts/dependency-refresh-eventstore-3.128.4-raw-logs-2026-10-29.zip",
+          "_bmad-output/implementation-artifacts/spec-eventstore-3-117-1.md"
+        ],
+        "cwd": "/home/administrator/projects/hexalith/tenants",
+        "exitCode": 0,
+        "expectedExitCode": 0,
+        "archiveEntry": "commands/story-history.log",
+        "sha256": "853356afcde24a57707bc292f0b5476625a2557b3152ab1ddb16f9fe6ebadd74"
+      }
+    ],
+    "preservedPackageVerification": {
+      "version": "3.128.4",
+      "passedTests": 10887,
+      "archiveBinding": "sha256, ZIP CRC and embedded manifest sha256 pass; no application rerun"
+    },
+    "review": "Blind Hunter: ten findings patched; independent recheck confirms all ten addressed, earlier counterexamples rejected and no remaining concrete issue",
+    "status": "passed; spec done",
+    "rawArchive": {
+      "path": "_bmad-output/implementation-artifacts/eventstore-gitlink-reconciliation-logs-2026-10-29.zip",
+      "sha256": "aafc9de670e9f7b91ece5b0598b8a123988e1eba94451d8af9e97b6bc0479fbb"
+    },
+    "preservationReport": {
+      "archiveEntry": "preservation.json",
+      "sha256": "3f5f1a7e358cc74a2b872ee6960a8ab76a6881bdc5d0990eb8100680072c24a4"
+    }
+  },
+  "validatorFiles": {
+    "scripts/validate-story-gitlinks.py": "07b2cc5279328f2e2a204fcec1b69b1f080f49dc688d420880a5cf8afd9c257f",
+    "scripts/validate-changed-story-gitlinks.py": "5f591256686f1e694c0361a748ac60470be5043f4b2025dbd8645b140442cc34"
+  }
+}
