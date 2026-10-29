@@ -236,7 +236,7 @@ verbatim) — translating directly into a **shared typed UI truth-state model**.
 **Scale & Complexity:**
 - Primary domain: **Web frontend** — a Blazor InteractiveServer domain UI composed on the
   **Hexalith.FrontComposer** shell, consuming an event-sourced CQRS backend over
-  REST + DAPR/SignalR. .NET 10; Fluent UI Blazor v5 pinned `5.0.0-rc.5-26219.1`.
+  REST + DAPR/SignalR. .NET 10; Fluent UI Blazor v5 pinned `5.0.1`.
 - Complexity level: **HIGH.** Drivers: eventual-consistency correctness as the core
   thesis; a 5-dimension truth-state model with casing-significant canonical vocabularies
   (13 badge / 10 lifecycle / 10 feedback / 6 reasons / 5 freshness / 4 audit) and a strict
@@ -267,10 +267,10 @@ verbatim) — translating directly into a **shared typed UI truth-state model**.
   states required by Tenants by itself. Story 1.2 resolved the Epic 1 path by composing a Tenants-specific
   `TenantDataGrid` from Fluent/FrontComposer primitives while keeping generic reusable
   cursor/pinning/list-state capability as a FrontComposer concern.
-- **Fluent UI Blazor v5 pinned `5.0.0-rc.5-26219.1`** — exact token/component/ARIA names
+- **Fluent UI Blazor v5 pinned `5.0.1`** — exact token/component/ARIA names
   verified against the pinned package at build; none asserted available without check.
-- **Current centralized platform package baselines (2026-08-29):** Hexalith.FrontComposer `4.1.1`,
-  Hexalith.EventStore `3.100.0`, and Hexalith.Memories `2.21.3`. Debug may consume source
+- **Current workspace platform package baselines (2026-10-29):** Hexalith.FrontComposer `4.7.1`,
+  Hexalith.EventStore `3.128.4`, and Hexalith.Memories `3.0.10` from the effective sibling Builds catalog. Debug may consume source
   references, but submodule revisions are implementation state rather than architecture invariants.
 - **Identity:** TenantId/UserId are meaningful caller-supplied strings, case-sensitive
   (Ordinal), **NOT ULIDs** — never `Guid`/`Ulid.TryParse`; copy-full-id is literal.
@@ -375,10 +375,10 @@ dotnet new blazor -n Hexalith.Tenants.UI -o src/Hexalith.Tenants.UI \
 
 **Architectural Decisions Provided by Starter:**
 
-**Language & Runtime:** C# / .NET 10 (`net10.0`, SDK `10.0.401` pinned), `Microsoft.NET.Sdk.Web`;
+**Language & Runtime:** C# / .NET 10 (`net10.0`, SDK `10.0.403` pinned), `Microsoft.NET.Sdk.Web`;
 Nullable + ImplicitUsings + `TreatWarningsAsErrors` + `ConfigureAwait(false)` per repo props.
 
-**UI / Styling:** Microsoft Fluent UI Blazor v5 (`5.0.0`, GA), inherited
+**UI / Styling:** Microsoft Fluent UI Blazor v5 (`5.0.1`, GA), inherited
 through the FrontComposer shell; semantic theme roles, no bespoke palette; Fluent type ramp /
 shapes / elevation. Tenants tracks FrontComposer's transitive Fluent pin; tokens/ARIA verified
 against the pinned package at build. UI uses FrontComposer or Fluent v5 components, never raw
@@ -848,7 +848,7 @@ redaction, and D9 cursors, so tokens/payloads never reach the browser and reconn
 server state. No contradictory decisions. One **recorded divergence** (not a contradiction): D1
 InteractiveServer vs. the UX `EXPERIENCE.md` "Auto" assumption — logged as a reconciliation action
 item (the UX named an assumption, not a hard requirement; NFR-3 holds either way, more simply under
-InteractiveServer). Versions consistent: .NET 10 (10.0.401) + Fluent v5 GA pin inherited from
+InteractiveServer). Versions consistent: .NET 10 (10.0.403) + Fluent v5 GA pin inherited from
 FrontComposer.
 
 **Pattern Consistency:** patterns enforce the decisions — Vocabulary-verbatim (CP-10), BFF-only
