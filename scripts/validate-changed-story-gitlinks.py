@@ -168,11 +168,29 @@ def require_start_identity(text: str, names: set[str], path: str, baseline: str)
             raise guard.CheckError(f"{path}: mid-story baseline already touches a recorded story identity.")
 
 
+def correction_frontmatter(text: str, path: str) -> dict[str, str]:
+    """Require complete, unambiguous metadata when it supplies correction proof."""
+    lines = text.splitlines()
+    if not lines or lines[0].strip() != "---":
+        raise guard.CheckError(f"{path}: missing provenance frontmatter.")
+    seen: set[str] = set()
+    for line in lines[1:]:
+        if line.strip() == "---":
+            return guard.read_frontmatter(text)
+        key, separator, _ = line.partition(":")
+        if separator and not key.startswith((" ", "\t", "#")):
+            key = key.strip()
+            if key in seen:
+                raise guard.CheckError(f"{path}: duplicate provenance field {key!r}.")
+            seen.add(key)
+    raise guard.CheckError(f"{path}: unterminated provenance frontmatter.")
+
+
 def verify_baseline_correction(
     text: str, names: set[str], path: str, baseline: str, endpoint: str, head: str,
 ) -> str:
     """Permit only the exact parent of an independently verified sole creation."""
-    fields = guard.read_frontmatter(text)
+    fields = correction_frontmatter(text, path)
     original = fields["gitlink_original_baseline"]
     if not re.fullmatch(r"(?:[0-9a-f]{40}|[0-9a-f]{64})", original):
         raise guard.CheckError(f"{path}: original baseline must be a full canonical commit ID.")
@@ -180,8 +198,26 @@ def verify_baseline_correction(
         ["git", "cat-file", "-e", original], cwd=REPO_ROOT,
         capture_output=True, check=False,
     )
-    if available.returncode != 1:
-        raise guard.CheckError(f"{path}: baseline correction requires an unavailable original object.")
+    if available.returncode == 0:
+        canonical_commit(original)
+        ancestry = subprocess.run(
+            ["git", "merge-base", "--is-ancestor", original, endpoint], cwd=REPO_ROOT,
+            capture_output=True, check=False,
+        )
+        if ancestry.returncode == 0:
+            raise guard.CheckError(f"{path}: baseline correction cannot replace a valid historical baseline.")
+        if ancestry.returncode != 1:
+            raise guard.CheckError(
+                f"{path}: cannot establish rejected baseline nonancestry: git merge-base "
+                f"--is-ancestor {original} {endpoint} failed (exit {ancestry.returncode}): "
+                f"{ancestry.stderr.decode('utf-8', errors='replace').strip()}."
+            )
+    elif available.returncode != 1:
+        raise guard.CheckError(
+            f"{path}: cannot inspect original baseline object availability: git cat-file -e "
+            f"{original} failed (exit {available.returncode}): "
+            f"{available.stderr.decode('utf-8', errors='replace').strip()}."
+        )
     creation = canonical_commit(fields["gitlink_creation_ref"])
     canonical_commit(fields["baseline_commit"])
     require_ancestor(creation, endpoint)
@@ -234,10 +270,29 @@ def verify_baseline_correction(
         raise guard.CheckError(f"{path}: gitlink_creation_ref must be the sole original story creation.")
     if parents_by_commit[creation] != [baseline]:
         raise guard.CheckError(f"{path}: corrected baseline must be the exact single parent of story creation.")
+    recorded = {}
     for revision in (creation, endpoint):
         originals = [snapshot(revision, name, regular=True) for name in sorted(names)]
         originals = [value for value in originals if value is not None]
-        if len(originals) != 1 or guard.read_frontmatter(originals[0]).get("baseline_commit") != original:
+        if len(originals) != 1:
+            raise guard.CheckError(f"{path}: correction must preserve the original creation and endpoint baseline.")
+        recorded[revision] = correction_frontmatter(originals[0], path)
+    # Restore the independently recorded start regardless of whether a fresh
+    # checkout carries the rejected object. Available commits were checked above;
+    # an absent object cannot occur in the endpoint's complete ancestor graph.
+    recorded_start = (
+        recorded[creation].get("baseline_revision") == baseline
+        and recorded[creation].get("baseline_commit", baseline) == baseline
+        and recorded[endpoint].get("baseline_revision") == baseline
+        and recorded[endpoint].get("baseline_commit") == original
+    )
+    if recorded_start:
+        if available.returncode == 1:
+            git("rev-list", "--missing=error", endpoint)
+    else:
+        if available.returncode == 0:
+            raise guard.CheckError(f"{path}: correction requires the creation-recorded start and rejected endpoint baseline.")
+        if any(recorded[revision].get("baseline_commit") != original for revision in (creation, endpoint)):
             raise guard.CheckError(f"{path}: correction must preserve the original creation and endpoint baseline.")
     stated = guard.stated_targets(text)
     for dependency, _, _ in guard.gitlink_changes(baseline, endpoint):
@@ -260,7 +315,7 @@ def audit_ref(text: str, names: set[str], path: str, base: str, head: str, moved
         old = snapshot(base, name)
         if old is not None and guard.read_frontmatter(old).get("baseline_commit"):
             if correction and guard.read_frontmatter(old)["baseline_commit"] == fields["gitlink_original_baseline"]:
-                continue  # Independently verify this unavailable provenance below.
+                continue  # Independently verify this preserved provenance below.
             previous_baseline = guard.resolve_baseline(Path(name), old)
             # Corrections can broaden the audit, never narrow away existing work.
             require_ancestor(baseline, previous_baseline)

@@ -4,6 +4,7 @@ Run: python3 tests/scripts/test_validate_changed_story_gitlinks.py
 """
 
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -69,7 +70,7 @@ class ChangedStoryGitlinkTests(unittest.TestCase):
             f"\n## File List\n{declaration}"
         )
 
-    def run_event(self, before=None, after=None, event_name="push", event=None, repo=None):
+    def run_event(self, before=None, after=None, event_name="push", event=None, repo=None, env=None):
         target = repo or self.repo
         if event is None:
             event = {"before": before or self.base, "after": after or self.git("rev-parse", "HEAD")}
@@ -78,7 +79,7 @@ class ChangedStoryGitlinkTests(unittest.TestCase):
         return subprocess.run(
             [sys.executable, str(target / "scripts/validate-changed-story-gitlinks.py"),
              "--event-path", str(event_file), "--event-name", event_name],
-            cwd=target, text=True, capture_output=True, check=False,
+            cwd=target, text=True, capture_output=True, check=False, env=env,
         )
 
     def assert_pass(self, result, count=1):
@@ -132,6 +133,47 @@ class ChangedStoryGitlinkTests(unittest.TestCase):
                  f"| `references/Added` | absent | `{NEW}` |\n")
         self.write(STORY, text)
         return text, before
+
+    def recorded_start_historical_story(self, creation_fields=None, endpoint_revision=None, original=None,
+                                       *, creation_text=None, endpoint_text=None):
+        # A real, available sibling commit is rejected by ancestry, not hidden
+        # or mocked as missing. Its parent is the same verified story start.
+        if original is None:
+            original = self.git("commit-tree", f"{self.base}^{{tree}}", "-p", self.base,
+                                "-m", "test: Create rejected baseline fixture")
+        if creation_fields is None:
+            creation_fields = {"baseline_revision": self.base}
+        fields = "".join(f"{key}: '{value}'\n" for key, value in creation_fields.items())
+        self.write(STORY, creation_text if creation_text is not None else
+                   f"---\nstatus: in-progress\n{fields}---\n\n## File List\n")
+        creation = self.commit()
+        revision = self.base if endpoint_revision is None else endpoint_revision
+        extra = f"baseline_revision: '{revision}'\n" if revision else ""
+        self.write(STORY, endpoint_text if endpoint_text is not None else
+                   self.story(baseline=original, extra=extra) + "\nHistorical closure.\n")
+        self.pointer(NEW)
+        endpoint = self.commit()
+        self.pointer("3" * 40)
+        before = self.commit()
+        self.write(STORY, self.corrected_story(endpoint, creation, original))
+        return creation, endpoint, before, original
+
+    def inspection_error_environment(self, *arguments):
+        # Simulate an inspection failure (128), never falsely report that an
+        # available object is unavailable (1). All other Git calls are real.
+        wrapper = Path(self.directory.name) / "git-wrapper"
+        wrapper.mkdir(exist_ok=True)
+        executable = wrapper / "git"
+        executable.write_text(
+            f"#!{sys.executable}\nimport os, sys\n"
+            f"if sys.argv[1:] == {list(arguments)!r}:\n"
+            "    sys.stderr.write('injected Git inspection error\\n')\n"
+            "    sys.exit(128)\n"
+            f"os.execv({shutil.which('git')!r}, ['git', *sys.argv[1:]])\n",
+            encoding="utf-8",
+        )
+        executable.chmod(0o755)
+        return {**os.environ, "PATH": str(wrapper) + os.pathsep + os.environ["PATH"]}
 
     def test_new_story_without_pointer_changes_passes(self):
         self.write(STORY, self.story())
@@ -398,13 +440,263 @@ class ChangedStoryGitlinkTests(unittest.TestCase):
     def test_available_original_baseline_cannot_use_correction(self):
         _, _, before = self.malformed_historical_story(original=self.base)
         self.commit()
-        self.assert_fail(self.run_event(before=before), "requires an unavailable original object")
+        self.assert_fail(self.run_event(before=before), "cannot replace a valid historical baseline")
 
     def test_available_blob_cannot_be_an_original_baseline_correction(self):
         blob = self.git("rev-parse", "HEAD:scripts/validate-story-gitlinks.py")
         _, _, before = self.malformed_historical_story(original=blob)
         self.commit()
-        self.assert_fail(self.run_event(before=before), "requires an unavailable original object")
+        self.assert_fail(self.run_event(before=before), "rev-parse")
+
+    def test_recorded_start_correction_accepts_available_rejected_commit(self):
+        _, endpoint, before, original = self.recorded_start_historical_story()
+        self.assertEqual(self.git("cat-file", "-t", original), "commit")
+        self.commit()
+        result = self.run_event(before=before)
+        self.assert_pass(result)
+        self.assertIn(f"Compared: {endpoint}", result.stdout)
+        self.assertIn(f"[declared] {DEPENDENCY}", result.stdout)
+        self.assertNotIn("+ working tree", result.stdout)
+        event = {"pull_request": {"base": {"sha": before},
+                                  "head": {"sha": self.git("rev-parse", "HEAD")}}}
+        self.assert_pass(self.run_event(event_name="pull_request", event=event))
+
+    def test_recorded_start_correction_survives_later_prose_edit(self):
+        self.recorded_start_historical_story()
+        before = self.commit()
+        self.write(STORY, (self.repo / STORY).read_text() + "\nLater prose.\n")
+        self.commit()
+        self.assert_pass(self.run_event(before=before))
+
+    def test_recorded_start_correction_survives_natural_transport_clone(self):
+        _, endpoint, before, original = self.recorded_start_historical_story()
+        after = self.commit()
+        clone = Path(self.directory.name) / "transport-clone"
+        self.git("clone", "--no-local", self.repo.as_uri(), str(clone))
+        absent = subprocess.run(["git", "cat-file", "-e", original], cwd=clone,
+                                capture_output=True, check=False)
+        self.assertEqual(absent.returncode, 1)
+        self.assertEqual(self.git("cat-file", "-t", original), "commit")
+        self.assert_pass(self.run_event(before=before, after=after, repo=clone))
+        event = {"pull_request": {"base": {"sha": before}, "head": {"sha": after}}}
+        self.assert_pass(self.run_event(event_name="pull_request", event=event, repo=clone))
+        env = self.inspection_error_environment("--literal-pathspecs", "rev-list", "--missing=error", endpoint)
+        result = self.run_event(before=before, after=after, repo=clone, env=env)
+        self.assert_fail(result, "rev-list --missing=error")
+        self.assertIn("injected Git inspection error", result.stdout)
+
+    def test_recorded_start_correction_rejects_duplicate_historical_proof_fields(self):
+        for field in ["baseline_revision", "baseline_commit"]:
+            for snapshot in ["creation", "endpoint"]:
+                with self.subTest(field=field, snapshot=snapshot):
+                    self.git("switch", "--detach", self.base)
+                    # This real sibling is also used as rejected endpoint proof.
+                    original = self.git("commit-tree", f"{self.base}^{{tree}}", "-p", self.base,
+                                        "-m", "test: Create rejected baseline fixture")
+                    good = original if field == "baseline_commit" and snapshot == "endpoint" else self.base
+                    fields = f"baseline_revision: '{self.base}'\n"
+                    if field == "baseline_commit":
+                        fields += f"baseline_commit: '{'e' * 40}'\nbaseline_commit: '{good}'\n"
+                    else:
+                        fields = f"baseline_revision: '{'e' * 40}'\n" + fields
+                        if snapshot == "endpoint":
+                            fields += f"baseline_commit: '{original}'\n"
+                    malformed = f"---\nstatus: in-review\n{fields}---\n\n## File List\n"
+                    kwargs = {f"{snapshot}_text": malformed}
+                    _, _, before, _ = self.recorded_start_historical_story(original=original, **kwargs)
+                    self.commit()
+                    self.assert_fail(self.run_event(before=before), "duplicate provenance field")
+
+    def test_recorded_start_correction_rejects_unterminated_historical_frontmatter(self):
+        for snapshot in ["creation", "endpoint"]:
+            with self.subTest(snapshot=snapshot):
+                self.git("switch", "--detach", self.base)
+                original = self.git("commit-tree", f"{self.base}^{{tree}}", "-p", self.base,
+                                    "-m", "test: Create rejected baseline fixture")
+                fields = f"baseline_revision: '{self.base}'\n"
+                if snapshot == "endpoint":
+                    fields += f"baseline_commit: '{original}'\n"
+                malformed = f"---\nstatus: in-review\n{fields}\n## File List\n"
+                _, _, before, _ = self.recorded_start_historical_story(
+                    original=original, **{f"{snapshot}_text": malformed})
+                self.commit()
+                self.assert_fail(self.run_event(before=before), "unterminated provenance frontmatter")
+
+    def test_baseline_correction_rejects_object_inspection_error(self):
+        original = self.git("commit-tree", f"{self.base}^{{tree}}", "-p", self.base,
+                            "-m", "test: Create rejected baseline fixture")
+        # Legacy-shaped evidence would pass if error 128 were misread as missing.
+        _, _, before = self.malformed_historical_story(original=original)
+        self.commit()
+        env = self.inspection_error_environment("cat-file", "-e", original)
+        result = self.run_event(before=before, env=env)
+        self.assert_fail(result, "cannot inspect original baseline object availability")
+        self.assertIn("exit 128", result.stdout)
+        self.assertIn("injected Git inspection error", result.stdout)
+
+    def test_recorded_start_correction_rejects_nonancestry_inspection_error(self):
+        _, endpoint, before, original = self.recorded_start_historical_story()
+        self.commit()
+        env = self.inspection_error_environment("merge-base", "--is-ancestor", original, endpoint)
+        result = self.run_event(before=before, env=env)
+        self.assert_fail(result, "cannot establish rejected baseline nonancestry")
+        self.assertIn("exit 128", result.stdout)
+        self.assertIn("injected Git inspection error", result.stdout)
+
+    def test_recorded_start_correction_accepts_matching_creation_commit_field(self):
+        self.recorded_start_historical_story(creation_fields={
+            "baseline_revision": self.base, "baseline_commit": self.base,
+        })
+        self.commit()
+        self.assert_pass(self.run_event(before=self.git("rev-parse", "HEAD^")))
+
+    def test_recorded_start_correction_rejects_missing_or_conflicting_creation_fields(self):
+        # Each fixture is an independent history: no later edit can supply proof
+        # missing from the original creation snapshot.
+        for fields in [{}, {"baseline_commit": self.base},
+                       {"baseline_revision": self.base[:8]},
+                       {"baseline_revision": "e" * 40},
+                       {"baseline_revision": self.base, "baseline_commit": "e" * 40}]:
+            with self.subTest(fields=fields):
+                self.git("switch", "--detach", self.base)
+                _, _, before, _ = self.recorded_start_historical_story(creation_fields=fields)
+                self.commit()
+                self.assert_fail(self.run_event(before=before), "creation-recorded start")
+
+    def test_recorded_start_correction_rejects_missing_or_changed_endpoint_revision(self):
+        for revision in ["", self.base[:8], "e" * 40]:
+            with self.subTest(revision=revision):
+                self.git("switch", "--detach", self.base)
+                _, _, before, _ = self.recorded_start_historical_story(endpoint_revision=revision)
+                self.commit()
+                self.assert_fail(self.run_event(before=before), "creation-recorded start")
+
+    def test_recorded_start_correction_rejects_false_rejected_baseline(self):
+        creation, endpoint, before, _ = self.recorded_start_historical_story()
+        other = self.git("commit-tree", f"{self.base}^{{tree}}", "-p", self.base,
+                         "-p", creation, "-m", "test: Create fixture commit")
+        self.write(STORY, self.corrected_story(endpoint, creation, other))
+        self.commit()
+        self.assert_fail(self.run_event(before=before), "creation-recorded start")
+
+    def test_recorded_start_correction_cannot_narrow_a_valid_older_baseline(self):
+        older = self.base
+        self.base = self.commit()
+        _, _, before, _ = self.recorded_start_historical_story(original=older)
+        self.commit()
+        self.assert_fail(self.run_event(before=before), "cannot replace a valid historical baseline")
+
+    def test_recorded_start_correction_requires_exact_parent_even_if_older(self):
+        actual_parent = self.commit()
+        creation, endpoint, before, original = self.recorded_start_historical_story()
+        self.assertNotEqual(actual_parent, self.base)
+        self.write(STORY, self.corrected_story(endpoint, creation, original))
+        self.commit()
+        self.assert_fail(self.run_event(before=before), "exact single parent")
+
+    def test_recorded_start_correction_requires_full_canonical_metadata(self):
+        creation, endpoint, before, original = self.recorded_start_historical_story()
+        text = (self.repo / STORY).read_text()
+        for value in [creation, endpoint, original, self.base]:
+            with self.subTest(value=value):
+                self.write(STORY, text.replace(value, value[:8]))
+                self.commit()
+                self.assert_fail(self.run_event(before=before), "full canonical commit ID")
+
+    def test_recorded_start_correction_refuses_available_noncommit_objects(self):
+        blob = self.git("rev-parse", "HEAD:scripts/validate-story-gitlinks.py")
+        self.git("tag", "-a", "rejected-tag", "-m", "test: Create fixture commit")
+        tag = self.git("rev-parse", "refs/tags/rejected-tag")
+        for original, diagnostic in [(blob, "rev-parse"), (tag, "not canonical")]:
+            with self.subTest(original=original):
+                self.git("switch", "--detach", self.base)
+                _, _, before, _ = self.recorded_start_historical_story(original=original)
+                self.commit()
+                self.assert_fail(self.run_event(before=before), diagnostic)
+
+    def test_recorded_start_correction_requires_all_provenance_metadata(self):
+        _, _, before, _ = self.recorded_start_historical_story()
+        text = (self.repo / STORY).read_text()
+        for field in ["gitlink_original_baseline", "gitlink_creation_ref", "gitlink_audit_ref"]:
+            with self.subTest(field=field):
+                self.write(STORY, "\n".join(line for line in text.splitlines()
+                                            if not line.startswith(field + ":")) + "\n")
+                self.commit()
+                self.assert_fail(self.run_event(before=before), "baseline correction requires")
+
+    def test_recorded_start_correction_cannot_invent_later_creation(self):
+        _, endpoint, before, original = self.recorded_start_historical_story()
+        self.write(STORY, self.corrected_story(endpoint, endpoint, original))
+        self.commit()
+        self.assert_fail(self.run_event(before=before), "sole original story creation")
+
+    def test_recorded_start_correction_refuses_deleted_and_recreated_identity(self):
+        creation, endpoint, before, original = self.recorded_start_historical_story()
+        self.git("rm", "-f", str(STORY))
+        self.commit()
+        self.write(STORY, self.corrected_story(endpoint, creation, original))
+        self.commit()
+        self.assert_fail(self.run_event(before=before), "deleted/recreated identities")
+
+    def test_recorded_start_correction_follows_unambiguous_rename(self):
+        creation, _, _, original = self.recorded_start_historical_story()
+        self.write(STORY, self.story(baseline=original, extra=f"baseline_revision: '{self.base}'\n"))
+        self.commit()
+        alternate = ARTIFACTS / "renamed-recorded-start.md"
+        self.git("mv", str(STORY), str(alternate))
+        endpoint = self.commit()
+        self.pointer(NEW)
+        before = self.commit()
+        self.write(alternate, self.corrected_story(endpoint, creation, original))
+        self.commit()
+        # endpoint still carries the later 3... pointer, so inventory it exactly.
+        self.assert_fail(self.run_event(before=before), "MISSTATED")
+        self.write(alternate, (self.repo / alternate).read_text().replace(f"`{NEW}`", f"`{'3' * 40}`"))
+        self.commit()
+        self.assert_pass(self.run_event(before=before))
+
+    def test_recorded_start_correction_refuses_ambiguous_rename(self):
+        creation, _, _, original = self.recorded_start_historical_story()
+        self.write(STORY, self.story(baseline=original, extra=f"baseline_revision: '{self.base}'\n"))
+        self.commit()
+        alternate = ARTIFACTS / "spec-rewritten-recorded-start.md"
+        self.git("rm", "-f", str(STORY))
+        self.write(alternate, self.story(baseline=original) + "Rewritten import.\n" * 100)
+        endpoint = self.commit()
+        before = self.commit()
+        self.write(alternate, self.corrected_story(endpoint, creation, original))
+        self.commit()
+        self.assert_fail(self.run_event(before=before), "competing Markdown sources")
+
+    def test_recorded_start_correction_requires_historical_inventory(self):
+        _, _, before, _ = self.recorded_start_historical_story()
+        text = (self.repo / STORY).read_text()
+        for replacement, diagnostic in [("omitted", "UNSTATED"), ("4" * 40, "MISSTATED")]:
+            with self.subTest(replacement=replacement):
+                self.write(STORY, text.replace(f"`{NEW}`", f"`{replacement}`"))
+                self.commit()
+                self.assert_fail(self.run_event(before=before), diagnostic)
+        self.write(STORY, text.replace(f"- `{DEPENDENCY}`\n", ""))
+        self.commit()
+        self.assert_fail(self.run_event(before=before), "UNDECLARED")
+
+    def test_recorded_start_correction_cannot_hide_later_story_pointer_work(self):
+        creation, endpoint, _, original = self.recorded_start_historical_story()
+        self.write(STORY, self.story(baseline=original) + "\nLater pointer work.\n")
+        self.pointer("4" * 40)
+        before = self.commit()
+        self.write(STORY, self.corrected_story(endpoint, creation, original))
+        self.commit()
+        self.assert_fail(self.run_event(before=before), "omits later story-associated gitlink commit")
+
+    def test_recorded_start_correction_cannot_hide_event_pointer_move_or_revert(self):
+        _, _, before, _ = self.recorded_start_historical_story()
+        self.pointer("4" * 40)
+        self.commit()
+        self.assert_fail(self.run_event(before=before), "gitlink-bearing event commits")
+        self.pointer("3" * 40)
+        self.commit()
+        self.assert_fail(self.run_event(before=before), "gitlink-bearing event commits")
 
     def test_baseline_correction_rejects_wrong_creation_parent_even_if_older(self):
         actual_parent = self.commit()

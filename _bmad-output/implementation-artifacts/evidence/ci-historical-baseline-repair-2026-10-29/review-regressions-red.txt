@@ -1,0 +1,176 @@
+FFFFFFFFF
+======================================================================
+FAIL: test_recorded_start_correction_survives_natural_transport_clone (__main__.ChangedStoryGitlinkTests.test_recorded_start_correction_survives_natural_transport_clone)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/administrator/projects/hexalith/tenants/tests/scripts/test_validate_changed_story_gitlinks.py", line 480, in test_recorded_start_correction_survives_natural_transport_clone
+    self.assert_pass(self.run_event(before=before, after=after, repo=clone))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/administrator/projects/hexalith/tenants/tests/scripts/test_validate_changed_story_gitlinks.py", line 86, in assert_pass
+    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 1 != 0 : Event range: 42975379a4cf5ff94fb9dfd7b1ac7316ba5d968a..e4cfb02703cabd9b263289524ac381ebd4e61c8e
+FAIL: _bmad-output/implementation-artifacts/spec-7-1-ci-story.md: _bmad-output/implementation-artifacts/spec-7-1-ci-story.md: correction must preserve the original creation and endpoint baseline.
+Changed stories: 1; failed: 1
+
+
+======================================================================
+FAIL: test_recorded_start_correction_rejects_duplicate_historical_proof_fields (__main__.ChangedStoryGitlinkTests.test_recorded_start_correction_rejects_duplicate_historical_proof_fields) (field='baseline_revision', snapshot='creation')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/administrator/projects/hexalith/tenants/tests/scripts/test_validate_changed_story_gitlinks.py", line 504, in test_recorded_start_correction_rejects_duplicate_historical_proof_fields
+    self.assert_fail(self.run_event(before=before), "duplicate provenance field")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/administrator/projects/hexalith/tenants/tests/scripts/test_validate_changed_story_gitlinks.py", line 90, in assert_fail
+    self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 0 == 0 : Event range: 0578026ed272bcf140c484db3956098f53c505ce..f55229ca135d6e6e0e9351e9ff17bfdc496ddfbb
+Audit: _bmad-output/implementation-artifacts/spec-7-1-ci-story.md at 5e2924940d82021c7a4cd9cc4e18f64cc0e69707
+Story:    spec-7-1-ci-story.md
+Baseline: 25ff792
+Compared: 5e2924940d82021c7a4cd9cc4e18f64cc0e69707 (5e29249)
+
+1 references/ pointer change(s) in range:
+  [declared] references/Dependency  1111111 -> 2222222
+
+RESULT: PASS
+Changed stories: 1; failed: 0
+
+
+======================================================================
+FAIL: test_recorded_start_correction_rejects_duplicate_historical_proof_fields (__main__.ChangedStoryGitlinkTests.test_recorded_start_correction_rejects_duplicate_historical_proof_fields) (field='baseline_revision', snapshot='endpoint')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/administrator/projects/hexalith/tenants/tests/scripts/test_validate_changed_story_gitlinks.py", line 504, in test_recorded_start_correction_rejects_duplicate_historical_proof_fields
+    self.assert_fail(self.run_event(before=before), "duplicate provenance field")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/administrator/projects/hexalith/tenants/tests/scripts/test_validate_changed_story_gitlinks.py", line 90, in assert_fail
+    self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 0 == 0 : Event range: 9a59e63d5bc6026253b5ee3acde97475e783e07e..4bce9d40866008883ad501703aeb85dfa2ce9457
+Audit: _bmad-output/implementation-artifacts/spec-7-1-ci-story.md at bd78f6ce11d30394ea2ffe6d2300a7f3c71aa33d
+Story:    spec-7-1-ci-story.md
+Baseline: 25ff792
+Compared: bd78f6ce11d30394ea2ffe6d2300a7f3c71aa33d (bd78f6c)
+
+1 references/ pointer change(s) in range:
+  [declared] references/Dependency  1111111 -> 2222222
+
+RESULT: PASS
+Changed stories: 1; failed: 0
+
+
+======================================================================
+FAIL: test_recorded_start_correction_rejects_duplicate_historical_proof_fields (__main__.ChangedStoryGitlinkTests.test_recorded_start_correction_rejects_duplicate_historical_proof_fields) (field='baseline_commit', snapshot='creation')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/administrator/projects/hexalith/tenants/tests/scripts/test_validate_changed_story_gitlinks.py", line 504, in test_recorded_start_correction_rejects_duplicate_historical_proof_fields
+    self.assert_fail(self.run_event(before=before), "duplicate provenance field")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/administrator/projects/hexalith/tenants/tests/scripts/test_validate_changed_story_gitlinks.py", line 90, in assert_fail
+    self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 0 == 0 : Event range: dc4a2d911cf5a39eb721ba6d4191fb8acbe08062..d2d109b3fbe765ad62e55d4b53a6462f25d96717
+Audit: _bmad-output/implementation-artifacts/spec-7-1-ci-story.md at e57d99799d5e3caaf9284b68f1e77e5e48a969dc
+Story:    spec-7-1-ci-story.md
+Baseline: 25ff792
+Compared: e57d99799d5e3caaf9284b68f1e77e5e48a969dc (e57d997)
+
+1 references/ pointer change(s) in range:
+  [declared] references/Dependency  1111111 -> 2222222
+
+RESULT: PASS
+Changed stories: 1; failed: 0
+
+
+======================================================================
+FAIL: test_recorded_start_correction_rejects_duplicate_historical_proof_fields (__main__.ChangedStoryGitlinkTests.test_recorded_start_correction_rejects_duplicate_historical_proof_fields) (field='baseline_commit', snapshot='endpoint')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/administrator/projects/hexalith/tenants/tests/scripts/test_validate_changed_story_gitlinks.py", line 504, in test_recorded_start_correction_rejects_duplicate_historical_proof_fields
+    self.assert_fail(self.run_event(before=before), "duplicate provenance field")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/administrator/projects/hexalith/tenants/tests/scripts/test_validate_changed_story_gitlinks.py", line 90, in assert_fail
+    self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 0 == 0 : Event range: 1a91abb49b4be58fb132c56786432cbce8aa4827..5d868a08bceae2b906d6eb69490a43db8c6a74b8
+Audit: _bmad-output/implementation-artifacts/spec-7-1-ci-story.md at 3be3ec5bf680113cb62e641519f26c1d798e45fb
+Story:    spec-7-1-ci-story.md
+Baseline: 25ff792
+Compared: 3be3ec5bf680113cb62e641519f26c1d798e45fb (3be3ec5)
+
+1 references/ pointer change(s) in range:
+  [declared] references/Dependency  1111111 -> 2222222
+
+RESULT: PASS
+Changed stories: 1; failed: 0
+
+
+======================================================================
+FAIL: test_recorded_start_correction_rejects_unterminated_historical_frontmatter (__main__.ChangedStoryGitlinkTests.test_recorded_start_correction_rejects_unterminated_historical_frontmatter) (snapshot='creation')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/administrator/projects/hexalith/tenants/tests/scripts/test_validate_changed_story_gitlinks.py", line 519, in test_recorded_start_correction_rejects_unterminated_historical_frontmatter
+    self.assert_fail(self.run_event(before=before), "unterminated provenance frontmatter")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/administrator/projects/hexalith/tenants/tests/scripts/test_validate_changed_story_gitlinks.py", line 90, in assert_fail
+    self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 0 == 0 : Event range: 9013ad4ef5967fffdd99ca47bf091e6992c1b5ab..f4b09552fa866d487f135ff23a6d351a1e536e88
+Audit: _bmad-output/implementation-artifacts/spec-7-1-ci-story.md at b4ece4a58712735fa61ad98eb7cf739739b591be
+Story:    spec-7-1-ci-story.md
+Baseline: 5ccc264
+Compared: b4ece4a58712735fa61ad98eb7cf739739b591be (b4ece4a)
+
+1 references/ pointer change(s) in range:
+  [declared] references/Dependency  1111111 -> 2222222
+
+RESULT: PASS
+Changed stories: 1; failed: 0
+
+
+======================================================================
+FAIL: test_recorded_start_correction_rejects_unterminated_historical_frontmatter (__main__.ChangedStoryGitlinkTests.test_recorded_start_correction_rejects_unterminated_historical_frontmatter) (snapshot='endpoint')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/administrator/projects/hexalith/tenants/tests/scripts/test_validate_changed_story_gitlinks.py", line 519, in test_recorded_start_correction_rejects_unterminated_historical_frontmatter
+    self.assert_fail(self.run_event(before=before), "unterminated provenance frontmatter")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/administrator/projects/hexalith/tenants/tests/scripts/test_validate_changed_story_gitlinks.py", line 90, in assert_fail
+    self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 0 == 0 : Event range: de1d16909dd7f1b87a5ed8174ca7686653425e57..98f3775558f9b4756f757eeceb6a8e40843ce008
+Audit: _bmad-output/implementation-artifacts/spec-7-1-ci-story.md at d72000cdea07c051e7e1aaa13b855569852ba842
+Story:    spec-7-1-ci-story.md
+Baseline: 5ccc264
+Compared: d72000cdea07c051e7e1aaa13b855569852ba842 (d72000c)
+
+1 references/ pointer change(s) in range:
+  [declared] references/Dependency  1111111 -> 2222222
+
+RESULT: PASS
+Changed stories: 1; failed: 0
+
+
+======================================================================
+FAIL: test_baseline_correction_rejects_object_inspection_error (__main__.ChangedStoryGitlinkTests.test_baseline_correction_rejects_object_inspection_error)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/administrator/projects/hexalith/tenants/tests/scripts/test_validate_changed_story_gitlinks.py", line 530, in test_baseline_correction_rejects_object_inspection_error
+    self.assertIn("exit 128", result.stdout)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'exit 128' not found in 'Event range: ba207652a5bea639c5779f11e411d7bd4ae51200..68b99813bc7b986859305f7c02a9a3dca6e7c366\nFAIL: _bmad-output/implementation-artifacts/spec-7-1-ci-story.md: _bmad-output/implementation-artifacts/spec-7-1-ci-story.md: cannot inspect original baseline object availability.\nChanged stories: 1; failed: 1\n'
+
+======================================================================
+FAIL: test_recorded_start_correction_rejects_nonancestry_inspection_error (__main__.ChangedStoryGitlinkTests.test_recorded_start_correction_rejects_nonancestry_inspection_error)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/administrator/projects/hexalith/tenants/tests/scripts/test_validate_changed_story_gitlinks.py", line 539, in test_recorded_start_correction_rejects_nonancestry_inspection_error
+    self.assertIn("exit 128", result.stdout)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'exit 128' not found in 'Event range: bbfc0d75a3b752e9a1e526d7c3ed28512e68453f..f31424eadb3a48f64f52f2b7d7081cc0491453f4\nFAIL: _bmad-output/implementation-artifacts/spec-7-1-ci-story.md: _bmad-output/implementation-artifacts/spec-7-1-ci-story.md: cannot establish rejected baseline nonancestry.\nChanged stories: 1; failed: 1\n'
+
+----------------------------------------------------------------------
+Ran 5 tests in 1.817s
+
+FAILED (failures=9)

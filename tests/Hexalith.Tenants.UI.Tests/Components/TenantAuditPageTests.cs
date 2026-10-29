@@ -1291,12 +1291,17 @@ public sealed class TenantAuditPageTests : BunitContext
     [InlineData("GlobalAdministratorSet", "receipt")]
     public void TenantAuditPageOffersGlobalAdministratorCorrectionWithAuthority(string eventType, string origin)
     {
-        RegisterGlobalAdminServices(
-            authorized: true,
-            eventType == "GlobalAdministratorSet"
-                ? GlobalAdmins("admin-user", "other-admin")
-                : GlobalAdmins("other-admin"),
+        StubTenantQueryGateway gateway = RegisterGlobalAdminServices(
+            authorized: true, GlobalAdmins("other-admin"),
             GlobalAdminAuditSnapshot(eventType, "admin-user"));
+        gateway.GlobalAdminProvider = request => request.Cursor is null
+            ? GlobalAdmins(Enumerable.Range(0, 20).Select(index => $"other-admin-{index}").ToArray()) with
+            {
+                HasMore = true,
+                NextCursor = "opaque/admin-page-two+",
+                IsCompleteEvidence = false,
+            }
+            : GlobalAdmins(eventType == "GlobalAdministratorSet" ? "admin-user" : "other-admin");
 
         IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
             .Add(p => p.TenantId, "system"));
@@ -1317,7 +1322,110 @@ public sealed class TenantAuditPageTests : BunitContext
             eventType == "GlobalAdministratorSet"
                 ? TenantCorrectionCommandType.RemoveGlobalAdministrator
                 : TenantCorrectionCommandType.SetGlobalAdministrator);
+        GlobalAdministratorCorrectionSnapshot preview = cut.FindComponent<GlobalAdministratorCorrectionPanel>().Instance.Snapshot!;
+        preview.CurrentAdministratorCount.ShouldBe(21);
+        preview.TargetCurrentlyPresent.ShouldBe(eventType == "GlobalAdministratorSet");
+        preview.LastConfirmedProjectionEvidence!.IsCompleteEvidence.ShouldBeTrue();
+        gateway.GlobalAdminRequests.Count.ShouldBeGreaterThanOrEqualTo(4);
+        gateway.GlobalAdminRequests.Where(request => request.Cursor is not null)
+            .ShouldAllBe(request => request.Cursor == "opaque/admin-page-two+" && request.ETag == null);
         cut.FindAll("[data-testid='tenants-correction-role']").ShouldBeEmpty();
+    }
+
+    /// <summary>Verifies that rendered refresh recovers correction eligibility from incomplete authority evidence.</summary>
+    [Fact]
+    public void GlobalCorrectionRecoversAfterRefreshLoadsEveryAdministratorPage()
+    {
+        TenantAuditSnapshot audit = GlobalAdminAuditSnapshot("GlobalAdministratorSet", "admin-user");
+        StubTenantQueryGateway gateway = RegisterGlobalAdminServices(true, GlobalAdmins("other-admin"), audit);
+        bool recovered = false;
+        gateway.GlobalAdminProvider = request => !recovered
+            ? GlobalAdministratorsSnapshot.Unavailable()
+            : request.Cursor is null
+                ? GlobalAdmins("other-admin") with { HasMore = true, NextCursor = "later-admins", IsCompleteEvidence = false }
+                : GlobalAdmins("admin-user");
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "system"));
+        cut.WaitForElement("[data-testid='tenants-audit-grid']");
+        cut.FindAll("[data-testid='tenants-correction-start']").ShouldBeEmpty();
+        gateway.QueueResponse(Task.FromResult(audit));
+        recovered = true;
+
+        cut.Find("[data-testid='tenants-audit-refresh']").Click();
+        cut.WaitForElement("[data-testid='tenants-correction-start']").Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            GlobalAdministratorCorrectionSnapshot preview = cut.FindComponent<GlobalAdministratorCorrectionPanel>().Instance.Snapshot!;
+            preview.CurrentAdministratorCount.ShouldBe(2);
+            preview.TargetCurrentlyPresent.ShouldBeTrue();
+            preview.LifecycleState.ShouldBe(TenantCommandLifecycleState.Previewed);
+        });
+        ((StubTenantCommandGateway)Services.GetRequiredService<ITenantCommandGateway>()).TrackedMessageIds.ShouldBeEmpty();
+    }
+
+    /// <summary>Verifies that audit-launched commands wait for a complete post-command administrator projection.</summary>
+    /// <param name="remove">Whether the correction revokes rather than restores access.</param>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task GlobalCorrectionConfirmationWaitsForParentAdministratorContinuation(bool remove)
+    {
+        TenantAuditSnapshot audit = GlobalAdminAuditSnapshot(
+            remove ? "GlobalAdministratorSet" : "GlobalAdministratorRemoved", "admin-user");
+        StubTenantQueryGateway gateway = RegisterGlobalAdminServices(true, GlobalAdmins("other-admin"), audit);
+        StubTenantCommandGateway commands = (StubTenantCommandGateway)Services.GetRequiredService<ITenantCommandGateway>();
+        commands.Status = new(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true)
+        {
+            CommittedEventSequence = 2,
+        };
+        var continuationStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var continuation = new TaskCompletionSource<GlobalAdministratorsSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
+        gateway.AsyncGlobalAdminProvider = request =>
+        {
+            bool postCommand = commands.StatusHandles.Count > 0;
+            string version = postCommand ? "tenant-sequence:2" : "tenant-sequence:1";
+            if (request.Cursor is null)
+            {
+                return Task.FromResult(GlobalAdmins("other-admin") with
+                {
+                    HasMore = true,
+                    NextCursor = "parent-continuation",
+                    IsCompleteEvidence = false,
+                    ProjectionVersion = version,
+                });
+            }
+            request.Cursor.ShouldBe("parent-continuation");
+            request.ETag.ShouldBeNull();
+            if (postCommand)
+            {
+                continuationStarted.TrySetResult();
+                return continuation.Task;
+            }
+            return Task.FromResult(GlobalAdmins(remove ? "admin-user" : "another-admin"));
+        };
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "system"));
+        cut.WaitForElement("[data-testid='tenants-correction-start']").Click();
+        cut.WaitForElement("[data-testid='tenants-correction-confirm']");
+        GlobalAdministratorCorrectionPanel panel = cut.FindComponent<GlobalAdministratorCorrectionPanel>().Instance;
+        panel.Snapshot!.CurrentAdministratorCount.ShouldBe(2);
+
+        Task submit = cut.Find("[data-testid='tenants-correction-confirm']")
+            .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        await continuationStarted.Task.WaitAsync(TimeSpan.FromSeconds(5), Xunit.TestContext.Current.CancellationToken);
+        panel.Snapshot!.LifecycleState.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
+        commands.TrackedMessageIds.Count.ShouldBe(1);
+        continuation.SetResult(GlobalAdmins(remove ? "remaining-admin" : "admin-user") with
+        {
+            ProjectionVersion = "tenant-sequence:2",
+        });
+        await submit.WaitAsync(TimeSpan.FromSeconds(5), Xunit.TestContext.Current.CancellationToken);
+
+        cut.WaitForAssertion(() => panel.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Confirmed));
+        panel.Snapshot!.LastConfirmedProjectionEvidence!.Rows.Count.ShouldBe(2);
+        panel.Snapshot!.LastConfirmedProjectionEvidence!.IsCompleteEvidence.ShouldBeTrue();
+        panel.Snapshot!.LastConfirmedProjectionEvidence!.HasMore.ShouldBeFalse();
     }
 
     [Fact]
@@ -5618,23 +5726,30 @@ public sealed class TenantAuditPageTests : BunitContext
 
         public Func<GlobalAdministratorsRequest, GlobalAdministratorsSnapshot>? GlobalAdminProvider { get; set; }
 
+        public Func<GlobalAdministratorsRequest, Task<GlobalAdministratorsSnapshot>>? AsyncGlobalAdminProvider { get; set; }
+
         public List<GlobalAdministratorsRequest> GlobalAdminRequests { get; } = [];
 
         public Exception? GlobalAdminFault { get; set; }
 
-        public Task<GlobalAdministratorsSnapshot> GetGlobalAdministratorsAsync(
+        public async Task<GlobalAdministratorsSnapshot> GetGlobalAdministratorsAsync(
             GlobalAdministratorsRequest request,
             GlobalAdministratorsSnapshot? previous,
             CancellationToken cancellationToken = default)
         {
             GlobalAdminRequests.Add(request);
-            return GlobalAdminFault is not null
-                ? throw GlobalAdminFault
-                : Task.FromResult((GlobalAdminProvider?.Invoke(request) ?? GlobalAdministrators) with
-                {
-                    RequestCursor = request.Cursor,
-                    RequestPageSize = request.PageSize,
-                });
+            if (GlobalAdminFault is not null)
+            {
+                throw GlobalAdminFault;
+            }
+            GlobalAdministratorsSnapshot result = AsyncGlobalAdminProvider is not null
+                ? await AsyncGlobalAdminProvider(request)
+                : GlobalAdminProvider?.Invoke(request) ?? GlobalAdministrators;
+            return result with
+            {
+                RequestCursor = request.Cursor,
+                RequestPageSize = request.PageSize,
+            };
         }
 
         public Task<TenantAuditSnapshot> GetTenantAuditAsync(

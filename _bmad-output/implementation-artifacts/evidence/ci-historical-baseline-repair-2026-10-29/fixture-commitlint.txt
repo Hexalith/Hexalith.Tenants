@@ -1,0 +1,6 @@
+⧗   --- input ---
+test: Create fixture commit
+✔   found 0 problems, 0 warnings
+⧗   --- input ---
+test: Create rejected baseline fixture
+✔   found 0 problems, 0 warnings

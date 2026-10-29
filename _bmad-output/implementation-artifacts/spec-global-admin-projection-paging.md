@@ -2,20 +2,21 @@
 title: 'Load complete global-administrator correction evidence'
 type: 'bugfix'
 created: '2026-08-27'
-status: 'in-review'
+status: 'done'
 baseline_commit: '6bd5fc29cf66e0238a4ea5ceb8c743c358fe3513'
 rejected_baseline_commit: '23b2a7691ae667fd160a48a5d7293f3cf38d48fe'
 implementation_creation_ref: '7716f0b11423eb54d74935b6cc6e3edf405dc400'
 implementation_endpoint: 'ded413dfd4786983585c7f56a399825cc1afbae3'
 gitlink_audit_ref: 'ded413dfd4786983585c7f56a399825cc1afbae3'
-reviewed_head: '73478ea3b21dbdc416d5b54b59260f851fbcd965'
+gitlink_original_baseline: '23b2a7691ae667fd160a48a5d7293f3cf38d48fe'
+gitlink_creation_ref: '7716f0b11423eb54d74935b6cc6e3edf405dc400'
+reviewed_head: '1d8c31d2abe809829e10ce1ddadc978c79489f3e'
 baseline_revision: '6bd5fc29cf66e0238a4ea5ceb8c743c358fe3513'
 review_loop_iteration: 0
-followup_review_recommended: true
+followup_review_recommended: false
 context:
   - '_bmad-output/planning-artifacts/sprint-change-proposal-2026-07-01-deferred-work-pagination-and-submodule-docs.md'
-warnings:
-  - 'CI provenance preflight refuses the repaired historical baseline: historical audit must retain the endpoint story baseline_commit. See 2026-10-29 evidence; status remains in-review.'
+warnings: []
 deferred: []
 ---
 
@@ -151,6 +152,28 @@ All three fresh-context review layers completed before triage. The complete base
 
 RB2/RV1 share one missing signal-isolation case. RB3 and RB4 are separate integration checks; all retained patches are tests, with no production/public-contract change. The current three production fixes, later strict duplicate rejection, Story 5.7 semantics, unrelated edits and gitlinks are KEEP requirements. The CI provenance refusal remains an independent completion blocker.
 
+
+### 2026-10-29 — Review after paging commit
+
+Review resumed at `e2efd286fed08caa45977530f5e7ba5246b5d066`, committed by another process during initial investigation. All three fresh-context layers completed before classification. The complete original-baseline diff, including untracked files, was captured at `/tmp/paging-build-review-z8s0adz5/all-since-baseline.diff` (113,517,863 bytes); extracted historical and current paging diffs supported attribution without adopting unrelated later changes.
+
+| Finding | Verdict and evidence | Disposition |
+| --- | --- | --- |
+| CB1: member paging drops an unfinished detail administrator walk | medium — carried from RB1: the shared-generation behavior already exists at the original baseline; current extraction and retention changes do not introduce it. | retain the prior exclusion and operation owners; no repeat patch or deferred-ledger entry. |
+| CB2: one-page list completeness ignores a stray terminal cursor | medium, outside paging correction — the cited consumer is `GlobalAdministratorsPage`, whose separate list paging is explicitly excluded by the intent. Correction and detail consumers use the shared loader, which rejects the contradictory cursor. | preserve the explicit unrelated-list boundary. |
+| CB3: grant/remove preview boundaries trust contradictory complete flags | false for the scoped correction path — the complete loader rejects contradictory paging before producing evidence, and correction snapshots independently reject `HasMore` and incomplete evidence before preview/confirmation. The cited alternate entry is the excluded separate list path. | reject the demonstrated-outside-scope/speculative-inside-scope change. |
+| CB4: audit-page eligibility/opening lacks administrator continuations | medium — all existing parent providers return terminal administrator snapshots; multi-page detail and standalone tests cannot protect the audit parent's initial enrichment and opening. | patch: rendered later-page target and full-count coverage. |
+| CB5: audit parent's confirmation provider lacks multi-page verification | medium — standalone fallback tests cannot detect replacement of the parent's complete provider with a single-page read. | patch: restore and revoke through the mounted parent, with complete post-command sequence evidence. |
+| CB6: stale/lifecycle/missing-version continuation boundaries lack isolated coverage | medium — the direct surface-state theory fails on page one for these cases, while later duplicate-row cases combine other rejection reasons. | patch: a valid first page followed by invalid continuation evidence; require canonical redaction. |
+| CB7: malformed continuation shapes lack isolated coverage | medium — request-scope, page-size, and malformed-identity cases currently fail before accumulating rows. | patch: continuation variants that cannot retain previously accumulated rows. |
+| CB8: non-adjacent cursor cycles lack direct coverage | low — the existing repeated-cursor case does not distinguish a visited set from comparison with only the preceding cursor. | patch: one three-response cycle with no fourth request. |
+| CB9: cancellation while awaiting a continuation lacks direct coverage | low — synchronous first-response cancellation does not prove cancellation after an awaited terminal continuation. | patch: hold the continuation, cancel, then return valid-looking evidence and require cancellation. |
+| CB10: stable nonzero revision lacks a positive multi-page control | low — negative revision-change tests need a successful revision-qualified continuation to distinguish unconditional rejection. | patch: qualify the existing successful aggregation fixture and assert its revision. |
+| CE1: unavailable intent cannot recover through the opening callback | false as a rendered recovery failure — grid and receipt emit opening callbacks only for available intents. The deliberate `!intent.IsAvailable` admission gate came from completed Story 5.7; audit Refresh reloads complete evidence and rederives the rendered launcher before opening. | preserve the admission gate; cover rendered incomplete-to-complete recovery alongside CB4. |
+| CV1: audit-page complete refresh lacks multi-page verification | medium — pre-verified gap: existing audit-page providers ignore the administrator cursor and return terminal pages, so single-page refresh mutation would remain green. | patch, grouped with CB4/CB5 after individual classification. |
+
+CB4/CB5/CV1 share the missing rendered parent-integration verification. CB6 and CB7 protect different page invariants and remain separately classified. These accepted items change tests only. Current paging production changes, Story 5.7 admission/command/proof semantics, strict duplicate rejection, unrelated work, the deferred ledger, and gitlinks are KEEP requirements. The CI baseline-policy question remains separate and pending the user's scope answer. During verification, external Git work replayed the paging commit as `1d8c31d2abe809829e10ce1ddadc978c79489f3e` on top of `148e0fd209d690ed35cf33cfbce78b2f27bace43`; the intervening changes update SDK/documentation only, and the production, tests, and gitlinks match the initially reviewed commit. This invocation performed no Git mutations.
+
 ## Design Notes
 
 The helper belongs above the one-page gateway: the server already supplies protected requester-scoped cursors, and `TenantQueryGateway` deliberately maps one page. A complete result is created only after every page passes invariant checks; `HasMore=false` alone is insufficient because an aborted terminal page may be mixed-version. `PagingRecovered=true` on a continuation is also incomplete because the gateway silently restarted at page one.
@@ -242,3 +265,26 @@ The three independent review layers ran again against the existing paging patche
 The final UI build passes with zero warnings/errors. All 14 focused cases pass. The maintained Microsoft.Testing.Platform project lane passes **8,033 tests**, zero failed/skipped, in 98.665 seconds; its initial run passed 8,027 before these six cases. The historical gitlink audit, unchanged current gitlinks and scoped whitespace gate pass. Eight other preexisting changed files match their invocation hashes, including the three production files, deferred-work ledger and unrelated dependency/context documents.
 
 The exact CI provenance preflight still exits 1 with `historical audit must retain the endpoint story's baseline_commit.` No policy or metadata bypass was applied. Status remains **in-review**; completing this spec requires a separately scoped CI guard-policy correction. See [resumed verification and exact commands](evidence/global-admin-projection-paging-2026-10-29/resumed-review.md) and [raw resumed logs](evidence/global-admin-projection-paging-2026-10-29/resumed-review-logs.zip). The earlier verification evidence and all preexisting spec notes remain intact.
+
+
+### Post-commit review verification — 2026-10-29
+
+All three fresh-context review layers completed against the existing paging implementation and current integrations. The accepted findings add 19 regression cases across the audit-page and complete-loader test files, including the real parent provider for restore/revoke confirmation and rendered recovery from initially incomplete evidence. No production change was required; all individual findings and preservation decisions are recorded in the post-commit triage above.
+
+Final UI build: exit 0, zero warnings/errors, using SDK `10.0.403` after the external SDK/documentation update. The final spec-command executable run passes **8,052 tests**, zero errors/failures/skips/not-run, 95.864 seconds. The maintained project lane also passes **8,052**, zero failed/skipped. Focused rendered parent cases pass 7/7 and loader cases pass 124/124. An earlier unchanged-tree run had one deadline-test timeout while the runtime baseline was starting; both cases passed immediately in isolation, and both later full runs pass. No unrelated timer production change was made.
+
+The exact historical gitlink audit and preservation/whitespace checks pass. The AppHost started by this invocation was stopped; no live command or full runtime/browser qualification is claimed. External Git work replayed the existing paging commit at `1d8c31d2abe809829e10ce1ddadc978c79489f3e`; this invocation performed no staging, commits, branching, pushes or submodule operations and preserved the external SDK/documentation changes.
+
+The exact CI preflight still exits 1 with `historical audit must retain the endpoint story's baseline_commit.` An existing committed-range replay independently reproduces that refusal for this spec while the other selected spec passes. The scope question about the separately authorized CI guard-policy repair remains pending; no policy or metadata bypass was applied. Status remains **in-review**.
+
+See [post-commit verification, exact commands and remaining gate](evidence/global-admin-projection-paging-2026-10-29/post-commit-review.md) and [raw logs](evidence/global-admin-projection-paging-2026-10-29/post-commit-review-logs.zip). All previous notes, the deferred ledger, later Story 5.7 behavior, production changes and current gitlinks are preserved.
+
+### CI provenance policy repair completion — 2026-10-29
+
+The separately authorized [CI policy repair](spec-ci-historical-baseline-repair.md) resolves the final local completion gate through a general verification rule. `gitlink_original_baseline` retains the rejected, locally available commit `23b2a7691ae667fd160a48a5d7293f3cf38d48fe`; `gitlink_creation_ref` names the independently discovered sole creation `7716f0b11423eb54d74935b6cc6e3edf405dc400`. Git verifies that creation's recorded `baseline_revision` and exact single parent are `6bd5fc29cf66e0238a4ea5ceb8c743c358fe3513`, and that the rejected commit is outside endpoint ancestry. The historical endpoint and all nine target declarations remain unchanged.
+
+The provenance preflight and historical gitlink audit now pass. Actual-history disposable committed fixtures pass repair push/PR events and later prose edits both with the available rejected object and in a natural transport clone that lacks it; source object availability is preserved. False creation and gitlink-bearing move/revert events remain refused. The original unrepaired committed event still fails, as it must; no hosted CI run or source commit is claimed.
+
+All three independent guard-policy reviews and their follow-up checks passed after correcting the identified clone, parsing and error-handling gaps. The final regression lanes pass 101 changed-story, 77 production-guard, 13 attachment and 37 default-branch tests. The paging build passes with zero warnings/errors; the final full UI run passes **8,052 tests**, zero errors/failures/skips/not-run, 91.863 seconds. An initial deadline-test timeout and its passing isolated/full reruns are retained as evidence. All applicable local completion gates pass, so status is now **done**.
+
+The [exact verification commands, results and review triage](evidence/ci-historical-baseline-repair-2026-10-29/verification.md) retain prior failures and the original paging spec bytes. The preservation audit confirms no changes to paging production code, completed Story 5.7 behavior, the existing UI test edits, unrelated tracked work, the deferred ledger, HEAD or current gitlinks. No staging, source commit, push or submodule operation was performed.

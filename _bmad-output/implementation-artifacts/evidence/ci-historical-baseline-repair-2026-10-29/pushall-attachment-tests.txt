@@ -1,0 +1,18 @@
+test_all_tracked_skill_copies_are_identical (__main__.PushallDetachedHeadTests.test_all_tracked_skill_copies_are_identical) ... ok
+test_branch_inspection_error_is_distinct_from_detachment (__main__.PushallDetachedHeadTests.test_branch_inspection_error_is_distinct_from_detachment) ... ok
+test_clean_detached_repository_may_proceed_without_changes (__main__.PushallDetachedHeadTests.test_clean_detached_repository_may_proceed_without_changes) ... ok
+test_dirty_attached_commit_reaches_the_pushed_default_branch (__main__.PushallDetachedHeadTests.test_dirty_attached_commit_reaches_the_pushed_default_branch) ... ok
+test_dirty_default_branch_may_proceed (__main__.PushallDetachedHeadTests.test_dirty_default_branch_may_proceed) ... ok
+test_dirty_detached_repositories_are_refused_without_changes (__main__.PushallDetachedHeadTests.test_dirty_detached_repositories_are_refused_without_changes) ... ok
+test_dirty_submodule_cannot_be_hidden_by_ignore_configuration (__main__.PushallDetachedHeadTests.test_dirty_submodule_cannot_be_hidden_by_ignore_configuration) ... ok
+test_legacy_order_omits_the_dirty_detached_commit_from_the_push (__main__.PushallDetachedHeadTests.test_legacy_order_omits_the_dirty_detached_commit_from_the_push) ... ok
+test_refusal_preserves_executable_bits_and_symlink_identity (__main__.PushallDetachedHeadTests.test_refusal_preserves_executable_bits_and_symlink_identity) ... ok
+test_status_error_preserves_an_existing_dirty_repository (__main__.PushallDetachedHeadTests.test_status_error_preserves_an_existing_dirty_repository) ... ok
+test_status_inspection_failure_refuses_the_repository (__main__.PushallDetachedHeadTests.test_status_inspection_failure_refuses_the_repository) ... ok
+test_symbolic_head_outside_local_branches_is_refused (__main__.PushallDetachedHeadTests.test_symbolic_head_outside_local_branches_is_refused) ... ok
+test_untracked_files_cannot_be_hidden_by_status_configuration (__main__.PushallDetachedHeadTests.test_untracked_files_cannot_be_hidden_by_status_configuration) ... ok
+
+----------------------------------------------------------------------
+Ran 13 tests in 2.899s
+
+OK

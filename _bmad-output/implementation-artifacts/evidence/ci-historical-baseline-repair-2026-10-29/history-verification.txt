@@ -1,0 +1,14 @@
+unrepaired-source: exit 1
+available-repair-push: exit 0
+available-repair-pr: exit 0
+available-later-prose: exit 0
+available-false-creation: exit 1
+available-pointer-event: exit 1
+available-pointer-revert: exit 1
+transport-repair-push: exit 0
+transport-repair-pr: exit 0
+transport-later-prose: exit 0
+transport-false-creation: exit 1
+transport-pointer-event: exit 1
+transport-pointer-revert: exit 1
+Actual-history and disposable committed-event verification: PASS

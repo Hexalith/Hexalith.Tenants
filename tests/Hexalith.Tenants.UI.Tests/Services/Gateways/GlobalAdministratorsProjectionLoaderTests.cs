@@ -153,9 +153,10 @@ public sealed class GlobalAdministratorsProjectionLoaderTests
             {
                 GlobalAdministratorsRequest request = call.ArgAt<GlobalAdministratorsRequest>(0);
                 requests.Add(request);
-                return Task.FromResult(request.Cursor is null
+                GlobalAdministratorsSnapshot page = request.Cursor is null
                     ? Page(["admin-a"], "opaque cursor/+", hasMore: true, eTag: "etag-page-1", request: request)
-                    : Page(["admin-b"], null, hasMore: false, eTag: "etag-page-2", request: request));
+                    : Page(["admin-b"], null, hasMore: false, eTag: "etag-page-2", request: request);
+                return Task.FromResult(page with { AuthorizationRevision = 4 });
             });
 
         GlobalAdministratorsSnapshot result = await GlobalAdministratorsProjectionLoader.LoadAsync(
@@ -164,6 +165,7 @@ public sealed class GlobalAdministratorsProjectionLoaderTests
             TestContext.Current.CancellationToken);
 
         result.IsCompleteEvidence.ShouldBeTrue();
+        result.AuthorizationRevision.ShouldBe(4);
         result.HasMore.ShouldBeFalse();
         result.NextCursor.ShouldBeNull();
         result.ETag.ShouldBeNull();
@@ -176,12 +178,16 @@ public sealed class GlobalAdministratorsProjectionLoaderTests
     }
 
     [Theory]
-    [InlineData("stale")]
-    [InlineData("non-current-lifecycle")]
-    [InlineData("missing-version")]
-    [InlineData("mixed-version")]
-    [InlineData("row-not-current")]
-    public async Task LoadAsyncRejectsNonCurrentOrVersionInconsistentPages(string scenario)
+    [InlineData("stale", 1)]
+    [InlineData("stale", 2)]
+    [InlineData("non-current-lifecycle", 1)]
+    [InlineData("non-current-lifecycle", 2)]
+    [InlineData("missing-version", 1)]
+    [InlineData("missing-version", 2)]
+    [InlineData("mixed-version", 2)]
+    [InlineData("row-not-current", 1)]
+    [InlineData("row-not-current", 2)]
+    public async Task LoadAsyncRejectsNonCurrentOrVersionInconsistentPages(string scenario, int invalidPage)
     {
         ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
         int calls = 0;
@@ -194,6 +200,10 @@ public sealed class GlobalAdministratorsProjectionLoaderTests
                 calls++;
                 GlobalAdministratorsRequest request = call.ArgAt<GlobalAdministratorsRequest>(0);
                 GlobalAdministratorsSnapshot page = Page([calls == 1 ? "admin-a" : "admin-b"], calls == 1 ? "page-2" : null, calls == 1, request: request);
+                if (calls != invalidPage)
+                {
+                    return Task.FromResult(page);
+                }
                 return Task.FromResult(scenario switch
                 {
                     "stale" => page with
@@ -203,11 +213,11 @@ public sealed class GlobalAdministratorsProjectionLoaderTests
                     },
                     "non-current-lifecycle" => page with { Lifecycle = ProjectionLifecycleState.Rebuilding },
                     "missing-version" => page with { ProjectionVersion = " " },
-                    "mixed-version" when calls == 2 => page with { ProjectionVersion = "v2" },
+                    "mixed-version" => page with { ProjectionVersion = "v2" },
                     "row-not-current" => page with
                     {
                         Rows = [new GlobalAdministratorRow(
-                            "admin-a",
+                            "invalid-row-admin",
                             ReadModelFreshnessState.Stale,
                             ProjectionLifecycleState.Stale)],
                     },
@@ -219,8 +229,8 @@ public sealed class GlobalAdministratorsProjectionLoaderTests
             gateway,
             cancellationToken: TestContext.Current.CancellationToken);
 
-        result.IsCompleteEvidence.ShouldBeFalse();
-        calls.ShouldBe(scenario == "mixed-version" ? 2 : 1);
+        AssertCanonicalIncomplete(result);
+        calls.ShouldBe(invalidPage);
     }
 
     [Fact]
@@ -278,6 +288,62 @@ public sealed class GlobalAdministratorsProjectionLoaderTests
 
         AssertCanonicalIncomplete(result);
         calls.ShouldBe(expectedCalls);
+    }
+
+    /// <summary>Verifies that a cursor repeated after an intervening page terminates the bounded walk.</summary>
+    [Fact]
+    public async Task LoadAsyncRejectsNonAdjacentCursorCycles()
+    {
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        int calls = 0;
+        gateway.GetGlobalAdministratorsAsync(Arg.Any<GlobalAdministratorsRequest>(),
+                Arg.Any<GlobalAdministratorsSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                GlobalAdministratorsRequest request = call.Arg<GlobalAdministratorsRequest>();
+                calls++;
+                return Page([$"admin-{calls}"], calls == 2 ? "cursor-b" : "cursor-a", true, request: request);
+            });
+
+        GlobalAdministratorsSnapshot result = await GlobalAdministratorsProjectionLoader.LoadAsync(
+            gateway, cancellationToken: TestContext.Current.CancellationToken);
+
+        AssertCanonicalIncomplete(result);
+        calls.ShouldBe(3);
+    }
+
+    /// <summary>Verifies that cancellation invalidates a valid terminal page returned by a held continuation.</summary>
+    [Fact]
+    public async Task LoadAsyncPropagatesCancellationWhileAwaitingContinuation()
+    {
+        using var source = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        var continuation = new TaskCompletionSource<GlobalAdministratorsSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        GlobalAdministratorsRequest? continuationRequest = null;
+        int calls = 0;
+        gateway.GetGlobalAdministratorsAsync(Arg.Any<GlobalAdministratorsRequest>(),
+                Arg.Any<GlobalAdministratorsSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                calls++;
+                GlobalAdministratorsRequest request = call.Arg<GlobalAdministratorsRequest>();
+                call.Arg<CancellationToken>().ShouldBe(source.Token);
+                if (request.Cursor is null)
+                {
+                    return Task.FromResult(Page(["admin-a"], "held-page", true, request: request));
+                }
+                continuationRequest = request;
+                return continuation.Task;
+            });
+        Task<GlobalAdministratorsSnapshot> load = GlobalAdministratorsProjectionLoader.LoadAsync(
+            gateway, cancellationToken: source.Token);
+        continuationRequest.ShouldNotBeNull();
+
+        source.Cancel();
+        continuation.SetResult(Page(["admin-b"], null, false, request: continuationRequest));
+
+        await Should.ThrowAsync<OperationCanceledException>(() => load);
+        calls.ShouldBe(2);
     }
 
     [Fact]
@@ -362,17 +428,27 @@ public sealed class GlobalAdministratorsProjectionLoaderTests
     }
 
     [Theory]
-    [InlineData("null-row")]
-    [InlineData("empty-with-row")]
-    [InlineData("ready-without-row")]
-    [InlineData("oversized-page")]
-    [InlineData("wrong-request-cursor")]
-    [InlineData("wrong-request-page-size")]
-    [InlineData("blank-identity")]
-    [InlineData("control-character-identity")]
-    [InlineData("oversized-identity")]
-    [InlineData("lone-surrogate-identity")]
-    public async Task LoadAsyncRejectsMalformedPageShapesWithCanonicalBoundedResult(string scenario)
+    [InlineData("null-row", 1)]
+    [InlineData("null-row", 2)]
+    [InlineData("empty-with-row", 1)]
+    [InlineData("empty-with-row", 2)]
+    [InlineData("ready-without-row", 1)]
+    [InlineData("ready-without-row", 2)]
+    [InlineData("oversized-page", 1)]
+    [InlineData("oversized-page", 2)]
+    [InlineData("wrong-request-cursor", 1)]
+    [InlineData("wrong-request-cursor", 2)]
+    [InlineData("wrong-request-page-size", 1)]
+    [InlineData("wrong-request-page-size", 2)]
+    [InlineData("blank-identity", 1)]
+    [InlineData("blank-identity", 2)]
+    [InlineData("control-character-identity", 1)]
+    [InlineData("control-character-identity", 2)]
+    [InlineData("oversized-identity", 1)]
+    [InlineData("oversized-identity", 2)]
+    [InlineData("lone-surrogate-identity", 1)]
+    [InlineData("lone-surrogate-identity", 2)]
+    public async Task LoadAsyncRejectsMalformedPageShapesWithCanonicalBoundedResult(string scenario, int invalidPage)
     {
         ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
         int calls = 0;
@@ -384,6 +460,10 @@ public sealed class GlobalAdministratorsProjectionLoaderTests
             {
                 calls++;
                 GlobalAdministratorsRequest request = call.ArgAt<GlobalAdministratorsRequest>(0);
+                if (calls != invalidPage)
+                {
+                    return Task.FromResult(Page(["previous-admin"], "next-page", hasMore: true, request: request));
+                }
                 GlobalAdministratorsSnapshot valid = Page(["admin-a"], null, hasMore: false, request: request);
                 return Task.FromResult(scenario switch
                 {
@@ -421,7 +501,7 @@ public sealed class GlobalAdministratorsProjectionLoaderTests
             cancellationToken: TestContext.Current.CancellationToken);
 
         AssertCanonicalIncomplete(result);
-        calls.ShouldBe(1);
+        calls.ShouldBe(invalidPage);
     }
 
     [Theory]

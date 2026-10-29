@@ -1,0 +1,159 @@
+{
+  "start_exit": 0,
+  "describe_exit": 0,
+  "otel_logs_exit": 0,
+  "stop_exit": 0,
+  "final_ps": [],
+  "resources": [
+    {
+      "name": "dapr-placement-mtls",
+      "state": "Running",
+      "health": "Healthy"
+    },
+    {
+      "name": "dapr-scheduler-mtls",
+      "state": "Running",
+      "health": "Healthy"
+    },
+    {
+      "name": "dapr-sentry",
+      "state": "Running",
+      "health": "Healthy"
+    },
+    {
+      "name": "eventstore-admin-dapr-cli",
+      "state": "Running",
+      "health": "Healthy"
+    },
+    {
+      "name": "eventstore-admin-ui-dapr-cli",
+      "state": "Running",
+      "health": "Healthy"
+    },
+    {
+      "name": "eventstore-admin-ui",
+      "state": "Running",
+      "health": "Healthy"
+    },
+    {
+      "name": "eventstore-admin",
+      "state": "Running",
+      "health": "Healthy"
+    },
+    {
+      "name": "eventstore-app-api-token",
+      "state": "Running",
+      "health": "Healthy"
+    },
+    {
+      "name": "eventstore-dapr-cli",
+      "state": "Running",
+      "health": "Healthy"
+    },
+    {
+      "name": "eventstore",
+      "state": "Running",
+      "health": "Healthy"
+    },
+    {
+      "name": "eventstore-workload-client-secret",
+      "state": "Running",
+      "health": "Healthy"
+    },
+    {
+      "name": "memories-dapr-cli",
+      "state": "Running",
+      "health": "Healthy"
+    },
+    {
+      "name": "memories-graphs",
+      "state": "Running",
+      "health": "Healthy"
+    },
+    {
+      "name": "memories",
+      "state": "Running",
+      "health": "Healthy"
+    },
+    {
+      "name": "memories-vectors",
+      "state": "Running",
+      "health": "Healthy"
+    },
+    {
+      "name": "sample-app-api-token",
+      "state": "Running",
+      "health": "Healthy"
+    },
+    {
+      "name": "sample-dapr-cli",
+      "state": "Running",
+      "health": "Healthy"
+    },
+    {
+      "name": "sample",
+      "state": "Running",
+      "health": "Healthy"
+    },
+    {
+      "name": "security-eventstore-client-password",
+      "state": "Running",
+      "health": "Healthy"
+    },
+    {
+      "name": "security-eventstore-client-username",
+      "state": "Running",
+      "health": "Healthy"
+    },
+    {
+      "name": "security",
+      "state": "Running",
+      "health": "Healthy"
+    },
+    {
+      "name": "tenants-api-dapr-cli",
+      "state": "Running",
+      "health": "Healthy"
+    },
+    {
+      "name": "tenants-api",
+      "state": "Running",
+      "health": "Healthy"
+    },
+    {
+      "name": "tenants-app-api-token",
+      "state": "Running",
+      "health": "Healthy"
+    },
+    {
+      "name": "tenants-dapr-cli",
+      "state": "Running",
+      "health": "Healthy"
+    },
+    {
+      "name": "tenants-source-private-key",
+      "state": "Running",
+      "health": "Healthy"
+    },
+    {
+      "name": "tenants-ui-dapr-cli",
+      "state": "Running",
+      "health": "Healthy"
+    },
+    {
+      "name": "tenants-ui",
+      "state": "Running",
+      "health": "Healthy"
+    },
+    {
+      "name": "tenants-workload-client-secret",
+      "state": "Running",
+      "health": "Healthy"
+    },
+    {
+      "name": "tenants",
+      "state": "Running",
+      "health": "Healthy"
+    }
+  ]
+}

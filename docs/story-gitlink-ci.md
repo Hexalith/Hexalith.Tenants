@@ -45,12 +45,34 @@ work. Later prose-only edits may follow the selected endpoint; it need not be th
 last story edit. No endpoint is guessed from prose or the last file edit.
 
 One narrowly verified correction is available when the original baseline is an
-unavailable full object ID. Preserve that exact value as
+unavailable full object ID. Preserve that exact rejected value as
 `gitlink_original_baseline`, record the original creation commit as
 `gitlink_creation_ref`, set `baseline_commit` to that creation's exact single
 parent, and supply `gitlink_audit_ref` for the historical pointer-work endpoint. All
 revision fields must be full canonical IDs; the corrected baseline, creation
 and endpoint must be available commits in the required ancestry.
+
+A second correction restores a **creation-recorded start**, including when the
+rejected commit is available. Use the same
+`gitlink_original_baseline`, `gitlink_creation_ref`, and `gitlink_audit_ref`
+metadata. Git must prove that the preserved rejected ID is a full canonical
+commit **outside the endpoint's ancestry** whenever the object is available.
+An available valid baseline cannot be replaced or narrowed through this mechanism;
+blobs and tag objects are also
+refused. Inspection errors fail closed and are never treated as missing objects.
+
+The independently discovered sole creation must record `baseline_revision`
+equal to its exact single parent and the corrected `baseline_commit`. Its
+`baseline_commit`, if present, must agree with that start. The endpoint must
+retain the same `baseline_revision` and record the preserved rejected ID as
+`baseline_commit`. Missing, abbreviated or conflicting committed evidence is
+refused. Current prose or metadata cannot supply evidence absent from those
+historical snapshots. This recorded-start correction uses all the same identity,
+inventory, ancestry and event restrictions as the unavailable-object correction.
+The proof must have complete frontmatter without duplicate fields. A fresh full
+checkout may naturally lack an unreachable rejected object; recorded-start proof
+still applies, after Git verifies the endpoint's complete ancestor graph. No
+object is removed or falsely reported unavailable to qualify for correction.
 
 To audit the corrected Story 5.4 Markdown directly at its recorded endpoint:
 
@@ -63,10 +85,12 @@ story's literal identities, discovers renames across the repository, and require
 a sole original creation. An introduction already present in another merge
 parent retains that parent's original creation; a story first created in a merge
 still fails the exact single-parent requirement.
-Its original committed Markdown and the endpoint Markdown must both record the
-preserved unavailable baseline. Deleted/recreated identities, overlapping or
-unresolved rename identities, multiple parents at creation, false provenance,
-and an available original object all fail closed. The event-base snapshot must
+For the unavailable-object correction, its original committed Markdown and the
+endpoint Markdown must both record the preserved unavailable baseline. For a
+recorded-start repair, both snapshots must instead satisfy the recorded-start
+requirements above. Deleted/recreated identities, overlapping or unresolved
+rename identities, multiple parents at creation and false provenance all fail
+closed. The event-base snapshot must
 still satisfy the existing baseline comparison, allowing the preserved original
 only after this independent verification. A later documentation edit can retain
 the same verified correction metadata. This is not a general mechanism to
@@ -76,7 +100,7 @@ A recognized historical rename must be the only repository add/delete/rename in
 its commit. Competing identity changes make the correction ambiguous even when
 Git picks a plausible source (for example, two identical deleted files). Other
 artifact modifications may share that commit. This conservative rule applies
-only to the optional malformed-baseline correction.
+only to the optional historical-baseline corrections.
 
 An original-creation claim also fails if its commit removes or renames another
 Markdown source anywhere in the repository. A heavily rewritten import can

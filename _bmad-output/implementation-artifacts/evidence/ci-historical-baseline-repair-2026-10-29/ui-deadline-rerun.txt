@@ -1,0 +1,6 @@
+  Discovering: Hexalith.Tenants.UI.Tests
+  Discovered:  Hexalith.Tenants.UI.Tests
+  Starting:    Hexalith.Tenants.UI.Tests
+  Finished:    Hexalith.Tenants.UI.Tests (ID = 'b67fb5070ab844face28532f1d1b0673eaf8a9c5e59d25e13fd161155f1bf8c8')
+=== TEST EXECUTION SUMMARY ===
+   Hexalith.Tenants.UI.Tests  Total: 2, Errors: 0, Failed: 0, Skipped: 0, Not Run: 0, Time: 0.203s

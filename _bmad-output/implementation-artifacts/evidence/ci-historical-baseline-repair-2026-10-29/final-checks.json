@@ -1,0 +1,86 @@
+[
+  {
+    "command": [
+      "git",
+      "diff",
+      "--check"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": "warning: in the working copy of 'tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'tests/Hexalith.Tenants.UI.Tests/Services/Gateways/GlobalAdministratorsProjectionLoaderTests.cs', CRLF will be replaced by LF the next time Git touches it\n"
+  },
+  {
+    "command": [
+      "git",
+      "diff",
+      "--exit-code",
+      "HEAD",
+      "--",
+      "src/",
+      "references/",
+      "Directory.Build.props",
+      "Directory.Build.targets",
+      "Directory.Packages.props",
+      "global.json",
+      "_bmad-output/implementation-artifacts/deferred-work.md"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "python3",
+      "-m",
+      "py_compile",
+      "scripts/validate-changed-story-gitlinks.py",
+      "tests/scripts/test_validate_changed_story_gitlinks.py",
+      "_bmad-output/implementation-artifacts/evidence/ci-historical-baseline-repair-2026-10-29/verify-history.py"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "python3",
+      "scripts/validate-story-gitlinks.py",
+      "_bmad-output/implementation-artifacts/spec-ci-historical-baseline-repair.md"
+    ],
+    "exit": 0,
+    "stdout": "Story:    spec-ci-historical-baseline-repair.md\nBaseline: 1d8c31d\nCompared: HEAD (1d8c31d) + working tree\n\nNo references/ pointer changes in range.\n\nRESULT: PASS\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "python3",
+      "scripts/validate-story-gitlinks.py",
+      "_bmad-output/implementation-artifacts/spec-global-admin-projection-paging.md",
+      "--ref",
+      "ded413dfd4786983585c7f56a399825cc1afbae3"
+    ],
+    "exit": 0,
+    "stdout": "Story:    spec-global-admin-projection-paging.md\nBaseline: 6bd5fc2\nCompared: ded413dfd4786983585c7f56a399825cc1afbae3 (ded413d)\n\n9 references/ pointer change(s) in range:\n  [declared] references/Hexalith.AI.Tools  de38f78 -> 3f194e1\n  [declared] references/Hexalith.Builds  5c3ff35 -> 58d9b54\n  [declared] references/Hexalith.Commons  feab4ef -> b247ed1\n  [declared] references/Hexalith.EventStore  5ddda34 -> 07d1e23\n  [declared] references/Hexalith.FrontComposer  dca2d63 -> 0e11421\n  [declared] references/Hexalith.McpCli  absent at baseline -> 342e072\n  [declared] references/Hexalith.Memories  6470938 -> 906bc07\n  [declared] references/Hexalith.Platform  absent at baseline -> f5a0d72\n  [declared] references/Hexalith.PolymorphicSerializations  65fc336 -> 98de6e0\n\nRESULT: PASS\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "python3",
+      "_bmad-output/implementation-artifacts/evidence/global-admin-projection-paging-2026-10-29/check-ci-provenance.py"
+    ],
+    "exit": 0,
+    "stdout": "Read-only CI historical-provenance preflight; existing HEAD: 1d8c31d2abe809829e10ce1ddadc978c79489f3e\nRESULT: PASS ded413dfd4786983585c7f56a399825cc1afbae3\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "aspire",
+      "ps",
+      "--format",
+      "Json"
+    ],
+    "exit": 0,
+    "stdout": "[]\n",
+    "stderr": ""
+  }
+]

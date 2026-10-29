@@ -1,0 +1,1038 @@
+[
+  {
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "command": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "exit": 0,
+    "stdout": "1d8c31d2abe809829e10ce1ddadc978c79489f3e\n",
+    "stderr": ""
+  },
+  {
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "command": [
+      "git",
+      "show",
+      "-s",
+      "--format=%P",
+      "7716f0b11423eb54d74935b6cc6e3edf405dc400"
+    ],
+    "exit": 0,
+    "stdout": "6bd5fc29cf66e0238a4ea5ceb8c743c358fe3513\n",
+    "stderr": ""
+  },
+  {
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "command": [
+      "git",
+      "show",
+      "7716f0b11423eb54d74935b6cc6e3edf405dc400:_bmad-output/implementation-artifacts/spec-global-admin-projection-paging.md"
+    ],
+    "exit": 0,
+    "stdout": "---\ntitle: 'Load complete global-administrator correction evidence'\ntype: 'bugfix'\ncreated: '2026-08-27'\nstatus: 'in-progress'\nbaseline_revision: '6bd5fc29cf66e0238a4ea5ceb8c743c358fe3513'\nreview_loop_iteration: 0\nfollowup_review_recommended: false\ncontext:\n  - '_bmad-output/planning-artifacts/sprint-change-proposal-2026-07-01-deferred-work-pagination-and-submodule-docs.md'\nwarnings: []\ndeferred: []\n---\n\n<intent-contract>\n\n## Intent\n\n**Problem:** Global-administrator correction eligibility and confirmation inspect only the first 20-row projection page, so a target on a later page cannot be restored or revoked even though the existing `HasMore` checks prevent false success.\n\n**Approach:** Extract the existing bounded full-projection walk into a reusable UI helper, route correction preview and confirmation through its aggregated evidence, and require complete lifecycle-backed evidence before platform-authority state is inferred.\n\n## Boundaries & Constraints\n\n**Always:** Forward opaque cursors verbatim, clear page-scoped ETags after page one, preserve cancellation, ordinal-deduplicate user IDs, require current lifecycle/freshness and one stable nonblank projection version across all pages, reject cursor recovery/cycles/missing cursors/page-cap exhaustion, and retain the existing `HasMore` fail-closed behavior.\n\n**Block If:** The existing query surface cannot distinguish a complete stable walk from invalid/recovered/mixed-version paging without changing the public server contract.\n\n**Never:** Edit the deferred-work ledger; decode, expose, or log cursors; add offset paging; make the walk unbounded; weaken last-administrator, freshness, authorization, or projection-confirmation gates; change backend query contracts or unrelated global-administrator list paging.\n\n## I/O & Edge-Case Matrix\n\n| Scenario | Input / State | Expected Output / Behavior | Error Handling |\n|----------|---------------|---------------------------|----------------|\n| Complete multi-page read | Current pages share lifecycle/version and terminate with `HasMore=false` | Rows aggregate once per ordinal user ID; result has no next cursor and is complete evidence | No error expected |\n| Later-page target | Correction target exists only beyond page one | Full count/presence drives preview; restore/revoke confirmation waits for terminal evidence | Never infer from page one |\n| Invalid continuation | Blank/repeated cursor, gateway page-one recovery, or page cap | Aggregate remains incomplete and cannot enable or confirm correction | Fail closed without cursor disclosure |\n| Inconsistent evidence | Stale/degraded page, missing/changing version, non-current lifecycle | Mixed evidence is not accepted as platform-authority truth | Fail closed as incomplete evidence |\n| Cancellation | Caller cancels during the walk | Stop before another page and propagate cancellation | Do not retain a partial result as complete |\n\n</intent-contract>\n\n## Code Map\n\n- `src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:1637` -- existing hardened 50-page walker and incomplete-result shaping to extract, then continue consuming through the helper.\n- `src/Hexalith.Tenants.UI/Services/Gateways/ITenantQueryGateway.cs:115` -- one-page query seam; keep its public contract unchanged and compose pages above it.\n- `src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:750` -- maps one protected-cursor page and flags invalid-cursor recovery with `PagingRecovered`; read-only evidence.\n- `src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:893` -- refresh-before-open, eligibility construction, initial enrichment, and confirm provider currently consume one page.\n- `src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:364` -- confirmation refresh fallback currently consumes one page.\n- `src/Hexalith.Tenants.UI/State/TenantAudit/GlobalAdministratorCorrectionSnapshot.cs:82` -- presence/count/confirmation gates; incomplete `HasMore` regression guards already live here.\n- `tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs:221` -- existing full-walk, cursor, version, and cap coverage to preserve while extracting.\n- `tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorCorrectionPanelTests.cs:56` -- restore/revoke submission and confirmation flows to exercise multi-page evidence.\n- `tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs:412` -- correction-opening path and query stub for later-page eligibility coverage.\n- `tests/Hexalith.Tenants.UI.Tests/State/GlobalAdministratorCorrectionSnapshotTests.cs:85` -- existing incomplete-page restore/revoke fail-closed tests that must remain green.\n\n## Tasks & Acceptance\n\n**Execution:**\n- `src/Hexalith.Tenants.UI/Services/Gateways/GlobalAdministratorsProjectionLoader.cs` -- add one bounded reusable full-page loader with stable-version/current-evidence validation, cursor recovery/cycle protection, aggregation, and complete/incomplete result shaping.\n- `src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor` -- replace the private duplicate walker with the shared loader without changing supplementary-read cancellation or retained-evidence behavior.\n- `src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor` -- use complete reads for initial enrichment, correction-open refresh, and confirmation; require complete mutation evidence and rederive a refreshed global-admin intent before opening.\n- `src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor` -- use the complete loader when no parent refresh provider exists.\n- `src/Hexalith.Tenants.UI/State/TenantAudit/GlobalAdministratorCorrectionSnapshot.cs` -- require `IsCompleteEvidence` plus lifecycle-backed current evidence while preserving explicit `HasMore` fail-closed checks.\n- `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/GlobalAdministratorsProjectionLoaderTests.cs` -- cover aggregation, deduplication, cursor/version/lifecycle/recovery/cap/cancellation matrix.\n- `tests/Hexalith.Tenants.UI.Tests/Components/{TenantDetailSurfaceTests,GlobalAdministratorCorrectionPanelTests,TenantAuditPageTests}.cs` -- preserve extracted behavior and add multi-page preview, restore, revoke, and refreshed-intent tests.\n- `tests/Hexalith.Tenants.UI.Tests/State/GlobalAdministratorCorrectionSnapshotTests.cs` -- align complete fixtures with lifecycle/version/completeness and retain incomplete-page regression assertions.\n\n**Acceptance Criteria:**\n- Given the revoke target exists only on page two, when correction eligibility is evaluated, then both pages are loaded, the full distinct count is used, and revoke is previewable unless the true aggregate has one administrator.\n- Given a restore or revoke command reaches projection-pending, when the intended state is visible only after walking every page, then confirmation occurs only from the complete stable aggregate.\n- Given any page is incomplete, recovered, stale, non-current, version-inconsistent, cyclic, missing its continuation, or beyond the cap, when eligibility or confirmation runs, then it remains unavailable or pending and no command success is asserted.\n- Given a correction intent was formed from incomplete evidence, when correction-open refresh obtains complete evidence, then the intent is re-evaluated from that evidence rather than remaining permanently unavailable.\n\n## Spec Change Log\n\n## Review Triage Log\n\n## Design Notes\n\nThe helper belongs above the one-page gateway: the server already supplies protected requester-scoped cursors, and `TenantQueryGateway` deliberately maps one page. A complete result is created only after every page passes invariant checks; `HasMore=false` alone is insufficient because an aborted terminal page may be mixed-version. `PagingRecovered=true` on a continuation is also incomplete because the gateway silently restarted at page one.\n\n## Verification\n\n**Commands:**\n- `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release -m:1 -p:NuGetAudit=false -p:MinVerVersionOverride=1.0.0` -- expected: zero warnings and errors.\n- `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -noLogo -noColor -parallel none` -- expected: all UI tests pass.\n- `python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-global-admin-projection-paging.md` -- expected: no undeclared gitlink movement.\n",
+    "stderr": ""
+  },
+  {
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "command": [
+      "git",
+      "show",
+      "ded413dfd4786983585c7f56a399825cc1afbae3:_bmad-output/implementation-artifacts/spec-global-admin-projection-paging.md"
+    ],
+    "exit": 0,
+    "stdout": "---\ntitle: 'Load complete global-administrator correction evidence'\ntype: 'bugfix'\ncreated: '2026-08-27'\nstatus: 'in-review'\nbaseline_commit: '23b2a7691ae667fd160a48a5d7293f3cf38d48fe'\nbaseline_revision: '6bd5fc29cf66e0238a4ea5ceb8c743c358fe3513'\nreview_loop_iteration: 0\nfollowup_review_recommended: false\ncontext:\n  - '_bmad-output/planning-artifacts/sprint-change-proposal-2026-07-01-deferred-work-pagination-and-submodule-docs.md'\nwarnings:\n  - 'Gitlink verification blocked: preserved baseline_commit is not an ancestor of the concurrently rewritten HEAD.'\n  - 'Live runtime command verification limited by existing EventStore workload issuer configuration.'\ndeferred: []\n---\n\n<intent-contract>\n\n## Intent\n\n**Problem:** Global-administrator correction eligibility and confirmation inspect only the first 20-row projection page, so a target on a later page cannot be restored or revoked even though the existing `HasMore` checks prevent false success.\n\n**Approach:** Extract the existing bounded full-projection walk into a reusable UI helper, route correction preview and confirmation through its aggregated evidence, and require complete lifecycle-backed evidence before platform-authority state is inferred.\n\n## Boundaries & Constraints\n\n**Always:** Forward opaque cursors verbatim, clear page-scoped ETags after page one, preserve cancellation, ordinal-deduplicate user IDs, require current lifecycle/freshness and one stable nonblank projection version across all pages, reject cursor recovery/cycles/missing cursors/page-cap exhaustion, and retain the existing `HasMore` fail-closed behavior.\n\n**Block If:** The existing query surface cannot distinguish a complete stable walk from invalid/recovered/mixed-version paging without changing the public server contract.\n\n**Never:** Edit the deferred-work ledger; decode, expose, or log cursors; add offset paging; make the walk unbounded; weaken last-administrator, freshness, authorization, or projection-confirmation gates; change backend query contracts or unrelated global-administrator list paging.\n\n## I/O & Edge-Case Matrix\n\n| Scenario | Input / State | Expected Output / Behavior | Error Handling |\n|----------|---------------|---------------------------|----------------|\n| Complete multi-page read | Current pages share lifecycle/version and terminate with `HasMore=false` | Rows aggregate once per ordinal user ID; result has no next cursor and is complete evidence | No error expected |\n| Later-page target | Correction target exists only beyond page one | Full count/presence drives preview; restore/revoke confirmation waits for terminal evidence | Never infer from page one |\n| Invalid continuation | Blank/repeated cursor, gateway page-one recovery, or page cap | Aggregate remains incomplete and cannot enable or confirm correction | Fail closed without cursor disclosure |\n| Inconsistent evidence | Stale/degraded page, missing/changing version, non-current lifecycle | Mixed evidence is not accepted as platform-authority truth | Fail closed as incomplete evidence |\n| Cancellation | Caller cancels during the walk | Stop before another page and propagate cancellation | Do not retain a partial result as complete |\n\n</intent-contract>\n\n## Code Map\n\n- `src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:1637` -- existing hardened 50-page walker and incomplete-result shaping to extract, then continue consuming through the helper.\n- `src/Hexalith.Tenants.UI/Services/Gateways/ITenantQueryGateway.cs:115` -- one-page query seam; keep its public contract unchanged and compose pages above it.\n- `src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:750` -- maps one protected-cursor page and flags invalid-cursor recovery with `PagingRecovered`; read-only evidence.\n- `src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:893` -- refresh-before-open, eligibility construction, initial enrichment, and confirm provider currently consume one page.\n- `src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:364` -- confirmation refresh fallback currently consumes one page.\n- `src/Hexalith.Tenants.UI/State/TenantAudit/GlobalAdministratorCorrectionSnapshot.cs:82` -- presence/count/confirmation gates; incomplete `HasMore` regression guards already live here.\n- `tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs:221` -- existing full-walk, cursor, version, and cap coverage to preserve while extracting.\n- `tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorCorrectionPanelTests.cs:56` -- restore/revoke submission and confirmation flows to exercise multi-page evidence.\n- `tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs:412` -- correction-opening path and query stub for later-page eligibility coverage.\n- `tests/Hexalith.Tenants.UI.Tests/State/GlobalAdministratorCorrectionSnapshotTests.cs:85` -- existing incomplete-page restore/revoke fail-closed tests that must remain green.\n\n## Tasks & Acceptance\n\n**Execution:**\n- [x] `src/Hexalith.Tenants.UI/Services/Gateways/GlobalAdministratorsProjectionLoader.cs` -- add one bounded reusable full-page loader with stable-version/current-evidence validation, cursor recovery/cycle protection, aggregation, and complete/incomplete result shaping.\n- [x] `src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor` -- replace the private duplicate walker with the shared loader without changing supplementary-read cancellation or retained-evidence behavior.\n- [x] `src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor` -- use complete reads for initial enrichment, correction-open refresh, and confirmation; require complete mutation evidence and rederive a refreshed global-admin intent before opening.\n- [x] `src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor` -- use the complete loader when no parent refresh provider exists.\n- [x] `src/Hexalith.Tenants.UI/State/TenantAudit/GlobalAdministratorCorrectionSnapshot.cs` -- require `IsCompleteEvidence` plus lifecycle-backed current evidence while preserving explicit `HasMore` fail-closed checks.\n- [x] `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/GlobalAdministratorsProjectionLoaderTests.cs` -- cover aggregation, deduplication, cursor/version/lifecycle/recovery/cap/cancellation matrix.\n- [x] `tests/Hexalith.Tenants.UI.Tests/Components/{TenantDetailSurfaceTests,GlobalAdministratorCorrectionPanelTests,TenantAuditPageTests}.cs` -- preserve extracted behavior and add multi-page preview, restore, revoke, and refreshed-intent tests.\n- [x] `tests/Hexalith.Tenants.UI.Tests/State/GlobalAdministratorCorrectionSnapshotTests.cs` -- align complete fixtures with lifecycle/version/completeness and retain incomplete-page regression assertions.\n\n**Acceptance Criteria:**\n- Given the revoke target exists only on page two, when correction eligibility is evaluated, then both pages are loaded, the full distinct count is used, and revoke is previewable unless the true aggregate has one administrator.\n- Given a restore or revoke command reaches projection-pending, when the intended state is visible only after walking every page, then confirmation occurs only from the complete stable aggregate.\n- Given any page is incomplete, recovered, stale, non-current, version-inconsistent, cyclic, missing its continuation, or beyond the cap, when eligibility or confirmation runs, then it remains unavailable or pending and no command success is asserted.\n- Given a correction intent was formed from incomplete evidence, when correction-open refresh obtains complete evidence, then the intent is re-evaluated from that evidence rather than remaining permanently unavailable.\n\n## Spec Change Log\n\n## Review Triage Log\n\n### 2026-10-08 \u2014 Blocking scope correction from Story 5.6, pass 17\n\nStory 5.6's pass-17 D1 decision selected option (a): restore the tenant audit page's read-only global-administrator gate. The paging implementation's re-enablement of `GlobalAdministratorCorrectionPanel` in root `5a3bc6dd4c1aa77cec50d0a960e986aa89c08cbe` exceeded this spec's complete-evidence loading intent and violated the frozen Story 5.5/5.6 boundary. The pass-17 remediation removed that audit-page branch; the pass-19 cleanup also removes its complete-evidence initial enrichment and restores read-only grid and receipt copy. Audit-page enrichment waits until Story 5.7 enables global-administrator correction. The standalone panel, snapshot, complete-evidence loader and their independent tests remain available for Story 5.7, which still owns enabling global-administrator correction and deterministic linked proof. This spec remains `in-review`; its earlier passing page-submission evidence is historical and cannot authorize restoring that branch. Any future re-enablement must resolve the Story 5.7 acceptance requirements first.\n\n### 2026-10-08 \u2014 Independent review\n\n- Blind B1 \u2014 `medium`, `patch`: stale/degraded audit reads fail the current-surface gate, and the retained-display predicate only recognizes tenant attempts. Include the mounted submitted global snapshot in retained display so status and recovery remain available.\n- Blind B2 \u2014 `medium`, `patch`: the global refresh provider returns evidence without updating the parent capture; a later render can resupply the older projection. Apply both projection and authorization under existing renderer/generation guards.\n- Blind B3 \u2014 `medium`, `patch`: the global proof link targets a fragment absent from the audit grid. Use the existing system-audit receipt route for corrective evidence. The global component does not expose an original-receipt callback or promise such a control; no new public callback is required.\n- Blind B4 \u2014 `medium`, `patch`: global opening passes no cancellation token, so navigation/disposal/superseding opens can leave a bounded but unnecessary walk running. Connect this pre-submit read to cancellation without changing dispatched-command ownership.\n- Blind B5 \u2014 `low`, `patch`: the direct-callback test proves rederivation, but does not exercise the rendered recovery route. The audit refresh already reloads complete evidence; add coverage for refresh followed by the available launcher.\n- Blind B6 \u2014 `medium`, `patch`: audit tests stop at previews and the tracked-dispatch stub cannot exercise submission. Add controllable tracked responses and restore/revoke confirmation tests through the real parent provider, including incomplete post-command evidence.\n- Blind B7 \u2014 `low`, `patch`: the newly reachable global panel has sibling titled preview/lifecycle sections outside an accordion. Group those sections using existing Fluent components and include the panel in conformance coverage.\n- Edge E1 \u2014 `medium`, `patch`: the global opening branch invalidates old focus without scheduling preview-heading focus, and the heading is not programmatically focusable. Reuse the tenant handoff focus convention and add a focus assertion.\n- Verification V1 \u2014 `medium`, `patch`: replacing the parent provider with a null result would leave existing preview/fallback tests green while preventing audit-page confirmation. This corroborates B6 and is patched by the same submission coverage.\n- Verification O1 \u2014 `medium`, `patch`: submitted global attempts can remain pending in the admission gate while the stale audit display hides their recovery controls. This corroborates B1 and is patched by the same retained-display correction.\n\nAll three review layers ran with fresh context. Duplicate findings are recorded individually above and grouped by their shared defect for patching. No finding was deferred; the deferred-work ledger is unchanged.\n\n\n### 2026-10-08 \u2014 Patch verification\n\nAll eight grouped patch items are resolved. The focused build had zero warnings/errors and all 356 tests across `TenantAuditPageTests`, `GlobalAdministratorCorrectionPanelTests`, and `DomainUiFluentConformanceTests` passed. The final full-suite run below verifies the patched tree. The outside-page proof receipt uses only the panel's exact verified corrective row, with current circuit authority plus the parent's authorized system-audit scope. No public callback or backend contract was added.\n\n## Design Notes\n\nThe helper belongs above the one-page gateway: the server already supplies protected requester-scoped cursors, and `TenantQueryGateway` deliberately maps one page. A complete result is created only after every page passes invariant checks; `HasMore=false` alone is insufficient because an aborted terminal page may be mixed-version. `PagingRecovered=true` on a continuation is also incomplete because the gateway silently restarted at page one.\n\n## Verification\n\n**Commands:**\n- `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release -m:1 -p:NuGetAudit=false -p:MinVerVersionOverride=1.0.0` -- expected: zero warnings and errors.\n- `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -noLogo -noColor -parallel none` -- expected: all UI tests pass.\n- `python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-global-admin-projection-paging.md` -- expected: no undeclared gitlink movement.\n\n\n### 2026-10-08 \u2014 Final verification evidence\n\n- `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release -m:1 -p:NuGetAudit=false -p:MinVerVersionOverride=1.0.0`: exit 0; 0 warnings, 0 errors. Output retained at `/tmp/global-admin-paging-final-build.log`.\n- `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -noLogo -noColor -parallel none`: exit 0; 3,986 total, 0 errors, 0 failed, 0 skipped, 0 not run, 55.896 seconds. Output retained at `/tmp/global-admin-paging-final-tests.log`.\n- The full run includes aggregation/deduplication, opaque cursor forwarding and ETag clearing, version/lifecycle/freshness/recovery/cycle/cap failures, cancellation, detail retained evidence, standalone restore/revoke confirmation, and audit-page submission through the real complete-read provider. Additional review regressions cover current row lifecycle, rendered refresh recovery, stale/degraded pending-command recovery, pre-submit cancellation with independent dispatched-command ownership, focus, accordion grouping, and proof receipt navigation outside the displayed page.\n- Scoped `git diff --check -- <paging bundle paths>`: exit 0, no whitespace errors; Git emitted only CRLF-to-LF normalization notices.\n- `python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-global-admin-projection-paging.md`: exit 1; `RESULT: FAIL`; `baseline_commit 23b2a76 is not an ancestor of HEAD (695e965). The recorded baseline does not describe this working tree.` HEAD at this check was `695e9658b92aac7e500e554acc3366a0c5f877c7`. Concurrent work rewrote history after this run captured its baseline. The original canonical baseline is preserved, and this bundle contains no gitlink changes. This validation gate remains blocked; status stays `in-review` under the rendered review step's halt rule.\n- `aspire run --apphost src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj` started the baseline; `aspire describe --format Json` reported the tenant UI/API running and EventStore finished. `aspire logs eventstore --tail 45` identified `OptionsValidationException`: `Authentication:WorkloadIssuer:ClientId` and `Authentication:WorkloadIssuer:ClientSecret` are missing while `Authentication:JwtBearer:Authority` is configured. This existing runtime configuration limits live command validation; no hosting/configuration changes belong to this implementation. `aspire stop --apphost src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj`: exit 0, successfully stopped the AppHost started by this run.\n- Full baseline-to-worktree and scoped review diffs are retained as temporary artifacts. Review and patch verification isolate this paging bundle from unrelated concurrent dependency, submodule, documentation, and test edits. All unrelated edits and the deferred-work ledger were preserved; this run performed no staging, commits, branching, submodule updates, or remote operations.\n",
+    "stderr": ""
+  },
+  {
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "command": [
+      "git",
+      "cat-file",
+      "-t",
+      "23b2a7691ae667fd160a48a5d7293f3cf38d48fe"
+    ],
+    "exit": 0,
+    "stdout": "commit\n",
+    "stderr": ""
+  },
+  {
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "command": [
+      "git",
+      "merge-base",
+      "--is-ancestor",
+      "23b2a7691ae667fd160a48a5d7293f3cf38d48fe",
+      "ded413dfd4786983585c7f56a399825cc1afbae3"
+    ],
+    "exit": 1,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "command": [
+      "git",
+      "merge-base",
+      "--is-ancestor",
+      "7716f0b11423eb54d74935b6cc6e3edf405dc400",
+      "ded413dfd4786983585c7f56a399825cc1afbae3"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "command": [
+      "git",
+      "merge-base",
+      "--is-ancestor",
+      "ded413dfd4786983585c7f56a399825cc1afbae3",
+      "1d8c31d2abe809829e10ce1ddadc978c79489f3e"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "command": [
+      "/usr/bin/python3",
+      "_bmad-output/implementation-artifacts/evidence/global-admin-projection-paging-2026-10-29/check-ci-provenance.py"
+    ],
+    "exit": 0,
+    "stdout": "Read-only CI historical-provenance preflight; existing HEAD: 1d8c31d2abe809829e10ce1ddadc978c79489f3e\nRESULT: PASS ded413dfd4786983585c7f56a399825cc1afbae3\n",
+    "stderr": ""
+  },
+  {
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "command": [
+      "/usr/bin/python3",
+      "scripts/validate-story-gitlinks.py",
+      "_bmad-output/implementation-artifacts/spec-global-admin-projection-paging.md",
+      "--ref",
+      "ded413dfd4786983585c7f56a399825cc1afbae3"
+    ],
+    "exit": 0,
+    "stdout": "Story:    spec-global-admin-projection-paging.md\nBaseline: 6bd5fc2\nCompared: ded413dfd4786983585c7f56a399825cc1afbae3 (ded413d)\n\n9 references/ pointer change(s) in range:\n  [declared] references/Hexalith.AI.Tools  de38f78 -> 3f194e1\n  [declared] references/Hexalith.Builds  5c3ff35 -> 58d9b54\n  [declared] references/Hexalith.Commons  feab4ef -> b247ed1\n  [declared] references/Hexalith.EventStore  5ddda34 -> 07d1e23\n  [declared] references/Hexalith.FrontComposer  dca2d63 -> 0e11421\n  [declared] references/Hexalith.McpCli  absent at baseline -> 342e072\n  [declared] references/Hexalith.Memories  6470938 -> 906bc07\n  [declared] references/Hexalith.Platform  absent at baseline -> f5a0d72\n  [declared] references/Hexalith.PolymorphicSerializations  65fc336 -> 98de6e0\n\nRESULT: PASS\n",
+    "stderr": ""
+  },
+  {
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "command": [
+      "git",
+      "rev-parse",
+      "1d8c31d2abe809829e10ce1ddadc978c79489f3e^"
+    ],
+    "exit": 0,
+    "stdout": "148e0fd209d690ed35cf33cfbce78b2f27bace43\n",
+    "stderr": ""
+  },
+  {
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "command": [
+      "/usr/bin/python3",
+      "scripts/validate-changed-story-gitlinks.py",
+      "--event-name",
+      "push",
+      "--event-path",
+      "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/ci-historical-baseline-repair-2026-10-29/unrepaired-source-event.json"
+    ],
+    "exit": 1,
+    "stdout": "Event range: 148e0fd209d690ed35cf33cfbce78b2f27bace43..1d8c31d2abe809829e10ce1ddadc978c79489f3e\nAudit: _bmad-output/implementation-artifacts/spec-eventstore-3-117-1.md at 1d8c31d2abe809829e10ce1ddadc978c79489f3e\nStory:    spec-eventstore-3-117-1.md\nBaseline: 1846c71\nCompared: 1d8c31d2abe809829e10ce1ddadc978c79489f3e (1d8c31d)\n\n9 references/ pointer change(s) in range:\n  [declared] references/Hexalith.AI.Tools  3f194e1 -> 70dbf73\n  [declared] references/Hexalith.Builds  893db14 -> 4775fb7\n  [declared] references/Hexalith.Commons  116d268 -> 3edfbda\n  [declared] references/Hexalith.EventStore  0dad344 -> 4cf93f9\n  [declared] references/Hexalith.FrontComposer  0e11421 -> 612d234\n  [declared] references/Hexalith.McpCli  e159f82 -> 9ba8e5b\n  [declared] references/Hexalith.Memories  aac6d90 -> daa0618\n  [declared] references/Hexalith.Platform  f043a2f -> 3659a44\n  [declared] references/Hexalith.PolymorphicSerializations  98de6e0 -> 221ac45\n\nRESULT: PASS\nFAIL: _bmad-output/implementation-artifacts/spec-global-admin-projection-paging.md: _bmad-output/implementation-artifacts/spec-global-admin-projection-paging.md: historical audit must retain the endpoint story's baseline_commit.\nChanged stories: 2; failed: 1\n",
+    "stderr": ""
+  },
+  {
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "command": [
+      "git",
+      "clone",
+      "--quiet",
+      "--no-checkout",
+      "--shared",
+      "/home/administrator/projects/hexalith/tenants",
+      "/tmp/ci-historical-repair-jku7n6hz/available"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/available",
+    "command": [
+      "git",
+      "config",
+      "core.hooksPath",
+      "/dev/null"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/available",
+    "command": [
+      "git",
+      "config",
+      "commit.gpgsign",
+      "false"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/available",
+    "command": [
+      "git",
+      "config",
+      "user.name",
+      "Fixture"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/available",
+    "command": [
+      "git",
+      "config",
+      "user.email",
+      "fixture@example.invalid"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/available",
+    "command": [
+      "git",
+      "checkout",
+      "--quiet",
+      "--detach",
+      "1d8c31d2abe809829e10ce1ddadc978c79489f3e"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/available",
+    "command": [
+      "git",
+      "cat-file",
+      "-e",
+      "23b2a7691ae667fd160a48a5d7293f3cf38d48fe"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/available",
+    "command": [
+      "git",
+      "rev-parse",
+      "--is-shallow-repository"
+    ],
+    "exit": 0,
+    "stdout": "false\n",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/available",
+    "command": [
+      "git",
+      "add",
+      "--",
+      "scripts/validate-changed-story-gitlinks.py"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/available",
+    "command": [
+      "git",
+      "add",
+      "--",
+      "tests/scripts/test_validate_changed_story_gitlinks.py"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/available",
+    "command": [
+      "git",
+      "add",
+      "--",
+      "docs/story-gitlink-ci.md"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/available",
+    "command": [
+      "git",
+      "add",
+      "--",
+      "_bmad-output/implementation-artifacts/spec-global-admin-projection-paging.md"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/available",
+    "command": [
+      "git",
+      "add",
+      "--",
+      "_bmad-output/implementation-artifacts/spec-ci-historical-baseline-repair.md"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/available",
+    "command": [
+      "git",
+      "commit",
+      "-m",
+      "test: Create fixture commit"
+    ],
+    "exit": 0,
+    "stdout": "[detached HEAD fbe33448] test: Create fixture commit\n 5 files changed, 479 insertions(+), 20 deletions(-)\n create mode 100644 _bmad-output/implementation-artifacts/spec-ci-historical-baseline-repair.md\n",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/available",
+    "command": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "exit": 0,
+    "stdout": "fbe334489c2ad9fafc6a57daf5b73b6215bcc032\n",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/available",
+    "command": [
+      "/usr/bin/python3",
+      "scripts/validate-changed-story-gitlinks.py",
+      "--event-name",
+      "push",
+      "--event-path",
+      "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/ci-historical-baseline-repair-2026-10-29/available-repair-push-event.json"
+    ],
+    "exit": 0,
+    "stdout": "Event range: 1d8c31d2abe809829e10ce1ddadc978c79489f3e..fbe334489c2ad9fafc6a57daf5b73b6215bcc032\nAudit: _bmad-output/implementation-artifacts/spec-ci-historical-baseline-repair.md at fbe334489c2ad9fafc6a57daf5b73b6215bcc032\nStory:    spec-ci-historical-baseline-repair.md\nBaseline: 1d8c31d\nCompared: fbe334489c2ad9fafc6a57daf5b73b6215bcc032 (fbe3344)\n\nNo references/ pointer changes in range.\n\nRESULT: PASS\nAudit: _bmad-output/implementation-artifacts/spec-global-admin-projection-paging.md at ded413dfd4786983585c7f56a399825cc1afbae3\nStory:    spec-global-admin-projection-paging.md\nBaseline: 6bd5fc2\nCompared: ded413dfd4786983585c7f56a399825cc1afbae3 (ded413d)\n\n9 references/ pointer change(s) in range:\n  [declared] references/Hexalith.AI.Tools  de38f78 -> 3f194e1\n  [declared] references/Hexalith.Builds  5c3ff35 -> 58d9b54\n  [declared] references/Hexalith.Commons  feab4ef -> b247ed1\n  [declared] references/Hexalith.EventStore  5ddda34 -> 07d1e23\n  [declared] references/Hexalith.FrontComposer  dca2d63 -> 0e11421\n  [declared] references/Hexalith.McpCli  absent at baseline -> 342e072\n  [declared] references/Hexalith.Memories  6470938 -> 906bc07\n  [declared] references/Hexalith.Platform  absent at baseline -> f5a0d72\n  [declared] references/Hexalith.PolymorphicSerializations  65fc336 -> 98de6e0\n\nRESULT: PASS\nChanged stories: 2; failed: 0\n",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/available",
+    "command": [
+      "/usr/bin/python3",
+      "scripts/validate-changed-story-gitlinks.py",
+      "--event-name",
+      "pull_request",
+      "--event-path",
+      "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/ci-historical-baseline-repair-2026-10-29/available-repair-pr-event.json"
+    ],
+    "exit": 0,
+    "stdout": "Event range: 1d8c31d2abe809829e10ce1ddadc978c79489f3e..fbe334489c2ad9fafc6a57daf5b73b6215bcc032\nAudit: _bmad-output/implementation-artifacts/spec-ci-historical-baseline-repair.md at fbe334489c2ad9fafc6a57daf5b73b6215bcc032\nStory:    spec-ci-historical-baseline-repair.md\nBaseline: 1d8c31d\nCompared: fbe334489c2ad9fafc6a57daf5b73b6215bcc032 (fbe3344)\n\nNo references/ pointer changes in range.\n\nRESULT: PASS\nAudit: _bmad-output/implementation-artifacts/spec-global-admin-projection-paging.md at ded413dfd4786983585c7f56a399825cc1afbae3\nStory:    spec-global-admin-projection-paging.md\nBaseline: 6bd5fc2\nCompared: ded413dfd4786983585c7f56a399825cc1afbae3 (ded413d)\n\n9 references/ pointer change(s) in range:\n  [declared] references/Hexalith.AI.Tools  de38f78 -> 3f194e1\n  [declared] references/Hexalith.Builds  5c3ff35 -> 58d9b54\n  [declared] references/Hexalith.Commons  feab4ef -> b247ed1\n  [declared] references/Hexalith.EventStore  5ddda34 -> 07d1e23\n  [declared] references/Hexalith.FrontComposer  dca2d63 -> 0e11421\n  [declared] references/Hexalith.McpCli  absent at baseline -> 342e072\n  [declared] references/Hexalith.Memories  6470938 -> 906bc07\n  [declared] references/Hexalith.Platform  absent at baseline -> f5a0d72\n  [declared] references/Hexalith.PolymorphicSerializations  65fc336 -> 98de6e0\n\nRESULT: PASS\nChanged stories: 2; failed: 0\n",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/available",
+    "command": [
+      "git",
+      "add",
+      "--",
+      "_bmad-output/implementation-artifacts/spec-global-admin-projection-paging.md"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/available",
+    "command": [
+      "git",
+      "commit",
+      "-m",
+      "test: Create fixture commit"
+    ],
+    "exit": 0,
+    "stdout": "[detached HEAD 4c3e1070] test: Create fixture commit\n 1 file changed, 2 insertions(+)\n",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/available",
+    "command": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "exit": 0,
+    "stdout": "4c3e1070cb08673812e5e2adc8b06c14a6d61778\n",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/available",
+    "command": [
+      "/usr/bin/python3",
+      "scripts/validate-changed-story-gitlinks.py",
+      "--event-name",
+      "push",
+      "--event-path",
+      "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/ci-historical-baseline-repair-2026-10-29/available-later-prose-event.json"
+    ],
+    "exit": 0,
+    "stdout": "Event range: fbe334489c2ad9fafc6a57daf5b73b6215bcc032..4c3e1070cb08673812e5e2adc8b06c14a6d61778\nAudit: _bmad-output/implementation-artifacts/spec-global-admin-projection-paging.md at ded413dfd4786983585c7f56a399825cc1afbae3\nStory:    spec-global-admin-projection-paging.md\nBaseline: 6bd5fc2\nCompared: ded413dfd4786983585c7f56a399825cc1afbae3 (ded413d)\n\n9 references/ pointer change(s) in range:\n  [declared] references/Hexalith.AI.Tools  de38f78 -> 3f194e1\n  [declared] references/Hexalith.Builds  5c3ff35 -> 58d9b54\n  [declared] references/Hexalith.Commons  feab4ef -> b247ed1\n  [declared] references/Hexalith.EventStore  5ddda34 -> 07d1e23\n  [declared] references/Hexalith.FrontComposer  dca2d63 -> 0e11421\n  [declared] references/Hexalith.McpCli  absent at baseline -> 342e072\n  [declared] references/Hexalith.Memories  6470938 -> 906bc07\n  [declared] references/Hexalith.Platform  absent at baseline -> f5a0d72\n  [declared] references/Hexalith.PolymorphicSerializations  65fc336 -> 98de6e0\n\nRESULT: PASS\nChanged stories: 1; failed: 0\n",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/available",
+    "command": [
+      "git",
+      "add",
+      "--",
+      "_bmad-output/implementation-artifacts/spec-global-admin-projection-paging.md"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/available",
+    "command": [
+      "git",
+      "commit",
+      "-m",
+      "test: Create fixture commit"
+    ],
+    "exit": 0,
+    "stdout": "[detached HEAD edb68866] test: Create fixture commit\n 1 file changed, 1 insertion(+), 3 deletions(-)\n",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/available",
+    "command": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "exit": 0,
+    "stdout": "edb688664b054105402c9d96172a3684d42488f9\n",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/available",
+    "command": [
+      "/usr/bin/python3",
+      "scripts/validate-changed-story-gitlinks.py",
+      "--event-name",
+      "push",
+      "--event-path",
+      "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/ci-historical-baseline-repair-2026-10-29/available-false-creation-event.json"
+    ],
+    "exit": 1,
+    "stdout": "Event range: 4c3e1070cb08673812e5e2adc8b06c14a6d61778..edb688664b054105402c9d96172a3684d42488f9\nFAIL: _bmad-output/implementation-artifacts/spec-global-admin-projection-paging.md: _bmad-output/implementation-artifacts/spec-global-admin-projection-paging.md: gitlink_creation_ref must be the sole original story creation.\nChanged stories: 1; failed: 1\n",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/available",
+    "command": [
+      "git",
+      "add",
+      "--",
+      "_bmad-output/implementation-artifacts/spec-global-admin-projection-paging.md"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/available",
+    "command": [
+      "git",
+      "rev-parse",
+      "6bd5fc29cf66e0238a4ea5ceb8c743c358fe3513:references/Hexalith.EventStore"
+    ],
+    "exit": 0,
+    "stdout": "5ddda34f2ff0ffb0f72a60c44b265f2e4838a332\n",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/available",
+    "command": [
+      "git",
+      "update-index",
+      "--cacheinfo",
+      "160000,5ddda34f2ff0ffb0f72a60c44b265f2e4838a332,references/Hexalith.EventStore"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/available",
+    "command": [
+      "git",
+      "commit",
+      "-m",
+      "test: Create fixture commit"
+    ],
+    "exit": 0,
+    "stdout": "[detached HEAD 2a5de577] test: Create fixture commit\n 2 files changed, 2 insertions(+), 2 deletions(-)\n",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/available",
+    "command": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "exit": 0,
+    "stdout": "2a5de577a2e481dba84c31cea8961056909696f8\n",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/available",
+    "command": [
+      "/usr/bin/python3",
+      "scripts/validate-changed-story-gitlinks.py",
+      "--event-name",
+      "push",
+      "--event-path",
+      "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/ci-historical-baseline-repair-2026-10-29/available-pointer-event-event.json"
+    ],
+    "exit": 1,
+    "stdout": "Event range: edb688664b054105402c9d96172a3684d42488f9..2a5de577a2e481dba84c31cea8961056909696f8\nFAIL: _bmad-output/implementation-artifacts/spec-global-admin-projection-paging.md: _bmad-output/implementation-artifacts/spec-global-admin-projection-paging.md: historical gitlink_audit_ref cannot be combined with gitlink-bearing event commits. Isolate the historical repair from dependency changes.\nChanged stories: 1; failed: 1\n",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/available",
+    "command": [
+      "git",
+      "rev-parse",
+      "1d8c31d2abe809829e10ce1ddadc978c79489f3e:references/Hexalith.EventStore"
+    ],
+    "exit": 0,
+    "stdout": "4cf93f91e760e2d09e4fc64e1bd33a3c0a79a24d\n",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/available",
+    "command": [
+      "git",
+      "update-index",
+      "--cacheinfo",
+      "160000,4cf93f91e760e2d09e4fc64e1bd33a3c0a79a24d,references/Hexalith.EventStore"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/available",
+    "command": [
+      "git",
+      "commit",
+      "-m",
+      "test: Create fixture commit"
+    ],
+    "exit": 0,
+    "stdout": "[detached HEAD aa084c30] test: Create fixture commit\n 1 file changed, 1 insertion(+), 1 deletion(-)\n",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/available",
+    "command": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "exit": 0,
+    "stdout": "aa084c304a935795549b6b06072e384647786b4f\n",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/available",
+    "command": [
+      "/usr/bin/python3",
+      "scripts/validate-changed-story-gitlinks.py",
+      "--event-name",
+      "push",
+      "--event-path",
+      "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/ci-historical-baseline-repair-2026-10-29/available-pointer-revert-event.json"
+    ],
+    "exit": 1,
+    "stdout": "Event range: edb688664b054105402c9d96172a3684d42488f9..aa084c304a935795549b6b06072e384647786b4f\nFAIL: _bmad-output/implementation-artifacts/spec-global-admin-projection-paging.md: _bmad-output/implementation-artifacts/spec-global-admin-projection-paging.md: historical gitlink_audit_ref cannot be combined with gitlink-bearing event commits. Isolate the historical repair from dependency changes.\nChanged stories: 1; failed: 1\n",
+    "stderr": ""
+  },
+  {
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "command": [
+      "git",
+      "clone",
+      "--quiet",
+      "--no-checkout",
+      "--no-local",
+      "/home/administrator/projects/hexalith/tenants",
+      "/tmp/ci-historical-repair-jku7n6hz/transport"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/transport",
+    "command": [
+      "git",
+      "config",
+      "core.hooksPath",
+      "/dev/null"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/transport",
+    "command": [
+      "git",
+      "config",
+      "commit.gpgsign",
+      "false"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/transport",
+    "command": [
+      "git",
+      "config",
+      "user.name",
+      "Fixture"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/transport",
+    "command": [
+      "git",
+      "config",
+      "user.email",
+      "fixture@example.invalid"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/transport",
+    "command": [
+      "git",
+      "checkout",
+      "--quiet",
+      "--detach",
+      "1d8c31d2abe809829e10ce1ddadc978c79489f3e"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/transport",
+    "command": [
+      "git",
+      "cat-file",
+      "-e",
+      "23b2a7691ae667fd160a48a5d7293f3cf38d48fe"
+    ],
+    "exit": 1,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/transport",
+    "command": [
+      "git",
+      "rev-parse",
+      "--is-shallow-repository"
+    ],
+    "exit": 0,
+    "stdout": "false\n",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/transport",
+    "command": [
+      "git",
+      "add",
+      "--",
+      "scripts/validate-changed-story-gitlinks.py"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/transport",
+    "command": [
+      "git",
+      "add",
+      "--",
+      "tests/scripts/test_validate_changed_story_gitlinks.py"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/transport",
+    "command": [
+      "git",
+      "add",
+      "--",
+      "docs/story-gitlink-ci.md"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/transport",
+    "command": [
+      "git",
+      "add",
+      "--",
+      "_bmad-output/implementation-artifacts/spec-global-admin-projection-paging.md"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/transport",
+    "command": [
+      "git",
+      "add",
+      "--",
+      "_bmad-output/implementation-artifacts/spec-ci-historical-baseline-repair.md"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/transport",
+    "command": [
+      "git",
+      "commit",
+      "-m",
+      "test: Create fixture commit"
+    ],
+    "exit": 0,
+    "stdout": "[detached HEAD 988a2244] test: Create fixture commit\n 5 files changed, 479 insertions(+), 20 deletions(-)\n create mode 100644 _bmad-output/implementation-artifacts/spec-ci-historical-baseline-repair.md\n",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/transport",
+    "command": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "exit": 0,
+    "stdout": "988a22448dd9a06589d0bb28a8beb4c9d7b91d72\n",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/transport",
+    "command": [
+      "/usr/bin/python3",
+      "scripts/validate-changed-story-gitlinks.py",
+      "--event-name",
+      "push",
+      "--event-path",
+      "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/ci-historical-baseline-repair-2026-10-29/transport-repair-push-event.json"
+    ],
+    "exit": 0,
+    "stdout": "Event range: 1d8c31d2abe809829e10ce1ddadc978c79489f3e..988a22448dd9a06589d0bb28a8beb4c9d7b91d72\nAudit: _bmad-output/implementation-artifacts/spec-ci-historical-baseline-repair.md at 988a22448dd9a06589d0bb28a8beb4c9d7b91d72\nStory:    spec-ci-historical-baseline-repair.md\nBaseline: 1d8c31d\nCompared: 988a22448dd9a06589d0bb28a8beb4c9d7b91d72 (988a224)\n\nNo references/ pointer changes in range.\n\nRESULT: PASS\nAudit: _bmad-output/implementation-artifacts/spec-global-admin-projection-paging.md at ded413dfd4786983585c7f56a399825cc1afbae3\nStory:    spec-global-admin-projection-paging.md\nBaseline: 6bd5fc2\nCompared: ded413dfd4786983585c7f56a399825cc1afbae3 (ded413d)\n\n9 references/ pointer change(s) in range:\n  [declared] references/Hexalith.AI.Tools  de38f78 -> 3f194e1\n  [declared] references/Hexalith.Builds  5c3ff35 -> 58d9b54\n  [declared] references/Hexalith.Commons  feab4ef -> b247ed1\n  [declared] references/Hexalith.EventStore  5ddda34 -> 07d1e23\n  [declared] references/Hexalith.FrontComposer  dca2d63 -> 0e11421\n  [declared] references/Hexalith.McpCli  absent at baseline -> 342e072\n  [declared] references/Hexalith.Memories  6470938 -> 906bc07\n  [declared] references/Hexalith.Platform  absent at baseline -> f5a0d72\n  [declared] references/Hexalith.PolymorphicSerializations  65fc336 -> 98de6e0\n\nRESULT: PASS\nChanged stories: 2; failed: 0\n",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/transport",
+    "command": [
+      "/usr/bin/python3",
+      "scripts/validate-changed-story-gitlinks.py",
+      "--event-name",
+      "pull_request",
+      "--event-path",
+      "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/ci-historical-baseline-repair-2026-10-29/transport-repair-pr-event.json"
+    ],
+    "exit": 0,
+    "stdout": "Event range: 1d8c31d2abe809829e10ce1ddadc978c79489f3e..988a22448dd9a06589d0bb28a8beb4c9d7b91d72\nAudit: _bmad-output/implementation-artifacts/spec-ci-historical-baseline-repair.md at 988a22448dd9a06589d0bb28a8beb4c9d7b91d72\nStory:    spec-ci-historical-baseline-repair.md\nBaseline: 1d8c31d\nCompared: 988a22448dd9a06589d0bb28a8beb4c9d7b91d72 (988a224)\n\nNo references/ pointer changes in range.\n\nRESULT: PASS\nAudit: _bmad-output/implementation-artifacts/spec-global-admin-projection-paging.md at ded413dfd4786983585c7f56a399825cc1afbae3\nStory:    spec-global-admin-projection-paging.md\nBaseline: 6bd5fc2\nCompared: ded413dfd4786983585c7f56a399825cc1afbae3 (ded413d)\n\n9 references/ pointer change(s) in range:\n  [declared] references/Hexalith.AI.Tools  de38f78 -> 3f194e1\n  [declared] references/Hexalith.Builds  5c3ff35 -> 58d9b54\n  [declared] references/Hexalith.Commons  feab4ef -> b247ed1\n  [declared] references/Hexalith.EventStore  5ddda34 -> 07d1e23\n  [declared] references/Hexalith.FrontComposer  dca2d63 -> 0e11421\n  [declared] references/Hexalith.McpCli  absent at baseline -> 342e072\n  [declared] references/Hexalith.Memories  6470938 -> 906bc07\n  [declared] references/Hexalith.Platform  absent at baseline -> f5a0d72\n  [declared] references/Hexalith.PolymorphicSerializations  65fc336 -> 98de6e0\n\nRESULT: PASS\nChanged stories: 2; failed: 0\n",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/transport",
+    "command": [
+      "git",
+      "add",
+      "--",
+      "_bmad-output/implementation-artifacts/spec-global-admin-projection-paging.md"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/transport",
+    "command": [
+      "git",
+      "commit",
+      "-m",
+      "test: Create fixture commit"
+    ],
+    "exit": 0,
+    "stdout": "[detached HEAD 6a4d777f] test: Create fixture commit\n 1 file changed, 2 insertions(+)\n",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/transport",
+    "command": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "exit": 0,
+    "stdout": "6a4d777f181d082e732b7597ba9dabbf2e5aa3b1\n",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/transport",
+    "command": [
+      "/usr/bin/python3",
+      "scripts/validate-changed-story-gitlinks.py",
+      "--event-name",
+      "push",
+      "--event-path",
+      "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/ci-historical-baseline-repair-2026-10-29/transport-later-prose-event.json"
+    ],
+    "exit": 0,
+    "stdout": "Event range: 988a22448dd9a06589d0bb28a8beb4c9d7b91d72..6a4d777f181d082e732b7597ba9dabbf2e5aa3b1\nAudit: _bmad-output/implementation-artifacts/spec-global-admin-projection-paging.md at ded413dfd4786983585c7f56a399825cc1afbae3\nStory:    spec-global-admin-projection-paging.md\nBaseline: 6bd5fc2\nCompared: ded413dfd4786983585c7f56a399825cc1afbae3 (ded413d)\n\n9 references/ pointer change(s) in range:\n  [declared] references/Hexalith.AI.Tools  de38f78 -> 3f194e1\n  [declared] references/Hexalith.Builds  5c3ff35 -> 58d9b54\n  [declared] references/Hexalith.Commons  feab4ef -> b247ed1\n  [declared] references/Hexalith.EventStore  5ddda34 -> 07d1e23\n  [declared] references/Hexalith.FrontComposer  dca2d63 -> 0e11421\n  [declared] references/Hexalith.McpCli  absent at baseline -> 342e072\n  [declared] references/Hexalith.Memories  6470938 -> 906bc07\n  [declared] references/Hexalith.Platform  absent at baseline -> f5a0d72\n  [declared] references/Hexalith.PolymorphicSerializations  65fc336 -> 98de6e0\n\nRESULT: PASS\nChanged stories: 1; failed: 0\n",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/transport",
+    "command": [
+      "git",
+      "add",
+      "--",
+      "_bmad-output/implementation-artifacts/spec-global-admin-projection-paging.md"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/transport",
+    "command": [
+      "git",
+      "commit",
+      "-m",
+      "test: Create fixture commit"
+    ],
+    "exit": 0,
+    "stdout": "[detached HEAD ee3f7376] test: Create fixture commit\n 1 file changed, 1 insertion(+), 3 deletions(-)\n",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/transport",
+    "command": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "exit": 0,
+    "stdout": "ee3f73760a672db559f48c79fde758489a5bee59\n",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/transport",
+    "command": [
+      "/usr/bin/python3",
+      "scripts/validate-changed-story-gitlinks.py",
+      "--event-name",
+      "push",
+      "--event-path",
+      "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/ci-historical-baseline-repair-2026-10-29/transport-false-creation-event.json"
+    ],
+    "exit": 1,
+    "stdout": "Event range: 6a4d777f181d082e732b7597ba9dabbf2e5aa3b1..ee3f73760a672db559f48c79fde758489a5bee59\nFAIL: _bmad-output/implementation-artifacts/spec-global-admin-projection-paging.md: _bmad-output/implementation-artifacts/spec-global-admin-projection-paging.md: gitlink_creation_ref must be the sole original story creation.\nChanged stories: 1; failed: 1\n",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/transport",
+    "command": [
+      "git",
+      "add",
+      "--",
+      "_bmad-output/implementation-artifacts/spec-global-admin-projection-paging.md"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/transport",
+    "command": [
+      "git",
+      "rev-parse",
+      "6bd5fc29cf66e0238a4ea5ceb8c743c358fe3513:references/Hexalith.EventStore"
+    ],
+    "exit": 0,
+    "stdout": "5ddda34f2ff0ffb0f72a60c44b265f2e4838a332\n",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/transport",
+    "command": [
+      "git",
+      "update-index",
+      "--cacheinfo",
+      "160000,5ddda34f2ff0ffb0f72a60c44b265f2e4838a332,references/Hexalith.EventStore"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/transport",
+    "command": [
+      "git",
+      "commit",
+      "-m",
+      "test: Create fixture commit"
+    ],
+    "exit": 0,
+    "stdout": "[detached HEAD e88823fe] test: Create fixture commit\n 2 files changed, 2 insertions(+), 2 deletions(-)\n",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/transport",
+    "command": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "exit": 0,
+    "stdout": "e88823feae2ac9d68fbf36d4b0b6b776bed851ad\n",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/transport",
+    "command": [
+      "/usr/bin/python3",
+      "scripts/validate-changed-story-gitlinks.py",
+      "--event-name",
+      "push",
+      "--event-path",
+      "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/ci-historical-baseline-repair-2026-10-29/transport-pointer-event-event.json"
+    ],
+    "exit": 1,
+    "stdout": "Event range: ee3f73760a672db559f48c79fde758489a5bee59..e88823feae2ac9d68fbf36d4b0b6b776bed851ad\nFAIL: _bmad-output/implementation-artifacts/spec-global-admin-projection-paging.md: _bmad-output/implementation-artifacts/spec-global-admin-projection-paging.md: historical gitlink_audit_ref cannot be combined with gitlink-bearing event commits. Isolate the historical repair from dependency changes.\nChanged stories: 1; failed: 1\n",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/transport",
+    "command": [
+      "git",
+      "rev-parse",
+      "1d8c31d2abe809829e10ce1ddadc978c79489f3e:references/Hexalith.EventStore"
+    ],
+    "exit": 0,
+    "stdout": "4cf93f91e760e2d09e4fc64e1bd33a3c0a79a24d\n",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/transport",
+    "command": [
+      "git",
+      "update-index",
+      "--cacheinfo",
+      "160000,4cf93f91e760e2d09e4fc64e1bd33a3c0a79a24d,references/Hexalith.EventStore"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/transport",
+    "command": [
+      "git",
+      "commit",
+      "-m",
+      "test: Create fixture commit"
+    ],
+    "exit": 0,
+    "stdout": "[detached HEAD f9a8cbb4] test: Create fixture commit\n 1 file changed, 1 insertion(+), 1 deletion(-)\n",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/transport",
+    "command": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "exit": 0,
+    "stdout": "f9a8cbb4492942c926f5af5a5b7161369b4a51b8\n",
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/ci-historical-repair-jku7n6hz/transport",
+    "command": [
+      "/usr/bin/python3",
+      "scripts/validate-changed-story-gitlinks.py",
+      "--event-name",
+      "push",
+      "--event-path",
+      "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/ci-historical-baseline-repair-2026-10-29/transport-pointer-revert-event.json"
+    ],
+    "exit": 1,
+    "stdout": "Event range: ee3f73760a672db559f48c79fde758489a5bee59..f9a8cbb4492942c926f5af5a5b7161369b4a51b8\nFAIL: _bmad-output/implementation-artifacts/spec-global-admin-projection-paging.md: _bmad-output/implementation-artifacts/spec-global-admin-projection-paging.md: historical gitlink_audit_ref cannot be combined with gitlink-bearing event commits. Isolate the historical repair from dependency changes.\nChanged stories: 1; failed: 1\n",
+    "stderr": ""
+  },
+  {
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "command": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "exit": 0,
+    "stdout": "1d8c31d2abe809829e10ce1ddadc978c79489f3e\n",
+    "stderr": ""
+  }
+]

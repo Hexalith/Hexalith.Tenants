@@ -1,0 +1,20 @@
+unrepaired-source: exit 1
+available-repair-push: exit 0
+available-repair-pr: exit 0
+available-later-prose: exit 0
+available-false-creation: exit 1
+available-pointer-event: exit 1
+available-pointer-revert: exit 1
+Traceback (most recent call last):
+  File "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/ci-historical-baseline-repair-2026-10-29/verify-history.py", line 133, in <module>
+    main()
+    ~~~~^^
+  File "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/ci-historical-baseline-repair-2026-10-29/verify-history.py", line 99, in main
+    event(repo, head, repaired, "push", f"{label}-repair-push")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/ci-historical-baseline-repair-2026-10-29/verify-history.py", line 37, in event
+    output = run(repo, sys.executable, RUNNER, "--event-name", kind,
+                 "--event-path", str(path), expected=expected)
+  File "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/ci-historical-baseline-repair-2026-10-29/verify-history.py", line 28, in run
+    raise AssertionError(RECORDS[-1])
+AssertionError: {'cwd': '/tmp/ci-historical-repair-azflnnv8/transport', 'command': ['/usr/bin/python3', 'scripts/validate-changed-story-gitlinks.py', '--event-name', 'push', '--event-path', '/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/ci-historical-baseline-repair-2026-10-29/transport-repair-push-event.json'], 'exit': 1, 'stdout': 'Event range: 1d8c31d2abe809829e10ce1ddadc978c79489f3e..1a7b815fe298779e5acb464770a003797259ff80\nAudit: _bmad-output/implementation-artifacts/spec-ci-historical-baseline-repair.md at 1a7b815fe298779e5acb464770a003797259ff80\nStory:    spec-ci-historical-baseline-repair.md\nBaseline: 1d8c31d\nCompared: 1a7b815fe298779e5acb464770a003797259ff80 (1a7b815)\n\nNo references/ pointer changes in range.\n\nRESULT: PASS\nFAIL: _bmad-output/implementation-artifacts/spec-global-admin-projection-paging.md: _bmad-output/implementation-artifacts/spec-global-admin-projection-paging.md: correction must preserve the original creation and endpoint baseline.\nChanged stories: 2; failed: 1\n', 'stderr': ''}

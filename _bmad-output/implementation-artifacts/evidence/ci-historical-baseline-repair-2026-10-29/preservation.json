@@ -1,0 +1,17 @@
+{
+  "initial_head": "1d8c31d2abe809829e10ce1ddadc978c79489f3e",
+  "final_head": "1d8c31d2abe809829e10ce1ddadc978c79489f3e",
+  "changed_tracked_files": [
+    "_bmad-output/implementation-artifacts/spec-global-admin-projection-paging.md",
+    "docs/story-gitlink-ci.md",
+    "scripts/validate-changed-story-gitlinks.py",
+    "tests/scripts/test_validate_changed_story_gitlinks.py"
+  ],
+  "unexpected_changes": [],
+  "preserved_tracked_files": 4507,
+  "gitlinks_unchanged": true,
+  "preexisting_ui_test_hashes": {
+    "tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs": "61cb65f8c679404e0c174407ec3bb4ec086804a234c40031d6e3b39f6600438e",
+    "tests/Hexalith.Tenants.UI.Tests/Services/Gateways/GlobalAdministratorsProjectionLoaderTests.cs": "5820fbb55657131073208085ea3fe401eaaaf740c4cf727ddd87255b21a414db"
+  }
+}
