@@ -1,0 +1,31 @@
+{
+  "capturedUtc": "2026-10-29T03:35:01.617035+00:00",
+  "baseline": "8127cb3b47dcfcf4086d07e4af0730c2f4920f9e",
+  "numberedRecords": 657,
+  "numberedClosed": [
+    "DW-562",
+    "DW-617"
+  ],
+  "untouchedNumberedBodies": 655,
+  "allUntouchedNumberedBodiesEqual": true,
+  "counts": {
+    "done": 651,
+    "blocked": 1,
+    "actionable": 1,
+    "accepted-limitation": 1,
+    "uncertain": 3
+  },
+  "unnumberedClosed": [
+    "fatal failure precedence",
+    "whole-search load deadline",
+    "fresh complete generic CI"
+  ],
+  "selectedUnnumberedCiStatus": "done; actual complete generic CI530/530, zero failures/skips",
+  "untouchedBodiesSha256": "0706bd5da750f0b1a091a22639f67eb76794cbb141dafc1289e799693199ea6f",
+  "ciQualification": {
+    "source": "516267c9675dc48bc35bf92f14a712f5ddc1a504",
+    "run": 40809733133,
+    "job": 123242100351,
+    "url": "https://github.com/Hexalith/Hexalith.Tenants/actions/runs/40809733133"
+  }
+}

@@ -2,7 +2,7 @@
 title: 'Five deferred authority, read-boundary and CI items'
 type: 'bugfix'
 created: '2026-10-28'
-status: 'in-review'
+status: 'done'
 route: 'dispatch'
 review_loop_iteration: 0
 baseline_commit: '8127cb3b47dcfcf4086d07e4af0730c2f4920f9e'
@@ -130,6 +130,6 @@ Fresh generic tier: mirror the configured Release restore/build graph, then run 
 - [x] Independently review and resolve findings against the staged implementation and matrix coverage.
 - [x] Accept the two numbered revocation records and two unnumbered read-boundary records, preserving all other numbered bodies.
 - [x] Validate the exact commit message with pinned commitlint, fetch/inspect divergence and push the reviewed implementation to main.
-- [ ] Observe actual exact-source CI, then close the unnumbered generic-CI follow-up and push the final acceptance evidence.
+- [x] Observe actual exact-source CI, then close the unnumbered generic-CI follow-up and push the final acceptance evidence.
 
-These ordered completion actions remain part of the original intent; they follow implementation verification and independent review rather than being claimed complete in the implementation handoff.
+2026-10-29 final acceptance: actual CI 40809733133 on `516267c9675dc48bc35bf92f14a712f5ddc1a504` passes the main build/test job and complete generic Aspire job 123242100351,530/530 unique executed results with zero failures/skips. The actual shared Builds workflow is `e909ffd9fe9a6097e36d932010b983d029396968`. Its strict complete-tier, executed-results/no-skips and artifact-upload steps pass; downloaded TRX and artifact provenance are independently audited. All five selected records are done, original failures and 655 unrelated numbered bodies remain preserved. This final commit records documentation/evidence only; implementation/test inputs match the qualified source. Separate source-reference and broad release/legacy recovery holds remain outside this acceptance.

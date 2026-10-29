@@ -1,0 +1,62 @@
+{
+  "capturedUtc": "2026-10-29T03:34:51.593486+00:00",
+  "source": "516267c9675dc48bc35bf92f14a712f5ddc1a504",
+  "run": 40809733133,
+  "attempt": 1,
+  "url": "https://github.com/Hexalith/Hexalith.Tenants/actions/runs/40809733133",
+  "workflowConclusion": "failure",
+  "genericJobId": 123242100351,
+  "genericJobConclusion": "success",
+  "buildJobConclusion": "success",
+  "criticalStepsPassed": [
+    "Aspire contract tests (Tier 3, non-Performance, Microsoft.Testing.Platform)",
+    "Require executed Aspire tests without skips",
+    "Upload test results"
+  ],
+  "counts": {
+    "total": "530",
+    "executed": "530",
+    "passed": "530",
+    "failed": "0",
+    "error": "0",
+    "timeout": "0",
+    "aborted": "0",
+    "inconclusive": "0",
+    "passedButRunAborted": "0",
+    "notRunnable": "0",
+    "notExecuted": "0",
+    "disconnected": "0",
+    "warning": "0",
+    "completed": "0",
+    "inProgress": "0",
+    "pending": "0"
+  },
+  "unitResultCount": 530,
+  "uniqueExecutionIds": 530,
+  "allResultsPassed": true,
+  "requiredControlsPresent": [
+    "CommittedNativeRemovalRefusesARetainedGrantingProjectionThroughProductionReaders",
+    "NativeRemovalRefusesTheRealProcessAndQueryBoundariesWhilePersistedProjectionStillGrants"
+  ],
+  "rawTrxSha256": "1525eaae7b4ba9dc95a0c4ca8e63b7d7cfcb6890d76d64eafba31faa659aa804",
+  "sanitizedTrxSha256": "1525eaae7b4ba9dc95a0c4ca8e63b7d7cfcb6890d76d64eafba31faa659aa804",
+  "redactions": 0,
+  "artifact": {
+    "id": 12871520448,
+    "name": "aspire-test-results",
+    "size_in_bytes": 81712,
+    "digest": "sha256:18a3ddbf380e9c0917fd46e72805335ab974ec3cb05baad3de6621e5bd228fad",
+    "created_at": "2026-10-29T03:34:15Z",
+    "expires_at": "2026-11-05T03:34:14Z"
+  },
+  "effectiveBuildsWorkflowSha": "e909ffd9fe9a6097e36d932010b983d029396968",
+  "effectiveWorkflowSha256": "753dd2a290e7dc384f0c876230c22dbe52751803b2dc98fc3c8fab850453eeea",
+  "scope": "Complete configured generic non-Performance tier, retaining existing FrontComposer/Memories source exceptions; separate published profile and release holds are not closed.",
+  "archive": {
+    "name": "actual-ci-qualification.tar.gz",
+    "bytes": 101010,
+    "sha256": "e60bdb4b51ceca491bfcaeb24f61634faef864b2a4e5da15346f17b6b3d24f19",
+    "members": 10,
+    "memberManifest": "member-hashes.json"
+  }
+}

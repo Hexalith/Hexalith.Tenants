@@ -1,7 +1,7 @@
 {
-  "capturedUtc": "2026-10-29T03:00:39.964683+00:00",
+  "capturedUtc": "2026-10-29T03:35:01.617323+00:00",
   "baseline": "8127cb3b47dcfcf4086d07e4af0730c2f4920f9e",
-  "phase": "Browser admission cause verified; test cadence and complete local 530-test generic tier passed; exact-source CI pending",
+  "phase": "All five records complete; actual exact-source generic CI530/530, no failures/skips",
   "frozenIntentSha256": "6d8aa8fdd9b7d885787043252bde110fe1d5607f17408a7963f5886c016b1225",
   "productionInputsUnchangedSinceAcceptedGenericTier": true,
   "postTestChanges": "Earlier five-file whitespace-only change is separately audited. Four later test-only cadence/diagnostic files match the final 530-test local generic run.",
@@ -381,6 +381,14 @@
     }
   ],
   "shareableFiles": {
+    "actual-ci-qualification.json": {
+      "bytes": 2304,
+      "sha256": "40fb018c46b72f75bb5943416ca17e538989053a462e597de76b81fa0eebb1aa"
+    },
+    "actual-ci-qualification.tar.gz": {
+      "bytes": 101010,
+      "sha256": "e60bdb4b51ceca491bfcaeb24f61634faef864b2a4e5da15346f17b6b3d24f19"
+    },
     "assembly-manifest.json": {
       "bytes": 1704,
       "sha256": "768767f73f73be5e90e039bc8c25dd1c1d6591288bb6753863a592e45c1196be"
@@ -420,6 +428,10 @@
     "command-manifest.json": {
       "bytes": 9292,
       "sha256": "c01e07ff4a57ed8e706e7a16f31467401cdb3e213ff422cc0bd1f693c22a27d7"
+    },
+    "final-ledger-acceptance-audit.json": {
+      "bytes": 931,
+      "sha256": "5df6b5a96a2c5e53a222b0f941a180dbee472a836ac3e8e12a12e6b041c23047"
     },
     "generic-final-third-trx-audit.json": {
       "bytes": 697,
@@ -512,9 +524,12 @@
   },
   "validationIndex": {
     "path": "_bmad-output/implementation-artifacts/five-deferred-authority-and-read-bounds-validation-evidence.md",
-    "bytes": 21587,
-    "sha256": "050d43339f31a1eb1b8019b9a4caba498bba4b854312ce3389b4381675f13cc4"
+    "bytes": 23110,
+    "sha256": "8f49fa6eef24a3aa599ade1e7a82f65e78c1ee130a91f880a368f60b7c9ba326"
   },
   "ciFirstAttempt": "ci-first-attempt-and-followup.json",
-  "cadenceQualification": "ci-browser-cadence-and-generic-validation.json"
+  "cadenceQualification": "ci-browser-cadence-and-generic-validation.json",
+  "qualifiedCiSource": "516267c9675dc48bc35bf92f14a712f5ddc1a504",
+  "actualCiQualification": "actual-ci-qualification.json",
+  "acceptanceOnlyChanges": "Spec, ledgers, validation index and evidence; all qualified implementation/test blobs unchanged."
 }

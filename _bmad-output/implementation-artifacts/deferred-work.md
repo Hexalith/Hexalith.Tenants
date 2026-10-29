@@ -1,6 +1,6 @@
 # Deferred Work
 
-**Four implementation records accepted; CI qualification pending (2026-10-28):** DW-562 and duplicate DW-617 plus the two unnumbered fatal/deadline follow-ups satisfy the approved policies after independent review, deterministic checks and real persisted-removal qualification. All 657 numbered IDs remain: 651 done/6 open across six maintenance rows; all 655 unselected numbered bodies and original selected findings remain preserved. The selected unnumbered generic-CI follow-up stays open until actual passing post-push CI. External enrollment, legacy native-proof recovery and unrelated release/accessibility holds remain separate. See [review, verification and limits](five-deferred-authority-and-read-bounds-validation-evidence.md).
+**Five authority/read-boundary records complete (2026-10-29):** DW-562 and duplicate DW-617 plus the unnumbered fatal-precedence, whole-search deadline and fresh generic-CI follow-ups satisfy the approved policies. Independent review, deterministic/live verification and actual [CI 40809733133](https://github.com/Hexalith/Hexalith.Tenants/actions/runs/40809733133) on `516267c9675dc48bc35bf92f14a712f5ddc1a504` passed the complete generic tier: 530/530 with zero failures/skips. All 657 numbered IDs remain: 651 done/6 open across six maintenance rows; all 655 unselected numbered bodies and original selected findings remain preserved. External enrollment, legacy native-proof recovery and unrelated release/accessibility holds remain separate. See [review, qualification and limits](five-deferred-authority-and-read-bounds-validation-evidence.md).
 
 **DW-117/DW-118/DW-127/DW-599/DW-618 approved supersession (2026-10-28):** Workspace Error/Retry containment, qualified nonblank cursor contracts, bounded authorized search backfill/lookahead and the FR-6 UI display boundary close exactly five records under the approved policies. All 657 IDs remain: 649 done/8 open across seven maintenance rows; all 652 unselected bodies and original findings remain preserved. Two independent-review follow-ups are recorded separately and excluded from numbered totals. See [verification, review corrections and limits](dw-117-118-127-599-618-validation-evidence.md).
 
@@ -6507,6 +6507,12 @@ archived: 2026-10-22
 - source_spec: `_bmad-output/implementation-artifacts/spec-dw-540-554-570-584-593-release-governance.md`
   summary: Medium, unverified — qualify a fresh generic blocking Aspire CI run after the published EventStore routing contracts can compile.
   evidence: The new browser/TLS/Dapr prerequisite and result-gate definitions have local contract checks, but no fresh full generic Aspire provisioning run is claimed. Current default and Release/package Contracts builds fail with ten missing EventStore routing-type errors in TenantCatalogDeclarations.cs; pre-review Debug/source Contracts passed 704/704 and both real workflow closures passed immutable-snapshot checks. Retain those distinct results and the existing release holds. Capture a fresh package-mode generic tier with installed prerequisites, executed tests and no skips after the upstream package prerequisite is available.
+  status: done
+  resolution-date: 2026-10-29
+  resolution-spec: spec-five-deferred-authority-and-read-bounds.md
+  resolution: Actual push CI 40809733133 on 516267c9675dc48bc35bf92f14a712f5ddc1a504 passed the main build/test job and complete generic Aspire job 123242100351:530 executed, 530 passed, zero failures/skips. Browser/TLS/Dapr prerequisites, workers-enabled default, strict MTP command and executed/no-skips gate all succeeded under actual Builds workflow e909ffd9fe9a6097e36d932010b983d029396968. Generic FrontComposer/Memories source exceptions and separate published-profile evidence remain distinct; no all-source or broad release acceptance is claimed. Earlier compile, CI and browser failures remain retained.
+  resolution-evidence: five-deferred-authority-and-read-bounds-validation-evidence.md
+
 
 
 ## Deferred from: five read-safety items independent review (2026-10-28)
