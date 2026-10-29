@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-367 accepted-disposition closure (2026-10-29):** Explicit user approval closes this tracking item while retaining deliberate role selection and the absence of historical role information. Only separately approved contract/product work requiring historical role evidence can reopen it. All 657 numbered IDs remain: 652 done/5 open across five maintenance rows. All 656 other numbered bodies, original DW-367 fields and unrelated holds remain preserved. This documentation-only closure does not qualify runtime or release readiness. See [decision and validation](dw-367-accepted-disposition-validation-evidence.md).
+
 **Five authority/read-boundary records complete (2026-10-29):** DW-562 and duplicate DW-617 plus the unnumbered fatal-precedence, whole-search deadline and fresh generic-CI follow-ups satisfy the approved policies. Independent review, deterministic/live verification and actual [CI 40809733133](https://github.com/Hexalith/Hexalith.Tenants/actions/runs/40809733133) on `516267c9675dc48bc35bf92f14a712f5ddc1a504` passed the complete generic tier: 530/530 with zero failures/skips. All 657 numbered IDs remain: 651 done/6 open across six maintenance rows; all 655 unselected numbered bodies and original selected findings remain preserved. External enrollment, legacy native-proof recovery and unrelated release/accessibility holds remain separate. See [review, qualification and limits](five-deferred-authority-and-read-bounds-validation-evidence.md).
 
 **DW-117/DW-118/DW-127/DW-599/DW-618 approved supersession (2026-10-28):** Workspace Error/Retry containment, qualified nonblank cursor contracts, bounded authorized search backfill/lookahead and the FR-6 UI display boundary close exactly five records under the approved policies. All 657 IDs remain: 649 done/8 open across seven maintenance rows; all 652 unselected bodies and original findings remain preserved. Two independent-review follow-ups are recorded separately and excluded from numbered totals. See [verification, review corrections and limits](dw-117-118-127-599-618-validation-evidence.md).
@@ -3198,17 +3200,24 @@ origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-1
 location: src/Hexalith.Tenants.Contracts/Events/UserRemovedFromTenant.cs; _bmad-output/implementation-artifacts/spec-5-5-start-a-forward-tenant-correction-from-audit-evidence.md; src/Hexalith.Tenants.UI/State/TenantAudit/TenantCorrectionStartIntent.cs
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- `UserRemovedFromTenant` typed `PreviousRole`/`Role` cannot be produced because the event and audit projection emit only `userId`. Restore-access therefore cannot take an intended role from typed narrative; that is later correction-story/projection contract work, not browse-grid fail-closed."
-status: open
-disposition: accepted-limitation
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.Contracts/Events/UserRemovedFromTenant.cs still carries only TenantId/UserId, so historical role is unavailable. The completed spec-5-5-start-a-forward-tenant-correction-from-audit-evidence.md:21-27 expressly requires deliberate role selection and says never infer roles from history or add contract/history fields. TenantCorrectionStartIntent.cs uses context.IntendedRole. The current approved correction path intentionally avoids this missing historical field.
+pre-accepted-close-status: open
+status: done 2026-10-29
+pre-accepted-close-disposition: accepted-limitation
+disposition: done
+pre-accepted-close-verification-date: 2026-10-12
+verification-date: 2026-10-29
+pre-accepted-close-verification: src/Hexalith.Tenants.Contracts/Events/UserRemovedFromTenant.cs still carries only TenantId/UserId, so historical role is unavailable. The completed spec-5-5-start-a-forward-tenant-correction-from-audit-evidence.md:21-27 expressly requires deliberate role selection and says never infer roles from history or add contract/history fields. TenantCorrectionStartIntent.cs uses context.IntendedRole. The current approved correction path intentionally avoids this missing historical field.
+verification: The user explicitly chose documentation-only closure as an accepted disposition, overriding open-for-visibility tracking for DW-367 only. Story 5.5 and current source still require deliberate intended-role selection; UserRemovedFromTenant still has no historical-role field. No runtime change or role recovery is claimed. See dw-367-accepted-disposition-validation-evidence.md.
 verification-files: src/Hexalith.Tenants.Contracts/Events/UserRemovedFromTenant.cs; _bmad-output/implementation-artifacts/spec-5-5-start-a-forward-tenant-correction-from-audit-evidence.md; src/Hexalith.Tenants.UI/State/TenantAudit/TenantCorrectionStartIntent.cs
 evidence-kind: accepted-limitation
 priority: P3
 owner: unassigned
 dependencies: Explicit contract/product change approval
-next-action: Keep deliberate role selection; revisit the event schema only through a separately approved contract change.
+pre-accepted-close-next-action: Keep deliberate role selection; revisit the event schema only through a separately approved contract change.
+next-action: No current implementation task remains. Keep deliberate role selection; reopen only through a separately approved contract/product change requiring historical role evidence. Historical roles remain unavailable from the existing removal event.
 related: none
+resolution-kind: accepted-disposition
+resolution-spec: spec-dw-367-accepted-disposition-closure.md
 
 
 ### DW-368: After projection refresh, `OpenCorrectionAsync` may assign a re-derived intent without re-checking `IsAvailable`. Unverified medium: settle by showing whether `CorrectionStartPanel` / `GlobalAdministratorCorrectionPanel` can submit when the parent intent is unavailable after refresh.

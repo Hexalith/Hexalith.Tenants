@@ -1,5 +1,7 @@
 # Maintenance backlog
 
+**DW-367 accepted-disposition closure (2026-10-29):** The user explicitly chose closure as a narrow exception to open-for-visibility tracking. Deliberate intended-role selection remains required; the existing removal event still contains no historical role. Reopen only through separately approved contract/product work requiring historical role evidence. All 657 IDs remain: 652 done/5 open across five exact-covering maintenance rows, with no open accepted limitations. All other numbered records and original DW-367 fields remain preserved. This documentation-only closure does not qualify runtime or release readiness. See [decision and validation](../_bmad-output/implementation-artifacts/dw-367-accepted-disposition-validation-evidence.md).
+
 **Native authority and read-boundary completion (2026-10-29):** DW-562/DW-617 and all three selected unnumbered fatal/deadline/generic-CI follow-ups close after approved implementation, independent review and deterministic/live verification. Actual [CI 40809733133](https://github.com/Hexalith/Hexalith.Tenants/actions/runs/40809733133) on `516267c9675dc48bc35bf92f14a712f5ddc1a504` passes the complete generic tier: 530/530 with zero failures/skips. All 657 IDs remain: 651 done/6 open across six maintenance rows; all 655 unselected numbered bodies remain preserved. External enrollment, legacy native-proof recovery and unrelated release/accessibility holds remain separate. See [verification and limits](../_bmad-output/implementation-artifacts/five-deferred-authority-and-read-bounds-validation-evidence.md).
 
 **DW-117/DW-118/DW-127/DW-599/DW-618 approved supersession (2026-10-28):** Nonfatal workspace Error/Retry containment, nonblank cursor contracts, bounded authorized backfill/lookahead and the FR-6 UI display boundary implement the approved decisions. DW-118 closes as a contract decision, not a claimed reachable null-input production fix; DW-599 preserves the authorized full-configuration API. All 657 IDs remain: 649 done/8 open across 7 maintenance rows; original findings and all 652 unselected numbered bodies remain preserved. Privacy covers rendered rows/pager within 1,000 raw positions per load, including replay/lookahead; budget/hydration gaps use the labelled authorized-list fallback. Timing, work, fallback-mode independence, beyond-budget completeness, offset-mutation limits and broader AT/runtime/release qualification remain outside this closure. See [verification and environment controls](../_bmad-output/implementation-artifacts/dw-117-118-127-599-618-validation-evidence.md).
@@ -252,14 +254,14 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 | Disposition | Records |
 | --- | ---: |
-| done | 651 |
+| done | 652 |
 | actionable | 1 |
 | blocked | 1 |
 | awaiting-decision | 0 |
-| accepted-limitation | 1 |
+| accepted-limitation | 0 |
 | uncertain | 3 |
 
-**Remaining: 6 open records across 6 index rows.**
+**Remaining: 5 open records across 5 index rows.**
 
 **Unnumbered cleanup follow-up resolved, 2026-10-27:** The original navigation-verification finding remains in the ledger with its resolution. Its explicit unsubscribe completion and held-cleanup callback checks are qualified; numbered DW totals exclude this unnumbered item. Disposition counts cover all 657 numbered records. P1 means correctness, confidentiality or command ownership; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. `unassigned` preserves the absence of an established owner.
 
@@ -281,11 +283,11 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 **Current implementation completed:** DW-590; DW-588; DW-216; DW-215; DW-653; DW-652; DW-651 (separate DW-653 follow-up now closed above); DW-424 (separate DW-650 follow-up open); DW-308/DW-314; DW-648; DW-545; DW-528/DW-542; prior DW-243/DW-262/DW-612; prior DW-325/DW-587; prior DW-647; prior DW-646, DW-645, DW-644, DW-480, DW-468, DW-331, DW-470 and DW-285 closures are preserved. Release remains not ready.
 
-**Selected decisions settled:** The approved native global-administrator authority, fatal precedence and search deadline are implemented. DW-137 still needs separate route-contract work; accepted limitations and assistive-technology evidence remain visible below.
+**Selected decisions settled:** The approved native global-administrator authority, fatal precedence and search deadline are implemented. DW-137 still needs separate route-contract work; assistive-technology evidence gaps remain visible below. DW-367's accepted limitation is retained in the ledger under its explicitly approved closure.
 
 **Original reconciliation verification limits (2026-10-12):** source, tests and supporting artifacts were inspected; no .NET or browser suite was rerun for this documentation task. Read-only story-gitlink checks ran. Existing exact-HEAD [CI](https://github.com/Hexalith/Hexalith.Tenants/actions/runs/38269521776) shows the build/test job green and the advisory Aspire lane 183/184 passed (zero skipped), with the generated API `/alive` TLS case failing. [Story Guards](https://github.com/Hexalith/Hexalith.Tenants/actions/runs/38269520326) still times out Chromium. The ledger records exact evidence and missing checks for each item.
 
-`Defect` means the contradictory behavior or missing guard is present in current source; it does not imply a newly reproduced incident. `Gap` means a specific contract or validation proof is missing. `Recommendation` and `Unverified` do not assert a verified product defect. Accepted limitations retain an existing intentional boundary and stay open for visibility.
+`Defect` means the contradictory behavior or missing guard is present in current source; it does not imply a newly reproduced incident. `Gap` means a specific contract or validation proof is missing. `Recommendation` and `Unverified` do not assert a verified product defect. Accepted limitations retain an existing intentional boundary and stay open for visibility. DW-367 is an explicitly approved individual exception; its closure preserves its limitation and conditional reopening in the ledger and changes no other disposition.
 
 ## Verified defects and gaps
 
@@ -303,9 +305,7 @@ No numbered verified defect or gap remains open in this index. Historical findin
 
 ## Accepted limitations
 
-| DW references | Priority | Evidence / disposition | Owner | Dependencies | Next concrete action |
-| --- | --- | --- | --- | --- | --- |
-| DW-367 | P3 | Accepted / accepted-limitation | unassigned | Explicit contract/product change approval | Keep deliberate role selection; revisit the event schema only through a separately approved contract change. |
+No accepted limitation remains open. DW-367 is closed by explicit user decision, with its historical finding, deliberate role-selection boundary and reopening condition retained in the [deferred ledger](../_bmad-output/implementation-artifacts/deferred-work.md).
 
 **Additional unnumbered verification follow-up (2026-10-24):** One grant Escape focus timeout remains unverified after a passing instrumented trace and final normal nine-case browser run. Its cause and distinguishing reproduction are retained in the deferred ledger and [focus diagnostic](../_bmad-output/implementation-artifacts/dw-391-focus-diagnostic.json). Numbered DW totals and exact index coverage exclude this follow-up until migration.
 
