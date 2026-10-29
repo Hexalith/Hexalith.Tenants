@@ -1,0 +1,84 @@
+{
+  "retainedEvidence": [
+    {
+      "path": "_bmad-output/implementation-artifacts/story-5-4-re-review-verification-2026-09-30.md",
+      "sha256": "7bea92d5d9674460a0af9b9695443dfe68197ce71ec6cb460ff46386e49c2e0b",
+      "unchangedFromImplementationBaseline": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-runtime-followups/authorization-load.json",
+      "sha256": "813d5b279a601f70433a2992677e035ecff0cee12657b9a7b4954fde9b032903",
+      "unchangedFromImplementationBaseline": true
+    }
+  ],
+  "archiveInventory": {
+    "reportedMembers": 1589,
+    "source": "Planning investigation report referenced by the approved spec",
+    "retainedScanPacket": false,
+    "independentlyReproducedDuringImplementation": false,
+    "qualification": "Planning context only; does not prove an exhaustive historical-failure search"
+  },
+  "ciRetrievals": [
+    {
+      "command": [
+        "gh",
+        "run",
+        "view",
+        "36698370848",
+        "--repo",
+        "Hexalith/Hexalith.Tenants",
+        "--log"
+      ],
+      "exitCode": 0,
+      "exitCodeSource": "Parent planning investigation report; not rerun during implementation",
+      "retainedStdoutBytes": 0,
+      "retainedStdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": [
+        "gh",
+        "run",
+        "view",
+        "36726541810",
+        "--repo",
+        "Hexalith/Hexalith.Tenants",
+        "--log"
+      ],
+      "exitCode": 0,
+      "exitCodeSource": "Parent planning investigation report; not rerun during implementation",
+      "retainedStdoutBytes": 0,
+      "retainedStdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": [
+        "gh",
+        "run",
+        "view",
+        "36747901026",
+        "--repo",
+        "Hexalith/Hexalith.Tenants",
+        "--log"
+      ],
+      "exitCode": 0,
+      "exitCodeSource": "Parent planning investigation report; not rerun during implementation",
+      "retainedStdoutBytes": 0,
+      "retainedStdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": [
+        "gh",
+        "run",
+        "view",
+        "36747920099",
+        "--repo",
+        "Hexalith/Hexalith.Tenants",
+        "--log"
+      ],
+      "exitCode": 0,
+      "exitCodeSource": "Parent planning investigation report; not rerun during implementation",
+      "retainedStdoutBytes": 0,
+      "retainedStdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "blocker": "The September metadata-confirmation method and original failing per-test/render output remain unidentified. No current pass proves a historical cause."
+}

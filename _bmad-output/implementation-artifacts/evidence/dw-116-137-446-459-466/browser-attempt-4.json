@@ -1,0 +1,1338 @@
+{
+  "playwrightVersion": "1.63.0",
+  "startedUtc": "2026-10-29T17:16:40.259Z",
+  "hostMode": "Production authentication and Razor components; separate UI process; controlled read-only HTTP and SignalR upstream",
+  "fixtureScope": "Qualifies UI focus and composed browser live semantics with deterministic authorized projection responses; does not qualify backend authorization, real domain data or assistive-technology speech",
+  "records": [
+    "DW-119",
+    "DW-211",
+    "DW-212",
+    "DW-213",
+    "DW-444",
+    "DW-116"
+  ],
+  "cases": [
+    {
+      "name": "Empty outer notice region before search notices",
+      "passed": true,
+      "focus": {
+        "element": "h1",
+        "shadowDepth": 0,
+        "ancestry": [
+          {
+            "id": "tenants-list-heading",
+            "testId": null
+          },
+          {
+            "id": null,
+            "testId": "tenants-list-page-header"
+          },
+          {
+            "id": null,
+            "testId": "tenants-workspace"
+          },
+          {
+            "id": "fc-main-content",
+            "testId": null
+          },
+          {
+            "id": "f13715ff",
+            "testId": null
+          },
+          {
+            "id": "f13715ff-container",
+            "testId": null
+          }
+        ]
+      },
+      "noticeCount": 0
+    },
+    {
+      "name": "Focused pager recovers to the list heading while the read is held",
+      "passed": true,
+      "focus": {
+        "element": "h1",
+        "shadowDepth": 0,
+        "ancestry": [
+          {
+            "id": "tenants-list-heading",
+            "testId": null
+          },
+          {
+            "id": null,
+            "testId": "tenants-list-page-header"
+          },
+          {
+            "id": null,
+            "testId": "tenants-workspace"
+          },
+          {
+            "id": "fc-main-content",
+            "testId": null
+          },
+          {
+            "id": "f13715ff",
+            "testId": null
+          },
+          {
+            "id": "f13715ff-container",
+            "testId": null
+          }
+        ]
+      },
+      "heldReads": 1
+    },
+    {
+      "name": "Disabled paging origin leaves actual focus on the list heading",
+      "passed": true,
+      "focus": {
+        "element": "h1",
+        "shadowDepth": 0,
+        "ancestry": [
+          {
+            "id": "tenants-list-heading",
+            "testId": null
+          },
+          {
+            "id": null,
+            "testId": "tenants-list-page-header"
+          },
+          {
+            "id": null,
+            "testId": "tenants-workspace"
+          },
+          {
+            "id": "fc-main-content",
+            "testId": null
+          },
+          {
+            "id": "f13715ff",
+            "testId": null
+          },
+          {
+            "id": "f13715ff-container",
+            "testId": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "A missing paging origin leaves actual focus on the list heading",
+      "passed": true,
+      "focus": {
+        "element": "h1",
+        "shadowDepth": 0,
+        "ancestry": [
+          {
+            "id": "tenants-list-heading",
+            "testId": null
+          },
+          {
+            "id": null,
+            "testId": "tenants-list-page-header"
+          },
+          {
+            "id": null,
+            "testId": "tenants-workspace"
+          },
+          {
+            "id": "fc-main-content",
+            "testId": null
+          },
+          {
+            "id": "f6a4843f",
+            "testId": null
+          },
+          {
+            "id": "f6a4843f-container",
+            "testId": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "An available paging origin regains actual focus after rendering",
+      "passed": true,
+      "focus": {
+        "element": "fluent-button",
+        "shadowDepth": 0,
+        "ancestry": [
+          {
+            "id": null,
+            "testId": "tenants-list-next"
+          },
+          {
+            "id": null,
+            "testId": "tenants-workspace-tenants-panel-content"
+          },
+          {
+            "id": null,
+            "testId": "tenants-workspace-tenants-panel"
+          },
+          {
+            "id": "tenants-panel",
+            "testId": null
+          },
+          {
+            "id": "f46714dc",
+            "testId": "tenants-workspace-tabs"
+          },
+          {
+            "id": null,
+            "testId": "tenants-workspace"
+          },
+          {
+            "id": "fc-main-content",
+            "testId": null
+          },
+          {
+            "id": "f190e5f3",
+            "testId": null
+          },
+          {
+            "id": "f190e5f3-container",
+            "testId": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "Paging completion preserves a surviving control that took focus",
+      "passed": true,
+      "focus": {
+        "element": "fluent-button",
+        "shadowDepth": 0,
+        "ancestry": [
+          {
+            "id": null,
+            "testId": "tenants-list-refresh"
+          },
+          {
+            "id": null,
+            "testId": "tenants-workspace-tenants-panel-content"
+          },
+          {
+            "id": null,
+            "testId": "tenants-workspace-tenants-panel"
+          },
+          {
+            "id": "tenants-panel",
+            "testId": null
+          },
+          {
+            "id": "f598a124",
+            "testId": "tenants-workspace-tabs"
+          },
+          {
+            "id": null,
+            "testId": "tenants-workspace"
+          },
+          {
+            "id": "fc-main-content",
+            "testId": null
+          },
+          {
+            "id": "f667c92c",
+            "testId": null
+          },
+          {
+            "id": "f667c92c-container",
+            "testId": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "ordinary next holds focus at the heading while loading",
+      "passed": true,
+      "focus": {
+        "element": "h1",
+        "shadowDepth": 0,
+        "ancestry": [
+          {
+            "id": "tenants-list-heading",
+            "testId": null
+          },
+          {
+            "id": null,
+            "testId": "tenants-list-page-header"
+          },
+          {
+            "id": null,
+            "testId": "tenants-workspace"
+          },
+          {
+            "id": "fc-main-content",
+            "testId": null
+          },
+          {
+            "id": "f1204e83",
+            "testId": null
+          },
+          {
+            "id": "f1204e83-container",
+            "testId": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "ordinary next restores an enabled origin or keeps the first-page heading",
+      "passed": true,
+      "focus": {
+        "element": "fluent-button",
+        "shadowDepth": 0,
+        "ancestry": [
+          {
+            "id": null,
+            "testId": "tenants-list-next"
+          },
+          {
+            "id": null,
+            "testId": "tenants-workspace-tenants-panel-content"
+          },
+          {
+            "id": null,
+            "testId": "tenants-workspace-tenants-panel"
+          },
+          {
+            "id": "tenants-panel",
+            "testId": null
+          },
+          {
+            "id": "f727e3a0",
+            "testId": "tenants-workspace-tabs"
+          },
+          {
+            "id": null,
+            "testId": "tenants-workspace"
+          },
+          {
+            "id": "fc-main-content",
+            "testId": null
+          },
+          {
+            "id": "f1204e83",
+            "testId": null
+          },
+          {
+            "id": "f1204e83-container",
+            "testId": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "ordinary previous holds focus at the heading while loading",
+      "passed": true,
+      "focus": {
+        "element": "h1",
+        "shadowDepth": 0,
+        "ancestry": [
+          {
+            "id": "tenants-list-heading",
+            "testId": null
+          },
+          {
+            "id": null,
+            "testId": "tenants-list-page-header"
+          },
+          {
+            "id": null,
+            "testId": "tenants-workspace"
+          },
+          {
+            "id": "fc-main-content",
+            "testId": null
+          },
+          {
+            "id": "f1204e83",
+            "testId": null
+          },
+          {
+            "id": "f1204e83-container",
+            "testId": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "ordinary previous restores an enabled origin or keeps the first-page heading",
+      "passed": true,
+      "focus": {
+        "element": "h1",
+        "shadowDepth": 0,
+        "ancestry": [
+          {
+            "id": "tenants-list-heading",
+            "testId": null
+          },
+          {
+            "id": null,
+            "testId": "tenants-list-page-header"
+          },
+          {
+            "id": null,
+            "testId": "tenants-workspace"
+          },
+          {
+            "id": "fc-main-content",
+            "testId": null
+          },
+          {
+            "id": "f1204e83",
+            "testId": null
+          },
+          {
+            "id": "f1204e83-container",
+            "testId": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "protected-search next holds focus at the heading while loading",
+      "passed": true,
+      "focus": {
+        "element": "h1",
+        "shadowDepth": 0,
+        "ancestry": [
+          {
+            "id": "tenants-list-heading",
+            "testId": null
+          },
+          {
+            "id": null,
+            "testId": "tenants-list-page-header"
+          },
+          {
+            "id": null,
+            "testId": "tenants-workspace"
+          },
+          {
+            "id": "fc-main-content",
+            "testId": null
+          },
+          {
+            "id": "f6dddd4f",
+            "testId": null
+          },
+          {
+            "id": "f6dddd4f-container",
+            "testId": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "protected-search next restores an enabled origin or keeps the first-page heading",
+      "passed": true,
+      "focus": {
+        "element": "fluent-button",
+        "shadowDepth": 0,
+        "ancestry": [
+          {
+            "id": null,
+            "testId": "tenants-list-next"
+          },
+          {
+            "id": null,
+            "testId": "tenants-workspace-tenants-panel-content"
+          },
+          {
+            "id": null,
+            "testId": "tenants-workspace-tenants-panel"
+          },
+          {
+            "id": "tenants-panel",
+            "testId": null
+          },
+          {
+            "id": "f16f5375",
+            "testId": "tenants-workspace-tabs"
+          },
+          {
+            "id": null,
+            "testId": "tenants-workspace"
+          },
+          {
+            "id": "fc-main-content",
+            "testId": null
+          },
+          {
+            "id": "f6dddd4f",
+            "testId": null
+          },
+          {
+            "id": "f6dddd4f-container",
+            "testId": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "protected-search previous holds focus at the heading while loading",
+      "passed": true,
+      "focus": {
+        "element": "h1",
+        "shadowDepth": 0,
+        "ancestry": [
+          {
+            "id": "tenants-list-heading",
+            "testId": null
+          },
+          {
+            "id": null,
+            "testId": "tenants-list-page-header"
+          },
+          {
+            "id": null,
+            "testId": "tenants-workspace"
+          },
+          {
+            "id": "fc-main-content",
+            "testId": null
+          },
+          {
+            "id": "f6dddd4f",
+            "testId": null
+          },
+          {
+            "id": "f6dddd4f-container",
+            "testId": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "protected-search previous restores an enabled origin or keeps the first-page heading",
+      "passed": true,
+      "focus": {
+        "element": "h1",
+        "shadowDepth": 0,
+        "ancestry": [
+          {
+            "id": "tenants-list-heading",
+            "testId": null
+          },
+          {
+            "id": null,
+            "testId": "tenants-list-page-header"
+          },
+          {
+            "id": null,
+            "testId": "tenants-workspace"
+          },
+          {
+            "id": "fc-main-content",
+            "testId": null
+          },
+          {
+            "id": "f6dddd4f",
+            "testId": null
+          },
+          {
+            "id": "f6dddd4f-container",
+            "testId": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "search-fallback next holds focus at the heading while loading",
+      "passed": true,
+      "focus": {
+        "element": "h1",
+        "shadowDepth": 0,
+        "ancestry": [
+          {
+            "id": "tenants-list-heading",
+            "testId": null
+          },
+          {
+            "id": null,
+            "testId": "tenants-list-page-header"
+          },
+          {
+            "id": null,
+            "testId": "tenants-workspace"
+          },
+          {
+            "id": "fc-main-content",
+            "testId": null
+          },
+          {
+            "id": "f2d0f828",
+            "testId": null
+          },
+          {
+            "id": "f2d0f828-container",
+            "testId": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "search-fallback next restores an enabled origin or keeps the first-page heading",
+      "passed": true,
+      "focus": {
+        "element": "fluent-button",
+        "shadowDepth": 0,
+        "ancestry": [
+          {
+            "id": null,
+            "testId": "tenants-list-next"
+          },
+          {
+            "id": null,
+            "testId": "tenants-workspace-tenants-panel-content"
+          },
+          {
+            "id": null,
+            "testId": "tenants-workspace-tenants-panel"
+          },
+          {
+            "id": "tenants-panel",
+            "testId": null
+          },
+          {
+            "id": "f5f28e90",
+            "testId": "tenants-workspace-tabs"
+          },
+          {
+            "id": null,
+            "testId": "tenants-workspace"
+          },
+          {
+            "id": "fc-main-content",
+            "testId": null
+          },
+          {
+            "id": "f2d0f828",
+            "testId": null
+          },
+          {
+            "id": "f2d0f828-container",
+            "testId": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "search-fallback previous holds focus at the heading while loading",
+      "passed": true,
+      "focus": {
+        "element": "h1",
+        "shadowDepth": 0,
+        "ancestry": [
+          {
+            "id": "tenants-list-heading",
+            "testId": null
+          },
+          {
+            "id": null,
+            "testId": "tenants-list-page-header"
+          },
+          {
+            "id": null,
+            "testId": "tenants-workspace"
+          },
+          {
+            "id": "fc-main-content",
+            "testId": null
+          },
+          {
+            "id": "f2d0f828",
+            "testId": null
+          },
+          {
+            "id": "f2d0f828-container",
+            "testId": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "search-fallback previous restores an enabled origin or keeps the first-page heading",
+      "passed": true,
+      "focus": {
+        "element": "h1",
+        "shadowDepth": 0,
+        "ancestry": [
+          {
+            "id": "tenants-list-heading",
+            "testId": null
+          },
+          {
+            "id": null,
+            "testId": "tenants-list-page-header"
+          },
+          {
+            "id": null,
+            "testId": "tenants-workspace"
+          },
+          {
+            "id": "fc-main-content",
+            "testId": null
+          },
+          {
+            "id": "f2d0f828",
+            "testId": null
+          },
+          {
+            "id": "f2d0f828-container",
+            "testId": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "Authoritative search before a notice",
+      "passed": true,
+      "focus": {
+        "element": "h1",
+        "shadowDepth": 0,
+        "ancestry": [
+          {
+            "id": "tenants-list-heading",
+            "testId": null
+          },
+          {
+            "id": null,
+            "testId": "tenants-list-page-header"
+          },
+          {
+            "id": null,
+            "testId": "tenants-workspace"
+          },
+          {
+            "id": "fc-main-content",
+            "testId": null
+          },
+          {
+            "id": "f65224d8",
+            "testId": null
+          },
+          {
+            "id": "f65224d8-container",
+            "testId": null
+          }
+        ]
+      },
+      "noticeCount": 0
+    },
+    {
+      "name": "Unavailable search fallback with one Fluent notice",
+      "passed": true,
+      "focus": {
+        "element": "h1",
+        "shadowDepth": 0,
+        "ancestry": [
+          {
+            "id": "tenants-list-heading",
+            "testId": null
+          },
+          {
+            "id": null,
+            "testId": "tenants-list-page-header"
+          },
+          {
+            "id": null,
+            "testId": "tenants-workspace"
+          },
+          {
+            "id": "fc-main-content",
+            "testId": null
+          },
+          {
+            "id": "f57a054a",
+            "testId": null
+          },
+          {
+            "id": "f57a054a-container",
+            "testId": null
+          }
+        ]
+      },
+      "noticeCount": 1
+    },
+    {
+      "name": "Search fallback and cursor recovery with two Fluent notices",
+      "passed": true,
+      "focus": {
+        "element": "fluent-button",
+        "shadowDepth": 0,
+        "ancestry": [
+          {
+            "id": null,
+            "testId": "tenants-list-next"
+          },
+          {
+            "id": null,
+            "testId": "tenants-workspace-tenants-panel-content"
+          },
+          {
+            "id": null,
+            "testId": "tenants-workspace-tenants-panel"
+          },
+          {
+            "id": "tenants-panel",
+            "testId": null
+          },
+          {
+            "id": "f4cc82c4",
+            "testId": "tenants-workspace-tabs"
+          },
+          {
+            "id": null,
+            "testId": "tenants-workspace"
+          },
+          {
+            "id": "fc-main-content",
+            "testId": null
+          },
+          {
+            "id": "f57a054a",
+            "testId": null
+          },
+          {
+            "id": "f57a054a-container",
+            "testId": null
+          }
+        ]
+      },
+      "noticeCount": 2
+    },
+    {
+      "name": "Missing-row detail return focuses the actual list heading and retains the notice",
+      "passed": true,
+      "focus": {
+        "element": "h1",
+        "shadowDepth": 0,
+        "ancestry": [
+          {
+            "id": "tenants-list-heading",
+            "testId": null
+          },
+          {
+            "id": null,
+            "testId": "tenants-list-page-header"
+          },
+          {
+            "id": null,
+            "testId": "tenants-workspace"
+          },
+          {
+            "id": "fc-main-content",
+            "testId": null
+          },
+          {
+            "id": "f39f494b",
+            "testId": null
+          },
+          {
+            "id": "f39f494b-container",
+            "testId": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "Audit reset focus: origin",
+      "passed": true,
+      "focus": {
+        "element": "span",
+        "shadowDepth": 0,
+        "ancestry": [
+          {
+            "id": null,
+            "testId": "tenants-correction-unavailable-reason"
+          },
+          {
+            "id": "f4e246ad",
+            "testId": null
+          },
+          {
+            "id": null,
+            "testId": "tenants-audit-grid"
+          },
+          {
+            "id": null,
+            "testId": "tenants-audit-surface"
+          },
+          {
+            "id": "fc-main-content",
+            "testId": null
+          },
+          {
+            "id": "f402ae8f",
+            "testId": null
+          },
+          {
+            "id": "f402ae8f-container",
+            "testId": null
+          }
+        ]
+      },
+      "resetReadCount": 2
+    },
+    {
+      "name": "Audit reset focus: missing-launcher",
+      "passed": true,
+      "focus": {
+        "element": "h1",
+        "shadowDepth": 0,
+        "ancestry": [
+          {
+            "id": "tenant-audit-heading",
+            "testId": null
+          },
+          {
+            "id": null,
+            "testId": "tenants-audit-page-header"
+          },
+          {
+            "id": null,
+            "testId": "tenants-audit-surface"
+          },
+          {
+            "id": "fc-main-content",
+            "testId": null
+          },
+          {
+            "id": "f507dab3",
+            "testId": null
+          },
+          {
+            "id": "f507dab3-container",
+            "testId": null
+          }
+        ]
+      },
+      "resetReadCount": 2
+    },
+    {
+      "name": "Audit reset focus: surviving-control",
+      "passed": true,
+      "focus": {
+        "element": "fluent-button",
+        "shadowDepth": 0,
+        "ancestry": [
+          {
+            "id": null,
+            "testId": "tenants-audit-refresh"
+          },
+          {
+            "id": "f4d60581",
+            "testId": null
+          },
+          {
+            "id": "f4bec751",
+            "testId": null
+          },
+          {
+            "id": null,
+            "testId": "tenants-audit-surface"
+          },
+          {
+            "id": "fc-main-content",
+            "testId": null
+          },
+          {
+            "id": "f57935f6",
+            "testId": null
+          },
+          {
+            "id": "f57935f6-container",
+            "testId": null
+          }
+        ]
+      },
+      "resetReadCount": 2
+    },
+    {
+      "name": "Audit reset focus: preview",
+      "passed": true,
+      "focus": {
+        "element": "span",
+        "shadowDepth": 0,
+        "ancestry": [
+          {
+            "id": null,
+            "testId": "tenants-correction-unavailable-reason"
+          },
+          {
+            "id": "f17bc91f",
+            "testId": null
+          },
+          {
+            "id": null,
+            "testId": "tenants-audit-grid"
+          },
+          {
+            "id": null,
+            "testId": "tenants-audit-surface"
+          },
+          {
+            "id": "fc-main-content",
+            "testId": null
+          },
+          {
+            "id": "f60b8a4d",
+            "testId": null
+          },
+          {
+            "id": "f60b8a4d-container",
+            "testId": null
+          }
+        ]
+      },
+      "resetReadCount": 2
+    },
+    {
+      "name": "Audit reset focus: receipt",
+      "passed": true,
+      "focus": {
+        "element": "p",
+        "shadowDepth": 0,
+        "ancestry": [
+          {
+            "id": null,
+            "testId": "tenants-correction-unavailable-reason"
+          },
+          {
+            "id": null,
+            "testId": "tenants-audit-receipt"
+          },
+          {
+            "id": null,
+            "testId": "tenants-audit-surface"
+          },
+          {
+            "id": "fc-main-content",
+            "testId": null
+          },
+          {
+            "id": "f2e8f33b",
+            "testId": null
+          },
+          {
+            "id": "f2e8f33b-container",
+            "testId": null
+          }
+        ]
+      },
+      "resetReadCount": 2
+    },
+    {
+      "name": "Audit reset focus: receipt-preview",
+      "passed": true,
+      "focus": {
+        "element": "p",
+        "shadowDepth": 0,
+        "ancestry": [
+          {
+            "id": null,
+            "testId": "tenants-correction-unavailable-reason"
+          },
+          {
+            "id": null,
+            "testId": "tenants-audit-receipt"
+          },
+          {
+            "id": null,
+            "testId": "tenants-audit-surface"
+          },
+          {
+            "id": "fc-main-content",
+            "testId": null
+          },
+          {
+            "id": "f587cd54",
+            "testId": null
+          },
+          {
+            "id": "f587cd54-container",
+            "testId": null
+          }
+        ]
+      },
+      "resetReadCount": 2
+    }
+  ],
+  "build": {
+    "executable": "dotnet",
+    "arguments": [
+      "build",
+      "src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj",
+      "-c",
+      "Debug",
+      "-m:1",
+      "-p:UseNuGetDeps=false",
+      "-p:HexalithEventStoreVersion=3.128.4"
+    ],
+    "succeeded": true
+  },
+  "sourceBaseRevision": "95e9a6cce041c30311baf6703e06289beafca2c6",
+  "sourceDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "frontComposerBaseRevision": "612d23485d7e2845d22102621a38d6c904e1ea90",
+  "frontComposerDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "validatorSha256": "c65fa9b85eb6911dc846cc2bb15dbbc53464b9106324a0eb89fbb09308660199",
+  "localUiAssemblySha256": "19dee12d122dfb379e243bac22a10de1b8e285acac4bb3fb66f3ac891f0088a9",
+  "localShellAssemblySha256": "98afc77bdab0a7373993e70dcdf20b804ea621b72abb1f4c675652bca3e8551c",
+  "fluentPackageVersion": "5.0.1",
+  "fluentAssemblySha256": "82718d81e3d28d7a8b80bfb6a543390678ab136bfc4af02af11f55101d613964",
+  "browserVersion": "154.0.8037.57",
+  "fluentModuleSha256": "3ac6e00ddff6fd456dae1c544ade7fa2a44cb8d8c3114a11932e345170356771",
+  "liveSemantics": [
+    {
+      "name": "Empty outer notice region before search notices",
+      "composed": {
+        "nodes": [
+          {
+            "tag": "div",
+            "testId": "tenants-list-notices",
+            "shadowDepth": 0,
+            "role": "status",
+            "live": "polite",
+            "atomic": "true",
+            "internals": null,
+            "upgraded": null,
+            "hasShadowRoot": false
+          }
+        ],
+        "noticeIds": []
+      },
+      "accessibility": [
+        {
+          "depth": 0,
+          "role": "status",
+          "ignored": false,
+          "live": "polite",
+          "atomic": true,
+          "relevant": "additions text"
+        }
+      ],
+      "speech": "Not observed; requires the manual AT handoff"
+    },
+    {
+      "name": "Authoritative search before a notice",
+      "composed": {
+        "nodes": [
+          {
+            "tag": "div",
+            "testId": "tenants-list-notices",
+            "shadowDepth": 0,
+            "role": "status",
+            "live": "polite",
+            "atomic": "true",
+            "internals": null,
+            "upgraded": null,
+            "hasShadowRoot": false
+          }
+        ],
+        "noticeIds": []
+      },
+      "accessibility": [
+        {
+          "depth": 0,
+          "role": "status",
+          "ignored": false,
+          "live": "polite",
+          "atomic": true,
+          "relevant": "additions text"
+        }
+      ],
+      "speech": "Not observed; requires the manual AT handoff"
+    },
+    {
+      "name": "Unavailable search fallback with one Fluent notice",
+      "composed": {
+        "nodes": [
+          {
+            "tag": "div",
+            "testId": "tenants-list-notices",
+            "shadowDepth": 0,
+            "role": "status",
+            "live": "polite",
+            "atomic": "true",
+            "internals": null,
+            "upgraded": null,
+            "hasShadowRoot": false
+          },
+          {
+            "tag": "fluent-message-bar",
+            "testId": "tenants-list-search-unavailable-notice",
+            "shadowDepth": 0,
+            "role": null,
+            "live": null,
+            "atomic": null,
+            "internals": {
+              "role": "status",
+              "live": null,
+              "atomic": null
+            },
+            "upgraded": true,
+            "hasShadowRoot": true
+          },
+          {
+            "tag": "fluent-button",
+            "testId": null,
+            "shadowDepth": 0,
+            "role": "button",
+            "live": null,
+            "atomic": null,
+            "internals": {
+              "role": "button",
+              "live": null,
+              "atomic": null
+            },
+            "upgraded": true,
+            "hasShadowRoot": true
+          }
+        ],
+        "noticeIds": [
+          "tenants-list-search-unavailable-notice"
+        ]
+      },
+      "accessibility": [
+        {
+          "depth": 0,
+          "role": "status",
+          "ignored": false,
+          "live": "polite",
+          "atomic": true,
+          "relevant": "additions text"
+        },
+        {
+          "depth": 1,
+          "role": "status",
+          "ignored": false,
+          "live": "polite",
+          "atomic": true,
+          "relevant": "additions text"
+        }
+      ],
+      "speech": "Not observed; requires the manual AT handoff"
+    },
+    {
+      "name": "Search fallback and cursor recovery with two Fluent notices",
+      "composed": {
+        "nodes": [
+          {
+            "tag": "div",
+            "testId": "tenants-list-notices",
+            "shadowDepth": 0,
+            "role": "status",
+            "live": "polite",
+            "atomic": "true",
+            "internals": null,
+            "upgraded": null,
+            "hasShadowRoot": false
+          },
+          {
+            "tag": "fluent-message-bar",
+            "testId": "tenants-list-search-unavailable-notice",
+            "shadowDepth": 0,
+            "role": null,
+            "live": null,
+            "atomic": null,
+            "internals": {
+              "role": "status",
+              "live": null,
+              "atomic": null
+            },
+            "upgraded": true,
+            "hasShadowRoot": true
+          },
+          {
+            "tag": "fluent-button",
+            "testId": null,
+            "shadowDepth": 0,
+            "role": "button",
+            "live": null,
+            "atomic": null,
+            "internals": {
+              "role": "button",
+              "live": null,
+              "atomic": null
+            },
+            "upgraded": true,
+            "hasShadowRoot": true
+          },
+          {
+            "tag": "fluent-message-bar",
+            "testId": "tenants-list-refreshed-notice",
+            "shadowDepth": 0,
+            "role": null,
+            "live": null,
+            "atomic": null,
+            "internals": {
+              "role": "status",
+              "live": null,
+              "atomic": null
+            },
+            "upgraded": true,
+            "hasShadowRoot": true
+          },
+          {
+            "tag": "fluent-button",
+            "testId": null,
+            "shadowDepth": 0,
+            "role": "button",
+            "live": null,
+            "atomic": null,
+            "internals": {
+              "role": "button",
+              "live": null,
+              "atomic": null
+            },
+            "upgraded": true,
+            "hasShadowRoot": true
+          }
+        ],
+        "noticeIds": [
+          "tenants-list-search-unavailable-notice",
+          "tenants-list-refreshed-notice"
+        ]
+      },
+      "accessibility": [
+        {
+          "depth": 0,
+          "role": "status",
+          "ignored": false,
+          "live": "polite",
+          "atomic": true,
+          "relevant": "additions text"
+        },
+        {
+          "depth": 1,
+          "role": "status",
+          "ignored": false,
+          "live": "polite",
+          "atomic": true,
+          "relevant": "additions text"
+        },
+        {
+          "depth": 1,
+          "role": "status",
+          "ignored": false,
+          "live": "polite",
+          "atomic": true,
+          "relevant": "additions text"
+        }
+      ],
+      "speech": "Not observed; requires the manual AT handoff"
+    }
+  ],
+  "passed": true,
+  "fixture": {
+    "authorizedReads": 368,
+    "commandAttempts": 0,
+    "listReads": 24,
+    "searchReads": 19,
+    "auditReads": 30,
+    "circuitErrors": 0
+  },
+  "finishedUtc": "2026-10-29T17:17:14.838Z"
+}

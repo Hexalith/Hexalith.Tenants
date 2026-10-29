@@ -1,0 +1,239 @@
+{
+  "commands": [
+    {
+      "command": "aspire start --apphost src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj --format Json --non-interactive",
+      "exitCode": 0,
+      "scope": "Private ephemeral realm parameter environment; secret values omitted"
+    },
+    {
+      "command": "aspire describe --apphost src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj --format Json",
+      "exitCode": 0,
+      "artifact": "aspire-resource-state.json"
+    },
+    {
+      "command": "aspire wait tenants-ui --apphost src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj --timeout 55 --non-interactive",
+      "exitCode": 0,
+      "result": "Healthy"
+    },
+    {
+      "command": "dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -m:1 -p:UseNuGetDeps=false",
+      "exitCode": 1,
+      "artifact": "validation-artifacts.zip#build/source-build-rejected.log",
+      "result": "McpCli 3.128.3 default violates existing Tenants 3.128.4 floor"
+    },
+    {
+      "command": "dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -m:1 -p:UseNuGetDeps=false -p:HexalithEventStoreVersion=3.128.4",
+      "exitCode": 0,
+      "artifact": "validation-artifacts.zip#build/source-build-aligned.log",
+      "result": "Zero warnings/errors; selects current root catalog version with no tracked dependency edit"
+    },
+    {
+      "command": "dotnet test --project tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug --no-build --no-restore --filter-class '*TenantListSurfaceTests' '*AuditAvailabilityStateTests' '*TenantDetailSurfaceTests' '*TenantsRestQueryClientTests' --report-xunit-trx --report-xunit-trx-filename qualification.trx --report-xunit-xml --report-xunit-xml-filename qualification.xml --results-directory /tmp/tenants-remaining-mtp-results --fail-skips on --minimum-expected-tests 4",
+      "exitCode": 0,
+      "passed": 803,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "command": "dotnet test --project tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug --no-build --no-restore --filter-class '*CreateTenantFlowTests' --report-xunit-trx --report-xunit-trx-filename create-qualification.trx --report-xunit-xml --report-xunit-xml-filename create-qualification.xml --results-directory /tmp/tenants-remaining-mtp-results --fail-skips on --minimum-expected-tests 1",
+      "exitCode": 0,
+      "passed": 83,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "command": "node tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-navigation-focus.mjs _bmad-output/implementation-artifacts/evidence/dw-116-137-446-459-466/browser-attempt-1.json",
+      "environment": {
+        "TENANTS_BROWSER_BASE_URL": "Aspire-discovered registered localhost HTTPS endpoint",
+        "TENANTS_BROWSER_SOURCE_UI_PID": "Aspire-discovered process id",
+        "TENANTS_BROWSER_USERNAME": "Private chosen local realm value; omitted",
+        "TENANTS_BROWSER_PASSWORD": "Private chosen local realm value; omitted",
+        "CHROMIUM_BIN": "/usr/bin/google-chrome"
+      },
+      "exitCode": 1,
+      "artifact": "browser-attempt-1.json",
+      "passedCases": 0
+    },
+    {
+      "command": "node tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-navigation-focus.mjs _bmad-output/implementation-artifacts/evidence/dw-116-137-446-459-466/browser-attempt-2.json",
+      "environment": {
+        "TENANTS_BROWSER_BASE_URL": "Aspire-discovered registered localhost HTTPS endpoint",
+        "TENANTS_BROWSER_SOURCE_UI_PID": "Aspire-discovered process id",
+        "TENANTS_BROWSER_USERNAME": "Private chosen local realm value; omitted",
+        "TENANTS_BROWSER_PASSWORD": "Private chosen local realm value; omitted",
+        "CHROMIUM_BIN": "/usr/bin/google-chrome",
+        "TENANTS_BROWSER_EVENTSTORE_VERSION": "3.128.4"
+      },
+      "exitCode": 1,
+      "artifact": "browser-attempt-2.json",
+      "passedCases": 0
+    },
+    {
+      "command": "node tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-navigation-focus.mjs _bmad-output/implementation-artifacts/evidence/dw-116-137-446-459-466/browser-attempt-3.json",
+      "environment": {
+        "TENANTS_BROWSER_BASE_URL": "Aspire-discovered registered localhost HTTPS endpoint",
+        "TENANTS_BROWSER_SOURCE_UI_PID": "Aspire-discovered process id",
+        "TENANTS_BROWSER_USERNAME": "Private chosen local realm value; omitted",
+        "TENANTS_BROWSER_PASSWORD": "Private chosen local realm value; omitted",
+        "CHROMIUM_BIN": "/usr/bin/google-chrome",
+        "TENANTS_BROWSER_EVENTSTORE_VERSION": "3.128.4"
+      },
+      "exitCode": 1,
+      "artifact": "browser-attempt-3.json",
+      "passedCases": 19
+    },
+    {
+      "command": "node tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-navigation-focus.mjs _bmad-output/implementation-artifacts/evidence/dw-116-137-446-459-466/browser-attempt-4.json",
+      "environment": {
+        "TENANTS_BROWSER_BASE_URL": "Aspire-discovered registered localhost HTTPS endpoint",
+        "TENANTS_BROWSER_SOURCE_UI_PID": "Aspire-discovered process id",
+        "TENANTS_BROWSER_USERNAME": "Private chosen local realm value; omitted",
+        "TENANTS_BROWSER_PASSWORD": "Private chosen local realm value; omitted",
+        "CHROMIUM_BIN": "/usr/bin/google-chrome",
+        "TENANTS_BROWSER_EVENTSTORE_VERSION": "3.128.4"
+      },
+      "exitCode": 0,
+      "artifact": "browser-attempt-4.json",
+      "passedCases": 28
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-navigation-focus.mjs"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "python3",
+        "_bmad-output/implementation-artifacts/evidence/dw-116-137-446-459-466/validate-ledger.py"
+      ],
+      "exitCode": 0,
+      "stdout": "{\n  \"baseline\": \"95e9a6cce041c30311baf6703e06289beafca2c6\",\n  \"numberedIds\": 657,\n  \"changedNumberedRecords\": [\n    116,\n    137,\n    446,\n    459,\n    466\n  ],\n  \"unchangedUnselectedNumberedBodies\": 652,\n  \"originalSelectedBodyBytesPreserved\": true,\n  \"unselectedLedgerAndIndexBytesPreserved\": true,\n  \"statusCounts\": {\n    \"done\": 652,\n    \"open\": 5\n  },\n  \"exactCoveringMaintenanceRows\": 5,\n  \"ledgerSha256\": \"7a897f8c05133e8376e23b736baa84354a7460fecdd1a66282bd065d0c233c6d\",\n  \"indexSha256\": \"edf7c74e2a26ea2f01901f914f8cf29be32981a85e08caf1932352b356cae942\"\n}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "python3",
+        "-O",
+        "_bmad-output/implementation-artifacts/evidence/dw-116-137-446-459-466/validate-ledger.py"
+      ],
+      "exitCode": 0,
+      "stdout": "{\n  \"baseline\": \"95e9a6cce041c30311baf6703e06289beafca2c6\",\n  \"numberedIds\": 657,\n  \"changedNumberedRecords\": [\n    116,\n    137,\n    446,\n    459,\n    466\n  ],\n  \"unchangedUnselectedNumberedBodies\": 652,\n  \"originalSelectedBodyBytesPreserved\": true,\n  \"unselectedLedgerAndIndexBytesPreserved\": true,\n  \"statusCounts\": {\n    \"done\": 652,\n    \"open\": 5\n  },\n  \"exactCoveringMaintenanceRows\": 5,\n  \"ledgerSha256\": \"7a897f8c05133e8376e23b736baa84354a7460fecdd1a66282bd065d0c233c6d\",\n  \"indexSha256\": \"edf7c74e2a26ea2f01901f914f8cf29be32981a85e08caf1932352b356cae942\"\n}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "python3",
+        "scripts/validate-story-gitlinks.py",
+        "_bmad-output/implementation-artifacts/spec-dw-116-137-446-459-466-remaining-deferred-work.md"
+      ],
+      "exitCode": 0,
+      "stdout": "Story:    spec-dw-116-137-446-459-466-remaining-deferred-work.md\nBaseline: 95e9a6c\nCompared: HEAD (95e9a6c) + working tree\n\nNo references/ pointer changes in range.\n\nRESULT: PASS\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "warning: in the working copy of 'tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs', CRLF will be replaced by LF the next time Git touches it\n"
+    },
+    {
+      "command": "node tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-navigation-focus.mjs _bmad-output/implementation-artifacts/evidence/dw-116-137-446-459-466/browser-attempt-5.json",
+      "environment": {
+        "TENANTS_BROWSER_BASE_URL": "Aspire-discovered registered localhost HTTPS endpoint",
+        "TENANTS_BROWSER_SOURCE_UI_PID": "Aspire-discovered process id",
+        "TENANTS_BROWSER_USERNAME": "Private chosen local realm value; omitted",
+        "TENANTS_BROWSER_PASSWORD": "Private chosen local realm value; omitted",
+        "CHROMIUM_BIN": "/usr/bin/google-chrome",
+        "TENANTS_BROWSER_EVENTSTORE_VERSION": "3.128.4"
+      },
+      "exitCode": 1,
+      "artifact": "browser-attempt-5.json",
+      "passedCases": 19
+    },
+    {
+      "command": "node tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-navigation-focus.mjs _bmad-output/implementation-artifacts/evidence/dw-116-137-446-459-466/browser-attempt-6.json",
+      "environment": {
+        "TENANTS_BROWSER_BASE_URL": "Aspire-discovered registered localhost HTTPS endpoint",
+        "TENANTS_BROWSER_SOURCE_UI_PID": "Aspire-discovered process id",
+        "TENANTS_BROWSER_USERNAME": "Private chosen local realm value; omitted",
+        "TENANTS_BROWSER_PASSWORD": "Private chosen local realm value; omitted",
+        "CHROMIUM_BIN": "/usr/bin/google-chrome",
+        "TENANTS_BROWSER_EVENTSTORE_VERSION": "3.128.4"
+      },
+      "exitCode": 0,
+      "artifact": "browser-attempt-6.json",
+      "passedCases": 29
+    }
+  ],
+  "maintainedMtpReports": [
+    {
+      "artifact": "tests/qualification.xml",
+      "summary": [
+        {
+          "total": "803",
+          "passed": "803",
+          "failed": "0",
+          "skipped": "0",
+          "not-run": "0",
+          "errors": "0",
+          "time": "28.093"
+        }
+      ],
+      "perClassCases": {
+        "Hexalith.Tenants.UI.Tests.State.TenantAuditAvailabilityStateTests": 5,
+        "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests": 486,
+        "Hexalith.Tenants.UI.Tests.Services.Gateways.TenantsRestQueryClientTests": 128,
+        "Hexalith.Tenants.UI.Tests.Components.AuditAvailabilityStateTests": 68,
+        "Hexalith.Tenants.UI.Tests.Components.TenantListSurfaceTests": 116
+      }
+    },
+    {
+      "artifact": "tests/create-qualification.xml",
+      "summary": [
+        {
+          "total": "83",
+          "passed": "83",
+          "failed": "0",
+          "skipped": "0",
+          "not-run": "0",
+          "errors": "0",
+          "time": "2.017"
+        }
+      ],
+      "perClassCases": {
+        "Hexalith.Tenants.UI.Tests.Components.CreateTenantFlowTests": 83
+      }
+    }
+  ],
+  "acceptedBrowserPacket": "browser-attempt-6.json",
+  "directAssemblyFallbackUsed": false,
+  "speechObserved": false,
+  "allFiveNumberedItemsRemainOpen": true,
+  "priorAcceptedBrowserPacket": "browser-attempt-4.json",
+  "currentBrowserSourceIdentities": "source-identities-review.json",
+  "validatorHistory": "validator-history.json",
+  "reviewCorrectionVerification": {
+    "nodeSyntax": "Passed for the maintained edited validator",
+    "handoffLinksSelectorsAndResources": "Passed: local targets exist, both Refresh selectors match production markup/prefix, and all listed EN/FR values match shipped resources",
+    "broaderTestsRun": false,
+    "acceptedCases": 29,
+    "sameDocumentOuterRegionSurvived": true,
+    "fixture": {
+      "authorizedReads": 368,
+      "commandAttempts": 0,
+      "listReads": 24,
+      "searchReads": 19,
+      "auditReads": 30,
+      "circuitErrors": 0
+    }
+  }
+}

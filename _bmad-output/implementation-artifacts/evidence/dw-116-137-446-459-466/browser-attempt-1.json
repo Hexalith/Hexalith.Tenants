@@ -1,0 +1,42 @@
+{
+  "playwrightVersion": "1.63.0",
+  "startedUtc": "2026-10-29T17:12:33.709Z",
+  "hostMode": "Production authentication and Razor components; separate UI process; controlled read-only HTTP and SignalR upstream",
+  "fixtureScope": "Qualifies UI focus and composed browser live semantics with deterministic authorized projection responses; does not qualify backend authorization, real domain data or assistive-technology speech",
+  "records": [
+    "DW-119",
+    "DW-211",
+    "DW-212",
+    "DW-213",
+    "DW-444",
+    "DW-116"
+  ],
+  "cases": [],
+  "build": {
+    "executable": "dotnet",
+    "arguments": [
+      "build",
+      "src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj",
+      "-c",
+      "Debug",
+      "-m:1",
+      "-p:UseNuGetDeps=false"
+    ],
+    "succeeded": false
+  },
+  "passed": false,
+  "failure": {
+    "phase": "build-current-ui",
+    "label": "Current Debug source build failed",
+    "focus": null
+  },
+  "fixture": {
+    "authorizedReads": 0,
+    "commandAttempts": 0,
+    "listReads": 0,
+    "searchReads": 0,
+    "auditReads": 0,
+    "circuitErrors": 0
+  },
+  "finishedUtc": "2026-10-29T17:12:34.614Z"
+}

@@ -1,0 +1,94 @@
+{
+  "snapshotsAreProvenanceOnly": "Use the maintained Browser validator to execute; snapshots retain original relative paths and are not independent entrypoints.",
+  "validators": [
+    {
+      "attempt": 2,
+      "packet": "browser-attempt-2.json",
+      "packetSha256": "0c25bf2810aa9be9f370de959b3ce85a1b710321116ca2627dadf90eb42ec0f4",
+      "validator": "validators/browser-attempt-2.mjs",
+      "validatorSha256": "7f68a409ff304febd9f743d2a222b4b1f6cc76cb62ea54541496f3fc828620b3",
+      "matchesPacketValidatorSha256": true,
+      "sourceRecovery": "Reconstructed from attempt-4 bytes by reversing the recorded three-line Refresh expectation removal and DAPR_HTTP_ENDPOINT override addition; exact packet hash matched before retention",
+      "disposition": "rejected"
+    },
+    {
+      "attempt": 3,
+      "packet": "browser-attempt-3.json",
+      "packetSha256": "ed5484aa24774f6f643554f35d34c0b1580946534c6a798918a9f8187b416961",
+      "validator": "validators/browser-attempt-3.mjs",
+      "validatorSha256": "6afecbbdf5057a2cb706906983f221d46f32d9540cd7b1bafa3d67f7dd8ef4a9",
+      "matchesPacketValidatorSha256": true,
+      "sourceRecovery": "Reconstructed from attempt-4 bytes by reversing the recorded three-line Refresh expectation removal; exact packet hash matched before retention",
+      "disposition": "rejected"
+    },
+    {
+      "attempt": 4,
+      "packet": "browser-attempt-4.json",
+      "packetSha256": "1d2820be150a17a490212045afea4ced28a68ec66511cc059b9e5b1fb0aace0a",
+      "validator": "validators/browser-attempt-4.mjs",
+      "validatorSha256": "c65fa9b85eb6911dc846cc2bb15dbbc53464b9106324a0eb89fbb09308660199",
+      "matchesPacketValidatorSha256": true,
+      "sourceRecovery": "Exact validator bytes retained before the next edit or at acceptance",
+      "disposition": "prior accepted"
+    },
+    {
+      "attempt": 5,
+      "packet": "browser-attempt-5.json",
+      "packetSha256": "f1da9f77c3e32165bd52bef9414a14d0e03484d6d2fe299b1ff92758ddcce561",
+      "validator": "validators/browser-attempt-5.mjs",
+      "validatorSha256": "f61f5f102c9b13847e1412cb0b60512ab1b252ed2c0ce14f6d76c611cd8d8c6a",
+      "matchesPacketValidatorSha256": true,
+      "sourceRecovery": "Exact validator bytes retained before the next edit or at acceptance",
+      "disposition": "rejected"
+    },
+    {
+      "attempt": 6,
+      "packet": "browser-attempt-6.json",
+      "packetSha256": "636968d50255131d49b5bcd6b11740da12a05ae371c64dc53816b50de216e5cf",
+      "validator": "validators/browser-attempt-6.mjs",
+      "validatorSha256": "eec81d737a0e6969bda2a14f6146a261fefa794875ee1dd789d376fd06e94038",
+      "matchesPacketValidatorSha256": true,
+      "sourceRecovery": "Exact validator bytes retained before the next edit or at acceptance",
+      "disposition": "current accepted"
+    }
+  ],
+  "unrecoverable": {
+    "attempt": 1,
+    "packet": "browser-attempt-1.json",
+    "validatorFingerprintRecorded": false,
+    "exactValidatorBytesRecovered": false,
+    "limitation": "The build failed before fingerprint collection; no exact attempted validator identity or browser-build diagnostic beyond its safe packet label is claimed."
+  },
+  "boundedDiagnoses": [
+    {
+      "attempt": 2,
+      "actualPacketSafeLabel": "Browser operation failed",
+      "basis": [
+        "Zero fixture reads in the original packet",
+        "Recovered hash-matched validator omits DAPR_HTTP_ENDPOINT override",
+        "Current production DI selects inherited DAPR_HTTP_ENDPOINT ahead of Tenants__BaseAddress"
+      ],
+      "inference": "Configuration/source mismatch is consistent with bypassing the fixture; the failed Playwright operation was not retained and is unknown."
+    },
+    {
+      "attempt": 3,
+      "actualPacketSafeLabel": "Browser operation failed",
+      "basis": [
+        "19 completed cases and search-composed-live-semantics phase in original packet",
+        "Recovered hash-matched source next clicks Refresh and waits for a search-restart notice",
+        "Ordinary Refresh does not establish paging-recovery semantics"
+      ],
+      "inference": "Source expectation is unsupported; generic failure does not establish the exact click/wait operation that failed."
+    },
+    {
+      "attempt": 5,
+      "actualPacketSafeLabel": "Expected search notices must be contained in the outer region",
+      "basis": [
+        "Original liveSemantics snapshot contains search-unavailable and search-paging-restarted notice IDs",
+        "Hash-matched validator expected only search-unavailable",
+        "Original packet records surviving same-document outer region"
+      ],
+      "inference": "The changed source correctly reports two notices on the first same-document source-mode change. The next run qualifies that state, then refreshes stable fallback to qualify one notice."
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "appHostPath": "/home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj",
+  "appHostPid": 4034303,
+  "cliPid": 4020315,
+  "logFile": "/home/administrator/.aspire/logs/cli_20261029T171010819_detach-child_fa2c9ba22e1941f8885a5992b669a042.log",
+  "wasRunningAtEntry": false,
+  "startedBy": "implementation qualification agent under parent build workflow",
+  "stateBeforeCodeEdits": "aspire describe observed starting/running/waiting resources before the first test-source edit; the later sanitized snapshot records ready UI state",
+  "cleanupOwner": "Parent build workflow after acceptance/review",
+  "stopCommand": "aspire stop --apphost src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj --non-interactive"
+}

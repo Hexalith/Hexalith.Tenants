@@ -1,0 +1,21 @@
+{
+  "baseline": "95e9a6cce041c30311baf6703e06289beafca2c6",
+  "numberedIds": 657,
+  "changedNumberedRecords": [
+    116,
+    137,
+    446,
+    459,
+    466
+  ],
+  "unchangedUnselectedNumberedBodies": 652,
+  "originalSelectedBodyBytesPreserved": true,
+  "unselectedLedgerAndIndexBytesPreserved": true,
+  "statusCounts": {
+    "done": 652,
+    "open": 5
+  },
+  "exactCoveringMaintenanceRows": 5,
+  "ledgerSha256": "7a897f8c05133e8376e23b736baa84354a7460fecdd1a66282bd065d0c233c6d",
+  "indexSha256": "edf7c74e2a26ea2f01901f914f8cf29be32981a85e08caf1932352b356cae942"
+}

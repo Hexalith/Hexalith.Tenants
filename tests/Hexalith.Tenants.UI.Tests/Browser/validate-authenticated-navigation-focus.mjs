@@ -33,8 +33,8 @@ const evidence = {
     playwrightVersion: require(`${playwrightModule}/package.json`).version,
     startedUtc: new Date().toISOString(),
     hostMode: 'Production authentication and Razor components; separate UI process; controlled read-only HTTP and SignalR upstream',
-    fixtureScope: 'Qualifies UI focus with deterministic authorized projection responses; does not qualify backend authorization or real domain data',
-    records: ['DW-119', 'DW-211', 'DW-212', 'DW-213', 'DW-444'],
+    fixtureScope: 'Qualifies UI focus and composed browser live semantics with deterministic authorized projection responses; does not qualify backend authorization, real domain data or assistive-technology speech',
+    records: ['DW-119', 'DW-211', 'DW-212', 'DW-213', 'DW-444', 'DW-116'],
     cases: [],
 };
 let tenantId = 'tenant.navigation';
@@ -46,7 +46,7 @@ const member = { userId: targetId, role: 'TenantContributor' };
 const audit = { eventId: eventReference, eventType: 'UserRoleChanged', category: 'Access', actorId: 'navigation-actor',
     timestamp: '2026-10-23T12:00:00Z', tenantId, narrativePayload: { userId: targetId, oldRole: 'TenantReader', newRole: 'TenantContributor' } };
 const fixture = { holdList: false, terminalList: true, listReads: 0, heldListReads: 0, auditReads: 0,
-    resetAudit: false, missingAuditLauncher: false, missingPager: false, searchFallback: false, searchReads: 0, commands: 0, authorizedReads: 0, subscriptions: new Set() };
+    resetAudit: false, resetList: false, missingAuditLauncher: false, missingPager: false, searchFallback: false, searchReads: 0, commands: 0, authorizedReads: 0, subscriptions: new Set() };
 let releaseList;
 let phase = 'fixture-start';
 let browser;
@@ -94,6 +94,91 @@ const focused = selector => page.evaluate(selector => {
 const waitFocus = selector => wait(() => focused(selector), `Expected focus: ${selector}`);
 const record = async (name, extra = {}) => evidence.cases.push({ name, passed: true, focus: await observe(), ...extra });
 const testId = id => page.getByTestId(id);
+const recordNoticeSemantics = async (name, expectedNoticeIds) => {
+    const selector = '[data-testid="tenants-list-notices"]';
+    const composed = await page.locator(selector).evaluate(root => {
+        // Retain only structural semantics. No text, accessible names, HTTP bodies or identities.
+        const nodes = [];
+        const visit = (element, shadowDepth) => {
+            const internals = element.elementInternals;
+            const role = element.getAttribute('role');
+            const live = element.getAttribute('aria-live');
+            if (element === root || element.matches('[data-testid$="-notice"]') || role || live || internals?.role) {
+                nodes.push({ tag: element.localName, testId: element.getAttribute('data-testid'), shadowDepth,
+                    role, live, atomic: element.getAttribute('aria-atomic'),
+                    internals: internals ? { role: internals.role, live: internals.ariaLive, atomic: internals.ariaAtomic } : null,
+                    upgraded: element.localName.includes('-') ? Boolean(customElements.get(element.localName)) : null,
+                    hasShadowRoot: Boolean(element.shadowRoot),
+                    visible: element.getClientRects().length > 0 && getComputedStyle(element).visibility !== 'hidden'
+                        && !element.closest('[aria-hidden="true"]'),
+                    hasTextContent: Boolean(element.textContent?.trim()) });
+            }
+            for (const child of element.children) visit(child, shadowDepth);
+            for (const child of element.shadowRoot?.children || []) visit(child, shadowDepth + 1);
+        };
+        visit(root, 0);
+        return { nodes, noticeIds: [...root.querySelectorAll('[data-testid$="-notice"]')].map(node => node.getAttribute('data-testid')) };
+    });
+    // Chromium exposes ElementInternals' implicit status/live mapping through AX, even when
+    // the host has no literal role/aria-live attribute. Keep only the scoped computed roles.
+    const session = await context.newCDPSession(page);
+    let accessibility;
+    try {
+        const { root } = await session.send('DOM.getDocument');
+        const { nodeId } = await session.send('DOM.querySelector', { nodeId: root.nodeId, selector });
+        const { node } = await session.send('DOM.describeNode', { nodeId });
+        const hostIds = new Map([[node.backendNodeId, 'tenants-list-notices']]);
+        for (const id of expectedNoticeIds) {
+            const { nodeId: hostNodeId } = await session.send('DOM.querySelector', { nodeId, selector: `[data-testid="${id}"]` });
+            check(Boolean(hostNodeId), 'Expected notice host must be present inside the outer region');
+            const { node: host } = await session.send('DOM.describeNode', { nodeId: hostNodeId });
+            hostIds.set(host.backendNodeId, id);
+        }
+        const { nodes } = await session.send('Accessibility.getFullAXTree');
+        const outer = nodes.find(item => item.backendDOMNodeId === node.backendNodeId);
+        check(Boolean(outer), 'Outer notice region must be present in the browser accessibility tree');
+        const byId = new Map(nodes.map(item => [item.nodeId, item]));
+        const hasReadableText = item => !item.ignored && ['StaticText', 'InlineTextBox'].includes(item.role?.value)
+            && Boolean(item.name?.value?.trim())
+            || (item.childIds || []).some(id => byId.has(id) && hasReadableText(byId.get(id)));
+        accessibility = [];
+        const visit = (item, depth) => {
+            const properties = Object.fromEntries((item.properties || [])
+                .filter(property => ['live', 'atomic', 'relevant'].includes(property.name))
+                .map(property => [property.name, property.value.value]));
+            if (depth === 0 || ['status', 'alert', 'log', 'marquee', 'timer'].includes(item.role?.value)) {
+                accessibility.push({ testId: hostIds.get(item.backendDOMNodeId) || null, depth,
+                    role: item.role?.value, ignored: item.ignored, hasReadableText: hasReadableText(item), ...properties });
+            }
+            for (const id of item.childIds || []) if (byId.has(id)) visit(byId.get(id), depth + 1);
+        };
+        visit(outer, 0);
+    } finally { await session.detach(); }
+    const semantics = { composed, accessibility, speech: 'Not observed; requires the manual AT handoff' };
+    // Save observations before assertions so rejected qualifications retain their actual structure.
+    evidence.liveSemantics ??= [];
+    evidence.liveSemantics.push({ name, ...semantics });
+    check(JSON.stringify([...composed.noticeIds].sort()) === JSON.stringify([...expectedNoticeIds].sort()), 'Expected search notices must be contained in the outer region');
+    const outer = composed.nodes[0];
+    check(outer.role === 'status' && outer.live === 'polite' && outer.atomic === 'true', 'Outer notice region must retain status/polite/atomic attributes');
+    check(accessibility[0].testId === 'tenants-list-notices' && accessibility[0].role === 'status'
+        && accessibility[0].live === 'polite' && accessibility[0].atomic === true && !accessibility[0].ignored,
+        'Outer notice region must expose status/polite/atomic computed semantics');
+    const bars = composed.nodes.filter(node => expectedNoticeIds.includes(node.testId));
+    check(bars.length === expectedNoticeIds.length && bars.every(node => node.tag === 'fluent-message-bar'
+        && node.upgraded && node.hasShadowRoot && node.internals?.role === 'status' && node.visible && node.hasTextContent),
+        'Every notice must expose visible nonempty shipped Fluent message-bar accessibility internals');
+    const expectedHosts = ['tenants-list-notices', ...expectedNoticeIds];
+    check(accessibility.length === expectedHosts.length && accessibility.every(node => expectedHosts.includes(node.testId)
+        && node.role === 'status' && node.live === 'polite' && node.atomic === true && !node.ignored),
+        'Only the outer and expected notice hosts may expose live roles, each unignored status/polite/atomic');
+    for (const id of expectedNoticeIds) {
+        const matched = accessibility.filter(node => node.testId === id);
+        check(matched.length === 1 && matched[0].hasReadableText,
+            'Each expected notice host must map to one computed status with readable text descendants');
+    }
+    await record(name, { noticeCount: expectedNoticeIds.length });
+};
 const notify = () => {
     for (const socket of sockets.clients) if (socket.readyState === 1) {
         socket.send(JSON.stringify({ type: 1, target: 'ProjectionChanged', arguments: ['tenants', tenantId] }) + '\x1e');
@@ -104,6 +189,10 @@ try {
     const privateDirectory = await mkdtemp(resolve(tmpdir(), 'tenants-navigation-browser-'));
     const buildArguments = ['build', 'src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj', '-c', 'Debug', '-m:1',
         '-p:UseNuGetDeps=false'];
+    if (process.env.TENANTS_BROWSER_EVENTSTORE_VERSION) {
+        check(/^\d+\.\d+\.\d+$/.test(process.env.TENANTS_BROWSER_EVENTSTORE_VERSION), 'Explicit EventStore build selection must be a stable version');
+        buildArguments.push(`-p:HexalithEventStoreVersion=${process.env.TENANTS_BROWSER_EVENTSTORE_VERSION}`);
+    }
     evidence.build = { executable: 'dotnet', arguments: buildArguments, succeeded: false };
     try {
         const buildOutput = execFileSync('dotnet', buildArguments, { cwd: root, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 });
@@ -112,6 +201,7 @@ try {
     } catch {
         throw Object.assign(new Error(), { safeLabel: 'Current Debug source build failed' });
     }
+    const uiDependencies = JSON.parse(await readFile(resolve(uiDirectory, 'bin/Debug/net10.0/Hexalith.Tenants.UI.deps.json')));
     Object.assign(evidence, {
     sourceBaseRevision: git('rev-parse', 'HEAD'),
     sourceDiffSha256: hash(git('diff', '--binary', 'HEAD', '--', 'src/Hexalith.Tenants.UI')),
@@ -120,6 +210,9 @@ try {
     validatorSha256: hash(await readFile(fileURLToPath(import.meta.url))),
     localUiAssemblySha256: hash(await readFile(assembly)),
     localShellAssemblySha256: hash(await readFile(resolve(uiDirectory, 'bin/Debug/net10.0/Hexalith.FrontComposer.Shell.dll'))),
+    fluentPackageVersion: Object.keys(uiDependencies.libraries)
+        .find(name => name.startsWith('Microsoft.FluentUI.AspNetCore.Components/'))?.split('/')[1],
+    fluentAssemblySha256: hash(await readFile(resolve(uiDirectory, 'bin/Debug/net10.0/Microsoft.FluentUI.AspNetCore.Components.dll'))),
     });
     phase = 'fixture-start';
     upstream = createServer(async (request, response) => {
@@ -166,6 +259,7 @@ try {
                 fixture.heldListReads++;
                 await new Promise(resolve => { releaseList = resolve; });
             }
+            if (cursor && fixture.resetList) { fixture.resetList = false; send({ reason: 'invalid-cursor', status: 400 }, 400); return; }
             if (cursor && fixture.missingPager) { send({}, 503); return; }
             send({ items: [summary(cursor ? 'tenant.secondary' : tenantId)],
                 cursor: cursor ? (fixture.terminalList ? null : 'list-page-3') : 'list-page-2',
@@ -215,6 +309,7 @@ try {
         .split('\0').filter(Boolean).map(entry => { const index = entry.indexOf('='); return [entry.slice(0, index), entry.slice(index + 1)]; }));
     const environment = { ...originalEnvironment, ...process.env, ASPNETCORE_URLS: fixtureBase, ASPNETCORE_HTTPS_PORT: String(uiPort),
         Tenants__BaseAddress: upstreamBase, EventStore__BaseAddress: upstreamBase, Memories__BaseAddress: upstreamBase,
+        DAPR_HTTP_ENDPOINT: upstreamBase,
         HEXALITH_MEMORIES_API_TOKEN: memoriesFixtureToken };
     for (const key of Object.keys(environment)) if (/^(OTEL_|ASPIRE_)/.test(key)) delete environment[key];
     uiLog = await open(resolve(privateDirectory, 'ui.log'), 'w', 0o600);
@@ -231,6 +326,9 @@ try {
         check(!uiExited, 'Separate production UI process exited during startup');
         try { const response = await context.request.get(`${fixtureBase}/js/tenantsFocus.js`); return response.status() === 200; } catch { return false; }
     }, 'Separate production UI did not start', 30_000);
+    const fluentModule = await context.request.get(`${fixtureBase}/_content/Microsoft.FluentUI.AspNetCore.Components/Microsoft.FluentUI.AspNetCore.Components.lib.module.js`);
+    check(fluentModule.status() === 200, 'Shipped Fluent runtime module must load');
+    evidence.fluentModuleSha256 = hash(await fluentModule.body());
     page = await context.newPage();
     page.setDefaultTimeout(20_000);
     page.on('pageerror', () => circuitErrors.push('pageerror'));
@@ -262,6 +360,7 @@ try {
     };
     phase = 'held-paging-disabled-endpoint';
     await workspace();
+    await recordNoticeSemantics('Empty outer notice region before search notices', []);
     fixture.holdList = true;
     fixture.heldListReads = 0;
     await testId('tenants-list-next').focus();
@@ -351,6 +450,30 @@ try {
             await record(`${mode} ${direction} restores an enabled origin or keeps the first-page heading`);
         }
     }
+    fixture.searchFallback = false;
+
+    phase = 'search-composed-live-semantics';
+    await workspace(true);
+    await recordNoticeSemantics('Authoritative search before a notice', []);
+    const originalNoticeRegion = await testId('tenants-list-notices').elementHandle();
+    fixture.searchFallback = true;
+    await testId('tenants-list-refresh').click();
+    await testId('tenants-list-search-unavailable-notice').waitFor();
+    await recordNoticeSemantics('Same-document source change with fallback and restart notices',
+        ['tenants-list-search-unavailable-notice', 'tenants-list-search-paging-restarted-notice']);
+    await testId('tenants-list-refresh').click();
+    await testId('tenants-list-search-paging-restarted-notice').waitFor({ state: 'detached' });
+    const outerRegionSurvived = await originalNoticeRegion.evaluate(element => element.isConnected
+        && element === document.querySelector('[data-testid="tenants-list-notices"]'));
+    check(outerRegionSurvived, 'The original empty outer notice region must survive same-document fallback Refresh');
+    evidence.sameDocumentNoticeTransition = { outerRegionSurvived };
+    await originalNoticeRegion.dispose();
+    await recordNoticeSemantics('Unavailable search fallback with one Fluent notice', ['tenants-list-search-unavailable-notice']);
+    fixture.resetList = true;
+    await testId('tenants-list-next').click();
+    await testId('tenants-list-refreshed-notice').waitFor();
+    await recordNoticeSemantics('Search fallback and cursor recovery with two Fluent notices',
+        ['tenants-list-search-unavailable-notice', 'tenants-list-refreshed-notice']);
     fixture.searchFallback = false;
 
     phase = 'missing-row-detail-return';

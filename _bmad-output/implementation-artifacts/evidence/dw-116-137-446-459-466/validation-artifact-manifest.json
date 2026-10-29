@@ -1,0 +1,46 @@
+{
+  "archive": "validation-artifacts.zip",
+  "sha256": "fc374f37f4580e52d9698714e639264d0ec1dda67dd8ad00d853da0d1a5a6703",
+  "members": [
+    {
+      "member": "build/source-build-rejected.log",
+      "bytes": 1587,
+      "sha256": "41708fa29641cd5869d73aab308e0d0af6a5ef127c80c5b2b5183ce583bc12d7"
+    },
+    {
+      "member": "build/source-build-aligned.log",
+      "bytes": 6082,
+      "sha256": "9462b240b7fb0e35544d3f1630a6acf9dac1ff83897876484937c00722cd5b20"
+    },
+    {
+      "member": "tests/qualification.log",
+      "bytes": 579,
+      "sha256": "34418c3bc0feaacffad00bc955e4a00f3f2bd927850e515504398254a8dbc9b5"
+    },
+    {
+      "member": "tests/create-qualification.log",
+      "bytes": 589,
+      "sha256": "ff16a4112a6c56fad2c8d71cba630e8e5c02c702c9a2eaf886f0a279bec62fd7"
+    },
+    {
+      "member": "tests/qualification.trx",
+      "bytes": 1239379,
+      "sha256": "5022de97813e363eaaa00300afd867aced3f4ac8ba1ea28ea3f2b9af2d2d20d9"
+    },
+    {
+      "member": "tests/qualification.xml",
+      "bytes": 549746,
+      "sha256": "decdb58965a9eb3aa7fcf83b382e95da808369481858266aa48f151d7846a350"
+    },
+    {
+      "member": "tests/create-qualification.xml",
+      "bytes": 56180,
+      "sha256": "12897ef3cf3455e2c917a844818fff42cc37b6885ce1fb73f7cd19b8fac4edab"
+    },
+    {
+      "member": "tests/create-qualification.trx",
+      "bytes": 127207,
+      "sha256": "2bc806562e1331b760fcaa5013e616b92b1c43df06399ef362459d16d78aff25"
+    }
+  ]
+}

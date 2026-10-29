@@ -1,0 +1,55 @@
+{
+  "baselineCommit": "95e9a6cce041c30311baf6703e06289beafca2c6",
+  "scope": "Approved browser qualification and handoff; five deferred items remain open",
+  "independentReview": {
+    "blindHunter": {
+      "findings": 10,
+      "addressed": 10
+    },
+    "edgeCaseHunter": {
+      "findings": 0
+    },
+    "verificationGap": {
+      "findings": 0
+    },
+    "unresolvedFindings": 0,
+    "newDeferrals": 0
+  },
+  "parentChecks": {
+    "matrixRowsCoveredByExecutedPassingCases": 4,
+    "maintainedMtpCasesPassed": 886,
+    "currentBrowserCasesPassed": 29,
+    "commandAttempts": 0,
+    "circuitErrors": 0,
+    "sameDocumentOuterRegionSurvived": true,
+    "originalBrowserPacketsPreserved": true,
+    "currentSourceAssemblyManifestBindingsVerified": true,
+    "ledgerNormalAndOptimizedPassed": true,
+    "numberedIds": 657,
+    "done": 652,
+    "open": 5,
+    "storyGitlinkGuardPassed": true,
+    "nodeSyntaxPassed": true,
+    "whitespacePassed": true
+  },
+  "commitlint": {
+    "cliVersion": "21.2.3",
+    "command": "./node_modules/.bin/commitlint --edit /tmp/five-deferred-commit-message.txt --verbose",
+    "messageSha256": "c97e685c58b0c2511b581af24e9663f604c1f912a1fb1f93da5ae9a6ad8c5d55",
+    "message": "test(ui): qualify deferred accessibility evidence\n",
+    "exitCode": 0,
+    "problems": 0,
+    "warnings": 0,
+    "evidence": "commitlint.txt"
+  },
+  "runtimeCleanup": {
+    "ownedAppHostWasRunningAtEntry": false,
+    "command": "aspire stop --apphost src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj --non-interactive",
+    "exitCode": 0
+  },
+  "remainingGates": [
+    "Actual supported-pairing AT speech and required manual response controls",
+    "Separately approved identifier contract",
+    "Named historical metadata-confirmation failure and causal reproduction"
+  ]
+}

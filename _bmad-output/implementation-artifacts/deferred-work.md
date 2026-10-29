@@ -1035,6 +1035,12 @@ dependencies: BROWSER-SEARCH-1.9 and AT-NVDA-1.9
 next-action: Capture authenticated search live-region and NVDA evidence with the shipped Fluent runtime.
 related: DW-104
 
+qualification-date: 2026-10-29
+qualification: Authenticated Chromium qualification captures the existing outer status/polite/atomic region, notice containment, Fluent 5.0.1 ElementInternals role=status and computed AX live semantics for empty, one-notice and two-notice search states. Each notice contributes another computed status; the light-DOM helper now names only its actual structural proof. Browser evidence does not count or prove speech.
+qualification-decision: Keep open pending actual authenticated NVDA search speech evidence; the browser portion has current qualification and does not waive AT-NVDA-1.9.
+qualification-next-action: Execute docs/tenants-ui-deferred-at-handoff.md in EN/FR and record actual speech, omissions and duplicates before proposing closure.
+qualification-evidence: dw-116-137-446-459-466-validation-evidence.md
+
 ### DW-117: Surfacing codec exceptions escape the gateway and reach an unguarded LoadAsync, tearing down the Blazor circuit
 origin: migrated from legacy ledger ("Deferred from: code review of spec-1-9-authoritative-memories-search-with-protected-paging (2026-07-27)"), 2026-08-25
 location: TenantQueryGateway.cs:1019; TenantsWorkspace.razor:632
@@ -1277,6 +1283,12 @@ owner: future Tenants API route-contract work
 dependencies: Tenants API route-contract design
 next-action: Specify the reversible route representation and slash/dot/traversal tests before changing client/controller behavior.
 related: none
+
+qualification-date: 2026-10-29
+qualification: The existing pre-HTTP slash/backslash/all-dot refusal passes current Debug/source tests and remains unchanged. Tenant identifiers feed durable AggregateIdentity addresses, so reversible route encoding cannot override downstream shared identity validation. GetUserTenantsQuery instead binds the fixed index aggregate and the requested UserId as EntityId: a user lookup need not change durable tenant aggregate addresses.
+qualification-decision: Preserve the shared identifier restrictions and keep open. User-only reversible route support would be a separate future feature requiring an approved contract; it is not implemented or authorized by this qualification.
+qualification-next-action: Obtain the appropriate shared contract decision for tenant identities, or separately scope and approve user-only lookup support, before changing routes, validators or transport.
+qualification-evidence: dw-116-137-446-459-466-validation-evidence.md
 
 ### DW-138: Deferred to Story 1.11
 
@@ -4030,6 +4042,12 @@ next-action: Run NVDA with a supported browser through the first events-stored a
 related: none
 
 
+qualification-date: 2026-10-29
+qualification: Current AuditAvailabilityState and Create flow source/tests retain first-state markup and their separate lifecycle region. The authenticated Create protocol identifies first NotStarted-to-Pending/Unavailable insertion, expected EN/FR resource text, lifecycle overlap, actual speech and duplicate/omission recording. No assistive-technology speech was captured.
+qualification-decision: Keep open pending actual first-insertion speech; DW-459 is the same risk from another historical review and may share a complete evidence packet without deleting either record.
+qualification-next-action: Run the authenticated first Create audit protocol in docs/tenants-ui-deferred-at-handoff.md with supported AT/browser versions and independent acceptance.
+qualification-evidence: dw-116-137-446-459-466-validation-evidence.md
+
 ### DW-447: Stop flow-level lifecycle recovery copy from naming recovery actions that the shared availability control may not render.
 
 status: done 2026-10-21
@@ -4198,6 +4216,12 @@ next-action: Capture an assistive-technology browser trace of the first mounted 
 related: none
 
 
+qualification-date: 2026-10-29
+qualification: Current component verification and the EN/FR authenticated first Create audit handoff cover the first Pending and first Unavailable states plus their separate lifecycle live region. DOM/AX evidence cannot prove those initial messages are spoken. No production markup change or speech qualification is claimed.
+qualification-decision: Keep open as the duplicate first-insertion risk tracked by DW-446; one complete actual speech packet may qualify both records.
+qualification-next-action: Capture first Pending/Unavailable speech and lifecycle coexistence using docs/tenants-ui-deferred-at-handoff.md before deciding on any separately approved behavior fix.
+qualification-evidence: dw-116-137-446-459-466-validation-evidence.md
+
 ### DW-460: Decide whether `TenantAuditReceipt.FromEntry` should accept authoritative lifecycle/provenance or be removed.
 
 origin: migrated from unnumbered ledger ("Deferred from: code review of 5-4-audit-availability-state-recovery.md (2026-09-30)"), 2026-10-12
@@ -4313,6 +4337,12 @@ followup-verification: The corrected load runner requires exactly one passing un
 followup-evidence: five-deferred-runtime-followups-validation-evidence.md
 followup-blocker: Original September failing-test output identifying the metadata-confirmation method, plus a reproduced causal scheduling failure.
 
+
+qualification-date: 2026-10-29
+qualification: The maintained MTP run retains per-test TRX and xUnit output. The existing named authorization test waits for ResolutionEntered before asserting fail-closed pending state, then releases its dependency before waiting for enabled rendering; it passes unchanged. Existing 2026-10-28 five-iteration CPU-contention evidence remains bounded passing evidence. Neither result identifies or explains the September metadata-confirmation timeout.
+qualification-decision: Keep open; do not increase timeouts, change parallelism or claim a causal synchronization fix. The planning-only 1,589 archive-member search has no retained scan packet; four September CI log retrievals returned empty stdout and reveal no method identity.
+qualification-next-action: Recover the original failing metadata-confirmation method name and per-test failure/render evidence, then reproduce a causal scheduling failure before changing timeout or synchronization. Passing reruns cannot substitute for that missing evidence.
+qualification-evidence: dw-116-137-446-459-466-validation-evidence.md
 
 ### DW-467: `validate-story-gitlinks.py` still exits 1 on the legacy Story 5.4 artifact. This recurs the 2026-09-30 entry above; add no separate action.
 

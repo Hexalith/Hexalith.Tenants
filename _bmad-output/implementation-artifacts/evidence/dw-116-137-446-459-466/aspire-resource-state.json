@@ -1,0 +1,377 @@
+{
+  "command": "aspire describe --apphost src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj --format Json",
+  "resources": [
+    {
+      "displayName": "dapr-placement-mtls",
+      "resourceType": "Container",
+      "state": "Running",
+      "urls": [
+        {
+          "name": "health",
+          "url": "http://localhost:45477"
+        },
+        {
+          "name": "grpc",
+          "url": "tcp://localhost:22820"
+        }
+      ],
+      "pid": null
+    },
+    {
+      "displayName": "dapr-scheduler-mtls",
+      "resourceType": "Container",
+      "state": "Running",
+      "urls": [
+        {
+          "name": "health",
+          "url": "http://localhost:46213"
+        },
+        {
+          "name": "grpc",
+          "url": "tcp://localhost:24677"
+        }
+      ],
+      "pid": null
+    },
+    {
+      "displayName": "dapr-sentry",
+      "resourceType": "Container",
+      "state": "Running",
+      "urls": [
+        {
+          "name": "health",
+          "url": "http://localhost:39851"
+        },
+        {
+          "name": "grpc",
+          "url": "tcp://localhost:24488"
+        }
+      ],
+      "pid": null
+    },
+    {
+      "displayName": "eventstore-admin-dapr-cli",
+      "resourceType": "Executable",
+      "state": "Running",
+      "urls": [
+        {
+          "name": "metrics",
+          "url": "http://localhost:27769"
+        },
+        {
+          "name": "http",
+          "url": "http://localhost:26365"
+        },
+        {
+          "name": "grpc",
+          "url": "http://localhost:23290"
+        }
+      ],
+      "pid": 4051577
+    },
+    {
+      "displayName": "eventstore-admin-ui-dapr-cli",
+      "resourceType": "Executable",
+      "state": "Running",
+      "urls": [
+        {
+          "name": "metrics",
+          "url": "http://localhost:20891"
+        },
+        {
+          "name": "http",
+          "url": "http://localhost:17057"
+        },
+        {
+          "name": "grpc",
+          "url": "http://localhost:13527"
+        }
+      ],
+      "pid": 4051755
+    },
+    {
+      "displayName": "eventstore-admin-ui",
+      "resourceType": "Project",
+      "state": "Running",
+      "urls": [
+        {
+          "name": "http",
+          "url": "http://localhost:8092"
+        },
+        {
+          "name": "https",
+          "url": "https://localhost:8093"
+        }
+      ],
+      "pid": 4051760
+    },
+    {
+      "displayName": "eventstore-admin",
+      "resourceType": "Project",
+      "state": "Running",
+      "urls": [
+        {
+          "name": "http",
+          "url": "http://localhost:8090"
+        },
+        {
+          "name": "https",
+          "url": "https://localhost:8091"
+        }
+      ],
+      "pid": 4051583
+    },
+    {
+      "displayName": "eventstore",
+      "resourceType": "Project",
+      "state": "Running",
+      "urls": [
+        {
+          "name": "http",
+          "url": "http://localhost:8080"
+        },
+        {
+          "name": "https",
+          "url": "https://localhost:7141"
+        }
+      ],
+      "pid": 4051590
+    },
+    {
+      "displayName": "eventstore-dapr-cli",
+      "resourceType": "Executable",
+      "state": "Running",
+      "urls": [
+        {
+          "name": "metrics",
+          "url": "http://localhost:16381"
+        },
+        {
+          "name": "http",
+          "url": "http://localhost:3501"
+        },
+        {
+          "name": "grpc",
+          "url": "http://localhost:28820"
+        }
+      ],
+      "pid": 4051580
+    },
+    {
+      "displayName": "memories-dapr-cli",
+      "resourceType": "Executable",
+      "state": "Running",
+      "urls": [
+        {
+          "name": "metrics",
+          "url": "http://localhost:19169"
+        },
+        {
+          "name": "http",
+          "url": "http://localhost:3502"
+        },
+        {
+          "name": "grpc",
+          "url": "http://localhost:50002"
+        }
+      ],
+      "pid": 4039161
+    },
+    {
+      "displayName": "memories",
+      "resourceType": "Project",
+      "state": "Running",
+      "urls": [
+        {
+          "name": "http",
+          "url": "http://localhost:5000"
+        }
+      ],
+      "pid": 4039163
+    },
+    {
+      "displayName": "memories-graphs",
+      "resourceType": "Container",
+      "state": "Running",
+      "urls": [
+        {
+          "name": "falkordb",
+          "url": "tcp://localhost:37939"
+        }
+      ],
+      "pid": null
+    },
+    {
+      "displayName": "memories-vectors",
+      "resourceType": "Container",
+      "state": "Running",
+      "urls": [
+        {
+          "name": "redis",
+          "url": "tcp://localhost:43239"
+        }
+      ],
+      "pid": null
+    },
+    {
+      "displayName": "sample-dapr-cli",
+      "resourceType": "Executable",
+      "state": "Running",
+      "urls": [
+        {
+          "name": "metrics",
+          "url": "http://localhost:12972"
+        },
+        {
+          "name": "http",
+          "url": "http://localhost:27705"
+        },
+        {
+          "name": "grpc",
+          "url": "http://localhost:18996"
+        }
+      ],
+      "pid": 4051678
+    },
+    {
+      "displayName": "sample",
+      "resourceType": "Project",
+      "state": "Running",
+      "urls": [
+        {
+          "name": "http",
+          "url": "http://localhost:61447"
+        },
+        {
+          "name": "https",
+          "url": "https://localhost:61446"
+        }
+      ],
+      "pid": 4051682
+    },
+    {
+      "displayName": "security",
+      "resourceType": "Container",
+      "state": "Running",
+      "urls": [
+        {
+          "name": "management",
+          "url": "https://localhost:8543"
+        },
+        {
+          "name": "http",
+          "url": "https://localhost:8180"
+        }
+      ],
+      "pid": null
+    },
+    {
+      "displayName": "tenants-api-dapr-cli",
+      "resourceType": "Executable",
+      "state": "Running",
+      "urls": [
+        {
+          "name": "metrics",
+          "url": "http://localhost:15444"
+        },
+        {
+          "name": "http",
+          "url": "http://localhost:12079"
+        },
+        {
+          "name": "grpc",
+          "url": "http://localhost:22419"
+        }
+      ],
+      "pid": 4051676
+    },
+    {
+      "displayName": "tenants-api",
+      "resourceType": "Project",
+      "state": "Running",
+      "urls": [
+        {
+          "name": "http",
+          "url": "http://localhost:51096"
+        },
+        {
+          "name": "https",
+          "url": "https://localhost:51095"
+        }
+      ],
+      "pid": 4051722
+    },
+    {
+      "displayName": "tenants-dapr-cli",
+      "resourceType": "Executable",
+      "state": "Running",
+      "urls": [
+        {
+          "name": "metrics",
+          "url": "http://localhost:11708"
+        },
+        {
+          "name": "http",
+          "url": "http://localhost:18684"
+        },
+        {
+          "name": "grpc",
+          "url": "http://localhost:17906"
+        }
+      ],
+      "pid": 4051686
+    },
+    {
+      "displayName": "tenants",
+      "resourceType": "Project",
+      "state": "Running",
+      "urls": [
+        {
+          "name": "http",
+          "url": "http://localhost:61448"
+        },
+        {
+          "name": "https",
+          "url": "https://localhost:61445"
+        }
+      ],
+      "pid": 4051753
+    },
+    {
+      "displayName": "tenants-ui-dapr-cli",
+      "resourceType": "Executable",
+      "state": "Running",
+      "urls": [
+        {
+          "name": "metrics",
+          "url": "http://localhost:28314"
+        },
+        {
+          "name": "http",
+          "url": "http://localhost:14441"
+        },
+        {
+          "name": "grpc",
+          "url": "http://localhost:26016"
+        }
+      ],
+      "pid": 4051920
+    },
+    {
+      "displayName": "tenants-ui",
+      "resourceType": "Project",
+      "state": "Running",
+      "urls": [
+        {
+          "name": "http",
+          "url": "http://localhost:62448"
+        },
+        {
+          "name": "https",
+          "url": "https://localhost:62445"
+        }
+      ],
+      "pid": 4051915
+    }
+  ]
+}

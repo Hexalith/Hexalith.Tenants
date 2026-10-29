@@ -441,7 +441,7 @@ public sealed class TenantListSurfaceTests : BunitContext
 
         cut.WaitForElement("[data-testid='tenants-list-refreshed-notice']");
         cut.Markup.ShouldContain("tenant.alpha");
-        AssertSingleNoticeLiveRegion(cut);
+        AssertOuterNoticeRegionAndLightDomContainment(cut);
         cut.Find("[data-testid='tenants-list-previous']").HasAttribute("disabled").ShouldBeTrue();
         navigation.Uri.ShouldBe("http://localhost/tenants/tenants");
         cut.Markup.ShouldNotContain("expired-protected-cursor", Case.Insensitive);
@@ -947,7 +947,7 @@ public sealed class TenantListSurfaceTests : BunitContext
         cut.Find(kind is TenantListSurfaceKind.Error
             ? "[data-testid='tenants-list-error']"
             : "[data-testid='tenants-list-unauthorized']").ShouldNotBeNull();
-        AssertSingleNoticeLiveRegion(cut);
+        AssertOuterNoticeRegionAndLightDomContainment(cut);
     }
 
     [Fact]
@@ -1097,7 +1097,7 @@ public sealed class TenantListSurfaceTests : BunitContext
         paging.FallbackCursor.ShouldBeNull();
         cut.Find("[data-testid='tenants-list-search-paging-restarted-notice']").TextContent.ShouldContain(
             "The available tenant source changed. Paging restarted from the first page.");
-        AssertSingleNoticeLiveRegion(cut);
+        AssertOuterNoticeRegionAndLightDomContainment(cut);
 
         // Load four crosses back. It runs in the mode load three entered, and carries the cursor load three
         // minted rather than anything the crossing retired.
@@ -1488,7 +1488,7 @@ public sealed class TenantListSurfaceTests : BunitContext
 
         cut.WaitForElement("[data-testid='tenants-list-search-refreshed-notice']");
         requests.ShouldHaveSingleItem().SearchCursor.ShouldBeNull();
-        AssertSingleNoticeLiveRegion(cut);
+        AssertOuterNoticeRegionAndLightDomContainment(cut);
         cut.Find("[data-testid='tenants-list-previous']").HasAttribute("disabled").ShouldBeTrue();
     }
 
@@ -1713,7 +1713,7 @@ public sealed class TenantListSurfaceTests : BunitContext
 
         cut.WaitForElement("[data-testid='tenants-list-search-unavailable-notice']");
         cut.WaitForElement("[data-testid='tenants-list-refreshed-notice']");
-        AssertSingleNoticeLiveRegion(cut);
+        AssertOuterNoticeRegionAndLightDomContainment(cut);
         cut.Markup.ShouldNotContain("cursor", Case.Insensitive);
     }
 
@@ -1851,7 +1851,7 @@ public sealed class TenantListSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-list-search-unavailable-notice']").TextContent.ShouldContain(
             "Protected whole-set search is temporarily unavailable.");
         cut.FindAll("[data-testid='']").ShouldBeEmpty();
-        AssertSingleNoticeLiveRegion(cut);
+        AssertOuterNoticeRegionAndLightDomContainment(cut);
     }
 
     [Fact]
@@ -1871,19 +1871,19 @@ public sealed class TenantListSurfaceTests : BunitContext
         IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
         cut.WaitForElement("[data-testid='tenants-list-grid']");
 
-        // A live region inserted in the same render that first populates it is routinely not announced, so
-        // the region must already be in the DOM while it is still empty.
-        AssertSingleNoticeLiveRegion(cut);
+        // Pin the existing empty outer region before notices appear; first speech still requires AT
+        // evidence because bUnit cannot observe browser or screen-reader announcement behavior.
+        AssertOuterNoticeRegionAndLightDomContainment(cut);
         cut.FindAll("[data-testid='tenants-list-notices'] [data-testid$='-notice']").ShouldBeEmpty();
 
         cut.Find("[data-testid='tenants-list-refresh']").Click();
 
         cut.WaitForElement("[data-testid='tenants-list-notices'] [data-testid='tenants-list-search-unavailable-notice']");
-        AssertSingleNoticeLiveRegion(cut);
+        AssertOuterNoticeRegionAndLightDomContainment(cut);
     }
 
     [Fact]
-    public void Secondary_notice_equal_to_primary_renders_only_one_live_announcement()
+    public void Secondary_notice_equal_to_primary_renders_only_one_notice_bar()
     {
         RegisterServices(ReadySnapshot(
             [Row("tenant.alpha", "Alpha", TenantStatus.Active, ReadModelFreshnessState.Unknown, TenantPendingState.None)]) with
@@ -2869,16 +2869,17 @@ public sealed class TenantListSurfaceTests : BunitContext
                 : ReadModelFreshnessState.Current,
             isDegraded: false);
 
-    // Both notices share exactly one polite live region: two sibling regions announcing together are
-    // routinely coalesced or dropped by screen readers.
-    private static void AssertSingleNoticeLiveRegion(IRenderedComponent<TenantsWorkspace> cut)
+    // Qualifies only the outer region and light-DOM notice containment; bUnit does not run Fluent
+    // accessibility internals or establish composed browser semantics or speech behavior.
+    private static void AssertOuterNoticeRegionAndLightDomContainment(IRenderedComponent<TenantsWorkspace> cut)
     {
         var region = cut.FindAll("[data-testid='tenants-list-notices']").ShouldHaveSingleItem();
         region.GetAttribute("aria-live").ShouldBe("polite");
         region.GetAttribute("role").ShouldBe("status");
         region.GetAttribute("aria-atomic").ShouldBe("true");
 
-        // Every rendered notice bar must live inside that one region, so the announcement is made once.
+        // Every rendered notice bar must be contained by the outer region. This does not count
+        // Fluent runtime live semantics or prove that a screen reader announces a notice once.
         // Only rendered markup is inspected: a Fluent component's shadow root is never produced by bUnit,
         // so asserting attributes that live there could not fail and would certify nothing.
         cut.FindAll("[data-testid$='-notice']").Count
