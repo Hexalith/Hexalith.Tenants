@@ -2,6 +2,7 @@ using System.Text;
 
 using Hexalith.EventStore.Client.Registration;
 using Hexalith.EventStore.ServiceDefaults;
+using Hexalith.EventStore.ServiceDefaults.Authentication;
 using Hexalith.EventStore.ServiceDefaults.Routing;
 using Hexalith.Tenants.Api.Services;
 
@@ -76,7 +77,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             options.TokenValidationParameters.IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(signingKey));
         }
     });
-builder.Services.AddAuthorization();
+builder.Services.AddEventStoreHttpHostSecurity();
 
 string daprHttpEndpoint = DaprHttpEndpointResolver.Resolve(builder.Configuration);
 string? daprApiToken = builder.Configuration["DAPR_API_TOKEN"];
@@ -107,6 +108,8 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseRouting();
+app.UseEventStoreHttpHostSecurity();
 app.UseAuthentication();
 app.UseAuthorization();
 

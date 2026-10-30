@@ -76,7 +76,11 @@ builder.Services.AddScoped<IAuthoritativeEventStreamReader>(provider =>
 builder.Services.AddKeyedScoped<IAuthoritativeEventStreamReader>("native-tenant-source", (provider, _) =>
     new AuthoritativeEventStreamReader(provider.GetRequiredService<TenantOwnerSourceGateway>(),
         provider.GetRequiredService<TimeProvider>(), TimeSpan.FromSeconds(10), requireNativeProof: true));
-builder.Services.AddEventStoreNativeSourceMetadataReader();
+// The final native observation uses the same enrolled bound workload transport. Raw actor
+// HTTP has no typed catalog scope and is deliberately refused by the shared invocation guard.
+builder.Services.AddScoped<INativeSourceMetadataReader>(provider =>
+    new GatewayNativeSourceMetadataReader(provider.GetRequiredService<TenantOwnerSourceGateway>(),
+        provider.GetRequiredService<TimeProvider>()));
 builder.Services.AddValidatorsFromAssembly(typeof(TenantSubmitCommandValidator).Assembly);
 builder.Services.AddValidatorsFromAssembly(typeof(TenantAggregate).Assembly);
 builder.Services.AddTenantBootstrap();
