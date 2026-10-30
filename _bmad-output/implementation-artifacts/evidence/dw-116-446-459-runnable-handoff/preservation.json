@@ -1,0 +1,27 @@
+{
+  "baselineRevision": "0d469d7c8fedc383f6258cbf2798e62cf9847304",
+  "protectedFiles": {
+    "_bmad-output/implementation-artifacts/deferred-work.md": {
+      "unchanged": true,
+      "sha256": "7a897f8c05133e8376e23b736baa84354a7460fecdd1a66282bd065d0c233c6d"
+    },
+    "_bmad-output/implementation-artifacts/deferred-work-archive.md": {
+      "unchanged": true,
+      "sha256": "d74935772c99c649e7595c64bb7bd681f8296c9a7ac6f92b86efd4f402ca9868"
+    },
+    "_bmad-output/implementation-artifacts/sprint-status.yaml": {
+      "unchanged": true,
+      "sha256": "8c7dd8eab8027c0455c27decbfc6c08be8d472e8a2a276a74be8f1b5a9a93fc7"
+    }
+  },
+  "speechObserved": false,
+  "recordsRemainOpen": [
+    "DW-116",
+    "DW-446",
+    "DW-459"
+  ],
+  "unchangedRecords": [
+    "DW-137",
+    "DW-466"
+  ]
+}

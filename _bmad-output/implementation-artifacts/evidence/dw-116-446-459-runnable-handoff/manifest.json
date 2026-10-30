@@ -1,0 +1,54 @@
+{
+  "_bmad-output/implementation-artifacts/evidence/dw-116-446-459-runnable-handoff/refusal-reproduction.mjs": {
+    "bytes": 1519,
+    "sha256": "655ab392e81ff597159796d0564c224e7961263b7b540da6baedad64c0edd74b"
+  },
+  "_bmad-output/implementation-artifacts/evidence/dw-116-446-459-runnable-handoff/existing-read-safety.json": {
+    "bytes": 7301,
+    "sha256": "576e975535ab367304e55d71ab487fe734d3a734b7bc24523e61a8e10eefae0c"
+  },
+  "_bmad-output/implementation-artifacts/evidence/dw-116-446-459-runnable-handoff/commitlint.txt": {
+    "bytes": 259,
+    "sha256": "67836e215da032db91160a197b2e38f42bbe25eb35235d7b4110b1ddd285ef3a"
+  },
+  "_bmad-output/implementation-artifacts/evidence/dw-116-446-459-runnable-handoff/preservation.json": {
+    "bytes": 796,
+    "sha256": "9a6823723a6d8d0a8da849b1017aef4d276da8abc7bbcba4bb9dfaa253b8a0c3"
+  },
+  "_bmad-output/implementation-artifacts/evidence/dw-116-446-459-runnable-handoff/manual-terminal.json": {
+    "bytes": 12081,
+    "sha256": "aa46ef790c451d6a7053b86ee2293a74e610dbbdbe734621d7f9dd5fbb249d83"
+  },
+  "_bmad-output/implementation-artifacts/evidence/dw-116-446-459-runnable-handoff/chromium.json": {
+    "bytes": 101299,
+    "sha256": "ccd1565eb748deb1dc8a62f56ea8f31f553f6133961d9e80ac66e541d07247d9"
+  },
+  "_bmad-output/implementation-artifacts/evidence/dw-116-446-459-runnable-handoff/firefox.json": {
+    "bytes": 101876,
+    "sha256": "e06f289f524a46d17902adda2c03541aeaf8967966d43b9cd8c32eff98b294a2"
+  },
+  "_bmad-output/implementation-artifacts/evidence/dw-116-446-459-runnable-handoff/rejected-selector-attempt.json": {
+    "bytes": 7826,
+    "sha256": "fb109094fe913f305be8822486c0221198915322f6f47f5ca0ba185afd98ce10"
+  },
+  "docs/tenants-ui-deferred-at-handoff.md": {
+    "bytes": 26137,
+    "sha256": "c7bb8f8b2dfa06c79da207e25749781912d2f3cf044ffb71de56e9f556c348df"
+  },
+  "tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-administrator-dialogs.mjs": {
+    "bytes": 86395,
+    "sha256": "300b887651227dfebaf137f3875046708f58d888c9bb6a3b07dc67cc202f0b09"
+  },
+  "tests/Hexalith.Tenants.UI.Tests/Browser/deferred-handoff-fixture.mjs": {
+    "bytes": 9160,
+    "sha256": "6a4908db949f08ecbacd4d2e7192f311e37fa0b866d0b84e14e98152741edcd5"
+  },
+  "tests/Hexalith.Tenants.UI.Tests/Browser/validate-deferred-handoff.mjs": {
+    "bytes": 11272,
+    "sha256": "4b4f01f2115c0797fbe501f556b4581a18691c64703940bf3e855ed328fb5d14"
+  },
+  "_bmad-output/implementation-artifacts/evidence/dw-116-446-459-runnable-handoff/tested-fixture-inputs.zip": {
+    "bytes": 29263,
+    "sha256": "5f03a295f7076659f2395f772b47bb277406740be9c6829da5770f765b665e0b"
+  }
+}

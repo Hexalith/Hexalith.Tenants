@@ -1,0 +1,182 @@
+{
+  "playwrightVersion": "1.63.0",
+  "startedUtc": "2026-10-30T06:27:54.938Z",
+  "hostMode": "Production authentication and Razor components; separate UI process; controlled read-only HTTP and SignalR upstream",
+  "fixtureScope": "Qualifies authenticated production dialog/create DOM and browser behavior using deterministic upstream responses; does not qualify backend authorization, stored domain data or command delivery",
+  "authenticationFixture": "Test-only loopback OIDC issuer; production code validates signed tokens and authenticates its circuit",
+  "records": [
+    "DW-116",
+    "DW-446",
+    "DW-459"
+  ],
+  "diagnosticSelectedCasesOnly": false,
+  "cases": [
+    {
+      "name": "en: S0 empty notice region and protected search",
+      "passed": true
+    }
+  ],
+  "sourceBeforeBuild": {
+    "validatorSha256": "d12c1da7f79bf7cc7e73bbbe80b610c5e387e79b3c1b2ebcab0df793dd4bd68a",
+    "handoffFixtureSha256": "5e33b9b4f304b549d103a057c69b34eb9a714466a6553119b3583822a442b835",
+    "handoffChecksSha256": "78622dd62791558a1b0fa38f36b088b62dfc5935a0b09218bc7f4d6035514e6e",
+    "oidcFixtureSha256": "c3832608e33425c4e090dbf2014c246937237223c5097ea33c316363ab346b8f",
+    "sourceBaseRevision": "0d469d7c8fedc383f6258cbf2798e62cf9847304",
+    "sourceDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "buildInputsDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "untrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "frontComposerBaseRevision": "612d23485d7e2845d22102621a38d6c904e1ea90",
+    "frontComposerDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "frontComposerUntrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "build": {
+    "executable": "dotnet",
+    "arguments": [
+      "build",
+      "src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj",
+      "-c",
+      "Debug",
+      "-m:1",
+      "-p:UseNuGetDeps=false",
+      "-p:HexalithEventStoreVersion=3.128.4",
+      "-p:HexalithMcpCliFromSource=false",
+      "-p:NuGetAudit=false"
+    ],
+    "succeeded": true,
+    "skippedForDevelopment": false,
+    "reusedBuild": false
+  },
+  "sourceAfterBuild": {
+    "validatorSha256": "d12c1da7f79bf7cc7e73bbbe80b610c5e387e79b3c1b2ebcab0df793dd4bd68a",
+    "handoffFixtureSha256": "5e33b9b4f304b549d103a057c69b34eb9a714466a6553119b3583822a442b835",
+    "handoffChecksSha256": "78622dd62791558a1b0fa38f36b088b62dfc5935a0b09218bc7f4d6035514e6e",
+    "oidcFixtureSha256": "c3832608e33425c4e090dbf2014c246937237223c5097ea33c316363ab346b8f",
+    "sourceBaseRevision": "0d469d7c8fedc383f6258cbf2798e62cf9847304",
+    "sourceDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "buildInputsDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "untrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "frontComposerBaseRevision": "612d23485d7e2845d22102621a38d6c904e1ea90",
+    "frontComposerDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "frontComposerUntrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "sourceStableDuringBuild": true,
+  "validatorSha256": "d12c1da7f79bf7cc7e73bbbe80b610c5e387e79b3c1b2ebcab0df793dd4bd68a",
+  "handoffFixtureSha256": "5e33b9b4f304b549d103a057c69b34eb9a714466a6553119b3583822a442b835",
+  "handoffChecksSha256": "78622dd62791558a1b0fa38f36b088b62dfc5935a0b09218bc7f4d6035514e6e",
+  "oidcFixtureSha256": "c3832608e33425c4e090dbf2014c246937237223c5097ea33c316363ab346b8f",
+  "sourceBaseRevision": "0d469d7c8fedc383f6258cbf2798e62cf9847304",
+  "sourceDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "buildInputsDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "untrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "frontComposerBaseRevision": "612d23485d7e2845d22102621a38d6c904e1ea90",
+  "frontComposerDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "frontComposerUntrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "localUiAssemblySha256": "54a71360aaed961f57a9a96f9c02c21aa73c63aa4d7d0ff7b6e3e22747fe56b8",
+  "localShellAssemblySha256": "98afc77bdab0a7373993e70dcdf20b804ea621b72abb1f4c675652bca3e8551c",
+  "browserVersion": "154.0.8037.57",
+  "handoffSessions": [],
+  "passed": false,
+  "failure": {
+    "phase": "deferred-handoff",
+    "label": "Browser operation failed",
+    "focus": {
+      "documentHasFocus": true,
+      "element": "fluent-button",
+      "shadowDepth": 0,
+      "ancestry": [
+        "tenants-list-next",
+        "tenants-workspace-tenants-panel-content",
+        "tenants-workspace-tenants-panel",
+        "tenants-workspace-tabs",
+        "tenants-workspace"
+      ]
+    },
+    "operation": "locator.click"
+  },
+  "sourceAfterCleanup": {
+    "validatorSha256": "d12c1da7f79bf7cc7e73bbbe80b610c5e387e79b3c1b2ebcab0df793dd4bd68a",
+    "handoffFixtureSha256": "5e33b9b4f304b549d103a057c69b34eb9a714466a6553119b3583822a442b835",
+    "handoffChecksSha256": "78622dd62791558a1b0fa38f36b088b62dfc5935a0b09218bc7f4d6035514e6e",
+    "oidcFixtureSha256": "c3832608e33425c4e090dbf2014c246937237223c5097ea33c316363ab346b8f",
+    "sourceBaseRevision": "0d469d7c8fedc383f6258cbf2798e62cf9847304",
+    "sourceDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "buildInputsDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "untrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "frontComposerBaseRevision": "612d23485d7e2845d22102621a38d6c904e1ea90",
+    "frontComposerDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "frontComposerUntrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "sourceStableThroughCleanup": true,
+  "circuitFaults": [],
+  "handoff": {
+    "events": [
+      {
+        "utc": "2026-10-30T06:27:54.938Z",
+        "kind": "session-reset"
+      },
+      {
+        "utc": "2026-10-30T06:28:04.752Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "utc": "2026-10-30T06:28:05.255Z",
+        "kind": "session-reset"
+      },
+      {
+        "utc": "2026-10-30T06:28:05.368Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "utc": "2026-10-30T06:28:05.667Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "utc": "2026-10-30T06:28:06.312Z",
+        "kind": "search-up"
+      },
+      {
+        "utc": "2026-10-30T06:28:06.389Z",
+        "kind": "search-up"
+      },
+      {
+        "utc": "2026-10-30T06:28:06.629Z",
+        "kind": "search-up"
+      },
+      {
+        "utc": "2026-10-30T06:28:06.633Z",
+        "kind": "search-up"
+      },
+      {
+        "utc": "2026-10-30T06:28:07.337Z",
+        "kind": "search-up"
+      },
+      {
+        "utc": "2026-10-30T06:28:07.343Z",
+        "kind": "search-up"
+      }
+    ],
+    "final": {
+      "search": "up",
+      "rejectCursor": false,
+      "status": "wait",
+      "projection": "hold",
+      "simulatedCommands": 0,
+      "unexpectedCommands": 0,
+      "rejectedCursors": 0,
+      "recoveryPages": 0,
+      "continuations": 0,
+      "statusReads": 0,
+      "projectionReads": 124
+    },
+    "speech": "Not observed; all three records remain open"
+  },
+  "fixture": {
+    "authorizedReads": 0,
+    "administratorReads": 0,
+    "unexpectedCommandAttempts": 0,
+    "simulatedCommandAttempts": 0,
+    "circuitErrors": 0
+  },
+  "acceptedForClosure": false,
+  "finishedUtc": "2026-10-30T06:28:27.457Z"
+}

@@ -1,0 +1,8 @@
+Command: node_modules/.bin/commitlint --edit /tmp/tenants-runnable-handoff-commit.txt --verbose
+Candidate:
+test(ui): make deferred AT handoff runnable
+
+⧗   --- input ---
+test(ui): make deferred AT handoff runnable
+✔   found 0 problems, 0 warnings
+Exit: 0

@@ -1,0 +1,317 @@
+{
+  "playwrightVersion": "1.63.0",
+  "startedUtc": "2026-10-30T06:41:56.354Z",
+  "hostMode": "Production authentication and Razor components; separate UI process; controlled read-only HTTP and SignalR upstream",
+  "fixtureScope": "Manual authenticated fixture session; speech must be captured and independently accepted separately",
+  "authenticationFixture": "Test-only loopback OIDC issuer; production code validates signed tokens and authenticates its circuit",
+  "records": [
+    "DW-116",
+    "DW-446",
+    "DW-459"
+  ],
+  "diagnosticSelectedCasesOnly": false,
+  "cases": [],
+  "sourceBeforeBuild": {
+    "validatorSha256": "300b887651227dfebaf137f3875046708f58d888c9bb6a3b07dc67cc202f0b09",
+    "handoffFixtureSha256": "6a4908db949f08ecbacd4d2e7192f311e37fa0b866d0b84e14e98152741edcd5",
+    "handoffChecksSha256": "4b4f01f2115c0797fbe501f556b4581a18691c64703940bf3e855ed328fb5d14",
+    "oidcFixtureSha256": "c3832608e33425c4e090dbf2014c246937237223c5097ea33c316363ab346b8f",
+    "sourceBaseRevision": "0d469d7c8fedc383f6258cbf2798e62cf9847304",
+    "sourceDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "buildInputsDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "untrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "frontComposerBaseRevision": "612d23485d7e2845d22102621a38d6c904e1ea90",
+    "frontComposerDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "frontComposerUntrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "build": {
+    "executable": "dotnet",
+    "arguments": [
+      "build",
+      "src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj",
+      "-c",
+      "Debug",
+      "-m:1",
+      "-p:UseNuGetDeps=false",
+      "-p:HexalithEventStoreVersion=3.128.4",
+      "-p:HexalithMcpCliFromSource=false",
+      "-p:NuGetAudit=false"
+    ],
+    "succeeded": true,
+    "skippedForDevelopment": false,
+    "reusedBuild": false
+  },
+  "sourceAfterBuild": {
+    "validatorSha256": "300b887651227dfebaf137f3875046708f58d888c9bb6a3b07dc67cc202f0b09",
+    "handoffFixtureSha256": "6a4908db949f08ecbacd4d2e7192f311e37fa0b866d0b84e14e98152741edcd5",
+    "handoffChecksSha256": "4b4f01f2115c0797fbe501f556b4581a18691c64703940bf3e855ed328fb5d14",
+    "oidcFixtureSha256": "c3832608e33425c4e090dbf2014c246937237223c5097ea33c316363ab346b8f",
+    "sourceBaseRevision": "0d469d7c8fedc383f6258cbf2798e62cf9847304",
+    "sourceDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "buildInputsDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "untrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "frontComposerBaseRevision": "612d23485d7e2845d22102621a38d6c904e1ea90",
+    "frontComposerDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "frontComposerUntrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "sourceStableDuringBuild": true,
+  "validatorSha256": "300b887651227dfebaf137f3875046708f58d888c9bb6a3b07dc67cc202f0b09",
+  "handoffFixtureSha256": "6a4908db949f08ecbacd4d2e7192f311e37fa0b866d0b84e14e98152741edcd5",
+  "handoffChecksSha256": "4b4f01f2115c0797fbe501f556b4581a18691c64703940bf3e855ed328fb5d14",
+  "oidcFixtureSha256": "c3832608e33425c4e090dbf2014c246937237223c5097ea33c316363ab346b8f",
+  "sourceBaseRevision": "0d469d7c8fedc383f6258cbf2798e62cf9847304",
+  "sourceDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "buildInputsDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "untrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "frontComposerBaseRevision": "612d23485d7e2845d22102621a38d6c904e1ea90",
+  "frontComposerDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "frontComposerUntrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "localUiAssemblySha256": "54a71360aaed961f57a9a96f9c02c21aa73c63aa4d7d0ff7b6e3e22747fe56b8",
+  "localShellAssemblySha256": "98afc77bdab0a7373993e70dcdf20b804ea621b72abb1f4c675652bca3e8551c",
+  "fluentPackageVersion": "5.0.1",
+  "fluentAssemblySha256": "82718d81e3d28d7a8b80bfb6a543390678ab136bfc4af02af11f55101d613964",
+  "browserVersion": "154.0.8037.57",
+  "fluentModuleSha256": "3ac6e00ddff6fd456dae1c544ade7fa2a44cb8d8c3114a11932e345170356771",
+  "browserEngine": "chromium",
+  "browserChannel": null,
+  "handoffSessions": [
+    {
+      "culture": "en",
+      "startedUtc": "2026-10-30T06:42:13.607Z",
+      "finishedUtc": "2026-10-30T06:42:59.824Z",
+      "fixture": {
+        "sessionOrdinal": 2,
+        "search": "down",
+        "rejectCursor": true,
+        "status": "events",
+        "projection": "deliver",
+        "simulatedCommands": 0,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 0,
+        "recoveryPages": 0,
+        "continuations": 0,
+        "statusReads": 0,
+        "projectionReads": 4
+      },
+      "states": []
+    },
+    {
+      "culture": "fr",
+      "startedUtc": "2026-10-30T06:42:59.826Z",
+      "finishedUtc": "2026-10-30T06:43:27.789Z",
+      "fixture": {
+        "sessionOrdinal": 3,
+        "search": "up",
+        "rejectCursor": false,
+        "status": "unavailable",
+        "projection": "hold",
+        "simulatedCommands": 0,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 0,
+        "recoveryPages": 0,
+        "continuations": 0,
+        "statusReads": 0,
+        "projectionReads": 4
+      },
+      "states": []
+    }
+  ],
+  "handoffUiEvents": [
+    {
+      "sessionOrdinal": 2,
+      "culture": "en",
+      "utc": "2026-10-30T06:42:13.743Z",
+      "focus": "body",
+      "kind": "search-notices",
+      "notices": []
+    },
+    {
+      "sessionOrdinal": 3,
+      "culture": "fr",
+      "utc": "2026-10-30T06:42:59.957Z",
+      "focus": "body",
+      "kind": "search-notices",
+      "notices": []
+    }
+  ],
+  "manualSessionRecorded": true,
+  "sourceAfterBrowser": {
+    "validatorSha256": "300b887651227dfebaf137f3875046708f58d888c9bb6a3b07dc67cc202f0b09",
+    "handoffFixtureSha256": "6a4908db949f08ecbacd4d2e7192f311e37fa0b866d0b84e14e98152741edcd5",
+    "handoffChecksSha256": "4b4f01f2115c0797fbe501f556b4581a18691c64703940bf3e855ed328fb5d14",
+    "oidcFixtureSha256": "c3832608e33425c4e090dbf2014c246937237223c5097ea33c316363ab346b8f",
+    "sourceBaseRevision": "0d469d7c8fedc383f6258cbf2798e62cf9847304",
+    "sourceDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "buildInputsDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "untrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "frontComposerBaseRevision": "612d23485d7e2845d22102621a38d6c904e1ea90",
+    "frontComposerDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "frontComposerUntrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "passed": null,
+  "sourceAfterCleanup": {
+    "validatorSha256": "300b887651227dfebaf137f3875046708f58d888c9bb6a3b07dc67cc202f0b09",
+    "handoffFixtureSha256": "6a4908db949f08ecbacd4d2e7192f311e37fa0b866d0b84e14e98152741edcd5",
+    "handoffChecksSha256": "4b4f01f2115c0797fbe501f556b4581a18691c64703940bf3e855ed328fb5d14",
+    "oidcFixtureSha256": "c3832608e33425c4e090dbf2014c246937237223c5097ea33c316363ab346b8f",
+    "sourceBaseRevision": "0d469d7c8fedc383f6258cbf2798e62cf9847304",
+    "sourceDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "buildInputsDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "untrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "frontComposerBaseRevision": "612d23485d7e2845d22102621a38d6c904e1ea90",
+    "frontComposerDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "frontComposerUntrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "sourceStableThroughCleanup": true,
+  "circuitFaults": [],
+  "handoff": {
+    "events": [
+      {
+        "sessionOrdinal": 1,
+        "utc": "2026-10-30T06:41:56.353Z",
+        "kind": "session-reset"
+      },
+      {
+        "sessionOrdinal": 1,
+        "utc": "2026-10-30T06:42:13.164Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 1,
+        "utc": "2026-10-30T06:42:13.164Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 1,
+        "utc": "2026-10-30T06:42:13.182Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T06:42:13.615Z",
+        "kind": "session-reset"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T06:42:13.725Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T06:42:13.725Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T06:42:13.726Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T06:42:14.031Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T06:42:14.031Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T06:42:14.033Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T06:42:59.823Z",
+        "kind": "search down"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T06:42:59.823Z",
+        "kind": "cursor reject-once"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T06:42:59.823Z",
+        "kind": "status events"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T06:42:59.823Z",
+        "kind": "projection deliver"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T06:42:59.833Z",
+        "kind": "session-reset"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T06:42:59.939Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T06:42:59.939Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T06:42:59.940Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T06:43:00.185Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T06:43:00.185Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T06:43:00.186Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T06:43:27.788Z",
+        "kind": "status unavailable"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T06:43:27.788Z",
+        "kind": "projection hold"
+      }
+    ],
+    "final": {
+      "sessionOrdinal": 3,
+      "search": "up",
+      "rejectCursor": false,
+      "status": "unavailable",
+      "projection": "hold",
+      "simulatedCommands": 0,
+      "unexpectedCommands": 0,
+      "rejectedCursors": 0,
+      "recoveryPages": 0,
+      "continuations": 0,
+      "statusReads": 0,
+      "projectionReads": 4
+    },
+    "speech": "Not captured by this runner; requires separate AT evidence, no closure implied",
+    "currentStates": []
+  },
+  "fixture": {
+    "authorizedReads": 10,
+    "administratorReads": 0,
+    "unexpectedCommandAttempts": 0,
+    "simulatedCommandAttempts": 0,
+    "circuitErrors": 0
+  },
+  "acceptedForClosure": false,
+  "manualSessionCompleted": true,
+  "finishedUtc": "2026-10-30T06:43:27.848Z"
+}

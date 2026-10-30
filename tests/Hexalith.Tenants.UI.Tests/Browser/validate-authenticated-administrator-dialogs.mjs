@@ -12,18 +12,27 @@ import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { startLocalOidcFixture } from './local-oidc-fixture.mjs';
+import { createDeferredHandoffFixture } from './deferred-handoff-fixture.mjs';
+import { runDeferredHandoff } from './validate-deferred-handoff.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const require = createRequire(new URL('../../performance/tenant-audit/package.json', import.meta.url));
 const playwrightModule = process.env.TENANTS_BROWSER_PLAYWRIGHT_MODULE || 'playwright';
-const { chromium } = require(playwrightModule);
+const { chromium, firefox } = require(playwrightModule);
+const handoffMode = process.env.TENANTS_BROWSER_HANDOFF;
+assert.ok(!handoffMode || ['manual', 'check'].includes(handoffMode), 'Use TENANTS_BROWSER_HANDOFF=manual or check');
+const manualHandoff = handoffMode === 'manual';
+const searchToken = randomUUID();
+const handoff = handoffMode ? createDeferredHandoffFixture(searchToken) : null;
 const playwrightRoot = dirname(require.resolve(`${playwrightModule}/package.json`));
 const { wsServer: WebSocketServer } = require(resolve(playwrightRoot, '../playwright-core/lib/utilsBundle.js'));
-const standaloneOidc = process.env.TENANTS_BROWSER_STANDALONE_OIDC === '1';
+const standaloneOidc = Boolean(handoff) || process.env.TENANTS_BROWSER_STANDALONE_OIDC === '1';
 const safetyOnly = process.env.TENANTS_BROWSER_UI_SAFETY_ONLY === '1';
 const runtimeFollowups = process.env.TENANTS_BROWSER_RUNTIME_FOLLOWUPS === '1';
 const holdGrid = process.env.TENANTS_BROWSER_HOLD_GRID === '1';
 const readSafety = process.env.TENANTS_BROWSER_READ_SAFETY === '1';
+assert.ok(!handoff || !(safetyOnly || runtimeFollowups || holdGrid || readSafety), 'Handoff cannot be combined with other scenario flags');
+assert.ok(!handoff || process.env.TENANTS_BROWSER_SKIP_BUILD !== '1', 'Handoff requires a fresh build');
 let listUnavailable = false;
 const base = new URL(process.env.TENANTS_BROWSER_BASE_URL || (standaloneOidc ? 'https://localhost' : ''));
 assert.equal(base.hostname, 'localhost', 'Use the registered localhost Aspire endpoint so authentication cookies reach the fixture');
@@ -50,6 +59,8 @@ const captureSource = async () => {
     };
     return {
         validatorSha256: hash(await readFile(fileURLToPath(import.meta.url))),
+        handoffFixtureSha256: hash(await readFile(resolve(dirname(fileURLToPath(import.meta.url)), 'deferred-handoff-fixture.mjs'))),
+        handoffChecksSha256: hash(await readFile(resolve(dirname(fileURLToPath(import.meta.url)), 'validate-deferred-handoff.mjs'))),
         oidcFixtureSha256: hash(await readFile(resolve(dirname(fileURLToPath(import.meta.url)), "local-oidc-fixture.mjs"))),
         sourceBaseRevision: git('rev-parse', 'HEAD'),
         sourceDiffSha256: hash(git('diff', '--binary', 'HEAD', '--', 'src/Hexalith.Tenants.UI')),
@@ -66,7 +77,7 @@ const evidence = {
     hostMode: 'Production authentication and Razor components; separate UI process; controlled read-only HTTP and SignalR upstream',
     fixtureScope: 'Qualifies authenticated production dialog/create DOM and browser behavior using deterministic upstream responses; does not qualify backend authorization, stored domain data or command delivery',
     authenticationFixture: standaloneOidc ? 'Test-only loopback OIDC issuer; production code validates signed tokens and authenticates its circuit' : 'Existing local realm',
-    records: readSafety ? ['DW-117', 'DW-118', 'DW-127', 'DW-599', 'DW-618'] : safetyOnly ? ['DW-194', 'DW-201'] : ['DW-268', 'DW-391', 'DW-194', 'DW-201'],
+    records: handoff ? ['DW-116', 'DW-446', 'DW-459'] : readSafety ? ['DW-117', 'DW-118', 'DW-127', 'DW-599', 'DW-618'] : safetyOnly ? ['DW-194', 'DW-201'] : ['DW-268', 'DW-391', 'DW-194', 'DW-201'],
     diagnosticSelectedCasesOnly: safetyOnly,
     cases: [],
 };
@@ -196,7 +207,7 @@ try {
     evidence.sourceBeforeBuild = sourceBeforeBuild;
     const privateDirectory = await mkdtemp(resolve(tmpdir(), 'tenants-admin-dialog-browser-'));
     const buildArguments = ['build', 'src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj', '-c', 'Debug', '-m:1', '-p:UseNuGetDeps=false'];
-    if (readSafety) buildArguments.push('-p:HexalithEventStoreVersion=3.128.4', '-p:HexalithMcpCliFromSource=false', '-p:NuGetAudit=false');
+    if (readSafety || handoff) buildArguments.push('-p:HexalithEventStoreVersion=3.128.4', '-p:HexalithMcpCliFromSource=false', '-p:NuGetAudit=false');
     evidence.build = { executable: 'dotnet', arguments: buildArguments, succeeded: false,
         skippedForDevelopment: process.env.TENANTS_BROWSER_SKIP_BUILD === '1',
         reusedBuild: process.env.TENANTS_BROWSER_SKIP_BUILD === '1' };
@@ -220,6 +231,12 @@ try {
         localUiAssemblySha256: hash(await readFile(assembly)),
         localShellAssemblySha256: hash(await readFile(resolve(uiDirectory, 'bin/Debug/net10.0/Hexalith.FrontComposer.Shell.dll'))),
     });
+    if (handoff) {
+        const dependencies = JSON.parse(await readFile(resolve(uiDirectory, 'bin/Debug/net10.0/Hexalith.Tenants.UI.deps.json')));
+        evidence.fluentPackageVersion = Object.keys(dependencies.libraries)
+            .find(name => name.startsWith('Microsoft.FluentUI.AspNetCore.Components/'))?.split('/')[1];
+        evidence.fluentAssemblySha256 = hash(await readFile(resolve(uiDirectory, 'bin/Debug/net10.0/Microsoft.FluentUI.AspNetCore.Components.dll')));
+    }
     phase = 'fixture-start';
     upstream = createServer(async (request, response) => {
         const url = new URL(request.url, 'http://localhost');
@@ -235,6 +252,7 @@ try {
                 availableTransports: [{ transport: 'WebSockets', transferFormats: ['Text'] }] });
             return;
         }
+        if (handoff) { await handoff.handle(request, response, url); return; }
         if (request.method === 'POST' && url.pathname === '/api/v1/commands' && commandScenario) {
             let body = ''; for await (const chunk of request) body += chunk;
             const command = JSON.parse(body);
@@ -347,6 +365,7 @@ try {
         .split('\0').filter(Boolean).map(entry => { const index = entry.indexOf('='); return [entry.slice(0, index), entry.slice(index + 1)]; }));
     const environment = { ...originalEnvironment, ...process.env, ASPNETCORE_URLS: fixtureBase, ASPNETCORE_HTTPS_PORT: String(uiPort),
         Tenants__BaseAddress: upstreamBase, EventStore__BaseAddress: upstreamBase, Memories__BaseAddress: upstreamBase };
+    if (handoff) Object.assign(environment, { HEXALITH_MEMORIES_API_TOKEN: searchToken, DAPR_HTTP_ENDPOINT: upstreamBase });
     if (standaloneOidc) Object.assign(environment, { ASPNETCORE_ENVIRONMENT: 'Development',
         Authentication__OpenIdConnect__Authority: oidcFixture.authority,
         Authentication__OpenIdConnect__ClientId: 'tenants-browser-fixture', Authentication__OpenIdConnect__ClientSecret: randomUUID() });
@@ -358,7 +377,12 @@ try {
         ui.once('error', () => { uiStartupFailure = true; uiExited = true; resolve(); });
         ui.once('exit', () => { uiExited = true; resolve(); });
     });
-    browser = await chromium.launch({ executablePath: process.env.CHROMIUM_BIN || undefined, args: ['--no-sandbox'] });
+    const browserType = handoff && process.env.TENANTS_BROWSER_ENGINE === 'firefox' ? firefox : chromium;
+    if (handoff) assert.ok(!process.env.TENANTS_BROWSER_ENGINE || ['chromium', 'firefox'].includes(process.env.TENANTS_BROWSER_ENGINE), 'Use chromium or firefox');
+    browser = await browserType.launch({ headless: !manualHandoff,
+        channel: handoff && browserType === chromium ? process.env.TENANTS_BROWSER_CHANNEL || undefined : undefined,
+        executablePath: browserType === chromium ? process.env.CHROMIUM_BIN || undefined : undefined,
+        args: browserType === chromium ? ['--no-sandbox'] : [] });
     evidence.browserVersion = browser.version();
     context = await browser.newContext({ ignoreHTTPSErrors: true, viewport: { width: 1366, height: 1000 } });
     await wait(async () => {
@@ -366,6 +390,13 @@ try {
         check(!uiExited, 'Separate production UI process exited during startup');
         try { const response = await context.request.get(`${fixtureBase}/js/tenantsFocus.js`); return response.status() === 200; } catch { return false; }
     }, 'Separate production UI did not start', 30_000);
+    if (handoff) {
+        const fluentModule = await context.request.get(`${fixtureBase}/_content/Microsoft.FluentUI.AspNetCore.Components/Microsoft.FluentUI.AspNetCore.Components.lib.module.js`);
+        check(fluentModule.status() === 200, 'Shipped Fluent module must load');
+        evidence.fluentModuleSha256 = hash(await fluentModule.body());
+        evidence.browserEngine = browserType.name();
+        evidence.browserChannel = process.env.TENANTS_BROWSER_CHANNEL || null;
+    }
     page = await context.newPage();
     page.setDefaultTimeout(20_000);
     page.on('pageerror', () => circuitErrors.push('pageerror'));
@@ -391,7 +422,71 @@ try {
     phase = 'authenticate-callback';
     await page.waitForURL(url => url.origin === (standaloneOidc ? fixtureBase : base.origin) && !url.pathname.includes('signin-oidc'));
     await testId('tenants-workspace').waitFor();
-    if (readSafety) {
+    if (handoff) {
+        phase = 'deferred-handoff';
+        const newSession = async culture => {
+            await context.close();
+            handoff.reset();
+            const sessionOrdinal = handoff.snapshot().sessionOrdinal;
+            context = await browser.newContext({ ignoreHTTPSErrors: true, viewport: { width: 1366, height: 1000 }, locale: culture });
+            await context.addCookies([{ name: '.AspNetCore.Culture', value: `c=${culture}|uic=${culture}`, url: fixtureBase, secure: true }]);
+            page = await context.newPage();
+            page.setDefaultTimeout(20_000);
+            page.on('pageerror', () => circuitErrors.push('pageerror'));
+            page.on('console', message => {
+                if (message.type() === 'error' && /applying batch|current circuit|circuit will be terminated/i.test(message.text())) circuitErrors.push('Blazor circuit failure');
+            });
+            evidence.handoffUiEvents ??= [];
+            await page.exposeFunction('__recordHandoff', event => evidence.handoffUiEvents.push({ sessionOrdinal, culture, ...event }));
+            await page.addInitScript(() => {
+                window.__handoffStates = [];
+                const controls = new Set(['tenants-list-search', 'tenants-list-refresh', 'tenants-list-next', 'tenants-list-previous',
+                    'tenants-list-detail-link', 'tenants-create-submit', 'tenants-create-refresh', 'tenants-audit-availability-recovery-refresh']);
+                const focus = () => {
+                    let active = document.activeElement;
+                    while (active?.shadowRoot?.activeElement) active = active.shadowRoot.activeElement;
+                    for (let node = active; node; node = node.parentElement || node.getRootNode()?.host) {
+                        if (controls.has(node.getAttribute?.('data-testid'))) return node.getAttribute('data-testid');
+                        if (node.id === 'tenants-create-lifecycle' || node.id === 'tenants-list-heading') return node.id;
+                    }
+                    return active?.localName;
+                };
+                const record = event => window.__recordHandoff({ utc: new Date().toISOString(), focus: focus(), ...event });
+                document.addEventListener('click', event => {
+                    const node = event.composedPath().find(node => controls.has(node.getAttribute?.('data-testid')));
+                    if (node) record({ kind: 'activation', control: node.getAttribute('data-testid') });
+                }, true);
+                document.addEventListener('change', event => {
+                    if (event.composedPath().some(node => node.getAttribute?.('data-testid') === 'tenants-list-search'))
+                        record({ kind: 'search-input-change' });
+                }, true);
+                let previousNotices;
+
+                new MutationObserver(() => {
+                    const node = document.querySelector('[data-testid="tenants-create-audit"] [data-testid="tenants-audit-availability"]');
+                    const state = node?.getAttribute('data-state');
+                    if (state && window.__handoffStates.at(-1)?.state !== state) {
+                        const event = { utc: new Date().toISOString(), kind: 'audit-state', state, focus: focus() };
+                        window.__handoffStates.push(event);
+                        window.__recordHandoff(event);
+                    }
+                    const region = document.querySelector('[data-testid="tenants-list-notices"]');
+                    if (region) {
+                        const notices = [...region.querySelectorAll('[data-testid$="-notice"]')].map(node => node.getAttribute('data-testid')).sort();
+                        const key = JSON.stringify(notices);
+                        if (key !== previousNotices) { previousNotices = key; record({ kind: 'search-notices', notices }); }
+                    }
+                }).observe(document, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-state'] });
+            });
+            await page.goto(`${fixtureBase}/authentication/challenge?returnUrl=%2Ftenants`);
+            await testId('tenants-workspace').waitFor();
+            await testId('tenants-list-next').waitFor();
+            await page.waitForLoadState('networkidle');
+            return page;
+        };
+        await runDeferredHandoff({ manual: manualHandoff, fixture: handoff, newSession, evidence, wait });
+        check(!handoff.events.some(event => event.kind === 'command-refused') && circuitErrors.length === 0, 'Handoff must retain zero unexpected commands and circuit errors');
+    } else if (readSafety) {
         phase = 'authorized-search-first-page';
         await page.goto(`${fixtureBase}/tenants?search=needle`);
         await page.waitForLoadState('networkidle');
@@ -1078,12 +1173,21 @@ runtimeGrid.Initialize = async function(element, ...args) {
         }
         evidence.circuitFaults = [...selected];
     }
-    evidence.fixture = { authorizedReads: fixture.authorizedReads, administratorReads: fixture.adminReads,
-        unexpectedCommandAttempts: fixture.commands, simulatedCommandAttempts: fixture.simulatedCommands, circuitErrors: circuitErrors.length };
+    if (handoff) evidence.handoff = { events: handoff.events, final: handoff.snapshot(), speech: 'Not captured by this runner; requires separate AT evidence, no closure implied' };
+    evidence.fixture = { authorizedReads: handoff ? handoff.events.filter(event => event.kind === 'authorized-read').length : fixture.authorizedReads,
+        administratorReads: fixture.adminReads,
+        unexpectedCommandAttempts: handoff ? handoff.events.filter(event => event.kind === 'command-refused').length : fixture.commands,
+        simulatedCommandAttempts: handoff ? handoff.events.filter(event => event.kind === 'create-accepted').length : fixture.simulatedCommands,
+        circuitErrors: circuitErrors.length };
+    if (handoff) evidence.handoff.currentStates = await page?.evaluate(() => window.__handoffStates || []).catch(() => []);
     evidence.acceptedForClosure = evidence.passed === true && evidence.build?.succeeded === true
-        && !evidence.build?.reusedBuild && !safetyOnly && !holdGrid
+        && !evidence.build?.reusedBuild && !safetyOnly && !holdGrid && !handoff
         && evidence.cases.length === (readSafety ? 4 : runtimeFollowups ? 13 : 12)
         && (!readSafety || (fixture.commands === 0 && fixture.simulatedCommands === 0 && circuitErrors.length === 0));
+    if (manualHandoff) {
+        evidence.manualSessionCompleted = evidence.passed;
+        evidence.passed = null;
+    }
     evidence.finishedUtc = new Date().toISOString();
     let evidenceWriteFailed = false;
     try {
@@ -1108,5 +1212,5 @@ runtimeGrid.Initialize = async function(element, ...args) {
             await oidcFixture?.close();
         })()]);
     }
-    console.log(`Authenticated administrator dialogs: ${evidence.passed && !evidenceWriteFailed ? 'passed' : 'failed'}; ${evidence.cases.length} cases; phase ${phase}`);
+    console.log(`Authenticated ${handoff ? 'deferred handoff' : 'administrator dialogs'}: ${(manualHandoff ? evidence.manualSessionCompleted : evidence.passed) && !evidenceWriteFailed ? (manualHandoff ? 'manual session recorded; no qualification verdict' : 'passed') : 'failed'}; ${evidence.cases.length} automated cases; phase ${phase}`);
 }
