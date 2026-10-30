@@ -1,0 +1,15 @@
+{
+  "numberedIds": 657,
+  "unselectedNumberedBodiesPreserved": 652,
+  "originalSelectedFieldsPreservedExceptApprovedStatus": true,
+  "approvedEntryArchiveBytesPreserved": true,
+  "closedByApprovedDisposition": [
+    137,
+    466
+  ],
+  "statusCounts": {
+    "done": 654,
+    "open": 3
+  },
+  "exactCoveringMaintenanceRows": 3
+}

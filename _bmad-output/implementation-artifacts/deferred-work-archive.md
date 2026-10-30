@@ -12239,3 +12239,1493 @@ verification-files: _bmad-output/implementation-artifacts/dw-128-272-519-560-563
 evidence-kind: verified-fix
 next-action: none; scoped correction complete, unrelated records and release holds preserved.
 
+### DW-104: Disclosed runtime-verification gaps
+origin: migrated from legacy ledger ("Deferred from: code review of 1-2-tenant-list-triage-and-cursor-foundation (2026-07-20)"), 2026-08-25
+location: reasonCode
+reason: The legacy ledger defers this issue: Disclosed runtime-verification gaps. Original context is preserved in legacy-detail.
+legacy-detail: - **Disclosed runtime-verification gaps** — (1) the invalid-cursor page-one recovery wire-path (that the `list-tenants` query actually populates the `reasonCode` problem-details extension the gateway matches on, rather than only `detail`) rests on unit doubles; (2) AC8 per-width and forced-colors behavior is proven by grid-scoped CSS + bUnit/forced-colors conformance rather than full browser emulation, because the local Chrome lane exposes a fixed 1235px virtual viewport (window resize is a no-op). Both are disclosed in the story Debug Log and do not gate this read-only UI story per the Epic 1 convention. (`story evidence`)
+pre-authenticated-routes-status: open
+status: done 2026-10-25
+archived: 2026-10-30
+pre-authenticated-routes-disposition: blocked
+disposition: done
+pre-authenticated-routes-verification-date: 2026-10-12
+verification-date: 2026-10-25
+pre-authenticated-routes-verification: tests/Hexalith.Tenants.IntegrationTests/TenantsApiGeneratedControllerTests.cs covers real generated reads, but the original invalid-cursor reasonCode wire proof and authenticated per-width/forced-colors acceptance packet are not established by component/source assertions.
+verification: Real malformed and issued incompatible protected cursors return reasonCode problem details and recover to cursorless page one. Chromium passes all12 measured list/audit width/forced-colors combinations, including actual scrolling, pinning, copy hit/focus and recovery controls. Fresh hosted Release/package run40217896195 at c3697ed23dc1aa896bef1f42d3fc1a0f79356d65 has zero acceptance skips. See dw-104-161-432-436-594-validation-evidence.md and live-browser-hosted.json.
+pre-authenticated-routes-verification-files: tests/Hexalith.Tenants.IntegrationTests/TenantsApiGeneratedControllerTests.cs
+verification-files: _bmad-output/implementation-artifacts/dw-104-161-432-436-594-validation-evidence.md; tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsRouteTests.cs; tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsUiRouteTests.cs; tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs
+pre-authenticated-routes-evidence-kind: verified-gap
+evidence-kind: verified-resolution
+priority: P2
+owner: unassigned
+dependencies: healthy authenticated browser/API fixture
+pre-authenticated-routes-next-action: Capture the invalid-cursor problem-details response and browser width/forced-colors traces.
+next-action: None for this selected record; retain historical evidence and broader runtime/release holds.
+related: DW-116, DW-161
+
+### DW-114: The advance-by-requested-window paging rule rests on a Memories server premise that no test in this repository can observe
+origin: migrated from legacy ledger ("Deferred from: code review of 1-4-my-tenants-self-audit (2026-07-21)"), 2026-08-25
+location: references/
+source_spec: `_bmad-output/implementation-artifacts/spec-1-9-authoritative-memories-search-with-protected-paging.md`
+reason: The legacy ledger defers this issue: The advance-by-requested-window paging rule rests on a Memories server premise that no test in this repository can observe. Original context is preserved in legacy-detail.
+legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-1-9-authoritative-memories-search-with-protected-paging.md` summary: The advance-by-requested-window paging rule rests on a Memories server premise that no test in this repository can observe. evidence: Correctness of `nextOffset = min(rawOffset + PageSize, TotalCount)` requires the Memories search server to apply `Offset` before dropping entries that fail its required-field check and to report the untrimmed total. That is true of `SyntacticSearchService` in the consumed submodule today, but `SearchResult.TotalCount` documents only "may exceed returned results", every gateway test stubs `MemoriesClient.SearchAsync`, and the intent's Block-If bars editing anything under `references/`. Closing this needs a contract test in the Memories repository or a Tenants integration test against a live index.
+pre-read-recovery-status: open
+status: done 2026-10-27
+archived: 2026-10-30
+pre-read-recovery-disposition: blocked
+disposition: done
+pre-read-recovery-verification-date: 2026-10-12
+verification-date: 2026-10-27
+pre-read-recovery-verification: src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs advances rawOffset by requested PageSize; references/Hexalith.Memories/src/Hexalith.Memories.Server/Search/SyntacticSearchService.cs reports raw totals and filters required fields. Tenants gateway tests still substitute SearchAsync, so no owning contract regression proves that premise.
+verification: Owning Memories search integration proves required-field filtering follows raw paging and preserves raw totals across empty, later and exhausted windows; SearchResult documents normalized window advancement. Current ordinary Debug/package Integration build and real-Redis class pass19/19 without source repair or exclusions.
+pre-read-recovery-verification-files: src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs; references/Hexalith.Memories/src/Hexalith.Memories.Server/Search/SyntacticSearchService.cs
+verification-files: references/Hexalith.Memories/src/Hexalith.Memories.Contracts/V1/SearchResult.cs; references/Hexalith.Memories/tests/Hexalith.Memories.IntegrationTests/Search/SyntacticSearchIntegrationTests.cs
+pre-read-recovery-evidence-kind: verified-gap
+evidence-kind: verified-contract-regression
+priority: P2
+owner: unassigned
+dependencies: Memories owning contract/integration lane
+pre-read-recovery-next-action: Obtain a Memories server contract test for offset-before-filtering and untrimmed totals.
+next-action: None for this record; completion evidence and remaining broad/release limits are retained in dw-114-137-144-514-523-validation-evidence.md.
+related: DW-122
+resolution-spec: `_bmad-output/implementation-artifacts/spec-dw-114-137-144-514-523-read-and-recovery-contracts.md`
+resolution-evidence: `_bmad-output/implementation-artifacts/dw-114-137-144-514-523-validation-evidence.md`
+
+### DW-117: Surfacing codec exceptions escape the gateway and reach an unguarded LoadAsync, tearing down the Blazor circuit
+origin: migrated from legacy ledger ("Deferred from: code review of spec-1-9-authoritative-memories-search-with-protected-paging (2026-07-27)"), 2026-08-25
+location: TenantQueryGateway.cs:1019; TenantsWorkspace.razor:632
+source_spec: `_bmad-output/implementation-artifacts/spec-1-9-authoritative-memories-search-with-protected-paging.md`
+reason: The legacy ledger defers this issue: Surfacing codec exceptions escape the gateway and reach an unguarded LoadAsync, tearing down the Blazor circuit. Original context is preserved in legacy-detail.
+legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-1-9-authoritative-memories-search-with-protected-paging.md` summary: Surfacing codec exceptions escape the gateway and reach an unguarded LoadAsync, tearing down the Blazor circuit. evidence: `TenantQueryGateway.cs:1019` deliberately re-raises `ObjectDisposedException`, `NullReferenceException`, `ArgumentNullException`, `OutOfMemoryException`; `TenantsWorkspace.razor:632` catches only `OperationCanceledException`. A disposed Data Protection provider during host shutdown therefore kills the circuit where every other cursor-protection failure degrades to the ordinary list. Documented as deliberate in the source comments, and shutdown-time disposal is benign, so recorded rather than patched. status: open
+status: done 2026-10-28
+archived: 2026-10-30
+disposition: resolved
+verification-date: 2026-10-12
+verification: src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs IsSurfacingDefect explicitly rethrows fatal/programming/disposal exceptions; Components/Pages/TenantsWorkspace.razor LoadAsync only contains cancellation. Source remarks explicitly choose diagnostic surfacing rather than classifying programming failures as malformed cursors.
+verification-files: src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs; src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor
+evidence-kind: accepted-limitation
+priority: P3
+owner: unassigned
+dependencies: none
+next-action: Revisit containment only if the documented surfacing policy changes.
+related: none
+resolution-date: 2026-10-28
+resolution: Approved nonfatal provider/programming exceptions are contained by the workspace Error/Retry boundary with fixed safe diagnostics; stale, cancelled and disposed loads retire, and direct/wrapped fatal exceptions propagate.
+resolution-evidence: dw-117-118-127-599-618-validation-evidence.md
+resolution-limits: Original findings and prior verification remain historical evidence. Privacy excludes timing, work, fallback-mode independence and completeness beyond budget; offset mutations retain existing limits. No snapshot-isolation, assistive-technology or release qualification is claimed.
+
+
+### DW-118: The codec argument guard straddles the contained/surfacing partition, so its null and empty halves produce opposite outcomes
+origin: migrated from legacy ledger ("Deferred from: code review of spec-1-9-authoritative-memories-search-with-protected-paging (2026-07-27)"), 2026-08-25
+location: TenantQueryGateway.cs:1025
+source_spec: `_bmad-output/implementation-artifacts/spec-1-9-authoritative-memories-search-with-protected-paging.md`
+reason: The legacy ledger defers this issue: The codec argument guard straddles the contained/surfacing partition, so its null and empty halves produce opposite outcomes. Original context is preserved in legacy-detail.
+legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-1-9-authoritative-memories-search-with-protected-paging.md` summary: The codec argument guard straddles the contained/surfacing partition, so its null and empty halves produce opposite outcomes. evidence: `QueryCursorCodec` uses `ArgumentException.ThrowIfNullOrWhiteSpace`, which throws `ArgumentNullException` for null and `ArgumentException` for empty. `TenantQueryGateway.cs:1025` excludes `ArgumentNullException` before the `ArgumentException` base match, so null escapes to circuit teardown while empty degrades to the ordinary list. Not reachable today: `TenantSearchCursorScopes.Create` never returns null and `TenantSearchCursorPosition.Format` never returns empty. status: open
+status: done 2026-10-28
+archived: 2026-10-30
+disposition: resolved
+verification-date: 2026-10-12
+verification: src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs excludes ArgumentNullException before ArgumentException; TenantSearchCursorScopes.Create and TenantSearchCursorPosition.Format produce closed nonblank inputs. The asymmetry remains deliberate for programming defects and is not a demonstrated production input path.
+verification-files: src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs
+evidence-kind: accepted-limitation
+priority: P3
+owner: unassigned
+dependencies: none
+next-action: Revisit if codec callers begin accepting nullable scope or position inputs.
+related: DW-117
+resolution-date: 2026-10-28
+resolution: Approved contract decision: wrappers require nonblank inputs; the gateway deliberately preserves null-versus-empty classification. This does not claim a reachable null-input production defect was fixed. Nonfatal escaped defects are contained by the workspace boundary.
+resolution-evidence: dw-117-118-127-599-618-validation-evidence.md
+resolution-limits: Original findings and prior verification remain historical evidence. Privacy excludes timing, work, fallback-mode independence and completeness beyond budget; offset mutations retain existing limits. No snapshot-isolation, assistive-technology or release qualification is claimed.
+
+
+### DW-122: Per-page candidate dedup lets one tenant render on two consecutive authoritative search pages
+origin: migrated from legacy ledger ("Deferred from: code review of spec-1-9-authoritative-memories-search-with-protected-paging (2026-07-27, pass 3)"), 2026-08-25
+location: spec-1-9-…-paging.md:238
+source_spec: `_bmad-output/implementation-artifacts/spec-1-9-authoritative-memories-search-with-protected-paging.md`
+reason: The legacy ledger defers this issue: Per-page candidate dedup lets one tenant render on two consecutive authoritative search pages. Original context is preserved in legacy-detail.
+legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-1-9-authoritative-memories-search-with-protected-paging.md` summary: Per-page candidate dedup lets one tenant render on two consecutive authoritative search pages. evidence: `TenantQueryGateway.BuildAuthoritativeSearchSnapshotAsync` builds its `seen` set per raw window, so a tenant the index returns in two overlapping windows is rendered twice across consecutive pages. Closing it needs either an index uniqueness guarantee (upstream, barred by this spec's Block-If) or a cross-page seen-set carried in the protected cursor, which would place reconstructable index material into protected state and violate this story's own cursor constraints. Reclassified from patch to deferred during the 2026-07-27 pass-2 application and marked `[x]` at `spec-1-9-…-paging.md:238`, but never entered this ledger — the pass-3 review found it invisible to ledger triage. Recorded here now. status: open — blocked on an upstream index uniqueness guarantee or a cursor design that carries no reconstructable index material.
+status: done 2026-10-28
+archived: 2026-10-30
+decision: 2026-08-26 Upstream uniqueness — Make Memories guarantee stable unique tenant candidates and add an owning contract test.
+decision: 2026-08-25 Upstream uniqueness — Make Memories guarantee stable unique tenant candidates and add a contract test.
+disposition: done
+verification-date: 2026-10-12
+verification: src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs BuildAuthoritativeSearchSnapshotAsync uses a per-window seen set. No cross-page uniqueness contract/test was found; the recorded 2026-08-25/26 decision chooses upstream Memories uniqueness.
+verification-files: src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs
+evidence-kind: verified-gap
+priority: P2
+owner: Memories
+dependencies: Memories index uniqueness guarantee
+next-action: none; selected requirement completed with retained qualification limits.
+related: DW-114
+pre-closure-status: open
+pre-closure-disposition: blocked
+pre-closure-next-action: Add an owning Memories uniqueness contract test across raw windows.
+closure-date: 2026-10-28
+closure-verification: Memories selects raw windows by BM25 score then unique key before hydration. Real Redis RESP2/RESP3 tied-score and invalid-entry contracts pass; original production source fails four new cases. Final focused integration 82/82 and search/endpoint unit 296/296 pass. Profile warnings and cap-truncated windows fail explicitly, and whitespace case IDs retain prior normalization. The unchanged-query/index guarantee does not claim mutation snapshot isolation or package publication.
+closure-evidence: dw-122-334-358-579-595-validation-evidence.md
+
+
+### DW-127: Partially hidden authoritative-search windows disclose hidden candidates through paging state
+origin: migrated from legacy ledger ("Deferred from: code review of 1-6-read-only-tenant-configuration (2026-07-28)"), 2026-08-25
+location: TenantQueryGateway.cs:890
+reason: The legacy ledger defers this issue: Partially hidden authoritative-search windows disclose hidden candidates through paging state. Original context is preserved in legacy-detail.
+legacy-detail: - **Partially hidden authoritative-search windows disclose hidden candidates through paging state.** This is the already-recorded Story 1.9 `PARTIAL-WINDOW-DISCLOSURE-1.9` residual: `TenantQueryGateway.cs:890` renders surviving rows while retaining a `HasMore` value derived from the raw pre-authorization total. It is pre-existing relative to the Story 1.6 trust-boundary chunk and remains owned by Story 1.9.
+status: done 2026-10-28
+archived: 2026-10-30
+decision: 2026-08-28 Await stronger requirement
+decision: 2026-08-28 Await stronger requirement
+disposition: resolved
+verification-date: 2026-10-12
+verification: src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs still derives partially hidden-window HasMore from raw TotalCount and explicitly documents the residual disclosure channel. Both 2026-08-28 decisions say await a stronger requirement.
+verification-files: src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs
+evidence-kind: unverified-risk
+priority: P2
+owner: Story 1.9
+dependencies: product/security requirement
+next-action: Set the privacy/completeness acceptance requirement for partially hidden search windows.
+related: DW-128, DW-618
+resolution-date: 2026-10-28
+resolution: Approved rendered-privacy/completeness requirement: authorized backfill and lookahead derive rows/pager only from visible results. Fixed-window replay uses protected v2 numeric positions; incomplete budget or operational hydration outcomes discard search and use the labelled authorized-list fallback.
+resolution-evidence: dw-117-118-127-599-618-validation-evidence.md
+resolution-limits: Original findings and prior verification remain historical evidence. Privacy excludes timing, work, fallback-mode independence and completeness beyond budget; offset mutations retain existing limits. No snapshot-isolation, assistive-technology or release qualification is claimed.
+
+
+### DW-133: BMAD workflow render files (`_bmad/render/bmad-quick-dev/step-05-present.md`, `step-oneshot.md`, `workflow.md`) were modified inside the Story 1.10 diff, adding gitlink-validator instructions. Real and probably desirable, but it is tooling maintenance unrelated to Story 1.10's acceptance criteria and outside the spec's authorized doc outputs (evidence file + `tests/test-summary.md`). Should land as its own `docs` commit rather than inside a feature story (Hexalith commitlint forbids `chore`)
+origin: migrated from legacy ledger ("Deferred from: code review of spec-1-10-direct-tenants-reads-and-authoritative-freshness (2026-07-28)"), 2026-08-25
+location: tests/test-summary.md; _bmad/render/bmad-quick-dev/step-05-present.md
+reason: The legacy ledger defers this issue: BMAD workflow render files (`_bmad/render/bmad-quick-dev/step-05-present.md`, `step-oneshot.md`, `workflow.md`) were modified inside the Story 1.10 diff, adding gitlink-validator instructions. Original context is preserved in legacy-detail.
+legacy-detail: - BMAD workflow render files (`_bmad/render/bmad-quick-dev/step-05-present.md`, `step-oneshot.md`, `workflow.md`) were modified inside the Story 1.10 diff, adding gitlink-validator instructions. Real and probably desirable, but it is tooling maintenance unrelated to Story 1.10's acceptance criteria and outside the spec's authorized doc outputs (evidence file + `tests/test-summary.md`). Should land as its own `docs` commit rather than inside a feature story (Hexalith commitlint forbids `chore`).
+pre-historical-guard-status: open
+status: done 2026-10-28
+archived: 2026-10-30
+pre-historical-guard-disposition: accepted-limitation
+disposition: done
+pre-historical-guard-verification-date: 2026-10-12
+verification-date: 2026-10-28
+pre-historical-guard-verification: _bmad/render/bmad-quick-dev/step-05-present.md, step-oneshot.md and workflow.md still contain the gitlink instructions. This records historical scope attribution in the already-landed Story 1.10 diff, not a current functional defect; separating that old commit would require rewriting history. Original attribution is preserved.
+verification: Verified original tooling commit 2e61f57bda6379192007d1bc6fabbde61996b11d adds the three rendered gitlink instructions. The unchanged Story 1.10 File List already labels them range attribution rather than runtime behavior. No history was rewritten and no generated workflow was modified. See dw-133-365-461-467-478-validation-evidence.md for reproducible Git assertions, test results, final review and limitations.
+evidence-kind: accepted-limitation
+priority: P3
+owner: unassigned
+dependencies: none
+pre-historical-guard-next-action: Keep the historical attribution when archiving; use separately scoped tooling work for future changes.
+next-action: Retain attribution when archiving; reopen if new evidence contradicts the verified original tooling attribution. Scope future workflow changes separately.
+related: none
+
+### DW-144: Decide whether the Tenants UI BFF's six canonical reads should move from direct HTTPS to DAPR service invocation. Raised by the owner during the 1.10 review: DAPR is the intended discovery mechanism for services with sidecars. Not actionable inside 1.10 — it is a topology and security-posture change, not a base-address swap
+origin: migrated from legacy ledger ("Architectural decision recorded by code review of spec-1-10 (2026-07-30) — BFF read transport vs DAPR service invocation"), 2026-08-25
+location: src/Hexalith.Tenants.AppHost/Program.cs:104-106; src/Hexalith.Tenants.UI
+source_spec: `_bmad-output/implementation-artifacts/spec-1-10-direct-tenants-reads-and-authoritative-freshness.md`
+reason: The legacy ledger defers this issue: Decide whether the Tenants UI BFF's six canonical reads should move from direct HTTPS to DAPR service invocation. Original context is preserved in legacy-detail.
+legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-1-10-direct-tenants-reads-and-authoritative-freshness.md` summary: Decide whether the Tenants UI BFF's six canonical reads should move from direct HTTPS to DAPR service invocation. Raised by the owner during the 1.10 review: DAPR is the intended discovery mechanism for services with sidecars. Not actionable inside 1.10 — it is a topology and security-posture change, not a base-address swap. evidence: | Current topology (verified 2026-07-30): - `tenants-api` HAS a DAPR sidecar, `AppId = "tenants-api"` (src/Hexalith.Tenants.AppHost/Program.cs:104-106). - `tenants-ui` has NO sidecar, no app-id, and no Dapr package references anywhere in src/Hexalith.Tenants.UI. It is not a DAPR app; it is a Blazor front end / BFF. - `deploy/dapr/accesscontrol.tenants.yaml` is `defaultAction: deny` and allows exactly one caller, `appId: eventstore`, on five POST operations (/process, /project, /query, /replay-state, /admin/operational-index-metadata). None of the six `GET /api/tenants*` read routes are allowed and `tenants-ui` has no policy entry. - Because the reads go direct HTTPS to `tenants-api` (which is `.WithExternalHttpEndpoints()`), they bypass the DAPR access-control plane and mTLS entirely. That is a deviation from the documented deny-by-default posture and was not recorded anywhere in Story 1.10. What a move to DAPR invoke would require: 1. A sidecar + app-id for `tenants-ui`. 2. A `tenants-ui` policy in accesscontrol.tenants.yaml allowing GET on the six read routes, plus the route tests project-context.md requires to change alongside any app-id/topic change. 3. Base address becomes `http://localhost:{daprHttpPort}/v1.0/invoke/tenants-api/method/` + route. Route identity at the API is preserved so the six-path acceptance criterion survives, but the client's URI building, base-path retention and scheme gate all assume a direct service address. 4. Reconciling `deploy/dapr/resiliency.yaml`, which applies `defaultRetry` (constant, 3 retries), a 5s `daprSidecar` timeout and a circuit breaker to invoke targets, with Story 1.10's deliberate transport semantics: the hand-built linked deadline, the fixed support-safe failure categories, and the explicit never-silently-retry invariant (notably the invalid-cursor rule). A retried conditional GET re-sends `If-None-Match`, so 304/ETag behaviour through the sidecar must be verified, not assumed. Not verified, flagged for that work: how `%2E%2E` behaves through a DAPR invoke path. If anything it is worse than direct HTTP — a resolved `..` could traverse out of the `/v1.0/invoke/{appId}/method/` prefix — so the reject-all-dot route-value patch is required regardless of the transport chosen. status: open — owner-raised architectural decision for its own story. Story 1.10 proceeds with the resolved option (c): no discovery mechanism, consuming the AppHost-injected resolved endpoint URL, matching the EventStore command/status and Memories clients.
+pre-read-recovery-status: open
+status: done 2026-10-27
+archived: 2026-10-30
+decision: 2026-08-26 Use Dapr invocation — Add a tenants-ui sidecar and app ID, deny-by-default GET policy, resilience reconciliation, and route and ETag tests.
+decision: 2026-08-25 Use Dapr invocation — Add a tenants-ui sidecar and app-id, deny-by-default GET policy, resilience reconciliation, and route and ETag tests.
+pre-read-recovery-disposition: actionable
+disposition: done
+pre-read-recovery-verification-date: 2026-10-12
+verification-date: 2026-10-27
+pre-read-recovery-verification: src/Hexalith.Tenants.AppHost/Program.cs gives tenants-api a Dapr sidecar, while tenants-ui remains a ProjectResource without one and receives Tenants__BaseAddress from the HTTPS endpoint. Recorded 2026-08-25/26 decisions select Dapr invocation; migration is still absent.
+verification: BFF reads use the authoritative local Dapr endpoint, existing invocation handler, HTTPS app channel, caller-specific deny-default ACL and explicit zero-retry app policy. Shared local mTLS/bootstrap, six persisted reads, conditional metadata and caller/verb/no-retry controls qualify the retained literal route contract independently of deferred DW-137.
+pre-read-recovery-evidence-kind: recommendation
+evidence-kind: verified-contract-regression
+priority: P2
+owner: unassigned
+dependencies: topology/security contract and DW-137
+pre-read-recovery-next-action: Implement the already-selected topology in a dedicated owning change with deny-default GET policy, retry and ETag/route checks.
+next-action: None for this record; completion evidence and remaining broad/release limits are retained in dw-114-137-144-514-523-validation-evidence.md.
+related: DW-161
+verification-files: src/Hexalith.Tenants.UI/Extensions/TenantsUiServiceCollectionExtensions.cs; src/Hexalith.Tenants.AppHost/Program.cs; deploy/dapr/README.md; tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsRouteTests.cs; tests/Hexalith.Tenants.AppHost.Tests/LocalDaprIdentityTests.cs
+resolution-spec: `_bmad-output/implementation-artifacts/spec-dw-114-137-144-514-523-read-and-recovery-contracts.md`
+resolution-evidence: `_bmad-output/implementation-artifacts/dw-114-137-144-514-523-validation-evidence.md`
+
+### DW-154: Two global-administrator teardown paths are knowingly unverified
+origin: migrated from legacy ledger ("Deferred from: code review of spec-1-10-direct-tenants-reads-and-authoritative-freshness (2026-07-31)"), 2026-08-25
+location: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:997
+reason: The legacy ledger defers this issue: Two global-administrator teardown paths are knowingly unverified. Original context is preserved in legacy-detail.
+legacy-detail: - **Two global-administrator teardown paths are knowingly unverified** — un-marshalling the `ResetPagingAsync` cursor-history clear off the dispatcher, and neutering the `ObjectDisposedException` catch filter on the notification-refresh teardown, both survived the full UI suite. Reason for deferral: bUnit's single-threaded renderer cannot reproduce either race, so these are untestable at the current harness level rather than merely uncovered. Revisit if: a concurrency-capable component harness lands, or either path produces a live defect. Until then the code comments should say "unverified" rather than implying coverage. [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:997]
+pre-recovery-authority-status: open
+status: done 2026-10-26
+archived: 2026-10-30
+pre-recovery-authority-disposition: blocked
+disposition: done
+pre-recovery-authority-verification-date: 2026-10-12
+verification-date: 2026-10-26
+pre-recovery-authority-verification: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor retains dispatcher-sensitive reset/notification teardown paths. Original mutation evidence says bUnit remains green without those guards; no concurrent teardown proof supersedes it.
+verification: Deterministic worker/blocked-renderer reset and post-alive-check notification disposal tests distinguish both guards; both targeted mutations are rejected and exact source restoration is verified. Acceptance: UI 7835/7835, Server 1527/1527, generated-controller Integration 47/47 and maintained browser pass. Formal workflow review is recorded in validation-dw-154-387-390-568-625.md; broader Integration/runtime/release holds remain.
+pre-recovery-authority-verification-files: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor
+verification-files: _bmad-output/implementation-artifacts/validation-dw-154-387-390-568-625.md; _bmad-output/implementation-artifacts/spec-dw-154-387-390-568-625-recovery-and-evidence.md
+pre-recovery-authority-evidence-kind: verified-gap
+evidence-kind: verified-resolution
+priority: P2
+owner: unassigned
+pre-recovery-authority-dependencies: concurrent teardown harness
+dependencies: Satisfied for this selected scope; broader upstream/runtime/release and assistive-technology holds remain.
+pre-recovery-authority-next-action: Use a concurrency-capable renderer/browser harness to pin reset and disposed-notification behavior.
+next-action: None for this selected record; retain original findings, policy history and qualification limits.
+related: none
+
+### DW-161: Live socket-level proof that all six direct Tenants REST routes answer through the deployed topology
+origin: migrated from legacy ledger ("Deferred from: review repair loop 11 of spec-1-10-direct-tenants-reads-and-authoritative-freshness (2026-07-31)"), 2026-08-25
+location: tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs:421
+reason: The legacy ledger defers this issue: Live socket-level proof that all six direct Tenants REST routes answer through the deployed topology. Original context is preserved in legacy-detail.
+legacy-detail: - Live socket-level proof that all six direct Tenants REST routes answer through the deployed topology. Reason for deferral: recorded as an owned limitation under decision `spec:854`, option (b). The routes are proven in process against the real generated controllers — paths, query strings, metadata headers and the conditional `304` path — by `TenantsApiGeneratedControllerTests.Direct_rest_client_routes_match_the_generated_controllers_and_parse_their_real_headers`. A live probe driving the production `TenantsRestQueryClient` against the `tenants-api` Aspire resource was written for loop 11 and every read times out at the client's 60 s bound in the local slim-mode topology, which also intermittently fails the pre-existing command-status wait in `AspireTopologyTests`. A lane that cannot separate "the routes are broken" from "the topology is unhealthy" is not evidence, so it was not shipped. Revisit if: a reliable Aspire topology lane exists (CI or local) that can serve as an oracle for `tenants-api`. [tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs:421]
+pre-authenticated-routes-status: open
+pre-shared-conditional-status: open
+status: done 2026-10-26
+archived: 2026-10-30
+pre-authenticated-routes-disposition: blocked
+pre-shared-conditional-disposition: blocked
+disposition: done
+pre-authenticated-routes-verification-date: 2026-10-12
+pre-shared-conditional-verification-date: 2026-10-25
+verification-date: 2026-10-26
+pre-authenticated-routes-verification: tests/Hexalith.Tenants.IntegrationTests/TenantsApiGeneratedControllerTests.cs Direct_rest_client_routes_match_the_generated_controllers_and_parse_their_real_headers proves six routes in process. AspireTopologyTests.cs does not supply the requested healthy live six-route production-client packet.
+pre-shared-conditional-verification: All six REST reads, persisted prefix/roles/audit events and cursor recovery pass. Conditional detail still returns200 rather than304: pinned EventStore Gateway3.127 recognizes internal SelfRoutingETag while the domain emits an opaque store ETag; its304 client path omits version/served-at metadata. Shared-module ownership and the approved dependency freeze prevent closing this remaining contract locally. The conditional test remains blocking and unskipped. Fresh hosted Release/package run40217896195 at c3697ed23dc1aa896bef1f42d3fc1a0f79356d65 has zero acceptance skips. See dw-104-161-432-436-594-validation-evidence.md and live-browser-hosted.json.
+verification: Published EventStore3.128.2/source935c21ac5ebc5e50738ae6ee79dc661acd2fd5a8 repairs producer opaque-validator matching and lossless304 metadata. Clean hosted Release/package consumer a569b48531d1567a12baab4d423f5426ce5c9c25 passes fresh cold-bootstrap REST4/4 including all six production-client routes, unchanged conditional304 with independent persisted version/time/lifecycle, and cursor recovery; historical persisted state1/1, anonymous6/6 and authenticated UI3/3 with browser25/25 pass. HTTP245/245 and live106/106 have zero skips. Responsive identity fixture correction ec3fd76d7dc15a77414008b66a5bab5b7c2380f5 passes hosted Chrome153; production/configuration/dependencies are unchanged from the qualified consumer. See dw-161-shared-conditional-authority-validation-evidence.md and dw-161-live-browser-hosted.json. Broader baseline CI/runtime/release holds remain.
+pre-authenticated-routes-verification-files: tests/Hexalith.Tenants.IntegrationTests/TenantsApiGeneratedControllerTests.cs; tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs
+pre-shared-conditional-verification-files: _bmad-output/implementation-artifacts/dw-104-161-432-436-594-validation-evidence.md; tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsRouteTests.cs; tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsUiRouteTests.cs; tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs
+verification-files: _bmad-output/implementation-artifacts/dw-161-shared-conditional-authority-validation-evidence.md; _bmad-output/implementation-artifacts/dw-161-live-browser-hosted.json; tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsRouteTests.cs; tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsUiRouteTests.cs; tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs
+pre-authenticated-routes-evidence-kind: verified-gap
+pre-shared-conditional-evidence-kind: verified-partial-gap
+evidence-kind: verified-resolution
+priority: P2
+owner: unassigned
+pre-authenticated-routes-dependencies: healthy live topology and endpoint/auth evidence
+pre-shared-conditional-dependencies: Shared EventStore conditional-validator/304 metadata repair; approval to update the pinned dependency under this spec.
+dependencies: None for this selected contract; the approved shared EventStore repair is published and consumed. Preserve all unrelated dependencies and broader runtime/release holds.
+pre-authenticated-routes-next-action: Capture all six production-client routes, conditional 304 and headers through a healthy authenticated deployed topology.
+pre-shared-conditional-next-action: Approve a shared EventStore conditional-validator/304-authority repair and updated packages, then pass the unchanged live conditional contract.
+next-action: None for this selected record; retain historical evidence and broader runtime/release holds.
+related: DW-104, DW-144
+
+### DW-194: Document-level Tab trapping / inert backdrop beyond sentinel pattern for remove-member dialog
+origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md (2026-08-08)"), 2026-08-25
+location: n/a
+source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md`
+reason: The legacy ledger defers this issue: Document-level Tab trapping / inert backdrop beyond sentinel pattern for remove-member dialog. Original context is preserved in legacy-detail.
+legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md` summary: Document-level Tab trapping / inert backdrop beyond sentinel pattern for remove-member dialog. evidence: Spec Ask First prefers Tenants role=dialog + focus-sentinel pattern; full Fluent/FrontComposer modal primitive was not authorized in this slice.
+pre-ui-safety-status: open
+status: done 2026-10-25
+archived: 2026-10-30
+decision: 2026-08-26 Adopt shared modal — Adopt or create a Fluent or FrontComposer modal with document-level trapping, inert backdrop, and browser tests.
+decision: 2026-08-25 Adopt shared modal — Adopt or create a Fluent or FrontComposer modal with document-level trapping, inert backdrop, and browser tests.
+pre-ui-safety-disposition: actionable
+disposition: done
+pre-ui-safety-verification-date: 2026-10-12
+verification-date: 2026-10-25
+pre-ui-safety-verification: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor still uses focus sentinels and role=dialog, without a shared document trap/inert backdrop. Existing 2026-08-25/26 decisions select a shared Fluent/FrontComposer modal.
+verification: The complete removal preview now uses Fluent native modal containment and shared focus helpers. Authenticated Chromium proves Tab/Shift+Tab, inert background, safe focus return and held-command Escape/overlay safeguards; focused lifetime tests preserve admission and ownership. Independent three-layer review and post-review checks are recorded in dw-194-201-221-267-609-validation-evidence.md and spec-dw-194-201-221-267-609-ui-safety.md.
+verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor
+evidence-kind: recommendation
+priority: P2
+owner: unassigned
+dependencies: FrontComposer modal primitive and browser fixture
+pre-ui-safety-next-action: Adopt the recorded shared modal contract and obtain browser Tab/Escape/inert evidence.
+next-action: None for this selected record; retain historical findings and the separately recorded review follow-up.
+related: DW-227, DW-241, DW-242
+
+### DW-201: Create-tenant mobile/unsafe-viewport fail-closed and open-existing recovery CTA affordances beyond localized Rejected copy
+origin: migrated from legacy ledger ("Deferred from: bmad-build scope split of Story 3.1 (2026-08-08)"), 2026-08-25
+location: n/a
+source_spec: `_bmad-output/implementation-artifacts/spec-3-1-create-tenant-with-projection-confirmation.md`
+reason: The legacy ledger defers this issue: Create-tenant mobile/unsafe-viewport fail-closed and open-existing recovery CTA affordances beyond localized Rejected copy. Original context is preserved in legacy-detail.
+legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-3-1-create-tenant-with-projection-confirmation.md` summary: Create-tenant mobile/unsafe-viewport fail-closed and open-existing recovery CTA affordances beyond localized Rejected copy. evidence: Split from Story 3.1; confirmation/freshness/idempotency core does not require viewport gating or interactive open-existing navigation in the first slice.
+pre-ui-safety-status: open
+status: done 2026-10-25
+archived: 2026-10-30
+pre-ui-safety-disposition: actionable
+disposition: done
+pre-ui-safety-verification-date: 2026-10-12
+verification-date: 2026-10-25
+pre-ui-safety-verification: src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor has no observed viewport safety gate or open-existing recovery CTA; rejected text remains the recovery affordance. These original split goals remain undelivered.
+verification: Create refuses unknown/unsafe measured viewports with localized recovery and retains work through resize. A matching conflict offers open-existing only after a fresh bounded authorized read and click-time recheck; navigation preserves workspace context and Back restores the visible create lifecycle. Independent three-layer review and post-review checks are recorded in dw-194-201-221-267-609-validation-evidence.md and spec-dw-194-201-221-267-609-ui-safety.md.
+verification-files: src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor
+evidence-kind: recommendation
+priority: P2
+owner: unassigned
+dependencies: create UX acceptance contract
+pre-ui-safety-next-action: Specify safe create viewport and open-existing navigation behavior, then cover the visible actions.
+next-action: None for this selected record; retain historical findings and the separately recorded review follow-up.
+related: none
+
+### DW-221: Introduce a shape-preserving configuration schema or discriminator that distinguishes valid empty policy arrays from empty scalar declarations
+origin: migrated from legacy ledger ("Deferred from: code review of spec-frontcomposer-fluent-layout-page-layout-conformance-sweep.md (2026-08-09)"), 2026-08-25
+location: n/a
+source_spec: `_bmad-output/implementation-artifacts/spec-1-6-read-only-tenant-configuration-2.md`
+reason: The legacy ledger defers this issue: Introduce a shape-preserving configuration schema or discriminator that distinguishes valid empty policy arrays from empty scalar declarations. Original context is preserved in legacy-detail.
+legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-1-6-read-only-tenant-configuration-2.md` summary: Introduce a shape-preserving configuration schema or discriminator that distinguishes valid empty policy arrays from empty scalar declarations. evidence: Standard IConfiguration flattening makes JSON [] and scalar "" observationally identical, so the current provider safely withholds all approval but cannot render the scalar form as policy-unavailable without also rejecting the repository's valid-empty default.
+pre-ui-safety-status: open
+status: done 2026-10-25
+archived: 2026-10-30
+decision: 2026-08-26 Add shape metadata — Add backward-compatible raw-shape or discriminator metadata alongside existing configuration keys.
+decision: 2026-08-25 Shape metadata — Add backward-compatible raw-shape or discriminator metadata alongside existing IConfiguration keys.
+pre-ui-safety-disposition: actionable
+disposition: done
+pre-ui-safety-verification-date: 2026-10-12
+verification-date: 2026-10-25
+pre-ui-safety-verification: src/Hexalith.Tenants.UI/Services/Configuration/TenantConfigurationReadPolicyProvider.cs IsCollectionScalar still documents IConfiguration ambiguity between [] and empty scalar; no raw-shape discriminator is present. Existing 2026-08-25/26 shape-metadata decision remains pending.
+verification: Optional CollectionShapes declares array intent, rejects scalar/malformed/nested/contradictory declarations and revalidates reloads. Legacy declarations remain compatible with the documented flattened-provider ambiguity; shipped defaults are not migrated. Independent three-layer review and post-review checks are recorded in dw-194-201-221-267-609-validation-evidence.md and spec-dw-194-201-221-267-609-ui-safety.md.
+verification-files: src/Hexalith.Tenants.UI/Services/Configuration/TenantConfigurationReadPolicyProvider.cs
+evidence-kind: recommendation
+priority: P2
+owner: unassigned
+dependencies: configuration schema compatibility
+pre-ui-safety-next-action: Define backward-compatible shape metadata and provider tests distinguishing empty arrays from scalar declarations.
+next-action: None for this selected record; retain historical findings and the separately recorded review follow-up.
+related: none
+
+### DW-267: Coalescer, submit guard, lease plumbing and `SafeMessageText` are copy-pasted across flow components
+origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md — loop 3 chunk B (2026-08-21)"), 2026-08-25
+location: AddTenantMemberFlow.razor:397-416; ChangeTenantMemberRoleFlow.razor:452-471
+reason: The legacy ledger defers this issue: Coalescer, submit guard, lease plumbing and `SafeMessageText` are copy-pasted across flow components. Original context is preserved in legacy-detail.
+legacy-detail: - summary: Coalescer, submit guard, lease plumbing and `SafeMessageText` are copy-pasted across flow components. evidence: `AddTenantMemberFlow.razor:397-416` is byte-identical to `ChangeTenantMemberRoleFlow.razor:452-471` including its six-line comment; `SetCommandActivityRaisedAsync` duplicated at `:315-341`/`:374-400`; `SafeMessageText` duplicated at `CreateTenantFlow.razor:213-218` and `EditTenantMetadataFlow.razor:301-306`.
+pre-ui-safety-status: open
+status: done 2026-10-25
+archived: 2026-10-30
+pre-ui-safety-disposition: actionable
+disposition: done
+pre-ui-safety-verification-date: 2026-10-12
+verification-date: 2026-10-25
+pre-ui-safety-verification: src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor and ChangeTenantMemberRoleFlow.razor still duplicate coalescing/lease/safe-message plumbing; CreateTenantFlow.razor and Metadata/EditTenantMetadataFlow.razor retain related copies.
+verification: Member/metadata activity callbacks share exact-attempt/generation coordination; metadata refresh uses the existing iterative drain and safe message resolution preserves per-flow fallback. Held/repeated callbacks, route replacement, disposal and late completions preserve identity and exact ownership. Independent three-layer review and post-review checks are recorded in dw-194-201-221-267-609-validation-evidence.md and spec-dw-194-201-221-267-609-ui-safety.md.
+verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Members/ChangeTenantMemberRoleFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor
+evidence-kind: recommendation
+priority: P3
+owner: unassigned
+dependencies: DW-245 and DW-300
+pre-ui-safety-next-action: Extract shared plumbing only after fixing/pinning the meaningful identity and refresh semantics.
+next-action: None for this selected record; retain historical findings and the separately recorded review follow-up.
+related: DW-248, DW-266
+
+### DW-334: The concurrently introduced Memories secret-store topology lacks a deployed Aspire model and health verification.
+origin: spec-deferred dd7b16301f77
+location: src/Hexalith.Tenants.AppHost/Program.cs:117
+source_spec: `spec-4-2-grant-global-administrator-with-projection-confirmation.md`
+severity: medium
+reason: The AppHost secret-store change arrived in a separate concurrent commit and is outside Story 4.2. An Aspire resource-model inspection plus a healthy deployed startup using the intended secret provider would settle the topology risk.
+status: done 2026-10-28
+archived: 2026-10-30
+disposition: done
+verification-date: 2026-10-12
+verification: src/Hexalith.Tenants.AppHost/Program.cs supplies the Memories secret store and tests/Hexalith.Tenants.IntegrationTests/MemoriesSecretStoreResourceGraphTests.cs inspects its model; no current deployed-startup health packet using the intended provider settles the original full requirement.
+verification-files: tests/Hexalith.Tenants.IntegrationTests/MemoriesSecretStoreResourceGraphTests.cs
+evidence-kind: verified-gap
+priority: P2
+owner: operator
+dependencies: operator-owned live Aspire/secret-provider evidence
+next-action: none; selected requirement completed with retained qualification limits.
+related: DW-344, DW-358
+pre-closure-status: open
+pre-closure-disposition: blocked
+pre-closure-next-action: Capture deployed model, provider binding and healthy startup in the intended package mode.
+closure-date: 2026-10-28
+closure-verification: The actual package-mode AppHost model passes, and isolated live Memories/sidecar initialize with the selected secretstores.local.file/v1 provider. Final runtime dependency manifests and binary identities, loaded component metadata and healthy HTTP health/alive/ready evidence are retained. Production providers and ingestion qualification remain separate.
+closure-evidence: dw-122-334-358-579-595-validation-evidence.md
+
+
+### DW-358: Package-reference Memories secret-store AC9 is outside this grant-core chunk. Already DW-334 / operator-owned; AppHost and the published `Hexalith.Memories.Aspire` pin belong to group 3 of this review, not this pass.
+
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-4-2-grant-global-administrator-with-projection-confirmation.md (2026-09-06)"), 2026-10-12
+location: n/a
+reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
+legacy-detail: "- Package-reference Memories secret-store AC9 is outside this grant-core chunk. Already DW-334 / operator-owned; AppHost and the published `Hexalith.Memories.Aspire` pin belong to group 3 of this review, not this pass."
+status: done 2026-10-28
+archived: 2026-10-30
+disposition: done
+verification-date: 2026-10-12
+verification: src/Hexalith.Tenants.AppHost/Program.cs:119-135 now passes the explicit memories-secretstore resource to the hosting recipe, and the source/package signature prerequisite is documented as available (2.25.0). The retained evidence does not establish a deployed package-mode Memories resource model and healthy startup using the intended secret provider; fixture health targets in tests/Hexalith.Tenants.IntegrationTests/Fixtures/AspireTopologyFixture.cs omit Memories.
+evidence-kind: verified-gap
+priority: P2
+owner: operator
+dependencies: Operator environment and intended secret-provider configuration
+next-action: none; selected requirement completed with retained qualification limits.
+related: DW-334
+pre-closure-status: open
+pre-closure-disposition: blocked
+pre-closure-next-action: Operator: inspect the intended package-mode Aspire resource model and retain healthy Memories startup/provider evidence.
+closure-date: 2026-10-28
+closure-verification: Duplicate of DW-334: the genuine package-mode Memories.Aspire model and explicitly package-dependency-built owning Memories Server pass live local-provider initialization/health. Exact binary/package identities rule out stale source-output ambiguity; this does not claim an unpublished server package or production-provider qualification.
+closure-evidence: dw-122-334-358-579-595-validation-evidence.md
+
+duplicate-of: DW-334
+
+
+### DW-365: The pushall skill copies in the baseline range stage everything and commit with a build subject.
+
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md (2026-09-06)"), 2026-10-12
+location: _bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md; .agents/skills/pushall/SKILL.md
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
+reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
+legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`\n  summary: The pushall skill copies in the baseline range stage everything and commit with a build subject.\n  evidence: Identical .agents/.claude/.github pushall skills arrived with later tooling commits in this story's baseline range. They are not the last-administrator removal command; leaving them in this File List would mix unrelated work."
+pre-historical-guard-status: open
+status: done 2026-10-28
+archived: 2026-10-30
+pre-historical-guard-disposition: accepted-limitation
+disposition: done
+pre-historical-guard-verification-date: 2026-10-12
+verification-date: 2026-10-28
+pre-historical-guard-verification: This original record is an out-of-scope tooling attribution note rather than a removal defect. spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md separately carries pushall findings, while .agents/skills/pushall/SKILL.md explicitly scopes whole-repository synchronization to a user invocation of /pushall. Actual procedure defects remain independently tracked.
+verification: Verified original tooling commit 5d6601edf357772c80f5c02c487742eace0739e2 adds all three pushall manifests with identical blob 060aed7d69b23c626936374be23a6cd009b7c678. The unchanged removal story already excludes this later tooling from runtime ownership; separate procedure safeguards retain their own records. See dw-133-365-461-467-478-validation-evidence.md for reproducible Git assertions, test results, final review and limitations.
+verification-files: _bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md; .agents/skills/pushall/SKILL.md
+evidence-kind: accepted-limitation
+priority: P3
+owner: unassigned
+dependencies: none
+pre-historical-guard-next-action: Keep this scope note as history; use the separate pushall safeguards entries for maintenance.
+next-action: Retain the historical scope note; reopen attribution if evidence contradicts the verified original manifests. Procedure safeguards remain separately tracked by DW-417/DW-418/DW-428/DW-429.
+related: DW-417, DW-418, DW-428, DW-429
+
+
+### DW-367: `UserRemovedFromTenant` typed `PreviousRole`/`Role` cannot be produced because the event and audit projection emit only `userId`. Restore-access therefore cannot take an intended role from typed narrative; that is later correction-story/projection contract work, not browse-grid fail-closed.
+
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-1-browse-tenant-audit-trail.md (2026-09-06)"), 2026-10-12
+location: src/Hexalith.Tenants.Contracts/Events/UserRemovedFromTenant.cs; _bmad-output/implementation-artifacts/spec-5-5-start-a-forward-tenant-correction-from-audit-evidence.md; src/Hexalith.Tenants.UI/State/TenantAudit/TenantCorrectionStartIntent.cs
+reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
+legacy-detail: "- `UserRemovedFromTenant` typed `PreviousRole`/`Role` cannot be produced because the event and audit projection emit only `userId`. Restore-access therefore cannot take an intended role from typed narrative; that is later correction-story/projection contract work, not browse-grid fail-closed."
+pre-accepted-close-status: open
+status: done 2026-10-29
+archived: 2026-10-30
+pre-accepted-close-disposition: accepted-limitation
+disposition: done
+pre-accepted-close-verification-date: 2026-10-12
+verification-date: 2026-10-29
+pre-accepted-close-verification: src/Hexalith.Tenants.Contracts/Events/UserRemovedFromTenant.cs still carries only TenantId/UserId, so historical role is unavailable. The completed spec-5-5-start-a-forward-tenant-correction-from-audit-evidence.md:21-27 expressly requires deliberate role selection and says never infer roles from history or add contract/history fields. TenantCorrectionStartIntent.cs uses context.IntendedRole. The current approved correction path intentionally avoids this missing historical field.
+verification: The user explicitly chose documentation-only closure as an accepted disposition, overriding open-for-visibility tracking for DW-367 only. Story 5.5 and current source still require deliberate intended-role selection; UserRemovedFromTenant still has no historical-role field. No runtime change or role recovery is claimed. See dw-367-accepted-disposition-validation-evidence.md.
+verification-files: src/Hexalith.Tenants.Contracts/Events/UserRemovedFromTenant.cs; _bmad-output/implementation-artifacts/spec-5-5-start-a-forward-tenant-correction-from-audit-evidence.md; src/Hexalith.Tenants.UI/State/TenantAudit/TenantCorrectionStartIntent.cs
+evidence-kind: accepted-limitation
+priority: P3
+owner: unassigned
+dependencies: Explicit contract/product change approval
+pre-accepted-close-next-action: Keep deliberate role selection; revisit the event schema only through a separately approved contract change.
+next-action: No current implementation task remains. Keep deliberate role selection; reopen only through a separately approved contract/product change requiring historical role evidence. Historical roles remain unavailable from the existing removal event.
+related: none
+resolution-kind: accepted-disposition
+resolution-spec: spec-dw-367-accepted-disposition-closure.md
+
+
+### DW-387: Correct ambiguous removal retry preflight and its blocked-state copy.
+decision: 2026-10-26 User approved recommended MessageId status lookup and conditional visible whitespace annotations on 2026-10-26.
+
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-4-2-grant-global-administrator-with-projection-confirmation.md (2026-09-22)"), 2026-10-12
+location: src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation.md`
+reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
+legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation.md`\n  summary: Correct ambiguous removal retry preflight and its blocked-state copy.\n  evidence: A response-lost successful removal can make the target absent, causing normal preview validation to strand same-id redispatch; other mismatch branches can display affirmative availability copy as the failure reason."
+pre-recovery-authority-status: open
+status: done 2026-10-26
+archived: 2026-10-30
+pre-recovery-authority-disposition: actionable
+disposition: done
+pre-recovery-authority-verification-date: 2026-10-12
+verification-date: 2026-10-26
+pre-recovery-authority-verification: GlobalAdministratorCorrectionPanel.razor::RetryAmbiguousDeliveryAsync re-composes normal removal preview and requires the old preview and current population to match (:1501-1527). A response-lost successful removal makes the target absent and fails these checks, retaining RequestSent/UnableToVerify before a same-id retry can reach server idempotency. Some failure branches now use explicit evidence copy, but the retry-preflight availability problem remains.
+verification: Approved MessageId status recovery resolves an ambiguous removal after target disappearance while retaining the original caller/ULID/lease, strict initial-removal safeguards and honest refusal evidence; no fresh removal is dispatched. Acceptance: UI 7835/7835, Server 1527/1527, generated-controller Integration 47/47 and maintained browser pass. Formal workflow review is recorded in validation-dw-154-387-390-568-625.md; broader Integration/runtime/release holds remain.
+pre-recovery-authority-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor
+verification-files: _bmad-output/implementation-artifacts/validation-dw-154-387-390-568-625.md; _bmad-output/implementation-artifacts/spec-dw-154-387-390-568-625-recovery-and-evidence.md
+pre-recovery-authority-evidence-kind: verified-defect
+evidence-kind: verified-resolution
+priority: P2
+owner: unassigned
+pre-recovery-authority-dependencies: Same-id idempotency/recovery contract
+dependencies: Satisfied for this selected scope; broader upstream/runtime/release and assistive-technology holds remain.
+pre-recovery-authority-next-action: Specify and test same-id removal recovery when the post-dispatch target is absent, preserving original ownership and complete last-administrator safeguards.
+next-action: None for this selected record; retain original findings, policy history and qualification limits.
+related: DW-373
+
+
+### DW-390: Verify visual distinctness for accepted identities containing non-ASCII whitespace.
+decision: 2026-10-26 User approved recommended MessageId status lookup and conditional visible whitespace annotations on 2026-10-26.
+verification-files: _bmad-output/implementation-artifacts/validation-dw-154-387-390-568-625.md; _bmad-output/implementation-artifacts/spec-dw-154-387-390-568-625-recovery-and-evidence.md
+
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-4-2-grant-global-administrator-with-projection-confirmation.md (2026-09-22)"), 2026-10-12
+location: n/a
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation.md`
+reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
+legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation.md`\n  summary: Verify visual distinctness for accepted identities containing non-ASCII whitespace.\n  evidence: This is maybe-false; compare accepted whitespace identities in supported browser/font combinations to determine whether literal visual rendering collides even though accessible names tokenize whitespace."
+pre-recovery-authority-status: open
+status: done 2026-10-26
+archived: 2026-10-30
+pre-recovery-authority-disposition: uncertain
+disposition: done
+pre-recovery-authority-verification-date: 2026-10-12
+verification-date: 2026-10-26
+pre-recovery-authority-verification: GlobalAdministratorIdentityDisplay.Encode preserves literal whitespace while EncodeAccessible tokenizes it; GlobalAdministratorIdentityDisplayTests::Encode_PreservesLiteralWhitespaceAndDistinguishesFormatScalars and ::AccessibleEncodingTokenizesRepeatedAndEdgeWhitespaceWithoutChangingVisualEncoding confirm this intentional distinction. No retained supported-browser/font screenshot comparison proves whether distinct non-ASCII whitespace identities collide visually.
+verification: Observed literal-whitespace pixel collisions are resolved with visible non-ASCII Unicode scalar annotations. Eight actual-rendered EN/FR Chromium/Linux normal/forced-color cases prove five distinct identities; original command/clipboard values remain exact. No Windows-font, other-browser or human assistive-technology claim. Acceptance: UI 7835/7835, Server 1527/1527, generated-controller Integration 47/47 and maintained browser pass. Formal workflow review is recorded in validation-dw-154-387-390-568-625.md; broader Integration/runtime/release holds remain.
+pre-recovery-authority-evidence-kind: unverified-risk
+evidence-kind: verified-resolution
+priority: P2
+owner: unassigned
+pre-recovery-authority-dependencies: none
+dependencies: Satisfied for this selected scope; broader upstream/runtime/release and assistive-technology holds remain.
+pre-recovery-authority-next-action: Capture side-by-side supported-browser/font rendering of accepted whitespace identities and compare visible distinction with accessible names.
+next-action: None for this selected record; retain original findings, policy history and qualification limits.
+related: DW-391
+
+
+### DW-408: Decide how the tenant-audit payload allowlist handles server event types it does not know.
+
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md (2026-09-22, Group A removal core)"), 2026-10-12
+location: src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
+reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
+legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`\n  summary: Decide how the tenant-audit payload allowlist handles server event types it does not know.\n  evidence: `TenantQueryGateway.IsSupportedAuditEvent` hard-codes eleven event types, so one new server event type fails `IsValidTenantAuditPayload` for the whole page and signals `InvalidPayload`, the same signal as tampering. Story 5.1 code (`281e3c3c`)."
+pre-audit-contract-status: open
+status: done 2026-10-26
+archived: 2026-10-30
+decision: 2026-10-26 User approved the recommended audit contract; Approved whole-page rejection is retained and qualified for unknown/category-mismatched events, mixed order and both explicit/combined streams; coordinated UI-before-server rollout is documented.
+pre-audit-contract-disposition: awaiting-decision
+disposition: done
+pre-audit-contract-verification-date: 2026-10-12
+verification-date: 2026-10-26
+pre-audit-contract-verification: TenantQueryGateway.cs::IsSupportedAuditEvent:2825 retains an eleven-event/category allowlist and IsValidTenantAuditPayload rejects the entire page when an event is unknown. The server currently projects those supported tenant events; no new unsupported production event is established. A versioning/product decision is needed on fail-closed unknown-event handling versus safe forward-compatible placeholders.
+verification: Approved whole-page rejection is retained and qualified for unknown/category-mismatched events, mixed order and both explicit/combined streams; coordinated UI-before-server rollout is documented. Final reviewed Debug build: 0 warnings/errors; maintained UI 7762/7762, zero failures/skips; Chromium EN/FR normal/forced-color checks and 16 badge mutations pass. See dw-408-440-450-460-474-validation-evidence.md.
+pre-audit-contract-verification-files: src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs
+verification-files: _bmad-output/implementation-artifacts/dw-408-440-450-460-474-validation-evidence.md; _bmad-output/implementation-artifacts/spec-dw-408-440-450-460-474-audit-contracts.md; src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditReceipt.cs; tests/Hexalith.Tenants.UI.Tests/Components/StatusBadgeContractTests.cs
+pre-audit-contract-evidence-kind: recommendation
+evidence-kind: verified-resolution
+priority: P2
+owner: unassigned
+pre-audit-contract-dependencies: Audit contract/versioning decision
+dependencies: None for this selected approved contract; unrelated dependencies and broader release holds remain.
+pre-audit-contract-next-action: Decide the unknown audit event compatibility contract, then update gateway behavior/tests and documentation to that single policy.
+next-action: None for this selected record; retain historical evidence and unrelated release holds.
+related: none
+
+
+### DW-432: Run the hosted Story 5.2 route smoke once the Aspire EventStore fixture is healthy.
+
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-2-reach-scoped-audit-evidence-from-context.md (2026-09-26)"), 2026-10-12
+location: n/a
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-2-reach-scoped-audit-evidence-from-context.md`
+reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
+legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-2-reach-scoped-audit-evidence-from-context.md`\n  summary: Run the hosted Story 5.2 route smoke once the Aspire EventStore fixture is healthy.\n  evidence: `TenantsUiRouteSmokeTests` audit-context assertions (`:110-111`) only compiled. In every review pass, fixture setup timed out on EventStore `/alive` before any assertion ran."
+pre-authenticated-routes-status: open
+status: done 2026-10-25
+archived: 2026-10-30
+pre-authenticated-routes-disposition: blocked
+disposition: done
+pre-authenticated-routes-verification-date: 2026-10-12
+verification-date: 2026-10-25
+pre-authenticated-routes-verification: TenantsUiRouteSmokeTests now asserts anonymous FrontComposer fc-scope-blocked states and no protected page content; the old hosted audit-context assertions were replaced rather than demonstrated. No authenticated hosted route fixture currently proves the Story 5.2 contextual links/returns. A healthy anonymous startup alone cannot settle this originally requested protected-route evidence.
+verification: Live production pages qualify tenant-detail/member audit launch, ready target rows, complete safe return context, Back and restored launcher focus. Authenticated UI3/3 and physical browser25/25 pass, including unsafe external-return rejection. Fresh hosted Release/package run40217896195 at c3697ed23dc1aa896bef1f42d3fc1a0f79356d65 has zero acceptance skips. See dw-104-161-432-436-594-validation-evidence.md and live-browser-hosted.json.
+pre-authenticated-routes-evidence-kind: verified-gap
+evidence-kind: verified-resolution
+priority: P2
+owner: unassigned
+dependencies: DW-436 authenticated caller/scope fixture and healthy Aspire topology
+pre-authenticated-routes-next-action: Establish the authenticated route fixture from DW-436, then retain the hosted audit-context route assertions and results.
+next-action: None for this selected record; retain historical evidence and broader runtime/release holds.
+related: DW-436
+verification-files: _bmad-output/implementation-artifacts/dw-104-161-432-436-594-validation-evidence.md; tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsRouteTests.cs; tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsUiRouteTests.cs; tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs
+
+### DW-436: Replace the historical unauthenticated hosted route smoke with an authenticated FrontComposer route fixture.
+
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-2-reach-scoped-audit-evidence-from-context.md (2026-09-26)"), 2026-10-12
+location: tests/Hexalith.Tenants.IntegrationTests/TenantsUiRouteSmokeTests.cs
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-2-reach-scoped-audit-evidence-from-context.md`
+reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
+legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-2-reach-scoped-audit-evidence-from-context.md`\n  summary: Replace the historical unauthenticated hosted route smoke with an authenticated FrontComposer route fixture.\n  evidence: With the repository development JWT issuer, audience, and key supplied temporarily, Aspire EventStore starts and all six `TenantsUiRouteSmokeTests` reach their assertions, but each fails because the unauthenticated shell prerenders `data-testid=\"fc-scope-blocked\"` instead of the expected page marker. Without those temporary settings, the fixture times out at EventStore `/alive` before assertions. The route tests need a valid caller and scope to inspect the pages."
+pre-authenticated-routes-status: open
+status: done 2026-10-25
+archived: 2026-10-30
+pre-authenticated-routes-disposition: actionable
+disposition: done
+pre-authenticated-routes-verification-date: 2026-10-12
+verification-date: 2026-10-25
+pre-authenticated-routes-verification: IntegrationTests/TenantsUiRouteSmokeTests.cs now explicitly documents and tests anonymous routes behind the FrontComposer scope boundary (six *BlocksAnonymousScope cases). This resolves the old incorrect anonymous expected-page markers, but no authenticated FrontComposer caller/scope route fixture is present, so the requested protected-page contextual route coverage remains absent.
+verification: Genuine signed loopback OIDC discovery/code exchange through production callbacks supplies the real relayed backend token and validated caller/current-tenant scope. All six protected pages pass, with six anonymous denials and an ambiguous-scope negative maintained separately. Fresh hosted Release/package run40217896195 at c3697ed23dc1aa896bef1f42d3fc1a0f79356d65 has zero acceptance skips. See dw-104-161-432-436-594-validation-evidence.md and live-browser-hosted.json.
+pre-authenticated-routes-verification-files: tests/Hexalith.Tenants.IntegrationTests/TenantsUiRouteSmokeTests.cs
+verification-files: _bmad-output/implementation-artifacts/dw-104-161-432-436-594-validation-evidence.md; tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsRouteTests.cs; tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsUiRouteTests.cs; tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs
+pre-authenticated-routes-evidence-kind: verified-gap
+evidence-kind: verified-resolution
+priority: P2
+owner: unassigned
+dependencies: Validated caller/tenant scope and healthy Aspire topology
+pre-authenticated-routes-next-action: Add an authenticated FrontComposer route fixture and preserve the useful anonymous fail-closed tests as a separate lane.
+next-action: None for this selected record; retain historical evidence and broader runtime/release holds.
+related: DW-432
+
+
+### DW-438: Revisit strict opaque audit reference classification for incidental secret-shaped substrings.
+
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-3-view-a-support-safe-audit-evidence-receipt.md (2026-09-27)"), 2026-10-12
+location: src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditSupportSafety.cs
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-3-view-a-support-safe-audit-evidence-receipt.md`
+reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
+legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-3-view-a-support-safe-audit-evidence-receipt.md`\n  summary: Revisit strict opaque audit reference classification for incidental secret-shaped substrings.\n  evidence: The pre-existing gateway and reference classifier reject an otherwise valid opaque event ID when it happens to contain `jwt` or `eyj`; this story did not introduce that policy."
+status: done 2026-10-28
+archived: 2026-10-30
+disposition: done
+verification-date: 2026-10-12
+verification: TenantAuditSupportSafety.cs::StrictUnsafeFragments still includes jwt/eyj, and IsSafe compares normalized secret fragments as substrings for ApprovedReference. An opaque ID containing those fragments is rejected. This is conservative established support-safety policy; no actual legitimate generated reference rejected in production is established.
+verification-files: src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditSupportSafety.cs
+evidence-kind: recommendation
+priority: P3
+owner: unassigned
+dependencies: Support-safety policy/opaque-reference contract decision
+next-action: none; selected source requirement completed with retained qualification limits.
+related: DW-441
+pre-closure-status: open
+pre-closure-disposition: awaiting-decision
+pre-closure-next-action: Decide whether opaque references need a shape-based exemption from substring rejection and define examples before changing the shared safety policy.
+closure-date: 2026-10-28
+closure-verification: The approved exact-uppercase canonical ULID JWT/EYJ exception is limited to authorized audit references. Real EN/FR receipt rendering and summary clipboard checks, gateway/row/receipt/navigation coverage and rejecting controls qualify the policy. Configured recovery paths retain strict filtering after decoding; other fragments including SECRET remain rejected.
+closure-evidence: dw-438-457-498-521-600-validation-evidence.md
+
+### DW-440: Decide whether the absolute audit timestamp should be culture-formatted, as the epic's "culture-aware" wording suggests.
+
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-3-view-a-support-safe-audit-evidence-receipt.md (2026-09-28)"), 2026-10-12
+location: src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditReceipt.cs
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-3-view-a-support-safe-audit-evidence-receipt.md`
+reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
+legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-3-view-a-support-safe-audit-evidence-receipt.md`\n  summary: Decide whether the absolute audit timestamp should be culture-formatted, as the epic's \"culture-aware\" wording suggests.\n  evidence: `TenantAuditReceipt.TimestampLabel` and the grid both use the fixed `yyyy-MM-dd HH:mm:ss 'UTC'` pattern from the Story 5.1 UTC correction; the French receipt renders the same string."
+pre-audit-contract-status: open
+status: done 2026-10-26
+archived: 2026-10-30
+decision: 2026-10-26 User approved the recommended audit contract; Approved invariant UTC grid/receipt formatting is qualified in EN/FR and a non-Gregorian culture, with localized labels, offset normalization and absent-time controls.
+pre-audit-contract-disposition: awaiting-decision
+disposition: done
+pre-audit-contract-verification-date: 2026-10-12
+verification-date: 2026-10-26
+pre-audit-contract-verification: State/TenantAudit/TenantAuditReceipt.cs::TimestampLabel and AuditDataGrid use ToString("yyyy-MM-dd HH:mm:ss 'UTC'", CultureInfo.CurrentCulture). The timezone is honest UTC, but this fixed numeric pattern retains the same arrangement under French culture. The requested culture-aware date arrangement versus stable support timestamp policy remains unspecified.
+verification: Approved invariant UTC grid/receipt formatting is qualified in EN/FR and a non-Gregorian culture, with localized labels, offset normalization and absent-time controls. Final reviewed Debug build: 0 warnings/errors; maintained UI 7762/7762, zero failures/skips; Chromium EN/FR normal/forced-color checks and 16 badge mutations pass. See dw-408-440-450-460-474-validation-evidence.md.
+pre-audit-contract-verification-files: src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditReceipt.cs
+verification-files: _bmad-output/implementation-artifacts/dw-408-440-450-460-474-validation-evidence.md; _bmad-output/implementation-artifacts/spec-dw-408-440-450-460-474-audit-contracts.md; src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditReceipt.cs; tests/Hexalith.Tenants.UI.Tests/Components/StatusBadgeContractTests.cs
+pre-audit-contract-evidence-kind: recommendation
+evidence-kind: verified-resolution
+priority: P3
+owner: unassigned
+pre-audit-contract-dependencies: UX/support timestamp formatting decision
+dependencies: None for this selected approved contract; unrelated dependencies and broader release holds remain.
+pre-audit-contract-next-action: Choose culture-formatted absolute dates or the stable UTC pattern for both grid and receipt, then align the UX wording/tests.
+next-action: None for this selected record; retain historical evidence and unrelated release holds.
+related: DW-450
+
+
+### DW-450: Decide once for the whole repo whether Severe (and Danger) status badges use `BadgeAppearance.Filled`, as DESIGN.md specifies.
+
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-4-understand-audit-availability-and-recovery.md (2026-09-29, review 2)"), 2026-10-12
+location: _bmad-output/planning-artifacts/ux-designs/ux-tenants-2026-06-02/DESIGN.md; src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditAvailabilityState.razor; src/Hexalith.Tenants.UI/Components/Shared/TruthStateBadge.razor
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`
+reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
+legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`\n  summary: Decide once for the whole repo whether Severe (and Danger) status badges use `BadgeAppearance.Filled`, as DESIGN.md specifies.\n  evidence: DESIGN.md `truth-state-badge` says \"Tint (default) · Filled (Danger + Severe)\". `AuditAvailabilityState.razor:27` and `TruthStateBadge.razor` both render Severe with `Tint`, and Story 5.4's spec asked for Tint. Changing only the audit badge would make it diverge from the freshness badge."
+pre-audit-contract-status: open
+status: done 2026-10-26
+archived: 2026-10-30
+decision: 2026-10-26 User approved the recommended audit contract; Approved DESIGN precedence is applied across all seven component files: Rounded badges, Filled for Danger/Severe, Tint otherwise, localized icon labels and one accessible state owner.
+pre-audit-contract-disposition: awaiting-decision
+disposition: done
+pre-audit-contract-verification-date: 2026-10-12
+verification-date: 2026-10-26
+pre-audit-contract-verification: _bmad-output/planning-artifacts/ux-designs/ux-tenants-2026-06-02/DESIGN.md:58 specifies Filled for Danger/Severe. Components/Tenants/Audit/AuditAvailabilityState.razor and Components/Shared/TruthStateBadge.razor hard-code Tint; the completed availability story specifically requested Tint. A repo-wide design precedence decision remains needed before treating one badge as a defect.
+verification: Approved DESIGN precedence is applied across all seven component files: Rounded badges, Filled for Danger/Severe, Tint otherwise, localized icon labels and one accessible state owner. Final reviewed Debug build: 0 warnings/errors; maintained UI 7762/7762, zero failures/skips; Chromium EN/FR normal/forced-color checks and 16 badge mutations pass. See dw-408-440-450-460-474-validation-evidence.md.
+pre-audit-contract-verification-files: _bmad-output/planning-artifacts/ux-designs/ux-tenants-2026-06-02/DESIGN.md; src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditAvailabilityState.razor; src/Hexalith.Tenants.UI/Components/Shared/TruthStateBadge.razor
+verification-files: _bmad-output/implementation-artifacts/dw-408-440-450-460-474-validation-evidence.md; _bmad-output/implementation-artifacts/spec-dw-408-440-450-460-474-audit-contracts.md; src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditReceipt.cs; tests/Hexalith.Tenants.UI.Tests/Components/StatusBadgeContractTests.cs
+pre-audit-contract-evidence-kind: recommendation
+evidence-kind: verified-resolution
+priority: P3
+owner: unassigned
+pre-audit-contract-dependencies: Repo-wide UX/design precedence decision
+dependencies: None for this selected approved contract; unrelated dependencies and broader release holds remain.
+pre-audit-contract-next-action: Decide the shared Danger/Severe badge appearance, then align both components and DESIGN.md together.
+next-action: None for this selected record; retain historical evidence and unrelated release holds.
+related: DW-440
+
+
+### DW-457: Hand off to Hexalith.Builds. Record a disposition for the Aspire SDK split in the 2026-09-27 baseline.
+
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-4-understand-audit-availability-and-recovery.md (2026-09-29, review 3)"), 2026-10-12
+location: references/Hexalith.Builds/Tools/runtime-toolchain-baseline-2026-09-27.json
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`
+reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
+legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`\n  summary: Hand off to Hexalith.Builds. Record a disposition for the Aspire SDK split in the 2026-09-27 baseline.\n  evidence: `runtime-toolchain-baseline-2026-09-27.json:12` certifies `aspireSdk` `13.5.4` while `pinAudit.appHostProjects` lists five AppHosts at `13.5.3`, including `Hexalith.Tenants.AppHost`, with no `aspireSdk` disposition. `dispositions` also has the case-duplicate keys `dapr` (object) and `Dapr` (string)."
+status: done 2026-10-28
+archived: 2026-10-30
+disposition: done
+verification-date: 2026-10-12
+verification: references/Hexalith.Builds/Tools/runtime-toolchain-baseline-2026-09-27.json:12,22-34,59-66 still records aspireSdk 13.5.4 against five AppHosts at 13.5.3 and no Aspire SDK disposition; dapr and Dapr remain case-distinct keys. This is the retained historical qualification record, not evidence that current pins are all 13.5.3.
+verification-files: references/Hexalith.Builds/Tools/runtime-toolchain-baseline-2026-09-27.json
+evidence-kind: verified-gap
+priority: P2
+owner: Hexalith.Builds
+dependencies: Builds toolchain qualification decision
+next-action: none; selected source requirement completed with retained qualification limits.
+related: none
+pre-closure-status: open
+pre-closure-disposition: awaiting-decision
+pre-closure-next-action: Builds owners must annotate the historical Aspire split disposition and disambiguate the two Dapr meanings.
+closure-date: 2026-10-28
+closure-verification: A separate Builds disposition binds the immutable 2026-09-27 baseline through its established normalized-LF digest, records the superseded/unqualified Aspire SDK split and distinguishes the two Dapr meanings. Positive CRLF equivalence and drift/forgery/qualification/containment negative controls pass and run in normal Builds CI. Historical bytes and approvals are preserved; no qualification or release permission is granted.
+closure-evidence: dw-438-457-498-521-600-validation-evidence.md
+
+
+### DW-460: Decide whether `TenantAuditReceipt.FromEntry` should accept authoritative lifecycle/provenance or be removed.
+
+origin: migrated from unnumbered ledger ("Deferred from: code review of 5-4-audit-availability-state-recovery.md (2026-09-30)"), 2026-10-12
+location: src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditReceipt.cs; src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditRow.cs
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/5-4-audit-availability-state-recovery.md`
+reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
+legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/5-4-audit-availability-state-recovery.md`\n  summary: Decide whether `TenantAuditReceipt.FromEntry` should accept authoritative lifecycle/provenance or be removed.\n  evidence: Pre-existing to the current Story 5.4 refinement. `TenantAuditRow.FromEntry` defaults lifecycle and provenance to `Unknown`, while receipt completeness requires `Current` and `ProjectionBacked`, so the public factory cannot produce `Ready`. Resolution requires deciding whether callers may supply authoritative metadata or whether the misleading factory should be retired."
+pre-audit-contract-status: open
+status: done 2026-10-26
+archived: 2026-10-30
+decision: 2026-10-26 User approved the recommended audit contract; Explicit lifecycle/provenance overloads reuse safe mapping and completeness checks; metadata-free callers remain conservative. Global category/user evidence and configuration safe-key/typed-target completeness are qualified, preserving existing typed-user precedence.
+pre-audit-contract-disposition: awaiting-decision
+disposition: done
+pre-audit-contract-verification-date: 2026-10-12
+verification-date: 2026-10-26
+pre-audit-contract-verification: src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditReceipt.cs:39-46 FromEntry still delegates to TenantAuditRow.FromEntry; TenantAuditRow.cs:38-39 defaults Lifecycle/Provenance to Unknown, while receipt completeness requires Current/ProjectionBacked at TenantAuditReceipt.cs:73-76. The public factory still cannot produce Ready.
+verification: Explicit lifecycle/provenance overloads reuse safe mapping and completeness checks; metadata-free callers remain conservative. Global category/user evidence and configuration safe-key/typed-target completeness are qualified, preserving existing typed-user precedence. Final reviewed Debug build: 0 warnings/errors; maintained UI 7762/7762, zero failures/skips; Chromium EN/FR normal/forced-color checks and 16 badge mutations pass. See dw-408-440-450-460-474-validation-evidence.md.
+pre-audit-contract-verification-files: src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditReceipt.cs; src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditRow.cs
+verification-files: _bmad-output/implementation-artifacts/dw-408-440-450-460-474-validation-evidence.md; _bmad-output/implementation-artifacts/spec-dw-408-440-450-460-474-audit-contracts.md; src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditReceipt.cs; tests/Hexalith.Tenants.UI.Tests/Components/StatusBadgeContractTests.cs
+pre-audit-contract-evidence-kind: verified-gap
+evidence-kind: verified-resolution
+priority: P2
+owner: unassigned
+pre-audit-contract-dependencies: Public receipt API decision
+dependencies: None for this selected approved contract; unrelated dependencies and broader release holds remain.
+pre-audit-contract-next-action: Choose an authoritative-metadata overload or deprecate the misleading FromEntry factory, preserving provenance checks.
+next-action: None for this selected record; retain historical evidence and unrelated release holds.
+related: none
+
+
+### DW-461: Give the legacy Story 5.4 artifact a baseline that resolves, or formally retire its guard role.
+
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-4-understand-audit-availability-and-recovery-2.md (2026-09-30)"), 2026-10-12
+location: scripts/validate-story-gitlinks.py; _bmad-output/implementation-artifacts/5-4-audit-availability-state-recovery.md
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery-2.md`
+reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
+legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery-2.md`\n  summary: Give the legacy Story 5.4 artifact a baseline that resolves, or formally retire its guard role.\n  evidence: `5-4-audit-availability-state-recovery.md:3` pins `baseline_commit: a5ca6e3f548e89b28a37826be721d9ef9f7cd51a`, which is not a commit, so `scripts/validate-story-gitlinks.py` fails closed on it. The intended `a5ca6e38` (Story 5.3, 2026-06-06) predates the `references/` layout, and correcting it gives 7 \"absent at baseline\" failures. The work range is audited by `spec-5-4-understand-audit-availability-and-recovery.md` (`55f3dc63..HEAD`, which passes with Builds, EventStore and FrontComposer declared) and by `spec-…-2.md` (`d728ff46..HEAD`, which passes). The 2026-09-30 completion note in the legacy story says the story guard \"reported no pointer changes\"; that result came from the follow-up spec. The owner should choose between repointing the baseline to `55f3dc63` and marking the legacy artifact exempt from the guard."
+pre-historical-guard-status: open
+status: done 2026-10-28
+archived: 2026-10-30
+pre-historical-guard-disposition: awaiting-decision
+disposition: done
+pre-historical-guard-verification-date: 2026-10-12
+verification-date: 2026-10-28
+pre-historical-guard-verification: Ran PYTHONDONTWRITEBYTECODE=1 python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/5-4-audit-availability-state-recovery.md: RESULT FAIL because baseline_commit a5ca6e3f548e89b28a37826be721d9ef9f7cd51a is not a commit. The historical baseline remains unchanged; do not substitute later HEAD history for the story range.
+verification: Preserved original unavailable baseline a5ca6e3f548e89b28a37826be721d9ef9f7cd51a and corrected only to verified sole-creation parent a5ca6e3886bf0623a1ff8da8cdfd6fade8516652; creation 8a24128989e348768173875ffb3c38bbd7461657 and final historical endpoint 4f426e591c85825eb41ec4b289a43e91f2085004 are explicit. The production guard passes with seven exact historical additions inventoried, while the runner retains provenance, ancestry, identity, target and pointer-bearing event refusals. See dw-133-365-461-467-478-validation-evidence.md for reproducible Git assertions, test results, final review and limitations.
+verification-files: scripts/validate-story-gitlinks.py; _bmad-output/implementation-artifacts/5-4-audit-availability-state-recovery.md
+evidence-kind: verified-gap
+priority: P2
+owner: unassigned
+dependencies: Historical artifact validation policy
+pre-historical-guard-next-action: Choose a resolvable audited range for the legacy artifact or explicitly retire its executable guard role.
+next-action: Retain this historical provenance; no separate runtime change or history rewrite is required.
+related: DW-467,DW-478
+
+
+### DW-467: `validate-story-gitlinks.py` still exits 1 on the legacy Story 5.4 artifact. This recurs the 2026-09-30 entry above; add no separate action.
+
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-4-understand-audit-availability-and-recovery-3.md (2026-09-30)"), 2026-10-12
+location: scripts/validate-story-gitlinks.py; _bmad-output/implementation-artifacts/5-4-audit-availability-state-recovery.md
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery-3.md`
+reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
+legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery-3.md`\n  summary: `validate-story-gitlinks.py` still exits 1 on the legacy Story 5.4 artifact. This recurs the 2026-09-30 entry above; add no separate action.\n  evidence: `5-4-audit-availability-state-recovery.md:3` `baseline_commit a5ca6e3f…` is not a commit. The spec-3 range (`55fc6f9..HEAD`, no pointer changes) and the primary spec range (`55f3dc6..HEAD`, Builds, EventStore and FrontComposer declared) both pass."
+pre-historical-guard-status: open
+status: done 2026-10-28
+archived: 2026-10-30
+pre-historical-guard-disposition: awaiting-decision
+disposition: done
+pre-historical-guard-verification-date: 2026-10-12
+verification-date: 2026-10-28
+pre-historical-guard-verification: Ran PYTHONDONTWRITEBYTECODE=1 python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/5-4-audit-availability-state-recovery.md: RESULT FAIL because baseline_commit a5ca6e3f548e89b28a37826be721d9ef9f7cd51a is not a commit. The historical baseline remains unchanged; do not substitute later HEAD history for the story range.
+verification: Preserved original unavailable baseline a5ca6e3f548e89b28a37826be721d9ef9f7cd51a and corrected only to verified sole-creation parent a5ca6e3886bf0623a1ff8da8cdfd6fade8516652; creation 8a24128989e348768173875ffb3c38bbd7461657 and final historical endpoint 4f426e591c85825eb41ec4b289a43e91f2085004 are explicit. The production guard passes with seven exact historical additions inventoried, while the runner retains provenance, ancestry, identity, target and pointer-bearing event refusals. See dw-133-365-461-467-478-validation-evidence.md for reproducible Git assertions, test results, final review and limitations.
+verification-files: scripts/validate-story-gitlinks.py; _bmad-output/implementation-artifacts/5-4-audit-availability-state-recovery.md
+evidence-kind: verified-gap
+priority: P2
+owner: unassigned
+dependencies: Historical artifact validation policy
+pre-historical-guard-next-action: Choose a resolvable audited range for the legacy artifact or explicitly retire its executable guard role.
+next-action: Retain this historical provenance; no separate runtime change or history rewrite is required.
+related: DW-461,DW-478
+duplicate-of: DW-461
+
+
+### DW-474: Give the audit availability badge `Shape="BadgeShape.Rounded"` and an `IconLabel`, as DESIGN.md's truth-state-badge anatomy requires, as part of the repo-wide badge alignment decision.
+
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-4-understand-audit-availability-and-recovery.md (2026-10-01, review 7)"), 2026-10-12
+location: src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditAvailabilityState.razor; _bmad-output/planning-artifacts/ux-designs/ux-tenants-2026-06-02/DESIGN.md
+source_spec: `_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`
+reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
+legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`\n  summary: Give the audit availability badge `Shape=\"BadgeShape.Rounded\"` and an `IconLabel`, as DESIGN.md's truth-state-badge anatomy requires, as part of the repo-wide badge alignment decision.\n  evidence: `AuditAvailabilityState.razor:27-34` sets neither, so the Fluent default shape applies. It follows `Components/Shared/TruthStateBadge.razor`, as the spec's Code Map directs, and no badge in the repo sets a shape (DESIGN.md:59-60, 178, 188). The visible text and `aria-label` already carry the state name, so this is visual conformance only. Decide it together with the open Review 2 Tint vs Filled deferral, so every badge changes at once."
+pre-audit-contract-status: open
+status: done 2026-10-26
+archived: 2026-10-30
+decision: 2026-10-26 User approved the recommended audit contract; Approved badge anatomy includes Rounded and localized IconLabel with a single accessible wrapper. All 34 explicit site/state cases pass EN/FR, normal/forced colors, production styles and targeted rejection controls.
+pre-audit-contract-disposition: awaiting-decision
+disposition: done
+pre-audit-contract-verification-date: 2026-10-12
+verification-date: 2026-10-26
+pre-audit-contract-verification: AuditAvailabilityState.razor:27-34 still has Tint with no Shape or IconLabel. _bmad-output/planning-artifacts/ux-designs/ux-tenants-2026-06-02/DESIGN.md:58-60,178,188 specifies Rounded/IconLabel and Filled for Danger/Severe. Visible state text and aria-label already provide the accessible name; this is a visual/conformance recommendation, not a demonstrated accessibility defect.
+verification: Approved badge anatomy includes Rounded and localized IconLabel with a single accessible wrapper. All 34 explicit site/state cases pass EN/FR, normal/forced colors, production styles and targeted rejection controls. Final reviewed Debug build: 0 warnings/errors; maintained UI 7762/7762, zero failures/skips; Chromium EN/FR normal/forced-color checks and 16 badge mutations pass. See dw-408-440-450-460-474-validation-evidence.md.
+pre-audit-contract-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditAvailabilityState.razor; _bmad-output/planning-artifacts/ux-designs/ux-tenants-2026-06-02/DESIGN.md
+verification-files: _bmad-output/implementation-artifacts/dw-408-440-450-460-474-validation-evidence.md; _bmad-output/implementation-artifacts/spec-dw-408-440-450-460-474-audit-contracts.md; src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditReceipt.cs; tests/Hexalith.Tenants.UI.Tests/Components/StatusBadgeContractTests.cs
+pre-audit-contract-evidence-kind: recommendation
+evidence-kind: verified-resolution
+priority: P3
+owner: unassigned
+pre-audit-contract-dependencies: Existing Tint-versus-Filled badge decision
+dependencies: None for this selected approved contract; unrelated dependencies and broader release holds remain.
+pre-audit-contract-next-action: Settle the existing repo-wide badge anatomy/appearance decision and apply the resulting shared convention together.
+next-action: None for this selected record; retain historical evidence and unrelated release holds.
+related: none
+
+
+### DW-478: Resolve or explicitly retire the legacy Story 5.4 artifact's non-resolving validation baseline.
+
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-4-understand-audit-availability-and-recovery.md (2026-10-01, review 7)"), 2026-10-12
+location: scripts/validate-story-gitlinks.py; _bmad-output/implementation-artifacts/5-4-audit-availability-state-recovery.md
+source_spec: `_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`
+reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
+legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`\n  summary: Resolve or explicitly retire the legacy Story 5.4 artifact's non-resolving validation baseline.\n  evidence: Build completion review BH10 verified that python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/5-4-audit-availability-state-recovery.md exits 1 because a5ca6e3f548e89b28a37826be721d9ef9f7cd51a is not a commit. The historical baseline is preserved; the current owning spec's canonical baseline passes its guard."
+pre-historical-guard-status: open
+status: done 2026-10-28
+archived: 2026-10-30
+pre-historical-guard-disposition: awaiting-decision
+disposition: done
+pre-historical-guard-verification-date: 2026-10-12
+verification-date: 2026-10-28
+pre-historical-guard-verification: Ran PYTHONDONTWRITEBYTECODE=1 python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/5-4-audit-availability-state-recovery.md: RESULT FAIL because baseline_commit a5ca6e3f548e89b28a37826be721d9ef9f7cd51a is not a commit. The historical baseline remains unchanged; do not substitute later HEAD history for the story range.
+verification: Preserved original unavailable baseline a5ca6e3f548e89b28a37826be721d9ef9f7cd51a and corrected only to verified sole-creation parent a5ca6e3886bf0623a1ff8da8cdfd6fade8516652; creation 8a24128989e348768173875ffb3c38bbd7461657 and final historical endpoint 4f426e591c85825eb41ec4b289a43e91f2085004 are explicit. The production guard passes with seven exact historical additions inventoried, while the runner retains provenance, ancestry, identity, target and pointer-bearing event refusals. See dw-133-365-461-467-478-validation-evidence.md for reproducible Git assertions, test results, final review and limitations.
+verification-files: scripts/validate-story-gitlinks.py; _bmad-output/implementation-artifacts/5-4-audit-availability-state-recovery.md
+evidence-kind: verified-gap
+priority: P2
+owner: unassigned
+dependencies: Historical artifact validation policy
+pre-historical-guard-next-action: Choose a resolvable audited range for the legacy artifact or explicitly retire its executable guard role.
+next-action: Retain this historical provenance; no separate runtime change or history rewrite is required.
+related: DW-461,DW-467
+duplicate-of: DW-461
+
+
+### DW-498: Decide how an authorized correction result can be inspected after the submitting owner demotes themselves.
+
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 2 (2026-10-03)"), 2026-10-12
+location: src/Hexalith.Tenants.UI/Services/Gateways/TenantsBffComposition.cs
+source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
+legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: Decide how an authorized correction result can be inspected after the submitting owner demotes themselves.\n  evidence: TenantsBffComposition.ComposeTenantCorrectionProjectionsAsync returns unavailable captures for nonowners; its owner/global authorization predicate is unchanged from baseline 11e65e3. Correction confirmation properly refuses redacted postconditions, leaving self-demotion unconfirmed until another authorized actor inspects it; a result-read policy must preserve authorization."
+status: done 2026-10-28
+archived: 2026-10-30
+disposition: done
+verification-date: 2026-10-12
+verification: TenantsBffComposition.cs:562-567 still returns unavailable correction captures to a caller who is neither current owner nor global administrator. Self-demotion therefore removes authorized confirmation evidence; this follows the existing authorization boundary rather than proving a security bug. No approved result-read exception or authorized alternate-actor handoff contract is recorded.
+verification-files: src/Hexalith.Tenants.UI/Services/Gateways/TenantsBffComposition.cs
+evidence-kind: recommendation
+priority: P2
+owner: unassigned
+dependencies: Product/authorization result-read policy
+next-action: none; selected source requirement completed with retained qualification limits.
+related: none
+pre-closure-status: open
+pre-closure-disposition: awaiting-decision
+pre-closure-next-action: Choose and document an authorized post-self-demotion inspection/handoff policy; retain current redaction until that decision.
+closure-date: 2026-10-28
+closure-verification: Current authority is captured independently of command-status completion. Redacted or unavailable captures clear derived current facts while retaining causal baseline, original evidence and exact circuit-owned attempt identity. EN/FR focused recovery guidance distinguishes owner state inspection from separately authorized global-admin audit inspection; rendered and production query-boundary tests qualify independent inspection without attempt transfer or inferred completion.
+closure-evidence: dw-438-457-498-521-600-validation-evidence.md
+
+
+### DW-514: Normalize whitespace causation in `AggregateActor.CreateCommandProcessingIdentity` (medium, unverified).
+
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 9 (2026-10-05)"), 2026-10-12
+location: references/Hexalith.EventStore/src/Hexalith.EventStore.Server/Actors/AggregateActor.cs
+source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
+legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: Normalize whitespace causation in `AggregateActor.CreateCommandProcessingIdentity` (medium, unverified).\n  evidence: `CreateCommandProcessingIdentity` (`AggregateActor.cs:4704-4710`) maps only `null` to `MessageId`, while admission (`:652`) also maps whitespace. On the resume publish-failure path (`:4346`), a whitespace `CausationId` makes `IdempotencyChecker` → `identity.Validate()` throw before the drain record and reminder are written. The same call already existed at the EventStore story baseline `2c58ffda`. HTTP always sets causation = messageId. To settle it, list every non-HTTP entry point that builds a `CommandEnvelope` with a caller-supplied `CausationId`."
+pre-read-recovery-status: open
+status: done 2026-10-27
+archived: 2026-10-30
+pre-read-recovery-disposition: uncertain
+disposition: done
+pre-read-recovery-verification-date: 2026-10-12
+verification-date: 2026-10-27
+pre-read-recovery-verification: references/Hexalith.EventStore/src/Hexalith.EventStore.Server/Actors/AggregateActor.cs:5151-5158 CreateCommandProcessingIdentity still maps only null CausationId to MessageId; admission at :669 normalizes whitespace too. HTTP initializes causation from MessageId, and no complete inventory/test proves a supported non-HTTP whitespace causation can reach failing resume recovery.
+verification: Blank causation now uses the same MessageId fallback at recovery as admission. Null, empty and whitespace regression cases prove crash resume, durable unpublished-event ownership, reminder recovery and exact-range completion; current source recovery/status/provenance lane passes 123/123.
+pre-read-recovery-verification-files: references/Hexalith.EventStore/src/Hexalith.EventStore.Server/Actors/AggregateActor.cs
+verification-files: references/Hexalith.EventStore/src/Hexalith.EventStore.Server/Actors/AggregateActor.cs; references/Hexalith.EventStore/tests/Hexalith.EventStore.Server.Tests/Actors/CommandRecoveryIntegrityTests.cs
+pre-read-recovery-evidence-kind: unverified-risk
+evidence-kind: verified-contract-regression
+priority: P2
+owner: Hexalith.EventStore
+dependencies: Non-HTTP command-entry-point reachability evidence
+pre-read-recovery-next-action: Inventory non-HTTP CommandEnvelope producers and reproduce a supported whitespace-causation resume before deciding normalization/rejection behavior.
+next-action: None for this record; completion evidence and remaining broad/release limits are retained in dw-114-137-144-514-523-validation-evidence.md.
+related: none
+resolution-spec: `_bmad-output/implementation-artifacts/spec-dw-114-137-144-514-523-read-and-recovery-contracts.md`
+resolution-evidence: `_bmad-output/implementation-artifacts/dw-114-137-144-514-523-validation-evidence.md`
+
+### DW-521: A caller-chosen correlation ID in one tenant can force a 409 on another tenant's `messageId` status lookup.
+
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 13 (2026-10-05)"), 2026-10-12
+location: references/Hexalith.EventStore/src/Hexalith.EventStore/Controllers/CommandStatusController.cs
+source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
+legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: A caller-chosen correlation ID in one tenant can force a 409 on another tenant's `messageId` status lookup.\n  evidence: `CommandStatusController.GetStatus` (`:114-153`) counts a direct match in tenant A and an indexed correlation match in tenant B together, so `matches.Count == 2` returns 409. The body `correlationId` is caller-chosen, and the endpoint has no tenant selector. Tenants correction confirmation fails closed (unable to verify), so the impact is availability for multi-tenant callers. The `:3576` entry tracks only the wording, not the lookup behaviour. Pre-existing (`ddccb9b1`). EventStore-owned."
+status: done 2026-10-28
+archived: 2026-10-30
+disposition: done
+verification-date: 2026-10-12
+verification: references/Hexalith.EventStore/src/Hexalith.EventStore/Controllers/CommandStatusController.cs:114-156 counts exact MessageId in one authorized tenant and correlation-index resolution in another together, then returns 409 for multiple matches. docs/reference/command-api.md now documents this behavior, but its availability consequence for caller-chosen correlations remains.
+verification-files: references/Hexalith.EventStore/src/Hexalith.EventStore/Controllers/CommandStatusController.cs
+evidence-kind: verified-defect
+priority: P2
+owner: Hexalith.EventStore
+dependencies: EventStore lookup compatibility decision
+next-action: none; selected source requirement completed with retained qualification limits.
+related: DW-511,DW-522
+pre-closure-status: open
+pre-closure-disposition: actionable
+pre-closure-next-action: Choose explicit message-primary versus compatibility lookup semantics across authorized tenants and test caller-chosen cross-tenant collisions.
+closure-date: 2026-10-28
+closure-verification: EventStore now searches exact MessageId records across distinct authorized tenant scopes before correlation/legacy compatibility. One exact match wins; multiple exact matches still return 409. Ordering, ambiguous-index collision, duplicate claims, compatibility ambiguity and unauthorized-scope controls pass. This is source qualification; new published-package adoption is not claimed.
+closure-evidence: dw-438-457-498-521-600-validation-evidence.md
+
+
+### DW-523: Correct EventStore polling guidance that treats recoverable PublishFailed as terminal.
+
+origin: migrated from unnumbered ledger ("Deferred from: pass 14 workflow review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md (2026-10-05)"), 2026-10-12
+location: references/Hexalith.EventStore/src/Hexalith.EventStore.Contracts/Commands/CommandStatusExtensions.cs; references/Hexalith.EventStore/src/Hexalith.EventStore/Controllers/CommandStatusController.cs
+source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
+legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: Correct EventStore polling guidance that treats recoverable PublishFailed as terminal.\n  evidence: Pass-14 BH10, extended by pass 17 at EventStore `07d1e23a6c5b06bbbb1fc8ddb5174cc3382d3d93`: command-api.md labels PublishFailed terminal at :380, :383, :400 (replay of terminal failure states), :470, :473, :475, and :477; docs/brownfield/architecture.md:152 and docs/brownfield/api-contracts.md:23 make the same claim. The runtime CommandStatusExtensions.IsTerminal also classifies PublishFailed as terminal, and CommandStatusController.cs:201-202 therefore omits Retry-After. Line :477 tells callers to stop polling, although a successful publication drain can later write Completed with command-specific sequence proof. Correcting :477 alone leaves the other documentation sites and runtime polling behavior inconsistent. Story 5.6's consumer maps PublishFailed to Degraded with refresh recovery, so it remains pending for verification rather than claiming correction success. The identical terminal-state sentence exists at preserved EventStore baseline b51978dd1d2a3721ad239db2623e1560377c7583:454, so this is pre-existing EventStore documentation work. Distinguish recoverable publication failure from exhausted recovery without duplicating the existing recovery-field documentation follow-up."
+pre-read-recovery-status: open
+status: done 2026-10-27
+archived: 2026-10-30
+pre-read-recovery-disposition: actionable
+disposition: done
+pre-read-recovery-verification-date: 2026-10-12
+verification-date: 2026-10-27
+pre-read-recovery-verification: references/Hexalith.EventStore/docs/reference/command-api.md:380,383,400,470,473,475,477 and brownfield docs still call PublishFailed terminal. CommandStatusExtensions.cs IsTerminal returns status >= Completed, and CommandStatusController.cs:231-235 omits Retry-After for it despite recoverable publication drain later reaching Completed.
+verification: Ordinary and workload status advertise Retry-After for PublishFailed only when Retryable is true; false/null advertise none. Documentation distinguishes armed recovery from exhausted/unknown state while preserving enum/replay compatibility and independent projection proof. Current source recovery/status/provenance lane passes 123/123.
+pre-read-recovery-verification-files: references/Hexalith.EventStore/src/Hexalith.EventStore.Contracts/Commands/CommandStatusExtensions.cs; references/Hexalith.EventStore/src/Hexalith.EventStore/Controllers/CommandStatusController.cs
+verification-files: references/Hexalith.EventStore/src/Hexalith.EventStore/Controllers/CommandStatusController.cs; references/Hexalith.EventStore/tests/Hexalith.EventStore.Server.Tests/Commands/CommandStatusControllerTests.cs; references/Hexalith.EventStore/docs/reference/command-api.md
+pre-read-recovery-evidence-kind: verified-defect
+evidence-kind: verified-contract-regression
+priority: P2
+owner: Hexalith.EventStore
+dependencies: EventStore publication recovery status contract
+pre-read-recovery-next-action: Define recoverable versus exhausted PublishFailed polling semantics and align runtime Retry-After plus all lifecycle/replay documentation.
+next-action: None for this record; completion evidence and remaining broad/release limits are retained in dw-114-137-144-514-523-validation-evidence.md.
+related: DW-507
+resolution-spec: `_bmad-output/implementation-artifacts/spec-dw-114-137-144-514-523-read-and-recovery-contracts.md`
+resolution-evidence: `_bmad-output/implementation-artifacts/dw-114-137-144-514-523-validation-evidence.md`
+
+### DW-540: medium; Aspire-lane failures are hidden because the reusable `domain-ci.yml` defaults `aspire-continue-on-error` to true.
+
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-gh-actions-28953291798-85906522208.md (2026-10-08)"), 2026-10-12
+location: references/Hexalith.Builds/.github/workflows/domain-ci.yml
+source_spec: `_bmad-output/implementation-artifacts/spec-gh-actions-28953291798-85906522208.md`
+reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
+legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-gh-actions-28953291798-85906522208.md`\n  summary: medium; Aspire-lane failures are hidden because the reusable `domain-ci.yml` defaults `aspire-continue-on-error` to true.\n  evidence: Run 28953291798 concluded `success` although `ci / aspire-tests` failed; Tenants `ci.yml` does not override the default. A red hosted smoke test therefore never blocks a merge. Changing this is a workflow-definition decision (Ask First in the spec)."
+pre-release-governance-status: open
+status: done 2026-10-27
+archived: 2026-10-30
+pre-release-governance-disposition: awaiting-decision
+disposition: done
+pre-release-governance-verification-date: 2026-10-12
+verification-date: 2026-10-27
+pre-release-governance-verification: references/Hexalith.Builds/.github/workflows/domain-ci.yml:109-114 still defaults aspire-continue-on-error to true and applies it to aspire-tests at :669; .github/workflows/ci.yml does not override the input. The lane remains advisory by workflow definition, independent of its latest health.
+verification: Tenants opts into blocking generic Aspire tests, browser/TLS/Dapr prerequisites and skipped-test rejection while other reusable callers retain their defaults. The shared guard requires a successful consistent TRX summary. Final source Contracts 718/718 and shared workflow platform checks 371 assertions pass. A fresh full generic package-mode Aspire run remains separately unqualified because published EventStore routing types do not compile; no live CI acceptance is claimed. Approved spec and exact commands/limitations: dw-540-554-570-584-593-validation-evidence.md.
+pre-release-governance-verification-files: references/Hexalith.Builds/.github/workflows/domain-ci.yml
+verification-files: .github/workflows/ci.yml; references/Hexalith.Builds/.github/workflows/domain-ci.yml; references/Hexalith.Builds/Tools/test-domain-workflow-test-platforms.ps1; tests/Hexalith.Tenants.Contracts.Tests/CiQualityGateScriptTests.cs
+pre-release-governance-evidence-kind: verified-gap
+evidence-kind: verified-contract-regression
+priority: P2
+owner: Hexalith.Builds
+pre-release-governance-dependencies: Maintainer CI gating decision
+dependencies: None for this approved policy implementation; broader package/runtime/release qualification holds remain separately recorded.
+pre-release-governance-next-action: Record whether the existing Aspire lane must become blocking, and define the exact prerequisites/skip behavior before changing the workflow.
+next-action: None for this record; retain the separate fresh Aspire qualification follow-up and broader release holds in dw-540-554-570-584-593-validation-evidence.md.
+related: none
+
+
+### DW-554: medium; technical ServiceDefaults package exceptions are not scoped to published package layers.
+
+origin: migrated from unnumbered ledger ("Deferred from: Story 5.6 remediation workflow review, pass 18 (2026-10-08)"), 2026-10-12
+location: scripts/validate-nuget-packages.py
+source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
+legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: medium; technical ServiceDefaults package exceptions are not scoped to published package layers.\n  evidence: `scripts/validate-nuget-packages.py` allows both exact technical ServiceDefaults IDs for every package whose restore evidence includes them, including Contracts, Client, and Testing. Define and enforce the intended dependency layers in package architecture work; Story 5.6 adds executable exact-ID boundary coverage without changing that policy."
+pre-release-governance-status: open
+status: done 2026-10-27
+archived: 2026-10-30
+pre-release-governance-disposition: awaiting-decision
+disposition: done
+pre-release-governance-verification-date: 2026-10-12
+verification-date: 2026-10-27
+pre-release-governance-verification: scripts/validate-nuget-packages.py applies exact ServiceDefaults ID allowlisting globally; load_dependency_boundaries keys packages but no exception policy distinguishes Server from Contracts/Client/Testing. The intended technical dependency layers are not specified by this validator.
+verification: Approved exact EventStore and Commons ServiceDefaults IDs are allowed only in Hexalith.Tenants.Server. Other known and unknown published packages refuse those exceptions; exact ID/range and framework checks remain. Eleven isolated package-policy tests and final Contracts 718/718 pass. Approved spec and exact commands/limitations: dw-540-554-570-584-593-validation-evidence.md.
+pre-release-governance-verification-files: scripts/validate-nuget-packages.py
+verification-files: scripts/validate-nuget-packages.py; tests/scripts/test_nuget_dependency_ranges.py; tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs
+pre-release-governance-evidence-kind: verified-gap
+evidence-kind: verified-contract-regression
+priority: P2
+owner: unassigned
+pre-release-governance-dependencies: Published package dependency-layer decision
+dependencies: None for this approved policy implementation; broader package/runtime/release qualification holds remain separately recorded.
+pre-release-governance-next-action: Approve allowed published layers for each technical ServiceDefaults dependency, then enforce that policy with isolated package fixtures.
+next-action: None for this record; retain the separate fresh Aspire qualification follow-up and broader release holds in dw-540-554-570-584-593-validation-evidence.md.
+related: DW-527,DW-544
+
+
+### DW-562: high; global-administrator revocation can remain authorized for every global-administrator command and query, including tenant correction, while its authority channels lag.
+
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 22 (2026-10-09)"), 2026-10-12
+location: docs/production-auth-readiness.md
+source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
+legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: high; global-administrator revocation can remain authorized for every global-administrator command and query, including tenant correction, while its authority channels lag.\n  evidence: `81144734` added `TenantsGlobalAdministratorVerifier` for EventStore Story 5.5 FR28 within the Story 5.6 range. Correction dispatch using global-administrator authority needs both the corroborated UI principal-claims gate (`src/Hexalith.Tenants.UI/Services/Configuration/TenantConfigurationPrincipalResolver.cs:92`, reached from `src/Hexalith.Tenants.UI/Services/Gateways/TenantsBffComposition.cs:542,561`) and the server verifier. At the `/process` boundary, the verifier admits `actor:globalAdmin` for tenant commands (`src/Hexalith.Tenants.Server/Aggregates/TenantAggregate.cs:265-272`); at the `/query` boundary, it admits `QueryEnvelope.IsGlobalAdmin` for global-administrator queries (`src/Hexalith.Tenants/Authorization/TenantsGlobalAdministratorVerifier.cs:11-18`). Both use the persisted `GlobalAdministratorReadModel`. Revoking either authority channel stops its path once observed: identity-provider revocation takes effect after token or circuit renewal, and `GlobalAdministratorRemoved` takes effect after projection, with no bound if projection stalls. The global-administrator authority owner should define an authoritative or version-bounded revocation check for all such commands and queries."
+pre-native-authority-status: open
+status: done 2026-10-28
+archived: 2026-10-30
+pre-native-authority-disposition: awaiting-decision
+disposition: done
+verification-date: 2026-10-12
+verification: TenantsGlobalAdministratorVerifier.IsCurrentGlobalAdministratorAsync still checks only persisted model.Administrators.Contains(claim.UserId), without sequence/freshness comparison. Identity and projection revocation remain eventually consistent; production-auth-readiness.md documents grant consistency only.
+verification-files: docs/production-auth-readiness.md
+evidence-kind: verified-gap
+priority: P1
+owner: global-administrator authority owner
+dependencies: Platform authorization and revocation contract
+next-action: Define the authoritative/version-bounded revocation guarantee and responsible authority before changing command/query gates.
+related: DW-617,DW-564
+resolution-date: 2026-10-28
+resolution-spec: spec-five-deferred-authority-and-read-bounds.md
+resolution: Approved authenticated native-source membership and final incarnation/prefix proof now govern new global grants at every query gate and tenant-command boundary. Global-management commands retain locked/replayed aggregate authorization without actor self-calls. Unavailable, malformed, legacy, changed or over-bound evidence fails closed; independent tenant permissions and already-admitted operations retain the approved behavior. Request-only successful reuse has no cross-request cache. Same-host HTTP and real Dapr persisted-removal controls refuse a removed administrator while a granting projection remains retained.
+resolution-evidence: five-deferred-authority-and-read-bounds-validation-evidence.md
+resolution-next-action: None for this record; external enrollment, legacy-source recovery and broader runtime/release holds remain separate.
+
+
+### DW-568: medium if true (unverified, maybe-false); the version-derived producer ETag cannot reach audit, index or global-administrator reads, because only `TenantReadModel` is stamped with a `ProjectionVersion`.
+verification-files: _bmad-output/implementation-artifacts/validation-dw-154-387-390-568-625.md; _bmad-output/implementation-artifacts/spec-dw-154-387-390-568-625-recovery-and-evidence.md
+
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 31 (2026-10-09)"), 2026-10-12
+location: n/a
+source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
+legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: medium if true (unverified, maybe-false); the version-derived producer ETag cannot reach audit, index or global-administrator reads, because only `TenantReadModel` is stamped with a `ProjectionVersion`.\n  evidence: `src/Hexalith.Tenants/Queries/TenantQueryResult.cs:50` falls back to `readModel?.ProjectionVersion` when the store ETag is absent. Only `TenantProjectionHandler.cs:236-250` assigns a version (`tenant-sequence:N`). `TenantIndexReadModel`, `TenantAuditReadModel` and `GlobalAdministratorReadModel` declare `ProjectionVersion`, but nothing in Tenants or EventStore assigns it. When their store ETag is absent, metadata is null and those surfaces fail closed under Story 4.2's rule, which blocks audit evidence and global-administrator grant/remove previews. Pass 29's rationale (\"all four read models carry a `ProjectionVersion`\") was wrong. To settle: probe whether live audit or global-administrator reads ever lack a store ETag. Pass 27 reported none for tenant detail; pass 30 observed `1`; the live audit test asserts `ProjectionBacked`. If they do, stamp sequence versions in those three projections."
+pre-recovery-authority-status: open
+status: done 2026-10-26
+archived: 2026-10-30
+pre-recovery-authority-disposition: uncertain
+disposition: done
+pre-recovery-authority-verification-date: 2026-10-12
+verification-date: 2026-10-26
+pre-recovery-authority-verification: Original blanket no-version assertion is partly superseded: GlobalAdministratorProjectionHandler now stamps singleton and audit:system sequence versions. TenantIndexReadModel and tenant audit merge still lack producer versions. Missing evidence: live index/tenant-audit reads without store ETags and the intended cross-aggregate index validator.
+verification: A domain-owned opaque SHA-256 index validator fingerprints sorted committed semantics and all positive owner watermarks inside the retry transform. Incomplete legacy coverage remains uncertified; persisted projection-to-REST-to-UI no-store-ETag checks qualify index and existing audit authority with store-tag precedence. Acceptance: UI 7835/7835, Server 1527/1527, generated-controller Integration 47/47 and maintained browser pass. Formal workflow review is recorded in validation-dw-154-387-390-568-625.md; broader Integration/runtime/release holds remain.
+pre-recovery-authority-evidence-kind: unverified-risk
+evidence-kind: verified-resolution
+priority: P2
+owner: unassigned
+pre-recovery-authority-dependencies: Live store ETag behavior and index-version contract
+dependencies: Satisfied for this selected scope; broader upstream/runtime/release and assistive-technology holds remain.
+pre-recovery-authority-next-action: Capture safe metadata for index and tenant-audit reads with absent store ETags before deciding remaining stamping work.
+next-action: None for this selected record; retain original findings, policy history and qualification limits.
+related: DW-624
+
+
+### DW-570: medium; the standalone release workflow omits the reusable Builds workflow's governed-provenance evaluation.
+
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 32 (2026-10-10)"), 2026-10-12
+location: .github/workflows/release.yml; references/Hexalith.Builds/.github/workflows/domain-release.yml
+source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
+legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: medium; the standalone release workflow omits the reusable Builds workflow's governed-provenance evaluation.\n  evidence: `.github/workflows/release.yml` checks the approved Builds checkout SHA but does not run the `governed-provenance` closure evaluation used by `references/Hexalith.Builds/.github/workflows/domain-release.yml`. This pre-existing release-governance difference should be resolved in the release workflow owner before publication relies on equivalent closure evidence."
+pre-release-governance-status: open
+status: done 2026-10-27
+archived: 2026-10-30
+pre-release-governance-disposition: actionable
+disposition: done
+pre-release-governance-verification-date: 2026-10-12
+verification-date: 2026-10-27
+pre-release-governance-verification: release.yml validates the Builds checkout SHA but contains no governed-provenance closure evaluation; shared Builds domain-release.yml supplies that evaluation. The parity recommendation remains unimplemented.
+verification: Standalone release and recovery invoke bounded governed-provenance closure evaluation using the actual defining job workflow identity, immutable candidate and checked-out helper blobs. Existing reusable identity enforcement and standalone Trusted Publishing jobs remain. Executable actual-workflow fixtures, refusal controls and shared provenance/gate/identity 59/59 pass after independent review. Approved spec and exact commands/limitations: dw-540-554-570-584-593-validation-evidence.md.
+pre-release-governance-verification-files: .github/workflows/release.yml; references/Hexalith.Builds/.github/workflows/domain-release.yml
+verification-files: .github/workflows/release.yml; .github/workflows/recover-partial-release.yml; references/Hexalith.Builds/Github/governed-provenance; tests/scripts/test_release_workflow_governance.py
+pre-release-governance-evidence-kind: recommendation
+evidence-kind: verified-contract-regression
+priority: P2
+owner: release workflow owner
+pre-release-governance-dependencies: Approved release-provenance policy
+dependencies: None for this approved policy implementation; broader package/runtime/release qualification holds remain separately recorded.
+pre-release-governance-next-action: Add the owning workflow closure gate or document an approved equivalent closure procedure.
+next-action: None for this record; retain the separate fresh Aspire qualification follow-up and broader release holds in dw-540-554-570-584-593-validation-evidence.md.
+related: DW-593
+
+
+### DW-579: Restore or reconcile missing historical Git revisions referenced by the Builds package audit before accepting the EventStore 3.120.0 audit.
+
+origin: migrated from unnumbered ledger ("Deferred from: spec-eventstore-3-117-1.md (2026-10-10)"), 2026-10-12
+location: _bmad-output/implementation-artifacts/dependency-refresh-eventstore-3.120.0-evidence-2026-10-10.json; references/Hexalith.Builds/Tools/package-version-audit.json
+source_spec: `_bmad-output/implementation-artifacts/spec-eventstore-3-117-1.md`
+reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
+legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-eventstore-3-117-1.md`\n  summary: Restore or reconcile missing historical Git revisions referenced by the Builds package audit before accepting the EventStore 3.120.0 audit.\n  evidence: The supported full pre-edit audit was generated against committed Builds `2cf00028bbe563d80d4d12b5fb2054914f14fcb6`, but deterministic validation of its saved snapshot exits 1 with 50 unavailable historical origin-revision errors in addition to a temporary catalog-path mismatch. The checked-in audit validator exits 1 with 1,563 errors, including unavailable historical revisions; logs and exact commands are archived in `dependency-refresh-eventstore-3.120.0-raw-logs-2026-10-10.zip`. This inherited provenance gap blocks accepted audit evidence even after a governed catalog commit."
+status: done 2026-10-28
+archived: 2026-10-30
+disposition: done
+verification-date: 2026-10-12
+verification: dependency-refresh-eventstore-3.120.0-evidence-2026-10-10.json preserves failed supported audit acceptance (50 unavailable historical origins). Current Builds package-version-audit.json still references locally missing commits 200a0133 and 9566bafb (read-only cat-file check); no replacement accepted audit is present.
+verification-files: _bmad-output/implementation-artifacts/dependency-refresh-eventstore-3.120.0-evidence-2026-10-10.json; references/Hexalith.Builds/Tools/package-version-audit.json
+evidence-kind: verified-gap
+priority: P2
+owner: unassigned
+dependencies: Builds-maintainer historical provenance repair
+next-action: none; selected requirement completed with retained qualification limits.
+related: DW-596
+pre-closure-status: open
+pre-closure-disposition: blocked
+pre-closure-next-action: Reconcile missing owning-repository origin revisions and regenerate/validate supported audit evidence.
+closure-date: 2026-10-28
+closure-verification: At Builds 2574bf2f3da5367d8801f0d7661d66155e5d90b0 the supported validator passes for 307 packages, 151 families and one source; all 67 current origin revisions resolve. Current accepted evidence supersedes the current blocker. The October 10 snapshot remains rejected and its two missing origins remain unavailable.
+closure-evidence: dw-122-334-358-579-595-validation-evidence.md
+
+
+
+### DW-584: Decide whether separate story and source-reference workflows must gate releases.
+
+origin: migrated from unnumbered ledger ("Deferred from: spec-gh-actions-28944933021-85877006572.md (2026-10-10)"), 2026-10-12
+location: .github/workflows/release.yml
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
+reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
+legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Decide whether separate story and source-reference workflows must gate releases.\n  evidence: Unverified medium-severity policy question; `release.yml` queries only `ci.yml`, and an explicit release-gate policy would establish whether failed separate workflows must block publication."
+pre-release-governance-status: open
+status: done 2026-10-27
+archived: 2026-10-30
+pre-release-governance-disposition: awaiting-decision
+disposition: done
+pre-release-governance-verification-date: 2026-10-12
+verification-date: 2026-10-27
+pre-release-governance-verification: release.yml verify-source queries only successful ci.yml runs; separate story-guards.yml/source-reference checks are not included. Existing separate workflow design alone does not establish release-blocking policy.
+verification: Approved publication and recovery policy requires the latest exact-source main push run and attempt for ci.yml, story-guards.yml and source-reference.yml to succeed. Pagination, per-attempt checks and a final refresh refuse stale successes and changes during qualification. Normal publication also enforces all three gates at its final admission boundary. Release controls 70/70 and shared provenance/gate/identity 59/59 pass. Approved spec and exact commands/limitations: dw-540-554-570-584-593-validation-evidence.md.
+pre-release-governance-verification-files: .github/workflows/release.yml
+verification-files: .github/workflows/release.yml; scripts/validate-publication-preflight.sh; scripts/validate-partial-release-recovery.sh; references/Hexalith.Builds/Github/governed-provenance/source_workflow_gates.py; tests/scripts/test_release_workflow_governance.py
+pre-release-governance-evidence-kind: recommendation
+evidence-kind: verified-contract-regression
+priority: P2
+owner: unassigned
+pre-release-governance-dependencies: Release-gate policy owner
+dependencies: None for this approved policy implementation; broader package/runtime/release qualification holds remain separately recorded.
+pre-release-governance-next-action: Decide which separate exact-source workflow outcomes must block publication and document the gate.
+next-action: None for this record; retain the separate fresh Aspire qualification follow-up and broader release holds in dw-540-554-570-584-593-validation-evidence.md.
+related: DW-585
+
+
+### DW-593: medium; reconcile the Builds execution revision used by partial release recovery with the publishing workflow. Owner: release recovery (`recover-partial-release.yml`).
+
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 40 (2026-10-10)"), 2026-10-12
+location: .github/workflows/release.yml; .github/workflows/recover-partial-release.yml; scripts/validate-partial-release-recovery.sh
+source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
+legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: medium; reconcile the Builds execution revision used by partial release recovery with the publishing workflow. Owner: release recovery (`recover-partial-release.yml`).\n  evidence: `release.yml` declares `53d53ae42abf7c87d385a078ab260531480bbf8a` for publication, but `recover-partial-release.yml` declares `2eac6955a812465a4308d194ae38fee35b766b05` for recovery. `validate-partial-release-recovery.sh` verifies only that the recovery value has SHA syntax. Recovery builds with the source tree's Builds gitlink, so matching publication-tool provenance is not established. The release recovery owner should decide and enforce the exact revision relationship before relying on rebuilt artifacts."
+pre-release-governance-status: open
+status: done 2026-10-27
+archived: 2026-10-30
+pre-release-governance-disposition: awaiting-decision
+disposition: done
+pre-release-governance-verification-date: 2026-10-12
+verification-date: 2026-10-27
+pre-release-governance-verification: release.yml declares Builds execution 53d53ae4 while recover-partial-release.yml declares 2eac6955; validate-partial-release-recovery.sh checks SHA syntax only and recovery builds use source gitlink. Approved relationship between publication and recovery tooling remains unspecified.
+verification: Recovery structurally resolves the Builds execution revision declared by the immutable source release workflow and verifies that checkout, helper bytes and retained closure throughout preparation/publication. All three current publication pins match Builds 35f185abdec37a3ae92d82f85a21e0f3c971d82d. Source build props remain source-gitlink pinned; restored publisher and post-build helper drift fail before subsequent sensitive work. Release controls 70/70 and shared provenance/gate/identity 59/59 pass. Approved spec and exact commands/limitations: dw-540-554-570-584-593-validation-evidence.md.
+pre-release-governance-verification-files: .github/workflows/release.yml; .github/workflows/recover-partial-release.yml; scripts/validate-partial-release-recovery.sh
+verification-files: .github/workflows/release.yml; .github/workflows/recover-partial-release.yml; scripts/partial-release-recovery-common.sh; scripts/validate-partial-release-recovery.sh; scripts/prepare-partial-release.sh; scripts/publish-partial-release.sh; references/Hexalith.Builds/Github/governed-provenance/execution_identity.py
+pre-release-governance-evidence-kind: verified-gap
+evidence-kind: verified-contract-regression
+priority: P2
+owner: release recovery (recover-partial-release.yml)
+pre-release-governance-dependencies: Release-owner exact execution provenance decision
+dependencies: None for this approved policy implementation; broader package/runtime/release qualification holds remain separately recorded.
+pre-release-governance-next-action: Define and enforce the approved publication/recovery Builds revision relationship.
+next-action: None for this record; retain the separate fresh Aspire qualification follow-up and broader release holds in dw-540-554-570-584-593-validation-evidence.md.
+related: DW-570
+
+
+### DW-594: medium; `Generated_tenants_api_get_tenant_reads_verified_redis_state_with_projection_authority` has never passed in CI, because `tenants-api` `/alive` fails TLS on the runner, and no entry tracks that failure. Owner: Tenants integration-test fixture.
+
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 41 (2026-10-10)"), 2026-10-12
+location: tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs
+source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
+legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: medium; `Generated_tenants_api_get_tenant_reads_verified_redis_state_with_projection_authority` has never passed in CI, because `tenants-api` `/alive` fails TLS on the runner, and no entry tracks that failure. Owner: Tenants integration-test fixture.\n  evidence: In CI runs 37966289093, 38034556707, 38035646675, 38039239192 and 38053398801 (aspire job 114217781085 at `01602592`), the test failed at `tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs:125` with \"tenants-api /alive did not return HTTP 200 within 00:04:00 … The SSL connection could not be established\". That is before any command is submitted, so its persisted-state and projection-version assertions never run. `WaitForTenantsApiAliveAsync` keeps only `ex.Message` (`:846-847`) and drops the inner exception that would name the certificate fault. The fixture's HTTPS `tenants-api` client is in `tests/Hexalith.Tenants.IntegrationTests/Fixtures/AspireTopologyFixture.cs`. The pass-39 tiering entry above mentions the failure only in passing; making that lane blocking would still fail here. To close: surface the inner exception, fix the runner TLS trust or use the HTTP endpoint, and see the test pass in CI."
+pre-authenticated-routes-status: open
+status: done 2026-10-25
+archived: 2026-10-30
+pre-authenticated-routes-disposition: actionable
+disposition: done
+pre-authenticated-routes-verification-date: 2026-10-12
+verification-date: 2026-10-25
+pre-authenticated-routes-verification: Current HEAD CI run 38269521776 job 114882247420 (2026-10-12) still fails Generated_tenants_api_get_tenant_reads_verified_redis_state_with_projection_authority at AspireTopologyTests.cs:125: /alive TLS timeout before command/projection assertions. Existing CI log inspected; no local tests run.
+verification: The exact Generated_tenants_api_get_tenant_reads_verified_redis_state_with_projection_authority regression passes1/1 in fresh hosted CI after SDK certificate trust and safe bounded TLS diagnostics; actual persisted Redis state and committed producer authority assertions execute. Corrected local fixture run also passes1/1. Fresh hosted Release/package run40217896195 at c3697ed23dc1aa896bef1f42d3fc1a0f79356d65 has zero acceptance skips. See dw-104-161-432-436-594-validation-evidence.md and live-browser-hosted.json.
+pre-authenticated-routes-verification-files: tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs
+verification-files: _bmad-output/implementation-artifacts/dw-104-161-432-436-594-validation-evidence.md; tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsRouteTests.cs; tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsUiRouteTests.cs; tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs
+pre-authenticated-routes-evidence-kind: verified-defect
+evidence-kind: verified-resolution
+priority: P2
+owner: Tenants integration-test fixture
+dependencies: Runner TLS trust or selected HTTP endpoint
+pre-authenticated-routes-next-action: Expose safe inner TLS cause, repair endpoint/trust, then require this exact live test to pass in CI.
+next-action: None for this selected record; retain historical evidence and broader runtime/release holds.
+related: DW-572,DW-577
+
+
+### DW-595: medium; EventStore's own CI is red at the pinned `a5405602` (secret scan and a contracts packaging test). Owner: EventStore (Story 6.1-P1R evidence, contracts packaging).
+
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 41 (2026-10-10)"), 2026-10-12
+location: n/a
+source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
+legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: medium; EventStore's own CI is red at the pinned `a5405602` (secret scan and a contracts packaging test). Owner: EventStore (Story 6.1-P1R evidence, contracts packaging).\n  evidence: EventStore CI run 38050087596 at `a5405602`: `build-and-test` job 114207290957 fails `SecretsProtectionTests.TrackedReusableContent_DoesNotContainUsableSecrets` with 152 violations, all under `_bmad-output/implementation-artifacts/evidence/6-1-p1r-31190-published-run/`. The previously adopted pin `37451b52` (run 37965432920, job 113938609179) already failed it with 19 violations under `6-1-p1r-current-source-2026-10-09/`, so the failure predates this range. These are not Story 5.6's four historical locations. The `contracts` job 114207290744 newly fails `ContractsPackageDependencyTests.SharedConsumerAuthorityValidatorPassesForEveryTrackedMsBuildSurfaceAsync` (it passed at `37451b52`). Tenants `build-and-test` stays green on the 3.120.0 package lane."
+status: done 2026-10-28
+archived: 2026-10-30
+disposition: done
+verification-date: 2026-10-12
+verification: Pinned source is now 3d0b738d. CI run 38266659178 still fails build-and-test/contracts, but current logs no longer show the original secret-scan or SharedConsumerAuthorityValidator failures. Remaining failures are SharedProjectionChunkedStage/CopyOnWrite, DomainServiceIsolation, ReleasePackageManifest and ProjectionDispatchContract tests. Historical failures retained; current upstream CI blocker differs.
+evidence-kind: verified-defect
+priority: P2
+owner: EventStore (Story 6.1-P1R evidence, contracts packaging)
+dependencies: EventStore-maintainer fixes at adopted source revision
+next-action: none; selected requirement completed with retained qualification limits.
+related: none
+pre-closure-status: open
+pre-closure-disposition: blocked
+pre-closure-next-action: Route current failing upstream tests to EventStore and capture a green exact-pin CI result.
+closure-date: 2026-10-28
+closure-verification: Adopted EventStore 717a06e16c3afd81b904eaf4de646b74b13262d2 has successful exact-pin CI 40653941080 including contracts/build-and-test, plus successful independent Integration Tests 40653940590. Payload protection workflows also pass. Earlier failed/cancelled runs and current skipped advisory CI jobs remain explicitly distinguished.
+closure-evidence: dw-122-334-358-579-595-validation-evidence.md
+
+
+
+### DW-599: Enforce tenant configuration read policy at the direct API boundary.
+
+origin: migrated from unnumbered ledger ("Deferred from: spec-gh-actions-28944933021-85877006572.md, continued (2026-10-10)"), 2026-10-12
+location: n/a
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
+reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
+legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Enforce tenant configuration read policy at the direct API boundary.\n  evidence: GetTenantQueryHandler returns all configuration values to an authorized tenant member, while prefix and display-safe filtering runs only in the UI composer, leaving direct REST callers outside the FR-6 display policy."
+status: done 2026-10-28
+archived: 2026-10-30
+disposition: resolved
+verification-date: 2026-10-12
+verification: GetTenantQueryHandler.ExecuteCoreAsync still returns model.Configuration wholesale after membership authorization; display-safe/prefix policy lives in UI composition. FR-6 API applicability needs an explicit boundary decision; current REST disclosure is verified, but policy violation is not established.
+evidence-kind: verified-gap
+priority: P2
+owner: unassigned
+dependencies: Configuration read-policy scope decision
+next-action: Decide whether FR-6 filtering protects API disclosure as well as UI display; specify the owning boundary.
+related: none
+resolution-date: 2026-10-28
+resolution: Approved FR-6 boundary decision: retain the full configuration API after membership/current-administrator authorization. Server-side UI composition separately requires valid policy, exact display-safe keys and ordinal prefix grants; administrators bypass prefixes only. Missing/malformed policy fails UI configuration closed.
+resolution-evidence: dw-117-118-127-599-618-validation-evidence.md
+resolution-limits: Original findings and prior verification remain historical evidence. Privacy excludes timing, work, fallback-mode independence and completeness beyond budget; offset mutations retain existing limits. No snapshot-isolation, assistive-technology or release qualification is claimed.
+
+
+### DW-600: Treat duplicate administrator identities across cursor pages as incomplete projection evidence.
+
+origin: migrated from unnumbered ledger ("Deferred from: spec-gh-actions-28944933021-85877006572.md, continued (2026-10-10)"), 2026-10-12
+location: n/a
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
+reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
+legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Treat duplicate administrator identities across cursor pages as incomplete projection evidence.\n  evidence: GlobalAdministratorsProjectionLoader silently drops repeated user IDs and marks the final aggregate IsCompleteEvidence=true even when pages overlap."
+status: done 2026-10-28
+archived: 2026-10-30
+disposition: done
+verification-date: 2026-10-12
+verification: GlobalAdministratorsProjectionLoader.TryAdd still silently deduplicates across pages and marks terminal evidence complete; LoadAsyncDeduplicatesIdentitiesWithinAndAcrossPagesWithOrdinalComparison explicitly pins this behavior. The established paging spec requires ordinal aggregation, so rejection is a proposed policy change, not a proven regression.
+evidence-kind: recommendation
+priority: P2
+owner: unassigned
+dependencies: Complete-evidence duplicate-page policy
+next-action: none; selected source requirement completed with retained qualification limits.
+related: none
+pre-closure-status: open
+pre-closure-disposition: awaiting-decision
+pre-closure-next-action: Decide whether cross-page overlap must invalidate completeness; reconcile any new rule with the existing spec/test contract.
+closure-date: 2026-10-28
+closure-verification: Any ordinal duplicate administrator identity within or across protected cursor pages now produces canonical incomplete evidence and stops the bounded walk. Case-distinct identities remain distinct. Existing scope/version/freshness/cursor/cancellation limits and correction fail-closed consumers remain qualified; the current approved policy explicitly supersedes historical deduplication.
+closure-evidence: dw-438-457-498-521-600-validation-evidence.md
+
+
+### DW-609: Clear or reauthorize retained tenant, audit, and membership snapshots when permissions change within the same user and tenant scope.
+
+origin: migrated from unnumbered ledger ("Deferred from: spec-gh-actions-28944933021-85877006572.md, continued (2026-10-10)"), 2026-10-12
+location: n/a
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
+reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
+legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Clear or reauthorize retained tenant, audit, and membership snapshots when permissions change within the same user and tenant scope.\n  evidence: FrontComposer remounts on tenant or user identity transitions only; audit, detail, workspace, and membership components can retain read snapshots after a same-scope permission change."
+pre-ui-safety-status: open
+status: done 2026-10-25
+archived: 2026-10-30
+pre-ui-safety-disposition: actionable
+disposition: done
+pre-ui-safety-verification-date: 2026-10-12
+verification-date: 2026-10-25
+pre-ui-safety-verification: FrontComposer ScopeBoundaryService.SameScope compares only tenant/user identity; TenantQueryGateway audit CallerScope is user-derived, and list/membership retention remains unbound. Same-user permission changes do not universally invalidate all retained reads.
+verification: Gateway retention and in-flight publication now bind to observed permission revision plus caller scope. Mounted list/membership consumers clear old facts and validators on provider changes and requery under fresh authority; detail/audit and configuration reauthorization remain enforced. Platform revocation-lag decisions DW-562/DW-617 remain separate. Independent three-layer review and post-review checks are recorded in dw-194-201-221-267-609-validation-evidence.md and spec-dw-194-201-221-267-609-ui-safety.md.
+evidence-kind: verified-gap
+priority: P2
+owner: unassigned
+dependencies: Permission-change invalidation/reauthorization contract
+pre-ui-safety-next-action: Cover same-identity permission loss across detail/audit/list/membership and invalidate or reauthorize retained facts.
+next-action: None for this selected record; retain historical findings and the separately recorded review follow-up.
+related: DW-580,DW-574
+
+
+### DW-617: Reconcile global administrator revocation with the freshness of the authorization read model.
+
+origin: migrated from unnumbered ledger ("Deferred from: spec-gh-actions-28944933021-85877006572.md, continued (2026-10-10)"), 2026-10-12
+location: n/a
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
+reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
+legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Reconcile global administrator revocation with the freshness of the authorization read model.\n  evidence: TenantsGlobalAdministratorVerifier accepts membership from the global-administrator read model without a sequence or freshness check, so a projection lag can retain revoked command authority."
+pre-native-authority-status: open
+status: done 2026-10-28
+archived: 2026-10-30
+pre-native-authority-disposition: awaiting-decision
+disposition: done
+verification-date: 2026-10-12
+verification: TenantsGlobalAdministratorVerifier still checks read-model membership with no version/freshness boundary. Projection lag can retain authorization after removal; this duplicates the broader command/query authority concern.
+evidence-kind: verified-gap
+priority: P1
+owner: unassigned
+dependencies: DW-562 revocation contract decision
+next-action: Resolve the shared authoritative/version-bounded revocation contract through DW-562.
+related: DW-562,DW-564
+duplicate-of: DW-562
+resolution-date: 2026-10-28
+resolution-spec: spec-five-deferred-authority-and-read-bounds.md
+resolution: Approved authenticated native-source membership and final incarnation/prefix proof now govern new global grants at every query gate and tenant-command boundary. Global-management commands retain locked/replayed aggregate authorization without actor self-calls. Unavailable, malformed, legacy, changed or over-bound evidence fails closed; independent tenant permissions and already-admitted operations retain the approved behavior. Request-only successful reuse has no cross-request cache. Same-host HTTP and real Dapr persisted-removal controls refuse a removed administrator while a granting projection remains retained.
+resolution-evidence: five-deferred-authority-and-read-bounds-validation-evidence.md
+resolution-next-action: None for this record; external enrollment, legacy-source recovery and broader runtime/release holds remain separate.
+
+
+### DW-618: Make authorized search paging both complete and private when index windows contain hidden tenants.
+
+origin: migrated from unnumbered ledger ("Deferred from: spec-gh-actions-28944933021-85877006572.md, continued (2026-10-10)"), 2026-10-12
+location: n/a
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
+reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
+legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Make authorized search paging both complete and private when index windows contain hidden tenants.\n  evidence: A fully forbidden or absent window ends paging before later authorized hits, while a partly hidden window derives HasMore from the raw index total and can reveal additional raw results."
+status: done 2026-10-28
+archived: 2026-10-30
+disposition: resolved
+verification-date: 2026-10-12
+verification: TenantQueryGateway.BuildAuthoritativeSearchSnapshotAsync explicitly ends paging for an entirely hidden window and derives partial-window HasMore from raw index total. Later authorized hits can be inaccessible, and partial windows retain the recorded paging disclosure.
+evidence-kind: verified-defect
+priority: P2
+owner: unassigned
+dependencies: Authorization-safe index paging design
+next-action: Design bounded authorized paging that continues through hidden windows without exposing raw-result pagination facts.
+related: DW-619
+resolution-date: 2026-10-28
+resolution: Approved authorized backfill/lookahead continues past hidden, missing, malformed and status-filtered candidates. Each load examines at most 1,000 raw positions including replay/lookahead; exhaustion or any operational hydration gap discards incomplete search for the labelled authorized-list fallback.
+resolution-evidence: dw-117-118-127-599-618-validation-evidence.md
+resolution-limits: Original findings and prior verification remain historical evidence. Privacy excludes timing, work, fallback-mode independence and completeness beyond budget; offset mutations retain existing limits. No snapshot-isolation, assistive-technology or release qualification is claimed.
+
+
+### DW-625: medium; an ambiguous global-administrator delivery that actually committed can never be redelivered or resolved in the same circuit. Owner: global-administrator command lifecycle (Stories 4.2/4.3 policy, reused by 5.7).
+decision: 2026-10-26 User approved recommended MessageId status lookup and conditional visible whitespace annotations on 2026-10-26.
+verification-files: _bmad-output/implementation-artifacts/validation-dw-154-387-390-568-625.md; _bmad-output/implementation-artifacts/spec-dw-154-387-390-568-625-recovery-and-evidence.md
+
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-7-correct-global-administrator-authority-from-audit-evidence.md (2026-10-11)"), 2026-10-12
+location: n/a
+source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
+reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
+legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`\n  summary: medium; an ambiguous global-administrator delivery that actually committed can never be redelivered or resolved in the same circuit. Owner: global-administrator command lifecycle (Stories 4.2/4.3 policy, reused by 5.7).\n  evidence:\n  - **Code:** `GlobalAdministratorCorrectionPanel.RetryAmbiguousDeliveryAsync` (`:1349-1383` restore, `:1384-1420` removal) and `GlobalAdministratorsPage` `WithdrawDeliveryRetry` withdraw same-ULID redelivery once the projection no longer matches the preview.\n  - **Consequence:** a POST that committed but returned an ambiguous result changes that projection. The attempt then stays ambiguous without a correlation, and the fixed-aggregate admission lease stays held until a new circuit.\n  - **To settle:** choose between two fixes: (a) idempotent same-MessageId redelivery that is allowed after preconditions change, or (b) a MessageId-keyed status lookup. Either must keep the \"never dispatch already-applied work\" boundary."
+pre-recovery-authority-status: open
+status: done 2026-10-26
+archived: 2026-10-30
+pre-recovery-authority-disposition: awaiting-decision
+disposition: done
+pre-recovery-authority-verification-date: 2026-10-12
+verification-date: 2026-10-26
+pre-recovery-authority-verification: GlobalAdministratorCorrectionPanel.RetryAmbiguousDeliveryAsync still requires the original grant/removal preview to match current projection; GlobalAdministratorsPage similarly withdraws delivery retries. An actually committed ambiguous request can change that projection while lacking correlation. Existing no-already-applied-dispatch policy is preserved.
+verification: User approved exact MessageId status recovery rather than changed-precondition redispatch. Both main-page and correction grant/removal flows recover correlation only after complete scope/original-caller validation, reject queued caller changes and retain late/remounted evidence without weakening exact confirmation or self-demotion redaction. Acceptance: UI 7835/7835, Server 1527/1527, generated-controller Integration 47/47 and maintained browser pass. Formal workflow review is recorded in validation-dw-154-387-390-568-625.md; broader Integration/runtime/release holds remain.
+pre-recovery-authority-evidence-kind: verified-defect
+evidence-kind: verified-resolution
+priority: P2
+owner: global-administrator command lifecycle (Stories 4.2/4.3 policy, reused by 5.7)
+pre-recovery-authority-dependencies: Platform MessageId lookup/idempotent redelivery capability
+dependencies: Satisfied for this selected scope; broader upstream/runtime/release and assistive-technology holds remain.
+pre-recovery-authority-next-action: Choose an authorized MessageId status lookup or compatible same-ID resolution route that preserves the settled dispatch boundary.
+next-action: None for this selected record; retain original findings, policy history and qualification limits.
+related: none
+
+
+
+### DW-137: Future feature — reversible route identifiers:
+origin: migrated from legacy ledger ("Deferred from: code review of spec-1-10-direct-tenants-reads-and-authoritative-freshness (2026-07-29)"), 2026-08-25
+location: src/Hexalith.Tenants.UI/Services/Gateways/TenantsRestQueryClient.cs:530
+reason: The legacy ledger defers this issue: Future feature — reversible route identifiers:. Original context is preserved in legacy-detail.
+legacy-detail: - **Future feature — reversible route identifiers:** Define an explicit backend route contract for literal tenant/user identifiers containing `/`, then update the six direct-read endpoints and clients to round-trip that representation. Until this is delivered, the direct-read client must fail closed for this identifier class rather than issue an ambiguous encoded-slash request. Owner: future Tenants API route-contract work. Reason: future feature. [src/Hexalith.Tenants.UI/Services/Gateways/TenantsRestQueryClient.cs:530]
+status: done 2026-10-30
+decision: 2026-08-27 Define reversible routes — Define and implement a reversible identifier route contract across all six API endpoints and clients, with slash and dot round-trip and traversal-safety tests.
+decision: 2026-08-27 Define reversible routes — Define and implement a reversible identifier route contract across all six API endpoints and clients, with slash and dot round-trip and traversal-safety tests.
+disposition: actionable
+verification-date: 2026-10-12
+verification: src/Hexalith.Tenants.UI/Services/Gateways/TenantsRestQueryClient.cs still rejects ambiguous slash/all-dot route identifiers. The 2026-08-27 decision approves defining reversible routes, but there is no implemented six-route round-trip contract.
+verification-files: src/Hexalith.Tenants.UI/Services/Gateways/TenantsRestQueryClient.cs
+evidence-kind: recommendation
+priority: P2
+owner: future Tenants API route-contract work
+dependencies: Tenants API route-contract design
+next-action: Specify the reversible route representation and slash/dot/traversal tests before changing client/controller behavior.
+related: none
+
+qualification-date: 2026-10-29
+qualification: The existing pre-HTTP slash/backslash/all-dot refusal passes current Debug/source tests and remains unchanged. Tenant identifiers feed durable AggregateIdentity addresses, so reversible route encoding cannot override downstream shared identity validation. GetUserTenantsQuery instead binds the fixed index aggregate and the requested UserId as EntityId: a user lookup need not change durable tenant aggregate addresses.
+qualification-decision: Preserve the shared identifier restrictions and keep open. User-only reversible route support would be a separate future feature requiring an approved contract; it is not implemented or authorized by this qualification.
+qualification-next-action: Obtain the appropriate shared contract decision for tenant identities, or separately scope and approve user-only lookup support, before changing routes, validators or transport.
+qualification-evidence: dw-116-137-446-459-466-validation-evidence.md
+
+native-disposition-date: 2026-10-30
+native-disposition: accepted-contract-limitation
+native-approval: The user approved the frozen spec and said "approve and continue" on 2026-10-30. This supersedes the earlier reversible-route implementation decision for this record only.
+native-resolution: Reversible-identifier support is withdrawn. Existing pre-HTTP slash/backslash/all-dot refusals and shared durable AggregateIdentity restrictions remain. No reversible-route feature, transport change or durable-identity fix is implemented or claimed.
+native-reopen: Reopen only through separately approved shared-identity contract work or separately approved user-only route-contract work.
+native-evidence: five-deferred-native-speech-validation-evidence.md
+archived: 2026-10-30
+
+### DW-466: Some bUnit `WaitForAssertion` checks in the UI suite time out under load.
+
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-4-understand-audit-availability-and-recovery-3.md (2026-09-30)"), 2026-10-12
+location: tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery-3.md`
+reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
+legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery-3.md`\n  summary: Some bUnit `WaitForAssertion` checks in the UI suite time out under load.\n  evidence: `TenantDetailSurfaceTests.Detail_lifecycle_actions_fail_closed_while_authorization_is_pending` (`:1924`) failed with check count 85 and render count 86 in a full MTP run (3,585/3,586) while four review agents were running; it passes 3 of 3 runs on its own. Story 5.4's verification report also records an unnamed \"metadata-confirmation\" timeout (3,579/3,580) that passed on rerun. Neither test is in the reviewed diff. Name the tests, then raise their per-call timeouts or make their waits event-driven."
+status: done 2026-10-30
+disposition: uncertain
+verification-date: 2026-10-12
+verification: tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs still contains Detail_lifecycle_actions_fail_closed_while_authorization_is_pending with render-based WaitForAssertion. The 2026-09-30 evidence reports load-dependent failures and an unnamed metadata-confirmation timeout; no current controlled load reproduction or precise identity for the second test is available.
+verification-files: tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs
+evidence-kind: unverified-risk
+priority: P2
+owner: unassigned
+dependencies: Historical full-suite raw logs; controlled load reproduction
+next-action: Identify the metadata test from raw historical logs and reproduce both waits under controlled load before changing timeout or synchronization.
+related: none
+followup-verification-date: 2026-10-28
+followup-verification: The corrected load runner requires exactly one passing unskipped executed xUnit XML case per iteration and five completed iterations. Two workers must be ready/alive on the same allowed CPU and show increased loop counters and process CPU time across every iteration; all five pass. Empty/aborted cases or missing/dead/inactive workers fail qualification. Its existing gate proves authorization is pending before release; no timeout or synchronization change was justified. The retained September report and archive-name inventory do not identify the metadata-confirmation case. Passing current tests does not explain either historical failure.
+followup-evidence: five-deferred-runtime-followups-validation-evidence.md
+followup-blocker: Original September failing-test output identifying the metadata-confirmation method, plus a reproduced causal scheduling failure.
+
+
+qualification-date: 2026-10-29
+qualification: The maintained MTP run retains per-test TRX and xUnit output. The existing named authorization test waits for ResolutionEntered before asserting fail-closed pending state, then releases its dependency before waiting for enabled rendering; it passes unchanged. Existing 2026-10-28 five-iteration CPU-contention evidence remains bounded passing evidence. Neither result identifies or explains the September metadata-confirmation timeout.
+qualification-decision: Keep open; do not increase timeouts, change parallelism or claim a causal synchronization fix. The planning-only 1,589 archive-member search has no retained scan packet; four September CI log retrievals returned empty stdout and reveal no method identity.
+qualification-next-action: Recover the original failing metadata-confirmation method name and per-test failure/render evidence, then reproduce a causal scheduling failure before changing timeout or synchronization. Passing reruns cannot substitute for that missing evidence.
+qualification-evidence: dw-116-137-446-459-466-validation-evidence.md
+
+native-disposition-date: 2026-10-30
+native-disposition: accepted-unresolved-historical-incident
+native-approval: The user approved the frozen spec and said "approve and continue" on 2026-10-30. This explicitly accepts tracking closure with the historical evidence gap retained.
+native-resolution: The September metadata-confirmation method and original failing per-test/render evidence remain unidentified; no causal scheduling reproduction or causal fix is claimed. Current dependency-entry-gated passing tests and prior controlled-load passes do not explain the missing failure. The four recovered CI ZIPs contain no executed-test result that identifies it. No timeout or parallelism change is made.
+native-reopen: Reopen on an identified original failure or a causal reproduction; retain the historical missing method/root-cause evidence until then.
+native-evidence: five-deferred-native-speech-validation-evidence.md; evidence/five-deferred-native-speech/historical-ci-inventory.json
+archived: 2026-10-30
+

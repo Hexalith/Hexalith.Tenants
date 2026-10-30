@@ -1,0 +1,364 @@
+{
+  "attempts": [
+    {
+      "attempt": 1,
+      "qualifiedForClosure": false,
+      "phase": "setup only",
+      "failure": "Get-FileHash unavailable before NVDA startup",
+      "sourceBinding": "No complete contemporaneous collector fingerprint; diagnostic only, no qualification claim"
+    },
+    {
+      "attempt": 2,
+      "pairing": "chromium",
+      "requestedTrials": null,
+      "trialGroup": null,
+      "collectorCompleted": false,
+      "failure": "Impossible de lier l'argument au param\u00e8tre \u00ab\u00a0Path\u00a0\u00bb, car il a la valeur Null.",
+      "retainedSpeechSamples": 0,
+      "excludedSpeechSamples": 0,
+      "cleanCompletedCells": [],
+      "sourceSettingsUnchanged": true,
+      "sanitizedPacket": "attempt-02-sanitized.zip",
+      "packetSha256": "7b88f943f4f45b0972b2190b5d1cdad2d2b646c6fda5455cc3ca53159e65199f",
+      "sourceManifest": null,
+      "qualifiedForClosure": false
+    },
+    {
+      "attempt": 3,
+      "qualifiedForClosure": false,
+      "phase": "setup only",
+      "failure": "Owned viewer binding failed; OS Stop-Process denied; the owned NVDA instance was subsequently exited",
+      "sourceBinding": "No complete contemporaneous collector fingerprint; diagnostic only, no qualification claim"
+    },
+    {
+      "attempt": 4,
+      "pairing": "chromium",
+      "requestedTrials": null,
+      "trialGroup": null,
+      "collectorCompleted": false,
+      "failure": "No edit control bound to the owned NVDA Speech Viewer was found.",
+      "retainedSpeechSamples": 0,
+      "excludedSpeechSamples": 0,
+      "cleanCompletedCells": [],
+      "sourceSettingsUnchanged": true,
+      "sanitizedPacket": "attempt-04-sanitized.zip",
+      "packetSha256": "e9b830c747f0dbf596e448aef25a3e9d2bd1c4db537330d85cbb244095d41a42",
+      "sourceManifest": null,
+      "qualifiedForClosure": false
+    },
+    {
+      "attempt": 5,
+      "pairing": "chromium",
+      "requestedTrials": null,
+      "trialGroup": null,
+      "collectorCompleted": false,
+      "failure": "No edit control bound to the owned NVDA Speech Viewer was found.",
+      "retainedSpeechSamples": 0,
+      "excludedSpeechSamples": 0,
+      "cleanCompletedCells": [],
+      "sourceSettingsUnchanged": true,
+      "sanitizedPacket": "attempt-05-sanitized.zip",
+      "packetSha256": "4c0ba7a0c850b26016d00a09e0e4d5de2aecb42ffbe18d2297faa80c774ab91d",
+      "sourceManifest": null,
+      "qualifiedForClosure": false
+    },
+    {
+      "attempt": 6,
+      "pairing": "chromium",
+      "requestedTrials": null,
+      "trialGroup": null,
+      "collectorCompleted": false,
+      "failure": "Native fixture did not complete; retain its failure packet.",
+      "retainedSpeechSamples": 0,
+      "excludedSpeechSamples": 0,
+      "cleanCompletedCells": [],
+      "sourceSettingsUnchanged": true,
+      "sanitizedPacket": "attempt-06-sanitized.zip",
+      "packetSha256": "ad5706f6d9965693929682a1ec105f1d4aaa766f0285a1fcdfa2a8fde8fddec3",
+      "sourceManifest": null,
+      "qualifiedForClosure": false
+    },
+    {
+      "attempt": 7,
+      "pairing": "chromium",
+      "requestedTrials": null,
+      "trialGroup": null,
+      "collectorCompleted": false,
+      "failure": "The disposable browser window is not unique.",
+      "retainedSpeechSamples": 0,
+      "excludedSpeechSamples": 0,
+      "cleanCompletedCells": [],
+      "sourceSettingsUnchanged": true,
+      "sanitizedPacket": "attempt-07-sanitized.zip",
+      "packetSha256": "9f885b81606018ff3979b718bfbf3774be8ccbefbc64540fb697b806adac70d2",
+      "sourceManifest": "attempt-07-source-manifest.json",
+      "qualifiedForClosure": false
+    },
+    {
+      "attempt": 8,
+      "pairing": "chromium",
+      "requestedTrials": null,
+      "trialGroup": null,
+      "collectorCompleted": false,
+      "failure": "Viewer text was reset or truncated; this capture cannot be accepted.",
+      "retainedSpeechSamples": 0,
+      "excludedSpeechSamples": 0,
+      "cleanCompletedCells": [],
+      "sourceSettingsUnchanged": true,
+      "sanitizedPacket": "attempt-08-sanitized.zip",
+      "packetSha256": "dc25148b52df17eac912879e9e2d5540f7d42be1a09ab9564b96af9eb44e063a",
+      "sourceManifest": "attempt-08-source-manifest.json",
+      "qualifiedForClosure": false
+    },
+    {
+      "attempt": 9,
+      "pairing": "chromium",
+      "requestedTrials": null,
+      "trialGroup": null,
+      "collectorCompleted": false,
+      "failure": "Browser foreground was lost during speech capture; unrelated desktop speech is excluded.",
+      "retainedSpeechSamples": 6,
+      "excludedSpeechSamples": 0,
+      "cleanCompletedCells": [],
+      "sourceSettingsUnchanged": true,
+      "sanitizedPacket": "attempt-09-sanitized.zip",
+      "packetSha256": "26f8dec1586b9544242a0fb610744701d548c63d316d89efee9e07ce50bb1e7f",
+      "sourceManifest": "attempt-09-source-manifest.json",
+      "qualifiedForClosure": false
+    },
+    {
+      "attempt": 10,
+      "pairing": "chromium",
+      "requestedTrials": null,
+      "trialGroup": null,
+      "collectorCompleted": false,
+      "failure": "Browser foreground was lost during speech capture; unrelated desktop speech is excluded.",
+      "retainedSpeechSamples": 8,
+      "excludedSpeechSamples": 0,
+      "cleanCompletedCells": [],
+      "sourceSettingsUnchanged": true,
+      "sanitizedPacket": "attempt-10-sanitized.zip",
+      "packetSha256": "8b137df078abc7df27d9960671ff1ed2797593fcee5c7cfad9e0f5ff59ec9c32",
+      "sourceManifest": "attempt-10-source-manifest.json",
+      "qualifiedForClosure": false
+    },
+    {
+      "attempt": 11,
+      "pairing": "chromium",
+      "requestedTrials": null,
+      "trialGroup": "create",
+      "collectorCompleted": false,
+      "failure": "Browser foreground was lost during the observation.",
+      "retainedSpeechSamples": 92,
+      "excludedSpeechSamples": 12,
+      "cleanCompletedCells": [],
+      "sourceSettingsUnchanged": true,
+      "sanitizedPacket": "attempt-11-sanitized.zip",
+      "packetSha256": "5be554961eec4e1c437304fe83ddde4199721c7c1705c89d0f032f83840c011a",
+      "sourceManifest": "attempt-11-source-manifest.json",
+      "qualifiedForClosure": false
+    },
+    {
+      "attempt": 12,
+      "pairing": "chromium",
+      "requestedTrials": null,
+      "trialGroup": "create",
+      "collectorCompleted": false,
+      "failure": "Browser foreground was lost; no unrelated desktop output is retained.",
+      "retainedSpeechSamples": 7,
+      "excludedSpeechSamples": 3,
+      "cleanCompletedCells": [],
+      "sourceSettingsUnchanged": true,
+      "sanitizedPacket": "attempt-12-sanitized.zip",
+      "packetSha256": "b28f3ed671cd3d77608bc963f4a88bf3cdfbb9ceaab1555139cdd47d0dd1afb4",
+      "sourceManifest": "attempt-12-source-manifest.json",
+      "qualifiedForClosure": false
+    },
+    {
+      "attempt": 13,
+      "pairing": "firefox",
+      "requestedTrials": [
+        "C1-lifecycle-en"
+      ],
+      "trialGroup": "create",
+      "collectorCompleted": true,
+      "failure": null,
+      "retainedSpeechSamples": 6,
+      "excludedSpeechSamples": 0,
+      "cleanCompletedCells": [
+        "C1-lifecycle-en"
+      ],
+      "sourceSettingsUnchanged": true,
+      "sanitizedPacket": "attempt-13-sanitized.zip",
+      "packetSha256": "4f3903de150d32dd5729fdc8a4271ddb0856105e11e137449c528a120f04b2ca",
+      "sourceManifest": "attempt-13-source-manifest.json",
+      "qualifiedForClosure": false
+    },
+    {
+      "attempt": 14,
+      "pairing": "chromium",
+      "requestedTrials": [
+        "C1-lifecycle-en",
+        "C1-lifecycle-fr"
+      ],
+      "trialGroup": "create",
+      "collectorCompleted": false,
+      "failure": "The native fixture browser is not in the foreground.",
+      "retainedSpeechSamples": 0,
+      "excludedSpeechSamples": 0,
+      "cleanCompletedCells": [],
+      "sourceSettingsUnchanged": true,
+      "sanitizedPacket": "attempt-14-sanitized.zip",
+      "packetSha256": "53dcd481d92967af178eba875c7b7e813ca6301f4308e588d6a3082b89faa850",
+      "sourceManifest": "attempt-14-source-manifest.json",
+      "qualifiedForClosure": false
+    },
+    {
+      "attempt": 15,
+      "pairing": "firefox",
+      "requestedTrials": [
+        "S3-en"
+      ],
+      "trialGroup": "search",
+      "collectorCompleted": true,
+      "failure": null,
+      "retainedSpeechSamples": 5,
+      "excludedSpeechSamples": 0,
+      "cleanCompletedCells": [
+        "S3-en"
+      ],
+      "sourceSettingsUnchanged": true,
+      "sanitizedPacket": "attempt-15-sanitized.zip",
+      "packetSha256": "c1e44acefe3a5760b8794f0cd70bd36bb934d34d97ee4f0522b12f113cdc08c6",
+      "sourceManifest": "attempt-15-source-manifest.json",
+      "qualifiedForClosure": false
+    },
+    {
+      "attempt": 16,
+      "pairing": "chromium",
+      "requestedTrials": [
+        "C1-lifecycle-en",
+        "C1-lifecycle-fr"
+      ],
+      "trialGroup": "create",
+      "collectorCompleted": false,
+      "failure": "Browser foreground was lost; no unrelated desktop output is retained.",
+      "retainedSpeechSamples": 5,
+      "excludedSpeechSamples": 4,
+      "cleanCompletedCells": [],
+      "sourceSettingsUnchanged": true,
+      "sanitizedPacket": "attempt-16-sanitized.zip",
+      "packetSha256": "e00326eeb47da6927c0b41181e14f47d7bc985b667850d48a7002665296878b4",
+      "sourceManifest": "attempt-16-source-manifest.json",
+      "qualifiedForClosure": false
+    },
+    {
+      "attempt": 17,
+      "pairing": "firefox",
+      "requestedTrials": [
+        "C3-events-lifecycle-en",
+        "C3-events-availability-en",
+        "C3-unavailable-lifecycle-en",
+        "C3-unavailable-availability-en",
+        "C3-events-lifecycle-fr",
+        "C3-events-availability-fr",
+        "C3-unavailable-lifecycle-fr",
+        "C3-unavailable-availability-fr"
+      ],
+      "trialGroup": "create",
+      "collectorCompleted": false,
+      "failure": "Browser foreground was lost; no unrelated desktop output is retained.",
+      "retainedSpeechSamples": 15,
+      "excludedSpeechSamples": 4,
+      "cleanCompletedCells": [
+        "C1-lifecycle-en",
+        "C3-events-lifecycle-en",
+        "C1-availability-en"
+      ],
+      "sourceSettingsUnchanged": true,
+      "sanitizedPacket": "attempt-17-sanitized.zip",
+      "packetSha256": "9b91b03a6a7597cb08038d0b680488c62bdf2e1cf7359594d941c4ebfaca55e8",
+      "sourceManifest": "attempt-17-source-manifest.json",
+      "qualifiedForClosure": false
+    },
+    {
+      "attempt": 18,
+      "pairing": "firefox",
+      "requestedTrials": [
+        "C1-lifecycle-fr"
+      ],
+      "trialGroup": "create",
+      "collectorCompleted": false,
+      "failure": "Browser foreground was lost; no unrelated desktop output is retained.",
+      "retainedSpeechSamples": 0,
+      "excludedSpeechSamples": 11,
+      "cleanCompletedCells": [],
+      "sourceSettingsUnchanged": true,
+      "sanitizedPacket": "attempt-18-sanitized.zip",
+      "packetSha256": "8183a940ae8436d9a15b3e5041564ed447f264a33c11b9f4071a69d9202008d7",
+      "sourceManifest": "attempt-18-source-manifest.json",
+      "qualifiedForClosure": false
+    },
+    {
+      "attempt": 19,
+      "pairing": "firefox",
+      "requestedTrials": [
+        "C1-lifecycle-fr"
+      ],
+      "trialGroup": "create",
+      "collectorCompleted": true,
+      "failure": null,
+      "retainedSpeechSamples": 7,
+      "excludedSpeechSamples": 0,
+      "cleanCompletedCells": [
+        "C1-lifecycle-fr"
+      ],
+      "sourceSettingsUnchanged": true,
+      "sanitizedPacket": "attempt-19-sanitized.zip",
+      "packetSha256": "7f577f6b51aa1097994f31c447bd661d02d58f9df29fc9eb8c18c5c99d92aea2",
+      "sourceManifest": "attempt-19-source-manifest.json",
+      "qualifiedForClosure": false
+    },
+    {
+      "attempt": 20,
+      "pairing": "chromium",
+      "requestedTrials": [
+        "C1-lifecycle-fr"
+      ],
+      "trialGroup": "create",
+      "collectorCompleted": true,
+      "failure": null,
+      "retainedSpeechSamples": 7,
+      "excludedSpeechSamples": 0,
+      "cleanCompletedCells": [
+        "C1-lifecycle-fr"
+      ],
+      "sourceSettingsUnchanged": true,
+      "sanitizedPacket": "attempt-20-sanitized.zip",
+      "packetSha256": "f1b109bbfc94e8f1da357f1d4bc324f9375804abdf8f4a3a7da767e7abaf4e7f",
+      "sourceManifest": "attempt-20-source-manifest.json",
+      "qualifiedForClosure": false
+    },
+    {
+      "attempt": 21,
+      "pairing": "chromium",
+      "requestedTrials": [
+        "S3-en"
+      ],
+      "trialGroup": "search",
+      "collectorCompleted": true,
+      "failure": null,
+      "retainedSpeechSamples": 6,
+      "excludedSpeechSamples": 0,
+      "cleanCompletedCells": [
+        "S3-en"
+      ],
+      "sourceSettingsUnchanged": true,
+      "sanitizedPacket": "attempt-21-sanitized.zip",
+      "packetSha256": "21b8d9d5ca8dbb8ab7877982894844818437508a7145837911bea2c331c03d62",
+      "sourceManifest": "attempt-21-source-manifest.json",
+      "qualifiedForClosure": false
+    }
+  ],
+  "limits": "All AT records remain open. No overall matrix qualification or independent acceptance is asserted. Setup-only attempts 1\u20136 lack complete contemporaneous collector bytes and are diagnostic only. Retained speech samples are actual viewer text; excluded mixed/desktop data remain private."
+}

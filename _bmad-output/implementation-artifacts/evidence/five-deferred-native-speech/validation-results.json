@@ -1,0 +1,31 @@
+{
+  "commands": [
+    {
+      "command": "dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -m:1 -p:UseNuGetDeps=false -p:HexalithEventStoreVersion=3.128.4 -p:HexalithMcpCliFromSource=false -p:NuGetAudit=false",
+      "exitCode": 0,
+      "warnings": 0,
+      "errors": 0
+    },
+    {
+      "command": "dotnet test --project tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug --no-build --no-restore --filter-class *AuditAvailabilityStateTests *CreateTenantFlowTests --report-xunit-trx --report-xunit-xml --fail-skips on",
+      "exitCode": 0,
+      "passed": 159,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "command": "dotnet test --project tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug --no-build --no-restore --report-xunit-trx --report-xunit-xml --fail-skips on --minimum-expected-tests 7000",
+      "exitCode": 0,
+      "passed": 8055,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "command": "TENANTS_BROWSER_HANDOFF=check CHROMIUM_BIN=/usr/bin/google-chrome node tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-administrator-dialogs.mjs /tmp/tenants-five-native-final-control-check.json",
+      "exitCode": 0,
+      "automatedCases": 28
+    }
+  ],
+  "nativeAcceptance": "See per-attempt matrix; actual queued speech only, no automatic AT closure.",
+  "noTimeoutOrParallelismChanges": true
+}

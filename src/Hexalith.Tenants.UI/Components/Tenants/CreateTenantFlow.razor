@@ -119,6 +119,7 @@
             {
                 <AuditAvailabilityState AuditState="@_snapshot.AuditState"
                                         Source="create-tenant"
+                                        AnnounceChanges="false"
                                         OwnerRefreshIncludesAuditAuthority="true"
                                         OnRefresh="@(CanRequeryAudit ? EventCallback.Factory.Create(this, RefreshFromAuditControlAsync) : default(EventCallback))"
                                         OnContinueReadOnly="@(CanContinueReadOnly ? EventCallback.Factory.Create(this, ContinueReadOnly) : default(EventCallback))"
@@ -138,6 +139,28 @@
             }
         </section>
     </section>
+    @* The visual recovery control intentionally unmounts at NotStarted. Keep these text-only hosts mounted
+       before first evidence; inserting a populated polite region missed Pending in native NVDA qualification. *@
+    @{
+        TenantAuditAvailability auditAvailability = TenantAuditAvailability.FromCommandAuditState(_snapshot.AuditState);
+    }
+    @foreach (TenantCommandLiveRegionPoliteness politeness in new[] { TenantCommandLiveRegionPoliteness.Polite, TenantCommandLiveRegionPoliteness.Assertive })
+    {
+        <section @key="politeness"
+                 class="tenants-create-flow__live"
+                 data-testid="@($"tenants-create-audit-live-{politeness.ToString().ToLowerInvariant()}")"
+                 aria-live="@(politeness is TenantCommandLiveRegionPoliteness.Assertive ? "assertive" : "polite")"
+                 aria-atomic="true">
+            @if (auditAvailability.ShouldRender && auditAvailability.LiveRegionPoliteness == politeness)
+            {
+                <p>@AuditStateLabel</p>
+                @if (auditAvailability.ExplanationKey is { } explanationKey)
+                {
+                    <p>@Localizer[explanationKey]</p>
+                }
+            }
+        </section>
+    }
 </section>
 
 @code {

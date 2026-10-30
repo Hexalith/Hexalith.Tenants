@@ -14,14 +14,15 @@ import { fileURLToPath } from 'node:url';
 import { startLocalOidcFixture } from './local-oidc-fixture.mjs';
 import { createDeferredHandoffFixture } from './deferred-handoff-fixture.mjs';
 import { runDeferredHandoff } from './validate-deferred-handoff.mjs';
+import { runDeferredNativeSpeech } from './validate-deferred-native-speech.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const require = createRequire(new URL('../../performance/tenant-audit/package.json', import.meta.url));
 const playwrightModule = process.env.TENANTS_BROWSER_PLAYWRIGHT_MODULE || 'playwright';
 const { chromium, firefox } = require(playwrightModule);
 const handoffMode = process.env.TENANTS_BROWSER_HANDOFF;
-assert.ok(!handoffMode || ['manual', 'check'].includes(handoffMode), 'Use TENANTS_BROWSER_HANDOFF=manual or check');
-const manualHandoff = handoffMode === 'manual';
+assert.ok(!handoffMode || ['manual', 'check', 'native'].includes(handoffMode), 'Use TENANTS_BROWSER_HANDOFF=manual, check or native');
+const manualHandoff = ['manual', 'native'].includes(handoffMode);
 const searchToken = randomUUID();
 const handoff = handoffMode ? createDeferredHandoffFixture(searchToken) : null;
 const playwrightRoot = dirname(require.resolve(`${playwrightModule}/package.json`));
@@ -61,6 +62,7 @@ const captureSource = async () => {
         validatorSha256: hash(await readFile(fileURLToPath(import.meta.url))),
         handoffFixtureSha256: hash(await readFile(resolve(dirname(fileURLToPath(import.meta.url)), 'deferred-handoff-fixture.mjs'))),
         handoffChecksSha256: hash(await readFile(resolve(dirname(fileURLToPath(import.meta.url)), 'validate-deferred-handoff.mjs'))),
+        nativeSpeechChecksSha256: hash(await readFile(resolve(dirname(fileURLToPath(import.meta.url)), 'validate-deferred-native-speech.mjs'))),
         oidcFixtureSha256: hash(await readFile(resolve(dirname(fileURLToPath(import.meta.url)), "local-oidc-fixture.mjs"))),
         sourceBaseRevision: git('rev-parse', 'HEAD'),
         sourceDiffSha256: hash(git('diff', '--binary', 'HEAD', '--', 'src/Hexalith.Tenants.UI')),
@@ -424,7 +426,7 @@ try {
     await testId('tenants-workspace').waitFor();
     if (handoff) {
         phase = 'deferred-handoff';
-        const newSession = async culture => {
+        const newSession = async (culture, { deferWorkspaceEntry = false } = {}) => {
             await context.close();
             handoff.reset();
             const sessionOrdinal = handoff.snapshot().sessionOrdinal;
@@ -482,9 +484,17 @@ try {
             await testId('tenants-workspace').waitFor();
             await testId('tenants-list-next').waitFor();
             await page.waitForLoadState('networkidle');
+            if (deferWorkspaceEntry) await page.goto('about:blank');
             return page;
         };
-        await runDeferredHandoff({ manual: manualHandoff, fixture: handoff, newSession, evidence, wait });
+        const enterWorkspace = async target => {
+            await target.goto(`${fixtureBase}/tenants`);
+            await target.getByTestId('tenants-workspace').waitFor();
+            await target.getByTestId('tenants-list-next').waitFor();
+            await target.waitForLoadState('networkidle');
+        };
+        if (handoffMode === 'native') await runDeferredNativeSpeech({ fixture: handoff, newSession, enterWorkspace, evidence, wait });
+        else await runDeferredHandoff({ manual: manualHandoff, fixture: handoff, newSession, evidence, wait });
         check(!handoff.events.some(event => event.kind === 'command-refused') && circuitErrors.length === 0, 'Handoff must retain zero unexpected commands and circuit errors');
     } else if (readSafety) {
         phase = 'authorized-search-first-page';

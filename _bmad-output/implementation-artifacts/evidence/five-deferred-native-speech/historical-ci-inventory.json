@@ -1,0 +1,100 @@
+{
+  "scope": "Four recovered September CI log ZIPs; inventory and selected build/test markers only. Not exhaustive historical coverage.",
+  "archives": [
+    {
+      "archive": "run-log-36698370848-1790761658.zip",
+      "sha256": "6d67b17ba79f620622c4d0109fb1fc3be772314237153751ae72e02102c8d590",
+      "bytes": 12172,
+      "members": [
+        {
+          "name": "2_ci _ build-and-test.txt",
+          "size": 60970,
+          "sha256": "6875417814f37ef8d714634f6b0e4a764ef45776740643d56738df5ff1cf0c24",
+          "testInvocationLines": [],
+          "buildResultLines": []
+        },
+        {
+          "name": "ci _ build-and-test/system.txt",
+          "size": 1227,
+          "sha256": "8caa8f7313944690c6a0a9c3e9298c1d842e0a5ed12d0fbd490ef9beefc449bc",
+          "testInvocationLines": [],
+          "buildResultLines": []
+        }
+      ]
+    },
+    {
+      "archive": "run-log-36726541810-1790777162.zip",
+      "sha256": "4578574ef00e36e04563dda903c4a4b36053c63de02f18571b0e1594093cfd4f",
+      "bytes": 12073,
+      "members": [
+        {
+          "name": "2_ci _ build-and-test.txt",
+          "size": 61754,
+          "sha256": "e82bf428f4a014b15a11c4569d64f467d0815281a8a7c53ffe7eed3bec7afd46",
+          "testInvocationLines": [],
+          "buildResultLines": [
+            "2026-09-30T14:08:32.7779285Z ##[error]/home/runner/work/Hexalith.Tenants/Hexalith.Tenants/src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor(1648,34): error CS1061: 'DataGridSortEventArgs<TenantListRow>' does not contain a definition for 'Column' and no accessible extension method 'Column' accepting a first argument of type 'DataGridSo",
+            "2026-09-30T14:08:32.7800653Z ##[error]/home/runner/work/Hexalith.Tenants/Hexalith.Tenants/src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor(1655,75): error CS1061: 'DataGridSortEventArgs<TenantListRow>' does not contain a definition for 'SortByAscending' and no accessible extension method 'SortByAscending' accepting a first argument o",
+            "2026-09-30T14:08:34.5075177Z /usr/share/dotnet/sdk/10.0.401/Microsoft.Common.CurrentVersion.targets(2153,5): error MSB4181: The \"MSBuild\" task returned false but did not log an error. [/home/runner/work/Hexalith.Tenants/Hexalith.Tenants/tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj]",
+            "2026-09-30T14:08:37.2515196Z /usr/share/dotnet/sdk/10.0.401/Microsoft.Common.CurrentVersion.targets(2153,5): error MSB4181: The \"MSBuild\" task returned false but did not log an error. [/home/runner/work/Hexalith.Tenants/Hexalith.Tenants/tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj]",
+            "2026-09-30T14:08:37.2712907Z Build FAILED.",
+            "2026-09-30T14:08:37.2719887Z ##[error]/home/runner/work/Hexalith.Tenants/Hexalith.Tenants/src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor(1648,34): error CS1061: 'DataGridSortEventArgs<TenantListRow>' does not contain a definition for 'Column' and no accessible extension method 'Column' accepting a first argument of type 'DataGridSo",
+            "2026-09-30T14:08:37.2727919Z ##[error]/home/runner/work/Hexalith.Tenants/Hexalith.Tenants/src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor(1655,75): error CS1061: 'DataGridSortEventArgs<TenantListRow>' does not contain a definition for 'SortByAscending' and no accessible extension method 'SortByAscending' accepting a first argument o",
+            "2026-09-30T14:08:37.2731465Z /usr/share/dotnet/sdk/10.0.401/Microsoft.Common.CurrentVersion.targets(2153,5): error MSB4181: The \"MSBuild\" task returned false but did not log an error. [/home/runner/work/Hexalith.Tenants/Hexalith.Tenants/tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj]",
+            "2026-09-30T14:08:37.2734638Z /usr/share/dotnet/sdk/10.0.401/Microsoft.Common.CurrentVersion.targets(2153,5): error MSB4181: The \"MSBuild\" task returned false but did not log an error. [/home/runner/work/Hexalith.Tenants/Hexalith.Tenants/tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj]"
+          ]
+        },
+        {
+          "name": "ci _ build-and-test/system.txt",
+          "size": 1072,
+          "sha256": "efcb7eb67ca27caf56e448332b5d68c4b18712629942c6b9ff2dce5edd60fd66",
+          "testInvocationLines": [],
+          "buildResultLines": []
+        }
+      ]
+    },
+    {
+      "archive": "run-log-36747901026-1790787414.zip",
+      "sha256": "60c2f507cfb0d85715227e05567748e8dc2ea9b378f265009123d0f3e53cf420",
+      "bytes": 12635,
+      "members": [
+        {
+          "name": "2_ci _ build-and-test.txt",
+          "size": 63836,
+          "sha256": "8886b96b71f3ea464c47f4c9cc57e6d3ca2d0b86ec6b4c1d0203fc225f5ad2d1",
+          "testInvocationLines": [],
+          "buildResultLines": []
+        },
+        {
+          "name": "ci _ build-and-test/system.txt",
+          "size": 1075,
+          "sha256": "bdfe95ddef0eefedf2206d9243511ffdb7c5af906532f50a1884e64cd50d0f0d",
+          "testInvocationLines": [],
+          "buildResultLines": []
+        }
+      ]
+    },
+    {
+      "archive": "run-log-36747920099-1790787423.zip",
+      "sha256": "750bfef5d300054dac6a70d9e254384c64ed6e8b9d808450d47709d3ca4f7d01",
+      "bytes": 12033,
+      "members": [
+        {
+          "name": "2_ci _ build-and-test.txt",
+          "size": 60893,
+          "sha256": "977d0aaf0e098c4216483b78973aa2925b84205545ad5142fe2a66d11dd6dc5e",
+          "testInvocationLines": [],
+          "buildResultLines": []
+        },
+        {
+          "name": "ci _ build-and-test/system.txt",
+          "size": 1072,
+          "sha256": "949158f85bb027c8c6b674e6db5584b1987822592997d3ab6744c24319c13d5b",
+          "testInvocationLines": [],
+          "buildResultLines": []
+        }
+      ]
+    }
+  ],
+  "conclusion": "No executed-test result or missing metadata-confirmation method is established by this inventory; retain historical uncertainty."
+}

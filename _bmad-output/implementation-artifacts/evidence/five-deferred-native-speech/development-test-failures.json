@@ -1,0 +1,37 @@
+[
+  {
+    "label": "init-only-stub-build",
+    "rawLogSha256": "4bcf2c41e762f98dd218709e9c946aafea3fba92e773a4f96f72553d688d4de1",
+    "resultLines": [
+      "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/Components/CreateTenantFlowTests.cs(770,13): error CS8852: Init-only property or indexer 'CreateTenantFlowTests.StubTenantCommandGateway.Status' can only be assigned in an object initializer, or on 'this' or 'base' in an instance constructor or an 'init' accessor. [/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj]",
+      "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/Components/CreateTenantFlowTests.cs(770,13): error CS8852: Init-only property or indexer 'CreateTenantFlowTests.StubTenantCommandGateway.Status' can only be assigned in an object initializer, or on 'this' or 'base' in an instance constructor or an 'init' accessor. [/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj]"
+    ],
+    "disposition": "Retained failed development attempt; corrected test construction/unsupported bUnit changed-render identity proof, then reran successfully. No production safety assertion removed."
+  },
+  {
+    "label": "changed-render-identity-focused",
+    "rawLogSha256": "9e0507d660892efb39f1d0dfa3f43e0e2023395ac11b7e2594cdc8b966c8b33a",
+    "resultLines": [
+      "failed Hexalith.Tenants.UI.Tests.Components.CreateTenantFlowTests.First_audit_state_populates_a_preexisting_text_only_host_without_remounting_it(eventsStored: True, politeness: \"polite\", label: \"Audit pending\") (11ms)",
+      "failed Hexalith.Tenants.UI.Tests.Components.CreateTenantFlowTests.First_audit_state_populates_a_preexisting_text_only_host_without_remounting_it(eventsStored: False, politeness: \"assertive\", label: \"Audit unavailable\") (13ms)",
+      "  total: 159",
+      "  failed: 2",
+      "  succeeded: 157",
+      "  skipped: 0"
+    ],
+    "disposition": "Retained failed development attempt; corrected test construction/unsupported bUnit changed-render identity proof, then reran successfully. No production safety assertion removed."
+  },
+  {
+    "label": "changed-render-identity-full",
+    "rawLogSha256": "e5d9b618ec3e72fb1a1fc618f1496dd4d5cc0caf12cd2ef52af36e077879c1ff",
+    "resultLines": [
+      "failed Hexalith.Tenants.UI.Tests.Components.CreateTenantFlowTests.First_audit_state_populates_a_preexisting_text_only_host_without_remounting_it(eventsStored: True, politeness: \"polite\", label: \"Audit pending\") (13ms)",
+      "failed Hexalith.Tenants.UI.Tests.Components.CreateTenantFlowTests.First_audit_state_populates_a_preexisting_text_only_host_without_remounting_it(eventsStored: False, politeness: \"assertive\", label: \"Audit unavailable\") (14ms)",
+      "  total: 8055",
+      "  failed: 2",
+      "  succeeded: 8053",
+      "  skipped: 0"
+    ],
+    "disposition": "Retained failed development attempt; corrected test construction/unsupported bUnit changed-render identity proof, then reran successfully. No production safety assertion removed."
+  }
+]

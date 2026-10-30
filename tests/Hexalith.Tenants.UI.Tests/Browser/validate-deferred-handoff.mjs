@@ -114,6 +114,9 @@ export async function runDeferredHandoff({ manual, fixture, newSession, evidence
                 assert.equal(fixture.snapshot().projection, 'hold');
                 await id('tenants-create-accordion').getByRole('button').click();
                 assert.equal(await page.locator(availability).count(), 0);
+                const initialHosts = await page.locator('[data-testid^="tenants-create-audit-live-"]').elementHandles();
+                assert.equal(initialHosts.length, 2);
+                for (const host of initialHosts) assert.equal((await host.textContent()).trim(), '');
                 await id('tenants-create-tenant-id').locator('input').fill(`tenant.speech.${culture}-${status}`);
                 await id('tenants-create-name').locator('input').fill('Speech fixture tenant');
                 await page.keyboard.press('Tab');
@@ -121,13 +124,16 @@ export async function runDeferredHandoff({ manual, fixture, newSession, evidence
                 await id('tenants-create-submit').click();
                 const expected = status === 'events' ? 'pending' : 'unavailable';
                 await page.locator(`${availability}[data-state="${expected}"]`).waitFor();
+                for (const host of initialHosts) assert.equal(await host.evaluate(node => node.isConnected), true, 'Initial audit host survives first content insertion');
                 const trace = await page.evaluate(() => window.__handoffStates);
                 assert.equal(trace[0]?.state, expected, 'Expected first insertion, with no earlier Pending');
                 const label = await page.locator(availability).getAttribute('aria-label');
                 assert.equal(label, culture === 'fr' ? (status === 'events' ? 'Audit en attente' : 'Audit indisponible')
                     : (status === 'events' ? 'Audit pending' : 'Audit unavailable'));
-                assert.equal(await page.locator(`${availability} [data-testid="tenants-audit-availability-announcement"]`).getAttribute('aria-live'),
-                    status === 'events' ? 'polite' : 'assertive');
+                assert.equal(await page.locator(`${availability} [data-testid="tenants-audit-availability-announcement"]`).getAttribute('aria-live'), null);
+                const politeness = status === 'events' ? 'polite' : 'assertive';
+                assert.equal(await id(`tenants-create-audit-live-${politeness}`).getAttribute('aria-live'), politeness);
+                assert.ok((await id(`tenants-create-audit-live-${politeness}`).innerText()).includes(label));
                 assert.ok(await id('tenants-create-live-region').isVisible());
                 record(`${culture}: ${status} first insertion, projection unable to confirm`);
                 const prior = fixture.snapshot().statusReads;

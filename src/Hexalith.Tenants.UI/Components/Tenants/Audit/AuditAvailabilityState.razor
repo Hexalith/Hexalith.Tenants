@@ -17,7 +17,7 @@
                      VerticalGap="0.5rem"
                      Class="tenants-audit-availability__announcement"
                      data-testid="tenants-audit-availability-announcement"
-                     aria-live="@LiveRegion"
+                     aria-live="@(AnnounceChanges ? LiveRegion : null)"
                      aria-atomic="true">
             <p class="tenants-audit-availability__state"
                data-testid="@StateTestId"
@@ -117,6 +117,10 @@
 
     [Parameter]
     public TenantCommandAuditState AuditState { get; set; } = TenantCommandAuditState.NotStarted;
+
+    /// <summary>Gets or sets whether this control announces changes, when its owner has no persistent announcement host.</summary>
+    [Parameter]
+    public bool AnnounceChanges { get; set; } = true;
 
     /// <summary>Gets or sets the stable, culture-independent host surface rendered as <c>data-audit-source</c>.</summary>
     [Parameter]

@@ -128,6 +128,21 @@ public sealed class AuditAvailabilityStateTests : FluentBunitContext
         cut.Markup.ShouldBeEmpty();
     }
 
+    [Fact]
+    public void Owner_announcements_leave_shared_state_and_recovery_visible_without_a_second_live_region()
+    {
+        RegisterLocalizer();
+        IRenderedComponent<AuditAvailabilityState> cut = Render<AuditAvailabilityState>(parameters => parameters
+            .Add(component => component.AuditState, TenantCommandAuditState.AuditPending)
+            .Add(component => component.AnnounceChanges, false)
+            .Add(component => component.OnRefresh, () => { }));
+
+        cut.FindAll("[aria-live]").ShouldBeEmpty();
+        cut.Find("[data-testid='tenants-audit-availability-badge']").TextContent.ShouldBe("Audit pending");
+        cut.Find("[data-testid='tenants-audit-availability-explanation']").TextContent.ShouldBe(Explanations[TenantCommandAuditState.AuditPending]);
+        cut.Find("[data-recovery-verb='refresh']");
+    }
+
     [Theory]
     [InlineData(TenantCommandAuditState.AuditPending, "refresh,inspectaudit")]
     [InlineData(TenantCommandAuditState.AuditDelayed, "refresh,inspectaudit,escalate")]
@@ -1040,8 +1055,7 @@ public sealed class AuditAvailabilityStateTests : FluentBunitContext
 
         string harness = File.ReadAllText(Path.Combine(
             ProjectRoot(), "tests", "Hexalith.Tenants.UI.Tests", "Browser", "tenants-focus-browser-validation.html"));
-        string fixture = harness[harness.IndexOf("<section id=\"availability-fixture\"", StringComparison.Ordinal)..
-            harness.IndexOf("<output id=\"validation-report\">", StringComparison.Ordinal)];
+        string fixture = harness[harness.IndexOf("<section id=\"availability-fixture\"", StringComparison.Ordinal)..harness.IndexOf("<output id=\"validation-report\">", StringComparison.Ordinal)];
         fixture.ShouldContain($"class=\"{root.GetAttribute("class")}\"");
         fixture.ShouldContain($"data-state=\"{root.GetAttribute("data-state")}\"");
         fixture.ShouldContain($"class=\"{announcement.GetAttribute("class")}\"");

@@ -1,0 +1,42 @@
+{
+  "provenance": "Copied from the unchanged native checkout files while attempt 11 was executing, before any rerun or overwrite. Compare against startup collector/observer hashes and fixture sourceBeforeBuild hashes at flush.",
+  "archiveSha256": "b5f3694b6dab0b83c007e60d7f728459031a81de82a5f47d55fe71ddf032b6f3",
+  "files": [
+    {
+      "path": "capture-deferred-nvda-speech.ps1",
+      "bytes": 20354,
+      "sha256": "6e668e86cb9ee9b012a13a9660ab499ea1ce64d2f17a7d4704974382209d4775"
+    },
+    {
+      "path": "validate-deferred-native-speech.mjs",
+      "bytes": 9478,
+      "sha256": "5a2469475d0172f9d109b422eeb7d537fca88fa8250e16a228d941e1f5ae48cf"
+    },
+    {
+      "path": "deferred-nvda-observer.py",
+      "bytes": 3107,
+      "sha256": "ea40ce52d41573dad9486168725c3fc8910bbfbe759d3f44b5f040a33890f8be"
+    },
+    {
+      "path": "validate-authenticated-administrator-dialogs.mjs",
+      "bytes": 86784,
+      "sha256": "7b214af64b9e4b5a0baa68a3c87063774e604b124edd8824429266f362a85efc"
+    },
+    {
+      "path": "deferred-handoff-fixture.mjs",
+      "bytes": 9160,
+      "sha256": "6a4908db949f08ecbacd4d2e7192f311e37fa0b866d0b84e14e98152741edcd5"
+    },
+    {
+      "path": "validate-deferred-handoff.mjs",
+      "bytes": 11272,
+      "sha256": "4b4f01f2115c0797fbe501f556b4581a18691c64703940bf3e855ed328fb5d14"
+    },
+    {
+      "path": "local-oidc-fixture.mjs",
+      "bytes": 3826,
+      "sha256": "c3832608e33425c4e090dbf2014c246937237223c5097ea33c316363ab346b8f"
+    }
+  ],
+  "startupHashesVerified": true
+}

@@ -1,0 +1,324 @@
+{
+  "attempt": 11,
+  "qualifiedForClosure": false,
+  "trials": [
+    {
+      "trial": "C1-lifecycle-en",
+      "armUtc": "2026-10-30T10:00:47.387Z",
+      "observation": {
+        "startedUtc": "2026-10-30T10:00:53.8843086Z",
+        "audibleCompletion": "not established by Speech Viewer",
+        "queuedQuietSeconds": 5,
+        "endedUtc": "2026-10-30T10:01:23.8630570Z"
+      },
+      "speechSamples": 6,
+      "positiveControlSamples": 1,
+      "expectedStateLabelOccurrences": 0,
+      "expectedReasonStartOccurrences": 0,
+      "contaminatedOrAmbiguous": false,
+      "assessment": "Measured Pending omission: separate lifecycle speech present, complete window and positive control"
+    },
+    {
+      "trial": "C3-events-lifecycle-en",
+      "armUtc": "2026-10-30T10:01:29.796Z",
+      "observation": {
+        "startedUtc": "2026-10-30T10:01:35.8813159Z",
+        "audibleCompletion": "not established by Speech Viewer",
+        "queuedQuietSeconds": 5,
+        "endedUtc": "2026-10-30T10:02:05.8479424Z"
+      },
+      "speechSamples": 4,
+      "positiveControlSamples": 1,
+      "expectedStateLabelOccurrences": 0,
+      "expectedReasonStartOccurrences": 0,
+      "contaminatedOrAmbiguous": false,
+      "assessment": "Not accepted for closure; distinguish focus reading/live speech and interruption"
+    },
+    {
+      "trial": "C1-availability-en",
+      "armUtc": "2026-10-30T10:02:13.181Z",
+      "observation": {
+        "startedUtc": "2026-10-30T10:02:19.5058376Z",
+        "audibleCompletion": "not established by Speech Viewer",
+        "queuedQuietSeconds": 5,
+        "endedUtc": "2026-10-30T10:02:49.4757502Z"
+      },
+      "speechSamples": 6,
+      "positiveControlSamples": 1,
+      "expectedStateLabelOccurrences": 0,
+      "expectedReasonStartOccurrences": 0,
+      "contaminatedOrAmbiguous": false,
+      "assessment": "Measured Pending omission: separate lifecycle speech present, complete window and positive control"
+    },
+    {
+      "trial": "C3-events-availability-en",
+      "armUtc": "2026-10-30T10:02:55.391Z",
+      "observation": {
+        "startedUtc": "2026-10-30T10:03:01.2535067Z",
+        "audibleCompletion": "not established by Speech Viewer",
+        "queuedQuietSeconds": 5,
+        "endedUtc": "2026-10-30T10:03:31.2229182Z"
+      },
+      "speechSamples": 2,
+      "positiveControlSamples": 1,
+      "expectedStateLabelOccurrences": 1,
+      "expectedReasonStartOccurrences": 0,
+      "contaminatedOrAmbiguous": false,
+      "assessment": "Not accepted for closure; distinguish focus reading/live speech and interruption"
+    },
+    {
+      "trial": "C2-lifecycle-en",
+      "armUtc": "2026-10-30T10:03:38.584Z",
+      "observation": {
+        "startedUtc": "2026-10-30T10:03:44.8058989Z",
+        "audibleCompletion": "not established by Speech Viewer",
+        "queuedQuietSeconds": 5,
+        "endedUtc": "2026-10-30T10:04:14.8143895Z"
+      },
+      "speechSamples": 6,
+      "positiveControlSamples": 2,
+      "expectedStateLabelOccurrences": 3,
+      "expectedReasonStartOccurrences": 1,
+      "contaminatedOrAmbiguous": true,
+      "assessment": "Not accepted for closure; distinguish focus reading/live speech and interruption"
+    },
+    {
+      "trial": "C3-unavailable-lifecycle-en",
+      "armUtc": "2026-10-30T10:04:20.696Z",
+      "observation": {
+        "startedUtc": "2026-10-30T10:04:26.8171318Z",
+        "audibleCompletion": "not established by Speech Viewer",
+        "queuedQuietSeconds": 5,
+        "endedUtc": "2026-10-30T10:04:56.7882015Z"
+      },
+      "speechSamples": 3,
+      "positiveControlSamples": 2,
+      "expectedStateLabelOccurrences": 3,
+      "expectedReasonStartOccurrences": 1,
+      "contaminatedOrAmbiguous": false,
+      "assessment": "Not accepted for closure; distinguish focus reading/live speech and interruption"
+    },
+    {
+      "trial": "C2-availability-en",
+      "armUtc": "2026-10-30T10:05:04.013Z",
+      "observation": {
+        "startedUtc": "2026-10-30T10:05:10.3365220Z",
+        "audibleCompletion": "not established by Speech Viewer",
+        "queuedQuietSeconds": 5,
+        "endedUtc": "2026-10-30T10:05:40.3023474Z"
+      },
+      "speechSamples": 6,
+      "positiveControlSamples": 2,
+      "expectedStateLabelOccurrences": 3,
+      "expectedReasonStartOccurrences": 1,
+      "contaminatedOrAmbiguous": false,
+      "assessment": "Not accepted for closure; distinguish focus reading/live speech and interruption"
+    },
+    {
+      "trial": "C3-unavailable-availability-en",
+      "armUtc": "2026-10-30T10:05:46.191Z",
+      "observation": {
+        "startedUtc": "2026-10-30T10:05:52.1744095Z",
+        "audibleCompletion": "not established by Speech Viewer",
+        "queuedQuietSeconds": 5,
+        "endedUtc": "2026-10-30T10:06:22.1459380Z"
+      },
+      "speechSamples": 3,
+      "positiveControlSamples": 1,
+      "expectedStateLabelOccurrences": 4,
+      "expectedReasonStartOccurrences": 1,
+      "contaminatedOrAmbiguous": false,
+      "assessment": "Not accepted for closure; distinguish focus reading/live speech and interruption"
+    },
+    {
+      "trial": "C1-lifecycle-fr",
+      "armUtc": "2026-10-30T10:06:29.469Z",
+      "observation": {
+        "startedUtc": "2026-10-30T10:06:35.8010460Z",
+        "audibleCompletion": "not established by Speech Viewer",
+        "queuedQuietSeconds": 5,
+        "endedUtc": "2026-10-30T10:07:05.7684796Z"
+      },
+      "speechSamples": 6,
+      "positiveControlSamples": 1,
+      "expectedStateLabelOccurrences": 0,
+      "expectedReasonStartOccurrences": 0,
+      "contaminatedOrAmbiguous": false,
+      "assessment": "Measured Pending omission: separate lifecycle speech present, complete window and positive control"
+    },
+    {
+      "trial": "C3-events-lifecycle-fr",
+      "armUtc": "2026-10-30T10:07:11.661Z",
+      "observation": {
+        "startedUtc": "2026-10-30T10:07:22.2725711Z",
+        "audibleCompletion": "not established by Speech Viewer",
+        "queuedQuietSeconds": 5,
+        "endedUtc": "2026-10-30T10:07:52.2358338Z"
+      },
+      "speechSamples": 8,
+      "positiveControlSamples": 1,
+      "expectedStateLabelOccurrences": 0,
+      "expectedReasonStartOccurrences": 0,
+      "contaminatedOrAmbiguous": true,
+      "assessment": "Not accepted for closure; distinguish focus reading/live speech and interruption"
+    },
+    {
+      "trial": "C1-availability-fr",
+      "armUtc": "2026-10-30T10:07:59.562Z",
+      "observation": {
+        "startedUtc": "2026-10-30T10:08:05.6929030Z",
+        "audibleCompletion": "not established by Speech Viewer",
+        "queuedQuietSeconds": 5,
+        "endedUtc": "2026-10-30T10:08:35.6591705Z"
+      },
+      "speechSamples": 6,
+      "positiveControlSamples": 1,
+      "expectedStateLabelOccurrences": 0,
+      "expectedReasonStartOccurrences": 0,
+      "contaminatedOrAmbiguous": false,
+      "assessment": "Measured Pending omission: separate lifecycle speech present, complete window and positive control"
+    },
+    {
+      "trial": "C3-events-availability-fr",
+      "armUtc": "2026-10-30T10:08:41.543Z",
+      "observation": {
+        "startedUtc": "2026-10-30T10:08:47.4295185Z",
+        "audibleCompletion": "not established by Speech Viewer",
+        "queuedQuietSeconds": 5,
+        "endedUtc": "2026-10-30T10:09:17.3953795Z"
+      },
+      "speechSamples": 2,
+      "positiveControlSamples": 2,
+      "expectedStateLabelOccurrences": 1,
+      "expectedReasonStartOccurrences": 0,
+      "contaminatedOrAmbiguous": false,
+      "assessment": "Not accepted for closure; distinguish focus reading/live speech and interruption"
+    },
+    {
+      "trial": "C2-lifecycle-fr",
+      "armUtc": "2026-10-30T10:09:24.748Z",
+      "observation": {
+        "startedUtc": "2026-10-30T10:09:30.9940843Z",
+        "audibleCompletion": "not established by Speech Viewer",
+        "queuedQuietSeconds": 5,
+        "endedUtc": "2026-10-30T10:10:00.9573280Z"
+      },
+      "speechSamples": 6,
+      "positiveControlSamples": 2,
+      "expectedStateLabelOccurrences": 3,
+      "expectedReasonStartOccurrences": 1,
+      "contaminatedOrAmbiguous": true,
+      "assessment": "Not accepted for closure; distinguish focus reading/live speech and interruption"
+    },
+    {
+      "trial": "C3-unavailable-lifecycle-fr",
+      "armUtc": "2026-10-30T10:10:06.832Z",
+      "observation": null,
+      "speechSamples": 10,
+      "positiveControlSamples": null,
+      "expectedStateLabelOccurrences": 0,
+      "expectedReasonStartOccurrences": 0,
+      "contaminatedOrAmbiguous": false,
+      "assessment": "Not accepted for closure; distinguish focus reading/live speech and interruption"
+    }
+  ],
+  "sanitization": {
+    "attempt": 11,
+    "qualifiedForClosure": false,
+    "rawArtifactHashes": {
+      "capture.json": "a120e0327fd8e0fa6c36af19e4175218f79e3215194ed14d5b3166f078d7d53b",
+      "speech.json": "5c83cf848fa0c8ae846c31418c68f605063e59cae2ae51bd9fb984374b30c9be",
+      "timeline.json": "4e7fd709e5474f7030010414fd4036906cf63c65c4f5c18e32a0e0f956f6d218",
+      "fixture.json": "b303028848d0477674b785ae69a100ba7e2b0446c577356bee65a141507fe449"
+    },
+    "excludedSpeechSamples": [
+      {
+        "index": 28,
+        "trial": "C2-lifecycle-en",
+        "utc": "2026-10-30T10:03:46.2240921Z",
+        "sha256": "e512ea297a9edb0b29c98a34211132c0fe32734cf4d59f7b5a8bb2ad6e4d4a0a",
+        "reason": "Unrelated or unassignable queued desktop output; whole sample excluded, trial unqualified"
+      },
+      {
+        "index": 29,
+        "trial": "C2-lifecycle-en",
+        "utc": "2026-10-30T10:03:46.4615773Z",
+        "sha256": "e512ea297a9edb0b29c98a34211132c0fe32734cf4d59f7b5a8bb2ad6e4d4a0a",
+        "reason": "Unrelated or unassignable queued desktop output; whole sample excluded, trial unqualified"
+      },
+      {
+        "index": 30,
+        "trial": "C2-lifecycle-en",
+        "utc": "2026-10-30T10:03:46.7226147Z",
+        "sha256": "17678e10b19b940bb8e49ac45f1096b2bdbba34324e29a82d4b18ab3c8c3c7ae",
+        "reason": "Unrelated or unassignable queued desktop output; whole sample excluded, trial unqualified"
+      },
+      {
+        "index": 31,
+        "trial": "C2-lifecycle-en",
+        "utc": "2026-10-30T10:03:47.0187575Z",
+        "sha256": "e512ea297a9edb0b29c98a34211132c0fe32734cf4d59f7b5a8bb2ad6e4d4a0a",
+        "reason": "Unrelated or unassignable queued desktop output; whole sample excluded, trial unqualified"
+      },
+      {
+        "index": 32,
+        "trial": "C2-lifecycle-en",
+        "utc": "2026-10-30T10:03:47.2688688Z",
+        "sha256": "f12b3d584d32a5ca2def414adea08fcd1241beec575a13c04ffe9779b75354c5",
+        "reason": "Unrelated or unassignable queued desktop output; whole sample excluded, trial unqualified"
+      },
+      {
+        "index": 33,
+        "trial": "C2-lifecycle-en",
+        "utc": "2026-10-30T10:03:47.5448257Z",
+        "sha256": "e512ea297a9edb0b29c98a34211132c0fe32734cf4d59f7b5a8bb2ad6e4d4a0a",
+        "reason": "Unrelated or unassignable queued desktop output; whole sample excluded, trial unqualified"
+      },
+      {
+        "index": 34,
+        "trial": "C2-lifecycle-en",
+        "utc": "2026-10-30T10:03:47.7848308Z",
+        "sha256": "24cd123bb5a7a8db0a4269e538187937d870198e859b97186c34830d41159aa8",
+        "reason": "Unrelated or unassignable queued desktop output; whole sample excluded, trial unqualified"
+      },
+      {
+        "index": 65,
+        "trial": "C3-events-lifecycle-fr",
+        "utc": "2026-10-30T10:07:13.9505392Z",
+        "sha256": "f4f0b6e661b003d2a268ad5b22f1a96ae5b319be125f1aa88883b53a6a381c20",
+        "reason": "Unrelated or unassignable queued desktop output; whole sample excluded, trial unqualified"
+      },
+      {
+        "index": 66,
+        "trial": "C3-events-lifecycle-fr",
+        "utc": "2026-10-30T10:07:14.2265224Z",
+        "sha256": "e512ea297a9edb0b29c98a34211132c0fe32734cf4d59f7b5a8bb2ad6e4d4a0a",
+        "reason": "Unrelated or unassignable queued desktop output; whole sample excluded, trial unqualified"
+      },
+      {
+        "index": 68,
+        "trial": "C3-events-lifecycle-fr",
+        "utc": "2026-10-30T10:07:14.4851685Z",
+        "sha256": "e512ea297a9edb0b29c98a34211132c0fe32734cf4d59f7b5a8bb2ad6e4d4a0a",
+        "reason": "Unrelated or unassignable queued desktop output; whole sample excluded, trial unqualified"
+      },
+      {
+        "index": 69,
+        "trial": "C3-events-lifecycle-fr",
+        "utc": "2026-10-30T10:07:15.8337428Z",
+        "sha256": "e512ea297a9edb0b29c98a34211132c0fe32734cf4d59f7b5a8bb2ad6e4d4a0a",
+        "reason": "Unrelated or unassignable queued desktop output; whole sample excluded, trial unqualified"
+      },
+      {
+        "index": 91,
+        "trial": "C2-lifecycle-fr",
+        "utc": "2026-10-30T10:09:31.2041906Z",
+        "sha256": "ff0a7d8548aef17f9bba7e3dc1b4017b0513f9ce60f8c2908f1d06f249a6e497",
+        "reason": "Unrelated or unassignable queued desktop output; whole sample excluded, trial unqualified"
+      }
+    ],
+    "excludedPreArmCancellationEvents": 28,
+    "limits": "Queued output, sampled foreground and explicit cancellation evidence; no audible-completion claim. Contaminated or interrupted trials remain unqualified.",
+    "startupSourceHashesVerified": true
+  }
+}

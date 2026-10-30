@@ -1,0 +1,52 @@
+{
+  "provenance": "Immutable native source snapshot immediately before attempt 12 launch.",
+  "archiveSha256": "56f740fece852ce725c08714487113e57948ef86857828ab598806b62b565476",
+  "files": [
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-administrator-dialogs.mjs",
+      "bytes": 86784,
+      "sha256": "7b214af64b9e4b5a0baa68a3c87063774e604b124edd8824429266f362a85efc"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Browser/validate-deferred-native-speech.mjs",
+      "bytes": 9556,
+      "sha256": "13d0a56ad39626bb3d56ae5cbf37d8f42b0926bccbea2625450cee6d90a378f9"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Browser/capture-deferred-nvda-speech.ps1",
+      "bytes": 20772,
+      "sha256": "3fa306e3ba3a0ecfb4b2f7d3a202f42ab012470800c0e668276e069467cf792b"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Browser/deferred-nvda-observer.py",
+      "bytes": 3302,
+      "sha256": "73ee4a122a75fc8d94718ae9e5c3f1ceff2240e2600a5a3f9d2a8e0210a0fda3"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Browser/deferred-handoff-fixture.mjs",
+      "bytes": 9160,
+      "sha256": "6a4908db949f08ecbacd4d2e7192f311e37fa0b866d0b84e14e98152741edcd5"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Browser/validate-deferred-handoff.mjs",
+      "bytes": 11524,
+      "sha256": "781676bd568c292f0b1774952c65a2c75fedb625a9c740c599221f63d08d895c"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Browser/local-oidc-fixture.mjs",
+      "bytes": 3826,
+      "sha256": "c3832608e33425c4e090dbf2014c246937237223c5097ea33c316363ab346b8f"
+    },
+    {
+      "path": "src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor",
+      "bytes": 58550,
+      "sha256": "0cc5c1d108601bb519accd2396ca4fa6ea9f843edfff728b3aca3f8a14e07a3d"
+    },
+    {
+      "path": "src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditAvailabilityState.razor",
+      "bytes": 17591,
+      "sha256": "a85e3c3538481562ad536f63fda6273e175b8d1202be2d88075f6e14d7835384"
+    }
+  ],
+  "startupHashesVerified": true
+}

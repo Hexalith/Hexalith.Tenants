@@ -1,0 +1,3966 @@
+{
+  "playwrightVersion": "1.63.0",
+  "startedUtc": "2026-10-30T10:25:41.904Z",
+  "hostMode": "Production authentication and Razor components; separate UI process; controlled read-only HTTP and SignalR upstream",
+  "fixtureScope": "Authenticated production UI and manual control browser checks in EN/FR; no actual AT speech or backend delivery qualification",
+  "authenticationFixture": "Test-only loopback OIDC issuer; production code validates signed tokens and authenticates its circuit",
+  "records": [
+    "DW-116",
+    "DW-446",
+    "DW-459"
+  ],
+  "diagnosticSelectedCasesOnly": false,
+  "cases": [
+    {
+      "name": "en: S0 empty notice region and protected search",
+      "passed": true
+    },
+    {
+      "name": "en: S2 protected search restarts after Back",
+      "passed": true
+    },
+    {
+      "name": "en: S1 unavailable search with authorized fallback",
+      "passed": true
+    },
+    {
+      "name": "en: S3 exactly one rejected continuation and authorized cursorless recovery",
+      "passed": true
+    },
+    {
+      "name": "en: S3 subsequent continuation permitted",
+      "passed": true
+    },
+    {
+      "name": "en: events first insertion, projection unable to confirm",
+      "passed": true
+    },
+    {
+      "name": "en: events same-state lifecycle Refresh without redispatch",
+      "passed": true
+    },
+    {
+      "name": "en: projection release confirms independently of status",
+      "passed": true
+    },
+    {
+      "name": "en: events first insertion, projection unable to confirm",
+      "passed": true
+    },
+    {
+      "name": "en: events same-state availability Refresh without redispatch",
+      "passed": true
+    },
+    {
+      "name": "en: unavailable first insertion, projection unable to confirm",
+      "passed": true
+    },
+    {
+      "name": "en: unavailable same-state lifecycle Refresh without redispatch",
+      "passed": true
+    },
+    {
+      "name": "en: unavailable first insertion, projection unable to confirm",
+      "passed": true
+    },
+    {
+      "name": "en: unavailable same-state availability Refresh without redispatch",
+      "passed": true
+    },
+    {
+      "name": "fr: S0 empty notice region and protected search",
+      "passed": true
+    },
+    {
+      "name": "fr: S2 protected search restarts after Back",
+      "passed": true
+    },
+    {
+      "name": "fr: S1 unavailable search with authorized fallback",
+      "passed": true
+    },
+    {
+      "name": "fr: S3 exactly one rejected continuation and authorized cursorless recovery",
+      "passed": true
+    },
+    {
+      "name": "fr: S3 subsequent continuation permitted",
+      "passed": true
+    },
+    {
+      "name": "fr: events first insertion, projection unable to confirm",
+      "passed": true
+    },
+    {
+      "name": "fr: events same-state lifecycle Refresh without redispatch",
+      "passed": true
+    },
+    {
+      "name": "fr: projection release confirms independently of status",
+      "passed": true
+    },
+    {
+      "name": "fr: events first insertion, projection unable to confirm",
+      "passed": true
+    },
+    {
+      "name": "fr: events same-state availability Refresh without redispatch",
+      "passed": true
+    },
+    {
+      "name": "fr: unavailable first insertion, projection unable to confirm",
+      "passed": true
+    },
+    {
+      "name": "fr: unavailable same-state lifecycle Refresh without redispatch",
+      "passed": true
+    },
+    {
+      "name": "fr: unavailable first insertion, projection unable to confirm",
+      "passed": true
+    },
+    {
+      "name": "fr: unavailable same-state availability Refresh without redispatch",
+      "passed": true
+    }
+  ],
+  "sourceBeforeBuild": {
+    "validatorSha256": "7b214af64b9e4b5a0baa68a3c87063774e604b124edd8824429266f362a85efc",
+    "handoffFixtureSha256": "6a4908db949f08ecbacd4d2e7192f311e37fa0b866d0b84e14e98152741edcd5",
+    "handoffChecksSha256": "e9cbe6c51b97922ae78cd10b40c5dd3c31e993ccbab02a67525f3ef37402cde3",
+    "nativeSpeechChecksSha256": "a168644a9722d53bb87d226934b88cfc381836c319aac87c4de1ddc718d4f807",
+    "oidcFixtureSha256": "c3832608e33425c4e090dbf2014c246937237223c5097ea33c316363ab346b8f",
+    "sourceBaseRevision": "4fa78baa94f939a2b752bce52d0bac77214ddd83",
+    "sourceDiffSha256": "7234febb53358c8e443f3990259385cca60d118d8335e913425f284ffdee05af",
+    "buildInputsDiffSha256": "7234febb53358c8e443f3990259385cca60d118d8335e913425f284ffdee05af",
+    "untrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "frontComposerBaseRevision": "612d23485d7e2845d22102621a38d6c904e1ea90",
+    "frontComposerDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "frontComposerUntrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "build": {
+    "executable": "dotnet",
+    "arguments": [
+      "build",
+      "src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj",
+      "-c",
+      "Debug",
+      "-m:1",
+      "-p:UseNuGetDeps=false",
+      "-p:HexalithEventStoreVersion=3.128.4",
+      "-p:HexalithMcpCliFromSource=false",
+      "-p:NuGetAudit=false"
+    ],
+    "succeeded": true,
+    "skippedForDevelopment": false,
+    "reusedBuild": false
+  },
+  "sourceAfterBuild": {
+    "validatorSha256": "7b214af64b9e4b5a0baa68a3c87063774e604b124edd8824429266f362a85efc",
+    "handoffFixtureSha256": "6a4908db949f08ecbacd4d2e7192f311e37fa0b866d0b84e14e98152741edcd5",
+    "handoffChecksSha256": "e9cbe6c51b97922ae78cd10b40c5dd3c31e993ccbab02a67525f3ef37402cde3",
+    "nativeSpeechChecksSha256": "a168644a9722d53bb87d226934b88cfc381836c319aac87c4de1ddc718d4f807",
+    "oidcFixtureSha256": "c3832608e33425c4e090dbf2014c246937237223c5097ea33c316363ab346b8f",
+    "sourceBaseRevision": "4fa78baa94f939a2b752bce52d0bac77214ddd83",
+    "sourceDiffSha256": "7234febb53358c8e443f3990259385cca60d118d8335e913425f284ffdee05af",
+    "buildInputsDiffSha256": "7234febb53358c8e443f3990259385cca60d118d8335e913425f284ffdee05af",
+    "untrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "frontComposerBaseRevision": "612d23485d7e2845d22102621a38d6c904e1ea90",
+    "frontComposerDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "frontComposerUntrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "sourceStableDuringBuild": true,
+  "validatorSha256": "7b214af64b9e4b5a0baa68a3c87063774e604b124edd8824429266f362a85efc",
+  "handoffFixtureSha256": "6a4908db949f08ecbacd4d2e7192f311e37fa0b866d0b84e14e98152741edcd5",
+  "handoffChecksSha256": "e9cbe6c51b97922ae78cd10b40c5dd3c31e993ccbab02a67525f3ef37402cde3",
+  "nativeSpeechChecksSha256": "a168644a9722d53bb87d226934b88cfc381836c319aac87c4de1ddc718d4f807",
+  "oidcFixtureSha256": "c3832608e33425c4e090dbf2014c246937237223c5097ea33c316363ab346b8f",
+  "sourceBaseRevision": "4fa78baa94f939a2b752bce52d0bac77214ddd83",
+  "sourceDiffSha256": "7234febb53358c8e443f3990259385cca60d118d8335e913425f284ffdee05af",
+  "buildInputsDiffSha256": "7234febb53358c8e443f3990259385cca60d118d8335e913425f284ffdee05af",
+  "untrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "frontComposerBaseRevision": "612d23485d7e2845d22102621a38d6c904e1ea90",
+  "frontComposerDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "frontComposerUntrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "localUiAssemblySha256": "eff9b03b68e1e6cbcdf79716492f265f83058c46b4487af97248d204d262a33d",
+  "localShellAssemblySha256": "98afc77bdab0a7373993e70dcdf20b804ea621b72abb1f4c675652bca3e8551c",
+  "fluentPackageVersion": "5.0.1",
+  "fluentAssemblySha256": "82718d81e3d28d7a8b80bfb6a543390678ab136bfc4af02af11f55101d613964",
+  "browserVersion": "154.0.8037.57",
+  "fluentModuleSha256": "3ac6e00ddff6fd456dae1c544ade7fa2a44cb8d8c3114a11932e345170356771",
+  "browserEngine": "chromium",
+  "browserChannel": null,
+  "handoffSessions": [
+    {
+      "culture": "en",
+      "startedUtc": "2026-10-30T10:25:59.342Z",
+      "finishedUtc": "2026-10-30T10:26:02.353Z",
+      "fixture": {
+        "sessionOrdinal": 2,
+        "search": "down",
+        "rejectCursor": false,
+        "status": "wait",
+        "projection": "hold",
+        "simulatedCommands": 0,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 1,
+        "recoveryPages": 1,
+        "continuations": 1,
+        "statusReads": 0,
+        "projectionReads": 136
+      },
+      "states": []
+    },
+    {
+      "culture": "en",
+      "startedUtc": "2026-10-30T10:26:02.356Z",
+      "finishedUtc": "2026-10-30T10:26:03.888Z",
+      "fixture": {
+        "sessionOrdinal": 3,
+        "search": "up",
+        "rejectCursor": false,
+        "status": "events",
+        "projection": "deliver",
+        "simulatedCommands": 1,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 0,
+        "recoveryPages": 0,
+        "continuations": 0,
+        "statusReads": 3,
+        "projectionReads": 22
+      },
+      "states": [
+        {
+          "utc": "2026-10-30T10:26:03.674Z",
+          "kind": "audit-state",
+          "state": "pending",
+          "focus": "body"
+        },
+        {
+          "utc": "2026-10-30T10:26:03.868Z",
+          "kind": "audit-state",
+          "state": "missingsupport",
+          "focus": "body"
+        }
+      ]
+    },
+    {
+      "culture": "en",
+      "startedUtc": "2026-10-30T10:26:03.890Z",
+      "finishedUtc": "2026-10-30T10:26:05.291Z",
+      "fixture": {
+        "sessionOrdinal": 4,
+        "search": "up",
+        "rejectCursor": false,
+        "status": "events",
+        "projection": "hold",
+        "simulatedCommands": 1,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 0,
+        "recoveryPages": 0,
+        "continuations": 0,
+        "statusReads": 2,
+        "projectionReads": 15
+      },
+      "states": [
+        {
+          "utc": "2026-10-30T10:26:05.145Z",
+          "kind": "audit-state",
+          "state": "pending",
+          "focus": "body"
+        }
+      ]
+    },
+    {
+      "culture": "en",
+      "startedUtc": "2026-10-30T10:26:05.293Z",
+      "finishedUtc": "2026-10-30T10:26:06.580Z",
+      "fixture": {
+        "sessionOrdinal": 5,
+        "search": "up",
+        "rejectCursor": false,
+        "status": "unavailable",
+        "projection": "hold",
+        "simulatedCommands": 1,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 0,
+        "recoveryPages": 0,
+        "continuations": 0,
+        "statusReads": 2,
+        "projectionReads": 9
+      },
+      "states": [
+        {
+          "utc": "2026-10-30T10:26:06.492Z",
+          "kind": "audit-state",
+          "state": "unavailable",
+          "focus": "body"
+        }
+      ]
+    },
+    {
+      "culture": "en",
+      "startedUtc": "2026-10-30T10:26:06.585Z",
+      "finishedUtc": "2026-10-30T10:26:07.848Z",
+      "fixture": {
+        "sessionOrdinal": 6,
+        "search": "up",
+        "rejectCursor": false,
+        "status": "unavailable",
+        "projection": "hold",
+        "simulatedCommands": 1,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 0,
+        "recoveryPages": 0,
+        "continuations": 0,
+        "statusReads": 2,
+        "projectionReads": 9
+      },
+      "states": [
+        {
+          "utc": "2026-10-30T10:26:07.760Z",
+          "kind": "audit-state",
+          "state": "unavailable",
+          "focus": "body"
+        }
+      ]
+    },
+    {
+      "culture": "fr",
+      "startedUtc": "2026-10-30T10:26:07.849Z",
+      "finishedUtc": "2026-10-30T10:26:09.732Z",
+      "fixture": {
+        "sessionOrdinal": 7,
+        "search": "down",
+        "rejectCursor": false,
+        "status": "wait",
+        "projection": "hold",
+        "simulatedCommands": 0,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 1,
+        "recoveryPages": 1,
+        "continuations": 1,
+        "statusReads": 0,
+        "projectionReads": 136
+      },
+      "states": []
+    },
+    {
+      "culture": "fr",
+      "startedUtc": "2026-10-30T10:26:09.733Z",
+      "finishedUtc": "2026-10-30T10:26:11.117Z",
+      "fixture": {
+        "sessionOrdinal": 8,
+        "search": "up",
+        "rejectCursor": false,
+        "status": "events",
+        "projection": "deliver",
+        "simulatedCommands": 1,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 0,
+        "recoveryPages": 0,
+        "continuations": 0,
+        "statusReads": 3,
+        "projectionReads": 22
+      },
+      "states": [
+        {
+          "utc": "2026-10-30T10:26:10.942Z",
+          "kind": "audit-state",
+          "state": "pending",
+          "focus": "body"
+        },
+        {
+          "utc": "2026-10-30T10:26:11.090Z",
+          "kind": "audit-state",
+          "state": "missingsupport",
+          "focus": "body"
+        }
+      ]
+    },
+    {
+      "culture": "fr",
+      "startedUtc": "2026-10-30T10:26:11.119Z",
+      "finishedUtc": "2026-10-30T10:26:12.383Z",
+      "fixture": {
+        "sessionOrdinal": 9,
+        "search": "up",
+        "rejectCursor": false,
+        "status": "events",
+        "projection": "hold",
+        "simulatedCommands": 1,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 0,
+        "recoveryPages": 0,
+        "continuations": 0,
+        "statusReads": 2,
+        "projectionReads": 15
+      },
+      "states": [
+        {
+          "utc": "2026-10-30T10:26:12.291Z",
+          "kind": "audit-state",
+          "state": "pending",
+          "focus": "body"
+        }
+      ]
+    },
+    {
+      "culture": "fr",
+      "startedUtc": "2026-10-30T10:26:12.386Z",
+      "finishedUtc": "2026-10-30T10:26:13.661Z",
+      "fixture": {
+        "sessionOrdinal": 10,
+        "search": "up",
+        "rejectCursor": false,
+        "status": "unavailable",
+        "projection": "hold",
+        "simulatedCommands": 1,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 0,
+        "recoveryPages": 0,
+        "continuations": 0,
+        "statusReads": 2,
+        "projectionReads": 9
+      },
+      "states": [
+        {
+          "utc": "2026-10-30T10:26:13.575Z",
+          "kind": "audit-state",
+          "state": "unavailable",
+          "focus": "body"
+        }
+      ]
+    },
+    {
+      "culture": "fr",
+      "startedUtc": "2026-10-30T10:26:13.663Z",
+      "finishedUtc": "2026-10-30T10:26:14.913Z",
+      "fixture": {
+        "sessionOrdinal": 11,
+        "search": "up",
+        "rejectCursor": false,
+        "status": "unavailable",
+        "projection": "hold",
+        "simulatedCommands": 1,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 0,
+        "recoveryPages": 0,
+        "continuations": 0,
+        "statusReads": 2,
+        "projectionReads": 9
+      },
+      "states": [
+        {
+          "utc": "2026-10-30T10:26:14.827Z",
+          "kind": "audit-state",
+          "state": "unavailable",
+          "focus": "body"
+        }
+      ]
+    }
+  ],
+  "handoffUiEvents": [
+    {
+      "sessionOrdinal": 2,
+      "culture": "en",
+      "utc": "2026-10-30T10:25:59.562Z",
+      "focus": "body",
+      "kind": "search-notices",
+      "notices": []
+    },
+    {
+      "sessionOrdinal": 2,
+      "culture": "en",
+      "utc": "2026-10-30T10:26:00.688Z",
+      "focus": "body",
+      "kind": "search-input-change"
+    },
+    {
+      "sessionOrdinal": 2,
+      "culture": "en",
+      "utc": "2026-10-30T10:26:01.130Z",
+      "focus": "tenants-list-next",
+      "kind": "activation",
+      "control": "tenants-list-next"
+    },
+    {
+      "sessionOrdinal": 2,
+      "culture": "en",
+      "utc": "2026-10-30T10:26:01.530Z",
+      "focus": "tenants-list-detail-link",
+      "kind": "activation",
+      "control": "tenants-list-detail-link"
+    },
+    {
+      "sessionOrdinal": 2,
+      "culture": "en",
+      "utc": "2026-10-30T10:26:01.840Z",
+      "focus": "body",
+      "kind": "search-notices",
+      "notices": [
+        "tenants-list-search-refreshed-notice"
+      ]
+    },
+    {
+      "sessionOrdinal": 2,
+      "culture": "en",
+      "utc": "2026-10-30T10:26:01.928Z",
+      "focus": "tenants-list-refresh",
+      "kind": "activation",
+      "control": "tenants-list-refresh"
+    },
+    {
+      "sessionOrdinal": 2,
+      "culture": "en",
+      "utc": "2026-10-30T10:26:02.010Z",
+      "focus": "tenants-list-refresh",
+      "kind": "search-notices",
+      "notices": [
+        "tenants-list-search-paging-restarted-notice",
+        "tenants-list-search-unavailable-notice"
+      ]
+    },
+    {
+      "sessionOrdinal": 2,
+      "culture": "en",
+      "utc": "2026-10-30T10:26:02.063Z",
+      "focus": "tenants-list-refresh",
+      "kind": "activation",
+      "control": "tenants-list-refresh"
+    },
+    {
+      "sessionOrdinal": 2,
+      "culture": "en",
+      "utc": "2026-10-30T10:26:02.075Z",
+      "focus": "tenants-list-refresh",
+      "kind": "search-notices",
+      "notices": [
+        "tenants-list-search-unavailable-notice"
+      ]
+    },
+    {
+      "sessionOrdinal": 2,
+      "culture": "en",
+      "utc": "2026-10-30T10:26:02.160Z",
+      "focus": "tenants-list-refresh",
+      "kind": "activation",
+      "control": "tenants-list-refresh"
+    },
+    {
+      "sessionOrdinal": 2,
+      "culture": "en",
+      "utc": "2026-10-30T10:26:02.194Z",
+      "focus": "tenants-list-next",
+      "kind": "activation",
+      "control": "tenants-list-next"
+    },
+    {
+      "sessionOrdinal": 2,
+      "culture": "en",
+      "utc": "2026-10-30T10:26:02.221Z",
+      "focus": "tenants-list-heading",
+      "kind": "search-notices",
+      "notices": [
+        "tenants-list-refreshed-notice",
+        "tenants-list-search-unavailable-notice"
+      ]
+    },
+    {
+      "sessionOrdinal": 2,
+      "culture": "en",
+      "utc": "2026-10-30T10:26:02.278Z",
+      "focus": "tenants-list-next",
+      "kind": "activation",
+      "control": "tenants-list-next"
+    },
+    {
+      "sessionOrdinal": 2,
+      "culture": "en",
+      "utc": "2026-10-30T10:26:02.305Z",
+      "focus": "tenants-list-heading",
+      "kind": "search-notices",
+      "notices": [
+        "tenants-list-search-unavailable-notice"
+      ]
+    },
+    {
+      "sessionOrdinal": 3,
+      "culture": "en",
+      "utc": "2026-10-30T10:26:02.559Z",
+      "focus": "body",
+      "kind": "search-notices",
+      "notices": []
+    },
+    {
+      "sessionOrdinal": 3,
+      "culture": "en",
+      "utc": "2026-10-30T10:26:03.613Z",
+      "focus": "tenants-create-submit",
+      "kind": "activation",
+      "control": "tenants-create-submit"
+    },
+    {
+      "sessionOrdinal": 3,
+      "culture": "en",
+      "utc": "2026-10-30T10:26:03.674Z",
+      "kind": "audit-state",
+      "state": "pending",
+      "focus": "body"
+    },
+    {
+      "sessionOrdinal": 3,
+      "culture": "en",
+      "utc": "2026-10-30T10:26:03.763Z",
+      "focus": "tenants-create-refresh",
+      "kind": "activation",
+      "control": "tenants-create-refresh"
+    },
+    {
+      "sessionOrdinal": 3,
+      "culture": "en",
+      "utc": "2026-10-30T10:26:03.827Z",
+      "focus": "tenants-create-refresh",
+      "kind": "activation",
+      "control": "tenants-create-refresh"
+    },
+    {
+      "sessionOrdinal": 3,
+      "culture": "en",
+      "utc": "2026-10-30T10:26:03.868Z",
+      "kind": "audit-state",
+      "state": "missingsupport",
+      "focus": "body"
+    },
+    {
+      "sessionOrdinal": 4,
+      "culture": "en",
+      "utc": "2026-10-30T10:26:04.062Z",
+      "focus": "body",
+      "kind": "search-notices",
+      "notices": []
+    },
+    {
+      "sessionOrdinal": 4,
+      "culture": "en",
+      "utc": "2026-10-30T10:26:05.128Z",
+      "focus": "tenants-create-submit",
+      "kind": "activation",
+      "control": "tenants-create-submit"
+    },
+    {
+      "sessionOrdinal": 4,
+      "culture": "en",
+      "utc": "2026-10-30T10:26:05.145Z",
+      "kind": "audit-state",
+      "state": "pending",
+      "focus": "body"
+    },
+    {
+      "sessionOrdinal": 4,
+      "culture": "en",
+      "utc": "2026-10-30T10:26:05.227Z",
+      "focus": "tenants-audit-availability-recovery-refresh",
+      "kind": "activation",
+      "control": "tenants-audit-availability-recovery-refresh"
+    },
+    {
+      "sessionOrdinal": 5,
+      "culture": "en",
+      "utc": "2026-10-30T10:26:05.451Z",
+      "focus": "body",
+      "kind": "search-notices",
+      "notices": []
+    },
+    {
+      "sessionOrdinal": 5,
+      "culture": "en",
+      "utc": "2026-10-30T10:26:06.479Z",
+      "focus": "tenants-create-submit",
+      "kind": "activation",
+      "control": "tenants-create-submit"
+    },
+    {
+      "sessionOrdinal": 5,
+      "culture": "en",
+      "utc": "2026-10-30T10:26:06.492Z",
+      "kind": "audit-state",
+      "state": "unavailable",
+      "focus": "body"
+    },
+    {
+      "sessionOrdinal": 5,
+      "culture": "en",
+      "utc": "2026-10-30T10:26:06.560Z",
+      "focus": "tenants-create-refresh",
+      "kind": "activation",
+      "control": "tenants-create-refresh"
+    },
+    {
+      "sessionOrdinal": 6,
+      "culture": "en",
+      "utc": "2026-10-30T10:26:06.723Z",
+      "focus": "body",
+      "kind": "search-notices",
+      "notices": []
+    },
+    {
+      "sessionOrdinal": 6,
+      "culture": "en",
+      "utc": "2026-10-30T10:26:07.745Z",
+      "focus": "tenants-create-submit",
+      "kind": "activation",
+      "control": "tenants-create-submit"
+    },
+    {
+      "sessionOrdinal": 6,
+      "culture": "en",
+      "utc": "2026-10-30T10:26:07.760Z",
+      "kind": "audit-state",
+      "state": "unavailable",
+      "focus": "body"
+    },
+    {
+      "sessionOrdinal": 6,
+      "culture": "en",
+      "utc": "2026-10-30T10:26:07.828Z",
+      "focus": "tenants-audit-availability-recovery-refresh",
+      "kind": "activation",
+      "control": "tenants-audit-availability-recovery-refresh"
+    },
+    {
+      "sessionOrdinal": 7,
+      "culture": "fr",
+      "utc": "2026-10-30T10:26:07.996Z",
+      "focus": "body",
+      "kind": "search-notices",
+      "notices": []
+    },
+    {
+      "sessionOrdinal": 7,
+      "culture": "fr",
+      "utc": "2026-10-30T10:26:08.886Z",
+      "focus": "body",
+      "kind": "search-input-change"
+    },
+    {
+      "sessionOrdinal": 7,
+      "culture": "fr",
+      "utc": "2026-10-30T10:26:09.012Z",
+      "focus": "tenants-list-next",
+      "kind": "activation",
+      "control": "tenants-list-next"
+    },
+    {
+      "sessionOrdinal": 7,
+      "culture": "fr",
+      "utc": "2026-10-30T10:26:09.161Z",
+      "focus": "tenants-list-detail-link",
+      "kind": "activation",
+      "control": "tenants-list-detail-link"
+    },
+    {
+      "sessionOrdinal": 7,
+      "culture": "fr",
+      "utc": "2026-10-30T10:26:09.288Z",
+      "focus": "tenants-list-heading",
+      "kind": "search-notices",
+      "notices": [
+        "tenants-list-search-refreshed-notice"
+      ]
+    },
+    {
+      "sessionOrdinal": 7,
+      "culture": "fr",
+      "utc": "2026-10-30T10:26:09.378Z",
+      "focus": "tenants-list-refresh",
+      "kind": "activation",
+      "control": "tenants-list-refresh"
+    },
+    {
+      "sessionOrdinal": 7,
+      "culture": "fr",
+      "utc": "2026-10-30T10:26:09.406Z",
+      "focus": "tenants-list-refresh",
+      "kind": "search-notices",
+      "notices": [
+        "tenants-list-search-paging-restarted-notice",
+        "tenants-list-search-unavailable-notice"
+      ]
+    },
+    {
+      "sessionOrdinal": 7,
+      "culture": "fr",
+      "utc": "2026-10-30T10:26:09.450Z",
+      "focus": "tenants-list-refresh",
+      "kind": "activation",
+      "control": "tenants-list-refresh"
+    },
+    {
+      "sessionOrdinal": 7,
+      "culture": "fr",
+      "utc": "2026-10-30T10:26:09.460Z",
+      "focus": "tenants-list-refresh",
+      "kind": "search-notices",
+      "notices": [
+        "tenants-list-search-unavailable-notice"
+      ]
+    },
+    {
+      "sessionOrdinal": 7,
+      "culture": "fr",
+      "utc": "2026-10-30T10:26:09.543Z",
+      "focus": "tenants-list-refresh",
+      "kind": "activation",
+      "control": "tenants-list-refresh"
+    },
+    {
+      "sessionOrdinal": 7,
+      "culture": "fr",
+      "utc": "2026-10-30T10:26:09.580Z",
+      "focus": "tenants-list-next",
+      "kind": "activation",
+      "control": "tenants-list-next"
+    },
+    {
+      "sessionOrdinal": 7,
+      "culture": "fr",
+      "utc": "2026-10-30T10:26:09.600Z",
+      "focus": "tenants-list-heading",
+      "kind": "search-notices",
+      "notices": [
+        "tenants-list-refreshed-notice",
+        "tenants-list-search-unavailable-notice"
+      ]
+    },
+    {
+      "sessionOrdinal": 7,
+      "culture": "fr",
+      "utc": "2026-10-30T10:26:09.659Z",
+      "focus": "tenants-list-next",
+      "kind": "activation",
+      "control": "tenants-list-next"
+    },
+    {
+      "sessionOrdinal": 7,
+      "culture": "fr",
+      "utc": "2026-10-30T10:26:09.683Z",
+      "focus": "tenants-list-heading",
+      "kind": "search-notices",
+      "notices": [
+        "tenants-list-search-unavailable-notice"
+      ]
+    },
+    {
+      "sessionOrdinal": 8,
+      "culture": "fr",
+      "utc": "2026-10-30T10:26:09.898Z",
+      "focus": "body",
+      "kind": "search-notices",
+      "notices": []
+    },
+    {
+      "sessionOrdinal": 8,
+      "culture": "fr",
+      "utc": "2026-10-30T10:26:10.928Z",
+      "focus": "tenants-create-submit",
+      "kind": "activation",
+      "control": "tenants-create-submit"
+    },
+    {
+      "sessionOrdinal": 8,
+      "culture": "fr",
+      "utc": "2026-10-30T10:26:10.942Z",
+      "kind": "audit-state",
+      "state": "pending",
+      "focus": "body"
+    },
+    {
+      "sessionOrdinal": 8,
+      "culture": "fr",
+      "utc": "2026-10-30T10:26:11.009Z",
+      "focus": "tenants-create-refresh",
+      "kind": "activation",
+      "control": "tenants-create-refresh"
+    },
+    {
+      "sessionOrdinal": 8,
+      "culture": "fr",
+      "utc": "2026-10-30T10:26:11.060Z",
+      "focus": "tenants-create-refresh",
+      "kind": "activation",
+      "control": "tenants-create-refresh"
+    },
+    {
+      "sessionOrdinal": 8,
+      "culture": "fr",
+      "utc": "2026-10-30T10:26:11.090Z",
+      "kind": "audit-state",
+      "state": "missingsupport",
+      "focus": "body"
+    },
+    {
+      "sessionOrdinal": 9,
+      "culture": "fr",
+      "utc": "2026-10-30T10:26:11.276Z",
+      "focus": "body",
+      "kind": "search-notices",
+      "notices": []
+    },
+    {
+      "sessionOrdinal": 9,
+      "culture": "fr",
+      "utc": "2026-10-30T10:26:12.278Z",
+      "focus": "tenants-create-submit",
+      "kind": "activation",
+      "control": "tenants-create-submit"
+    },
+    {
+      "sessionOrdinal": 9,
+      "culture": "fr",
+      "utc": "2026-10-30T10:26:12.291Z",
+      "kind": "audit-state",
+      "state": "pending",
+      "focus": "body"
+    },
+    {
+      "sessionOrdinal": 9,
+      "culture": "fr",
+      "utc": "2026-10-30T10:26:12.360Z",
+      "focus": "tenants-audit-availability-recovery-refresh",
+      "kind": "activation",
+      "control": "tenants-audit-availability-recovery-refresh"
+    },
+    {
+      "sessionOrdinal": 10,
+      "culture": "fr",
+      "utc": "2026-10-30T10:26:12.541Z",
+      "focus": "body",
+      "kind": "search-notices",
+      "notices": []
+    },
+    {
+      "sessionOrdinal": 10,
+      "culture": "fr",
+      "utc": "2026-10-30T10:26:13.561Z",
+      "focus": "tenants-create-submit",
+      "kind": "activation",
+      "control": "tenants-create-submit"
+    },
+    {
+      "sessionOrdinal": 10,
+      "culture": "fr",
+      "utc": "2026-10-30T10:26:13.575Z",
+      "kind": "audit-state",
+      "state": "unavailable",
+      "focus": "body"
+    },
+    {
+      "sessionOrdinal": 10,
+      "culture": "fr",
+      "utc": "2026-10-30T10:26:13.643Z",
+      "focus": "tenants-create-refresh",
+      "kind": "activation",
+      "control": "tenants-create-refresh"
+    },
+    {
+      "sessionOrdinal": 11,
+      "culture": "fr",
+      "utc": "2026-10-30T10:26:13.820Z",
+      "focus": "body",
+      "kind": "search-notices",
+      "notices": []
+    },
+    {
+      "sessionOrdinal": 11,
+      "culture": "fr",
+      "utc": "2026-10-30T10:26:14.812Z",
+      "focus": "tenants-create-submit",
+      "kind": "activation",
+      "control": "tenants-create-submit"
+    },
+    {
+      "sessionOrdinal": 11,
+      "culture": "fr",
+      "utc": "2026-10-30T10:26:14.827Z",
+      "kind": "audit-state",
+      "state": "unavailable",
+      "focus": "body"
+    },
+    {
+      "sessionOrdinal": 11,
+      "culture": "fr",
+      "utc": "2026-10-30T10:26:14.894Z",
+      "focus": "tenants-audit-availability-recovery-refresh",
+      "kind": "activation",
+      "control": "tenants-audit-availability-recovery-refresh"
+    }
+  ],
+  "sourceAfterBrowser": {
+    "validatorSha256": "7b214af64b9e4b5a0baa68a3c87063774e604b124edd8824429266f362a85efc",
+    "handoffFixtureSha256": "6a4908db949f08ecbacd4d2e7192f311e37fa0b866d0b84e14e98152741edcd5",
+    "handoffChecksSha256": "e9cbe6c51b97922ae78cd10b40c5dd3c31e993ccbab02a67525f3ef37402cde3",
+    "nativeSpeechChecksSha256": "a168644a9722d53bb87d226934b88cfc381836c319aac87c4de1ddc718d4f807",
+    "oidcFixtureSha256": "c3832608e33425c4e090dbf2014c246937237223c5097ea33c316363ab346b8f",
+    "sourceBaseRevision": "4fa78baa94f939a2b752bce52d0bac77214ddd83",
+    "sourceDiffSha256": "7234febb53358c8e443f3990259385cca60d118d8335e913425f284ffdee05af",
+    "buildInputsDiffSha256": "7234febb53358c8e443f3990259385cca60d118d8335e913425f284ffdee05af",
+    "untrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "frontComposerBaseRevision": "612d23485d7e2845d22102621a38d6c904e1ea90",
+    "frontComposerDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "frontComposerUntrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "passed": true,
+  "sourceAfterCleanup": {
+    "validatorSha256": "7b214af64b9e4b5a0baa68a3c87063774e604b124edd8824429266f362a85efc",
+    "handoffFixtureSha256": "6a4908db949f08ecbacd4d2e7192f311e37fa0b866d0b84e14e98152741edcd5",
+    "handoffChecksSha256": "e9cbe6c51b97922ae78cd10b40c5dd3c31e993ccbab02a67525f3ef37402cde3",
+    "nativeSpeechChecksSha256": "a168644a9722d53bb87d226934b88cfc381836c319aac87c4de1ddc718d4f807",
+    "oidcFixtureSha256": "c3832608e33425c4e090dbf2014c246937237223c5097ea33c316363ab346b8f",
+    "sourceBaseRevision": "4fa78baa94f939a2b752bce52d0bac77214ddd83",
+    "sourceDiffSha256": "7234febb53358c8e443f3990259385cca60d118d8335e913425f284ffdee05af",
+    "buildInputsDiffSha256": "7234febb53358c8e443f3990259385cca60d118d8335e913425f284ffdee05af",
+    "untrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "frontComposerBaseRevision": "612d23485d7e2845d22102621a38d6c904e1ea90",
+    "frontComposerDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "frontComposerUntrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "sourceStableThroughCleanup": true,
+  "circuitFaults": [],
+  "handoff": {
+    "events": [
+      {
+        "sessionOrdinal": 1,
+        "utc": "2026-10-30T10:25:41.903Z",
+        "kind": "session-reset"
+      },
+      {
+        "sessionOrdinal": 1,
+        "utc": "2026-10-30T10:25:58.527Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 1,
+        "utc": "2026-10-30T10:25:58.527Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 1,
+        "utc": "2026-10-30T10:25:58.580Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:25:59.354Z",
+        "kind": "session-reset"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:25:59.536Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:25:59.536Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:25:59.538Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:25:59.992Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:25:59.992Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:25:59.993Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:00.721Z",
+        "kind": "search-up"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:00.820Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:00.822Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:00.823Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:00.823Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:00.825Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:00.825Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:00.825Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:00.825Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:00.826Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:00.826Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:00.826Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:00.826Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:00.826Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:00.826Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:00.827Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:00.827Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:00.834Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:00.834Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:00.835Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:00.835Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:00.840Z",
+        "kind": "search-up"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:00.842Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:00.843Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:00.843Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:00.843Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:00.844Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:00.844Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:00.844Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:00.844Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:00.844Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:00.845Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:00.845Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:00.845Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:00.845Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:00.845Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:00.845Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:00.848Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:00.849Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:00.849Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:00.849Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:00.849Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.229Z",
+        "kind": "search-up"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.233Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.233Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.233Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.233Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.233Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.234Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.234Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.234Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.236Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.236Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.237Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.237Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.238Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.239Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.239Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.239Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.239Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.240Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.240Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.240Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.241Z",
+        "kind": "search-up"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.242Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.243Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.243Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.244Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.245Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.245Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.245Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.245Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.245Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.245Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.246Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.246Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.246Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.247Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.247Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.247Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.248Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.248Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.249Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.249Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.558Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.561Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.568Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.576Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.766Z",
+        "kind": "search-up"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.768Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.768Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.769Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.769Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.769Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.769Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.769Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.769Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.777Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.778Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.778Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.778Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.778Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.779Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.779Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.779Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.779Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.780Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.780Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.781Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.782Z",
+        "kind": "search-up"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.783Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.783Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.783Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.783Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.784Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.784Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.784Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.784Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.784Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.785Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.785Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.785Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.785Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.785Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.785Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.785Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.785Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.786Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.787Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.787Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.868Z",
+        "kind": "search down"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.933Z",
+        "kind": "search-down"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.939Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.940Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:01.941Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:02.065Z",
+        "kind": "search-down"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:02.066Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:02.066Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:02.068Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:02.126Z",
+        "kind": "search up"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:02.127Z",
+        "kind": "search down"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:02.127Z",
+        "kind": "cursor reject-once"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:02.163Z",
+        "kind": "search-down"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:02.164Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:02.164Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:02.165Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:02.209Z",
+        "kind": "search-down"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:02.210Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:02.210Z",
+        "kind": "fallback-continuation-rejected"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:02.213Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:02.213Z",
+        "kind": "authorized-first-page-recovery"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:02.213Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:02.214Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:02.293Z",
+        "kind": "search-down"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:02.294Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:02.294Z",
+        "kind": "continuation-permitted"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:02.294Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 2,
+        "utc": "2026-10-30T10:26:02.295Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T10:26:02.366Z",
+        "kind": "session-reset"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T10:26:02.531Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T10:26:02.531Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T10:26:02.532Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T10:26:02.879Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T10:26:02.879Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T10:26:02.880Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T10:26:03.467Z",
+        "kind": "status events"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T10:26:03.623Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T10:26:03.641Z",
+        "kind": "command-attempt"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T10:26:03.641Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T10:26:03.641Z",
+        "kind": "create-accepted"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T10:26:03.655Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T10:26:03.655Z",
+        "kind": "status-delivered-events"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T10:26:03.675Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T10:26:03.676Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T10:26:03.678Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T10:26:03.688Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T10:26:03.688Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T10:26:03.689Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T10:26:03.690Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T10:26:03.690Z",
+        "kind": "detail-projection-hold"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T10:26:03.766Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T10:26:03.766Z",
+        "kind": "status-delivered-events"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T10:26:03.771Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T10:26:03.771Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T10:26:03.772Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T10:26:03.781Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T10:26:03.781Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T10:26:03.782Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T10:26:03.783Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T10:26:03.783Z",
+        "kind": "detail-projection-hold"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T10:26:03.783Z",
+        "kind": "projection deliver"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T10:26:03.829Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T10:26:03.829Z",
+        "kind": "status-delivered-events"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T10:26:03.834Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T10:26:03.834Z",
+        "kind": "list-projection-deliver"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T10:26:03.835Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T10:26:03.835Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T10:26:03.835Z",
+        "kind": "detail-projection-deliver"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T10:26:03.844Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T10:26:03.844Z",
+        "kind": "list-projection-deliver"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T10:26:03.845Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T10:26:03.845Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T10:26:03.845Z",
+        "kind": "detail-projection-deliver"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T10:26:03.846Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 3,
+        "utc": "2026-10-30T10:26:03.846Z",
+        "kind": "detail-projection-deliver"
+      },
+      {
+        "sessionOrdinal": 4,
+        "utc": "2026-10-30T10:26:03.897Z",
+        "kind": "session-reset"
+      },
+      {
+        "sessionOrdinal": 4,
+        "utc": "2026-10-30T10:26:04.039Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 4,
+        "utc": "2026-10-30T10:26:04.039Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 4,
+        "utc": "2026-10-30T10:26:04.044Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 4,
+        "utc": "2026-10-30T10:26:04.388Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 4,
+        "utc": "2026-10-30T10:26:04.388Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 4,
+        "utc": "2026-10-30T10:26:04.388Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 4,
+        "utc": "2026-10-30T10:26:05.009Z",
+        "kind": "status events"
+      },
+      {
+        "sessionOrdinal": 4,
+        "utc": "2026-10-30T10:26:05.131Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 4,
+        "utc": "2026-10-30T10:26:05.133Z",
+        "kind": "command-attempt"
+      },
+      {
+        "sessionOrdinal": 4,
+        "utc": "2026-10-30T10:26:05.133Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 4,
+        "utc": "2026-10-30T10:26:05.133Z",
+        "kind": "create-accepted"
+      },
+      {
+        "sessionOrdinal": 4,
+        "utc": "2026-10-30T10:26:05.137Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 4,
+        "utc": "2026-10-30T10:26:05.137Z",
+        "kind": "status-delivered-events"
+      },
+      {
+        "sessionOrdinal": 4,
+        "utc": "2026-10-30T10:26:05.143Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 4,
+        "utc": "2026-10-30T10:26:05.143Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 4,
+        "utc": "2026-10-30T10:26:05.144Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 4,
+        "utc": "2026-10-30T10:26:05.156Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 4,
+        "utc": "2026-10-30T10:26:05.156Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 4,
+        "utc": "2026-10-30T10:26:05.157Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 4,
+        "utc": "2026-10-30T10:26:05.158Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 4,
+        "utc": "2026-10-30T10:26:05.158Z",
+        "kind": "detail-projection-hold"
+      },
+      {
+        "sessionOrdinal": 4,
+        "utc": "2026-10-30T10:26:05.231Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 4,
+        "utc": "2026-10-30T10:26:05.231Z",
+        "kind": "status-delivered-events"
+      },
+      {
+        "sessionOrdinal": 4,
+        "utc": "2026-10-30T10:26:05.237Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 4,
+        "utc": "2026-10-30T10:26:05.237Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 4,
+        "utc": "2026-10-30T10:26:05.238Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 4,
+        "utc": "2026-10-30T10:26:05.245Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 4,
+        "utc": "2026-10-30T10:26:05.245Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 4,
+        "utc": "2026-10-30T10:26:05.245Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 4,
+        "utc": "2026-10-30T10:26:05.247Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 4,
+        "utc": "2026-10-30T10:26:05.247Z",
+        "kind": "detail-projection-hold"
+      },
+      {
+        "sessionOrdinal": 5,
+        "utc": "2026-10-30T10:26:05.300Z",
+        "kind": "session-reset"
+      },
+      {
+        "sessionOrdinal": 5,
+        "utc": "2026-10-30T10:26:05.429Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 5,
+        "utc": "2026-10-30T10:26:05.429Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 5,
+        "utc": "2026-10-30T10:26:05.432Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 5,
+        "utc": "2026-10-30T10:26:05.746Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 5,
+        "utc": "2026-10-30T10:26:05.746Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 5,
+        "utc": "2026-10-30T10:26:05.746Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 5,
+        "utc": "2026-10-30T10:26:06.342Z",
+        "kind": "status unavailable"
+      },
+      {
+        "sessionOrdinal": 5,
+        "utc": "2026-10-30T10:26:06.482Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 5,
+        "utc": "2026-10-30T10:26:06.483Z",
+        "kind": "command-attempt"
+      },
+      {
+        "sessionOrdinal": 5,
+        "utc": "2026-10-30T10:26:06.483Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 5,
+        "utc": "2026-10-30T10:26:06.483Z",
+        "kind": "create-accepted"
+      },
+      {
+        "sessionOrdinal": 5,
+        "utc": "2026-10-30T10:26:06.484Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 5,
+        "utc": "2026-10-30T10:26:06.484Z",
+        "kind": "status-delivered-unavailable"
+      },
+      {
+        "sessionOrdinal": 5,
+        "utc": "2026-10-30T10:26:06.490Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 5,
+        "utc": "2026-10-30T10:26:06.490Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 5,
+        "utc": "2026-10-30T10:26:06.491Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 5,
+        "utc": "2026-10-30T10:26:06.563Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 5,
+        "utc": "2026-10-30T10:26:06.563Z",
+        "kind": "status-delivered-unavailable"
+      },
+      {
+        "sessionOrdinal": 5,
+        "utc": "2026-10-30T10:26:06.569Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 5,
+        "utc": "2026-10-30T10:26:06.569Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 5,
+        "utc": "2026-10-30T10:26:06.570Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 6,
+        "utc": "2026-10-30T10:26:06.591Z",
+        "kind": "session-reset"
+      },
+      {
+        "sessionOrdinal": 6,
+        "utc": "2026-10-30T10:26:06.703Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 6,
+        "utc": "2026-10-30T10:26:06.703Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 6,
+        "utc": "2026-10-30T10:26:06.704Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 6,
+        "utc": "2026-10-30T10:26:07.022Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 6,
+        "utc": "2026-10-30T10:26:07.022Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 6,
+        "utc": "2026-10-30T10:26:07.022Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 6,
+        "utc": "2026-10-30T10:26:07.610Z",
+        "kind": "status unavailable"
+      },
+      {
+        "sessionOrdinal": 6,
+        "utc": "2026-10-30T10:26:07.748Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 6,
+        "utc": "2026-10-30T10:26:07.750Z",
+        "kind": "command-attempt"
+      },
+      {
+        "sessionOrdinal": 6,
+        "utc": "2026-10-30T10:26:07.750Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 6,
+        "utc": "2026-10-30T10:26:07.750Z",
+        "kind": "create-accepted"
+      },
+      {
+        "sessionOrdinal": 6,
+        "utc": "2026-10-30T10:26:07.751Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 6,
+        "utc": "2026-10-30T10:26:07.751Z",
+        "kind": "status-delivered-unavailable"
+      },
+      {
+        "sessionOrdinal": 6,
+        "utc": "2026-10-30T10:26:07.755Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 6,
+        "utc": "2026-10-30T10:26:07.755Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 6,
+        "utc": "2026-10-30T10:26:07.756Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 6,
+        "utc": "2026-10-30T10:26:07.830Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 6,
+        "utc": "2026-10-30T10:26:07.830Z",
+        "kind": "status-delivered-unavailable"
+      },
+      {
+        "sessionOrdinal": 6,
+        "utc": "2026-10-30T10:26:07.835Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 6,
+        "utc": "2026-10-30T10:26:07.835Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 6,
+        "utc": "2026-10-30T10:26:07.836Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:07.857Z",
+        "kind": "session-reset"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:07.979Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:07.979Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:07.980Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:08.272Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:08.272Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:08.273Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:08.889Z",
+        "kind": "search-up"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:08.891Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:08.891Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:08.892Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:08.892Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:08.892Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:08.893Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:08.893Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:08.893Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:08.893Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:08.893Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:08.893Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:08.894Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:08.894Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:08.894Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:08.894Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:08.894Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:08.895Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:08.895Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:08.895Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:08.895Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:08.895Z",
+        "kind": "search-up"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:08.896Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:08.896Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:08.896Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:08.897Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:08.897Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:08.897Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:08.897Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:08.897Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:08.897Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:08.898Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:08.898Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:08.898Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:08.898Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:08.898Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:08.898Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:08.899Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:08.899Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:08.899Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:08.899Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:08.899Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.049Z",
+        "kind": "search-up"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.050Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.051Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.051Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.051Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.051Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.051Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.051Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.051Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.051Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.051Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.052Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.052Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.052Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.052Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.052Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.052Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.052Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.052Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.052Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.052Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.053Z",
+        "kind": "search-up"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.054Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.054Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.054Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.054Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.054Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.054Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.054Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.054Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.054Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.054Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.055Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.055Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.055Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.055Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.055Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.055Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.055Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.055Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.055Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.055Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.166Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.167Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.167Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.167Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.231Z",
+        "kind": "search-up"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.231Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.231Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.232Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.232Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.232Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.232Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.232Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.232Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.232Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.232Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.232Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.232Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.233Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.233Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.233Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.234Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.235Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.235Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.235Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.235Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.235Z",
+        "kind": "search-up"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.236Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.236Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.236Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.236Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.236Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.236Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.236Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.237Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.240Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.241Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.241Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.241Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.241Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.241Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.241Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.241Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.241Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.242Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.243Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.243Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.314Z",
+        "kind": "search down"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.380Z",
+        "kind": "search-down"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.382Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.382Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.382Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.452Z",
+        "kind": "search-down"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.453Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.453Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.454Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.512Z",
+        "kind": "search up"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.512Z",
+        "kind": "search down"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.512Z",
+        "kind": "cursor reject-once"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.545Z",
+        "kind": "search-down"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.546Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.546Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.547Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.592Z",
+        "kind": "search-down"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.593Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.593Z",
+        "kind": "fallback-continuation-rejected"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.593Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.593Z",
+        "kind": "authorized-first-page-recovery"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.593Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.594Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.675Z",
+        "kind": "search-down"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.676Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.676Z",
+        "kind": "continuation-permitted"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.676Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 7,
+        "utc": "2026-10-30T10:26:09.677Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 8,
+        "utc": "2026-10-30T10:26:09.741Z",
+        "kind": "session-reset"
+      },
+      {
+        "sessionOrdinal": 8,
+        "utc": "2026-10-30T10:26:09.878Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 8,
+        "utc": "2026-10-30T10:26:09.878Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 8,
+        "utc": "2026-10-30T10:26:09.879Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 8,
+        "utc": "2026-10-30T10:26:10.199Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 8,
+        "utc": "2026-10-30T10:26:10.199Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 8,
+        "utc": "2026-10-30T10:26:10.199Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 8,
+        "utc": "2026-10-30T10:26:10.787Z",
+        "kind": "status events"
+      },
+      {
+        "sessionOrdinal": 8,
+        "utc": "2026-10-30T10:26:10.930Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 8,
+        "utc": "2026-10-30T10:26:10.932Z",
+        "kind": "command-attempt"
+      },
+      {
+        "sessionOrdinal": 8,
+        "utc": "2026-10-30T10:26:10.932Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 8,
+        "utc": "2026-10-30T10:26:10.932Z",
+        "kind": "create-accepted"
+      },
+      {
+        "sessionOrdinal": 8,
+        "utc": "2026-10-30T10:26:10.935Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 8,
+        "utc": "2026-10-30T10:26:10.935Z",
+        "kind": "status-delivered-events"
+      },
+      {
+        "sessionOrdinal": 8,
+        "utc": "2026-10-30T10:26:10.942Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 8,
+        "utc": "2026-10-30T10:26:10.942Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 8,
+        "utc": "2026-10-30T10:26:10.943Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 8,
+        "utc": "2026-10-30T10:26:10.950Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 8,
+        "utc": "2026-10-30T10:26:10.950Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 8,
+        "utc": "2026-10-30T10:26:10.950Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 8,
+        "utc": "2026-10-30T10:26:10.951Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 8,
+        "utc": "2026-10-30T10:26:10.951Z",
+        "kind": "detail-projection-hold"
+      },
+      {
+        "sessionOrdinal": 8,
+        "utc": "2026-10-30T10:26:11.011Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 8,
+        "utc": "2026-10-30T10:26:11.011Z",
+        "kind": "status-delivered-events"
+      },
+      {
+        "sessionOrdinal": 8,
+        "utc": "2026-10-30T10:26:11.014Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 8,
+        "utc": "2026-10-30T10:26:11.014Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 8,
+        "utc": "2026-10-30T10:26:11.015Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 8,
+        "utc": "2026-10-30T10:26:11.017Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 8,
+        "utc": "2026-10-30T10:26:11.017Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 8,
+        "utc": "2026-10-30T10:26:11.018Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 8,
+        "utc": "2026-10-30T10:26:11.018Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 8,
+        "utc": "2026-10-30T10:26:11.018Z",
+        "kind": "detail-projection-hold"
+      },
+      {
+        "sessionOrdinal": 8,
+        "utc": "2026-10-30T10:26:11.029Z",
+        "kind": "projection deliver"
+      },
+      {
+        "sessionOrdinal": 8,
+        "utc": "2026-10-30T10:26:11.062Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 8,
+        "utc": "2026-10-30T10:26:11.062Z",
+        "kind": "status-delivered-events"
+      },
+      {
+        "sessionOrdinal": 8,
+        "utc": "2026-10-30T10:26:11.066Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 8,
+        "utc": "2026-10-30T10:26:11.066Z",
+        "kind": "list-projection-deliver"
+      },
+      {
+        "sessionOrdinal": 8,
+        "utc": "2026-10-30T10:26:11.066Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 8,
+        "utc": "2026-10-30T10:26:11.066Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 8,
+        "utc": "2026-10-30T10:26:11.066Z",
+        "kind": "detail-projection-deliver"
+      },
+      {
+        "sessionOrdinal": 8,
+        "utc": "2026-10-30T10:26:11.071Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 8,
+        "utc": "2026-10-30T10:26:11.071Z",
+        "kind": "list-projection-deliver"
+      },
+      {
+        "sessionOrdinal": 8,
+        "utc": "2026-10-30T10:26:11.072Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 8,
+        "utc": "2026-10-30T10:26:11.072Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 8,
+        "utc": "2026-10-30T10:26:11.072Z",
+        "kind": "detail-projection-deliver"
+      },
+      {
+        "sessionOrdinal": 8,
+        "utc": "2026-10-30T10:26:11.073Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 8,
+        "utc": "2026-10-30T10:26:11.073Z",
+        "kind": "detail-projection-deliver"
+      },
+      {
+        "sessionOrdinal": 9,
+        "utc": "2026-10-30T10:26:11.129Z",
+        "kind": "session-reset"
+      },
+      {
+        "sessionOrdinal": 9,
+        "utc": "2026-10-30T10:26:11.256Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 9,
+        "utc": "2026-10-30T10:26:11.256Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 9,
+        "utc": "2026-10-30T10:26:11.257Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 9,
+        "utc": "2026-10-30T10:26:11.568Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 9,
+        "utc": "2026-10-30T10:26:11.568Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 9,
+        "utc": "2026-10-30T10:26:11.569Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 9,
+        "utc": "2026-10-30T10:26:12.152Z",
+        "kind": "status events"
+      },
+      {
+        "sessionOrdinal": 9,
+        "utc": "2026-10-30T10:26:12.281Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 9,
+        "utc": "2026-10-30T10:26:12.282Z",
+        "kind": "command-attempt"
+      },
+      {
+        "sessionOrdinal": 9,
+        "utc": "2026-10-30T10:26:12.282Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 9,
+        "utc": "2026-10-30T10:26:12.282Z",
+        "kind": "create-accepted"
+      },
+      {
+        "sessionOrdinal": 9,
+        "utc": "2026-10-30T10:26:12.283Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 9,
+        "utc": "2026-10-30T10:26:12.283Z",
+        "kind": "status-delivered-events"
+      },
+      {
+        "sessionOrdinal": 9,
+        "utc": "2026-10-30T10:26:12.287Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 9,
+        "utc": "2026-10-30T10:26:12.287Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 9,
+        "utc": "2026-10-30T10:26:12.288Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 9,
+        "utc": "2026-10-30T10:26:12.292Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 9,
+        "utc": "2026-10-30T10:26:12.292Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 9,
+        "utc": "2026-10-30T10:26:12.292Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 9,
+        "utc": "2026-10-30T10:26:12.295Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 9,
+        "utc": "2026-10-30T10:26:12.295Z",
+        "kind": "detail-projection-hold"
+      },
+      {
+        "sessionOrdinal": 9,
+        "utc": "2026-10-30T10:26:12.362Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 9,
+        "utc": "2026-10-30T10:26:12.362Z",
+        "kind": "status-delivered-events"
+      },
+      {
+        "sessionOrdinal": 9,
+        "utc": "2026-10-30T10:26:12.366Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 9,
+        "utc": "2026-10-30T10:26:12.366Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 9,
+        "utc": "2026-10-30T10:26:12.367Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 9,
+        "utc": "2026-10-30T10:26:12.377Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 9,
+        "utc": "2026-10-30T10:26:12.377Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 9,
+        "utc": "2026-10-30T10:26:12.377Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 9,
+        "utc": "2026-10-30T10:26:12.378Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 9,
+        "utc": "2026-10-30T10:26:12.378Z",
+        "kind": "detail-projection-hold"
+      },
+      {
+        "sessionOrdinal": 10,
+        "utc": "2026-10-30T10:26:12.397Z",
+        "kind": "session-reset"
+      },
+      {
+        "sessionOrdinal": 10,
+        "utc": "2026-10-30T10:26:12.522Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 10,
+        "utc": "2026-10-30T10:26:12.522Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 10,
+        "utc": "2026-10-30T10:26:12.523Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 10,
+        "utc": "2026-10-30T10:26:12.836Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 10,
+        "utc": "2026-10-30T10:26:12.836Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 10,
+        "utc": "2026-10-30T10:26:12.836Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 10,
+        "utc": "2026-10-30T10:26:13.416Z",
+        "kind": "status unavailable"
+      },
+      {
+        "sessionOrdinal": 10,
+        "utc": "2026-10-30T10:26:13.563Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 10,
+        "utc": "2026-10-30T10:26:13.565Z",
+        "kind": "command-attempt"
+      },
+      {
+        "sessionOrdinal": 10,
+        "utc": "2026-10-30T10:26:13.565Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 10,
+        "utc": "2026-10-30T10:26:13.565Z",
+        "kind": "create-accepted"
+      },
+      {
+        "sessionOrdinal": 10,
+        "utc": "2026-10-30T10:26:13.566Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 10,
+        "utc": "2026-10-30T10:26:13.566Z",
+        "kind": "status-delivered-unavailable"
+      },
+      {
+        "sessionOrdinal": 10,
+        "utc": "2026-10-30T10:26:13.569Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 10,
+        "utc": "2026-10-30T10:26:13.569Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 10,
+        "utc": "2026-10-30T10:26:13.570Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 10,
+        "utc": "2026-10-30T10:26:13.645Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 10,
+        "utc": "2026-10-30T10:26:13.645Z",
+        "kind": "status-delivered-unavailable"
+      },
+      {
+        "sessionOrdinal": 10,
+        "utc": "2026-10-30T10:26:13.650Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 10,
+        "utc": "2026-10-30T10:26:13.650Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 10,
+        "utc": "2026-10-30T10:26:13.650Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 11,
+        "utc": "2026-10-30T10:26:13.671Z",
+        "kind": "session-reset"
+      },
+      {
+        "sessionOrdinal": 11,
+        "utc": "2026-10-30T10:26:13.801Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 11,
+        "utc": "2026-10-30T10:26:13.801Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 11,
+        "utc": "2026-10-30T10:26:13.803Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 11,
+        "utc": "2026-10-30T10:26:14.105Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 11,
+        "utc": "2026-10-30T10:26:14.105Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 11,
+        "utc": "2026-10-30T10:26:14.106Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 11,
+        "utc": "2026-10-30T10:26:14.695Z",
+        "kind": "status unavailable"
+      },
+      {
+        "sessionOrdinal": 11,
+        "utc": "2026-10-30T10:26:14.815Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 11,
+        "utc": "2026-10-30T10:26:14.817Z",
+        "kind": "command-attempt"
+      },
+      {
+        "sessionOrdinal": 11,
+        "utc": "2026-10-30T10:26:14.817Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 11,
+        "utc": "2026-10-30T10:26:14.817Z",
+        "kind": "create-accepted"
+      },
+      {
+        "sessionOrdinal": 11,
+        "utc": "2026-10-30T10:26:14.818Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 11,
+        "utc": "2026-10-30T10:26:14.818Z",
+        "kind": "status-delivered-unavailable"
+      },
+      {
+        "sessionOrdinal": 11,
+        "utc": "2026-10-30T10:26:14.823Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 11,
+        "utc": "2026-10-30T10:26:14.823Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 11,
+        "utc": "2026-10-30T10:26:14.824Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 11,
+        "utc": "2026-10-30T10:26:14.896Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 11,
+        "utc": "2026-10-30T10:26:14.896Z",
+        "kind": "status-delivered-unavailable"
+      },
+      {
+        "sessionOrdinal": 11,
+        "utc": "2026-10-30T10:26:14.900Z",
+        "kind": "authorized-read"
+      },
+      {
+        "sessionOrdinal": 11,
+        "utc": "2026-10-30T10:26:14.900Z",
+        "kind": "list-projection-hold"
+      },
+      {
+        "sessionOrdinal": 11,
+        "utc": "2026-10-30T10:26:14.900Z",
+        "kind": "authorized-read"
+      }
+    ],
+    "final": {
+      "sessionOrdinal": 11,
+      "search": "up",
+      "rejectCursor": false,
+      "status": "unavailable",
+      "projection": "hold",
+      "simulatedCommands": 1,
+      "unexpectedCommands": 0,
+      "rejectedCursors": 0,
+      "recoveryPages": 0,
+      "continuations": 0,
+      "statusReads": 2,
+      "projectionReads": 9
+    },
+    "speech": "Not captured by this runner; requires separate AT evidence, no closure implied",
+    "currentStates": [
+      {
+        "utc": "2026-10-30T10:26:14.827Z",
+        "kind": "audit-state",
+        "state": "unavailable",
+        "focus": "body"
+      }
+    ]
+  },
+  "fixture": {
+    "authorizedReads": 416,
+    "administratorReads": 0,
+    "unexpectedCommandAttempts": 0,
+    "simulatedCommandAttempts": 8,
+    "circuitErrors": 0
+  },
+  "acceptedForClosure": false,
+  "finishedUtc": "2026-10-30T10:26:14.995Z"
+}

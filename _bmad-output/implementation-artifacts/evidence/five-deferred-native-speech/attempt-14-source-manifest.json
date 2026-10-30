@@ -1,0 +1,52 @@
+{
+  "sourceSnapshot": "attempt-13-executed-sources.zip",
+  "archiveSha256": "3a5cfd171f34b187ac8bc7161e3fab9c2503d2f423094dcf2bc07afdad251ab6",
+  "startupHashesVerified": true,
+  "files": [
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-administrator-dialogs.mjs",
+      "bytes": 86784,
+      "sha256": "7b214af64b9e4b5a0baa68a3c87063774e604b124edd8824429266f362a85efc"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Browser/validate-deferred-native-speech.mjs",
+      "bytes": 11179,
+      "sha256": "a168644a9722d53bb87d226934b88cfc381836c319aac87c4de1ddc718d4f807"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Browser/capture-deferred-nvda-speech.ps1",
+      "bytes": 21031,
+      "sha256": "6da1de29d719d5d543d649130491c9251d16f465096ab134bff7d5dff701965a"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Browser/deferred-nvda-observer.py",
+      "bytes": 3302,
+      "sha256": "73ee4a122a75fc8d94718ae9e5c3f1ceff2240e2600a5a3f9d2a8e0210a0fda3"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Browser/deferred-handoff-fixture.mjs",
+      "bytes": 9160,
+      "sha256": "6a4908db949f08ecbacd4d2e7192f311e37fa0b866d0b84e14e98152741edcd5"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Browser/validate-deferred-handoff.mjs",
+      "bytes": 11972,
+      "sha256": "e9cbe6c51b97922ae78cd10b40c5dd3c31e993ccbab02a67525f3ef37402cde3"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Browser/local-oidc-fixture.mjs",
+      "bytes": 3826,
+      "sha256": "c3832608e33425c4e090dbf2014c246937237223c5097ea33c316363ab346b8f"
+    },
+    {
+      "path": "src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor",
+      "bytes": 58550,
+      "sha256": "0cc5c1d108601bb519accd2396ca4fa6ea9f843edfff728b3aca3f8a14e07a3d"
+    },
+    {
+      "path": "src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditAvailabilityState.razor",
+      "bytes": 17591,
+      "sha256": "a85e3c3538481562ad536f63fda6273e175b8d1202be2d88075f6e14d7835384"
+    }
+  ]
+}

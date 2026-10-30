@@ -755,6 +755,46 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         System.Text.RegularExpressions.Regex.Count(audit.TextContent, "Audit pending").ShouldBe(1);
     }
 
+    [Theory]
+    [InlineData(true, "polite", "Audit pending")]
+    [InlineData(false, "assertive", "Audit unavailable")]
+    public void First_audit_state_populates_text_only_hosts_prepared_empty_before_status_evidence(bool eventsStored, string politeness, string label)
+    {
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-123"),
+            Status = eventsStored
+                ? new TenantCommandStatusResult(CommandStatus.EventsStored, HasVerifiedCommandIdentity: true)
+                : new TenantCommandStatusResult(null),
+        };
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(gateway);
+        IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
+            .Add(p => p.BaselineTenantAbsent, true)
+            .Add(p => p.ProjectionEvidenceProvider, _ => Task.FromResult<TenantListSnapshot?>(ListProof(null, null))));
+        string target = $"[data-testid='tenants-create-audit-live-{politeness}']";
+        AngleSharp.Dom.IElement initial = cut.Find(target);
+        initial.TextContent.ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-audit-availability']").ShouldBeEmpty();
+
+        cut.Find("[data-testid='tenants-create-tenant-id']").Change("tenant.alpha");
+        cut.Find("[data-testid='tenants-create-name']").Change("Alpha");
+        cut.Find("form").Submit();
+
+        cut.WaitForAssertion(() => cut.Find(target).TextContent.ShouldContain(label));
+        AngleSharp.Dom.IElement populated = cut.Find(target);
+        populated.GetAttribute("aria-live").ShouldBe(politeness);
+        populated.GetAttribute("aria-atomic").ShouldBe("true");
+        populated.TextContent.ShouldContain(eventsStored ? "events are stored" : "could not be read or verified");
+        populated.QuerySelectorAll("[data-recovery-verb], button, fluent-button, a").ShouldBeEmpty();
+        cut.Find("[data-testid='tenants-audit-availability-announcement']").HasAttribute("aria-live").ShouldBeFalse();
+        cut.Find("[data-testid='tenants-create-live-region']").TextContent.ShouldNotContain(label);
+        gateway.CreateTenantCallCount.ShouldBe(1);
+    }
+
     [Fact]
     public void Ambiguous_failure_without_a_correlation_id_offers_no_refresh_that_cannot_requery()
     {
@@ -825,8 +865,10 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
     }
 
     [Fact]
-    public void Projection_evidence_confirms_without_exposing_internal_correlation_id()
+    public async Task Projection_evidence_confirms_without_exposing_internal_correlation_id()
     {
+        TaskCompletionSource projectionEntered = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource<TenantListSnapshot?> projection = new(TaskCreationOptions.RunContinuationsAsynchronously);
         StubTenantCommandGateway gateway = new()
         {
             Submission = TenantCommandSubmissionResult.Accepted("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-123"),
@@ -839,14 +881,37 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
             .Add(p => p.IsAuthorized, true)
             .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
             .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
-            .Add(p => p.ProjectionEvidenceProvider, tenantId => Task.FromResult<TenantListSnapshot?>(ListProof(new TenantSummary(tenantId, "Mixed Tenant", TenantStatus.Active), "projection-v2")))
+            .Add(p => p.ProjectionEvidenceProvider, _ =>
+            {
+                projectionEntered.TrySetResult();
+                return projection.Task;
+            })
             .Add(p => p.BaselineTenantAbsent, true));
 
+        const string politeHost = "[data-testid='tenants-create-audit-live-polite']";
+        const string assertiveHost = "[data-testid='tenants-create-audit-live-assertive']";
+        cut.Find(assertiveHost).TextContent.ShouldBeEmpty();
+        cut.Find(assertiveHost).GetAttribute("aria-live").ShouldBe("assertive");
         cut.Find("[data-testid='tenants-create-tenant-id']").Change("Tenant.Mixed-01");
         cut.Find("[data-testid='tenants-create-name']").Change("Mixed Tenant");
-        cut.Find("form").Submit();
+        Task submission = cut.Find("form").SubmitAsync();
+        await projectionEntered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditPending));
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
+        cut.Find(politeHost).TextContent.ShouldContain("Audit pending");
+        cut.Find(politeHost).TextContent.ShouldContain("events are stored");
+        cut.Find(assertiveHost).TextContent.ShouldBeEmpty();
+        cut.Find("[data-testid='tenants-create-live-region']").TextContent.ShouldNotContain("Projection confirmed");
+        gateway.CreateTenantCallCount.ShouldBe(1);
 
+        projection.SetResult(ListProof(new TenantSummary("Tenant.Mixed-01", "Mixed Tenant", TenantStatus.Active), "projection-v2"));
+        await submission.WaitAsync(TimeSpan.FromSeconds(5));
         cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Confirmed));
+        cut.Find(politeHost).TextContent.ShouldBeEmpty();
+        cut.Find(assertiveHost).TextContent.ShouldContain("Missing implementation support");
+        cut.Find(assertiveHost).TextContent.ShouldContain("In-panel audit verification is not available for this command");
+        cut.Find(assertiveHost).GetAttribute("aria-live").ShouldBe("assertive");
+        gateway.CreateTenantCallCount.ShouldBe(1);
         cut.Find("[data-testid='tenants-create-live-region']").GetAttribute("aria-live").ShouldBe("polite");
         // Projection confirmation is not audit proof and this flow has no in-panel audit verification.
         cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.MissingSupport);
@@ -1890,7 +1955,7 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         TenantCreateAttemptTracker tracker = new(gate);
         Services.AddSingleton(gate);
         tracker.Remember("tenant.alpha", new TenantCommandTrackingHandle("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-123", aggregate)
-            { ExpectedDomain = domain });
+        { ExpectedDomain = domain });
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         Services.AddSingleton<ITenantCommandGateway>(gateway);
         Services.AddSingleton(tracker);

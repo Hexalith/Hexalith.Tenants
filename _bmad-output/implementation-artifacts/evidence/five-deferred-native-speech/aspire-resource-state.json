@@ -1,0 +1,121 @@
+{
+  "command": "aspire start/describe --apphost src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj --format Json",
+  "resources": [
+    {
+      "name": "dapr-placement-mtls-ybdjauqd",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "dapr-scheduler-mtls-vsvafhqq",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "dapr-sentry-szfsswtj",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "eventstore-admin-dapr-cli-uzrmeczf",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "eventstore-admin-qsqpxysy",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "eventstore-admin-ui-ackmpjcr",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "eventstore-admin-ui-dapr-cli-hnhdzhkr",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "eventstore-dapr-cli-gdjmkkkt",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "eventstore-mzcvccfr",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "memories-aeuxnfhd",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "memories-dapr-cli-sgdhddtf",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "memories-graphs-yjvvfhkp",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "memories-vectors-spqrfbku",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "sample-dapr-cli-tyucyqyd",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "sample-qeyjsjtb",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "security-eventstore-client-username",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "security-hgxyrpef",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "tenants-api-dapr-cli-uwvmpvbf",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "tenants-api-vgwushpq",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "tenants-dapr-cli-pdewctey",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "tenants-mbkavyrj",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "tenants-ui-dapr-cli-djqerwwt",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "tenants-ui-sjqarjmj",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    }
+  ],
+  "allInspectedResourcesHealthy": true
+}
