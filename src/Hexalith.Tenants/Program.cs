@@ -193,7 +193,7 @@ app.MapPost("/project", async (
     TimeProvider timeProvider,
     CancellationToken cancellationToken)
     => await new ProjectionDispatcher(readModelStore, telemetry, loggerFactory, timeProvider).DispatchAsync(request, cancellationToken).ConfigureAwait(false))
-    .RequireAuthorization(EventStoreDomainServicePolicies.Project);
+    .RequireEventStoreDomainServicePolicy("/project");
 // Canonical DAPR-invoked domain-service endpoints from the SDK: /process (keyed domain processor),
 // /replay-state, /query (in-process IDomainQueryHandler dispatch), and /admin/operational-index-metadata
 // (now reporting handler-served query types). Replaces the hand-rolled DomainServiceRequestHandler and
