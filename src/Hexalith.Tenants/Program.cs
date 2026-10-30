@@ -110,11 +110,10 @@ builder.Services.AddProblemDetails();
 // this domain assembly. Local/dev keeps the framework's ephemeral key ring (PersistToStateStore = false).
 builder.Services.AddEventStoreDataProtection(builder.Configuration, "Hexalith.Tenants");
 
-// MediatR pipeline - registers SubmitQueryHandler and SubmitCommandHandler for controller dispatch.
-// Authorization stays narrow: Tenants uses EventStore claim/RBAC validation without registering
-// the full EventStore server extension or its rate limiter.
+// Register only owner handlers. The domain host receives canonical workload calls from EventStore;
+// importing the gateway handler assembly would require the gateway's actor/admission infrastructure.
 builder.Services.AddMediatR(cfg => {
-    _ = cfg.RegisterServicesFromAssemblyContaining<SubmitQueryHandler>();
+    _ = cfg.RegisterServicesFromAssemblyContaining<Program>();
     _ = cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
     _ = cfg.AddOpenBehavior(typeof(AuthorizationBehavior<,>));
 });
@@ -169,8 +168,10 @@ builder.Services.AddExceptionHandler<QueryNotFoundExceptionHandler>();
 builder.Services.AddExceptionHandler<QueryExecutionFailedExceptionHandler>();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
-builder.Services.AddControllers()
-    .AddApplicationPart(typeof(Hexalith.EventStore.Controllers.CommandsController).Assembly);
+builder.Services.AddControllers().ConfigureApplicationPartManager(parts => {
+    var gateway = parts.ApplicationParts.SingleOrDefault(part => part.Name == typeof(Hexalith.EventStore.Controllers.CommandsController).Assembly.GetName().Name);
+    if (gateway is not null) parts.ApplicationParts.Remove(gateway);
+});
 
 WebApplication app = builder.Build();
 
