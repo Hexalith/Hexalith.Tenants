@@ -1,0 +1,72 @@
+{
+  "playwrightVersion": "1.63.0",
+  "startedUtc": "2026-10-30T17:41:47.521Z",
+  "hostMode": "Production authentication and Razor components; separate UI process; controlled read-only HTTP and SignalR upstream",
+  "fixtureScope": "Qualifies authenticated production dialog/create DOM and browser behavior using deterministic upstream responses; does not qualify backend authorization, stored domain data or command delivery",
+  "authenticationFixture": "Test-only loopback OIDC issuer; production code validates signed tokens and authenticates its circuit",
+  "records": [
+    "DW-194",
+    "DW-201"
+  ],
+  "diagnosticSelectedCasesOnly": true,
+  "cases": [],
+  "sourceBeforeBuild": {
+    "validatorSha256": "8153c62a45ecee39d2f8bf74286c9b2bbb4ea8a27d1841d6b814b503d807cc5f",
+    "handoffFixtureSha256": "6a4908db949f08ecbacd4d2e7192f311e37fa0b866d0b84e14e98152741edcd5",
+    "handoffChecksSha256": "e9cbe6c51b97922ae78cd10b40c5dd3c31e993ccbab02a67525f3ef37402cde3",
+    "nativeSpeechChecksSha256": "49841c071c9dadb11643298d98bcb755b5d7384247ced815a9d8d3b761165a28",
+    "oidcFixtureSha256": "c3832608e33425c4e090dbf2014c246937237223c5097ea33c316363ab346b8f",
+    "sourceBaseRevision": "e45ed9d87de7800ebb02b1cedc9c64b720763e9e",
+    "sourceDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "buildInputsDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "untrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "frontComposerBaseRevision": "e07e2f42605ffde307606f4ee027c382ef1e8aa4",
+    "frontComposerDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "frontComposerUntrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "build": {
+    "executable": "dotnet",
+    "arguments": [
+      "build",
+      "src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj",
+      "-c",
+      "Debug",
+      "-m:1",
+      "-p:UseNuGetDeps=false"
+    ],
+    "succeeded": false,
+    "skippedForDevelopment": false,
+    "reusedBuild": false
+  },
+  "passed": false,
+  "failure": {
+    "phase": "build-current-ui",
+    "label": "Current Debug source build failed",
+    "focus": null,
+    "operation": ""
+  },
+  "sourceAfterCleanup": {
+    "validatorSha256": "8153c62a45ecee39d2f8bf74286c9b2bbb4ea8a27d1841d6b814b503d807cc5f",
+    "handoffFixtureSha256": "6a4908db949f08ecbacd4d2e7192f311e37fa0b866d0b84e14e98152741edcd5",
+    "handoffChecksSha256": "e9cbe6c51b97922ae78cd10b40c5dd3c31e993ccbab02a67525f3ef37402cde3",
+    "nativeSpeechChecksSha256": "49841c071c9dadb11643298d98bcb755b5d7384247ced815a9d8d3b761165a28",
+    "oidcFixtureSha256": "c3832608e33425c4e090dbf2014c246937237223c5097ea33c316363ab346b8f",
+    "sourceBaseRevision": "e45ed9d87de7800ebb02b1cedc9c64b720763e9e",
+    "sourceDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "buildInputsDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "untrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "frontComposerBaseRevision": "e07e2f42605ffde307606f4ee027c382ef1e8aa4",
+    "frontComposerDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "frontComposerUntrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "sourceStableThroughCleanup": true,
+  "fixture": {
+    "authorizedReads": 0,
+    "administratorReads": 0,
+    "unexpectedCommandAttempts": 0,
+    "simulatedCommandAttempts": 0,
+    "circuitErrors": 0
+  },
+  "acceptedForClosure": false,
+  "finishedUtc": "2026-10-30T17:41:49.030Z"
+}

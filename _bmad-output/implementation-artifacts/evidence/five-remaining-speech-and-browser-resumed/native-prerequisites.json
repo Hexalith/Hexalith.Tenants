@@ -1,0 +1,86 @@
+{
+  "startedUtc": "2026-10-30T17:46:11.3324244Z",
+  "fixtureRoot": "C:\\Temp\\tenants-five-resumed-20261030-2",
+  "commands": [
+    {
+      "executable": "dotnet",
+      "arguments": [
+        "--version"
+      ],
+      "cwd": "C:\\Temp\\tenants-five-resumed-20261030-2",
+      "startedUtc": "2026-10-30T17:46:11.4937353Z",
+      "endedUtc": "2026-10-30T17:46:11.6620855Z",
+      "exitCode": 0,
+      "output": "10.0.403\r\n"
+    },
+    {
+      "executable": "node",
+      "arguments": [
+        "--version"
+      ],
+      "cwd": "C:\\Temp\\tenants-five-resumed-20261030-2",
+      "startedUtc": "2026-10-30T17:46:11.6686266Z",
+      "endedUtc": "2026-10-30T17:46:11.6996953Z",
+      "exitCode": 0,
+      "output": "v26.1.0\r\n"
+    },
+    {
+      "executable": "npm.cmd",
+      "arguments": [
+        "--version"
+      ],
+      "cwd": "C:\\Temp\\tenants-five-resumed-20261030-2",
+      "startedUtc": "2026-10-30T17:46:11.7015172Z",
+      "endedUtc": "2026-10-30T17:46:12.0721093Z",
+      "exitCode": 0,
+      "output": "11.11.0\r\n"
+    },
+    {
+      "executable": "git",
+      "arguments": [
+        "--version"
+      ],
+      "cwd": "C:\\Temp\\tenants-five-resumed-20261030-2",
+      "startedUtc": "2026-10-30T17:46:12.0737118Z",
+      "endedUtc": "2026-10-30T17:46:12.1061933Z",
+      "exitCode": 0,
+      "output": "git version 2.55.0.windows.4\r\n"
+    },
+    {
+      "executable": "npm.cmd",
+      "arguments": [
+        "ci"
+      ],
+      "cwd": "C:\\Temp\\tenants-five-resumed-20261030-2\\tests\\performance\\tenant-audit",
+      "startedUtc": "2026-10-30T17:46:12.1097773Z",
+      "endedUtc": "2026-10-30T17:46:13.9622182Z",
+      "exitCode": 0,
+      "output": "\r\nadded 6 packages, and audited 7 packages in 1s\r\n\r\nfound 0 vulnerabilities\r\n"
+    },
+    {
+      "executable": "npx.cmd",
+      "arguments": [
+        "playwright",
+        "install",
+        "firefox"
+      ],
+      "cwd": "C:\\Temp\\tenants-five-resumed-20261030-2\\tests\\performance\\tenant-audit",
+      "startedUtc": "2026-10-30T17:46:13.9652214Z",
+      "endedUtc": "2026-10-30T17:46:15.8298544Z",
+      "exitCode": 0,
+      "output": ""
+    }
+  ],
+  "os": "10.0.26300.0",
+  "nvdaProcessesBefore": [],
+  "nvdaExecutableVersion": "2026.2.0.57664",
+  "originalSettingsHash": "4d32c40d51eae7b73b2f8b424dc1187e89e8f681c8f927a764225c4c85f29199",
+  "npmLockHashBefore": "bf59aa4ea5546426755727b7a059a63ac8e3f13e7be622782b043df5bf014630",
+  "npmLockHashAfter": "bf59aa4ea5546426755727b7a059a63ac8e3f13e7be622782b043df5bf014630",
+  "endedUtc": "2026-10-30T17:46:15.8313610Z",
+  "completed": true,
+  "retention": {
+    "rawSha256": "cbac3e2ecfaae3d8a1d782c9873b0e7b3666f31aa9e3812aeee8819eb64b6b55",
+    "normalization": "Metadata serialized as UTF-8/LF; no semantic field changed. Actual native speech packets will be preserved as binary ZIP members."
+  }
+}

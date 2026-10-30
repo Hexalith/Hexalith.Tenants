@@ -1,0 +1,814 @@
+{
+  "startedUtc": "2026-10-30T17:43:23.248597+00:00",
+  "source": "/home/administrator/projects/hexalith/tenants",
+  "destination": "/mnt/c/Temp/tenants-five-resumed-20261030-2",
+  "commands": [
+    {
+      "argv": [
+        "git",
+        "clone",
+        "--no-checkout",
+        "--depth",
+        "1",
+        "--no-local",
+        "file:///home/administrator/projects/hexalith/tenants",
+        "/mnt/c/Temp/tenants-five-resumed-20261030-2"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "startedUtc": "2026-10-30T17:43:23.331741+00:00",
+      "endedUtc": "2026-10-30T17:43:31.806095+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "Cloning into '/mnt/c/Temp/tenants-five-resumed-20261030-2'...\n"
+    },
+    {
+      "argv": [
+        "git",
+        "sparse-checkout",
+        "set",
+        "--cone",
+        "src",
+        "tests",
+        "Props",
+        "eng"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2",
+      "startedUtc": "2026-10-30T17:43:31.806346+00:00",
+      "endedUtc": "2026-10-30T17:43:31.866812+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "checkout",
+        "--detach",
+        "e45ed9d87de7800ebb02b1cedc9c64b720763e9e"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2",
+      "startedUtc": "2026-10-30T17:43:31.867068+00:00",
+      "endedUtc": "2026-10-30T17:43:40.204674+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "HEAD is now at e45ed9d build: sync local changes via /pushall\n"
+    },
+    {
+      "operation": "shutil.copyfile exact consumed worktree bytes",
+      "source": "/home/administrator/projects/hexalith/tenants",
+      "destination": "/mnt/c/Temp/tenants-five-resumed-20261030-2",
+      "completedUtc": "2026-10-30T17:44:00.998430+00:00",
+      "pathsRetainedInPerRepositoryInventory": true
+    },
+    {
+      "argv": [
+        "git",
+        "clone",
+        "--no-checkout",
+        "--depth",
+        "1",
+        "--no-local",
+        "file:///home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore",
+        "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.EventStore"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "startedUtc": "2026-10-30T17:44:15.453602+00:00",
+      "endedUtc": "2026-10-30T17:44:22.712084+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "Cloning into '/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.EventStore'...\n"
+    },
+    {
+      "argv": [
+        "git",
+        "sparse-checkout",
+        "set",
+        "--cone",
+        "src",
+        "tests",
+        "Props",
+        "eng"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.EventStore",
+      "startedUtc": "2026-10-30T17:44:22.714645+00:00",
+      "endedUtc": "2026-10-30T17:44:22.838991+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "checkout",
+        "--detach",
+        "e92e6694a93c79531368fa3bbf6c06462fd05484"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.EventStore",
+      "startedUtc": "2026-10-30T17:44:22.841755+00:00",
+      "endedUtc": "2026-10-30T17:45:05.058196+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "HEAD is now at e92e669 build: sync local changes via /pushall\n"
+    },
+    {
+      "operation": "shutil.copyfile exact consumed worktree bytes",
+      "source": "/home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore",
+      "destination": "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.EventStore",
+      "completedUtc": "2026-10-30T17:46:51.484807+00:00",
+      "pathsRetainedInPerRepositoryInventory": true
+    },
+    {
+      "argv": [
+        "git",
+        "clone",
+        "--no-checkout",
+        "--depth",
+        "1",
+        "--no-local",
+        "file:///home/administrator/projects/hexalith/tenants/references/Hexalith.Commons",
+        "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.Commons"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "startedUtc": "2026-10-30T17:48:09.625328+00:00",
+      "endedUtc": "2026-10-30T17:48:11.640520+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "Cloning into '/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.Commons'...\n"
+    },
+    {
+      "argv": [
+        "git",
+        "sparse-checkout",
+        "set",
+        "--cone",
+        "src",
+        "tests",
+        "Props",
+        "eng"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.Commons",
+      "startedUtc": "2026-10-30T17:48:11.656729+00:00",
+      "endedUtc": "2026-10-30T17:48:11.753576+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "checkout",
+        "--detach",
+        "0604bcf5304fc09a569f7abbd8e5d1b9049c02b7"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.Commons",
+      "startedUtc": "2026-10-30T17:48:11.773397+00:00",
+      "endedUtc": "2026-10-30T17:48:13.496604+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "HEAD is now at 0604bcf chore(release): 2.30.7 [skip ci]\n"
+    },
+    {
+      "operation": "shutil.copyfile exact consumed worktree bytes",
+      "source": "/home/administrator/projects/hexalith/tenants/references/Hexalith.Commons",
+      "destination": "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.Commons",
+      "completedUtc": "2026-10-30T17:48:17.875270+00:00",
+      "pathsRetainedInPerRepositoryInventory": true
+    },
+    {
+      "argv": [
+        "git",
+        "clone",
+        "--no-checkout",
+        "--depth",
+        "1",
+        "--no-local",
+        "file:///home/administrator/projects/hexalith/tenants/references/Hexalith.AI.Tools",
+        "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.AI.Tools"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "startedUtc": "2026-10-30T17:48:21.317710+00:00",
+      "endedUtc": "2026-10-30T17:48:22.673551+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "Cloning into '/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.AI.Tools'...\n"
+    },
+    {
+      "argv": [
+        "git",
+        "sparse-checkout",
+        "set",
+        "--cone",
+        "src",
+        "tests",
+        "Props",
+        "eng"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.AI.Tools",
+      "startedUtc": "2026-10-30T17:48:22.687019+00:00",
+      "endedUtc": "2026-10-30T17:48:22.787322+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "checkout",
+        "--detach",
+        "9b78aa008cfc62cd88ad0ea4b39b1f07311956ce"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.AI.Tools",
+      "startedUtc": "2026-10-30T17:48:22.801034+00:00",
+      "endedUtc": "2026-10-30T17:48:23.093557+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "HEAD is now at 9b78aa0 build(deps): update commitlint to the latest version\n"
+    },
+    {
+      "operation": "shutil.copyfile exact consumed worktree bytes",
+      "source": "/home/administrator/projects/hexalith/tenants/references/Hexalith.AI.Tools",
+      "destination": "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.AI.Tools",
+      "completedUtc": "2026-10-30T17:48:23.319725+00:00",
+      "pathsRetainedInPerRepositoryInventory": true
+    },
+    {
+      "argv": [
+        "git",
+        "clone",
+        "--no-checkout",
+        "--depth",
+        "1",
+        "--no-local",
+        "file:///home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer",
+        "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.FrontComposer"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "startedUtc": "2026-10-30T17:48:23.623288+00:00",
+      "endedUtc": "2026-10-30T17:48:27.620195+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "Cloning into '/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.FrontComposer'...\n"
+    },
+    {
+      "argv": [
+        "git",
+        "sparse-checkout",
+        "set",
+        "--cone",
+        "src",
+        "tests",
+        "Props",
+        "eng"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.FrontComposer",
+      "startedUtc": "2026-10-30T17:48:27.636162+00:00",
+      "endedUtc": "2026-10-30T17:48:27.739339+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "checkout",
+        "--detach",
+        "e07e2f42605ffde307606f4ee027c382ef1e8aa4"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.FrontComposer",
+      "startedUtc": "2026-10-30T17:48:27.755179+00:00",
+      "endedUtc": "2026-10-30T17:48:46.489720+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "HEAD is now at e07e2f4 fix: story 15.5\n"
+    },
+    {
+      "operation": "shutil.copyfile exact consumed worktree bytes",
+      "source": "/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer",
+      "destination": "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.FrontComposer",
+      "completedUtc": "2026-10-30T17:49:50.417639+00:00",
+      "pathsRetainedInPerRepositoryInventory": true
+    },
+    {
+      "argv": [
+        "git",
+        "clone",
+        "--no-checkout",
+        "--depth",
+        "1",
+        "--no-local",
+        "file:///home/administrator/projects/hexalith/tenants/references/Hexalith.Builds",
+        "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.Builds"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "startedUtc": "2026-10-30T17:50:26.827821+00:00",
+      "endedUtc": "2026-10-30T17:50:31.328561+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "Cloning into '/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.Builds'...\n"
+    },
+    {
+      "argv": [
+        "git",
+        "sparse-checkout",
+        "set",
+        "--cone",
+        "src",
+        "tests",
+        "Props",
+        "eng"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.Builds",
+      "startedUtc": "2026-10-30T17:50:31.350349+00:00",
+      "endedUtc": "2026-10-30T17:50:31.479172+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "checkout",
+        "--detach",
+        "849b0be6849f14c097ab05ff9bafbc115bdabe7e"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.Builds",
+      "startedUtc": "2026-10-30T17:50:31.507542+00:00",
+      "endedUtc": "2026-10-30T17:50:34.824640+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "HEAD is now at 849b0be docs: resolve vulnerability policy review findings\n"
+    },
+    {
+      "operation": "shutil.copyfile exact consumed worktree bytes",
+      "source": "/home/administrator/projects/hexalith/tenants/references/Hexalith.Builds",
+      "destination": "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.Builds",
+      "completedUtc": "2026-10-30T17:50:43.235114+00:00",
+      "pathsRetainedInPerRepositoryInventory": true
+    },
+    {
+      "argv": [
+        "git",
+        "clone",
+        "--no-checkout",
+        "--depth",
+        "1",
+        "--no-local",
+        "file:///home/administrator/projects/hexalith/tenants/references/Hexalith.PolymorphicSerializations",
+        "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.PolymorphicSerializations"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "startedUtc": "2026-10-30T17:50:47.929008+00:00",
+      "endedUtc": "2026-10-30T17:50:49.379084+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "Cloning into '/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.PolymorphicSerializations'...\n"
+    },
+    {
+      "argv": [
+        "git",
+        "sparse-checkout",
+        "set",
+        "--cone",
+        "src",
+        "tests",
+        "Props",
+        "eng"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.PolymorphicSerializations",
+      "startedUtc": "2026-10-30T17:50:49.411970+00:00",
+      "endedUtc": "2026-10-30T17:50:49.514580+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "checkout",
+        "--detach",
+        "92ede24cc11129379efe52cfe7fd2c820c567f7f"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.PolymorphicSerializations",
+      "startedUtc": "2026-10-30T17:50:49.564424+00:00",
+      "endedUtc": "2026-10-30T17:50:49.933411+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "HEAD is now at 92ede24 build(deps): synchronize the latest shared build fixes\n"
+    },
+    {
+      "operation": "shutil.copyfile exact consumed worktree bytes",
+      "source": "/home/administrator/projects/hexalith/tenants/references/Hexalith.PolymorphicSerializations",
+      "destination": "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.PolymorphicSerializations",
+      "completedUtc": "2026-10-30T17:50:50.729994+00:00",
+      "pathsRetainedInPerRepositoryInventory": true
+    },
+    {
+      "argv": [
+        "git",
+        "clone",
+        "--no-checkout",
+        "--depth",
+        "1",
+        "--no-local",
+        "file:///home/administrator/projects/hexalith/tenants/references/Hexalith.Memories",
+        "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.Memories"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "startedUtc": "2026-10-30T17:50:51.472196+00:00",
+      "endedUtc": "2026-10-30T17:50:57.259132+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "Cloning into '/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.Memories'...\n"
+    },
+    {
+      "argv": [
+        "git",
+        "sparse-checkout",
+        "set",
+        "--cone",
+        "src",
+        "tests",
+        "Props",
+        "eng"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.Memories",
+      "startedUtc": "2026-10-30T17:50:57.278596+00:00",
+      "endedUtc": "2026-10-30T17:50:57.400901+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "checkout",
+        "--detach",
+        "71a721a87ebbb34c557c08517b5c39884a7417da"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.Memories",
+      "startedUtc": "2026-10-30T17:50:57.420802+00:00",
+      "endedUtc": "2026-10-30T17:51:14.685125+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "HEAD is now at 71a721a build: record synced Platform pointer\n"
+    },
+    {
+      "operation": "shutil.copyfile exact consumed worktree bytes",
+      "source": "/home/administrator/projects/hexalith/tenants/references/Hexalith.Memories",
+      "destination": "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.Memories",
+      "completedUtc": "2026-10-30T17:52:01.835638+00:00",
+      "pathsRetainedInPerRepositoryInventory": true
+    },
+    {
+      "argv": [
+        "git",
+        "clone",
+        "--no-checkout",
+        "--depth",
+        "1",
+        "--no-local",
+        "file:///home/administrator/projects/hexalith/tenants/references/Hexalith.McpCli",
+        "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.McpCli"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "startedUtc": "2026-10-30T17:52:36.895788+00:00",
+      "endedUtc": "2026-10-30T17:52:41.178785+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "Cloning into '/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.McpCli'...\n"
+    },
+    {
+      "argv": [
+        "git",
+        "sparse-checkout",
+        "set",
+        "--cone",
+        "src",
+        "tests",
+        "Props",
+        "eng"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.McpCli",
+      "startedUtc": "2026-10-30T17:52:41.278962+00:00",
+      "endedUtc": "2026-10-30T17:52:41.339657+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "checkout",
+        "--detach",
+        "e74d215739766a663cb9e910f4534f383e7973ff"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.McpCli",
+      "startedUtc": "2026-10-30T17:52:41.422582+00:00",
+      "endedUtc": "2026-10-30T17:52:43.861310+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "HEAD is now at e74d215 build: point submodules at the pushall merge guard\n"
+    },
+    {
+      "operation": "shutil.copyfile exact consumed worktree bytes",
+      "source": "/home/administrator/projects/hexalith/tenants/references/Hexalith.McpCli",
+      "destination": "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.McpCli",
+      "completedUtc": "2026-10-30T17:52:51.103510+00:00",
+      "pathsRetainedInPerRepositoryInventory": true
+    },
+    {
+      "argv": [
+        "git",
+        "clone",
+        "--no-checkout",
+        "--depth",
+        "1",
+        "--no-local",
+        "file:///home/administrator/projects/hexalith/tenants/references/Hexalith.Platform",
+        "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.Platform"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "startedUtc": "2026-10-30T17:52:55.231459+00:00",
+      "endedUtc": "2026-10-30T17:53:03.833584+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "Cloning into '/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.Platform'...\n"
+    },
+    {
+      "argv": [
+        "git",
+        "sparse-checkout",
+        "set",
+        "--cone",
+        "src",
+        "tests",
+        "Props",
+        "eng"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.Platform",
+      "startedUtc": "2026-10-30T17:53:03.893211+00:00",
+      "endedUtc": "2026-10-30T17:53:03.976512+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "checkout",
+        "--detach",
+        "b8a6437f0b2648746c74155eb4728c43cb58ba30"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.Platform",
+      "startedUtc": "2026-10-30T17:53:04.019860+00:00",
+      "endedUtc": "2026-10-30T17:53:11.305088+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "HEAD is now at b8a6437 docs: pin vulnerability policy adoption to the pushed Builds commit\n"
+    },
+    {
+      "operation": "shutil.copyfile exact consumed worktree bytes",
+      "source": "/home/administrator/projects/hexalith/tenants/references/Hexalith.Platform",
+      "destination": "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.Platform",
+      "completedUtc": "2026-10-30T17:53:47.968512+00:00",
+      "pathsRetainedInPerRepositoryInventory": true
+    }
+  ],
+  "repositories": [
+    {
+      "path": ".",
+      "revision": "e45ed9d87de7800ebb02b1cedc9c64b720763e9e",
+      "sourceBefore": {
+        "capturedUtc": "2026-10-30T17:43:23.312430+00:00",
+        "manifestSha256": "692d28e9d9f48943b8c52a18d4942ce7d9276134ead2b7cd53e6f231113b7eb9"
+      },
+      "native": {
+        "capturedUtc": "2026-10-30T17:44:15.306011+00:00",
+        "manifestSha256": "692d28e9d9f48943b8c52a18d4942ce7d9276134ead2b7cd53e6f231113b7eb9"
+      },
+      "sourceAfter": {
+        "capturedUtc": "2026-10-30T17:44:15.343549+00:00",
+        "manifestSha256": "692d28e9d9f48943b8c52a18d4942ce7d9276134ead2b7cd53e6f231113b7eb9"
+      },
+      "exactBytesEqual": true,
+      "inventory": {
+        "archive": "native-path-inventories.zip",
+        "member": "Tenants.json",
+        "sha256": "f67c0957a5319ff15be70e40e2387a68d37b50244123cf59cf08048d4ec49960",
+        "fileCount": 884
+      }
+    },
+    {
+      "path": "references/Hexalith.EventStore",
+      "revision": "e92e6694a93c79531368fa3bbf6c06462fd05484",
+      "sourceBefore": {
+        "capturedUtc": "2026-10-30T17:44:15.453364+00:00",
+        "manifestSha256": "9d960e361da0c25e307e49d211c86fd90f6bb88147798d40ce9e6788f4227cc6"
+      },
+      "native": {
+        "capturedUtc": "2026-10-30T17:48:09.483645+00:00",
+        "manifestSha256": "9d960e361da0c25e307e49d211c86fd90f6bb88147798d40ce9e6788f4227cc6"
+      },
+      "sourceAfter": {
+        "capturedUtc": "2026-10-30T17:48:09.588397+00:00",
+        "manifestSha256": "9d960e361da0c25e307e49d211c86fd90f6bb88147798d40ce9e6788f4227cc6"
+      },
+      "exactBytesEqual": true,
+      "inventory": {
+        "archive": "native-path-inventories.zip",
+        "member": "Hexalith.EventStore.json",
+        "sha256": "fc1feae99a01a8c675506abf841c754451269241229bbb4ad856bf745e9d84d4",
+        "fileCount": 4466
+      }
+    },
+    {
+      "path": "references/Hexalith.Commons",
+      "revision": "0604bcf5304fc09a569f7abbd8e5d1b9049c02b7",
+      "sourceBefore": {
+        "capturedUtc": "2026-10-30T17:48:09.625268+00:00",
+        "manifestSha256": "8511b7b1fe9e042a6ea42a5580f5a7924a0e1453764a4dea64f7e59a716ac86a"
+      },
+      "native": {
+        "capturedUtc": "2026-10-30T17:48:21.292399+00:00",
+        "manifestSha256": "8511b7b1fe9e042a6ea42a5580f5a7924a0e1453764a4dea64f7e59a716ac86a"
+      },
+      "sourceAfter": {
+        "capturedUtc": "2026-10-30T17:48:21.297316+00:00",
+        "manifestSha256": "8511b7b1fe9e042a6ea42a5580f5a7924a0e1453764a4dea64f7e59a716ac86a"
+      },
+      "exactBytesEqual": true,
+      "inventory": {
+        "archive": "native-path-inventories.zip",
+        "member": "Hexalith.Commons.json",
+        "sha256": "7dc7315c5d7dca1e5891a4d4a931193aa5c8ffc8dbab500bd98a29b14777d986",
+        "fileCount": 147
+      }
+    },
+    {
+      "path": "references/Hexalith.AI.Tools",
+      "revision": "9b78aa008cfc62cd88ad0ea4b39b1f07311956ce",
+      "sourceBefore": {
+        "capturedUtc": "2026-10-30T17:48:21.317663+00:00",
+        "manifestSha256": "f25b443720e9faae2660dc888deb25f48df634b05f0899cd3a83d209494aa75d"
+      },
+      "native": {
+        "capturedUtc": "2026-10-30T17:48:23.534075+00:00",
+        "manifestSha256": "f25b443720e9faae2660dc888deb25f48df634b05f0899cd3a83d209494aa75d"
+      },
+      "sourceAfter": {
+        "capturedUtc": "2026-10-30T17:48:23.536786+00:00",
+        "manifestSha256": "f25b443720e9faae2660dc888deb25f48df634b05f0899cd3a83d209494aa75d"
+      },
+      "exactBytesEqual": true,
+      "inventory": {
+        "archive": "native-path-inventories.zip",
+        "member": "Hexalith.AI.Tools.json",
+        "sha256": "560d1ff2b4ab9f07b5599bc392447f3ab9fca9885ba0a0bed52b530d6a45b309",
+        "fileCount": 13
+      }
+    },
+    {
+      "path": "references/Hexalith.FrontComposer",
+      "revision": "e07e2f42605ffde307606f4ee027c382ef1e8aa4",
+      "sourceBefore": {
+        "capturedUtc": "2026-10-30T17:48:23.623145+00:00",
+        "manifestSha256": "e48861e3446941bd14a8458e8ecae89436fb5ad75f025835c02a8c3300846b01"
+      },
+      "native": {
+        "capturedUtc": "2026-10-30T17:50:26.685807+00:00",
+        "manifestSha256": "e48861e3446941bd14a8458e8ecae89436fb5ad75f025835c02a8c3300846b01"
+      },
+      "sourceAfter": {
+        "capturedUtc": "2026-10-30T17:50:26.776902+00:00",
+        "manifestSha256": "e48861e3446941bd14a8458e8ecae89436fb5ad75f025835c02a8c3300846b01"
+      },
+      "exactBytesEqual": true,
+      "inventory": {
+        "archive": "native-path-inventories.zip",
+        "member": "Hexalith.FrontComposer.json",
+        "sha256": "54b09098215ea9e23c1a0ec020869a3bdbea2311f5db3e2b1f615785093c89ec",
+        "fileCount": 1981
+      }
+    },
+    {
+      "path": "references/Hexalith.Builds",
+      "revision": "849b0be6849f14c097ab05ff9bafbc115bdabe7e",
+      "sourceBefore": {
+        "capturedUtc": "2026-10-30T17:50:26.827667+00:00",
+        "manifestSha256": "b5fdc702ba334d496da84d91974766bda0c0ff41ffeb5b49d70fba9dde34ea86"
+      },
+      "native": {
+        "capturedUtc": "2026-10-30T17:50:47.865837+00:00",
+        "manifestSha256": "b5fdc702ba334d496da84d91974766bda0c0ff41ffeb5b49d70fba9dde34ea86"
+      },
+      "sourceAfter": {
+        "capturedUtc": "2026-10-30T17:50:47.894975+00:00",
+        "manifestSha256": "b5fdc702ba334d496da84d91974766bda0c0ff41ffeb5b49d70fba9dde34ea86"
+      },
+      "exactBytesEqual": true,
+      "inventory": {
+        "archive": "native-path-inventories.zip",
+        "member": "Hexalith.Builds.json",
+        "sha256": "654bb52dd62dd821264613fe81d61395cbff7496938e5409397dbd30d5b603a2",
+        "fileCount": 281
+      }
+    },
+    {
+      "path": "references/Hexalith.PolymorphicSerializations",
+      "revision": "92ede24cc11129379efe52cfe7fd2c820c567f7f",
+      "sourceBefore": {
+        "capturedUtc": "2026-10-30T17:50:47.928933+00:00",
+        "manifestSha256": "b3c8fbd62716af2d3a889acefb127c3a8794e21972d09a8b78156c9f084f8f5a"
+      },
+      "native": {
+        "capturedUtc": "2026-10-30T17:50:51.389576+00:00",
+        "manifestSha256": "b3c8fbd62716af2d3a889acefb127c3a8794e21972d09a8b78156c9f084f8f5a"
+      },
+      "sourceAfter": {
+        "capturedUtc": "2026-10-30T17:50:51.392379+00:00",
+        "manifestSha256": "b3c8fbd62716af2d3a889acefb127c3a8794e21972d09a8b78156c9f084f8f5a"
+      },
+      "exactBytesEqual": true,
+      "inventory": {
+        "archive": "native-path-inventories.zip",
+        "member": "Hexalith.PolymorphicSerializations.json",
+        "sha256": "ee984412a3420ed48d99596d8a7be4735f598399127bd5772a4ac315ed069c75",
+        "fileCount": 32
+      }
+    },
+    {
+      "path": "references/Hexalith.Memories",
+      "revision": "71a721a87ebbb34c557c08517b5c39884a7417da",
+      "sourceBefore": {
+        "capturedUtc": "2026-10-30T17:50:51.472084+00:00",
+        "manifestSha256": "50b08ed17fddb8d4cb09ff820e0386e6efcc66a7efbaa061775f82e06c1786d0"
+      },
+      "native": {
+        "capturedUtc": "2026-10-30T17:52:36.681449+00:00",
+        "manifestSha256": "50b08ed17fddb8d4cb09ff820e0386e6efcc66a7efbaa061775f82e06c1786d0"
+      },
+      "sourceAfter": {
+        "capturedUtc": "2026-10-30T17:52:36.762628+00:00",
+        "manifestSha256": "50b08ed17fddb8d4cb09ff820e0386e6efcc66a7efbaa061775f82e06c1786d0"
+      },
+      "exactBytesEqual": true,
+      "inventory": {
+        "archive": "native-path-inventories.zip",
+        "member": "Hexalith.Memories.json",
+        "sha256": "7d3375aee3f42892f823662ba40c2dadc17b291f71dcdea655bc5e050968f31f",
+        "fileCount": 1898
+      }
+    },
+    {
+      "path": "references/Hexalith.McpCli",
+      "revision": "e74d215739766a663cb9e910f4534f383e7973ff",
+      "sourceBefore": {
+        "capturedUtc": "2026-10-30T17:52:36.895535+00:00",
+        "manifestSha256": "61b5470387b5f7fec83d7ed3bb175f2dfb4566e7d0a4d5b0fdb82570e9615690"
+      },
+      "native": {
+        "capturedUtc": "2026-10-30T17:52:54.744258+00:00",
+        "manifestSha256": "61b5470387b5f7fec83d7ed3bb175f2dfb4566e7d0a4d5b0fdb82570e9615690"
+      },
+      "sourceAfter": {
+        "capturedUtc": "2026-10-30T17:52:54.981387+00:00",
+        "manifestSha256": "61b5470387b5f7fec83d7ed3bb175f2dfb4566e7d0a4d5b0fdb82570e9615690"
+      },
+      "exactBytesEqual": true,
+      "inventory": {
+        "archive": "native-path-inventories.zip",
+        "member": "Hexalith.McpCli.json",
+        "sha256": "5b2794245f0c55ae269b02f5a1dc382a56e510e0c743abe2e5487b3954025df6",
+        "fileCount": 368
+      }
+    },
+    {
+      "path": "references/Hexalith.Platform",
+      "revision": "b8a6437f0b2648746c74155eb4728c43cb58ba30",
+      "sourceBefore": {
+        "capturedUtc": "2026-10-30T17:52:55.231168+00:00",
+        "manifestSha256": "663451d34487197267735d950a11931fa6900da1ed5e5ed72f881d6ee3c00487"
+      },
+      "native": {
+        "capturedUtc": "2026-10-30T17:54:16.999544+00:00",
+        "manifestSha256": "663451d34487197267735d950a11931fa6900da1ed5e5ed72f881d6ee3c00487"
+      },
+      "sourceAfter": {
+        "capturedUtc": "2026-10-30T17:54:17.096690+00:00",
+        "manifestSha256": "663451d34487197267735d950a11931fa6900da1ed5e5ed72f881d6ee3c00487"
+      },
+      "exactBytesEqual": true,
+      "inventory": {
+        "archive": "native-path-inventories.zip",
+        "member": "Hexalith.Platform.json",
+        "sha256": "30d3aec4534b79821bde9a0b2d97d6f794ab1cfccecf56e1c5bb7b55ce02779c",
+        "fileCount": 1524
+      }
+    }
+  ],
+  "nestedDependenciesInitialized": false,
+  "endedUtc": "2026-10-30T17:54:17.130471+00:00",
+  "completed": true,
+  "fingerprintAlgorithm": "Sorted distinct git ls-files --cached --others --exclude-standard paths. Root files and src/tests/Props/eng only; bin/obj/node_modules excluded. SHA256 actual bytes per file; aggregate SHA256 canonical compact sorted-key JSON rows. Path inventories contain one copy; before/native/after aggregates compare equality.",
+  "scopeLimit": "Sparse dependency preparation included tests as well as src/Props/eng; these extra inert test files are fingerprinted but are not asserted to be runtime-consumed. All clones are shallow depth one; no nested submodule is initialized."
+}

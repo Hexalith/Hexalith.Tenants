@@ -1,0 +1,14 @@
+{
+  "declaredUtc": "2026-10-30T17:53:14.362397+00:00",
+  "pairings": [
+    "NVDA/Chrome",
+    "NVDA/Firefox"
+  ],
+  "supportBasis": "User approved both native Windows pairings for this bounded disposable fixture on 2026-10-30; no general support policy asserted.",
+  "firstCellPerPairing": "S0-en with current mode, localized Search focus and NVDA cancellation-response controls",
+  "continuation": "Finish all 48 windows only if first native cell and controls establish a stable capture environment. Repeated identical setup/external foreground failures across pairings stop that environment; no substitution by AX/DOM.",
+  "boundedRetry": "At most one additional selected-cell attempt per pairing for a demonstrated correctable capture/setup defect; fresh output per attempt. Do not repeat an unchanged external foreground failure indefinitely.",
+  "setupBoundMinutes": 15,
+  "captureHelpersChanged": false,
+  "speechLimit": "Speech Viewer queued text arrival at 100 ms sampling; does not establish audible completion or word-level onset."
+}

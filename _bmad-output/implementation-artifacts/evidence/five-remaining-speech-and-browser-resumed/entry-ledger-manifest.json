@@ -1,0 +1,19 @@
+{
+  "capturedUtc": "2026-10-30T17:40:49.998038+00:00",
+  "rootRevision": "e45ed9d87de7800ebb02b1cedc9c64b720763e9e",
+  "archiveSha256": "12979f49f9bd4e7e36d36a8d3066508f5d7592287597ff89c38a6f61f616f8d8",
+  "files": [
+    {
+      "name": "deferred-work.md",
+      "sha256": "74067fa1d33be0cef9f9bd83f176d0ea987536c67e1d20f6b0e474762c37a286"
+    },
+    {
+      "name": "deferred-work-archive.md",
+      "sha256": "e5dd8f16347da66beaf705eb5b346437a866a2cc6c084bc4af3b0bd03b7afe3e"
+    },
+    {
+      "name": "maintenance-backlog.md",
+      "sha256": "95766819dbec544938e281666141955e7add79b22960f0ee34247127e3dcaae0"
+    }
+  ]
+}

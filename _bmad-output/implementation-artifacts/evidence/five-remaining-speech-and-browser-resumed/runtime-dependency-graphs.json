@@ -1,0 +1,202 @@
+{
+  "capturedAfterBrowserExecutionUtc": "2026-10-30T17:51:54.728186+00:00",
+  "observedGraphs": [
+    {
+      "path": "src/Hexalith.Tenants.UI/obj/project.assets.json",
+      "sha256": "ddf320ef471376365b40ce280cb6ac7e2fd09f8b3c66ecd4a7d3ccd606b578da",
+      "hexalithLibraries": [
+        {
+          "name": "Hexalith.Commons.UniqueIds/1.0.0",
+          "type": "project"
+        },
+        {
+          "name": "Hexalith.EventStore.Client/3.128.4",
+          "type": "project"
+        },
+        {
+          "name": "Hexalith.EventStore.Contracts/3.128.4",
+          "type": "project"
+        },
+        {
+          "name": "Hexalith.FrontComposer.Contracts/1.0.0",
+          "type": "project"
+        },
+        {
+          "name": "Hexalith.FrontComposer.Contracts.UI/1.0.0",
+          "type": "project"
+        },
+        {
+          "name": "Hexalith.FrontComposer.Shell/1.0.0",
+          "type": "project"
+        },
+        {
+          "name": "Hexalith.McpCli.Abstractions/1.0.0",
+          "type": "project"
+        },
+        {
+          "name": "Hexalith.Memories.Client.Rest/1.0.0",
+          "type": "project"
+        },
+        {
+          "name": "Hexalith.Memories.Contracts/1.0.0",
+          "type": "project"
+        },
+        {
+          "name": "Hexalith.Tenants.Client/5.11.1",
+          "type": "project"
+        },
+        {
+          "name": "Hexalith.Tenants.Contracts/5.11.1",
+          "type": "project"
+        }
+      ],
+      "fluentLibraries": [
+        {
+          "name": "Microsoft.FluentUI.AspNetCore.Components/5.0.1",
+          "type": "package"
+        },
+        {
+          "name": "Microsoft.FluentUI.AspNetCore.Components.Icons/5.0.1",
+          "type": "package"
+        }
+      ]
+    },
+    {
+      "path": "src/Hexalith.Tenants.UI/bin/Debug/net10.0/Hexalith.Tenants.UI.deps.json",
+      "sha256": "97438142e62b2117cf60f76efaa3fbf2126f0befa533d9bd343545c5807bd074",
+      "hexalithLibraries": [
+        {
+          "name": "Hexalith.Tenants.UI/5.11.1",
+          "type": "project"
+        },
+        {
+          "name": "Hexalith.Commons.UniqueIds/1.0.0",
+          "type": "project"
+        },
+        {
+          "name": "Hexalith.EventStore.Client/3.128.4",
+          "type": "project"
+        },
+        {
+          "name": "Hexalith.EventStore.Contracts/3.128.4",
+          "type": "project"
+        },
+        {
+          "name": "Hexalith.FrontComposer.Contracts/1.0.0",
+          "type": "project"
+        },
+        {
+          "name": "Hexalith.FrontComposer.Contracts.UI/1.0.0",
+          "type": "project"
+        },
+        {
+          "name": "Hexalith.FrontComposer.Shell/1.0.0",
+          "type": "project"
+        },
+        {
+          "name": "Hexalith.McpCli.Abstractions/1.0.0",
+          "type": "project"
+        },
+        {
+          "name": "Hexalith.Memories.Client.Rest/1.0.0",
+          "type": "project"
+        },
+        {
+          "name": "Hexalith.Memories.Contracts/1.0.0",
+          "type": "project"
+        },
+        {
+          "name": "Hexalith.Tenants.Client/5.11.1",
+          "type": "project"
+        },
+        {
+          "name": "Hexalith.Tenants.Contracts/5.11.1",
+          "type": "project"
+        }
+      ],
+      "fluentLibraries": [
+        {
+          "name": "Microsoft.FluentUI.AspNetCore.Components/5.0.1",
+          "type": "package"
+        },
+        {
+          "name": "Microsoft.FluentUI.AspNetCore.Components.Icons/5.0.1",
+          "type": "package"
+        }
+      ]
+    },
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.deps.json",
+      "sha256": "2f9a66d3d4a53e3e50d15f5d36b1b5ec112d838c94984d3065c2c86c99f13308",
+      "hexalithLibraries": [
+        {
+          "name": "Hexalith.Tenants.UI.Tests/5.11.1",
+          "type": "project"
+        },
+        {
+          "name": "Hexalith.McpCli.Abstractions/1.1.0",
+          "type": "package"
+        },
+        {
+          "name": "Hexalith.Commons.UniqueIds/1.0.0",
+          "type": "project"
+        },
+        {
+          "name": "Hexalith.EventStore.Client/3.128.4",
+          "type": "project"
+        },
+        {
+          "name": "Hexalith.EventStore.Contracts/3.128.4",
+          "type": "project"
+        },
+        {
+          "name": "Hexalith.FrontComposer.Contracts/1.0.0",
+          "type": "project"
+        },
+        {
+          "name": "Hexalith.FrontComposer.Contracts.UI/1.0.0",
+          "type": "project"
+        },
+        {
+          "name": "Hexalith.FrontComposer.Shell/1.0.0",
+          "type": "project"
+        },
+        {
+          "name": "Hexalith.FrontComposer.Testing/1.0.0",
+          "type": "project"
+        },
+        {
+          "name": "Hexalith.Memories.Client.Rest/1.0.0",
+          "type": "project"
+        },
+        {
+          "name": "Hexalith.Memories.Contracts/1.0.0",
+          "type": "project"
+        },
+        {
+          "name": "Hexalith.Tenants.Client/5.11.1",
+          "type": "project"
+        },
+        {
+          "name": "Hexalith.Tenants.Contracts/5.11.1",
+          "type": "project"
+        },
+        {
+          "name": "Hexalith.Tenants.UI/5.11.1",
+          "type": "project"
+        }
+      ],
+      "fluentLibraries": [
+        {
+          "name": "Microsoft.FluentUI.AspNetCore.Components/5.0.1",
+          "type": "package"
+        },
+        {
+          "name": "Microsoft.FluentUI.AspNetCore.Components.Icons/5.0.1",
+          "type": "package"
+        }
+      ]
+    }
+  ],
+  "limit": "Captured after browser execution. Native collector uses explicit -p packaged-McpCli flags separately. Environment properties can be overridden by project evaluation: current browser assets and deps identify McpCli.Abstractions as project 1.0.0 despite requested false environment property. Test graph remains the explicit -p packaged-McpCli build."
+}

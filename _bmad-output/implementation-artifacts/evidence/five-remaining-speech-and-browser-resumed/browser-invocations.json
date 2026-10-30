@@ -1,0 +1,99 @@
+{
+  "provenance": "Exact argv/environment from executed tool calls; packet timestamps belong to fixture execution. No complete inherited environment attestation. Legacy records labels in packets preserved; scenario selection is bound here.",
+  "invocations": [
+    {
+      "scenario": "grant-default",
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "argv": [
+        "node",
+        "tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-administrator-dialogs.mjs",
+        "/tmp/tenants-resume-grant.json"
+      ],
+      "explicitEnvironment": {
+        "TENANTS_BROWSER_STANDALONE_OIDC": "1",
+        "TENANTS_BROWSER_UI_SAFETY_ONLY": "1",
+        "CHROMIUM_BIN": "/usr/bin/google-chrome",
+        "TENANTS_BROWSER_RUNTIME_FOLLOWUPS": "1"
+      },
+      "packet": "grant-default-build-blocked.json",
+      "packetSha256": "648873d8d0a38eb51e3c4c8a5b52a904b23780641b6fcfa5273321698f000604",
+      "startedUtc": "2026-10-30T17:41:47.521Z",
+      "finishedUtc": "2026-10-30T17:41:49.030Z",
+      "exitCode": 1,
+      "launcherLogSha256": "8625de9dc7d4d0447e5c40074caeea8779c603c54aa172d5be438d12d157a188",
+      "launcherOutput": "Authenticated administrator dialogs: failed; 0 automated cases; phase build-current-ui\n"
+    },
+    {
+      "scenario": "grid-default",
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "argv": [
+        "node",
+        "tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-administrator-dialogs.mjs",
+        "/tmp/tenants-resume-grid.json"
+      ],
+      "explicitEnvironment": {
+        "TENANTS_BROWSER_STANDALONE_OIDC": "1",
+        "TENANTS_BROWSER_UI_SAFETY_ONLY": "1",
+        "CHROMIUM_BIN": "/usr/bin/google-chrome",
+        "TENANTS_BROWSER_HOLD_GRID": "1"
+      },
+      "packet": "grid-default-build-blocked.json",
+      "packetSha256": "ceedd7179d822780c004b8684012cad9460425557f81a35e26290721e6573b5a",
+      "startedUtc": "2026-10-30T17:42:39.270Z",
+      "finishedUtc": "2026-10-30T17:42:41.307Z",
+      "exitCode": 1,
+      "launcherLogSha256": "8625de9dc7d4d0447e5c40074caeea8779c603c54aa172d5be438d12d157a188",
+      "launcherOutput": "Authenticated administrator dialogs: failed; 0 automated cases; phase build-current-ui\n"
+    },
+    {
+      "scenario": "grant-pinned",
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "argv": [
+        "node",
+        "tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-administrator-dialogs.mjs",
+        "/tmp/tenants-resume-grant-pinned.json"
+      ],
+      "explicitEnvironment": {
+        "HexalithEventStoreVersion": "3.128.4",
+        "HexalithMcpCliFromSource": "false",
+        "NuGetAudit": "false",
+        "TENANTS_BROWSER_STANDALONE_OIDC": "1",
+        "TENANTS_BROWSER_UI_SAFETY_ONLY": "1",
+        "CHROMIUM_BIN": "/usr/bin/google-chrome",
+        "TENANTS_BROWSER_RUNTIME_FOLLOWUPS": "1"
+      },
+      "packet": "grant-current-controls.json",
+      "packetSha256": "e7844e23c7eb20618418c1de15ab465a06fdcfdd7fd659ce544c61304e3dcadb",
+      "startedUtc": "2026-10-30T17:43:05.174Z",
+      "finishedUtc": "2026-10-30T17:43:30.883Z",
+      "exitCode": 0,
+      "launcherLogSha256": "01e5c764d40b86ed22878824ffcd01f33107111bce6c03909f6080a5051163d3",
+      "launcherOutput": "UI safety case: member-native-modal-keyboard\nUI safety case: member-pending-native-dismissal\nUI safety case: create-measured-conflict-recovery\nAuthenticated administrator dialogs: passed; 4 automated cases; phase create-back-lifecycle-focus\n"
+    },
+    {
+      "scenario": "grid-pinned",
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "argv": [
+        "node",
+        "tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-administrator-dialogs.mjs",
+        "/tmp/tenants-resume-grid-pinned.json"
+      ],
+      "explicitEnvironment": {
+        "HexalithEventStoreVersion": "3.128.4",
+        "HexalithMcpCliFromSource": "false",
+        "NuGetAudit": "false",
+        "TENANTS_BROWSER_STANDALONE_OIDC": "1",
+        "TENANTS_BROWSER_UI_SAFETY_ONLY": "1",
+        "CHROMIUM_BIN": "/usr/bin/google-chrome",
+        "TENANTS_BROWSER_HOLD_GRID": "1"
+      },
+      "packet": "grid-external-failure.json",
+      "packetSha256": "add41b2019c10cceaecc80f1f7f180a75b357088803dfe7c28e413c61e96a3dc",
+      "startedUtc": "2026-10-30T17:44:15.035Z",
+      "finishedUtc": "2026-10-30T17:44:36.619Z",
+      "exitCode": 1,
+      "launcherLogSha256": "de17fe3d5fcd41b2d6b4b7a78c6bd7e2d71192eb7695b43c97e661384be7258e",
+      "launcherOutput": "UI safety case: member-native-modal-keyboard\nUI safety case: member-pending-native-dismissal\nUI safety case: create-measured-conflict-recovery\nAuthenticated administrator dialogs: failed; 3 automated cases; phase grid-held-initialization-navigation\n"
+    }
+  ]
+}
