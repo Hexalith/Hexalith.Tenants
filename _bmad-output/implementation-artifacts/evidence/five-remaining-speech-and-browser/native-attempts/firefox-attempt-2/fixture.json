@@ -1,0 +1,101 @@
+{
+  "playwrightVersion": "1.63.0",
+  "startedUtc": "2026-10-30T15:52:22.099Z",
+  "hostMode": "Production authentication and Razor components; separate UI process; controlled read-only HTTP and SignalR upstream",
+  "fixtureScope": "Qualifies authenticated production dialog/create DOM and browser behavior using deterministic upstream responses; does not qualify backend authorization, stored domain data or command delivery",
+  "authenticationFixture": "Test-only loopback OIDC issuer; production code validates signed tokens and authenticates its circuit",
+  "records": [
+    "DW-116",
+    "DW-446",
+    "DW-459"
+  ],
+  "diagnosticSelectedCasesOnly": false,
+  "cases": [],
+  "sourceBeforeBuild": {
+    "validatorSha256": "8153c62a45ecee39d2f8bf74286c9b2bbb4ea8a27d1841d6b814b503d807cc5f",
+    "handoffFixtureSha256": "6a4908db949f08ecbacd4d2e7192f311e37fa0b866d0b84e14e98152741edcd5",
+    "handoffChecksSha256": "e9cbe6c51b97922ae78cd10b40c5dd3c31e993ccbab02a67525f3ef37402cde3",
+    "nativeSpeechChecksSha256": "49841c071c9dadb11643298d98bcb755b5d7384247ced815a9d8d3b761165a28",
+    "oidcFixtureSha256": "c3832608e33425c4e090dbf2014c246937237223c5097ea33c316363ab346b8f",
+    "sourceBaseRevision": "bd1d6ead1243237b5e84d1c1403485ee41fa9af3",
+    "sourceDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "buildInputsDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "untrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "frontComposerBaseRevision": "612d23485d7e2845d22102621a38d6c904e1ea90",
+    "frontComposerDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "frontComposerUntrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "build": {
+    "executable": "dotnet",
+    "arguments": [
+      "build",
+      "src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj",
+      "-c",
+      "Debug",
+      "-m:1",
+      "-p:UseNuGetDeps=false",
+      "-p:HexalithEventStoreVersion=3.128.4",
+      "-p:HexalithMcpCliFromSource=false",
+      "-p:NuGetAudit=false"
+    ],
+    "succeeded": false,
+    "skippedForDevelopment": false,
+    "reusedBuild": false
+  },
+  "passed": null,
+  "failure": {
+    "phase": "build-current-ui",
+    "label": "Current Debug source build failed",
+    "focus": null,
+    "operation": ""
+  },
+  "sourceAfterCleanup": {
+    "validatorSha256": "8153c62a45ecee39d2f8bf74286c9b2bbb4ea8a27d1841d6b814b503d807cc5f",
+    "handoffFixtureSha256": "6a4908db949f08ecbacd4d2e7192f311e37fa0b866d0b84e14e98152741edcd5",
+    "handoffChecksSha256": "e9cbe6c51b97922ae78cd10b40c5dd3c31e993ccbab02a67525f3ef37402cde3",
+    "nativeSpeechChecksSha256": "49841c071c9dadb11643298d98bcb755b5d7384247ced815a9d8d3b761165a28",
+    "oidcFixtureSha256": "c3832608e33425c4e090dbf2014c246937237223c5097ea33c316363ab346b8f",
+    "sourceBaseRevision": "bd1d6ead1243237b5e84d1c1403485ee41fa9af3",
+    "sourceDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "buildInputsDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "untrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "frontComposerBaseRevision": "612d23485d7e2845d22102621a38d6c904e1ea90",
+    "frontComposerDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "frontComposerUntrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "sourceStableThroughCleanup": true,
+  "handoff": {
+    "events": [
+      {
+        "sessionOrdinal": 1,
+        "utc": "2026-10-30T15:52:22.098Z",
+        "kind": "session-reset"
+      }
+    ],
+    "final": {
+      "sessionOrdinal": 1,
+      "search": "up",
+      "rejectCursor": false,
+      "status": "wait",
+      "projection": "hold",
+      "simulatedCommands": 0,
+      "unexpectedCommands": 0,
+      "rejectedCursors": 0,
+      "recoveryPages": 0,
+      "continuations": 0,
+      "statusReads": 0,
+      "projectionReads": 0
+    },
+    "speech": "Not captured by this runner; requires separate AT evidence, no closure implied"
+  },
+  "fixture": {
+    "authorizedReads": 0,
+    "administratorReads": 0,
+    "unexpectedCommandAttempts": 0,
+    "simulatedCommandAttempts": 0,
+    "circuitErrors": 0
+  },
+  "acceptedForClosure": false,
+  "manualSessionCompleted": false,
+  "finishedUtc": "2026-10-30T15:52:30.434Z"
+}

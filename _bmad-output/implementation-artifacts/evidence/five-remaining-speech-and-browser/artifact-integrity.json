@@ -1,0 +1,24 @@
+{
+  "argv": [
+    "python3",
+    "-B",
+    "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/validate-artifacts.py"
+  ],
+  "exitCode": 0,
+  "stdout": "{\n  \"manifestFilesVerified\": 52,\n  \"retainedSourceHashesVerified\": 7,\n  \"retainedNativePacketHashesVerified\": 19,\n  \"nativeFailedAttempts\": 5,\n  \"browserInvocationPacketLinksVerified\": 2,\n  \"nativeWindowCells\": 48,\n  \"completedWindows\": 0,\n  \"collectorReportsOriginalSettingsUnchanged\": true,\n  \"failedSpeechAndTimelinesEmpty\": true,\n  \"sourceAttributionLimit\": \"Recorded root/helper and FrontComposer fingerprints only; no contemporaneous full worktree fingerprints for every consumed dependency.\",\n  \"cleanupLimit\": \"Collector cleanup path requests owned-process termination; no timestamped post-termination process observation is retained. No zero-process assertion.\",\n  \"rawLogLimit\": \"Retained hashes/metadata cannot replay private raw logs or original NVDA settings; those claims are limited to collector reports.\"\n}\n",
+  "stderr": "",
+  "result": {
+    "manifestFilesVerified": 52,
+    "retainedSourceHashesVerified": 7,
+    "retainedNativePacketHashesVerified": 19,
+    "nativeFailedAttempts": 5,
+    "browserInvocationPacketLinksVerified": 2,
+    "nativeWindowCells": 48,
+    "completedWindows": 0,
+    "collectorReportsOriginalSettingsUnchanged": true,
+    "failedSpeechAndTimelinesEmpty": true,
+    "sourceAttributionLimit": "Recorded root/helper and FrontComposer fingerprints only; no contemporaneous full worktree fingerprints for every consumed dependency.",
+    "cleanupLimit": "Collector cleanup path requests owned-process termination; no timestamped post-termination process observation is retained. No zero-process assertion.",
+    "rawLogLimit": "Retained hashes/metadata cannot replay private raw logs or original NVDA settings; those claims are limited to collector reports."
+  }
+}

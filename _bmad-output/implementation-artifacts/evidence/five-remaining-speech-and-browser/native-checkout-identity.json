@@ -1,0 +1,110 @@
+{
+  "rootRevision": "bd1d6ead1243237b5e84d1c1403485ee41fa9af3",
+  "localOnly": true,
+  "shallowSparseDependencyCheckouts": [
+    "Hexalith.FrontComposer",
+    "Hexalith.Builds",
+    "Hexalith.PolymorphicSerializations",
+    "Hexalith.Memories",
+    "Hexalith.McpCli",
+    "Hexalith.Platform"
+  ],
+  "nestedDependenciesInitialized": false,
+  "sourceSnapshots": [
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Browser/capture-deferred-nvda-speech.ps1",
+      "nativeSha256": "7bdeb0c4b66cb6e5f5f039669c802ba8f157c310b5a2b9c2f6722bc1c76bfc07",
+      "matchesWorkspaceSnapshot": true
+    },
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Browser/validate-deferred-native-speech.mjs",
+      "nativeSha256": "49841c071c9dadb11643298d98bcb755b5d7384247ced815a9d8d3b761165a28",
+      "matchesWorkspaceSnapshot": true
+    },
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Browser/deferred-nvda-observer.py",
+      "nativeSha256": "fb2c0eb34a3fe336bda882dddcd4acbbc05e8d9ea7c53d8662861173506bd31d",
+      "matchesWorkspaceSnapshot": true
+    },
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-administrator-dialogs.mjs",
+      "nativeSha256": "8153c62a45ecee39d2f8bf74286c9b2bbb4ea8a27d1841d6b814b503d807cc5f",
+      "matchesWorkspaceSnapshot": true
+    },
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Browser/deferred-handoff-fixture.mjs",
+      "nativeSha256": "6a4908db949f08ecbacd4d2e7192f311e37fa0b866d0b84e14e98152741edcd5",
+      "matchesWorkspaceSnapshot": true
+    },
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Browser/validate-deferred-handoff.mjs",
+      "nativeSha256": "e9cbe6c51b97922ae78cd10b40c5dd3c31e993ccbab02a67525f3ef37402cde3",
+      "matchesWorkspaceSnapshot": true
+    },
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Browser/local-oidc-fixture.mjs",
+      "nativeSha256": "c3832608e33425c4e090dbf2014c246937237223c5097ea33c316363ab346b8f",
+      "matchesWorkspaceSnapshot": true
+    }
+  ],
+  "rootDependencies": [
+    {
+      "path": "references/Hexalith.AI.Tools",
+      "revision": "70dbf73e80787299c832d30d911b16b105ab194d",
+      "matchesPinned": true
+    },
+    {
+      "path": "references/Hexalith.Builds",
+      "revision": "4775fb72e3ca3c05059830733e31a98995818cb6",
+      "matchesPinned": true
+    },
+    {
+      "path": "references/Hexalith.Commons",
+      "revision": "3edfbdafc7d4fa915286dce8a37dc4cc7c06085a",
+      "matchesPinned": true
+    },
+    {
+      "path": "references/Hexalith.EventStore",
+      "revision": "4cf93f91e760e2d09e4fc64e1bd33a3c0a79a24d",
+      "matchesPinned": true
+    },
+    {
+      "path": "references/Hexalith.FrontComposer",
+      "revision": "612d23485d7e2845d22102621a38d6c904e1ea90",
+      "matchesPinned": true
+    },
+    {
+      "path": "references/Hexalith.McpCli",
+      "revision": "9ba8e5bd0e213501b39d33cedf46859566fc89a4",
+      "matchesPinned": true
+    },
+    {
+      "path": "references/Hexalith.Memories",
+      "revision": "daa06183c0c9baa8bda71df259a7264d34684e2a",
+      "matchesPinned": true
+    },
+    {
+      "path": "references/Hexalith.Platform",
+      "revision": "3659a44d86c08645215689eaeff8b3624d357dd5",
+      "matchesPinned": true
+    },
+    {
+      "path": "references/Hexalith.PolymorphicSerializations",
+      "revision": "221ac4592ba908ae7661ba1fa9e2d1fcc23baee0",
+      "matchesPinned": true
+    }
+  ],
+  "sparseDependencyPaths": [
+    "src",
+    "Props",
+    "eng",
+    "root tracked files"
+  ],
+  "preparationLimits": "Local full-history FrontComposer copy was stopped after excessive Git-object copying. A first sparse preparation raced that owned checkout shutdown; the second bounded local sparse preparation completed. Missing eng support caused two retained build failures; tracked eng paths were populated once before the two final integrated-build attempts. No remote or nested submodule update was used.",
+  "attributionScope": {
+    "root": "Recorded HEAD revision plus the root source/build-input fingerprints in the fixture packets; not a whole-worktree snapshot.",
+    "helpers": "Seven retained helper snapshots and their recorded setup/startup hashes.",
+    "frontComposer": "Fixture packets record the base revision and scoped src/build-file diff and untracked-src hashes. They are not full-tree fingerprints.",
+    "otherDependencies": "Recorded HEAD revisions only. No contemporaneous worktree fingerprints for all consumed dependencies are retained; revision equality does not prove consumed file contents. No historical fingerprints have been recaptured or invented."
+  }
+}

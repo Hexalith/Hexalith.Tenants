@@ -1,0 +1,21 @@
+{
+  "baselineCommit": "bd1d6ead1243237b5e84d1c1403485ee41fa9af3",
+  "files": [
+    {
+      "path": "_bmad-output/implementation-artifacts/deferred-work.md",
+      "name": "deferred-work.md",
+      "sha256": "517f7c9963765c61005f47876db323af779fc974bbaf73cf17cc727ae20e8325"
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/deferred-work-archive.md",
+      "name": "deferred-work-archive.md",
+      "sha256": "e5dd8f16347da66beaf705eb5b346437a866a2cc6c084bc4af3b0bd03b7afe3e"
+    },
+    {
+      "path": "docs/maintenance-backlog.md",
+      "name": "maintenance-backlog.md",
+      "sha256": "fea02b45a14f8b2b6f047f9177aef934c47f65b2151117168121fa369225ec94"
+    }
+  ],
+  "archiveSha256": "05af21e362caaea07603da8125d3341671298ef3a80fe4baff83ff094aff6a74"
+}

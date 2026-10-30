@@ -1013,6 +1013,10 @@ native-outcome: 2026-10-30: Clean native EN S3 traces on NVDA/Chrome and NVDA/Fi
 native-blocker: Complete applicable EN/FR S0–S3 or C1–C3 cells on both declared pairings and independent acceptance are still missing. Repeated external foreground interruptions and contaminated queued output remain failures, with no waiver.
 native-evidence: five-deferred-native-speech-validation-evidence.md; evidence/five-deferred-native-speech/
 
+remaining-batch-date: 2026-10-30
+remaining-batch-result: Fresh full-plan native Chrome/Firefox EN/FR collector attempts are blocked before authentication and product capture by two RouteOperationContract CS0246 errors in the current-source build. Zero of 48 total windows qualify; no new S0-S3 search speech or independent acceptance exists. Original findings and all previous packet limitations remain unchanged; keep open.
+remaining-batch-evidence: five-remaining-speech-and-browser-validation-evidence.md
+
 ### DW-117: Surfacing codec exceptions escape the gateway and reach an unguarded LoadAsync, tearing down the Blazor circuit
 
 status: done 2026-10-28
@@ -3618,6 +3622,10 @@ native-outcome: 2026-10-30: Native EN/FR baseline traces reproduce first-Pending
 native-blocker: Complete applicable EN/FR S0–S3 or C1–C3 cells on both declared pairings and independent acceptance are still missing. Repeated external foreground interruptions and contaminated queued output remain failures, with no waiver.
 native-evidence: five-deferred-native-speech-validation-evidence.md; evidence/five-deferred-native-speech/
 
+remaining-batch-date: 2026-10-30
+remaining-batch-result: Fresh full-plan native Chrome/Firefox EN/FR collector attempts are blocked before authentication and product capture by two RouteOperationContract CS0246 errors in the current-source build. Zero of 48 total windows qualify; no new C1-C3 first Pending/Unavailable and both Refresh speech or independent acceptance exists. Original findings and all previous packet limitations remain unchanged; keep open.
+remaining-batch-evidence: five-remaining-speech-and-browser-validation-evidence.md
+
 ### DW-447: Stop flow-level lifecycle recovery copy from naming recovery actions that the shared availability control may not render.
 
 status: done 2026-10-21
@@ -3758,6 +3766,10 @@ native-disposition: open-incomplete-native-qualification
 native-outcome: 2026-10-30: The same first-Pending omission is reproduced and narrowly patched through persistent Create-owned audit text hosts. Representative clean post-fix Pending traces do not complete the full C1–C3 gate; keep this duplicate record open.
 native-blocker: Complete applicable EN/FR S0–S3 or C1–C3 cells on both declared pairings and independent acceptance are still missing. Repeated external foreground interruptions and contaminated queued output remain failures, with no waiver.
 native-evidence: five-deferred-native-speech-validation-evidence.md; evidence/five-deferred-native-speech/
+
+remaining-batch-date: 2026-10-30
+remaining-batch-result: Fresh full-plan native Chrome/Firefox EN/FR collector attempts are blocked before authentication and product capture by two RouteOperationContract CS0246 errors in the current-source build. Zero of 48 total windows qualify; no new C1-C3 first Pending/Unavailable and both Refresh speech or independent acceptance exists. Original findings and all previous packet limitations remain unchanged; keep open.
+remaining-batch-evidence: five-remaining-speech-and-browser-validation-evidence.md
 
 ### DW-460: Decide whether `TenantAuditReceipt.FromEntry` should accept authoritative lifecycle/provenance or be removed.
 
@@ -5588,6 +5600,10 @@ archived: 2026-10-22
   verification-date: 2026-10-28
   verification: A foreground authenticated browser holds only the live unscoped global-administrators/system JoinGroup on its current connection, retiring cancelled/closed/expired entries. The completion predicate rejects while held; after release a scoped notification must drive an authoritative read and a distinct DOM row before exact enabled-launcher focus is checked. The original body-focus timeout and its cause were not reproduced, so no restoration patch or historical root-cause closure is claimed.
   verification-evidence: five-deferred-runtime-followups-validation-evidence.md
+  remaining-batch-date: 2026-10-30
+  remaining-batch-result: Fresh standalone OIDC runtime-followups/safety-only runner stops at the default EventStore 3.128.3 below 3.128.4 build guard before a browser opens. No foreground Escape, held-subscription negative control, acknowledged callback or rendered-row check ran. The historical body-focus failure and its cause remain unexplained; keep open.
+  remaining-batch-evidence: five-remaining-speech-and-browser-validation-evidence.md
+
 
 
 ## Deferred from: five UI safety items independent review (2026-10-25)
@@ -5616,6 +5632,10 @@ archived: 2026-10-22
   verification: A one-shot hold of the pinned grid Initialize continuation records a connected workspace element, detail navigation detaches it, and release while detached produces ObjectDisposedException in FluentDataGrid.UpdateColumnInteractionsAsync/OnAfterRenderAsync plus CircuitHost[111]. The diagnostic fails the unchanged zero-circuit-error gate and remains separate from passing browser acceptance.
   blocker: An owning component fix and approved dependency qualification; no Tenants workaround, fault suppression or speculative upgrade is applied.
   verification-evidence: five-deferred-runtime-followups-validation-evidence.md
+  remaining-batch-date: 2026-10-30
+  remaining-batch-result: The separate unchanged HOLD_GRID diagnostic stops at the default EventStore 3.128.3 below 3.128.4 build guard before a browser opens. Connected initialization, detached release and the zero-circuit-error assertion were not exercised anew. The historical reproduced Fluent 5.0.1 external defect and owning-fix blocker remain open; no workaround or suppression is introduced.
+  remaining-batch-evidence: five-remaining-speech-and-browser-validation-evidence.md
+
 
 
 ## Deferred from: release-governance independent review (2026-10-27)

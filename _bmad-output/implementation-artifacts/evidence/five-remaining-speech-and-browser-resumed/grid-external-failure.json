@@ -1,0 +1,620 @@
+{
+  "playwrightVersion": "1.63.0",
+  "startedUtc": "2026-10-30T17:44:15.035Z",
+  "hostMode": "Production authentication and Razor components; separate UI process; controlled read-only HTTP and SignalR upstream",
+  "fixtureScope": "Qualifies authenticated production dialog/create DOM and browser behavior using deterministic upstream responses; does not qualify backend authorization, stored domain data or command delivery",
+  "authenticationFixture": "Test-only loopback OIDC issuer; production code validates signed tokens and authenticates its circuit",
+  "records": [
+    "DW-194",
+    "DW-201"
+  ],
+  "diagnosticSelectedCasesOnly": true,
+  "cases": [
+    {
+      "scenario": "member-native-modal-keyboard",
+      "allPreviewFacts": true,
+      "nativeModal": true,
+      "backgroundInert": true,
+      "measurements": [
+        {
+          "viewport": {
+            "width": 1366,
+            "height": 1000
+          },
+          "bounds": {
+            "left": 404.7669982910156,
+            "right": 961.2330627441406,
+            "top": 51.117431640625,
+            "bottom": 948.882568359375
+          },
+          "clientWidth": 600,
+          "scrollWidth": 600,
+          "clientHeight": 968,
+          "scrollHeight": 972,
+          "overflowY": "auto",
+          "completeFacts": 10
+        },
+        {
+          "viewport": {
+            "width": 768,
+            "height": 800
+          },
+          "bounds": {
+            "left": 91.70263671875,
+            "right": 676.29736328125,
+            "top": 25.859375,
+            "bottom": 774.140625
+          },
+          "clientWidth": 600,
+          "scrollWidth": 600,
+          "clientHeight": 768,
+          "scrollHeight": 972,
+          "overflowY": "auto",
+          "completeFacts": 10
+        },
+        {
+          "viewport": {
+            "width": 1024,
+            "height": 400
+          },
+          "bounds": {
+            "left": 214.95980834960938,
+            "right": 809.0401306152344,
+            "top": 17.815338134765625,
+            "bottom": 382.1846618652344
+          },
+          "clientWidth": 600,
+          "scrollWidth": 600,
+          "clientHeight": 368,
+          "scrollHeight": 972,
+          "overflowY": "auto",
+          "completeFacts": 10
+        }
+      ],
+      "keyboard": [
+        {
+          "key": "Tab",
+          "step": 0,
+          "documentHasFocus": true,
+          "element": "input",
+          "shadowDepth": 1,
+          "ancestry": [
+            "tenants-remove-member-confirmation",
+            "tenants-remove-member-flow",
+            "tenants-remove-member-modal",
+            "tenants-member-section",
+            "tenants-detail",
+            "tenants-detail-audit-origin"
+          ]
+        },
+        {
+          "key": "Tab",
+          "step": 1,
+          "documentHasFocus": true,
+          "element": "fluent-button",
+          "shadowDepth": 0,
+          "ancestry": [
+            "tenants-remove-member-confirm",
+            "tenants-remove-member-flow",
+            "tenants-remove-member-modal",
+            "tenants-member-section",
+            "tenants-detail",
+            "tenants-detail-audit-origin"
+          ]
+        },
+        {
+          "key": "Tab",
+          "step": 2,
+          "documentHasFocus": true,
+          "element": "fluent-button",
+          "shadowDepth": 0,
+          "ancestry": [
+            "tenants-remove-member-cancel",
+            "tenants-remove-member-flow",
+            "tenants-remove-member-modal",
+            "tenants-member-section",
+            "tenants-detail",
+            "tenants-detail-audit-origin"
+          ]
+        },
+        {
+          "key": "Tab",
+          "step": 3,
+          "documentHasFocus": true,
+          "element": "input",
+          "shadowDepth": 1,
+          "ancestry": [
+            "tenants-remove-member-confirmation",
+            "tenants-remove-member-flow",
+            "tenants-remove-member-modal",
+            "tenants-member-section",
+            "tenants-detail",
+            "tenants-detail-audit-origin"
+          ]
+        },
+        {
+          "key": "Tab",
+          "step": 4,
+          "documentHasFocus": true,
+          "element": "fluent-button",
+          "shadowDepth": 0,
+          "ancestry": [
+            "tenants-remove-member-confirm",
+            "tenants-remove-member-flow",
+            "tenants-remove-member-modal",
+            "tenants-member-section",
+            "tenants-detail",
+            "tenants-detail-audit-origin"
+          ]
+        },
+        {
+          "key": "Tab",
+          "step": 5,
+          "documentHasFocus": true,
+          "element": "fluent-button",
+          "shadowDepth": 0,
+          "ancestry": [
+            "tenants-remove-member-cancel",
+            "tenants-remove-member-flow",
+            "tenants-remove-member-modal",
+            "tenants-member-section",
+            "tenants-detail",
+            "tenants-detail-audit-origin"
+          ]
+        },
+        {
+          "key": "Tab",
+          "step": 6,
+          "documentHasFocus": true,
+          "element": "input",
+          "shadowDepth": 1,
+          "ancestry": [
+            "tenants-remove-member-confirmation",
+            "tenants-remove-member-flow",
+            "tenants-remove-member-modal",
+            "tenants-member-section",
+            "tenants-detail",
+            "tenants-detail-audit-origin"
+          ]
+        },
+        {
+          "key": "Tab",
+          "step": 7,
+          "documentHasFocus": true,
+          "element": "fluent-button",
+          "shadowDepth": 0,
+          "ancestry": [
+            "tenants-remove-member-confirm",
+            "tenants-remove-member-flow",
+            "tenants-remove-member-modal",
+            "tenants-member-section",
+            "tenants-detail",
+            "tenants-detail-audit-origin"
+          ]
+        },
+        {
+          "key": "Tab",
+          "step": 8,
+          "documentHasFocus": true,
+          "element": "fluent-button",
+          "shadowDepth": 0,
+          "ancestry": [
+            "tenants-remove-member-cancel",
+            "tenants-remove-member-flow",
+            "tenants-remove-member-modal",
+            "tenants-member-section",
+            "tenants-detail",
+            "tenants-detail-audit-origin"
+          ]
+        },
+        {
+          "key": "Tab",
+          "step": 9,
+          "documentHasFocus": true,
+          "element": "input",
+          "shadowDepth": 1,
+          "ancestry": [
+            "tenants-remove-member-confirmation",
+            "tenants-remove-member-flow",
+            "tenants-remove-member-modal",
+            "tenants-member-section",
+            "tenants-detail",
+            "tenants-detail-audit-origin"
+          ]
+        },
+        {
+          "key": "Tab",
+          "step": 10,
+          "documentHasFocus": true,
+          "element": "fluent-button",
+          "shadowDepth": 0,
+          "ancestry": [
+            "tenants-remove-member-confirm",
+            "tenants-remove-member-flow",
+            "tenants-remove-member-modal",
+            "tenants-member-section",
+            "tenants-detail",
+            "tenants-detail-audit-origin"
+          ]
+        },
+        {
+          "key": "Tab",
+          "step": 11,
+          "documentHasFocus": true,
+          "element": "fluent-button",
+          "shadowDepth": 0,
+          "ancestry": [
+            "tenants-remove-member-cancel",
+            "tenants-remove-member-flow",
+            "tenants-remove-member-modal",
+            "tenants-member-section",
+            "tenants-detail",
+            "tenants-detail-audit-origin"
+          ]
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 0,
+          "documentHasFocus": true,
+          "element": "fluent-button",
+          "shadowDepth": 0,
+          "ancestry": [
+            "tenants-remove-member-confirm",
+            "tenants-remove-member-flow",
+            "tenants-remove-member-modal",
+            "tenants-member-section",
+            "tenants-detail",
+            "tenants-detail-audit-origin"
+          ]
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 1,
+          "documentHasFocus": true,
+          "element": "input",
+          "shadowDepth": 1,
+          "ancestry": [
+            "tenants-remove-member-confirmation",
+            "tenants-remove-member-flow",
+            "tenants-remove-member-modal",
+            "tenants-member-section",
+            "tenants-detail",
+            "tenants-detail-audit-origin"
+          ]
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 2,
+          "documentHasFocus": true,
+          "element": "fluent-button",
+          "shadowDepth": 0,
+          "ancestry": [
+            "tenants-remove-member-cancel",
+            "tenants-remove-member-flow",
+            "tenants-remove-member-modal",
+            "tenants-member-section",
+            "tenants-detail",
+            "tenants-detail-audit-origin"
+          ]
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 3,
+          "documentHasFocus": true,
+          "element": "fluent-button",
+          "shadowDepth": 0,
+          "ancestry": [
+            "tenants-remove-member-confirm",
+            "tenants-remove-member-flow",
+            "tenants-remove-member-modal",
+            "tenants-member-section",
+            "tenants-detail",
+            "tenants-detail-audit-origin"
+          ]
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 4,
+          "documentHasFocus": true,
+          "element": "input",
+          "shadowDepth": 1,
+          "ancestry": [
+            "tenants-remove-member-confirmation",
+            "tenants-remove-member-flow",
+            "tenants-remove-member-modal",
+            "tenants-member-section",
+            "tenants-detail",
+            "tenants-detail-audit-origin"
+          ]
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 5,
+          "documentHasFocus": true,
+          "element": "fluent-button",
+          "shadowDepth": 0,
+          "ancestry": [
+            "tenants-remove-member-cancel",
+            "tenants-remove-member-flow",
+            "tenants-remove-member-modal",
+            "tenants-member-section",
+            "tenants-detail",
+            "tenants-detail-audit-origin"
+          ]
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 6,
+          "documentHasFocus": true,
+          "element": "fluent-button",
+          "shadowDepth": 0,
+          "ancestry": [
+            "tenants-remove-member-confirm",
+            "tenants-remove-member-flow",
+            "tenants-remove-member-modal",
+            "tenants-member-section",
+            "tenants-detail",
+            "tenants-detail-audit-origin"
+          ]
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 7,
+          "documentHasFocus": true,
+          "element": "input",
+          "shadowDepth": 1,
+          "ancestry": [
+            "tenants-remove-member-confirmation",
+            "tenants-remove-member-flow",
+            "tenants-remove-member-modal",
+            "tenants-member-section",
+            "tenants-detail",
+            "tenants-detail-audit-origin"
+          ]
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 8,
+          "documentHasFocus": true,
+          "element": "fluent-button",
+          "shadowDepth": 0,
+          "ancestry": [
+            "tenants-remove-member-cancel",
+            "tenants-remove-member-flow",
+            "tenants-remove-member-modal",
+            "tenants-member-section",
+            "tenants-detail",
+            "tenants-detail-audit-origin"
+          ]
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 9,
+          "documentHasFocus": true,
+          "element": "fluent-button",
+          "shadowDepth": 0,
+          "ancestry": [
+            "tenants-remove-member-confirm",
+            "tenants-remove-member-flow",
+            "tenants-remove-member-modal",
+            "tenants-member-section",
+            "tenants-detail",
+            "tenants-detail-audit-origin"
+          ]
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 10,
+          "documentHasFocus": true,
+          "element": "input",
+          "shadowDepth": 1,
+          "ancestry": [
+            "tenants-remove-member-confirmation",
+            "tenants-remove-member-flow",
+            "tenants-remove-member-modal",
+            "tenants-member-section",
+            "tenants-detail",
+            "tenants-detail-audit-origin"
+          ]
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 11,
+          "documentHasFocus": true,
+          "element": "fluent-button",
+          "shadowDepth": 0,
+          "ancestry": [
+            "tenants-remove-member-cancel",
+            "tenants-remove-member-flow",
+            "tenants-remove-member-modal",
+            "tenants-member-section",
+            "tenants-detail",
+            "tenants-detail-audit-origin"
+          ]
+        }
+      ],
+      "exactFocusReturn": true
+    },
+    {
+      "scenario": "member-pending-native-dismissal",
+      "escapeRetainsModal": true,
+      "overlayRetainsModal": true,
+      "narrowResizeRetainsWork": true,
+      "recoveryReachable": true,
+      "simulatedCommands": 1
+    },
+    {
+      "scenario": "create-measured-conflict-recovery",
+      "unsafeSubmitDisabled": true,
+      "safeResizeRecovers": true,
+      "enteredIdentityRetained": true,
+      "authorizedOpenExisting": true,
+      "returnContextPreserved": true,
+      "backRestoresVisibleCreateLifecycle": true,
+      "failedOpenExistingRestoresLifecycleFocus": true
+    }
+  ],
+  "sourceBeforeBuild": {
+    "validatorSha256": "8153c62a45ecee39d2f8bf74286c9b2bbb4ea8a27d1841d6b814b503d807cc5f",
+    "handoffFixtureSha256": "6a4908db949f08ecbacd4d2e7192f311e37fa0b866d0b84e14e98152741edcd5",
+    "handoffChecksSha256": "e9cbe6c51b97922ae78cd10b40c5dd3c31e993ccbab02a67525f3ef37402cde3",
+    "nativeSpeechChecksSha256": "49841c071c9dadb11643298d98bcb755b5d7384247ced815a9d8d3b761165a28",
+    "oidcFixtureSha256": "c3832608e33425c4e090dbf2014c246937237223c5097ea33c316363ab346b8f",
+    "sourceBaseRevision": "e45ed9d87de7800ebb02b1cedc9c64b720763e9e",
+    "sourceDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "buildInputsDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "untrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "frontComposerBaseRevision": "e07e2f42605ffde307606f4ee027c382ef1e8aa4",
+    "frontComposerDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "frontComposerUntrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "build": {
+    "executable": "dotnet",
+    "arguments": [
+      "build",
+      "src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj",
+      "-c",
+      "Debug",
+      "-m:1",
+      "-p:UseNuGetDeps=false"
+    ],
+    "succeeded": true,
+    "skippedForDevelopment": false,
+    "reusedBuild": false
+  },
+  "sourceAfterBuild": {
+    "validatorSha256": "8153c62a45ecee39d2f8bf74286c9b2bbb4ea8a27d1841d6b814b503d807cc5f",
+    "handoffFixtureSha256": "6a4908db949f08ecbacd4d2e7192f311e37fa0b866d0b84e14e98152741edcd5",
+    "handoffChecksSha256": "e9cbe6c51b97922ae78cd10b40c5dd3c31e993ccbab02a67525f3ef37402cde3",
+    "nativeSpeechChecksSha256": "49841c071c9dadb11643298d98bcb755b5d7384247ced815a9d8d3b761165a28",
+    "oidcFixtureSha256": "c3832608e33425c4e090dbf2014c246937237223c5097ea33c316363ab346b8f",
+    "sourceBaseRevision": "e45ed9d87de7800ebb02b1cedc9c64b720763e9e",
+    "sourceDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "buildInputsDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "untrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "frontComposerBaseRevision": "e07e2f42605ffde307606f4ee027c382ef1e8aa4",
+    "frontComposerDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "frontComposerUntrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "sourceStableDuringBuild": true,
+  "validatorSha256": "8153c62a45ecee39d2f8bf74286c9b2bbb4ea8a27d1841d6b814b503d807cc5f",
+  "handoffFixtureSha256": "6a4908db949f08ecbacd4d2e7192f311e37fa0b866d0b84e14e98152741edcd5",
+  "handoffChecksSha256": "e9cbe6c51b97922ae78cd10b40c5dd3c31e993ccbab02a67525f3ef37402cde3",
+  "nativeSpeechChecksSha256": "49841c071c9dadb11643298d98bcb755b5d7384247ced815a9d8d3b761165a28",
+  "oidcFixtureSha256": "c3832608e33425c4e090dbf2014c246937237223c5097ea33c316363ab346b8f",
+  "sourceBaseRevision": "e45ed9d87de7800ebb02b1cedc9c64b720763e9e",
+  "sourceDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "buildInputsDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "untrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "frontComposerBaseRevision": "e07e2f42605ffde307606f4ee027c382ef1e8aa4",
+  "frontComposerDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "frontComposerUntrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "localUiAssemblySha256": "4eb339afe375de77e4f32b96eb820e56c2ab5e5711807b7cc4b08f812275ab61",
+  "localShellAssemblySha256": "650987dd1ac544f7f7f9584216f5bbc77774608455fd624112ee75124a3c3c7f",
+  "browserVersion": "154.0.8037.57",
+  "failedClickFocus": {
+    "documentHasFocus": true,
+    "element": "section",
+    "shadowDepth": 0,
+    "ancestry": [
+      "tenants-create-lifecycle",
+      "tenants-create-flow",
+      "tenants-create-accordion",
+      "tenants-workspace-tenants-panel-content",
+      "tenants-workspace-tenants-panel",
+      "tenants-workspace-tabs",
+      "tenants-workspace"
+    ]
+  },
+  "backFocus": {
+    "documentHasFocus": true,
+    "element": "section",
+    "shadowDepth": 0,
+    "ancestry": [
+      "tenants-create-lifecycle",
+      "tenants-create-flow",
+      "tenants-create-accordion",
+      "tenants-workspace-tenants-panel-content",
+      "tenants-workspace-tenants-panel",
+      "tenants-workspace-tabs",
+      "tenants-workspace"
+    ]
+  },
+  "gridModuleOriginalSha256": "2149dbc7a943d96a48cc62adbbcbe8ec2206e3bc98649288bb9250c77ddf32b4",
+  "gridLifetime": {
+    "beforeNavigation": [
+      {
+        "event": "initialize-held",
+        "connected": true
+      }
+    ],
+    "afterNavigation": [
+      {
+        "event": "initialize-held",
+        "connected": true
+      },
+      {
+        "event": "detail-navigation-complete",
+        "connected": false
+      }
+    ],
+    "afterRelease": [
+      {
+        "event": "initialize-held",
+        "connected": true
+      },
+      {
+        "event": "detail-navigation-complete",
+        "connected": false
+      },
+      {
+        "event": "initialize-released",
+        "connected": false
+      }
+    ]
+  },
+  "passed": false,
+  "failure": {
+    "phase": "grid-held-initialization-navigation",
+    "label": "Held pinned grid continuation must preserve zero circuit errors",
+    "focus": {
+      "documentHasFocus": true,
+      "element": "body",
+      "shadowDepth": 0,
+      "ancestry": []
+    },
+    "operation": ""
+  },
+  "sourceAfterCleanup": {
+    "validatorSha256": "8153c62a45ecee39d2f8bf74286c9b2bbb4ea8a27d1841d6b814b503d807cc5f",
+    "handoffFixtureSha256": "6a4908db949f08ecbacd4d2e7192f311e37fa0b866d0b84e14e98152741edcd5",
+    "handoffChecksSha256": "e9cbe6c51b97922ae78cd10b40c5dd3c31e993ccbab02a67525f3ef37402cde3",
+    "nativeSpeechChecksSha256": "49841c071c9dadb11643298d98bcb755b5d7384247ced815a9d8d3b761165a28",
+    "oidcFixtureSha256": "c3832608e33425c4e090dbf2014c246937237223c5097ea33c316363ab346b8f",
+    "sourceBaseRevision": "e45ed9d87de7800ebb02b1cedc9c64b720763e9e",
+    "sourceDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "buildInputsDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "untrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "frontComposerBaseRevision": "e07e2f42605ffde307606f4ee027c382ef1e8aa4",
+    "frontComposerDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "frontComposerUntrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "sourceStableThroughCleanup": true,
+  "circuitFaults": [
+    "Object name: 'Microsoft.JSInterop.Implementation.JSObjectReference'.",
+    "System.ObjectDisposedException: Cannot access a disposed object.",
+    "at Microsoft.FluentUI.AspNetCore.Components.FluentDataGrid`1.UpdateColumnInteractionsAsync()",
+    "at Microsoft.FluentUI.AspNetCore.Components.FluentDataGrid`1.OnAfterRenderAsync(Boolean firstRender)",
+    "at Microsoft.AspNetCore.Components.RenderTree.Renderer.GetErrorHandledTask(Task taskToHandle, ComponentState owningComponentState)",
+    "fail: Microsoft.AspNetCore.Components.Server.Circuits.CircuitHost[111]"
+  ],
+  "fixture": {
+    "authorizedReads": 40,
+    "administratorReads": 6,
+    "unexpectedCommandAttempts": 0,
+    "simulatedCommandAttempts": 2,
+    "circuitErrors": 2
+  },
+  "acceptedForClosure": false,
+  "finishedUtc": "2026-10-30T17:44:36.619Z"
+}

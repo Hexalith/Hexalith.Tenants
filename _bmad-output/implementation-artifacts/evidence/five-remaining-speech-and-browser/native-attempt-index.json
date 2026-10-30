@@ -1,0 +1,178 @@
+{
+  "attempts": [
+    {
+      "attempt": "chrome-attempt-1",
+      "engine": "chromium",
+      "status": "collector-setup-failed",
+      "blocker": "empty FixtureRoot after WSL working-directory launch",
+      "exitCode": 1,
+      "startedUtc": "2026-10-30T15:49:33.5055238Z",
+      "finishedUtc": "2026-10-30T15:49:40.2144878Z",
+      "completedProductWindows": 0,
+      "speechSamples": 0,
+      "originalSettingsUnchanged": true,
+      "rawLauncherLogSha256": "6fbea6b164fddf5b75c8989d230d95d9c605fed5a8a855981070311a963a39b0",
+      "files": [
+        {
+          "name": "capture.json",
+          "rawSha256": "e8e5613f73f527da718f3f9047498344d61daaad1feffde87e04d013d7caa520",
+          "retainedSha256": "82e1e7d7bcb54768544d8ef170446cef53db14d7f3eefe4e3736b9d2b7bca796"
+        },
+        {
+          "name": "speech.json",
+          "rawSha256": "b423bb45501e0fa49d3b77e635f800a29f1fdcf5a58e00c7e04a7ff7833045f2",
+          "retainedSha256": "b423bb45501e0fa49d3b77e635f800a29f1fdcf5a58e00c7e04a7ff7833045f2"
+        },
+        {
+          "name": "timeline.json",
+          "rawSha256": "b423bb45501e0fa49d3b77e635f800a29f1fdcf5a58e00c7e04a7ff7833045f2",
+          "retainedSha256": "b423bb45501e0fa49d3b77e635f800a29f1fdcf5a58e00c7e04a7ff7833045f2"
+        }
+      ]
+    },
+    {
+      "attempt": "chrome-attempt-2",
+      "engine": "chromium",
+      "status": "collector-build-failed",
+      "blocker": "MSB4019: sparse checkout omitted eng/FrontComposer.SourceReferences.targets",
+      "exitCode": 1,
+      "startedUtc": "2026-10-30T15:50:24.2058731Z",
+      "finishedUtc": "2026-10-30T15:50:32.6699195Z",
+      "completedProductWindows": 0,
+      "speechSamples": 0,
+      "originalSettingsUnchanged": true,
+      "rawLauncherLogSha256": "98f9b05e53f5e5111eb04667fc56a4e472952a145a72814e7b922efb8e79688b",
+      "files": [
+        {
+          "name": "capture.json",
+          "rawSha256": "1a8138f17704a623f490ed077972894fc4799c8afc693ce6e54b9e9331525bc9",
+          "retainedSha256": "7b750f7ece28c5477cabbcc69f7aaac3cefe83d2544d8eb4f5411ebb55cfeb71"
+        },
+        {
+          "name": "fixture.json",
+          "rawSha256": "fd54f41d726fbdfcc386da03482c0980aaca3a0a56b352b3cc1752d4f470537f",
+          "retainedSha256": "fd54f41d726fbdfcc386da03482c0980aaca3a0a56b352b3cc1752d4f470537f"
+        },
+        {
+          "name": "speech.json",
+          "rawSha256": "b423bb45501e0fa49d3b77e635f800a29f1fdcf5a58e00c7e04a7ff7833045f2",
+          "retainedSha256": "b423bb45501e0fa49d3b77e635f800a29f1fdcf5a58e00c7e04a7ff7833045f2"
+        },
+        {
+          "name": "timeline.json",
+          "rawSha256": "b423bb45501e0fa49d3b77e635f800a29f1fdcf5a58e00c7e04a7ff7833045f2",
+          "retainedSha256": "b423bb45501e0fa49d3b77e635f800a29f1fdcf5a58e00c7e04a7ff7833045f2"
+        }
+      ]
+    },
+    {
+      "attempt": "chrome-attempt-3",
+      "engine": "chromium",
+      "status": "collector-build-failed",
+      "blocker": "CS0246 RouteOperationContract at TenantCatalogDeclarations.cs:14 and :20",
+      "exitCode": 1,
+      "startedUtc": "2026-10-30T15:51:42.0862170Z",
+      "finishedUtc": "2026-10-30T15:52:11.2378292Z",
+      "completedProductWindows": 0,
+      "speechSamples": 0,
+      "originalSettingsUnchanged": true,
+      "rawLauncherLogSha256": "98f9b05e53f5e5111eb04667fc56a4e472952a145a72814e7b922efb8e79688b",
+      "files": [
+        {
+          "name": "capture.json",
+          "rawSha256": "67f132ed66b94af12580ec2e2f5a1685c7a18e9f4b00db8b7025a0007ae69639",
+          "retainedSha256": "66a5fff440b0186c492928bf6912933e246a8b73d91bea74c44ee2491ee2d929"
+        },
+        {
+          "name": "fixture.json",
+          "rawSha256": "5e12a54c8cd764bda2295f601db9da0fee25b3fa3417b0e4fcce738e4eb95e6f",
+          "retainedSha256": "5e12a54c8cd764bda2295f601db9da0fee25b3fa3417b0e4fcce738e4eb95e6f"
+        },
+        {
+          "name": "speech.json",
+          "rawSha256": "b423bb45501e0fa49d3b77e635f800a29f1fdcf5a58e00c7e04a7ff7833045f2",
+          "retainedSha256": "b423bb45501e0fa49d3b77e635f800a29f1fdcf5a58e00c7e04a7ff7833045f2"
+        },
+        {
+          "name": "timeline.json",
+          "rawSha256": "b423bb45501e0fa49d3b77e635f800a29f1fdcf5a58e00c7e04a7ff7833045f2",
+          "retainedSha256": "b423bb45501e0fa49d3b77e635f800a29f1fdcf5a58e00c7e04a7ff7833045f2"
+        }
+      ]
+    },
+    {
+      "attempt": "firefox-attempt-1",
+      "engine": "firefox",
+      "status": "collector-build-failed",
+      "blocker": "MSB4019: sparse checkout omitted eng/FrontComposer.SourceReferences.targets",
+      "exitCode": 1,
+      "startedUtc": "2026-10-30T15:50:45.1900751Z",
+      "finishedUtc": "2026-10-30T15:50:51.9902455Z",
+      "completedProductWindows": 0,
+      "speechSamples": 0,
+      "originalSettingsUnchanged": true,
+      "rawLauncherLogSha256": "98f9b05e53f5e5111eb04667fc56a4e472952a145a72814e7b922efb8e79688b",
+      "files": [
+        {
+          "name": "capture.json",
+          "rawSha256": "d1031e687c90f7b5ea23394d587730307607e12a7a0e54001557fa6e02d56bfa",
+          "retainedSha256": "3c9609de825cba264ec3298b0c618c9e11785b9f6b46564665beb60d86ede8b2"
+        },
+        {
+          "name": "fixture.json",
+          "rawSha256": "98539d724062eacbe6b35d5c95a085e5ab1fa32230399c3a26152aa63ffe0536",
+          "retainedSha256": "98539d724062eacbe6b35d5c95a085e5ab1fa32230399c3a26152aa63ffe0536"
+        },
+        {
+          "name": "speech.json",
+          "rawSha256": "b423bb45501e0fa49d3b77e635f800a29f1fdcf5a58e00c7e04a7ff7833045f2",
+          "retainedSha256": "b423bb45501e0fa49d3b77e635f800a29f1fdcf5a58e00c7e04a7ff7833045f2"
+        },
+        {
+          "name": "timeline.json",
+          "rawSha256": "b423bb45501e0fa49d3b77e635f800a29f1fdcf5a58e00c7e04a7ff7833045f2",
+          "retainedSha256": "b423bb45501e0fa49d3b77e635f800a29f1fdcf5a58e00c7e04a7ff7833045f2"
+        }
+      ]
+    },
+    {
+      "attempt": "firefox-attempt-2",
+      "engine": "firefox",
+      "status": "collector-build-failed",
+      "blocker": "CS0246 RouteOperationContract at TenantCatalogDeclarations.cs:14 and :20",
+      "exitCode": 1,
+      "startedUtc": "2026-10-30T15:52:18.7670079Z",
+      "finishedUtc": "2026-10-30T15:52:30.6111478Z",
+      "completedProductWindows": 0,
+      "speechSamples": 0,
+      "originalSettingsUnchanged": true,
+      "rawLauncherLogSha256": "98f9b05e53f5e5111eb04667fc56a4e472952a145a72814e7b922efb8e79688b",
+      "files": [
+        {
+          "name": "capture.json",
+          "rawSha256": "7d737d193f23401d623fc3535c9dd8b987ef807e22906bb5e5c9942b38317b71",
+          "retainedSha256": "4e476d02df267767db2a21565c4cfe7f208573440512eafdb14e1ddf7fc3e84c"
+        },
+        {
+          "name": "fixture.json",
+          "rawSha256": "7b587f606d3513432398fabd0b9dd251fb68725aeb9d5450e5c3c41de719df17",
+          "retainedSha256": "7b587f606d3513432398fabd0b9dd251fb68725aeb9d5450e5c3c41de719df17"
+        },
+        {
+          "name": "speech.json",
+          "rawSha256": "b423bb45501e0fa49d3b77e635f800a29f1fdcf5a58e00c7e04a7ff7833045f2",
+          "retainedSha256": "b423bb45501e0fa49d3b77e635f800a29f1fdcf5a58e00c7e04a7ff7833045f2"
+        },
+        {
+          "name": "timeline.json",
+          "rawSha256": "b423bb45501e0fa49d3b77e635f800a29f1fdcf5a58e00c7e04a7ff7833045f2",
+          "retainedSha256": "b423bb45501e0fa49d3b77e635f800a29f1fdcf5a58e00c7e04a7ff7833045f2"
+        }
+      ]
+    }
+  ],
+  "expectedWindowsPerPairing": 24,
+  "completedWindows": 0,
+  "independentAcceptedWindows": 0,
+  "limit": "No trial reached product capture; queued speech and audible completion are both unqualified."
+}

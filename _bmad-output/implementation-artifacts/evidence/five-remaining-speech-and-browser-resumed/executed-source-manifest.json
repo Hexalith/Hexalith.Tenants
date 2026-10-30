@@ -1,0 +1,41 @@
+{
+  "rootRevision": "e45ed9d87de7800ebb02b1cedc9c64b720763e9e",
+  "source": [
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Browser/capture-deferred-nvda-speech.ps1",
+      "sha256": "7bdeb0c4b66cb6e5f5f039669c802ba8f157c310b5a2b9c2f6722bc1c76bfc07",
+      "immutableSnapshot": "../five-remaining-speech-and-browser/executed-source/capture-deferred-nvda-speech.ps1"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Browser/deferred-nvda-observer.py",
+      "sha256": "fb2c0eb34a3fe336bda882dddcd4acbbc05e8d9ea7c53d8662861173506bd31d",
+      "immutableSnapshot": "../five-remaining-speech-and-browser/executed-source/deferred-nvda-observer.py"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-administrator-dialogs.mjs",
+      "sha256": "8153c62a45ecee39d2f8bf74286c9b2bbb4ea8a27d1841d6b814b503d807cc5f",
+      "immutableSnapshot": "../five-remaining-speech-and-browser/executed-source/validate-authenticated-administrator-dialogs.mjs"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Browser/deferred-handoff-fixture.mjs",
+      "sha256": "6a4908db949f08ecbacd4d2e7192f311e37fa0b866d0b84e14e98152741edcd5",
+      "immutableSnapshot": "../five-remaining-speech-and-browser/executed-source/deferred-handoff-fixture.mjs"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Browser/validate-deferred-handoff.mjs",
+      "sha256": "e9cbe6c51b97922ae78cd10b40c5dd3c31e993ccbab02a67525f3ef37402cde3",
+      "immutableSnapshot": "../five-remaining-speech-and-browser/executed-source/validate-deferred-handoff.mjs"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Browser/validate-deferred-native-speech.mjs",
+      "sha256": "49841c071c9dadb11643298d98bcb755b5d7384247ced815a9d8d3b761165a28",
+      "immutableSnapshot": "../five-remaining-speech-and-browser/executed-source/validate-deferred-native-speech.mjs"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Browser/local-oidc-fixture.mjs",
+      "sha256": "c3832608e33425c4e090dbf2014c246937237223c5097ea33c316363ab346b8f",
+      "immutableSnapshot": "../five-remaining-speech-and-browser/executed-source/local-oidc-fixture.mjs"
+    }
+  ],
+  "retention": "Every executed helper matches the hash-bound immutable prior snapshot. No unchanged copies duplicated."
+}

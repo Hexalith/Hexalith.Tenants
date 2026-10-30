@@ -1,0 +1,35 @@
+{
+  "isolatedTemporaryCopiesOnly": true,
+  "controls": [
+    {
+      "mutation": "none",
+      "optimized": true,
+      "exitCode": 0,
+      "diagnostic": "accepted"
+    },
+    {
+      "mutation": "unbound packet bytes",
+      "optimized": true,
+      "exitCode": 1,
+      "diagnostic": "ValueError: Manifest hash/size mismatch: grant-browser-build-blocked.json"
+    },
+    {
+      "mutation": "matrix coverage",
+      "optimized": true,
+      "exitCode": 1,
+      "diagnostic": "ValueError: Native matrix does not exactly cover both full plans"
+    },
+    {
+      "mutation": "browser scenario flag",
+      "optimized": true,
+      "exitCode": 1,
+      "diagnostic": "ValueError: Browser scenario flag differs"
+    },
+    {
+      "mutation": "native source link",
+      "optimized": true,
+      "exitCode": 1,
+      "diagnostic": "ValueError: Fixture/source link mismatch: nativeSpeechChecksSha256"
+    }
+  ]
+}

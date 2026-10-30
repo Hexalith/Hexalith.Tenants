@@ -1,0 +1,75 @@
+{
+  "isolatedTemporaryCopiesOnly": true,
+  "positiveControls": [
+    {
+      "optimized": false,
+      "exitCode": 0
+    },
+    {
+      "optimized": true,
+      "exitCode": 0
+    }
+  ],
+  "negativeControls": [
+    {
+      "mutation": "unselected numbered history",
+      "optimized": true,
+      "rejected": true,
+      "diagnostic": "ValueError: Original DW-1 body changed"
+    },
+    {
+      "mutation": "selected original field",
+      "optimized": true,
+      "rejected": true,
+      "diagnostic": "ValueError: Original DW-116 body changed"
+    },
+    {
+      "mutation": "numbered ID conservation",
+      "optimized": true,
+      "rejected": true,
+      "diagnostic": "ValueError: Numbered IDs changed"
+    },
+    {
+      "mutation": "numbered status",
+      "optimized": true,
+      "rejected": true,
+      "diagnostic": "ValueError: Original DW-116 body changed"
+    },
+    {
+      "mutation": "unselected ledger preamble",
+      "optimized": true,
+      "rejected": true,
+      "diagnostic": "ValueError: Unselected ledger bytes changed"
+    },
+    {
+      "mutation": "archive byte conservation",
+      "optimized": true,
+      "rejected": true,
+      "diagnostic": "ValueError: Historical archive changed"
+    },
+    {
+      "mutation": "unselected index history",
+      "optimized": true,
+      "rejected": true,
+      "diagnostic": "ValueError: Unselected index bytes changed"
+    },
+    {
+      "mutation": "ledger LF to CRLF rewrite",
+      "optimized": true,
+      "rejected": true,
+      "diagnostic": "ValueError: Original DW-1 body changed"
+    },
+    {
+      "mutation": "index LF to CRLF rewrite",
+      "optimized": true,
+      "rejected": true,
+      "diagnostic": "ValueError: DW-116 index history changed"
+    },
+    {
+      "mutation": "both unnumbered additions relocated to preamble",
+      "optimized": true,
+      "rejected": true,
+      "diagnostic": "ValueError: Unnumbered addition must remain inside its original enclosing record"
+    }
+  ]
+}

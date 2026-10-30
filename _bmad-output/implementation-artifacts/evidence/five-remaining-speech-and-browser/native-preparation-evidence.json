@@ -1,0 +1,120 @@
+{
+  "provenance": "Invocation/preparation commands below are reconstructed from this run’s tool history, not contemporaneous shell-command journal entries. Retained stdout is separately hash-bound.",
+  "prerequisites": {
+    "reconstructedExecutable": "powershell.exe",
+    "reconstructedArguments": [
+      "-NoProfile",
+      "-Command",
+      "Set-Location 'C:\\Temp\\tenants-five-remaining-20261030\\tests\\performance\\tenant-audit'; npm ci; dotnet dev-certs https --check"
+    ],
+    "reconstructedNpmCwd": "C:\\Temp\\tenants-five-remaining-20261030\\tests\\performance\\tenant-audit",
+    "rawLogSha256": "17929f62f93d09a45d80e51c55d119373e6d3486293333eeebbba62422444e48",
+    "retainedSanitizedOutput": [
+      "added 6 packages, and audited 7 packages in 4s",
+      "found 0 vulnerabilities",
+      "2 valid certificates were found"
+    ],
+    "removed": "Certificate thumbprints/details omitted.",
+    "nodeVersionCaptured": false,
+    "npmVersionCaptured": false,
+    "contemporaneousLockfileHashCaptured": false,
+    "npmExitCodeSeparatelyCaptured": false,
+    "limit": "The combined PowerShell invocation returned zero, but its final command was dev-certs. npm stdout alone is not an independently recorded locked-install success/exit attestation. No retrospective lockfile/version fingerprint is substituted."
+  },
+  "sparsePreparation": {
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "reconstructedInitialSourcePaths": [
+      "src",
+      "Props"
+    ],
+    "reconstructedCorrectiveEngCommands": [
+      [
+        "git",
+        "-C",
+        "/mnt/c/Temp/tenants-five-remaining-20261030/references/Hexalith.FrontComposer",
+        "sparse-checkout",
+        "set",
+        "--cone",
+        "src",
+        "Props",
+        "eng"
+      ],
+      [
+        "git",
+        "-C",
+        "/mnt/c/Temp/tenants-five-remaining-20261030/references/Hexalith.Builds",
+        "sparse-checkout",
+        "set",
+        "--cone",
+        "src",
+        "Props",
+        "eng"
+      ],
+      [
+        "git",
+        "-C",
+        "/mnt/c/Temp/tenants-five-remaining-20261030/references/Hexalith.PolymorphicSerializations",
+        "sparse-checkout",
+        "set",
+        "--cone",
+        "src",
+        "Props",
+        "eng"
+      ],
+      [
+        "git",
+        "-C",
+        "/mnt/c/Temp/tenants-five-remaining-20261030/references/Hexalith.Memories",
+        "sparse-checkout",
+        "set",
+        "--cone",
+        "src",
+        "Props",
+        "eng"
+      ],
+      [
+        "git",
+        "-C",
+        "/mnt/c/Temp/tenants-five-remaining-20261030/references/Hexalith.McpCli",
+        "sparse-checkout",
+        "set",
+        "--cone",
+        "src",
+        "Props",
+        "eng"
+      ],
+      [
+        "git",
+        "-C",
+        "/mnt/c/Temp/tenants-five-remaining-20261030/references/Hexalith.Platform",
+        "sparse-checkout",
+        "set",
+        "--cone",
+        "src",
+        "Props",
+        "eng"
+      ]
+    ],
+    "limit": "The corrective support command batch completed; individual success lines were tool output, while its redirected Git log is empty. No contemporaneous whole-dependency worktree fingerprints were retained."
+  },
+  "retainedPreparationLogs": [
+    {
+      "name": "native-checkout.log",
+      "rawSha256": "42968d46838ed99b9626bb941f8fe410087db9ff1b2a3f65241d3ec1e78c248d",
+      "retainedText": "Cloning into '[native-checkout]'...\ndone.\nHEAD is now at bd1d6ead fix: require the domain-service policy on the project endpoint\nCloning into '[native-checkout]/references/Hexalith.EventStore'...\ndone.\nHEAD is now at 4cf93f91e docs(routing): mark route catalog activation ready for review\nCloning into '[native-checkout]/references/Hexalith.Commons'...\ndone.\nHEAD is now at 3edfbda docs: require validated dependency integration commits\nCloning into '[native-checkout]/references/Hexalith.AI.Tools'...\ndone.\nHEAD is now at 70dbf73 docs: clarify the MCP and CLI migration plan scope\nCloning into '[native-checkout]/references/Hexalith.FrontComposer'...\ndone.\n",
+      "limit": "Git progress/stdout only; exact argv and per-command results were not journaled in this log. An empty support log is not an execution attestation."
+    },
+    {
+      "name": "native-checkout-bounded-2.log",
+      "rawSha256": "706d4bafe567f3d966317c04fc70ae30ff6c4c891e70f660c32f74f7d0c8bc49",
+      "retainedText": "Cloning into '[native-checkout]/references/Hexalith.FrontComposer'...\nHEAD is now at 612d234 fix: story 13.6\nCloning into '[native-checkout]/references/Hexalith.Builds'...\nHEAD is now at 4775fb7 build(deps): refresh changed package audit\nCloning into '[native-checkout]/references/Hexalith.PolymorphicSerializations'...\nHEAD is now at 221ac45 chore(release): 1.19.5 [skip ci]\nCloning into '[native-checkout]/references/Hexalith.Memories'...\nHEAD is now at daa0618 test(embedding): Close five deferred regression items\nCloning into '[native-checkout]/references/Hexalith.McpCli'...\nHEAD is now at 9ba8e5b fix: story 4.15\nCloning into '[native-checkout]/references/Hexalith.Platform'...\nHEAD is now at 3659a44 feat: story 2.6 attach a run to a compatible environment\n",
+      "limit": "Git progress/stdout only; exact argv and per-command results were not journaled in this log. An empty support log is not an execution attestation."
+    },
+    {
+      "name": "native-build-support-checkout.log",
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "retainedText": "",
+      "limit": "Git progress/stdout only; exact argv and per-command results were not journaled in this log. An empty support log is not an execution attestation."
+    }
+  ]
+}

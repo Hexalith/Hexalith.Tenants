@@ -1,0 +1,63 @@
+{
+  "startedUtc": "2026-10-30T15:50:45.1900751Z",
+  "engine": "firefox",
+  "trialGroup": "all",
+  "cultures": [
+    "en",
+    "fr"
+  ],
+  "requestedTrials": [],
+  "osVersion": "Microsoft Windows NT 10.0.26300.0",
+  "nvdaVersion": "2026.2",
+  "viewerSource": "NVDA-owned Speech Viewer edit control, read without changing focus",
+  "timing": "UTC sample time at 100 ms polling; queued text arrival, not word onset or audible completion",
+  "settingsOrigin": "private copy of existing nvda.ini; no addons copied",
+  "settingsOverrides": [
+    "English NVDA interface",
+    "welcome dialog disabled",
+    "Speech Viewer shown on startup",
+    "private read-only scratchpad settings observer enabled",
+    "private automatic update checks/notifications disabled",
+    "private remote sessions disabled"
+  ],
+  "sourceSettingsSha256": "4d32c40d51eae7b73b2f8b424dc1187e89e8f681c8f927a764225c4c85f29199",
+  "collectorSha256": "7bdeb0c4b66cb6e5f5f039669c802ba8f157c310b5a2b9c2f6722bc1c76bfc07",
+  "observerSha256": "fb2c0eb34a3fe336bda882dddcd4acbbc05e8d9ea7c53d8662861173506bd31d",
+  "outputSanitized": false,
+  "passed": false,
+  "completed": false,
+  "viewerProcessId": 26316,
+  "viewerControlClass": "RICHEDIT50W",
+  "viewerControlType": "ControlType.Document",
+  "viewerBound": true,
+  "runnerExitCode": 1,
+  "failure": "Native fixture did not complete; retain its failure packet.",
+  "stderrRetained": true,
+  "sourceSettingsUnchanged": true,
+  "effectiveSettings": {
+    "observedUtc": "2026-10-30T15:50:50.979906+00:00",
+    "synthesizer": "oneCore",
+    "voice": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Speech_OneCore\\Voices\\Tokens\\MSTTS_V110_frFR_HortenseM",
+    "language": "fr_FR",
+    "rate": 50,
+    "speechMode": "talk",
+    "autoLanguageSwitching": true,
+    "autoDialectSwitching": false,
+    "reportDynamicContentChanges": true,
+    "autoPassThroughOnFocusChange": true,
+    "autoPassThroughOnCaretMove": false,
+    "useScreenLayout": true,
+    "reportObjectDescriptions": true,
+    "reportHelpBalloons": true,
+    "reportTooltips": false
+  },
+  "finishedUtc": "2026-10-30T15:50:51.9902455Z",
+  "privateLogs": "[private native logs retained outside the repository]",
+  "retentionSanitization": {
+    "removed": [
+      "private user-profile log-directory path"
+    ],
+    "actualSpeechRetained": "none; capture did not reach a product observation",
+    "originalOutputSanitizedFlagPreserved": true
+  }
+}
