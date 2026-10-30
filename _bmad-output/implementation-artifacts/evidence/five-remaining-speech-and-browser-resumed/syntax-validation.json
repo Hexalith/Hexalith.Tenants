@@ -1,0 +1,44 @@
+{
+  "powershell": {
+    "argv": [
+      "powershell.exe",
+      "-NoProfile",
+      "-Command",
+      "$paths=@(\"C:\\Temp\\tenants-five-resumed-20261030-2\\tests\\Hexalith.Tenants.UI.Tests\\Browser\\capture-deferred-nvda-speech.ps1\",\"C:\\Temp\\tenants-five-resume-prerequisites-2.ps1\",\"C:\\Temp\\tenants-five-resume-run-native-matrix.ps1\"); $result=@(); foreach($path in $paths){ $tokens=$null; $errors=$null; $null=[Management.Automation.Language.Parser]::ParseFile($path,[ref]$tokens,[ref]$errors); if($errors.Count){throw \"Parse failed: $path\"}; $result+=@{file=$path;errors=$errors.Count} }; $result|ConvertTo-Json"
+    ],
+    "exitCode": 0,
+    "result": [
+      {
+        "errors": 0,
+        "file": "C:\\Temp\\tenants-five-resumed-20261030-2\\tests\\Hexalith.Tenants.UI.Tests\\Browser\\capture-deferred-nvda-speech.ps1"
+      },
+      {
+        "errors": 0,
+        "file": "C:\\Temp\\tenants-five-resume-prerequisites-2.ps1"
+      },
+      {
+        "errors": 0,
+        "file": "C:\\Temp\\tenants-five-resume-run-native-matrix.ps1"
+      }
+    ]
+  },
+  "python": {
+    "method": "ast.parse exact file bytes; no bytecode generated",
+    "files": [
+      "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser-resumed/validate-historical-packets.py",
+      "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser-resumed/test-conservation.py",
+      "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser-resumed/test-artifacts.py",
+      "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser-resumed/build-native-matrix.py",
+      "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser-resumed/refresh-native.py",
+      "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser-resumed/prepare-native.py",
+      "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser-resumed/retain-native-attempt.py",
+      "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser-resumed/validate-artifacts.py",
+      "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser-resumed/fingerprint-inputs.py",
+      "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser-resumed/validate-conservation.py",
+      "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser-resumed/executed-source/deferred-nvda-observer.py",
+      "tests/Hexalith.Tenants.UI.Tests/Browser/deferred-nvda-observer.py",
+      "tests/Hexalith.Tenants.UI.Tests/Browser/test-deferred-nvda-observer.py"
+    ],
+    "passed": true
+  }
+}

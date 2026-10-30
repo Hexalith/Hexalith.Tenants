@@ -1,0 +1,129 @@
+{
+  "observedUtc": "2026-10-30T19:03:57.413185+00:00",
+  "integrationRoot": "a16d89746c0b16470df899981af889332bea8da0",
+  "buildAndFullUi": {
+    "sourceHeadBefore": "a16d89746c0b16470df899981af889332bea8da0",
+    "sourceHeadAfter": "a16d89746c0b16470df899981af889332bea8da0",
+    "checks": [
+      {
+        "label": "build",
+        "argv": [
+          "dotnet",
+          "build",
+          "tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj",
+          "-c",
+          "Debug",
+          "-m:1",
+          "-p:UseNuGetDeps=false",
+          "-p:HexalithEventStoreVersion=3.128.4",
+          "-p:HexalithMcpCliFromSource=false",
+          "-p:NuGetAudit=false"
+        ],
+        "exitCode": 0,
+        "privateLog": "/tmp/tenants-parent-integrated-x6uznv5i/build.log",
+        "privateLogSha256": "9bbe0ed8241787e45046e78a5774f917053040d72eb06ff3ec59d0662d4558cc"
+      },
+      {
+        "label": "full-ui",
+        "argv": [
+          "dotnet",
+          "test",
+          "--project",
+          "tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj",
+          "-c",
+          "Debug",
+          "--no-build",
+          "--no-restore",
+          "--results-directory",
+          "/tmp/tenants-parent-integrated-x6uznv5i/ui-results",
+          "--report-xunit-trx",
+          "--report-xunit-xml",
+          "--fail-skips",
+          "on",
+          "--minimum-expected-tests",
+          "7000"
+        ],
+        "exitCode": 0,
+        "privateLog": "/tmp/tenants-parent-integrated-x6uznv5i/full-ui.log",
+        "privateLogSha256": "6cc293ef63ab82c5cc41e7168ff6703757efea9b57a089884588c7973eec3104"
+      }
+    ]
+  },
+  "fullUiCounts": {
+    "total": 8055,
+    "passed": 8055,
+    "failed": 0,
+    "skipped": 0
+  },
+  "fullUiSanitizedResults": "parent-full-ui-tests.zip",
+  "sourceXmlSha256": "8be106f26d5e58381529acbd4311cc83ba1b04950a1c612f9b115740cc8e2749",
+  "browserInvocations": [
+    {
+      "scenario": "grant",
+      "argv": [
+        "node",
+        "tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-administrator-dialogs.mjs",
+        "/tmp/tenants-parent-integrated-x6uznv5i/grant-current.json"
+      ],
+      "explicitEnvironment": {
+        "TENANTS_BROWSER_STANDALONE_OIDC": "1",
+        "TENANTS_BROWSER_UI_SAFETY_ONLY": "1",
+        "CHROMIUM_BIN": "/usr/bin/google-chrome",
+        "TENANTS_BROWSER_RUNTIME_FOLLOWUPS": "1"
+      },
+      "clearedForChildOnly": [
+        "HexalithEventStoreVersion",
+        "HexalithMcpCliFromSource",
+        "NuGetAudit",
+        "TENANTS_BROWSER_SKIP_BUILD",
+        "TENANTS_BROWSER_READ_SAFETY",
+        "TENANTS_BROWSER_HANDOFF",
+        "TENANTS_BROWSER_RUNTIME_FOLLOWUPS",
+        "TENANTS_BROWSER_HOLD_GRID",
+        "TENANTS_BROWSER_BASE_URL"
+      ],
+      "exitCode": 0,
+      "headBefore": "a16d89746c0b16470df899981af889332bea8da0",
+      "headAfter": "a16d89746c0b16470df899981af889332bea8da0",
+      "packet": "/tmp/tenants-parent-integrated-x6uznv5i/grant-current.json",
+      "packetSha256": "139e08880791d55d2c95488208521d90eaa9844e8d77c7c779ad897063b97f50",
+      "privateLogSha256": "01e5c764d40b86ed22878824ffcd01f33107111bce6c03909f6080a5051163d3",
+      "retainedPacket": "parent-current-grant.json"
+    },
+    {
+      "scenario": "grid",
+      "argv": [
+        "node",
+        "tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-administrator-dialogs.mjs",
+        "/tmp/tenants-parent-integrated-x6uznv5i/grid-current.json"
+      ],
+      "explicitEnvironment": {
+        "TENANTS_BROWSER_STANDALONE_OIDC": "1",
+        "TENANTS_BROWSER_UI_SAFETY_ONLY": "1",
+        "CHROMIUM_BIN": "/usr/bin/google-chrome",
+        "TENANTS_BROWSER_HOLD_GRID": "1"
+      },
+      "clearedForChildOnly": [
+        "HexalithEventStoreVersion",
+        "HexalithMcpCliFromSource",
+        "NuGetAudit",
+        "TENANTS_BROWSER_SKIP_BUILD",
+        "TENANTS_BROWSER_READ_SAFETY",
+        "TENANTS_BROWSER_HANDOFF",
+        "TENANTS_BROWSER_RUNTIME_FOLLOWUPS",
+        "TENANTS_BROWSER_HOLD_GRID",
+        "TENANTS_BROWSER_BASE_URL"
+      ],
+      "exitCode": 1,
+      "headBefore": "a16d89746c0b16470df899981af889332bea8da0",
+      "headAfter": "a16d89746c0b16470df899981af889332bea8da0",
+      "packet": "/tmp/tenants-parent-integrated-x6uznv5i/grid-current.json",
+      "packetSha256": "797da36ed232751fd01c3bd9028b1115db24cd64e110df855c39e771e574a233",
+      "privateLogSha256": "de17fe3d5fcd41b2d6b4b7a78c6bd7e2d71192eb7695b43c97e661384be7258e",
+      "retainedPacket": "parent-current-grid.json"
+    }
+  ],
+  "nativeProfileRemains": "c2da6bacff148e77608132b0e04c714228a9b199",
+  "independentNativeAcceptance": "pending; no closure authorized by collection counts alone",
+  "scope": "Latest-workspace UI build/test and default browser fixtures; no backend persistence or API/AppHost runtime qualification."
+}

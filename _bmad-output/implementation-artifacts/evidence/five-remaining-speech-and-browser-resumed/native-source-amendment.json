@@ -1,0 +1,16 @@
+{
+  "appliedUtc": "2026-10-30T18:02:49.539057+00:00",
+  "frozenNativeRootRevision": "e45ed9d87de7800ebb02b1cedc9c64b720763e9e",
+  "workspaceHeadAtAmendment": "c2da6bacff148e77608132b0e04c714228a9b199",
+  "reason": "Observed PermissionError stopped callback scheduling permanently. Reschedule in finally while propagating original exception; unchanged freshness gates reject persistent errors.",
+  "explicitCopiedChanges": [
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Browser/deferred-nvda-observer.py",
+      "nativeSha256": "5c7e5c992b45d6439eb881d7c86f3b3726acb1778e8e4415ab04fad12b20dd7f",
+      "sourceSha256": "5c7e5c992b45d6439eb881d7c86f3b3726acb1778e8e4415ab04fad12b20dd7f"
+    }
+  ],
+  "collectorRestoredToOriginalSha256": "7bdeb0c4b66cb6e5f5f039669c802ba8f157c310b5a2b9c2f6722bc1c76bfc07",
+  "otherFrozenInputsRecopied": false,
+  "regression": "python3 -B tests/Hexalith.Tenants.UI.Tests/Browser/test-deferred-nvda-observer.py: 3/3 pass"
+}

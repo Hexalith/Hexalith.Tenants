@@ -1,0 +1,56 @@
+{
+  "originalBaseline": "bd1d6ead1243237b5e84d1c1403485ee41fa9af3",
+  "comparedHead": "a16d89746c0b16470df899981af889332bea8da0",
+  "pointerBearingHistory": [
+    "c2da6bacff148e77608132b0e04c714228a9b199 build(deps): sync submodules to latest main pins",
+    "e45ed9d87de7800ebb02b1cedc9c64b720763e9e build: sync local changes via /pushall"
+  ],
+  "interpretation": "Historical range inventory of independently committed user/concurrent pointer changes. This implementation moved no source-workspace gitlinks; original baseline is preserved.",
+  "targets": [
+    {
+      "path": "references/Hexalith.EventStore",
+      "baseline": "4cf93f91e760e2d09e4fc64e1bd33a3c0a79a24d",
+      "target": "e014af6c3f1c67732485f24012cdbe528a12b0f6"
+    },
+    {
+      "path": "references/Hexalith.Commons",
+      "baseline": "3edfbdafc7d4fa915286dce8a37dc4cc7c06085a",
+      "target": "0604bcf5304fc09a569f7abbd8e5d1b9049c02b7"
+    },
+    {
+      "path": "references/Hexalith.AI.Tools",
+      "baseline": "70dbf73e80787299c832d30d911b16b105ab194d",
+      "target": "9b78aa008cfc62cd88ad0ea4b39b1f07311956ce"
+    },
+    {
+      "path": "references/Hexalith.FrontComposer",
+      "baseline": "612d23485d7e2845d22102621a38d6c904e1ea90",
+      "target": "61a8afbb85c7e25b2eb97acb1cac262ef3e1e33d"
+    },
+    {
+      "path": "references/Hexalith.Builds",
+      "baseline": "4775fb72e3ca3c05059830733e31a98995818cb6",
+      "target": "6cc96b4ff23c40c77651e1e4f85ed3170c25c7a4"
+    },
+    {
+      "path": "references/Hexalith.PolymorphicSerializations",
+      "baseline": "221ac4592ba908ae7661ba1fa9e2d1fcc23baee0",
+      "target": "92ede24cc11129379efe52cfe7fd2c820c567f7f"
+    },
+    {
+      "path": "references/Hexalith.Memories",
+      "baseline": "daa06183c0c9baa8bda71df259a7264d34684e2a",
+      "target": "71a721a87ebbb34c557c08517b5c39884a7417da"
+    },
+    {
+      "path": "references/Hexalith.McpCli",
+      "baseline": "9ba8e5bd0e213501b39d33cedf46859566fc89a4",
+      "target": "7538bee529ab3a62c2d359fd498c9d60fca77621"
+    },
+    {
+      "path": "references/Hexalith.Platform",
+      "baseline": "3659a44d86c08645215689eaeff8b3624d357dd5",
+      "target": "667e5a02a523cf8764ca54d6aa1b4b75db5dca64"
+    }
+  ]
+}

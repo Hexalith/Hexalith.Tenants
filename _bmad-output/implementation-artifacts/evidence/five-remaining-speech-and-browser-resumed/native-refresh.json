@@ -1,0 +1,1131 @@
+{
+  "startedUtc": "2026-10-30T18:05:39.974766+00:00",
+  "localOnly": true,
+  "source": "/home/administrator/projects/hexalith/tenants",
+  "ownedDestination": "/mnt/c/Temp/tenants-five-resumed-20261030-2",
+  "commands": [
+    {
+      "argv": [
+        "/mnt/c/Python314/python.exe",
+        "C:\\Temp\\tenants-resume-fingerprint-inputs.py",
+        "C:\\Temp\\tenants-five-resumed-20261030-2",
+        "C:\\Temp\\tenants-resume-refresh-0-before.json",
+        "true"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2",
+      "startedUtc": "2026-10-30T18:05:40.044816+00:00",
+      "endedUtc": "2026-10-30T18:05:40.502630+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "fetch",
+        "--depth",
+        "1",
+        "file:///home/administrator/projects/hexalith/tenants",
+        "c2da6bacff148e77608132b0e04c714228a9b199"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2",
+      "startedUtc": "2026-10-30T18:05:40.529153+00:00",
+      "endedUtc": "2026-10-30T18:05:41.800492+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "From file:///home/administrator/projects/hexalith/tenants\n * branch            c2da6bacff148e77608132b0e04c714228a9b199 -> FETCH_HEAD\n"
+    },
+    {
+      "argv": [
+        "git",
+        "checkout",
+        "--detach",
+        "c2da6bacff148e77608132b0e04c714228a9b199"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2",
+      "startedUtc": "2026-10-30T18:05:41.800743+00:00",
+      "endedUtc": "2026-10-30T18:05:57.194226+00:00",
+      "exitCode": 0,
+      "stdout": "M\tcommitlint.config.mjs\nM\tsrc/Hexalith.Tenants.AppHost/Program.cs\nM\tsrc/Hexalith.Tenants.Server/Aggregates/GlobalAdministratorsAggregate.cs\nM\tsrc/Hexalith.Tenants.Server/Aggregates/GlobalAdministratorsState.cs\nM\tsrc/Hexalith.Tenants.Server/Projections/TenantAuditOwnership.cs\nM\tsrc/Hexalith.Tenants.Server/Projections/TenantAuditReadModel.cs\nM\tsrc/Hexalith.Tenants.Server/Projections/TenantAuditStreams.cs\nM\tsrc/Hexalith.Tenants.Server/Projections/TenantIndexProjectionVersion.cs\nM\tsrc/Hexalith.Tenants.Server/Projections/TenantIndexReadModel.cs\nM\tsrc/Hexalith.Tenants.Testing/Fakes/InMemoryTenantService.cs\nM\tsrc/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.Recovery.cs\nM\tsrc/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor\nM\tsrc/Hexalith.Tenants.UI/Components/Pages/TenantDetailPageLog.cs\nM\tsrc/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor\nM\tsrc/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditDataGrid.razor\nM\tsrc/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditEvidenceReceipt.razor\nM\tsrc/Hexalith.Tenants.UI/Components/Tenants/Audit/CorrectionStartPanel.razor\nM\tsrc/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.Recovery.cs\nM\tsrc/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor\nM\tsrc/Hexalith.Tenants.UI/Components/Tenants/Configuration/SetTenantConfigurationFlow.razor\nM\tsrc/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleActionAvailability.razor\nM\tsrc/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleFocus.cs\nM\tsrc/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor\nM\tsrc/Hexalith.Tenants.UI/Components/Tenants/Members/ChangeTenantMemberRoleFlow.razor\nM\tsrc/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor\nM\tsrc/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor\nM\tsrc/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor\nM\tsrc/Hexalith.Tenants.UI/Components/Tenants/TenantDataGrid.razor\nM\tsrc/Hexalith.Tenants.UI/Components/Tenants/TenantDataGrid.razor.css\nM\tsrc/Hexalith.Tenants.UI/Components/Users/MyTenantsDataGrid.razor\nM\tsrc/Hexalith.Tenants.UI/Components/Users/MyTenantsPanel.razor\nM\tsrc/Hexalith.Tenants.UI/Components/Users/UserMembershipLookupPanel.razor\nM\tsrc/Hexalith.Tenants.UI/Extensions/TenantsUiServiceCollectionExtensions.cs\nM\tsrc/Hexalith.Tenants.UI/Program.cs\nM\tsrc/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx\nM\tsrc/Hexalith.Tenants.UI/Resources/TenantsResources.resx\nM\tsrc/Hexalith.Tenants.UI/Services/Configuration/TenantConfigurationReadPolicyOptions.cs\nM\tsrc/Hexalith.Tenants.UI/Services/Configuration/TenantConfigurationReadPolicyProvider.cs\nM\tsrc/Hexalith.Tenants.UI/Services/Gateways/CallerBoundTenantsRestQueryClient.cs\nM\tsrc/Hexalith.Tenants.UI/Services/Gateways/GlobalAdministratorAuditProofLookup.cs\nM\tsrc/Hexalith.Tenants.UI/Services/Gateways/ITenantCommandGateway.cs\nM\tsrc/Hexalith.Tenants.UI/Services/Gateways/ITenantQueryGateway.cs\nM\tsrc/Hexalith.Tenants.UI/Services/Gateways/ITenantsBffComposition.cs\nM\tsrc/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs\nM\tsrc/Hexalith.Tenants.UI/Services/Gateways/TenantCommandStatusResponse.cs\nM\tsrc/Hexalith.Tenants.UI/Services/Gateways/TenantQueryPagePolicy.cs\nM\tsrc/Hexalith.Tenants.UI/Services/Gateways/TenantSearchCursorCodec.cs\nM\tsrc/Hexalith.Tenants.UI/Services/Gateways/TenantSearchCursorPosition.cs\nM\tsrc/Hexalith.Tenants.UI/Services/Gateways/TenantSearchCursorScopes.cs\nM\tsrc/Hexalith.Tenants.UI/Services/Gateways/TenantSearchOptions.cs\nM\tsrc/Hexalith.Tenants.UI/Services/Gateways/TenantWorkspaceReadDiagnostics.cs\nM\tsrc/Hexalith.Tenants.UI/Services/Gateways/TenantsBffComposition.cs\nM\tsrc/Hexalith.Tenants.UI/Services/Gateways/UnavailableTenantCommandGateway.cs\nM\tsrc/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorActionAvailabilityEvaluator.cs\nM\tsrc/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorIdentityDisplay.cs\nM\tsrc/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorsSnapshot.cs\nM\tsrc/Hexalith.Tenants.UI/State/TenantAudit/GlobalAdministratorCorrectionSnapshot.cs\nM\tsrc/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditAvailabilityState.cs\nM\tsrc/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditNarrative.cs\nM\tsrc/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditNavigationSafety.cs\nM\tsrc/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditReceipt.cs\nM\tsrc/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditRequest.cs\nM\tsrc/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditRow.cs\nM\tsrc/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditSnapshot.cs\nM\tsrc/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditSupportSafety.cs\nM\tsrc/Hexalith.Tenants.UI/State/TenantAudit/TenantCorrectionPreviewSnapshot.cs\nM\tsrc/Hexalith.Tenants.UI/State/TenantCommands/TenantAddMemberCommandSnapshot.cs\nM\tsrc/Hexalith.Tenants.UI/State/TenantCommands/TenantAggregateCommandAdmissionGate.cs\nM\tsrc/Hexalith.Tenants.UI/State/TenantCommands/TenantAggregateCommandLease.cs\nM\tsrc/Hexalith.Tenants.UI/State/TenantCommands/TenantChangeRoleCommandSnapshot.cs\nM\tsrc/Hexalith.Tenants.UI/State/TenantCommands/TenantCommandActivityCoordinator.cs\nM\tsrc/Hexalith.Tenants.UI/State/TenantCommands/TenantCommandAttemptTracker.cs\nM\tsrc/Hexalith.Tenants.UI/State/TenantCommands/TenantCommandAuditState.cs\nM\tsrc/Hexalith.Tenants.UI/State/TenantCommands/TenantCommandFlowGuard.cs\nM\tsrc/Hexalith.Tenants.UI/State/TenantCommands/TenantCommandFocusTarget.cs\nM\tsrc/Hexalith.Tenants.UI/State/TenantCommands/TenantCommandLifecycleState.cs\nM\tsrc/Hexalith.Tenants.UI/State/TenantCommands/TenantCommandLiveRegionPoliteness.cs\nM\tsrc/Hexalith.Tenants.UI/State/TenantCommands/TenantCommandStatusResult.cs\nM\tsrc/Hexalith.Tenants.UI/State/TenantCommands/TenantCommandSubmissionResult.cs\nM\tsrc/Hexalith.Tenants.UI/State/TenantCommands/TenantCommandTrackingHandle.cs\nM\tsrc/Hexalith.Tenants.UI/State/TenantCommands/TenantCorrectionAttempt.cs\nM\tsrc/Hexalith.Tenants.UI/State/TenantCommands/TenantCorrectionAttemptTracker.cs\nM\tsrc/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateAttemptTracker.cs\nM\tsrc/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandSnapshot.cs\nM\tsrc/Hexalith.Tenants.UI/State/TenantCommands/TenantLifecycleAttemptTracker.cs\nM\tsrc/Hexalith.Tenants.UI/State/TenantCommands/TenantLifecycleCommandRequest.cs\nM\tsrc/Hexalith.Tenants.UI/State/TenantCommands/TenantLifecycleCommandSnapshot.cs\nM\tsrc/Hexalith.Tenants.UI/State/TenantCommands/TenantLifecycleSequenceRelation.cs\nM\tsrc/Hexalith.Tenants.UI/State/TenantCommands/TenantMembershipProjectionWaitPolicy.cs\nM\tsrc/Hexalith.Tenants.UI/State/TenantCommands/TenantMembershipStatusRefreshDrain.cs\nM\tsrc/Hexalith.Tenants.UI/State/TenantCommands/TenantProofOperation.cs\nM\tsrc/Hexalith.Tenants.UI/State/TenantCommands/TenantProofScope.cs\nM\tsrc/Hexalith.Tenants.UI/State/TenantCommands/TenantRemoveConfigurationAttemptTracker.cs\nM\tsrc/Hexalith.Tenants.UI/State/TenantCommands/TenantRemoveMemberCommandSnapshot.cs\nM\tsrc/Hexalith.Tenants.UI/State/TenantCommands/TenantRetainedCommandAttempt.cs\nM\tsrc/Hexalith.Tenants.UI/State/TenantCommands/TenantSetConfigurationAttemptTracker.cs\nM\tsrc/Hexalith.Tenants.UI/State/TenantCommands/TenantUpdateMetadataCommandSnapshot.cs\nM\tsrc/Hexalith.Tenants.UI/State/TenantDetail/TenantDetailSnapshot.cs\nM\tsrc/Hexalith.Tenants.UI/State/TenantDetail/TenantLifecycleAvailability.cs\nM\tsrc/Hexalith.Tenants.UI/State/TenantDetail/TenantMutationAuthorizationReflection.cs\nM\tsrc/Hexalith.Tenants.UI/State/TenantList/TenantDomIdentity.cs\nM\tsrc/Hexalith.Tenants.UI/State/TenantList/TenantListNavigationContext.cs\nM\tsrc/Hexalith.Tenants.UI/State/TenantList/TenantListSnapshot.cs\nM\tsrc/Hexalith.Tenants.UI/State/TenantList/TenantWorkspaceState.cs\nM\tsrc/Hexalith.Tenants.UI/State/TenantUsers/TenantUsersSnapshot.cs\nM\tsrc/Hexalith.Tenants.UI/State/UserTenants/UserTenantMembershipSnapshot.cs\nM\tsrc/Hexalith.Tenants/Authorization/ITenantsGlobalAdministratorAuthority.cs\nM\tsrc/Hexalith.Tenants/Authorization/TenantOwnerSourceGateway.cs\nM\tsrc/Hexalith.Tenants/Authorization/TenantsGlobalAdministratorAuthority.cs\nM\tsrc/Hexalith.Tenants/Authorization/TenantsGlobalAdministratorAuthorityUnavailableException.cs\nM\tsrc/Hexalith.Tenants/Authorization/TenantsGlobalAdministratorVerifier.cs\nM\tsrc/Hexalith.Tenants/Bootstrap/TenantBootstrapHostedService.cs\nM\tsrc/Hexalith.Tenants/Bootstrap/TenantBootstrapServiceCollectionExtensions.cs\nM\tsrc/Hexalith.Tenants/Projections/GlobalAdministratorProjectionHandler.cs\nM\tsrc/Hexalith.Tenants/Projections/TenantProjectionHandler.cs\nM\tsrc/Hexalith.Tenants/Queries/Handlers/GetGlobalAdministratorsQueryHandler.cs\nM\tsrc/Hexalith.Tenants/Queries/Handlers/GetTenantAuditQueryHandler.cs\nM\tsrc/Hexalith.Tenants/Queries/Handlers/GetTenantQueryHandler.cs\nM\tsrc/Hexalith.Tenants/Queries/Handlers/GetTenantUsersQueryHandler.cs\nM\tsrc/Hexalith.Tenants/Queries/Handlers/GetUserTenantsQueryHandler.cs\nM\tsrc/Hexalith.Tenants/Queries/Handlers/ListTenantsQueryHandler.cs\nM\tsrc/Hexalith.Tenants/Queries/Handlers/TenantAuditQueryPayload.cs\nM\tsrc/Hexalith.Tenants/Queries/Handlers/TenantQueryHandlerBase.cs\nM\tsrc/Hexalith.Tenants/Queries/Handlers/TenantReadAuthorityQueryHandler.cs\nM\tsrc/Hexalith.Tenants/Queries/TenantQueryCursorScopes.cs\nM\tsrc/Hexalith.Tenants/Queries/TenantQueryPaginationPayload.cs\nM\tsrc/Hexalith.Tenants/Queries/TenantQueryPaginationPayloadParser.cs\nM\tsrc/Hexalith.Tenants/Queries/TenantSystemAuditReader.cs\nM\ttests/Hexalith.Tenants.AppHost.Tests/AppHostSecurityResourceGraphTests.cs\nM\ttests/Hexalith.Tenants.AppHost.Tests/DaprComponentOverrideTests.cs\nM\ttests/Hexalith.Tenants.AppHost.Tests/LocalDaprIdentityCollection.cs\nM\ttests/Hexalith.Tenants.AppHost.Tests/LocalDaprIdentityTests.cs\nM\ttests/Hexalith.Tenants.AppHost.Tests/MemoriesSecretStoreResourceGraphTests.cs\nM\ttests/Hexalith.Tenants.AppHost.Tests/SourceAuthorityBackpressureTests.cs\nM\ttests/Hexalith.Tenants.AppHost.Tests/SourceAuthorityEnrollmentTests.cs\nM\ttests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj\nM\ttests/Hexalith.Tenants.Contracts.Tests/PartialReleaseRecoveryWorkflowTests.cs\nM\ttests/Hexalith.Tenants.Contracts.Tests/PartialReleaseVerificationTests.cs\nM\ttests/Hexalith.Tenants.Contracts.Tests/SourceReferenceWorkflowGovernanceTests.cs\nM\ttests/Hexalith.Tenants.IntegrationTests/AspireBootstrapEnvironmentCollection.cs\nM\ttests/Hexalith.Tenants.IntegrationTests/AspireTopologyBootstrapTests.cs\nM\ttests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs\nM\ttests/Hexalith.Tenants.IntegrationTests/AspireTopologyTlsDiagnosticsTests.cs\nM\ttests/Hexalith.Tenants.IntegrationTests/AuditStreamPersistenceTests.cs\nM\ttests/Hexalith.Tenants.IntegrationTests/AuthenticatedRouteEvidenceTests.cs\nM\ttests/Hexalith.Tenants.IntegrationTests/AuthenticatedRouteFixtureIsolationTests.cs\nM\ttests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsRouteTests.cs\nM\ttests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsUiRouteTests.cs\nM\ttests/Hexalith.Tenants.IntegrationTests/CommandApiRuntimeIntegrationTests.NativeAuthority.cs\nM\ttests/Hexalith.Tenants.IntegrationTests/CommandApiRuntimeIntegrationTests.cs\nM\ttests/Hexalith.Tenants.IntegrationTests/DaprEndToEndTests.cs\nM\ttests/Hexalith.Tenants.IntegrationTests/DomainServiceEndpointsTests.cs\nM\ttests/Hexalith.Tenants.IntegrationTests/Fixtures/AspireTopologyFixture.cs\nM\ttests/Hexalith.Tenants.IntegrationTests/Fixtures/AuthenticatedRouteState.cs\nM\ttests/Hexalith.Tenants.IntegrationTests/Fixtures/AuthenticatedTenantsTopologyCollection.cs\nM\ttests/Hexalith.Tenants.IntegrationTests/Fixtures/AuthenticatedTenantsTopologyFixture.cs\nM\ttests/Hexalith.Tenants.IntegrationTests/Fixtures/BootstrapDiagnosticStream.cs\nM\ttests/Hexalith.Tenants.IntegrationTests/Fixtures/BootstrapHttpMessageHandler.cs\nM\ttests/Hexalith.Tenants.IntegrationTests/Fixtures/GlobalAdministratorTestAuthority.cs\nM\ttests/Hexalith.Tenants.IntegrationTests/Fixtures/LiveRouteUserContext.cs\nM\ttests/Hexalith.Tenants.IntegrationTests/Fixtures/MutableGlobalAdministratorSource.cs\nM\ttests/Hexalith.Tenants.IntegrationTests/Fixtures/TenantsDaprTestFixture.cs\nM\ttests/Hexalith.Tenants.IntegrationTests/OwnerSourceCaptureHandler.cs\nM\ttests/Hexalith.Tenants.IntegrationTests/ProjectionReplayIntegrityTests.cs\nM\ttests/Hexalith.Tenants.IntegrationTests/TenantOwnerSourceGatewayTests.cs\nM\ttests/Hexalith.Tenants.IntegrationTests/TenantsApiGeneratedControllerTests.cs\nM\ttests/Hexalith.Tenants.IntegrationTests/TenantsApiReadinessTests.cs\nM\ttests/Hexalith.Tenants.IntegrationTests/TenantsUiRouteSmokeTests.cs\nM\ttests/Hexalith.Tenants.Server.Tests/Aggregates/GlobalAdministratorsAggregateTests.cs\nM\ttests/Hexalith.Tenants.Server.Tests/Authorization/TenantsGlobalAdministratorAuthorityTests.cs\nM\ttests/Hexalith.Tenants.Server.Tests/Authorization/TenantsGlobalAdministratorVerifierTests.cs\nM\ttests/Hexalith.Tenants.Server.Tests/Bootstrap/BootstrapTokenResponseStream.cs\nM\ttests/Hexalith.Tenants.Server.Tests/Bootstrap/TenantBootstrapHostedServiceTests.cs\nM\ttests/Hexalith.Tenants.Server.Tests/Bootstrap/TenantBootstrapRedirectTests.cs\nM\ttests/Hexalith.Tenants.Server.Tests/CommandPipeline/CommandPipelineIntegrationTests.cs\nM\ttests/Hexalith.Tenants.Server.Tests/Configuration/EventPublicationConfigurationTests.cs\nM\ttests/Hexalith.Tenants.Server.Tests/Documentation/DeploymentReadinessDocumentationTests.cs\nM\ttests/Hexalith.Tenants.Server.Tests/Projections/GlobalAdministratorProjectionHandlerTests.cs\nM\ttests/Hexalith.Tenants.Server.Tests/Projections/ProjectionDispatcherTests.cs\nM\ttests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceFixture.cs\nM\ttests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceTests.cs\nM\ttests/Hexalith.Tenants.Server.Tests/Projections/TenantAuditOwnershipTests.cs\nM\ttests/Hexalith.Tenants.Server.Tests/Projections/TenantIndexProjectionVersionTests.cs\nM\ttests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionHandlerTests.cs\nM\ttests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionIndexAuthorityTests.cs\nM\ttests/Hexalith.Tenants.Server.Tests/Queries/GetGlobalAdministratorsQueryHandlerTests.cs\nM\ttests/Hexalith.Tenants.Server.Tests/Queries/GetTenantAuditQueryHandlerTests.cs\nM\ttests/Hexalith.Tenants.Server.Tests/Queries/StandardTenantQueryPaginationTests.cs\nM\ttests/Hexalith.Tenants.Server.Tests/Queries/TenantQueryHandlerETagTests.cs\nM\ttests/Hexalith.Tenants.Server.Tests/Queries/TenantQueryHandlerGlobalAdminClaimTests.NativeAuthority.cs\nM\ttests/Hexalith.Tenants.Server.Tests/Queries/TenantQueryHandlerGlobalAdminClaimTests.cs\nM\ttests/Hexalith.Tenants.Server.Tests/Queries/TenantQueryPaginationPayloadParserTests.cs\nM\ttests/Hexalith.Tenants.Server.Tests/Support/GlobalAdministratorSourceFixture.cs\nM\ttests/Hexalith.Tenants.Server.Tests/Support/SeededGlobalAdministratorAuthority.cs\nM\ttests/Hexalith.Tenants.Server.Tests/Support/TenantQueryTestHarness.cs\nM\ttests/Hexalith.Tenants.Server.Tests/Telemetry/ProjectionDispatcherTelemetryTests.cs\nM\ttests/Hexalith.Tenants.Testing.Tests/Conformance/TenantConformanceTests.cs\nM\ttests/Hexalith.Tenants.Testing.Tests/Fakes/Story62ProductionAggregateParityTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Browser/deferred-nvda-observer.py\nM\ttests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-workspace-focus.mjs\nM\ttests/Hexalith.Tenants.UI.Tests/Components/AddTenantMemberFlowTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Components/AuditEvidenceEntryPointTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Components/AuditEvidenceReceiptTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Components/AuditReadAuthorityBoundaryTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Components/BadgeContractFixture.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Components/ChangeTenantMemberRoleFlowTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Components/CommandFlowAuditDenialTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Components/CommandRecoveryExplanationTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Components/CorrectionStartPanelTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Components/CultureBoundTenantsLocalizer.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Components/EditTenantMetadataFlowTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Components/FluentBunitContext.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorCorrectionPanelIdentityTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorCorrectionPanelRecoveryTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorCorrectionPanelTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageRecoveryTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTeardownTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.DeferredGrant.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.FiniteBounds.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.FocusBrowserFixtures.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Components/ListSurfaceStatesTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Components/MemberCommandExplanationTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Components/MembershipProjectionWaitTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Components/MembershipRefreshIntentTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Components/MyTenantsSurfaceTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Components/PageLayoutDeclarationTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Components/ProjectionLifecycleStatusTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Components/RemoveTenantMemberFlowTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Components/SetTenantConfigurationFlowTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Components/StatusBadgeContractTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Components/StatusFilterLabelRenderingTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Components/SupportSafeCopyButtonTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Components/SupportSafetyBoundaryTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Components/SupportSafetyCommandStatusHandler.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Components/TenantConfigurationStatusHandler.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.AuthorizationRefresh.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.BadgeContract.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.CancellationLifetime.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.EarlyMembershipNudge.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.EarlyMembershipNudgeBoundaries.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.MemberFocus.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Components/TenantDomIdentityRenderingTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Components/TenantLifecycleProjectionCategoryTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Components/TenantRetainedCommandFlowTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Components/TenantsRouterTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Components/TruthStateBadgeTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Components/WorkspaceReadSafetyLogger.cs\nM\ttests/Hexalith.Tenants.UI.Tests/DomainUiFluentConformanceTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Host/TenantsUiHostBoundaryTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Services/Configuration/TenantConfigurationReadPolicyTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Services/Gateways/AuditStreamIsolationTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Services/Gateways/CapturingGatewayClient.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Services/Gateways/DefaultTenantCommandGateway.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Services/Gateways/GlobalAdministratorAuditProofLookupTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Services/Gateways/GlobalAdministratorsProjectionLoaderTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Services/Gateways/LegacyLifecycleGateway.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Services/Gateways/StatusHandler.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Services/Gateways/StubUlidFactory.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayRecoveryTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.Deadlines.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.ReadSafety.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantSearchCursorTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantsBffCompositionTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantsRestQueryClientTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Services/Gateways/ThrowingStatusHandler.cs\nM\ttests/Hexalith.Tenants.UI.Tests/Services/Gateways/TrackedGatewayContractTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/State/GlobalAdministratorActionAvailabilityTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/State/TenantAggregateCommandAdmissionGateTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/State/TenantAuditAvailabilityStateTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/State/TenantAuditNarrativeTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/State/TenantAuditNavigationSafetyTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/State/TenantAuditReceiptTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/State/TenantAuditSupportSafetyTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/State/TenantCommandActivityCoordinatorTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/State/TenantCommandAuditStatesTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/State/TenantCommandFlowGuardTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/State/TenantCommandSafeMessageTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/State/TenantCommandTemporaryLookupTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/State/TenantCorrectionAttemptCallerTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/State/TenantCorrectionAttemptTrackerTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/State/TenantCorrectionAuthenticationStateProvider.cs\nM\ttests/Hexalith.Tenants.UI.Tests/State/TenantCorrectionDiagnosticLog.cs\nM\ttests/Hexalith.Tenants.UI.Tests/State/TenantCreateCommandSnapshotTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/State/TenantDomIdentityTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/State/TenantLifecycleAvailabilityTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/State/TenantLifecycleCommandSnapshotTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/State/TenantLifecycleMaintenanceTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/State/TenantLifecycleProjectionVersionTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/State/TenantMembershipStatusRefreshDrainTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/State/TenantProofScopeTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/State/TenantRemoveConfigurationAttemptTrackerTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/State/TenantRemoveMemberCommandSnapshotTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/State/TenantRetainedCommandAttemptTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/State/TenantSetConfigurationAttemptTrackerTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/TenantConfigurationEndToEndTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/TenantsUiCompositionTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.AsyncOwnership.cs\nM\ttests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.AuthorityInvalidation.cs\nM\ttests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.ConsumerAcceptance.cs\nM\ttests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.ConsumerLifecycle.cs\nM\ttests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.CreateReturnFocus.cs\nM\ttests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.FiniteBounds.cs\nM\ttests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.ReadSafety.cs\nM\ttests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.SoftRefresh.cs\nM\ttests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.cs\nM\ttests/Hexalith.Tenants.UI.Tests/WorkspaceAcceptanceAuthenticationStateProvider.cs\nM\ttests/scripts/test_pushall_default_branch.py\n",
+      "stderr": "warning: unable to rmdir 'references/Hexalith.AI.Tools': Directory not empty\nwarning: unable to rmdir 'references/Hexalith.Builds': Directory not empty\nwarning: unable to rmdir 'references/Hexalith.Commons': Directory not empty\nwarning: unable to rmdir 'references/Hexalith.EventStore': Directory not empty\nwarning: unable to rmdir 'references/Hexalith.FrontComposer': Directory not empty\nwarning: unable to rmdir 'references/Hexalith.McpCli': Directory not empty\nwarning: unable to rmdir 'references/Hexalith.Memories': Directory not empty\nwarning: unable to rmdir 'references/Hexalith.Platform': Directory not empty\nwarning: unable to rmdir 'references/Hexalith.PolymorphicSerializations': Directory not empty\nPrevious HEAD position was e45ed9d build: sync local changes via /pushall\nHEAD is now at c2da6ba build(deps): sync submodules to latest main pins\n"
+    },
+    {
+      "argv": [
+        "git",
+        "sparse-checkout",
+        "set",
+        "--cone",
+        "src",
+        "tests",
+        "Props",
+        "eng"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2",
+      "startedUtc": "2026-10-30T18:05:57.194748+00:00",
+      "endedUtc": "2026-10-30T18:05:58.885943+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "warning: unable to rmdir 'references/Hexalith.AI.Tools': Directory not empty\nwarning: unable to rmdir 'references/Hexalith.Builds': Directory not empty\nwarning: unable to rmdir 'references/Hexalith.Commons': Directory not empty\nwarning: unable to rmdir 'references/Hexalith.EventStore': Directory not empty\nwarning: unable to rmdir 'references/Hexalith.FrontComposer': Directory not empty\nwarning: unable to rmdir 'references/Hexalith.McpCli': Directory not empty\nwarning: unable to rmdir 'references/Hexalith.Memories': Directory not empty\nwarning: unable to rmdir 'references/Hexalith.Platform': Directory not empty\nwarning: unable to rmdir 'references/Hexalith.PolymorphicSerializations': Directory not empty\n"
+    },
+    {
+      "argv": [
+        "/mnt/c/Python314/python.exe",
+        "C:\\Temp\\tenants-resume-fingerprint-inputs.py",
+        "C:\\Temp\\tenants-five-resumed-20261030-2",
+        "C:\\Temp\\tenants-resume-refresh-0-after.json",
+        "true"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2",
+      "startedUtc": "2026-10-30T18:05:58.886604+00:00",
+      "endedUtc": "2026-10-30T18:05:59.301731+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "tar",
+        "-cf",
+        "/mnt/c/Temp/tenants-resume-refresh-0.tar",
+        "-C",
+        "/home/administrator/projects/hexalith/tenants",
+        "--null",
+        "-T",
+        "/tmp/tenants-resume-refresh-0.paths"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "startedUtc": "2026-10-30T18:05:59.318575+00:00",
+      "endedUtc": "2026-10-30T18:05:59.328077+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/mnt/c/Windows/System32/tar.exe",
+        "-xf",
+        "C:\\Temp\\tenants-resume-refresh-0.tar",
+        "-C",
+        "C:\\Temp\\tenants-five-resumed-20261030-2"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2",
+      "startedUtc": "2026-10-30T18:05:59.328487+00:00",
+      "endedUtc": "2026-10-30T18:05:59.417954+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/mnt/c/Python314/python.exe",
+        "C:\\Temp\\tenants-resume-fingerprint-inputs.py",
+        "C:\\Temp\\tenants-five-resumed-20261030-2",
+        "C:\\Temp\\tenants-resume-refresh-0-after.json",
+        "true"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2",
+      "startedUtc": "2026-10-30T18:05:59.418350+00:00",
+      "endedUtc": "2026-10-30T18:05:59.821575+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/mnt/c/Python314/python.exe",
+        "C:\\Temp\\tenants-resume-fingerprint-inputs.py",
+        "C:\\Temp\\tenants-five-resumed-20261030-2\\references\\Hexalith.EventStore",
+        "C:\\Temp\\tenants-resume-refresh-1-before.json",
+        "false"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2",
+      "startedUtc": "2026-10-30T18:06:00.093665+00:00",
+      "endedUtc": "2026-10-30T18:06:00.877589+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "fetch",
+        "--depth",
+        "1",
+        "file:///home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore",
+        "e014af6c3f1c67732485f24012cdbe528a12b0f6"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.EventStore",
+      "startedUtc": "2026-10-30T18:06:00.905179+00:00",
+      "endedUtc": "2026-10-30T18:06:02.851219+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "From file:///home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore\n * branch            e014af6c3f1c67732485f24012cdbe528a12b0f6 -> FETCH_HEAD\n"
+    },
+    {
+      "argv": [
+        "git",
+        "checkout",
+        "--detach",
+        "e014af6c3f1c67732485f24012cdbe528a12b0f6"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.EventStore",
+      "startedUtc": "2026-10-30T18:06:02.854429+00:00",
+      "endedUtc": "2026-10-30T18:06:53.855341+00:00",
+      "exitCode": 0,
+      "stdout": "M\tsrc/Hexalith.EventStore.Admin.UI/Components/KeyboardActivation.cs\nM\tsrc/Hexalith.EventStore/OpenApi/CommandDocumentationTransformer.cs\nM\ttests/Hexalith.EventStore.Server.Tests/OpenApi/ErrorReferenceEndpointTests.cs\nM\ttests/Hexalith.EventStore.Server.Tests/OpenApi/OpenApiSpecTests.cs\n",
+      "stderr": "Previous HEAD position was e92e669 build: sync local changes via /pushall\nHEAD is now at e014af6 build: sync local changes via /pushall\n"
+    },
+    {
+      "argv": [
+        "git",
+        "sparse-checkout",
+        "set",
+        "--cone",
+        "src",
+        "Props",
+        "eng"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.EventStore",
+      "startedUtc": "2026-10-30T18:06:53.858532+00:00",
+      "endedUtc": "2026-10-30T18:07:19.277729+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "warning: The following paths are not up to date and were left despite sparse patterns:\n\ttests/Hexalith.EventStore.Server.Tests/OpenApi/ErrorReferenceEndpointTests.cs\n\ttests/Hexalith.EventStore.Server.Tests/OpenApi/OpenApiSpecTests.cs\n\nAfter fixing the above paths, you may want to run `git sparse-checkout reapply`.\n"
+    },
+    {
+      "argv": [
+        "/mnt/c/Python314/python.exe",
+        "C:\\Temp\\tenants-resume-fingerprint-inputs.py",
+        "C:\\Temp\\tenants-five-resumed-20261030-2\\references\\Hexalith.EventStore",
+        "C:\\Temp\\tenants-resume-refresh-1-after.json",
+        "false"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2",
+      "startedUtc": "2026-10-30T18:07:19.280626+00:00",
+      "endedUtc": "2026-10-30T18:07:20.030626+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/mnt/c/Python314/python.exe",
+        "C:\\Temp\\tenants-resume-fingerprint-inputs.py",
+        "C:\\Temp\\tenants-five-resumed-20261030-2\\references\\Hexalith.Commons",
+        "C:\\Temp\\tenants-resume-refresh-2-before.json",
+        "false"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2",
+      "startedUtc": "2026-10-30T18:07:20.154197+00:00",
+      "endedUtc": "2026-10-30T18:07:20.399178+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "sparse-checkout",
+        "set",
+        "--cone",
+        "src",
+        "Props",
+        "eng"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.Commons",
+      "startedUtc": "2026-10-30T18:07:20.420989+00:00",
+      "endedUtc": "2026-10-30T18:07:20.807090+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/mnt/c/Python314/python.exe",
+        "C:\\Temp\\tenants-resume-fingerprint-inputs.py",
+        "C:\\Temp\\tenants-five-resumed-20261030-2\\references\\Hexalith.Commons",
+        "C:\\Temp\\tenants-resume-refresh-2-after.json",
+        "false"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2",
+      "startedUtc": "2026-10-30T18:07:20.821931+00:00",
+      "endedUtc": "2026-10-30T18:07:21.080042+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/mnt/c/Python314/python.exe",
+        "C:\\Temp\\tenants-resume-fingerprint-inputs.py",
+        "C:\\Temp\\tenants-five-resumed-20261030-2\\references\\Hexalith.AI.Tools",
+        "C:\\Temp\\tenants-resume-refresh-3-before.json",
+        "false"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2",
+      "startedUtc": "2026-10-30T18:07:21.131606+00:00",
+      "endedUtc": "2026-10-30T18:07:21.365014+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "sparse-checkout",
+        "set",
+        "--cone",
+        "src",
+        "Props",
+        "eng"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.AI.Tools",
+      "startedUtc": "2026-10-30T18:07:21.396604+00:00",
+      "endedUtc": "2026-10-30T18:07:21.697510+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/mnt/c/Python314/python.exe",
+        "C:\\Temp\\tenants-resume-fingerprint-inputs.py",
+        "C:\\Temp\\tenants-five-resumed-20261030-2\\references\\Hexalith.AI.Tools",
+        "C:\\Temp\\tenants-resume-refresh-3-after.json",
+        "false"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2",
+      "startedUtc": "2026-10-30T18:07:21.731217+00:00",
+      "endedUtc": "2026-10-30T18:07:21.974786+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/mnt/c/Python314/python.exe",
+        "C:\\Temp\\tenants-resume-fingerprint-inputs.py",
+        "C:\\Temp\\tenants-five-resumed-20261030-2\\references\\Hexalith.FrontComposer",
+        "C:\\Temp\\tenants-resume-refresh-4-before.json",
+        "false"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2",
+      "startedUtc": "2026-10-30T18:07:22.071746+00:00",
+      "endedUtc": "2026-10-30T18:07:22.537162+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "fetch",
+        "--depth",
+        "1",
+        "file:///home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer",
+        "61a8afbb85c7e25b2eb97acb1cac262ef3e1e33d"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.FrontComposer",
+      "startedUtc": "2026-10-30T18:07:22.565498+00:00",
+      "endedUtc": "2026-10-30T18:07:23.790870+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "From file:///home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer\n * branch            61a8afbb85c7e25b2eb97acb1cac262ef3e1e33d -> FETCH_HEAD\n"
+    },
+    {
+      "argv": [
+        "git",
+        "checkout",
+        "--detach",
+        "61a8afbb85c7e25b2eb97acb1cac262ef3e1e33d"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.FrontComposer",
+      "startedUtc": "2026-10-30T18:07:23.809123+00:00",
+      "endedUtc": "2026-10-30T18:07:56.246658+00:00",
+      "exitCode": 0,
+      "stdout": "M\t.mcp.json\nM\tsrc/Hexalith.FrontComposer.Contracts/Rendering/FcAggregateDetailState.cs\nM\tsrc/Hexalith.FrontComposer.Shell/Components/Layout/FcAggregateDetailPage.razor\nM\tsrc/Hexalith.FrontComposer.Shell/Components/Layout/FcAggregateDetailPage.razor.cs\nM\tsrc/Hexalith.FrontComposer.Shell/Components/Layout/FcAggregateDetailPage.razor.css\nM\tsrc/Hexalith.FrontComposer.Shell/Components/Layout/FcAggregateListPage.razor\nM\tsrc/Hexalith.FrontComposer.Shell/Components/Layout/FcAggregateListPage.razor.cs\nM\tsrc/Hexalith.FrontComposer.Shell/Components/Layout/FcContentLabel.razor\nM\tsrc/Hexalith.FrontComposer.Shell/Components/Layout/FcContentLabel.razor.cs\nM\tsrc/Hexalith.FrontComposer.Shell/Components/Layout/FcContentLabelCoordinator.cs\nM\tsrc/Hexalith.FrontComposer.Shell/Components/Layout/FcHamburgerToggle.razor.css\nM\tsrc/Hexalith.FrontComposer.Shell/Components/Layout/FcNavLocalization.cs\nM\tsrc/Hexalith.FrontComposer.Shell/Components/Layout/FcPageHeader.razor.css\nM\ttests/Hexalith.FrontComposer.Shell.Tests/Components/Layout/FcAggregateDetailPageTests.cs\nM\ttests/Hexalith.FrontComposer.Shell.Tests/Components/Layout/FcAggregateListPageTests.cs\nM\ttests/Hexalith.FrontComposer.Shell.Tests/Components/Layout/FrontComposerShellContentLandmarkTests.cs\n",
+      "stderr": "Previous HEAD position was e07e2f4 fix: story 15.5\nHEAD is now at 61a8afb build: sync local changes via /pushall\n"
+    },
+    {
+      "argv": [
+        "git",
+        "sparse-checkout",
+        "set",
+        "--cone",
+        "src",
+        "Props",
+        "eng"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.FrontComposer",
+      "startedUtc": "2026-10-30T18:07:56.261316+00:00",
+      "endedUtc": "2026-10-30T18:08:08.170281+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "warning: The following paths are not up to date and were left despite sparse patterns:\n\ttests/Hexalith.FrontComposer.Shell.Tests/Components/Layout/FcAggregateDetailPageTests.cs\n\ttests/Hexalith.FrontComposer.Shell.Tests/Components/Layout/FcAggregateListPageTests.cs\n\ttests/Hexalith.FrontComposer.Shell.Tests/Components/Layout/FrontComposerShellContentLandmarkTests.cs\n\nAfter fixing the above paths, you may want to run `git sparse-checkout reapply`.\n"
+    },
+    {
+      "argv": [
+        "/mnt/c/Python314/python.exe",
+        "C:\\Temp\\tenants-resume-fingerprint-inputs.py",
+        "C:\\Temp\\tenants-five-resumed-20261030-2\\references\\Hexalith.FrontComposer",
+        "C:\\Temp\\tenants-resume-refresh-4-after.json",
+        "false"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2",
+      "startedUtc": "2026-10-30T18:08:08.187507+00:00",
+      "endedUtc": "2026-10-30T18:08:08.610022+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/mnt/c/Python314/python.exe",
+        "C:\\Temp\\tenants-resume-fingerprint-inputs.py",
+        "C:\\Temp\\tenants-five-resumed-20261030-2\\references\\Hexalith.Builds",
+        "C:\\Temp\\tenants-resume-refresh-5-before.json",
+        "false"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2",
+      "startedUtc": "2026-10-30T18:08:08.724380+00:00",
+      "endedUtc": "2026-10-30T18:08:09.021356+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "fetch",
+        "--depth",
+        "1",
+        "file:///home/administrator/projects/hexalith/tenants/references/Hexalith.Builds",
+        "6cc96b4ff23c40c77651e1e4f85ed3170c25c7a4"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.Builds",
+      "startedUtc": "2026-10-30T18:08:09.053236+00:00",
+      "endedUtc": "2026-10-30T18:08:10.061916+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "From file:///home/administrator/projects/hexalith/tenants/references/Hexalith.Builds\n * branch            6cc96b4ff23c40c77651e1e4f85ed3170c25c7a4 -> FETCH_HEAD\n"
+    },
+    {
+      "argv": [
+        "git",
+        "checkout",
+        "--detach",
+        "6cc96b4ff23c40c77651e1e4f85ed3170c25c7a4"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.Builds",
+      "startedUtc": "2026-10-30T18:08:10.083291+00:00",
+      "endedUtc": "2026-10-30T18:08:15.057542+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "Previous HEAD position was 849b0be docs: resolve vulnerability policy review findings\nHEAD is now at 6cc96b4 fix(security): confine qualification file arguments\n"
+    },
+    {
+      "argv": [
+        "git",
+        "sparse-checkout",
+        "set",
+        "--cone",
+        "src",
+        "Props",
+        "eng"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.Builds",
+      "startedUtc": "2026-10-30T18:08:15.074425+00:00",
+      "endedUtc": "2026-10-30T18:08:15.512479+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/mnt/c/Python314/python.exe",
+        "C:\\Temp\\tenants-resume-fingerprint-inputs.py",
+        "C:\\Temp\\tenants-five-resumed-20261030-2\\references\\Hexalith.Builds",
+        "C:\\Temp\\tenants-resume-refresh-5-after.json",
+        "false"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2",
+      "startedUtc": "2026-10-30T18:08:15.557340+00:00",
+      "endedUtc": "2026-10-30T18:08:15.900628+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/mnt/c/Python314/python.exe",
+        "C:\\Temp\\tenants-resume-fingerprint-inputs.py",
+        "C:\\Temp\\tenants-five-resumed-20261030-2\\references\\Hexalith.PolymorphicSerializations",
+        "C:\\Temp\\tenants-resume-refresh-6-before.json",
+        "false"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2",
+      "startedUtc": "2026-10-30T18:08:16.038707+00:00",
+      "endedUtc": "2026-10-30T18:08:16.347085+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "sparse-checkout",
+        "set",
+        "--cone",
+        "src",
+        "Props",
+        "eng"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.PolymorphicSerializations",
+      "startedUtc": "2026-10-30T18:08:16.396129+00:00",
+      "endedUtc": "2026-10-30T18:08:16.638845+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/mnt/c/Python314/python.exe",
+        "C:\\Temp\\tenants-resume-fingerprint-inputs.py",
+        "C:\\Temp\\tenants-five-resumed-20261030-2\\references\\Hexalith.PolymorphicSerializations",
+        "C:\\Temp\\tenants-resume-refresh-6-after.json",
+        "false"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2",
+      "startedUtc": "2026-10-30T18:08:16.671461+00:00",
+      "endedUtc": "2026-10-30T18:08:16.927529+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/mnt/c/Python314/python.exe",
+        "C:\\Temp\\tenants-resume-fingerprint-inputs.py",
+        "C:\\Temp\\tenants-five-resumed-20261030-2\\references\\Hexalith.Memories",
+        "C:\\Temp\\tenants-resume-refresh-7-before.json",
+        "false"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2",
+      "startedUtc": "2026-10-30T18:08:17.030873+00:00",
+      "endedUtc": "2026-10-30T18:08:17.510118+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "sparse-checkout",
+        "set",
+        "--cone",
+        "src",
+        "Props",
+        "eng"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.Memories",
+      "startedUtc": "2026-10-30T18:08:17.542013+00:00",
+      "endedUtc": "2026-10-30T18:08:21.725636+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "warning: The following paths are not up to date and were left despite sparse patterns:\n\ttests/Directory.Build.props\n\ttests/Directory.Packages.props\n\ttests/Hexalith.Memories.AccessTelemetry.Tests/Capability/CapabilityAndObservabilityCheckpointTests.cs\n\ttests/Hexalith.Memories.AccessTelemetry.Tests/Capability/PhysicalReclamationEvidenceEndpointTests.cs\n\ttests/Hexalith.Memories.AccessTelemetry.Tests/Clock/ClockAttestationCheckpointTests.cs\n\ttests/Hexalith.Memories.AccessTelemetry.Tests/Clock/ClockSigningReadinessHealthCheckTests.cs\n\ttests/Hexalith.Memories.AccessTelemetry.Tests/Clock/ConfiguredUtcSourceHandler.cs\n\ttests/Hexalith.Memories.AccessTelemetry.Tests/Clock/InvalidSigner.cs\n\ttests/Hexalith.Memories.AccessTelemetry.Tests/Clock/StaleSource.cs\n\ttests/Hexalith.Memories.AccessTelemetry.Tests/Contracts/AccessTelemetryActorSerializationTests.cs\n\ttests/Hexalith.Memories.AccessTelemetry.Tests/Contracts/AccessTelemetryContractsCheckpointTests.cs\n\ttests/Hexalith.Memories.AccessTelemetry.Tests/Hexalith.Memories.AccessTelemetry.Tests.csproj\n\ttests/Hexalith.Memories.AccessTelemetry.Tests/Lifecycle/AccessTelemetryLocalPurgeGateTests.cs\n\ttests/Hexalith.Memories.AccessTelemetry.Tests/Lifecycle/AccessTelemetryRetentionDisableTests.cs\n\ttests/Hexalith.Memories.AccessTelemetry.Tests/Lifecycle/AccessTelemetryStateStoreOrderingParityTests.cs\n\ttests/Hexalith.Memories.AccessTelemetry.Tests/Lifecycle/AccessTelemetryStateStoreTestRecords.cs\n\ttests/Hexalith.Memories.AccessTelemetry.Tests/Lifecycle/DaprAccessTelemetryStateStoreTests.cs\n\ttests/Hexalith.Memories.AccessTelemetry.Tests/Lifecycle/InMemoryAccessTelemetryStateStoreContractTests.cs\n\ttests/Hexalith.Memories.AccessTelemetry.Tests/Lifecycle/LifecycleActorCheckpointTests.cs\n\ttests/Hexalith.Memories.AccessTelemetry.Tests/Lifecycle/LocalPurgeTestClockEvidenceProvider.cs\n\ttests/Hexalith.Memories.AccessTelemetry.Tests/Lifecycle/LocalPurgeTestClockGate.cs\n\ttests/Hexalith.Memories.AccessTelemetry.Tests/Lifecycle/ScriptedRetentionStateStore.cs\n\ttests/Hexalith.Memories.AccessTelemetry.Tests/Lifecycle/TransactionalDaprState.cs\n\ttests/Hexalith.Memories.AccessTelemetry.Tests/Observability/AccessTelemetryLifecycleMetricsTestCollection.cs\n\ttests/Hexalith.Memories.Benchmarks/BenchmarkSuiteTests.cs\n\ttests/Hexalith.Memories.Benchmarks/Data/BenchmarkCorpusLoader.cs\n\ttests/Hexalith.Memories.Benchmarks/Data/ground-truth.json\n\ttests/Hexalith.Memories.Benchmarks/Data/synthetic-corpus.json\n\ttests/Hexalith.Memories.Benchmarks/Fixtures/BenchmarkFixture.cs\n\ttests/Hexalith.Memories.Benchmarks/Hexalith.Memories.Benchmarks.csproj\n\ttests/Hexalith.Memories.Benchmarks/Infrastructure/BenchmarkEmbeddingClient.cs\n\ttests/Hexalith.Memories.Benchmarks/Infrastructure/BenchmarkSeeder.cs\n\ttests/Hexalith.Memories.Benchmarks/Infrastructure/BenchmarkSeederTests.cs\n\ttests/Hexalith.Memories.Benchmarks/Models/BenchmarkCorpus.cs\n\ttests/Hexalith.Memories.Benchmarks/Models/BenchmarkQuery.cs\n\ttests/Hexalith.Memories.Benchmarks/Models/BenchmarkQueryResult.cs\n\ttests/Hexalith.Memories.Benchmarks/Models/BenchmarkSuiteResult.cs\n\ttests/Hexalith.Memories.Benchmarks/Reporting/BenchmarkReporter.cs\n\ttests/Hexalith.Memories.Benchmarks/Scoring/NdcgScorer.cs\n\ttests/Hexalith.Memories.Benchmarks/Scoring/NdcgScorerTests.cs\n\ttests/Hexalith.Memories.Cli.Tests/Ci/CiTestInventoryTests.cs\n\ttests/Hexalith.Memories.Cli.Tests/Cli/CliCommandExecutorErrorTests.cs\n\ttests/Hexalith.Memories.Cli.Tests/Cli/CliCommandExecutorTests.cs\n\ttests/Hexalith.Memories.Cli.Tests/Cli/CliConsolidationGuardTests.cs\n\ttests/Hexalith.Memories.Cli.Tests/Cli/CliHelpCompletenessTests.cs\n\ttests/Hexalith.Memories.Cli.Tests/Cli/ConfigShowFormatterTests.cs\n\ttests/Hexalith.Memories.Cli.Tests/Cli/ConfigShowGoldenFileTests.cs\n\ttests/Hexalith.Memories.Cli.Tests/Cli/ConsistencyInspectCommandTests.cs\n\ttests/Hexalith.Memories.Cli.Tests/Cli/ConsistencyRepairCommandTests.cs\n\ttests/Hexalith.Memories.Cli.Tests/Cli/ConsistencyVerificationResultFormatterTests.cs\n\ttests/Hexalith.Memories.Cli.Tests/Cli/ConsistencyVerifyCommandTests.cs\n\ttests/Hexalith.Memories.Cli.Tests/Cli/DefaultConfigurationSourceTests.cs\nAfter fixing the above paths, you may want to run `git sparse-checkout reapply`.\n"
+    },
+    {
+      "argv": [
+        "/mnt/c/Python314/python.exe",
+        "C:\\Temp\\tenants-resume-fingerprint-inputs.py",
+        "C:\\Temp\\tenants-five-resumed-20261030-2\\references\\Hexalith.Memories",
+        "C:\\Temp\\tenants-resume-refresh-7-after.json",
+        "false"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2",
+      "startedUtc": "2026-10-30T18:08:21.784508+00:00",
+      "endedUtc": "2026-10-30T18:08:22.312979+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/mnt/c/Python314/python.exe",
+        "C:\\Temp\\tenants-resume-fingerprint-inputs.py",
+        "C:\\Temp\\tenants-five-resumed-20261030-2\\references\\Hexalith.McpCli",
+        "C:\\Temp\\tenants-resume-refresh-8-before.json",
+        "false"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2",
+      "startedUtc": "2026-10-30T18:08:22.649309+00:00",
+      "endedUtc": "2026-10-30T18:08:22.974406+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "fetch",
+        "--depth",
+        "1",
+        "file:///home/administrator/projects/hexalith/tenants/references/Hexalith.McpCli",
+        "7538bee529ab3a62c2d359fd498c9d60fca77621"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.McpCli",
+      "startedUtc": "2026-10-30T18:08:23.057215+00:00",
+      "endedUtc": "2026-10-30T18:08:23.978310+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "From file:///home/administrator/projects/hexalith/tenants/references/Hexalith.McpCli\n * branch            7538bee529ab3a62c2d359fd498c9d60fca77621 -> FETCH_HEAD\n"
+    },
+    {
+      "argv": [
+        "git",
+        "checkout",
+        "--detach",
+        "7538bee529ab3a62c2d359fd498c9d60fca77621"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.McpCli",
+      "startedUtc": "2026-10-30T18:08:24.022814+00:00",
+      "endedUtc": "2026-10-30T18:08:31.708249+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "Previous HEAD position was e74d215 build: point submodules at the pushall merge guard\nHEAD is now at 7538bee build(deps): adopt EventStore 3.128.4 for Tenants floor\n"
+    },
+    {
+      "argv": [
+        "git",
+        "sparse-checkout",
+        "set",
+        "--cone",
+        "src",
+        "Props",
+        "eng"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.McpCli",
+      "startedUtc": "2026-10-30T18:08:31.737589+00:00",
+      "endedUtc": "2026-10-30T18:08:34.845753+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/mnt/c/Python314/python.exe",
+        "C:\\Temp\\tenants-resume-fingerprint-inputs.py",
+        "C:\\Temp\\tenants-five-resumed-20261030-2\\references\\Hexalith.McpCli",
+        "C:\\Temp\\tenants-resume-refresh-8-after.json",
+        "false"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2",
+      "startedUtc": "2026-10-30T18:08:34.883028+00:00",
+      "endedUtc": "2026-10-30T18:08:35.177290+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/mnt/c/Python314/python.exe",
+        "C:\\Temp\\tenants-resume-fingerprint-inputs.py",
+        "C:\\Temp\\tenants-five-resumed-20261030-2\\references\\Hexalith.Platform",
+        "C:\\Temp\\tenants-resume-refresh-9-before.json",
+        "false"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2",
+      "startedUtc": "2026-10-30T18:08:35.378076+00:00",
+      "endedUtc": "2026-10-30T18:08:35.914021+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "fetch",
+        "--depth",
+        "1",
+        "file:///home/administrator/projects/hexalith/tenants/references/Hexalith.Platform",
+        "667e5a02a523cf8764ca54d6aa1b4b75db5dca64"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.Platform",
+      "startedUtc": "2026-10-30T18:08:35.948841+00:00",
+      "endedUtc": "2026-10-30T18:08:36.737172+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "From file:///home/administrator/projects/hexalith/tenants/references/Hexalith.Platform\n * branch            667e5a02a523cf8764ca54d6aa1b4b75db5dca64 -> FETCH_HEAD\n"
+    },
+    {
+      "argv": [
+        "git",
+        "checkout",
+        "--detach",
+        "667e5a02a523cf8764ca54d6aa1b4b75db5dca64"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.Platform",
+      "startedUtc": "2026-10-30T18:08:36.760017+00:00",
+      "endedUtc": "2026-10-30T18:08:52.696186+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "Previous HEAD position was b8a6437 docs: pin vulnerability policy adoption to the pushed Builds commit\nHEAD is now at 667e5a0 docs: apply story 5.1 fifth-pass staging evidence policy corrections\n"
+    },
+    {
+      "argv": [
+        "git",
+        "sparse-checkout",
+        "set",
+        "--cone",
+        "src",
+        "Props",
+        "eng"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2/references/Hexalith.Platform",
+      "startedUtc": "2026-10-30T18:08:52.725095+00:00",
+      "endedUtc": "2026-10-30T18:08:56.332706+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/mnt/c/Python314/python.exe",
+        "C:\\Temp\\tenants-resume-fingerprint-inputs.py",
+        "C:\\Temp\\tenants-five-resumed-20261030-2\\references\\Hexalith.Platform",
+        "C:\\Temp\\tenants-resume-refresh-9-after.json",
+        "false"
+      ],
+      "cwd": "/mnt/c/Temp/tenants-five-resumed-20261030-2",
+      "startedUtc": "2026-10-30T18:08:56.356023+00:00",
+      "endedUtc": "2026-10-30T18:08:56.822055+00:00",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  ],
+  "repositories": [
+    {
+      "path": ".",
+      "before": {
+        "capturedUtc": "2026-10-30T18:05:40.435975+00:00",
+        "revision": "e45ed9d87de7800ebb02b1cedc9c64b720763e9e",
+        "includeTests": true,
+        "manifestSha256": "036d4fcaef4d43c38c63376dabcb680e56ff469ec94bd72605d73945bc6103ef",
+        "inventory": {
+          "archive": "native-refresh-inventories.zip",
+          "member": "Tenants-before.json",
+          "sha256": "6a9b2e1371e0a56873b702007b8a22422e44f0bf07e43e94060be0ed5d8987d2",
+          "fileCount": 884
+        }
+      },
+      "sourceBefore": {
+        "capturedUtc": "2026-10-30T18:05:40.042239+00:00",
+        "revision": "c2da6bacff148e77608132b0e04c714228a9b199",
+        "includeTests": true,
+        "manifestSha256": "768b4798eb82f3d1ae2646d269010c02463d24508dc23a0912c8520825b1876d"
+      },
+      "after": {
+        "capturedUtc": "2026-10-30T18:05:59.768903+00:00",
+        "revision": "c2da6bacff148e77608132b0e04c714228a9b199",
+        "includeTests": true,
+        "manifestSha256": "768b4798eb82f3d1ae2646d269010c02463d24508dc23a0912c8520825b1876d",
+        "inventory": {
+          "archive": "native-refresh-inventories.zip",
+          "member": "Tenants-after.json",
+          "sha256": "c1f8827485bb63897eb8d06db1ee9741fc4df67576065f21411be743c5631b5c",
+          "fileCount": 885
+        }
+      },
+      "sourceAfter": {
+        "capturedUtc": "2026-10-30T18:05:59.914755+00:00",
+        "revision": "c2da6bacff148e77608132b0e04c714228a9b199",
+        "includeTests": true,
+        "manifestSha256": "768b4798eb82f3d1ae2646d269010c02463d24508dc23a0912c8520825b1876d"
+      },
+      "changedPathsCopied": [
+        "tests/Hexalith.Tenants.UI.Tests/Browser/test-deferred-nvda-observer.py"
+      ],
+      "exactBytesEqual": true
+    },
+    {
+      "path": "references/Hexalith.EventStore",
+      "before": {
+        "capturedUtc": "2026-10-30T18:06:00.814485+00:00",
+        "revision": "e92e6694a93c79531368fa3bbf6c06462fd05484",
+        "includeTests": false,
+        "manifestSha256": "e004ef482f089ab45bdf0f48174bf9742c63dfab56a71c54f17709408ab179c3",
+        "inventory": {
+          "archive": "native-refresh-inventories.zip",
+          "member": "Hexalith.EventStore-before.json",
+          "sha256": "5483761b9c0abddace0fdfb37cde85b0e9a0d9fd3cfde87373f65d11851fbc27",
+          "fileCount": 2507
+        }
+      },
+      "sourceBefore": {
+        "capturedUtc": "2026-10-30T18:06:00.085446+00:00",
+        "revision": "e014af6c3f1c67732485f24012cdbe528a12b0f6",
+        "includeTests": false,
+        "manifestSha256": "287079ebac50fbd7a4c84850f329f573719aa5375ca290a6e15905de10bffe44"
+      },
+      "after": {
+        "capturedUtc": "2026-10-30T18:07:19.978840+00:00",
+        "revision": "e014af6c3f1c67732485f24012cdbe528a12b0f6",
+        "includeTests": false,
+        "manifestSha256": "287079ebac50fbd7a4c84850f329f573719aa5375ca290a6e15905de10bffe44",
+        "inventory": {
+          "archive": "native-refresh-inventories.zip",
+          "member": "Hexalith.EventStore-after.json",
+          "sha256": "a3bdc69fa7fc66aec56935fd390085d4e98f9d0f7136580c7f152c82a7d766d5",
+          "fileCount": 2509
+        }
+      },
+      "sourceAfter": {
+        "capturedUtc": "2026-10-30T18:07:20.130771+00:00",
+        "revision": "e014af6c3f1c67732485f24012cdbe528a12b0f6",
+        "includeTests": false,
+        "manifestSha256": "287079ebac50fbd7a4c84850f329f573719aa5375ca290a6e15905de10bffe44"
+      },
+      "changedPathsCopied": [],
+      "exactBytesEqual": true
+    },
+    {
+      "path": "references/Hexalith.Commons",
+      "before": {
+        "capturedUtc": "2026-10-30T18:07:20.343685+00:00",
+        "revision": "0604bcf5304fc09a569f7abbd8e5d1b9049c02b7",
+        "includeTests": false,
+        "manifestSha256": "8511b7b1fe9e042a6ea42a5580f5a7924a0e1453764a4dea64f7e59a716ac86a",
+        "inventory": {
+          "archive": "native-refresh-inventories.zip",
+          "member": "Hexalith.Commons-before.json",
+          "sha256": "7dc7315c5d7dca1e5891a4d4a931193aa5c8ffc8dbab500bd98a29b14777d986",
+          "fileCount": 147
+        }
+      },
+      "sourceBefore": {
+        "capturedUtc": "2026-10-30T18:07:20.151969+00:00",
+        "revision": "0604bcf5304fc09a569f7abbd8e5d1b9049c02b7",
+        "includeTests": false,
+        "manifestSha256": "8511b7b1fe9e042a6ea42a5580f5a7924a0e1453764a4dea64f7e59a716ac86a"
+      },
+      "after": {
+        "capturedUtc": "2026-10-30T18:07:21.031074+00:00",
+        "revision": "0604bcf5304fc09a569f7abbd8e5d1b9049c02b7",
+        "includeTests": false,
+        "manifestSha256": "8511b7b1fe9e042a6ea42a5580f5a7924a0e1453764a4dea64f7e59a716ac86a",
+        "inventory": {
+          "archive": "native-refresh-inventories.zip",
+          "member": "Hexalith.Commons-before.json",
+          "sha256": "7dc7315c5d7dca1e5891a4d4a931193aa5c8ffc8dbab500bd98a29b14777d986",
+          "fileCount": 147
+        }
+      },
+      "sourceAfter": {
+        "capturedUtc": "2026-10-30T18:07:21.112842+00:00",
+        "revision": "0604bcf5304fc09a569f7abbd8e5d1b9049c02b7",
+        "includeTests": false,
+        "manifestSha256": "8511b7b1fe9e042a6ea42a5580f5a7924a0e1453764a4dea64f7e59a716ac86a"
+      },
+      "changedPathsCopied": [],
+      "exactBytesEqual": true
+    },
+    {
+      "path": "references/Hexalith.AI.Tools",
+      "before": {
+        "capturedUtc": "2026-10-30T18:07:21.300765+00:00",
+        "revision": "9b78aa008cfc62cd88ad0ea4b39b1f07311956ce",
+        "includeTests": false,
+        "manifestSha256": "f25b443720e9faae2660dc888deb25f48df634b05f0899cd3a83d209494aa75d",
+        "inventory": {
+          "archive": "native-refresh-inventories.zip",
+          "member": "Hexalith.AI.Tools-before.json",
+          "sha256": "560d1ff2b4ab9f07b5599bc392447f3ab9fca9885ba0a0bed52b530d6a45b309",
+          "fileCount": 13
+        }
+      },
+      "sourceBefore": {
+        "capturedUtc": "2026-10-30T18:07:21.129720+00:00",
+        "revision": "9b78aa008cfc62cd88ad0ea4b39b1f07311956ce",
+        "includeTests": false,
+        "manifestSha256": "f25b443720e9faae2660dc888deb25f48df634b05f0899cd3a83d209494aa75d"
+      },
+      "after": {
+        "capturedUtc": "2026-10-30T18:07:21.920545+00:00",
+        "revision": "9b78aa008cfc62cd88ad0ea4b39b1f07311956ce",
+        "includeTests": false,
+        "manifestSha256": "f25b443720e9faae2660dc888deb25f48df634b05f0899cd3a83d209494aa75d",
+        "inventory": {
+          "archive": "native-refresh-inventories.zip",
+          "member": "Hexalith.AI.Tools-before.json",
+          "sha256": "560d1ff2b4ab9f07b5599bc392447f3ab9fca9885ba0a0bed52b530d6a45b309",
+          "fileCount": 13
+        }
+      },
+      "sourceAfter": {
+        "capturedUtc": "2026-10-30T18:07:22.006034+00:00",
+        "revision": "9b78aa008cfc62cd88ad0ea4b39b1f07311956ce",
+        "includeTests": false,
+        "manifestSha256": "f25b443720e9faae2660dc888deb25f48df634b05f0899cd3a83d209494aa75d"
+      },
+      "changedPathsCopied": [],
+      "exactBytesEqual": true
+    },
+    {
+      "path": "references/Hexalith.FrontComposer",
+      "before": {
+        "capturedUtc": "2026-10-30T18:07:22.485425+00:00",
+        "revision": "e07e2f42605ffde307606f4ee027c382ef1e8aa4",
+        "includeTests": false,
+        "manifestSha256": "ab682f590e79d8a5eaeff96c2fec889c3aaf087ef1ae4ac1ee482b0f55fa90e0",
+        "inventory": {
+          "archive": "native-refresh-inventories.zip",
+          "member": "Hexalith.FrontComposer-before.json",
+          "sha256": "fe2685dd754847371df2fc8289859612edd00a5812615de8fab821e0354f587a",
+          "fileCount": 1075
+        }
+      },
+      "sourceBefore": {
+        "capturedUtc": "2026-10-30T18:07:22.069269+00:00",
+        "revision": "61a8afbb85c7e25b2eb97acb1cac262ef3e1e33d",
+        "includeTests": false,
+        "manifestSha256": "60a65846a3c4955e6ec60ecefd6dba861f63ed9eff4bc3fdf7878b52c5610f46"
+      },
+      "after": {
+        "capturedUtc": "2026-10-30T18:08:08.552591+00:00",
+        "revision": "61a8afbb85c7e25b2eb97acb1cac262ef3e1e33d",
+        "includeTests": false,
+        "manifestSha256": "60a65846a3c4955e6ec60ecefd6dba861f63ed9eff4bc3fdf7878b52c5610f46",
+        "inventory": {
+          "archive": "native-refresh-inventories.zip",
+          "member": "Hexalith.FrontComposer-after.json",
+          "sha256": "2288f4f92f4fe8b397f08734c1f88ae9267b06dc05cc5143209d7236b7fc6ff6",
+          "fileCount": 1075
+        }
+      },
+      "sourceAfter": {
+        "capturedUtc": "2026-10-30T18:08:08.685841+00:00",
+        "revision": "61a8afbb85c7e25b2eb97acb1cac262ef3e1e33d",
+        "includeTests": false,
+        "manifestSha256": "60a65846a3c4955e6ec60ecefd6dba861f63ed9eff4bc3fdf7878b52c5610f46"
+      },
+      "changedPathsCopied": [],
+      "exactBytesEqual": true
+    },
+    {
+      "path": "references/Hexalith.Builds",
+      "before": {
+        "capturedUtc": "2026-10-30T18:08:08.970496+00:00",
+        "revision": "849b0be6849f14c097ab05ff9bafbc115bdabe7e",
+        "includeTests": false,
+        "manifestSha256": "b5fdc702ba334d496da84d91974766bda0c0ff41ffeb5b49d70fba9dde34ea86",
+        "inventory": {
+          "archive": "native-refresh-inventories.zip",
+          "member": "Hexalith.Builds-before.json",
+          "sha256": "654bb52dd62dd821264613fe81d61395cbff7496938e5409397dbd30d5b603a2",
+          "fileCount": 281
+        }
+      },
+      "sourceBefore": {
+        "capturedUtc": "2026-10-30T18:08:08.721987+00:00",
+        "revision": "6cc96b4ff23c40c77651e1e4f85ed3170c25c7a4",
+        "includeTests": false,
+        "manifestSha256": "b5fdc702ba334d496da84d91974766bda0c0ff41ffeb5b49d70fba9dde34ea86"
+      },
+      "after": {
+        "capturedUtc": "2026-10-30T18:08:15.848374+00:00",
+        "revision": "6cc96b4ff23c40c77651e1e4f85ed3170c25c7a4",
+        "includeTests": false,
+        "manifestSha256": "b5fdc702ba334d496da84d91974766bda0c0ff41ffeb5b49d70fba9dde34ea86",
+        "inventory": {
+          "archive": "native-refresh-inventories.zip",
+          "member": "Hexalith.Builds-before.json",
+          "sha256": "654bb52dd62dd821264613fe81d61395cbff7496938e5409397dbd30d5b603a2",
+          "fileCount": 281
+        }
+      },
+      "sourceAfter": {
+        "capturedUtc": "2026-10-30T18:08:15.991395+00:00",
+        "revision": "6cc96b4ff23c40c77651e1e4f85ed3170c25c7a4",
+        "includeTests": false,
+        "manifestSha256": "b5fdc702ba334d496da84d91974766bda0c0ff41ffeb5b49d70fba9dde34ea86"
+      },
+      "changedPathsCopied": [],
+      "exactBytesEqual": true
+    },
+    {
+      "path": "references/Hexalith.PolymorphicSerializations",
+      "before": {
+        "capturedUtc": "2026-10-30T18:08:16.287395+00:00",
+        "revision": "92ede24cc11129379efe52cfe7fd2c820c567f7f",
+        "includeTests": false,
+        "manifestSha256": "b3c8fbd62716af2d3a889acefb127c3a8794e21972d09a8b78156c9f084f8f5a",
+        "inventory": {
+          "archive": "native-refresh-inventories.zip",
+          "member": "Hexalith.PolymorphicSerializations-before.json",
+          "sha256": "ee984412a3420ed48d99596d8a7be4735f598399127bd5772a4ac315ed069c75",
+          "fileCount": 32
+        }
+      },
+      "sourceBefore": {
+        "capturedUtc": "2026-10-30T18:08:16.034565+00:00",
+        "revision": "92ede24cc11129379efe52cfe7fd2c820c567f7f",
+        "includeTests": false,
+        "manifestSha256": "b3c8fbd62716af2d3a889acefb127c3a8794e21972d09a8b78156c9f084f8f5a"
+      },
+      "after": {
+        "capturedUtc": "2026-10-30T18:08:16.878741+00:00",
+        "revision": "92ede24cc11129379efe52cfe7fd2c820c567f7f",
+        "includeTests": false,
+        "manifestSha256": "b3c8fbd62716af2d3a889acefb127c3a8794e21972d09a8b78156c9f084f8f5a",
+        "inventory": {
+          "archive": "native-refresh-inventories.zip",
+          "member": "Hexalith.PolymorphicSerializations-before.json",
+          "sha256": "ee984412a3420ed48d99596d8a7be4735f598399127bd5772a4ac315ed069c75",
+          "fileCount": 32
+        }
+      },
+      "sourceAfter": {
+        "capturedUtc": "2026-10-30T18:08:16.965469+00:00",
+        "revision": "92ede24cc11129379efe52cfe7fd2c820c567f7f",
+        "includeTests": false,
+        "manifestSha256": "b3c8fbd62716af2d3a889acefb127c3a8794e21972d09a8b78156c9f084f8f5a"
+      },
+      "changedPathsCopied": [],
+      "exactBytesEqual": true
+    },
+    {
+      "path": "references/Hexalith.Memories",
+      "before": {
+        "capturedUtc": "2026-10-30T18:08:17.458352+00:00",
+        "revision": "71a721a87ebbb34c557c08517b5c39884a7417da",
+        "includeTests": false,
+        "manifestSha256": "f5c3a50337a0257124b768c1da7ec432eca99316053bed9c0d93cd7654fe125f",
+        "inventory": {
+          "archive": "native-refresh-inventories.zip",
+          "member": "Hexalith.Memories-before.json",
+          "sha256": "cebbbc4e9dcd0291246945dbb1a183c14e25a225ac2d37219b92f644a72ac4d5",
+          "fileCount": 1141
+        }
+      },
+      "sourceBefore": {
+        "capturedUtc": "2026-10-30T18:08:17.028426+00:00",
+        "revision": "71a721a87ebbb34c557c08517b5c39884a7417da",
+        "includeTests": false,
+        "manifestSha256": "f5c3a50337a0257124b768c1da7ec432eca99316053bed9c0d93cd7654fe125f"
+      },
+      "after": {
+        "capturedUtc": "2026-10-30T18:08:22.253400+00:00",
+        "revision": "71a721a87ebbb34c557c08517b5c39884a7417da",
+        "includeTests": false,
+        "manifestSha256": "f5c3a50337a0257124b768c1da7ec432eca99316053bed9c0d93cd7654fe125f",
+        "inventory": {
+          "archive": "native-refresh-inventories.zip",
+          "member": "Hexalith.Memories-before.json",
+          "sha256": "cebbbc4e9dcd0291246945dbb1a183c14e25a225ac2d37219b92f644a72ac4d5",
+          "fileCount": 1141
+        }
+      },
+      "sourceAfter": {
+        "capturedUtc": "2026-10-30T18:08:22.502505+00:00",
+        "revision": "71a721a87ebbb34c557c08517b5c39884a7417da",
+        "includeTests": false,
+        "manifestSha256": "f5c3a50337a0257124b768c1da7ec432eca99316053bed9c0d93cd7654fe125f"
+      },
+      "changedPathsCopied": [],
+      "exactBytesEqual": true
+    },
+    {
+      "path": "references/Hexalith.McpCli",
+      "before": {
+        "capturedUtc": "2026-10-30T18:08:22.917641+00:00",
+        "revision": "e74d215739766a663cb9e910f4534f383e7973ff",
+        "includeTests": false,
+        "manifestSha256": "a709f31a0d4bd49edd989234e7afb85ba0c387aaf4e1f8ffd667345626e1eba7",
+        "inventory": {
+          "archive": "native-refresh-inventories.zip",
+          "member": "Hexalith.McpCli-before.json",
+          "sha256": "516e05ffd574f7f0fabd7bb7cadfab0b47ac1c6f0dd33c8f3ccd984681865221",
+          "fileCount": 101
+        }
+      },
+      "sourceBefore": {
+        "capturedUtc": "2026-10-30T18:08:22.646414+00:00",
+        "revision": "7538bee529ab3a62c2d359fd498c9d60fca77621",
+        "includeTests": false,
+        "manifestSha256": "cc01a78e497abba22de02a2ef2010753107d94765f3e2bb6fa6ec7b90cc6e0bc"
+      },
+      "after": {
+        "capturedUtc": "2026-10-30T18:08:35.134846+00:00",
+        "revision": "7538bee529ab3a62c2d359fd498c9d60fca77621",
+        "includeTests": false,
+        "manifestSha256": "cc01a78e497abba22de02a2ef2010753107d94765f3e2bb6fa6ec7b90cc6e0bc",
+        "inventory": {
+          "archive": "native-refresh-inventories.zip",
+          "member": "Hexalith.McpCli-after.json",
+          "sha256": "4d45d853f242fd3d78011fe6fe5258cd5d8b0b3a77d964cb6edfe5c1dd971d8e",
+          "fileCount": 101
+        }
+      },
+      "sourceAfter": {
+        "capturedUtc": "2026-10-30T18:08:35.261099+00:00",
+        "revision": "7538bee529ab3a62c2d359fd498c9d60fca77621",
+        "includeTests": false,
+        "manifestSha256": "cc01a78e497abba22de02a2ef2010753107d94765f3e2bb6fa6ec7b90cc6e0bc"
+      },
+      "changedPathsCopied": [],
+      "exactBytesEqual": true
+    },
+    {
+      "path": "references/Hexalith.Platform",
+      "before": {
+        "capturedUtc": "2026-10-30T18:08:35.865789+00:00",
+        "revision": "b8a6437f0b2648746c74155eb4728c43cb58ba30",
+        "includeTests": false,
+        "manifestSha256": "bcb73c4526fa63132c2d3f45b756d8aa779cef1e1a405849086f26a114813c4b",
+        "inventory": {
+          "archive": "native-refresh-inventories.zip",
+          "member": "Hexalith.Platform-before.json",
+          "sha256": "627fe4079cd5eaab83df62b5b659aacf10d6fa85a95dde8e5f87034fffe92c0d",
+          "fileCount": 1191
+        }
+      },
+      "sourceBefore": {
+        "capturedUtc": "2026-10-30T18:08:35.375025+00:00",
+        "revision": "667e5a02a523cf8764ca54d6aa1b4b75db5dca64",
+        "includeTests": false,
+        "manifestSha256": "bcb73c4526fa63132c2d3f45b756d8aa779cef1e1a405849086f26a114813c4b"
+      },
+      "after": {
+        "capturedUtc": "2026-10-30T18:08:56.765922+00:00",
+        "revision": "667e5a02a523cf8764ca54d6aa1b4b75db5dca64",
+        "includeTests": false,
+        "manifestSha256": "bcb73c4526fa63132c2d3f45b756d8aa779cef1e1a405849086f26a114813c4b",
+        "inventory": {
+          "archive": "native-refresh-inventories.zip",
+          "member": "Hexalith.Platform-before.json",
+          "sha256": "627fe4079cd5eaab83df62b5b659aacf10d6fa85a95dde8e5f87034fffe92c0d",
+          "fileCount": 1191
+        }
+      },
+      "sourceAfter": {
+        "capturedUtc": "2026-10-30T18:08:57.030775+00:00",
+        "revision": "667e5a02a523cf8764ca54d6aa1b4b75db5dca64",
+        "includeTests": false,
+        "manifestSha256": "bcb73c4526fa63132c2d3f45b756d8aa779cef1e1a405849086f26a114813c4b"
+      },
+      "changedPathsCopied": [],
+      "exactBytesEqual": true
+    }
+  ],
+  "endedUtc": "2026-10-30T18:08:57.091252+00:00",
+  "completed": true,
+  "fingerprintAlgorithm": "fingerprint-inputs.py, retained beside this report; source Linux and native Windows Python use identical sorted path/hash JSON. Native refreshed source matches source-before and source-after exactly. Dependency tests are excluded from consumed scope and sparse selection; root tests retain browser helpers.",
+  "profileRefresh": {
+    "npmLockHash": "bf59aa4ea5546426755727b7a059a63ac8e3f13e7be622782b043df5bf014630",
+    "priorLockHash": "bf59aa4ea5546426755727b7a059a63ac8e3f13e7be622782b043df5bf014630",
+    "npmReinstallationRequired": false,
+    "reason": "Root package-lock and package manifest unchanged; existing locked native install retained."
+  },
+  "scopeLimit": "Path inventories retain a source/build superset (root src/tests and dependency src/Props/eng); individual files are not all asserted to be compiled. Native UI profile remains c2da6bac at refresh. Later a16d897 API/domain-host and AppHost changes were not adopted into this fixture and have separate parent integration scope."
+}

@@ -1,0 +1,19 @@
+{
+  "failedAttempt": "firefox-s0-1",
+  "originalObserverSnapshot": "../five-remaining-speech-and-browser/executed-source/deferred-nvda-observer.py",
+  "rawPrivateNvdaLogSha256": "dd8b0591e7140558b3c9064e2a9a308d84818fdd749120782dd4a6a245e8f423",
+  "selectedDiagnostic": {
+    "observerFile": "tenantsSpeechObserver.py",
+    "line": 48,
+    "function": "capture_mode",
+    "exceptionClass": "PermissionError",
+    "nativeErrorCode": 5,
+    "operation": "temporary.replace(target) publishing effective-mode.json"
+  },
+  "lastModeObservedUtc": "2026-10-30T17:56:25.720928+00:00",
+  "lastRetainedSpeechUtc": "2026-10-30T17:56:20.8789217Z",
+  "collectorFailure": "NVDA mode observation is stale or invalid.",
+  "scope": "This is an instrumentation failure. It interrupted S0 before the required 30-second window and positive/cancellation controls; retained text cannot qualify silence or an omission. Error message paths and unrelated private log content are not retained.",
+  "correction": "Schedule the next callback in finally while leaving the error visible to NVDA; repeated failures remain subject to unchanged freshness checks.",
+  "abandonedDevelopmentProbe": "A delete-sharing reader alone did not satisfy native stress checks (Win32 error 5 persisted). That collector change and its experimental stress harness are not retained as product/helper code. Collector bytes restored exactly."
+}

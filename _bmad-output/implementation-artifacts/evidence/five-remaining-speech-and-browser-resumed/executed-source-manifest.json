@@ -8,8 +8,14 @@
     },
     {
       "path": "tests/Hexalith.Tenants.UI.Tests/Browser/deferred-nvda-observer.py",
-      "sha256": "fb2c0eb34a3fe336bda882dddcd4acbbc05e8d9ea7c53d8662861173506bd31d",
-      "immutableSnapshot": "../five-remaining-speech-and-browser/executed-source/deferred-nvda-observer.py"
+      "sha256": "5c7e5c992b45d6439eb881d7c86f3b3726acb1778e8e4415ab04fad12b20dd7f",
+      "immutableSnapshot": "executed-source/deferred-nvda-observer.py",
+      "previousVersions": [
+        {
+          "sha256": "fb2c0eb34a3fe336bda882dddcd4acbbc05e8d9ea7c53d8662861173506bd31d",
+          "immutableSnapshot": "../five-remaining-speech-and-browser/executed-source/deferred-nvda-observer.py"
+        }
+      ]
     },
     {
       "path": "tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-administrator-dialogs.mjs",
@@ -37,5 +43,5 @@
       "immutableSnapshot": "../five-remaining-speech-and-browser/executed-source/local-oidc-fixture.mjs"
     }
   ],
-  "retention": "Every executed helper matches the hash-bound immutable prior snapshot. No unchanged copies duplicated."
+  "retention": "Unchanged helpers link to immutable prior snapshots. Only the demonstrated observer lifecycle correction has a new snapshot, with the original version retained by hash link."
 }

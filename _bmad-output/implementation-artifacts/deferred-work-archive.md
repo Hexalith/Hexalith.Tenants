@@ -13729,3 +13729,43 @@ native-reopen: Reopen on an identified original failure or a causal reproduction
 native-evidence: five-deferred-native-speech-validation-evidence.md; evidence/five-deferred-native-speech/historical-ci-inventory.json
 archived: 2026-10-30
 
+
+### DW-116: The "exactly one polite live region" proof is an artefact of bUnit's missing shadow DOM
+origin: migrated from legacy ledger ("Deferred from: code review of spec-1-9-authoritative-memories-search-with-protected-paging (2026-07-27)"), 2026-08-25
+location: TenantListSurfaceTests.cs:1866
+source_spec: `_bmad-output/implementation-artifacts/spec-1-9-authoritative-memories-search-with-protected-paging.md`
+reason: The legacy ledger defers this issue: The "exactly one polite live region" proof is an artefact of bUnit's missing shadow DOM. Original context is preserved in legacy-detail.
+legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-1-9-authoritative-memories-search-with-protected-paging.md` summary: The "exactly one polite live region" proof is an artefact of bUnit's missing shadow DOM. evidence: `TenantListSurfaceTests.cs:1866` counts live regions in markup where `<fluent-message-bar>` renders as an inert custom element. The shipped Fluent v5 module sets `role="status" aria-live="polite"` on each bar's internal dialog at runtime, so a real browser nests a live region per bar inside the workspace's outer one. The helper degenerates to `0.ShouldBe(0)` on the empty-notice call. status: open — blocked on BROWSER-SEARCH-1.9 and AT-NVDA-1.9, both already open.
+status: done 2026-10-30
+disposition: blocked
+verification-date: 2026-10-12
+verification: tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs counts light-DOM aria-live markup; Components/Shared/ListSurfaceStates.razor uses Fluent messages. This cannot establish the real shadow-DOM or screen-reader announcement count.
+verification-files: tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs; src/Hexalith.Tenants.UI/Components/Shared/ListSurfaceStates.razor
+evidence-kind: unverified-risk
+priority: P2
+owner: unassigned
+dependencies: BROWSER-SEARCH-1.9 and AT-NVDA-1.9
+next-action: Capture authenticated search live-region and NVDA evidence with the shipped Fluent runtime.
+related: DW-104
+
+qualification-date: 2026-10-29
+qualification: Authenticated Chromium qualification captures the existing outer status/polite/atomic region, notice containment, Fluent 5.0.1 ElementInternals role=status and computed AX live semantics for empty, one-notice and two-notice search states. Each notice contributes another computed status; the light-DOM helper now names only its actual structural proof. Browser evidence does not count or prove speech.
+qualification-decision: Keep open pending actual authenticated NVDA search speech evidence; the browser portion has current qualification and does not waive AT-NVDA-1.9.
+qualification-next-action: Execute docs/tenants-ui-deferred-at-handoff.md in EN/FR and record actual speech, omissions and duplicates before proposing closure.
+qualification-evidence: dw-116-137-446-459-466-validation-evidence.md
+
+native-disposition-date: 2026-10-30
+native-disposition: open-incomplete-native-qualification
+native-outcome: 2026-10-30: Clean native EN S3 traces on NVDA/Chrome and NVDA/Firefox convey both notices once; remaining search culture/pairing cells and independent acceptance remain open.
+native-blocker: Complete applicable EN/FR S0–S3 or C1–C3 cells on both declared pairings and independent acceptance are still missing. Repeated external foreground interruptions and contaminated queued output remain failures, with no waiver.
+native-evidence: five-deferred-native-speech-validation-evidence.md; evidence/five-deferred-native-speech/
+
+remaining-batch-date: 2026-10-30
+remaining-batch-result: Fresh full-plan native Chrome/Firefox EN/FR collector attempts are blocked before authentication and product capture by two RouteOperationContract CS0246 errors in the current-source build. Zero of 48 total windows qualify; no new S0-S3 search speech or independent acceptance exists. Original findings and all previous packet limitations remain unchanged; keep open.
+remaining-batch-evidence: five-remaining-speech-and-browser-validation-evidence.md
+
+
+resumed-batch-date: 2026-10-30
+resumed-batch-result: Independent assessment accepts only DW-116's 16 Search queued-notice windows on frozen c2da6bac in NVDA/Chrome and NVDA/Firefox, EN/FR: no stale notice in S0, complete S1/S2 guidance once and both S3 bodies in order without body loss/repetition. Close this narrow queued-notice contract only; repeated component dismiss labels, English dismiss labels in FR, unknown causes, audible-completion limits and unrelated release/localization holds remain. Original findings and fields are preserved. Acceptance: evidence/five-remaining-speech-and-browser-resumed/independent-at-assessment.json.
+resumed-batch-evidence: five-remaining-speech-and-browser-resumed-validation-evidence.md
+archived: 2026-10-30

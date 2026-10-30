@@ -1,0 +1,104 @@
+{
+  "stash": "cb0b59e6dc6059b6deb924a62347d256f925eb14",
+  "base": "a16d89746c0b16470df899981af889332bea8da0",
+  "operation": "git stash apply (not pop)",
+  "trackedFiles": 7,
+  "untrackedFiles": 16,
+  "allRestoredBytesMatchAuditedStash": true,
+  "stashStillRetained": true,
+  "unrelatedOlderStashUntouched": true,
+  "files": [
+    {
+      "path": "_bmad-output/implementation-artifacts/deferred-work.md",
+      "sha256": "a391381306479720827cb983a24a76ba9e1443dcb46005fa333f8e5d9efb99ba"
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser-resumed/executed-source-manifest.json",
+      "sha256": "b48363c4f90facfbbac5fcc464d89674568e20c5f8620c0b4f4ad1e7eeb984ae"
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser-resumed/run-native-cell.ps1",
+      "sha256": "be6f5202749e2a2985a25f6fec9a50bc5193abfcfebf0e52397b6f19933d82b4"
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser-resumed/validate-artifacts.py",
+      "sha256": "c8e60de466f00d7a8b98e8b3b14bf8878fa8d483ecdd8a596f41998d07d000e1"
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser-resumed/validate-conservation.py",
+      "sha256": "2067e664a7014779c63615ade8c5bc7d23603a693b870efa934d4486a8c0f12b"
+    },
+    {
+      "path": "docs/maintenance-backlog.md",
+      "sha256": "5356345340a845227a0931ac601dcdadcab6856ab6542b1d5a14f7b113935ab5"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Browser/deferred-nvda-observer.py",
+      "sha256": "5c7e5c992b45d6439eb881d7c86f3b3726acb1778e8e4415ab04fad12b20dd7f"
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser-resumed/executed-source/deferred-nvda-observer.py",
+      "sha256": "5c7e5c992b45d6439eb881d7c86f3b3726acb1778e8e4415ab04fad12b20dd7f"
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser-resumed/fingerprint-inputs.py",
+      "sha256": "85ef8025931de1339df22dff3b03ba8027fa1d57c2eff52dee7c5dae05ab6dfe"
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser-resumed/incoming-source-comparison.json",
+      "sha256": "9a5830b76b24be22d9502c593843a27001b09ef1c50f03470a680954e513295f"
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser-resumed/native-attempt-index.json",
+      "sha256": "10f87aa22a1200d80601035efee8ebf7a7118a66f507d4bdde4aed91cae90a3a"
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser-resumed/native-attempts/chrome-s0-1.zip",
+      "sha256": "623b64b816c406fddc92c6ca7693f7d38fe905f9bb6be224100ab4fccb0ebb6c"
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser-resumed/native-attempts/chrome-s0-2.zip",
+      "sha256": "5e011d3caff67fcc4b4d228c5acd41bb70425be3666cc0c2f74160152f4b984d"
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser-resumed/native-attempts/firefox-s0-1.zip",
+      "sha256": "52b5e69af7344ef68f980944b39a8825405cd52289db35a236d6cff36227d5a0"
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser-resumed/native-refresh-inventories.zip",
+      "sha256": "3bbfe3c2a4525115670632190e478b83aa403df6033486564010db6d7881f96b"
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser-resumed/native-refresh.json",
+      "sha256": "fcf6462355e148437242cb9030121b195185bff5580b2de416ef943947db300a"
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser-resumed/native-source-amendment.json",
+      "sha256": "3841689a00ae4db249a6665c124e8a889d535df4a6034b73fb1a8484ee9bba3e"
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser-resumed/observer-failure-diagnostic.json",
+      "sha256": "60c3ecf4cd07e705a26f80cfa270298fad740e18f23cabcd23f234d674ce55ed"
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser-resumed/observer-regressions.json",
+      "sha256": "8f0885cc6fe0f470f048de696519a1e1d2834e8b9e74ecb816c2262fcc427c3f"
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser-resumed/refresh-native.py",
+      "sha256": "810ef728620349f913b29c76ea0abc302e4c23196674d1a50125c965f55c7819"
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser-resumed/retain-native-attempt.py",
+      "sha256": "74de68abee810e666109855d25d54676efe86f52f49d98445944c38ca1652b85"
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser-resumed/test-artifacts.py",
+      "sha256": "82c4f0bee9adfc45e95cf6f994c38efc4629cadbfd0adb865703516640c23bd9"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Browser/test-deferred-nvda-observer.py",
+      "sha256": "b7c4789b9afe2e094f49a580c3946bc631a5f05eb6e0beab04dfb84df67082f2"
+    }
+  ]
+}

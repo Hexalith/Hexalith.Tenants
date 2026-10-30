@@ -1,0 +1,168 @@
+{
+  "startedUtc": "2026-10-30T18:48:08.865075+00:00",
+  "frozenRootRevision": "c2da6bacff148e77608132b0e04c714228a9b199",
+  "repositories": [
+    {
+      "path": ".",
+      "argv": [
+        "/mnt/c/Python314/python.exe",
+        "C:\\Temp\\tenants-resume-fingerprint-inputs.py",
+        "C:\\Temp\\tenants-five-resumed-20261030-2",
+        "C:\\Temp\\tenants-resume-final-inputs-0.json",
+        "true"
+      ],
+      "startedUtc": "2026-10-30T18:48:08.865188+00:00",
+      "endedUtc": "2026-10-30T18:48:09.264520+00:00",
+      "exitCode": 0,
+      "revision": "c2da6bacff148e77608132b0e04c714228a9b199",
+      "manifestSha256": "768b4798eb82f3d1ae2646d269010c02463d24508dc23a0912c8520825b1876d",
+      "matchesRecordedFrozenInputs": true
+    },
+    {
+      "path": "references/Hexalith.EventStore",
+      "argv": [
+        "/mnt/c/Python314/python.exe",
+        "C:\\Temp\\tenants-resume-fingerprint-inputs.py",
+        "C:\\Temp\\tenants-five-resumed-20261030-2\\references\\Hexalith.EventStore",
+        "C:\\Temp\\tenants-resume-final-inputs-1.json",
+        "false"
+      ],
+      "startedUtc": "2026-10-30T18:48:09.264677+00:00",
+      "endedUtc": "2026-10-30T18:48:09.967554+00:00",
+      "exitCode": 0,
+      "revision": "e014af6c3f1c67732485f24012cdbe528a12b0f6",
+      "manifestSha256": "287079ebac50fbd7a4c84850f329f573719aa5375ca290a6e15905de10bffe44",
+      "matchesRecordedFrozenInputs": true
+    },
+    {
+      "path": "references/Hexalith.Commons",
+      "argv": [
+        "/mnt/c/Python314/python.exe",
+        "C:\\Temp\\tenants-resume-fingerprint-inputs.py",
+        "C:\\Temp\\tenants-five-resumed-20261030-2\\references\\Hexalith.Commons",
+        "C:\\Temp\\tenants-resume-final-inputs-2.json",
+        "false"
+      ],
+      "startedUtc": "2026-10-30T18:48:09.967707+00:00",
+      "endedUtc": "2026-10-30T18:48:10.206092+00:00",
+      "exitCode": 0,
+      "revision": "0604bcf5304fc09a569f7abbd8e5d1b9049c02b7",
+      "manifestSha256": "8511b7b1fe9e042a6ea42a5580f5a7924a0e1453764a4dea64f7e59a716ac86a",
+      "matchesRecordedFrozenInputs": true
+    },
+    {
+      "path": "references/Hexalith.AI.Tools",
+      "argv": [
+        "/mnt/c/Python314/python.exe",
+        "C:\\Temp\\tenants-resume-fingerprint-inputs.py",
+        "C:\\Temp\\tenants-five-resumed-20261030-2\\references\\Hexalith.AI.Tools",
+        "C:\\Temp\\tenants-resume-final-inputs-3.json",
+        "false"
+      ],
+      "startedUtc": "2026-10-30T18:48:10.206287+00:00",
+      "endedUtc": "2026-10-30T18:48:10.457452+00:00",
+      "exitCode": 0,
+      "revision": "9b78aa008cfc62cd88ad0ea4b39b1f07311956ce",
+      "manifestSha256": "f25b443720e9faae2660dc888deb25f48df634b05f0899cd3a83d209494aa75d",
+      "matchesRecordedFrozenInputs": true
+    },
+    {
+      "path": "references/Hexalith.FrontComposer",
+      "argv": [
+        "/mnt/c/Python314/python.exe",
+        "C:\\Temp\\tenants-resume-fingerprint-inputs.py",
+        "C:\\Temp\\tenants-five-resumed-20261030-2\\references\\Hexalith.FrontComposer",
+        "C:\\Temp\\tenants-resume-final-inputs-4.json",
+        "false"
+      ],
+      "startedUtc": "2026-10-30T18:48:10.457611+00:00",
+      "endedUtc": "2026-10-30T18:48:10.864249+00:00",
+      "exitCode": 0,
+      "revision": "61a8afbb85c7e25b2eb97acb1cac262ef3e1e33d",
+      "manifestSha256": "60a65846a3c4955e6ec60ecefd6dba861f63ed9eff4bc3fdf7878b52c5610f46",
+      "matchesRecordedFrozenInputs": true
+    },
+    {
+      "path": "references/Hexalith.Builds",
+      "argv": [
+        "/mnt/c/Python314/python.exe",
+        "C:\\Temp\\tenants-resume-fingerprint-inputs.py",
+        "C:\\Temp\\tenants-five-resumed-20261030-2\\references\\Hexalith.Builds",
+        "C:\\Temp\\tenants-resume-final-inputs-5.json",
+        "false"
+      ],
+      "startedUtc": "2026-10-30T18:48:10.864392+00:00",
+      "endedUtc": "2026-10-30T18:48:11.130980+00:00",
+      "exitCode": 0,
+      "revision": "6cc96b4ff23c40c77651e1e4f85ed3170c25c7a4",
+      "manifestSha256": "b5fdc702ba334d496da84d91974766bda0c0ff41ffeb5b49d70fba9dde34ea86",
+      "matchesRecordedFrozenInputs": true
+    },
+    {
+      "path": "references/Hexalith.PolymorphicSerializations",
+      "argv": [
+        "/mnt/c/Python314/python.exe",
+        "C:\\Temp\\tenants-resume-fingerprint-inputs.py",
+        "C:\\Temp\\tenants-five-resumed-20261030-2\\references\\Hexalith.PolymorphicSerializations",
+        "C:\\Temp\\tenants-resume-final-inputs-6.json",
+        "false"
+      ],
+      "startedUtc": "2026-10-30T18:48:11.131173+00:00",
+      "endedUtc": "2026-10-30T18:48:11.338644+00:00",
+      "exitCode": 0,
+      "revision": "92ede24cc11129379efe52cfe7fd2c820c567f7f",
+      "manifestSha256": "b3c8fbd62716af2d3a889acefb127c3a8794e21972d09a8b78156c9f084f8f5a",
+      "matchesRecordedFrozenInputs": true
+    },
+    {
+      "path": "references/Hexalith.Memories",
+      "argv": [
+        "/mnt/c/Python314/python.exe",
+        "C:\\Temp\\tenants-resume-fingerprint-inputs.py",
+        "C:\\Temp\\tenants-five-resumed-20261030-2\\references\\Hexalith.Memories",
+        "C:\\Temp\\tenants-resume-final-inputs-7.json",
+        "false"
+      ],
+      "startedUtc": "2026-10-30T18:48:11.338807+00:00",
+      "endedUtc": "2026-10-30T18:48:11.771650+00:00",
+      "exitCode": 0,
+      "revision": "71a721a87ebbb34c557c08517b5c39884a7417da",
+      "manifestSha256": "f5c3a50337a0257124b768c1da7ec432eca99316053bed9c0d93cd7654fe125f",
+      "matchesRecordedFrozenInputs": true
+    },
+    {
+      "path": "references/Hexalith.McpCli",
+      "argv": [
+        "/mnt/c/Python314/python.exe",
+        "C:\\Temp\\tenants-resume-fingerprint-inputs.py",
+        "C:\\Temp\\tenants-five-resumed-20261030-2\\references\\Hexalith.McpCli",
+        "C:\\Temp\\tenants-resume-final-inputs-8.json",
+        "false"
+      ],
+      "startedUtc": "2026-10-30T18:48:11.771784+00:00",
+      "endedUtc": "2026-10-30T18:48:12.048156+00:00",
+      "exitCode": 0,
+      "revision": "7538bee529ab3a62c2d359fd498c9d60fca77621",
+      "manifestSha256": "cc01a78e497abba22de02a2ef2010753107d94765f3e2bb6fa6ec7b90cc6e0bc",
+      "matchesRecordedFrozenInputs": true
+    },
+    {
+      "path": "references/Hexalith.Platform",
+      "argv": [
+        "/mnt/c/Python314/python.exe",
+        "C:\\Temp\\tenants-resume-fingerprint-inputs.py",
+        "C:\\Temp\\tenants-five-resumed-20261030-2\\references\\Hexalith.Platform",
+        "C:\\Temp\\tenants-resume-final-inputs-9.json",
+        "false"
+      ],
+      "startedUtc": "2026-10-30T18:48:12.048309+00:00",
+      "endedUtc": "2026-10-30T18:48:12.504208+00:00",
+      "exitCode": 0,
+      "revision": "667e5a02a523cf8764ca54d6aa1b4b75db5dca64",
+      "manifestSha256": "bcb73c4526fa63132c2d3f45b756d8aa779cef1e1a405849086f26a114813c4b",
+      "matchesRecordedFrozenInputs": true
+    }
+  ],
+  "finishedUtc": "2026-10-30T18:48:12.504236+00:00",
+  "allFrozenInputsUnchanged": true
+}

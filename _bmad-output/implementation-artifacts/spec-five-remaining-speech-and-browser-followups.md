@@ -2,7 +2,7 @@
 title: 'Qualify five remaining deferred speech and browser records'
 type: 'chore'
 created: '2026-10-30'
-status: 'in-progress'
+status: 'done'
 route: 'dispatch'
 review_loop_iteration: 0
 baseline_commit: 'bd1d6ead1243237b5e84d1c1403485ee41fa9af3'
@@ -48,8 +48,8 @@ Do not replace actual speech with DOM/AX assertions. Distinguish queued Speech V
 
 **Execution:**
 
-- [ ] `tests/Hexalith.Tenants.UI.Tests/Browser/capture-deferred-nvda-speech.ps1` and companion driver — execute fresh complete EN/FR Chrome/Firefox captures with existing controls; correct only demonstrated capture defects and add focused regressions when needed.
-- [ ] `tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-administrator-dialogs.mjs` — run foreground grant controls, including held negative control and callback/render acknowledgment; separately run grid lifetime diagnostic with unchanged zero-circuit-error acceptance. Record a negative reproduction without claiming a historical cause.
+- [x] `tests/Hexalith.Tenants.UI.Tests/Browser/capture-deferred-nvda-speech.ps1` and companion driver — execute fresh complete EN/FR Chrome/Firefox captures with existing controls; correct only demonstrated capture defects and add focused regressions when needed.
+- [x] `tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-administrator-dialogs.mjs` — run foreground grant controls, including held negative control and callback/render acknowledgment; separately run grid lifetime diagnostic with unchanged zero-circuit-error acceptance. Record a negative reproduction without claiming a historical cause.
 - [x] `_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/` and `five-remaining-speech-and-browser-validation-evidence.md` — retain new sanitized packets, executed-source hashes, commands, failures, complete matrix and independent speech/browser assessments. Never upgrade old evidence retroactively.
 - [x] `_bmad-output/implementation-artifacts/deferred-work.md`, `deferred-work-archive.md`, `docs/maintenance-backlog.md` — append supported outcomes only; close AT records only with complete independently accepted evidence. Preserve external/historical blockers and validate unselected-body/archive conservation against this run's entry snapshot.
 - [x] This spec — record review and final validation; validate the exact commit message with pinned commitlint, commit authorized files, fetch/inspect divergence and push `main`.
@@ -130,3 +130,71 @@ Native setup and capture must fingerprint every consumed dependency worktree/bui
 The parent owns independent final review, commitlint, committing only this task's changes and the already authorized main push. No remote operations or publication during implementation. Send concise progress about once per minute, especially completed/failed native cells and any prerequisite failure. Leave publication for the parent.
 
 Parent private entry/build logs: `/tmp/tenants-resume-eventstore-ynr0lmqu` (read the entry-state.json and ui-test-build.log if needed; sanitize before retaining evidence).
+
+### Resumed implementation handoff and parent integration
+
+Both native full matrices completed: 48/48 windows with current controls, 266 queued-text samples, unchanged original settings and unchanged frozen c2da inputs. Collection is complete; independent semantic acceptance remains pending and all five records remain open. The private observer now schedules its successor after a transient error while the error still propagates. Its three regressions pass, including two old-version failure controls.
+
+Parent integration at `a16d89746c0b16470df899981af889332bea8da0` passes the exact Debug/source build and maintained full UI suite: 8,055 passed, zero failures/skips, build zero warnings/errors. Fresh default grant controls pass 4/4 with no circuit faults. Fresh separate grid diagnostic reproduces the disposed Fluent module with connected entry, detached release and the unchanged failing zero-circuit-error gate. These results are separate from entry e45 and native c2da. See [parent integration](evidence/five-remaining-speech-and-browser-resumed/parent-integration.json). No backend persistence, API/AppHost runtime, audible-completion or broad release-readiness claim is made.
+
+## File List
+
+- `tests/Hexalith.Tenants.UI.Tests/Browser/deferred-nvda-observer.py`
+- `tests/Hexalith.Tenants.UI.Tests/Browser/test-deferred-nvda-observer.py`
+- `_bmad-output/implementation-artifacts/deferred-work.md`
+- `_bmad-output/implementation-artifacts/five-remaining-speech-and-browser-resumed-validation-evidence.md`
+- `_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser-resumed/`
+- `docs/maintenance-backlog.md`
+
+### Independent historical gitlink range inventory
+
+These root-declared paths are listed because the preserved original baseline predates independent pointer commits, including `e45ed9d87de7800ebb02b1cedc9c64b720763e9e` and `c2da6bacff148e77608132b0e04c714228a9b199`. They are historical range contents, not pointer changes authored by this implementation. No pointer is staged by this continuation. The [exact historical audit](evidence/five-remaining-speech-and-browser-resumed/gitlink-history.json) preserves canonical identities; no baseline is narrowed and no historical endpoint hides incoming work.
+
+- `references/Hexalith.EventStore`
+- `references/Hexalith.Commons`
+- `references/Hexalith.AI.Tools`
+- `references/Hexalith.FrontComposer`
+- `references/Hexalith.Builds`
+- `references/Hexalith.PolymorphicSerializations`
+- `references/Hexalith.Memories`
+- `references/Hexalith.McpCli`
+- `references/Hexalith.Platform`
+
+| Path | Original baseline target | Current audited target |
+| --- | --- | --- |
+| `references/Hexalith.EventStore` | `4cf93f91e760e2d09e4fc64e1bd33a3c0a79a24d` | `e014af6c3f1c67732485f24012cdbe528a12b0f6` |
+| `references/Hexalith.Commons` | `3edfbdafc7d4fa915286dce8a37dc4cc7c06085a` | `0604bcf5304fc09a569f7abbd8e5d1b9049c02b7` |
+| `references/Hexalith.AI.Tools` | `70dbf73e80787299c832d30d911b16b105ab194d` | `9b78aa008cfc62cd88ad0ea4b39b1f07311956ce` |
+| `references/Hexalith.FrontComposer` | `612d23485d7e2845d22102621a38d6c904e1ea90` | `61a8afbb85c7e25b2eb97acb1cac262ef3e1e33d` |
+| `references/Hexalith.Builds` | `4775fb72e3ca3c05059830733e31a98995818cb6` | `6cc96b4ff23c40c77651e1e4f85ed3170c25c7a4` |
+| `references/Hexalith.PolymorphicSerializations` | `221ac4592ba908ae7661ba1fa9e2d1fcc23baee0` | `92ede24cc11129379efe52cfe7fd2c820c567f7f` |
+| `references/Hexalith.Memories` | `daa06183c0c9baa8bda71df259a7264d34684e2a` | `71a721a87ebbb34c557c08517b5c39884a7417da` |
+| `references/Hexalith.McpCli` | `9ba8e5bd0e213501b39d33cedf46859566fc89a4` | `7538bee529ab3a62c2d359fd498c9d60fca77621` |
+| `references/Hexalith.Platform` | `3659a44d86c08645215689eaeff8b3624d357dd5` | `667e5a02a523cf8764ca54d6aa1b4b75db5dca64` |
+
+## Resumed Review Triage Log
+
+All three layers completed before triage. The independent semantic assessment accepts only DW-116's 16 queued-notice cells; DW-446/DW-459 retain duplicated-Unavailable/Refresh blockers. The native raw packets remain unchanged. Full current-workspace UI 8055/8055 and fresh default grant controls pass; the separate Fluent grid gate remains failed.
+
+| Finding | Verdict | Route | Evidence and required correction |
+| --- | --- | --- | --- |
+| RBH1 | medium | patch | Builder counts all trial-labelled cancellations, including pre-trigger setup. Chrome C2-lifecycle-en's counted notification precedes its trigger; segment setup/product/control times correctly. |
+| RBH2 | medium | patch | Builder ignores failed/incomplete collector flags and failed runner exit; an explicitly failed current packet can still yield 48 completed windows. Require actual successful collection and fresh stable build/runtime facts. |
+| RBH3 | medium | patch | Verified booleans alone survive removal of raw positive-control speech/cancellation records. Replay the localized focused Search output and matched post-request cancellation evidence. |
+| RBH4 | medium | patch | Duration check has no 60-second ceiling or complete timestamp ordering/end binding; an extended window passes. Enforce the unchanged 30–60-second protocol and matching end records. |
+| RBH5 | medium | patch | Runtime summary is not cross-checked with packets, so contradictory browser/assembly claims pass. Bind derived summary values to their retained sources. |
+| RBH6 | medium | patch | Native ZIP packetSha256 and complete unique member coverage are not checked. Validate both archive and member identities. |
+| RBH7 | medium | patch | Repository lists can omit or duplicate declared dependencies and still pass. Require root plus the exact unique declared set at preparation, refresh and final verification. |
+| RBH8 | medium | patch | Refresher accepts arbitrary destinations before mutating Git. Require this run's owned-checkout marker and reject source/historical/unowned destinations before any mutation. |
+| RBH9 | medium | patch | Initial preparer has no command/overall timeout; a stalled clone can exceed the approved bound. Bound commands and whole preparation, retaining timeout diagnostics. |
+| RBH10 | medium | defer | Incoming a16 domain-host DI uses GatewayNativeSourceMetadataReader, while the live revocation test still constructs DaprNativeSourceMetadataReader. This pre-existing incoming test gap is outside the speech/helper change; record an explicit follow-up, with no claimed production authorization failure. |
+| REC1 | medium | patch | Existing output reuse overwrites its invocation sidecar before collector refusal. Refuse existing directory or metadata before writing and preserve earlier invocation bytes. |
+| RVG1 | medium | patch | Preverified regression gap: lowering the builder minimum to zero leaves every existing tamper control green. Add valid 30-second and rejecting 29-second controls; group with timing contract correction only after this verdict. |
+
+### Resumed parent completion
+
+The bounded qualification work is complete. All twelve resumed review findings were individually triaged: eleven corrected with targeted tests and one pre-existing incoming transport-regression coverage gap explicitly deferred. All original reviewers rechecked their findings and reported no unresolved issue. Parent reran eleven final lanes successfully, including observer/matrix/setup regressions, artifact and conservation controls, historical preservation, gitlink audit and whitespace. The current-workspace full UI result remains 8,055/8,055 and default grant 4/4; the separate grid gate remains failed on its recorded external defect.
+
+DW-116 alone closes through the independent 16-window queued-notice assessment. Counts are 655 done/2 open across all 657 numbered IDs. The two availability records remain open for duplicated first-Unavailable/same-state Refresh output, and the two original unnumbered browser follow-ups remain open. Those owning behavior/history/component follow-ups are not claimed fixed by this qualification episode. Native c2da, entry e45 and parent a16 profiles remain distinct, as do queued output and audible completion.
+
+Pinned commitlint 21.2.3 accepted the exact full candidate with zero problems/warnings. The user authorized committing and pushing these reviewed changes to main; publication follows final staged-byte checks, with the canonical revision recorded by Git. The original baseline and all incoming independent commits/pointers are preserved. See [parent final validation](evidence/five-remaining-speech-and-browser-resumed/parent-final-validation.json).

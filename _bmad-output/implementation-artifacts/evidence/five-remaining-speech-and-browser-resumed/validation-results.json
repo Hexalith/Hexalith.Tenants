@@ -1,0 +1,294 @@
+{
+  "recordedUtc": "2026-10-30T18:51:09.997106+00:00",
+  "entrySourceRoot": "e45ed9d87de7800ebb02b1cedc9c64b720763e9e",
+  "frozenNativeRoot": "c2da6bacff148e77608132b0e04c714228a9b199",
+  "laterWorkspaceRoot": "a16d89746c0b16470df899981af889332bea8da0",
+  "independentSpeechAcceptancePending": false,
+  "allFiveRecordsRemainOpen": false,
+  "entryBuild": {
+    "argv": [
+      "dotnet",
+      "build",
+      "tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj",
+      "-c",
+      "Debug",
+      "-m:1",
+      "-p:UseNuGetDeps=false",
+      "-p:HexalithEventStoreVersion=3.128.4",
+      "-p:HexalithMcpCliFromSource=false",
+      "-p:NuGetAudit=false"
+    ],
+    "result": "succeeded, zero warnings/errors, as recorded in the parent entry/build handoff; this is not the later incoming-source build",
+    "privateEntryLog": "/tmp/tenants-resume-eventstore-ynr0lmqu/ui-test-build.log"
+  },
+  "focusedMtp": {
+    "argv": [
+      "dotnet",
+      "test",
+      "--project",
+      "tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj",
+      "-c",
+      "Debug",
+      "--no-build",
+      "--no-restore",
+      "--filter-class",
+      "*TenantListSurfaceTests",
+      "*CreateTenantFlowTests",
+      "*AuditAvailabilityStateTests",
+      "*GlobalAdministratorsPageTests",
+      "*GlobalAdministratorsPageTeardownTests",
+      "*GlobalAdministratorsPageRecoveryTests",
+      "--report-xunit-xml",
+      "--report-xunit-xml-filename",
+      "focused.xml",
+      "--results-directory",
+      "/tmp/tenants-resume-focused-mtp",
+      "--fail-skips",
+      "on",
+      "--minimum-expected-tests",
+      "6"
+    ],
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "exitCode": 0,
+    "passed": 630,
+    "failed": 0,
+    "skipped": 0,
+    "stdout": "Running tests from /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll (net10.0|x64)\n/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll (net10.0|x64) passed (29s 530ms)\n\n  In process file artifacts produced:\n    - /tmp/tenants-resume-focused-mtp/focused.xml\n\nTest run summary: Passed!\n  total: 630\n  failed: 0\n  succeeded: 630\n  skipped: 0\n  duration: 29s 917ms\n",
+    "xmlArchive": "focused-test-results.zip"
+  },
+  "focusedDirectXunit": {
+    "argv": [
+      "dotnet",
+      "tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll",
+      "-class",
+      "*TenantListSurfaceTests",
+      "-class",
+      "*CreateTenantFlowTests",
+      "-class",
+      "*AuditAvailabilityStateTests",
+      "-class",
+      "*GlobalAdministratorsPageTests",
+      "-class",
+      "*GlobalAdministratorsPageTeardownTests",
+      "-class",
+      "*GlobalAdministratorsPageRecoveryTests",
+      "-noColor",
+      "-xml",
+      "/tmp/tenants-resume-focused.xml"
+    ],
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "exitCode": 0,
+    "passed": 630,
+    "failed": 0,
+    "skipped": 0,
+    "stdout": "The '-xml' switch has been deprecated in favor of '-result-xml' and will be removed in the next major version\n\nxUnit.net v3 In-Process Runner v4.0.2+0c7aa4991f (64-bit .NET 10.0.14)\n  Discovering: Hexalith.Tenants.UI.Tests\n  Discovered:  Hexalith.Tenants.UI.Tests\n  Starting:    Hexalith.Tenants.UI.Tests\n  Finished:    Hexalith.Tenants.UI.Tests (ID = 'ebdcd5ef4d4208b1f7bffe68a07b7c3b73336a0f9a7665a5af5a18fe6557b4fa')\n=== TEST EXECUTION SUMMARY ===\n   Hexalith.Tenants.UI.Tests  Total: 630, Errors: 0, Failed: 0, Skipped: 0, Not Run: 0, Time: 32.983s\n",
+    "limit": "Same focused cases as MTP; not 1260 distinct tests. Deprecated -xml runner option was accepted and its warning retained."
+  },
+  "nativeDriverRegressions": {
+    "argv": [
+      "node",
+      "--test",
+      "tests/Hexalith.Tenants.UI.Tests/Browser/validate-deferred-native-speech.test.mjs"
+    ],
+    "exitCode": 0,
+    "passed": 6,
+    "stdout": "\u2714 a valid cell cannot hide an excluded culture in the same request (6.234605ms)\n\u2714 a valid search cell cannot hide a Create cell excluded by its group (0.419083ms)\n\u2714 empty selector entries and duplicate cultures are rejected (0.435194ms)\n\u2714 a selected Refresh requires its fresh paired first insertion and both controls (1.508628ms)\n\u2714 the default plan covers every culture and does not accept a nonempty subset (0.674088ms)\n\u2714 an alive silent mock collector cannot hold an acknowledgement forever (5.982421ms)\n\u2139 tests 6\n\u2139 suites 0\n\u2139 pass 6\n\u2139 fail 0\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 63.590687\n"
+  },
+  "observerRegressions": "observer-regressions.json",
+  "syntax": "syntax-validation.json",
+  "nativeMatrix": "native-matrix.json",
+  "nativeRuntimeSummary": "native-runtime-summary.json",
+  "nativeFrozenInputs": "native-final-input-verification.json",
+  "conservation": {
+    "numberedIds": 657,
+    "unselectedNumberedBodiesPreserved": 654,
+    "selectedHistoricalFieldsPreserved": true,
+    "unnumberedResultsAppended": 2,
+    "exactInputBytesPreserved": true,
+    "unnumberedAdditionsBoundToOriginalRecords": true,
+    "entryArchiveBytesUnchanged": true,
+    "statusCounts": {
+      "done": 654,
+      "open": 3
+    },
+    "exactCoveringMaintenanceRows": 3
+  },
+  "conservationControls": {
+    "isolatedTemporaryCopiesOnly": true,
+    "positiveControls": [
+      {
+        "optimized": false,
+        "exitCode": 0
+      },
+      {
+        "optimized": true,
+        "exitCode": 0
+      }
+    ],
+    "negativeControls": [
+      {
+        "mutation": "unselected numbered history",
+        "optimized": true,
+        "rejected": true,
+        "diagnostic": "ValueError: Original DW-1 body changed"
+      },
+      {
+        "mutation": "selected original field",
+        "optimized": true,
+        "rejected": true,
+        "diagnostic": "ValueError: Original DW-116 body changed"
+      },
+      {
+        "mutation": "numbered ID conservation",
+        "optimized": true,
+        "rejected": true,
+        "diagnostic": "ValueError: Numbered IDs changed"
+      },
+      {
+        "mutation": "numbered status",
+        "optimized": true,
+        "rejected": true,
+        "diagnostic": "ValueError: Original DW-116 body changed"
+      },
+      {
+        "mutation": "unselected ledger preamble",
+        "optimized": true,
+        "rejected": true,
+        "diagnostic": "ValueError: Unselected ledger bytes changed"
+      },
+      {
+        "mutation": "archive byte conservation",
+        "optimized": true,
+        "rejected": true,
+        "diagnostic": "ValueError: Historical archive changed"
+      },
+      {
+        "mutation": "unselected index history",
+        "optimized": true,
+        "rejected": true,
+        "diagnostic": "ValueError: Unselected index bytes changed"
+      },
+      {
+        "mutation": "ledger LF to CRLF rewrite",
+        "optimized": true,
+        "rejected": true,
+        "diagnostic": "ValueError: Original DW-1 body changed"
+      },
+      {
+        "mutation": "index LF to CRLF rewrite",
+        "optimized": true,
+        "rejected": true,
+        "diagnostic": "ValueError: DW-116 index history changed"
+      },
+      {
+        "mutation": "both unnumbered additions relocated to preamble",
+        "optimized": true,
+        "rejected": true,
+        "diagnostic": "ValueError: Unnumbered addition must remain inside its original enclosing record"
+      }
+    ]
+  },
+  "historicalPackets": {
+    "canonicalBaseline": "e45ed9d87de7800ebb02b1cedc9c64b720763e9e",
+    "scopedHistoricalFiles": 124,
+    "exactBytesEqual": true
+  },
+  "artifactControls": {
+    "isolatedTemporaryCopiesOnly": true,
+    "optimizedPython": true,
+    "controls": [
+      {
+        "case": "positive",
+        "exitCode": 0,
+        "diagnostic": "accepted"
+      },
+      {
+        "case": "unbound bytes",
+        "exitCode": 1,
+        "diagnostic": "ValueError: Artifact bytes differ: grant-current-controls.json"
+      },
+      {
+        "case": "matrix coverage",
+        "exitCode": 1,
+        "diagnostic": "ValueError: Native matrix must cover the exact 48 windows"
+      },
+      {
+        "case": "native observer binding",
+        "exitCode": 1,
+        "diagnostic": "ValueError: Observer binding differs"
+      },
+      {
+        "case": "grid gate",
+        "exitCode": 1,
+        "diagnostic": "ValueError: Grid gate changed"
+      },
+      {
+        "case": "grant negative control",
+        "exitCode": 1,
+        "diagnostic": "ValueError: Current grant controls differ"
+      },
+      {
+        "case": "speech receipt boundary",
+        "exitCode": 1,
+        "diagnostic": "ValueError: Speech timing/occurrence inventory does not replay"
+      }
+    ]
+  },
+  "whitespace": {
+    "argv": [
+      "git",
+      "diff",
+      "--check"
+    ],
+    "exitCode": 0
+  },
+  "storyGitlinkOriginalFailure": {
+    "argv": [
+      "python3",
+      "scripts/validate-story-gitlinks.py",
+      "_bmad-output/implementation-artifacts/spec-five-remaining-speech-and-browser-followups.md"
+    ],
+    "exitCode": 1,
+    "stdout": "Story:    spec-five-remaining-speech-and-browser-followups.md\nBaseline: bd1d6ea\nCompared: HEAD (a16d897) + working tree\n\n9 references/ pointer change(s) in range:\n  [UNDECLARED] references/Hexalith.AI.Tools  70dbf73 -> 9b78aa0\n  [UNDECLARED] references/Hexalith.Builds  4775fb7 -> 6cc96b4\n  [UNDECLARED] references/Hexalith.Commons  3edfbda -> 0604bcf\n  [UNDECLARED] references/Hexalith.EventStore  4cf93f9 -> e014af6\n  [UNDECLARED] references/Hexalith.FrontComposer  612d234 -> 61a8afb\n  [UNDECLARED] references/Hexalith.McpCli  9ba8e5b -> 7538bee\n  [UNDECLARED] references/Hexalith.Memories  daa0618 -> 71a721a\n  [UNDECLARED] references/Hexalith.Platform  3659a44 -> 667e5a0\n  [UNDECLARED] references/Hexalith.PolymorphicSerializations  221ac45 -> 92ede24\n\nRESULT: FAIL\n\nEvery submodule pointer this story moves must be a deliberate, stated change.\nFor each UNDECLARED entry above, do one of:\n  DECLARE \u2014 add the path to the story's File List and say in the Completion Notes\n            why the bump belongs to this story.\n  REVERT  \u2014 restore the baseline pointer, then commit the bump separately:\n\n    git checkout 70dbf73e80787299c832d30d911b16b105ab194d -- references/Hexalith.AI.Tools\n    git checkout 4775fb72e3ca3c05059830733e31a98995818cb6 -- references/Hexalith.Builds\n    git checkout 3edfbdafc7d4fa915286dce8a37dc4cc7c06085a -- references/Hexalith.Commons\n    git checkout 4cf93f91e760e2d09e4fc64e1bd33a3c0a79a24d -- references/Hexalith.EventStore\n    git checkout 612d23485d7e2845d22102621a38d6c904e1ea90 -- references/Hexalith.FrontComposer\n    git checkout 9ba8e5bd0e213501b39d33cedf46859566fc89a4 -- references/Hexalith.McpCli\n    git checkout daa06183c0c9baa8bda71df259a7264d34684e2a -- references/Hexalith.Memories\n    git checkout 3659a44d86c08645215689eaeff8b3624d357dd5 -- references/Hexalith.Platform\n    git checkout 221ac4592ba908ae7661ba1fa9e2d1fcc23baee0 -- references/Hexalith.PolymorphicSerializations\n",
+    "handling": "Parent owns historical-range reconciliation. No pointer reversal, baseline narrowing or story-ownership claim was applied here; known moving-HEAD check was not rerun."
+  },
+  "privateLogIndex": "/tmp/tenants-resume-private-log-paths.json",
+  "remainingParentChecks": [
+    "Final reviewer rechecks and verification",
+    "Spec historical audit metadata, pinned commitlint, staged/committed raw-byte verification and authorized main push"
+  ],
+  "finalArtifactReplay": {
+    "argv": [
+      "python3",
+      "-B",
+      "-O",
+      "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser-resumed/validate-artifacts.py"
+    ],
+    "exitCode": 0,
+    "stdout": {
+      "artifactFiles": 49,
+      "executedHelperBindings": 7,
+      "grantCurrentControls": true,
+      "gridExternalFailurePreserved": true,
+      "nativeMatrixWindows": 48,
+      "completedCurrentProfileWindows": 48,
+      "unchangedFrozenRepositories": 10,
+      "independentAcceptanceClaimed": false
+    }
+  },
+  "historicalPreReviewRecord": "Original validation/report bytes are in pre-review-handoff.zip; historical entry/capture test results below remain source-scoped.",
+  "postReviewDisposition": {
+    "accepted": [
+      "DW-116"
+    ],
+    "open": [
+      "DW-446",
+      "DW-459",
+      "unnumbered grant history",
+      "unnumbered external grid"
+    ],
+    "scope": "DW-116 narrow queued-notice contract only; matrix remains pre-assessment",
+    "evidence": "independent-at-assessment.json"
+  },
+  "reviewCorrections": "review-corrections.json"
+}

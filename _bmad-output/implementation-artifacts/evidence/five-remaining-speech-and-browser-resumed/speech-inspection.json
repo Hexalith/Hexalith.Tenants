@@ -1,0 +1,4141 @@
+{
+  "method": "See build-native-matrix.py; complete raw queues and state/focus timelines remain in hash-bound ZIP members. Literal counts are not independent AT assessment.",
+  "windows": [
+    {
+      "pairing": "NVDA/Chrome",
+      "culture": "en",
+      "trial": "S0-en",
+      "packet": "native-attempts/current-chrome-matrix-1.zip",
+      "speechMember": "speech.json",
+      "timelineMember": "timeline.json",
+      "queuedTextSha256": "4d6b3132b9d8e9720428888ac9a623b3e7299bebaab705f08178afb8e725145e",
+      "triggerUtc": "2026-10-30T18:10:26.719Z",
+      "matchingStateUtc": "2026-10-30T18:10:27.702Z",
+      "collectorReceiptStartedUtc": "2026-10-30T18:10:27.8103259Z",
+      "observationEndedUtc": "2026-10-30T18:10:57.8101901Z",
+      "postTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "preTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "sampleArrivalSegments": {
+        "preTrigger": 0,
+        "triggerBeforeMatchedState": 2,
+        "matchedStateBeforeCollectorReceipt": 0,
+        "collectorReceiptThroughEnd": 3,
+        "afterEnd": 0
+      },
+      "productWindowCancellationNotifications": 2,
+      "cancellationSegments": {
+        "setup": [],
+        "productWindow": [
+          {
+            "trial": "S0-en",
+            "utc": "2026-10-30T18:10:27.340748+00:00",
+            "kind": "nvda-speech-canceled"
+          },
+          {
+            "trial": "S0-en",
+            "utc": "2026-10-30T18:10:27.890903+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ],
+        "postWindow": [],
+        "control": [
+          {
+            "trial": "S0-en-focus-control",
+            "utc": "2026-10-30T18:11:03.673726+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ]
+      },
+      "focusAtMatchingState": {
+        "documentHasFocus": true,
+        "element": "button",
+        "ancestry": [
+          "tenants-list-status-filter",
+          "tenants-workspace-tenants-panel-content",
+          "tenants-workspace-tenants-panel",
+          "tenants-workspace-tabs",
+          "tenants-workspace"
+        ]
+      },
+      "fixtureAtMatchingState": {
+        "sessionOrdinal": 2,
+        "search": "up",
+        "rejectCursor": false,
+        "status": "wait",
+        "projection": "hold",
+        "simulatedCommands": 0,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 0,
+        "recoveryPages": 0,
+        "continuations": 0,
+        "statusReads": 0,
+        "projectionReads": 8
+      },
+      "interpretation": "Provisional literal occurrence inventory, including focus and live output; no announcement-cause attribution, no audible-completion claim and no independent acceptance."
+    },
+    {
+      "pairing": "NVDA/Chrome",
+      "culture": "en",
+      "trial": "S1-en",
+      "packet": "native-attempts/current-chrome-matrix-1.zip",
+      "speechMember": "speech.json",
+      "timelineMember": "timeline.json",
+      "queuedTextSha256": "8fba2cf6abe1f93da9f8f7f9741e4796e908b16339488d801e81c24fe6a0ec51",
+      "triggerUtc": "2026-10-30T18:11:10.423Z",
+      "matchingStateUtc": "2026-10-30T18:11:10.489Z",
+      "collectorReceiptStartedUtc": "2026-10-30T18:11:10.5486266Z",
+      "observationEndedUtc": "2026-10-30T18:11:40.5634819Z",
+      "postTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 1,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "preTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "sampleArrivalSegments": {
+        "preTrigger": 0,
+        "triggerBeforeMatchedState": 0,
+        "matchedStateBeforeCollectorReceipt": 0,
+        "collectorReceiptThroughEnd": 2,
+        "afterEnd": 0
+      },
+      "productWindowCancellationNotifications": 1,
+      "cancellationSegments": {
+        "setup": [],
+        "productWindow": [
+          {
+            "trial": "S1-en",
+            "utc": "2026-10-30T18:11:10.632287+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ],
+        "postWindow": [],
+        "control": [
+          {
+            "trial": "S1-en-focus-control",
+            "utc": "2026-10-30T18:11:46.397092+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ]
+      },
+      "focusAtMatchingState": {
+        "documentHasFocus": true,
+        "element": "button",
+        "ancestry": [
+          "tenants-list-status-filter",
+          "tenants-workspace-tenants-panel-content",
+          "tenants-workspace-tenants-panel",
+          "tenants-workspace-tabs",
+          "tenants-workspace"
+        ]
+      },
+      "fixtureAtMatchingState": {
+        "sessionOrdinal": 3,
+        "search": "down",
+        "rejectCursor": false,
+        "status": "wait",
+        "projection": "hold",
+        "simulatedCommands": 0,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 0,
+        "recoveryPages": 0,
+        "continuations": 0,
+        "statusReads": 0,
+        "projectionReads": 6
+      },
+      "interpretation": "Provisional literal occurrence inventory, including focus and live output; no announcement-cause attribution, no audible-completion claim and no independent acceptance."
+    },
+    {
+      "pairing": "NVDA/Chrome",
+      "culture": "en",
+      "trial": "S2-en",
+      "packet": "native-attempts/current-chrome-matrix-1.zip",
+      "speechMember": "speech.json",
+      "timelineMember": "timeline.json",
+      "queuedTextSha256": "fc5bb5640bb0b02a2b728b68dc107a1154395e60d3279a450e23b2890b1adb7c",
+      "triggerUtc": "2026-10-30T18:11:53.935Z",
+      "matchingStateUtc": "2026-10-30T18:11:54.132Z",
+      "collectorReceiptStartedUtc": "2026-10-30T18:11:54.1509090Z",
+      "observationEndedUtc": "2026-10-30T18:12:24.1629520Z",
+      "postTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 1,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "preTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "sampleArrivalSegments": {
+        "preTrigger": 3,
+        "triggerBeforeMatchedState": 0,
+        "matchedStateBeforeCollectorReceipt": 0,
+        "collectorReceiptThroughEnd": 2,
+        "afterEnd": 0
+      },
+      "productWindowCancellationNotifications": 0,
+      "cancellationSegments": {
+        "setup": [],
+        "productWindow": [],
+        "postWindow": [],
+        "control": [
+          {
+            "trial": "S2-en-focus-control",
+            "utc": "2026-10-30T18:12:24.405137+00:00",
+            "kind": "nvda-speech-canceled"
+          },
+          {
+            "trial": "S2-en-focus-control",
+            "utc": "2026-10-30T18:12:29.950860+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ]
+      },
+      "focusAtMatchingState": {
+        "documentHasFocus": true,
+        "element": "h1",
+        "ancestry": [
+          "tenants-list-page-header",
+          "tenants-workspace"
+        ]
+      },
+      "fixtureAtMatchingState": {
+        "sessionOrdinal": 4,
+        "search": "up",
+        "rejectCursor": false,
+        "status": "wait",
+        "projection": "hold",
+        "simulatedCommands": 0,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 0,
+        "recoveryPages": 0,
+        "continuations": 0,
+        "statusReads": 0,
+        "projectionReads": 125
+      },
+      "interpretation": "Provisional literal occurrence inventory, including focus and live output; no announcement-cause attribution, no audible-completion claim and no independent acceptance."
+    },
+    {
+      "pairing": "NVDA/Chrome",
+      "culture": "en",
+      "trial": "S3-en",
+      "packet": "native-attempts/current-chrome-matrix-1.zip",
+      "speechMember": "speech.json",
+      "timelineMember": "timeline.json",
+      "queuedTextSha256": "fcac1701ebca8b573ed5aae66fd1304dce868c2196feb355eaf533adb18294bf",
+      "triggerUtc": "2026-10-30T18:12:36.922Z",
+      "matchingStateUtc": "2026-10-30T18:12:37.072Z",
+      "collectorReceiptStartedUtc": "2026-10-30T18:12:37.1666129Z",
+      "observationEndedUtc": "2026-10-30T18:13:07.1601406Z",
+      "postTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 1,
+        "searchRefreshed": 0,
+        "listRefreshed": 1,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "preTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "sampleArrivalSegments": {
+        "preTrigger": 1,
+        "triggerBeforeMatchedState": 0,
+        "matchedStateBeforeCollectorReceipt": 1,
+        "collectorReceiptThroughEnd": 1,
+        "afterEnd": 0
+      },
+      "productWindowCancellationNotifications": 0,
+      "cancellationSegments": {
+        "setup": [],
+        "productWindow": [],
+        "postWindow": [],
+        "control": [
+          {
+            "trial": "S3-en-focus-control",
+            "utc": "2026-10-30T18:13:07.340680+00:00",
+            "kind": "nvda-speech-canceled"
+          },
+          {
+            "trial": "S3-en-focus-control",
+            "utc": "2026-10-30T18:13:12.952425+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ]
+      },
+      "focusAtMatchingState": {
+        "documentHasFocus": true,
+        "element": "fluent-button",
+        "ancestry": [
+          "tenants-list-next",
+          "tenants-workspace-tenants-panel-content",
+          "tenants-workspace-tenants-panel",
+          "tenants-workspace-tabs",
+          "tenants-workspace"
+        ]
+      },
+      "fixtureAtMatchingState": {
+        "sessionOrdinal": 5,
+        "search": "down",
+        "rejectCursor": false,
+        "status": "wait",
+        "projection": "hold",
+        "simulatedCommands": 0,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 1,
+        "recoveryPages": 1,
+        "continuations": 0,
+        "statusReads": 0,
+        "projectionReads": 9
+      },
+      "interpretation": "Provisional literal occurrence inventory, including focus and live output; no announcement-cause attribution, no audible-completion claim and no independent acceptance."
+    },
+    {
+      "pairing": "NVDA/Chrome",
+      "culture": "en",
+      "trial": "C1-lifecycle-en",
+      "packet": "native-attempts/current-chrome-matrix-1.zip",
+      "speechMember": "speech.json",
+      "timelineMember": "timeline.json",
+      "queuedTextSha256": "63d3f02d530e4a959fd40faad2fd8f592fd09eef7faf4f27b8f8634f08b1bc07",
+      "triggerUtc": "2026-10-30T18:13:20.312Z",
+      "matchingStateUtc": "2026-10-30T18:13:20.405Z",
+      "collectorReceiptStartedUtc": "2026-10-30T18:13:20.4353483Z",
+      "observationEndedUtc": "2026-10-30T18:13:50.4753189Z",
+      "postTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 1,
+        "pendingReason": 1,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "preTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "sampleArrivalSegments": {
+        "preTrigger": 3,
+        "triggerBeforeMatchedState": 0,
+        "matchedStateBeforeCollectorReceipt": 1,
+        "collectorReceiptThroughEnd": 1,
+        "afterEnd": 0
+      },
+      "productWindowCancellationNotifications": 0,
+      "cancellationSegments": {
+        "setup": [
+          {
+            "trial": "C1-lifecycle-en",
+            "utc": "2026-10-30T18:13:15.127953+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ],
+        "productWindow": [],
+        "postWindow": [],
+        "control": [
+          {
+            "trial": "C1-lifecycle-en-focus-control",
+            "utc": "2026-10-30T18:13:50.723922+00:00",
+            "kind": "nvda-speech-canceled"
+          },
+          {
+            "trial": "C1-lifecycle-en-focus-control",
+            "utc": "2026-10-30T18:13:56.303705+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ]
+      },
+      "focusAtMatchingState": {
+        "documentHasFocus": true,
+        "element": "body",
+        "ancestry": []
+      },
+      "fixtureAtMatchingState": {
+        "sessionOrdinal": 6,
+        "search": "up",
+        "rejectCursor": false,
+        "status": "events",
+        "projection": "hold",
+        "simulatedCommands": 1,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 0,
+        "recoveryPages": 0,
+        "continuations": 0,
+        "statusReads": 1,
+        "projectionReads": 10
+      },
+      "interpretation": "Provisional literal occurrence inventory, including focus and live output; no announcement-cause attribution, no audible-completion claim and no independent acceptance."
+    },
+    {
+      "pairing": "NVDA/Chrome",
+      "culture": "en",
+      "trial": "C3-events-lifecycle-en",
+      "packet": "native-attempts/current-chrome-matrix-1.zip",
+      "speechMember": "speech.json",
+      "timelineMember": "timeline.json",
+      "queuedTextSha256": "fe72b52069f5f0736bbdbd5b56f118c00d0d00bc8ebb31e6f2b74e6d96533c44",
+      "triggerUtc": "2026-10-30T18:14:02.415Z",
+      "matchingStateUtc": "2026-10-30T18:14:02.480Z",
+      "collectorReceiptStartedUtc": "2026-10-30T18:14:02.5364274Z",
+      "observationEndedUtc": "2026-10-30T18:14:32.5650623Z",
+      "postTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "preTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "sampleArrivalSegments": {
+        "preTrigger": 3,
+        "triggerBeforeMatchedState": 0,
+        "matchedStateBeforeCollectorReceipt": 0,
+        "collectorReceiptThroughEnd": 0,
+        "afterEnd": 0
+      },
+      "productWindowCancellationNotifications": 0,
+      "cancellationSegments": {
+        "setup": [],
+        "productWindow": [],
+        "postWindow": [],
+        "control": [
+          {
+            "trial": "C3-events-lifecycle-en-focus-control",
+            "utc": "2026-10-30T18:14:32.792755+00:00",
+            "kind": "nvda-speech-canceled"
+          },
+          {
+            "trial": "C3-events-lifecycle-en-focus-control",
+            "utc": "2026-10-30T18:14:38.454822+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ]
+      },
+      "focusAtMatchingState": {
+        "documentHasFocus": true,
+        "element": "fluent-button",
+        "ancestry": [
+          "tenants-create-refresh",
+          "tenants-create-flow",
+          "tenants-create-accordion",
+          "tenants-workspace-tenants-panel-content",
+          "tenants-workspace-tenants-panel",
+          "tenants-workspace-tabs",
+          "tenants-workspace"
+        ]
+      },
+      "fixtureAtMatchingState": {
+        "sessionOrdinal": 6,
+        "search": "up",
+        "rejectCursor": false,
+        "status": "events",
+        "projection": "hold",
+        "simulatedCommands": 1,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 0,
+        "recoveryPages": 0,
+        "continuations": 0,
+        "statusReads": 2,
+        "projectionReads": 15
+      },
+      "interpretation": "Provisional literal occurrence inventory, including focus and live output; no announcement-cause attribution, no audible-completion claim and no independent acceptance."
+    },
+    {
+      "pairing": "NVDA/Chrome",
+      "culture": "en",
+      "trial": "C1-availability-en",
+      "packet": "native-attempts/current-chrome-matrix-1.zip",
+      "speechMember": "speech.json",
+      "timelineMember": "timeline.json",
+      "queuedTextSha256": "73ecf4f3650134f8b56e9854bf3d36243b31e2f86dceb6f7479087af3f8bc043",
+      "triggerUtc": "2026-10-30T18:14:45.841Z",
+      "matchingStateUtc": "2026-10-30T18:14:45.996Z",
+      "collectorReceiptStartedUtc": "2026-10-30T18:14:46.0709010Z",
+      "observationEndedUtc": "2026-10-30T18:15:16.0836779Z",
+      "postTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 1,
+        "pendingReason": 1,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "preTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "sampleArrivalSegments": {
+        "preTrigger": 3,
+        "triggerBeforeMatchedState": 0,
+        "matchedStateBeforeCollectorReceipt": 1,
+        "collectorReceiptThroughEnd": 1,
+        "afterEnd": 0
+      },
+      "productWindowCancellationNotifications": 0,
+      "cancellationSegments": {
+        "setup": [
+          {
+            "trial": "C1-availability-en",
+            "utc": "2026-10-30T18:14:40.538126+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ],
+        "productWindow": [],
+        "postWindow": [],
+        "control": [
+          {
+            "trial": "C1-availability-en-focus-control",
+            "utc": "2026-10-30T18:15:16.326833+00:00",
+            "kind": "nvda-speech-canceled"
+          },
+          {
+            "trial": "C1-availability-en-focus-control",
+            "utc": "2026-10-30T18:15:21.892574+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ]
+      },
+      "focusAtMatchingState": {
+        "documentHasFocus": true,
+        "element": "body",
+        "ancestry": []
+      },
+      "fixtureAtMatchingState": {
+        "sessionOrdinal": 7,
+        "search": "up",
+        "rejectCursor": false,
+        "status": "events",
+        "projection": "hold",
+        "simulatedCommands": 1,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 0,
+        "recoveryPages": 0,
+        "continuations": 0,
+        "statusReads": 1,
+        "projectionReads": 10
+      },
+      "interpretation": "Provisional literal occurrence inventory, including focus and live output; no announcement-cause attribution, no audible-completion claim and no independent acceptance."
+    },
+    {
+      "pairing": "NVDA/Chrome",
+      "culture": "en",
+      "trial": "C3-events-availability-en",
+      "packet": "native-attempts/current-chrome-matrix-1.zip",
+      "speechMember": "speech.json",
+      "timelineMember": "timeline.json",
+      "queuedTextSha256": "d44eb513309c536487d01e8208542bd4ad9a8dfbbd3b022b10f628c507dc0f40",
+      "triggerUtc": "2026-10-30T18:15:27.899Z",
+      "matchingStateUtc": "2026-10-30T18:15:27.979Z",
+      "collectorReceiptStartedUtc": "2026-10-30T18:15:28.0232276Z",
+      "observationEndedUtc": "2026-10-30T18:15:58.0301952Z",
+      "postTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "preTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 1,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "sampleArrivalSegments": {
+        "preTrigger": 3,
+        "triggerBeforeMatchedState": 0,
+        "matchedStateBeforeCollectorReceipt": 0,
+        "collectorReceiptThroughEnd": 0,
+        "afterEnd": 0
+      },
+      "productWindowCancellationNotifications": 0,
+      "cancellationSegments": {
+        "setup": [
+          {
+            "trial": "C3-events-availability-en",
+            "utc": "2026-10-30T18:15:22.407508+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ],
+        "productWindow": [],
+        "postWindow": [],
+        "control": [
+          {
+            "trial": "C3-events-availability-en-focus-control",
+            "utc": "2026-10-30T18:15:58.236867+00:00",
+            "kind": "nvda-speech-canceled"
+          },
+          {
+            "trial": "C3-events-availability-en-focus-control",
+            "utc": "2026-10-30T18:16:03.827535+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ]
+      },
+      "focusAtMatchingState": {
+        "documentHasFocus": true,
+        "element": "fluent-button",
+        "ancestry": [
+          "tenants-audit-availability-recovery-refresh",
+          "tenants-audit-availability-actions",
+          "tenants-audit-availability",
+          "tenants-create-audit",
+          "tenants-create-lifecycle",
+          "tenants-create-flow",
+          "tenants-create-accordion",
+          "tenants-workspace-tenants-panel-content",
+          "tenants-workspace-tenants-panel",
+          "tenants-workspace-tabs",
+          "tenants-workspace"
+        ]
+      },
+      "fixtureAtMatchingState": {
+        "sessionOrdinal": 7,
+        "search": "up",
+        "rejectCursor": false,
+        "status": "events",
+        "projection": "hold",
+        "simulatedCommands": 1,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 0,
+        "recoveryPages": 0,
+        "continuations": 0,
+        "statusReads": 2,
+        "projectionReads": 15
+      },
+      "interpretation": "Provisional literal occurrence inventory, including focus and live output; no announcement-cause attribution, no audible-completion claim and no independent acceptance."
+    },
+    {
+      "pairing": "NVDA/Chrome",
+      "culture": "en",
+      "trial": "C2-lifecycle-en",
+      "packet": "native-attempts/current-chrome-matrix-1.zip",
+      "speechMember": "speech.json",
+      "timelineMember": "timeline.json",
+      "queuedTextSha256": "227b878d04687479913f6c78b9592b1e3269552c3f55ecde154be286e774f80e",
+      "triggerUtc": "2026-10-30T18:16:11.169Z",
+      "matchingStateUtc": "2026-10-30T18:16:11.212Z",
+      "collectorReceiptStartedUtc": "2026-10-30T18:16:11.2949656Z",
+      "observationEndedUtc": "2026-10-30T18:16:41.2759028Z",
+      "postTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 4,
+        "unavailableReason": 2
+      },
+      "preTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "sampleArrivalSegments": {
+        "preTrigger": 4,
+        "triggerBeforeMatchedState": 0,
+        "matchedStateBeforeCollectorReceipt": 1,
+        "collectorReceiptThroughEnd": 1,
+        "afterEnd": 0
+      },
+      "productWindowCancellationNotifications": 0,
+      "cancellationSegments": {
+        "setup": [
+          {
+            "trial": "C2-lifecycle-en",
+            "utc": "2026-10-30T18:16:05.890789+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ],
+        "productWindow": [],
+        "postWindow": [],
+        "control": [
+          {
+            "trial": "C2-lifecycle-en-focus-control",
+            "utc": "2026-10-30T18:16:41.468606+00:00",
+            "kind": "nvda-speech-canceled"
+          },
+          {
+            "trial": "C2-lifecycle-en-focus-control",
+            "utc": "2026-10-30T18:16:47.036063+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ]
+      },
+      "focusAtMatchingState": {
+        "documentHasFocus": true,
+        "element": "section",
+        "ancestry": [
+          "tenants-create-lifecycle",
+          "tenants-create-flow",
+          "tenants-create-accordion",
+          "tenants-workspace-tenants-panel-content",
+          "tenants-workspace-tenants-panel",
+          "tenants-workspace-tabs",
+          "tenants-workspace"
+        ]
+      },
+      "fixtureAtMatchingState": {
+        "sessionOrdinal": 8,
+        "search": "up",
+        "rejectCursor": false,
+        "status": "unavailable",
+        "projection": "hold",
+        "simulatedCommands": 1,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 0,
+        "recoveryPages": 0,
+        "continuations": 0,
+        "statusReads": 1,
+        "projectionReads": 7
+      },
+      "interpretation": "Provisional literal occurrence inventory, including focus and live output; no announcement-cause attribution, no audible-completion claim and no independent acceptance."
+    },
+    {
+      "pairing": "NVDA/Chrome",
+      "culture": "en",
+      "trial": "C3-unavailable-lifecycle-en",
+      "packet": "native-attempts/current-chrome-matrix-1.zip",
+      "speechMember": "speech.json",
+      "timelineMember": "timeline.json",
+      "queuedTextSha256": "68345fa1dcd68674d66a37b5cd7f97e1bab5b85bd0a5e3db975c955efe9abb03",
+      "triggerUtc": "2026-10-30T18:16:53.182Z",
+      "matchingStateUtc": "2026-10-30T18:16:53.360Z",
+      "collectorReceiptStartedUtc": "2026-10-30T18:16:53.4022141Z",
+      "observationEndedUtc": "2026-10-30T18:17:23.3713690Z",
+      "postTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 3,
+        "unavailableReason": 1
+      },
+      "preTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "sampleArrivalSegments": {
+        "preTrigger": 3,
+        "triggerBeforeMatchedState": 0,
+        "matchedStateBeforeCollectorReceipt": 0,
+        "collectorReceiptThroughEnd": 1,
+        "afterEnd": 0
+      },
+      "productWindowCancellationNotifications": 0,
+      "cancellationSegments": {
+        "setup": [],
+        "productWindow": [],
+        "postWindow": [],
+        "control": [
+          {
+            "trial": "C3-unavailable-lifecycle-en-focus-control",
+            "utc": "2026-10-30T18:17:23.556983+00:00",
+            "kind": "nvda-speech-canceled"
+          },
+          {
+            "trial": "C3-unavailable-lifecycle-en-focus-control",
+            "utc": "2026-10-30T18:17:29.156999+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ]
+      },
+      "focusAtMatchingState": {
+        "documentHasFocus": true,
+        "element": "section",
+        "ancestry": [
+          "tenants-create-lifecycle",
+          "tenants-create-flow",
+          "tenants-create-accordion",
+          "tenants-workspace-tenants-panel-content",
+          "tenants-workspace-tenants-panel",
+          "tenants-workspace-tabs",
+          "tenants-workspace"
+        ]
+      },
+      "fixtureAtMatchingState": {
+        "sessionOrdinal": 8,
+        "search": "up",
+        "rejectCursor": false,
+        "status": "unavailable",
+        "projection": "hold",
+        "simulatedCommands": 1,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 0,
+        "recoveryPages": 0,
+        "continuations": 0,
+        "statusReads": 2,
+        "projectionReads": 9
+      },
+      "interpretation": "Provisional literal occurrence inventory, including focus and live output; no announcement-cause attribution, no audible-completion claim and no independent acceptance."
+    },
+    {
+      "pairing": "NVDA/Chrome",
+      "culture": "en",
+      "trial": "C2-availability-en",
+      "packet": "native-attempts/current-chrome-matrix-1.zip",
+      "speechMember": "speech.json",
+      "timelineMember": "timeline.json",
+      "queuedTextSha256": "379d74fed4b178a9a64bfd239e019004ec079b732f2bd22daaa0453afe97b4c1",
+      "triggerUtc": "2026-10-30T18:17:36.364Z",
+      "matchingStateUtc": "2026-10-30T18:17:36.510Z",
+      "collectorReceiptStartedUtc": "2026-10-30T18:17:36.5954504Z",
+      "observationEndedUtc": "2026-10-30T18:18:06.6241905Z",
+      "postTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 4,
+        "unavailableReason": 2
+      },
+      "preTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "sampleArrivalSegments": {
+        "preTrigger": 3,
+        "triggerBeforeMatchedState": 0,
+        "matchedStateBeforeCollectorReceipt": 1,
+        "collectorReceiptThroughEnd": 1,
+        "afterEnd": 0
+      },
+      "productWindowCancellationNotifications": 0,
+      "cancellationSegments": {
+        "setup": [
+          {
+            "trial": "C2-availability-en",
+            "utc": "2026-10-30T18:17:31.161126+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ],
+        "productWindow": [],
+        "postWindow": [],
+        "control": [
+          {
+            "trial": "C2-availability-en-focus-control",
+            "utc": "2026-10-30T18:18:06.837615+00:00",
+            "kind": "nvda-speech-canceled"
+          },
+          {
+            "trial": "C2-availability-en-focus-control",
+            "utc": "2026-10-30T18:18:12.430119+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ]
+      },
+      "focusAtMatchingState": {
+        "documentHasFocus": true,
+        "element": "section",
+        "ancestry": [
+          "tenants-create-lifecycle",
+          "tenants-create-flow",
+          "tenants-create-accordion",
+          "tenants-workspace-tenants-panel-content",
+          "tenants-workspace-tenants-panel",
+          "tenants-workspace-tabs",
+          "tenants-workspace"
+        ]
+      },
+      "fixtureAtMatchingState": {
+        "sessionOrdinal": 9,
+        "search": "up",
+        "rejectCursor": false,
+        "status": "unavailable",
+        "projection": "hold",
+        "simulatedCommands": 1,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 0,
+        "recoveryPages": 0,
+        "continuations": 0,
+        "statusReads": 1,
+        "projectionReads": 7
+      },
+      "interpretation": "Provisional literal occurrence inventory, including focus and live output; no announcement-cause attribution, no audible-completion claim and no independent acceptance."
+    },
+    {
+      "pairing": "NVDA/Chrome",
+      "culture": "en",
+      "trial": "C3-unavailable-availability-en",
+      "packet": "native-attempts/current-chrome-matrix-1.zip",
+      "speechMember": "speech.json",
+      "timelineMember": "timeline.json",
+      "queuedTextSha256": "23e847b05e1fdb35f45d45f5c40b07bf7449ff70f8cf8f68b31ccca099e8d609",
+      "triggerUtc": "2026-10-30T18:18:18.352Z",
+      "matchingStateUtc": "2026-10-30T18:18:18.433Z",
+      "collectorReceiptStartedUtc": "2026-10-30T18:18:18.4727279Z",
+      "observationEndedUtc": "2026-10-30T18:18:48.4506331Z",
+      "postTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 3,
+        "unavailableReason": 1
+      },
+      "preTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 1,
+        "unavailableReason": 0
+      },
+      "sampleArrivalSegments": {
+        "preTrigger": 2,
+        "triggerBeforeMatchedState": 0,
+        "matchedStateBeforeCollectorReceipt": 0,
+        "collectorReceiptThroughEnd": 1,
+        "afterEnd": 0
+      },
+      "productWindowCancellationNotifications": 0,
+      "cancellationSegments": {
+        "setup": [
+          {
+            "trial": "C3-unavailable-availability-en",
+            "utc": "2026-10-30T18:18:13.085501+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ],
+        "productWindow": [],
+        "postWindow": [],
+        "control": [
+          {
+            "trial": "C3-unavailable-availability-en-focus-control",
+            "utc": "2026-10-30T18:18:48.632008+00:00",
+            "kind": "nvda-speech-canceled"
+          },
+          {
+            "trial": "C3-unavailable-availability-en-focus-control",
+            "utc": "2026-10-30T18:18:54.194331+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ]
+      },
+      "focusAtMatchingState": {
+        "documentHasFocus": true,
+        "element": "section",
+        "ancestry": [
+          "tenants-create-lifecycle",
+          "tenants-create-flow",
+          "tenants-create-accordion",
+          "tenants-workspace-tenants-panel-content",
+          "tenants-workspace-tenants-panel",
+          "tenants-workspace-tabs",
+          "tenants-workspace"
+        ]
+      },
+      "fixtureAtMatchingState": {
+        "sessionOrdinal": 9,
+        "search": "up",
+        "rejectCursor": false,
+        "status": "unavailable",
+        "projection": "hold",
+        "simulatedCommands": 1,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 0,
+        "recoveryPages": 0,
+        "continuations": 0,
+        "statusReads": 2,
+        "projectionReads": 9
+      },
+      "interpretation": "Provisional literal occurrence inventory, including focus and live output; no announcement-cause attribution, no audible-completion claim and no independent acceptance."
+    },
+    {
+      "pairing": "NVDA/Chrome",
+      "culture": "fr",
+      "trial": "S0-fr",
+      "packet": "native-attempts/current-chrome-matrix-1.zip",
+      "speechMember": "speech.json",
+      "timelineMember": "timeline.json",
+      "queuedTextSha256": "cd81fa0fb27ec9536f4150b8e289384894806a9faf743c7bea9deeecd0a232a1",
+      "triggerUtc": "2026-10-30T18:19:00.717Z",
+      "matchingStateUtc": "2026-10-30T18:19:01.531Z",
+      "collectorReceiptStartedUtc": "2026-10-30T18:19:01.6039782Z",
+      "observationEndedUtc": "2026-10-30T18:19:31.5712010Z",
+      "postTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "preTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "sampleArrivalSegments": {
+        "preTrigger": 0,
+        "triggerBeforeMatchedState": 4,
+        "matchedStateBeforeCollectorReceipt": 0,
+        "collectorReceiptThroughEnd": 2,
+        "afterEnd": 0
+      },
+      "productWindowCancellationNotifications": 2,
+      "cancellationSegments": {
+        "setup": [],
+        "productWindow": [
+          {
+            "trial": "S0-fr",
+            "utc": "2026-10-30T18:19:01.127007+00:00",
+            "kind": "nvda-speech-canceled"
+          },
+          {
+            "trial": "S0-fr",
+            "utc": "2026-10-30T18:19:01.676543+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ],
+        "postWindow": [],
+        "control": [
+          {
+            "trial": "S0-fr-focus-control",
+            "utc": "2026-10-30T18:19:37.369247+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ]
+      },
+      "focusAtMatchingState": {
+        "documentHasFocus": true,
+        "element": "button",
+        "ancestry": [
+          "tenants-list-status-filter",
+          "tenants-workspace-tenants-panel-content",
+          "tenants-workspace-tenants-panel",
+          "tenants-workspace-tabs",
+          "tenants-workspace"
+        ]
+      },
+      "fixtureAtMatchingState": {
+        "sessionOrdinal": 10,
+        "search": "up",
+        "rejectCursor": false,
+        "status": "wait",
+        "projection": "hold",
+        "simulatedCommands": 0,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 0,
+        "recoveryPages": 0,
+        "continuations": 0,
+        "statusReads": 0,
+        "projectionReads": 48
+      },
+      "interpretation": "Provisional literal occurrence inventory, including focus and live output; no announcement-cause attribution, no audible-completion claim and no independent acceptance."
+    },
+    {
+      "pairing": "NVDA/Chrome",
+      "culture": "fr",
+      "trial": "S1-fr",
+      "packet": "native-attempts/current-chrome-matrix-1.zip",
+      "speechMember": "speech.json",
+      "timelineMember": "timeline.json",
+      "queuedTextSha256": "c349883d2d81ac065eafab6f84d3169af008b07349e460f369bdd56fe94ed701",
+      "triggerUtc": "2026-10-30T18:19:44.036Z",
+      "matchingStateUtc": "2026-10-30T18:19:44.205Z",
+      "collectorReceiptStartedUtc": "2026-10-30T18:19:44.2827916Z",
+      "observationEndedUtc": "2026-10-30T18:20:14.2123704Z",
+      "postTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 1,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "preTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "sampleArrivalSegments": {
+        "preTrigger": 0,
+        "triggerBeforeMatchedState": 0,
+        "matchedStateBeforeCollectorReceipt": 0,
+        "collectorReceiptThroughEnd": 1,
+        "afterEnd": 0
+      },
+      "productWindowCancellationNotifications": 1,
+      "cancellationSegments": {
+        "setup": [],
+        "productWindow": [
+          {
+            "trial": "S1-fr",
+            "utc": "2026-10-30T18:19:44.316774+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ],
+        "postWindow": [],
+        "control": [
+          {
+            "trial": "S1-fr-focus-control",
+            "utc": "2026-10-30T18:20:20.018625+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ]
+      },
+      "focusAtMatchingState": {
+        "documentHasFocus": true,
+        "element": "button",
+        "ancestry": [
+          "tenants-list-status-filter",
+          "tenants-workspace-tenants-panel-content",
+          "tenants-workspace-tenants-panel",
+          "tenants-workspace-tabs",
+          "tenants-workspace"
+        ]
+      },
+      "fixtureAtMatchingState": {
+        "sessionOrdinal": 11,
+        "search": "down",
+        "rejectCursor": false,
+        "status": "wait",
+        "projection": "hold",
+        "simulatedCommands": 0,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 0,
+        "recoveryPages": 0,
+        "continuations": 0,
+        "statusReads": 0,
+        "projectionReads": 6
+      },
+      "interpretation": "Provisional literal occurrence inventory, including focus and live output; no announcement-cause attribution, no audible-completion claim and no independent acceptance."
+    },
+    {
+      "pairing": "NVDA/Chrome",
+      "culture": "fr",
+      "trial": "S2-fr",
+      "packet": "native-attempts/current-chrome-matrix-1.zip",
+      "speechMember": "speech.json",
+      "timelineMember": "timeline.json",
+      "queuedTextSha256": "866dc736d3e3d32a0d20798a2ebe221e17ec3a08696b69d4d9a2664b42857dcc",
+      "triggerUtc": "2026-10-30T18:20:27.358Z",
+      "matchingStateUtc": "2026-10-30T18:20:27.502Z",
+      "collectorReceiptStartedUtc": "2026-10-30T18:20:27.5897252Z",
+      "observationEndedUtc": "2026-10-30T18:20:57.5318940Z",
+      "postTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 1,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "preTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "sampleArrivalSegments": {
+        "preTrigger": 3,
+        "triggerBeforeMatchedState": 0,
+        "matchedStateBeforeCollectorReceipt": 1,
+        "collectorReceiptThroughEnd": 1,
+        "afterEnd": 0
+      },
+      "productWindowCancellationNotifications": 0,
+      "cancellationSegments": {
+        "setup": [],
+        "productWindow": [],
+        "postWindow": [],
+        "control": [
+          {
+            "trial": "S2-fr-focus-control",
+            "utc": "2026-10-30T18:20:57.772955+00:00",
+            "kind": "nvda-speech-canceled"
+          },
+          {
+            "trial": "S2-fr-focus-control",
+            "utc": "2026-10-30T18:21:03.373209+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ]
+      },
+      "focusAtMatchingState": {
+        "documentHasFocus": true,
+        "element": "h1",
+        "ancestry": [
+          "tenants-list-page-header",
+          "tenants-workspace"
+        ]
+      },
+      "fixtureAtMatchingState": {
+        "sessionOrdinal": 12,
+        "search": "up",
+        "rejectCursor": false,
+        "status": "wait",
+        "projection": "hold",
+        "simulatedCommands": 0,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 0,
+        "recoveryPages": 0,
+        "continuations": 0,
+        "statusReads": 0,
+        "projectionReads": 125
+      },
+      "interpretation": "Provisional literal occurrence inventory, including focus and live output; no announcement-cause attribution, no audible-completion claim and no independent acceptance."
+    },
+    {
+      "pairing": "NVDA/Chrome",
+      "culture": "fr",
+      "trial": "S3-fr",
+      "packet": "native-attempts/current-chrome-matrix-1.zip",
+      "speechMember": "speech.json",
+      "timelineMember": "timeline.json",
+      "queuedTextSha256": "ca4fd861d4b43283ac4d4cb8d498398c77d4e8f3cef4c28eab9bc84106d95f62",
+      "triggerUtc": "2026-10-30T18:21:10.729Z",
+      "matchingStateUtc": "2026-10-30T18:21:10.829Z",
+      "collectorReceiptStartedUtc": "2026-10-30T18:21:10.8624485Z",
+      "observationEndedUtc": "2026-10-30T18:21:40.8453963Z",
+      "postTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 1,
+        "searchRefreshed": 0,
+        "listRefreshed": 1,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "preTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "sampleArrivalSegments": {
+        "preTrigger": 2,
+        "triggerBeforeMatchedState": 0,
+        "matchedStateBeforeCollectorReceipt": 1,
+        "collectorReceiptThroughEnd": 1,
+        "afterEnd": 0
+      },
+      "productWindowCancellationNotifications": 0,
+      "cancellationSegments": {
+        "setup": [],
+        "productWindow": [],
+        "postWindow": [],
+        "control": [
+          {
+            "trial": "S3-fr-focus-control",
+            "utc": "2026-10-30T18:21:41.047906+00:00",
+            "kind": "nvda-speech-canceled"
+          },
+          {
+            "trial": "S3-fr-focus-control",
+            "utc": "2026-10-30T18:21:46.690353+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ]
+      },
+      "focusAtMatchingState": {
+        "documentHasFocus": true,
+        "element": "fluent-button",
+        "ancestry": [
+          "tenants-list-next",
+          "tenants-workspace-tenants-panel-content",
+          "tenants-workspace-tenants-panel",
+          "tenants-workspace-tabs",
+          "tenants-workspace"
+        ]
+      },
+      "fixtureAtMatchingState": {
+        "sessionOrdinal": 13,
+        "search": "down",
+        "rejectCursor": false,
+        "status": "wait",
+        "projection": "hold",
+        "simulatedCommands": 0,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 1,
+        "recoveryPages": 1,
+        "continuations": 0,
+        "statusReads": 0,
+        "projectionReads": 9
+      },
+      "interpretation": "Provisional literal occurrence inventory, including focus and live output; no announcement-cause attribution, no audible-completion claim and no independent acceptance."
+    },
+    {
+      "pairing": "NVDA/Chrome",
+      "culture": "fr",
+      "trial": "C1-lifecycle-fr",
+      "packet": "native-attempts/current-chrome-matrix-1.zip",
+      "speechMember": "speech.json",
+      "timelineMember": "timeline.json",
+      "queuedTextSha256": "75af3b94c918ce76f42e08c57d43edc7007514a43684049bd73fdc17c75d4bdf",
+      "triggerUtc": "2026-10-30T18:21:54.271Z",
+      "matchingStateUtc": "2026-10-30T18:21:54.316Z",
+      "collectorReceiptStartedUtc": "2026-10-30T18:21:54.3923022Z",
+      "observationEndedUtc": "2026-10-30T18:22:24.4259250Z",
+      "postTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 1,
+        "pendingReason": 1,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "preTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "sampleArrivalSegments": {
+        "preTrigger": 3,
+        "triggerBeforeMatchedState": 0,
+        "matchedStateBeforeCollectorReceipt": 1,
+        "collectorReceiptThroughEnd": 1,
+        "afterEnd": 0
+      },
+      "productWindowCancellationNotifications": 0,
+      "cancellationSegments": {
+        "setup": [
+          {
+            "trial": "C1-lifecycle-fr",
+            "utc": "2026-10-30T18:21:49.012826+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ],
+        "productWindow": [],
+        "postWindow": [],
+        "control": [
+          {
+            "trial": "C1-lifecycle-fr-focus-control",
+            "utc": "2026-10-30T18:22:24.730044+00:00",
+            "kind": "nvda-speech-canceled"
+          },
+          {
+            "trial": "C1-lifecycle-fr-focus-control",
+            "utc": "2026-10-30T18:22:30.211888+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ]
+      },
+      "focusAtMatchingState": {
+        "documentHasFocus": true,
+        "element": "body",
+        "ancestry": []
+      },
+      "fixtureAtMatchingState": {
+        "sessionOrdinal": 14,
+        "search": "up",
+        "rejectCursor": false,
+        "status": "events",
+        "projection": "hold",
+        "simulatedCommands": 1,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 0,
+        "recoveryPages": 0,
+        "continuations": 0,
+        "statusReads": 1,
+        "projectionReads": 10
+      },
+      "interpretation": "Provisional literal occurrence inventory, including focus and live output; no announcement-cause attribution, no audible-completion claim and no independent acceptance."
+    },
+    {
+      "pairing": "NVDA/Chrome",
+      "culture": "fr",
+      "trial": "C3-events-lifecycle-fr",
+      "packet": "native-attempts/current-chrome-matrix-1.zip",
+      "speechMember": "speech.json",
+      "timelineMember": "timeline.json",
+      "queuedTextSha256": "f5d840b8949bee67e256f6efa61893778c7c29ef6d4c89ba7c648449113e0dc8",
+      "triggerUtc": "2026-10-30T18:22:36.221Z",
+      "matchingStateUtc": "2026-10-30T18:22:36.249Z",
+      "collectorReceiptStartedUtc": "2026-10-30T18:22:36.3443773Z",
+      "observationEndedUtc": "2026-10-30T18:23:06.3199713Z",
+      "postTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "preTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "sampleArrivalSegments": {
+        "preTrigger": 3,
+        "triggerBeforeMatchedState": 0,
+        "matchedStateBeforeCollectorReceipt": 0,
+        "collectorReceiptThroughEnd": 0,
+        "afterEnd": 0
+      },
+      "productWindowCancellationNotifications": 0,
+      "cancellationSegments": {
+        "setup": [
+          {
+            "trial": "C3-events-lifecycle-fr",
+            "utc": "2026-10-30T18:22:30.973740+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ],
+        "productWindow": [],
+        "postWindow": [],
+        "control": [
+          {
+            "trial": "C3-events-lifecycle-fr-focus-control",
+            "utc": "2026-10-30T18:23:06.520657+00:00",
+            "kind": "nvda-speech-canceled"
+          },
+          {
+            "trial": "C3-events-lifecycle-fr-focus-control",
+            "utc": "2026-10-30T18:23:12.112421+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ]
+      },
+      "focusAtMatchingState": {
+        "documentHasFocus": true,
+        "element": "fluent-button",
+        "ancestry": [
+          "tenants-create-refresh",
+          "tenants-create-flow",
+          "tenants-create-accordion",
+          "tenants-workspace-tenants-panel-content",
+          "tenants-workspace-tenants-panel",
+          "tenants-workspace-tabs",
+          "tenants-workspace"
+        ]
+      },
+      "fixtureAtMatchingState": {
+        "sessionOrdinal": 14,
+        "search": "up",
+        "rejectCursor": false,
+        "status": "events",
+        "projection": "hold",
+        "simulatedCommands": 1,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 0,
+        "recoveryPages": 0,
+        "continuations": 0,
+        "statusReads": 2,
+        "projectionReads": 15
+      },
+      "interpretation": "Provisional literal occurrence inventory, including focus and live output; no announcement-cause attribution, no audible-completion claim and no independent acceptance."
+    },
+    {
+      "pairing": "NVDA/Chrome",
+      "culture": "fr",
+      "trial": "C1-availability-fr",
+      "packet": "native-attempts/current-chrome-matrix-1.zip",
+      "speechMember": "speech.json",
+      "timelineMember": "timeline.json",
+      "queuedTextSha256": "e6a086d773467f4267bb842fa40c3739c5f7b9f8033a893193c55b98c56c3ea4",
+      "triggerUtc": "2026-10-30T18:23:19.809Z",
+      "matchingStateUtc": "2026-10-30T18:23:19.874Z",
+      "collectorReceiptStartedUtc": "2026-10-30T18:23:19.9324813Z",
+      "observationEndedUtc": "2026-10-30T18:23:49.9025539Z",
+      "postTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 1,
+        "pendingReason": 1,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "preTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "sampleArrivalSegments": {
+        "preTrigger": 4,
+        "triggerBeforeMatchedState": 0,
+        "matchedStateBeforeCollectorReceipt": 1,
+        "collectorReceiptThroughEnd": 1,
+        "afterEnd": 0
+      },
+      "productWindowCancellationNotifications": 0,
+      "cancellationSegments": {
+        "setup": [
+          {
+            "trial": "C1-availability-fr",
+            "utc": "2026-10-30T18:23:14.457704+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ],
+        "productWindow": [],
+        "postWindow": [],
+        "control": [
+          {
+            "trial": "C1-availability-fr-focus-control",
+            "utc": "2026-10-30T18:23:50.190795+00:00",
+            "kind": "nvda-speech-canceled"
+          },
+          {
+            "trial": "C1-availability-fr-focus-control",
+            "utc": "2026-10-30T18:23:55.658902+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ]
+      },
+      "focusAtMatchingState": {
+        "documentHasFocus": true,
+        "element": "body",
+        "ancestry": []
+      },
+      "fixtureAtMatchingState": {
+        "sessionOrdinal": 15,
+        "search": "up",
+        "rejectCursor": false,
+        "status": "events",
+        "projection": "hold",
+        "simulatedCommands": 1,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 0,
+        "recoveryPages": 0,
+        "continuations": 0,
+        "statusReads": 1,
+        "projectionReads": 10
+      },
+      "interpretation": "Provisional literal occurrence inventory, including focus and live output; no announcement-cause attribution, no audible-completion claim and no independent acceptance."
+    },
+    {
+      "pairing": "NVDA/Chrome",
+      "culture": "fr",
+      "trial": "C3-events-availability-fr",
+      "packet": "native-attempts/current-chrome-matrix-1.zip",
+      "speechMember": "speech.json",
+      "timelineMember": "timeline.json",
+      "queuedTextSha256": "02468d7751baeec88e2bfa156f4e7e8664cda450159baa1355891486e1252f9c",
+      "triggerUtc": "2026-10-30T18:24:01.947Z",
+      "matchingStateUtc": "2026-10-30T18:24:02.028Z",
+      "collectorReceiptStartedUtc": "2026-10-30T18:24:02.0727749Z",
+      "observationEndedUtc": "2026-10-30T18:24:32.1413579Z",
+      "postTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "preTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 1,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "sampleArrivalSegments": {
+        "preTrigger": 3,
+        "triggerBeforeMatchedState": 0,
+        "matchedStateBeforeCollectorReceipt": 0,
+        "collectorReceiptThroughEnd": 0,
+        "afterEnd": 0
+      },
+      "productWindowCancellationNotifications": 0,
+      "cancellationSegments": {
+        "setup": [],
+        "productWindow": [],
+        "postWindow": [],
+        "control": [
+          {
+            "trial": "C3-events-availability-fr-focus-control",
+            "utc": "2026-10-30T18:24:32.336503+00:00",
+            "kind": "nvda-speech-canceled"
+          },
+          {
+            "trial": "C3-events-availability-fr-focus-control",
+            "utc": "2026-10-30T18:24:37.950624+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ]
+      },
+      "focusAtMatchingState": {
+        "documentHasFocus": true,
+        "element": "fluent-button",
+        "ancestry": [
+          "tenants-audit-availability-recovery-refresh",
+          "tenants-audit-availability-actions",
+          "tenants-audit-availability",
+          "tenants-create-audit",
+          "tenants-create-lifecycle",
+          "tenants-create-flow",
+          "tenants-create-accordion",
+          "tenants-workspace-tenants-panel-content",
+          "tenants-workspace-tenants-panel",
+          "tenants-workspace-tabs",
+          "tenants-workspace"
+        ]
+      },
+      "fixtureAtMatchingState": {
+        "sessionOrdinal": 15,
+        "search": "up",
+        "rejectCursor": false,
+        "status": "events",
+        "projection": "hold",
+        "simulatedCommands": 1,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 0,
+        "recoveryPages": 0,
+        "continuations": 0,
+        "statusReads": 2,
+        "projectionReads": 15
+      },
+      "interpretation": "Provisional literal occurrence inventory, including focus and live output; no announcement-cause attribution, no audible-completion claim and no independent acceptance."
+    },
+    {
+      "pairing": "NVDA/Chrome",
+      "culture": "fr",
+      "trial": "C2-lifecycle-fr",
+      "packet": "native-attempts/current-chrome-matrix-1.zip",
+      "speechMember": "speech.json",
+      "timelineMember": "timeline.json",
+      "queuedTextSha256": "3d8b4c902ffb820b5452f06d0f0085b56c9afb7ac6e77952f1fcc069e389b5c3",
+      "triggerUtc": "2026-10-30T18:24:45.277Z",
+      "matchingStateUtc": "2026-10-30T18:24:45.333Z",
+      "collectorReceiptStartedUtc": "2026-10-30T18:24:45.4049270Z",
+      "observationEndedUtc": "2026-10-30T18:25:15.3434263Z",
+      "postTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 4,
+        "unavailableReason": 2
+      },
+      "preTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "sampleArrivalSegments": {
+        "preTrigger": 2,
+        "triggerBeforeMatchedState": 0,
+        "matchedStateBeforeCollectorReceipt": 1,
+        "collectorReceiptThroughEnd": 1,
+        "afterEnd": 0
+      },
+      "productWindowCancellationNotifications": 0,
+      "cancellationSegments": {
+        "setup": [
+          {
+            "trial": "C2-lifecycle-fr",
+            "utc": "2026-10-30T18:24:40.029132+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ],
+        "productWindow": [],
+        "postWindow": [],
+        "control": [
+          {
+            "trial": "C2-lifecycle-fr-focus-control",
+            "utc": "2026-10-30T18:25:15.543087+00:00",
+            "kind": "nvda-speech-canceled"
+          },
+          {
+            "trial": "C2-lifecycle-fr-focus-control",
+            "utc": "2026-10-30T18:25:21.198058+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ]
+      },
+      "focusAtMatchingState": {
+        "documentHasFocus": true,
+        "element": "section",
+        "ancestry": [
+          "tenants-create-lifecycle",
+          "tenants-create-flow",
+          "tenants-create-accordion",
+          "tenants-workspace-tenants-panel-content",
+          "tenants-workspace-tenants-panel",
+          "tenants-workspace-tabs",
+          "tenants-workspace"
+        ]
+      },
+      "fixtureAtMatchingState": {
+        "sessionOrdinal": 16,
+        "search": "up",
+        "rejectCursor": false,
+        "status": "unavailable",
+        "projection": "hold",
+        "simulatedCommands": 1,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 0,
+        "recoveryPages": 0,
+        "continuations": 0,
+        "statusReads": 1,
+        "projectionReads": 7
+      },
+      "interpretation": "Provisional literal occurrence inventory, including focus and live output; no announcement-cause attribution, no audible-completion claim and no independent acceptance."
+    },
+    {
+      "pairing": "NVDA/Chrome",
+      "culture": "fr",
+      "trial": "C3-unavailable-lifecycle-fr",
+      "packet": "native-attempts/current-chrome-matrix-1.zip",
+      "speechMember": "speech.json",
+      "timelineMember": "timeline.json",
+      "queuedTextSha256": "9bb03828d215218253a2c2368ad14cc6895e071a1c67efb377959d0ba7f7498a",
+      "triggerUtc": "2026-10-30T18:25:27.036Z",
+      "matchingStateUtc": "2026-10-30T18:25:27.118Z",
+      "collectorReceiptStartedUtc": "2026-10-30T18:25:27.1582760Z",
+      "observationEndedUtc": "2026-10-30T18:25:57.1660803Z",
+      "postTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 3,
+        "unavailableReason": 1
+      },
+      "preTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "sampleArrivalSegments": {
+        "preTrigger": 3,
+        "triggerBeforeMatchedState": 0,
+        "matchedStateBeforeCollectorReceipt": 0,
+        "collectorReceiptThroughEnd": 1,
+        "afterEnd": 0
+      },
+      "productWindowCancellationNotifications": 0,
+      "cancellationSegments": {
+        "setup": [],
+        "productWindow": [],
+        "postWindow": [],
+        "control": [
+          {
+            "trial": "C3-unavailable-lifecycle-fr-focus-control",
+            "utc": "2026-10-30T18:25:57.362847+00:00",
+            "kind": "nvda-speech-canceled"
+          },
+          {
+            "trial": "C3-unavailable-lifecycle-fr-focus-control",
+            "utc": "2026-10-30T18:26:02.944878+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ]
+      },
+      "focusAtMatchingState": {
+        "documentHasFocus": true,
+        "element": "section",
+        "ancestry": [
+          "tenants-create-lifecycle",
+          "tenants-create-flow",
+          "tenants-create-accordion",
+          "tenants-workspace-tenants-panel-content",
+          "tenants-workspace-tenants-panel",
+          "tenants-workspace-tabs",
+          "tenants-workspace"
+        ]
+      },
+      "fixtureAtMatchingState": {
+        "sessionOrdinal": 16,
+        "search": "up",
+        "rejectCursor": false,
+        "status": "unavailable",
+        "projection": "hold",
+        "simulatedCommands": 1,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 0,
+        "recoveryPages": 0,
+        "continuations": 0,
+        "statusReads": 2,
+        "projectionReads": 9
+      },
+      "interpretation": "Provisional literal occurrence inventory, including focus and live output; no announcement-cause attribution, no audible-completion claim and no independent acceptance."
+    },
+    {
+      "pairing": "NVDA/Chrome",
+      "culture": "fr",
+      "trial": "C2-availability-fr",
+      "packet": "native-attempts/current-chrome-matrix-1.zip",
+      "speechMember": "speech.json",
+      "timelineMember": "timeline.json",
+      "queuedTextSha256": "d01c3d57ac9680648c0d25f48cdcb5b5a3eca1680f3df0899706f4bbf468508b",
+      "triggerUtc": "2026-10-30T18:26:10.427Z",
+      "matchingStateUtc": "2026-10-30T18:26:10.491Z",
+      "collectorReceiptStartedUtc": "2026-10-30T18:26:10.5538706Z",
+      "observationEndedUtc": "2026-10-30T18:26:40.5492755Z",
+      "postTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 4,
+        "unavailableReason": 2
+      },
+      "preTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "sampleArrivalSegments": {
+        "preTrigger": 3,
+        "triggerBeforeMatchedState": 0,
+        "matchedStateBeforeCollectorReceipt": 1,
+        "collectorReceiptThroughEnd": 1,
+        "afterEnd": 0
+      },
+      "productWindowCancellationNotifications": 0,
+      "cancellationSegments": {
+        "setup": [
+          {
+            "trial": "C2-availability-fr",
+            "utc": "2026-10-30T18:26:05.145800+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ],
+        "productWindow": [],
+        "postWindow": [],
+        "control": [
+          {
+            "trial": "C2-availability-fr-focus-control",
+            "utc": "2026-10-30T18:26:40.729319+00:00",
+            "kind": "nvda-speech-canceled"
+          },
+          {
+            "trial": "C2-availability-fr-focus-control",
+            "utc": "2026-10-30T18:26:46.352340+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ]
+      },
+      "focusAtMatchingState": {
+        "documentHasFocus": true,
+        "element": "section",
+        "ancestry": [
+          "tenants-create-lifecycle",
+          "tenants-create-flow",
+          "tenants-create-accordion",
+          "tenants-workspace-tenants-panel-content",
+          "tenants-workspace-tenants-panel",
+          "tenants-workspace-tabs",
+          "tenants-workspace"
+        ]
+      },
+      "fixtureAtMatchingState": {
+        "sessionOrdinal": 17,
+        "search": "up",
+        "rejectCursor": false,
+        "status": "unavailable",
+        "projection": "hold",
+        "simulatedCommands": 1,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 0,
+        "recoveryPages": 0,
+        "continuations": 0,
+        "statusReads": 1,
+        "projectionReads": 7
+      },
+      "interpretation": "Provisional literal occurrence inventory, including focus and live output; no announcement-cause attribution, no audible-completion claim and no independent acceptance."
+    },
+    {
+      "pairing": "NVDA/Chrome",
+      "culture": "fr",
+      "trial": "C3-unavailable-availability-fr",
+      "packet": "native-attempts/current-chrome-matrix-1.zip",
+      "speechMember": "speech.json",
+      "timelineMember": "timeline.json",
+      "queuedTextSha256": "ce0c3f67d2e639c16ce18fcc8adc98367b161321ceabd33f8ab43e0b02bd744e",
+      "triggerUtc": "2026-10-30T18:26:51.898Z",
+      "matchingStateUtc": "2026-10-30T18:26:51.979Z",
+      "collectorReceiptStartedUtc": "2026-10-30T18:26:52.0208082Z",
+      "observationEndedUtc": "2026-10-30T18:27:22.0913602Z",
+      "postTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 3,
+        "unavailableReason": 1
+      },
+      "preTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 1,
+        "unavailableReason": 0
+      },
+      "sampleArrivalSegments": {
+        "preTrigger": 2,
+        "triggerBeforeMatchedState": 0,
+        "matchedStateBeforeCollectorReceipt": 0,
+        "collectorReceiptThroughEnd": 1,
+        "afterEnd": 0
+      },
+      "productWindowCancellationNotifications": 0,
+      "cancellationSegments": {
+        "setup": [],
+        "productWindow": [],
+        "postWindow": [],
+        "control": [
+          {
+            "trial": "C3-unavailable-availability-fr-focus-control",
+            "utc": "2026-10-30T18:27:22.317836+00:00",
+            "kind": "nvda-speech-canceled"
+          },
+          {
+            "trial": "C3-unavailable-availability-fr-focus-control",
+            "utc": "2026-10-30T18:27:27.962703+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ]
+      },
+      "focusAtMatchingState": {
+        "documentHasFocus": true,
+        "element": "section",
+        "ancestry": [
+          "tenants-create-lifecycle",
+          "tenants-create-flow",
+          "tenants-create-accordion",
+          "tenants-workspace-tenants-panel-content",
+          "tenants-workspace-tenants-panel",
+          "tenants-workspace-tabs",
+          "tenants-workspace"
+        ]
+      },
+      "fixtureAtMatchingState": {
+        "sessionOrdinal": 17,
+        "search": "up",
+        "rejectCursor": false,
+        "status": "unavailable",
+        "projection": "hold",
+        "simulatedCommands": 1,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 0,
+        "recoveryPages": 0,
+        "continuations": 0,
+        "statusReads": 2,
+        "projectionReads": 9
+      },
+      "interpretation": "Provisional literal occurrence inventory, including focus and live output; no announcement-cause attribution, no audible-completion claim and no independent acceptance."
+    },
+    {
+      "pairing": "NVDA/Firefox",
+      "culture": "en",
+      "trial": "S0-en",
+      "packet": "native-attempts/current-firefox-matrix-1.zip",
+      "speechMember": "speech.json",
+      "timelineMember": "timeline.json",
+      "queuedTextSha256": "6ad5b220a6efb62541a10d5e262ba36efe0f8afb84e0a8f2f3069603b7d53e74",
+      "triggerUtc": "2026-10-30T18:29:28.506Z",
+      "matchingStateUtc": "2026-10-30T18:29:29.707Z",
+      "collectorReceiptStartedUtc": "2026-10-30T18:29:29.7976177Z",
+      "observationEndedUtc": "2026-10-30T18:29:59.8160268Z",
+      "postTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "preTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "sampleArrivalSegments": {
+        "preTrigger": 0,
+        "triggerBeforeMatchedState": 5,
+        "matchedStateBeforeCollectorReceipt": 1,
+        "collectorReceiptThroughEnd": 2,
+        "afterEnd": 0
+      },
+      "productWindowCancellationNotifications": 2,
+      "cancellationSegments": {
+        "setup": [],
+        "productWindow": [
+          {
+            "trial": "S0-en",
+            "utc": "2026-10-30T18:29:29.172963+00:00",
+            "kind": "nvda-speech-canceled"
+          },
+          {
+            "trial": "S0-en",
+            "utc": "2026-10-30T18:29:29.751915+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ],
+        "postWindow": [],
+        "control": [
+          {
+            "trial": "S0-en-focus-control",
+            "utc": "2026-10-30T18:30:05.820508+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ]
+      },
+      "focusAtMatchingState": {
+        "documentHasFocus": true,
+        "element": "button",
+        "ancestry": [
+          "tenants-list-status-filter",
+          "tenants-workspace-tenants-panel-content",
+          "tenants-workspace-tenants-panel",
+          "tenants-workspace-tabs",
+          "tenants-workspace"
+        ]
+      },
+      "fixtureAtMatchingState": {
+        "sessionOrdinal": 2,
+        "search": "up",
+        "rejectCursor": false,
+        "status": "wait",
+        "projection": "hold",
+        "simulatedCommands": 0,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 0,
+        "recoveryPages": 0,
+        "continuations": 0,
+        "statusReads": 0,
+        "projectionReads": 8
+      },
+      "interpretation": "Provisional literal occurrence inventory, including focus and live output; no announcement-cause attribution, no audible-completion claim and no independent acceptance."
+    },
+    {
+      "pairing": "NVDA/Firefox",
+      "culture": "en",
+      "trial": "S1-en",
+      "packet": "native-attempts/current-firefox-matrix-1.zip",
+      "speechMember": "speech.json",
+      "timelineMember": "timeline.json",
+      "queuedTextSha256": "3b425f2a078e2cead58fb95e8bcc2d790568e3334534e913f1c385e227683569",
+      "triggerUtc": "2026-10-30T18:30:12.836Z",
+      "matchingStateUtc": "2026-10-30T18:30:13.061Z",
+      "collectorReceiptStartedUtc": "2026-10-30T18:30:13.1811285Z",
+      "observationEndedUtc": "2026-10-30T18:30:43.1056153Z",
+      "postTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 1,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "preTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "sampleArrivalSegments": {
+        "preTrigger": 0,
+        "triggerBeforeMatchedState": 0,
+        "matchedStateBeforeCollectorReceipt": 1,
+        "collectorReceiptThroughEnd": 1,
+        "afterEnd": 0
+      },
+      "productWindowCancellationNotifications": 1,
+      "cancellationSegments": {
+        "setup": [],
+        "productWindow": [
+          {
+            "trial": "S1-en",
+            "utc": "2026-10-30T18:30:13.104018+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ],
+        "postWindow": [],
+        "control": [
+          {
+            "trial": "S1-en-focus-control",
+            "utc": "2026-10-30T18:30:48.887502+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ]
+      },
+      "focusAtMatchingState": {
+        "documentHasFocus": true,
+        "element": "button",
+        "ancestry": [
+          "tenants-list-status-filter",
+          "tenants-workspace-tenants-panel-content",
+          "tenants-workspace-tenants-panel",
+          "tenants-workspace-tabs",
+          "tenants-workspace"
+        ]
+      },
+      "fixtureAtMatchingState": {
+        "sessionOrdinal": 3,
+        "search": "down",
+        "rejectCursor": false,
+        "status": "wait",
+        "projection": "hold",
+        "simulatedCommands": 0,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 0,
+        "recoveryPages": 0,
+        "continuations": 0,
+        "statusReads": 0,
+        "projectionReads": 6
+      },
+      "interpretation": "Provisional literal occurrence inventory, including focus and live output; no announcement-cause attribution, no audible-completion claim and no independent acceptance."
+    },
+    {
+      "pairing": "NVDA/Firefox",
+      "culture": "en",
+      "trial": "S2-en",
+      "packet": "native-attempts/current-firefox-matrix-1.zip",
+      "speechMember": "speech.json",
+      "timelineMember": "timeline.json",
+      "queuedTextSha256": "c4dfaa520b68876f2af02c195eef976997e2e706d2e927f12b32b3406f055320",
+      "triggerUtc": "2026-10-30T18:30:56.916Z",
+      "matchingStateUtc": "2026-10-30T18:30:57.186Z",
+      "collectorReceiptStartedUtc": "2026-10-30T18:30:57.2409122Z",
+      "observationEndedUtc": "2026-10-30T18:31:27.1926140Z",
+      "postTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 1,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "preTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "sampleArrivalSegments": {
+        "preTrigger": 1,
+        "triggerBeforeMatchedState": 1,
+        "matchedStateBeforeCollectorReceipt": 1,
+        "collectorReceiptThroughEnd": 1,
+        "afterEnd": 0
+      },
+      "productWindowCancellationNotifications": 0,
+      "cancellationSegments": {
+        "setup": [],
+        "productWindow": [],
+        "postWindow": [],
+        "control": [
+          {
+            "trial": "S2-en-focus-control",
+            "utc": "2026-10-30T18:31:27.453765+00:00",
+            "kind": "nvda-speech-canceled"
+          },
+          {
+            "trial": "S2-en-focus-control",
+            "utc": "2026-10-30T18:31:32.583198+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ]
+      },
+      "focusAtMatchingState": {
+        "documentHasFocus": true,
+        "element": "h1",
+        "ancestry": [
+          "tenants-list-page-header",
+          "tenants-workspace"
+        ]
+      },
+      "fixtureAtMatchingState": {
+        "sessionOrdinal": 4,
+        "search": "up",
+        "rejectCursor": false,
+        "status": "wait",
+        "projection": "hold",
+        "simulatedCommands": 0,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 0,
+        "recoveryPages": 0,
+        "continuations": 0,
+        "statusReads": 0,
+        "projectionReads": 125
+      },
+      "interpretation": "Provisional literal occurrence inventory, including focus and live output; no announcement-cause attribution, no audible-completion claim and no independent acceptance."
+    },
+    {
+      "pairing": "NVDA/Firefox",
+      "culture": "en",
+      "trial": "S3-en",
+      "packet": "native-attempts/current-firefox-matrix-1.zip",
+      "speechMember": "speech.json",
+      "timelineMember": "timeline.json",
+      "queuedTextSha256": "62980549e4cb9f9b4b16ae25e154294e0003ceb6cba4060852d4910548d09070",
+      "triggerUtc": "2026-10-30T18:31:40.264Z",
+      "matchingStateUtc": "2026-10-30T18:31:40.416Z",
+      "collectorReceiptStartedUtc": "2026-10-30T18:31:40.4941700Z",
+      "observationEndedUtc": "2026-10-30T18:32:10.4604492Z",
+      "postTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 1,
+        "searchRefreshed": 0,
+        "listRefreshed": 1,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "preTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "sampleArrivalSegments": {
+        "preTrigger": 1,
+        "triggerBeforeMatchedState": 0,
+        "matchedStateBeforeCollectorReceipt": 1,
+        "collectorReceiptThroughEnd": 1,
+        "afterEnd": 0
+      },
+      "productWindowCancellationNotifications": 0,
+      "cancellationSegments": {
+        "setup": [],
+        "productWindow": [],
+        "postWindow": [],
+        "control": [
+          {
+            "trial": "S3-en-focus-control",
+            "utc": "2026-10-30T18:32:10.661166+00:00",
+            "kind": "nvda-speech-canceled"
+          },
+          {
+            "trial": "S3-en-focus-control",
+            "utc": "2026-10-30T18:32:15.704666+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ]
+      },
+      "focusAtMatchingState": {
+        "documentHasFocus": true,
+        "element": "fluent-button",
+        "ancestry": [
+          "tenants-list-next",
+          "tenants-workspace-tenants-panel-content",
+          "tenants-workspace-tenants-panel",
+          "tenants-workspace-tabs",
+          "tenants-workspace"
+        ]
+      },
+      "fixtureAtMatchingState": {
+        "sessionOrdinal": 5,
+        "search": "down",
+        "rejectCursor": false,
+        "status": "wait",
+        "projection": "hold",
+        "simulatedCommands": 0,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 1,
+        "recoveryPages": 1,
+        "continuations": 0,
+        "statusReads": 0,
+        "projectionReads": 9
+      },
+      "interpretation": "Provisional literal occurrence inventory, including focus and live output; no announcement-cause attribution, no audible-completion claim and no independent acceptance."
+    },
+    {
+      "pairing": "NVDA/Firefox",
+      "culture": "en",
+      "trial": "C1-lifecycle-en",
+      "packet": "native-attempts/current-firefox-matrix-1.zip",
+      "speechMember": "speech.json",
+      "timelineMember": "timeline.json",
+      "queuedTextSha256": "24c0c918db444add3f934c37bf2c3d98ff4b47c502304a3b4b220a996c636620",
+      "triggerUtc": "2026-10-30T18:32:23.949Z",
+      "matchingStateUtc": "2026-10-30T18:32:24.153Z",
+      "collectorReceiptStartedUtc": "2026-10-30T18:32:24.1654373Z",
+      "observationEndedUtc": "2026-10-30T18:32:54.2664668Z",
+      "postTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 1,
+        "pendingReason": 1,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "preTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "sampleArrivalSegments": {
+        "preTrigger": 3,
+        "triggerBeforeMatchedState": 0,
+        "matchedStateBeforeCollectorReceipt": 1,
+        "collectorReceiptThroughEnd": 1,
+        "afterEnd": 0
+      },
+      "productWindowCancellationNotifications": 0,
+      "cancellationSegments": {
+        "setup": [
+          {
+            "trial": "C1-lifecycle-en",
+            "utc": "2026-10-30T18:32:18.626786+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ],
+        "productWindow": [],
+        "postWindow": [],
+        "control": [
+          {
+            "trial": "C1-lifecycle-en-focus-control",
+            "utc": "2026-10-30T18:32:54.595795+00:00",
+            "kind": "nvda-speech-canceled"
+          },
+          {
+            "trial": "C1-lifecycle-en-focus-control",
+            "utc": "2026-10-30T18:33:00.069572+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ]
+      },
+      "focusAtMatchingState": {
+        "documentHasFocus": true,
+        "element": "body",
+        "ancestry": []
+      },
+      "fixtureAtMatchingState": {
+        "sessionOrdinal": 6,
+        "search": "up",
+        "rejectCursor": false,
+        "status": "events",
+        "projection": "hold",
+        "simulatedCommands": 1,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 0,
+        "recoveryPages": 0,
+        "continuations": 0,
+        "statusReads": 1,
+        "projectionReads": 10
+      },
+      "interpretation": "Provisional literal occurrence inventory, including focus and live output; no announcement-cause attribution, no audible-completion claim and no independent acceptance."
+    },
+    {
+      "pairing": "NVDA/Firefox",
+      "culture": "en",
+      "trial": "C3-events-lifecycle-en",
+      "packet": "native-attempts/current-firefox-matrix-1.zip",
+      "speechMember": "speech.json",
+      "timelineMember": "timeline.json",
+      "queuedTextSha256": "78deb68d9e007d3fb3e04d86db2a6ff149322edde4536bc1bfbff02aed9734b3",
+      "triggerUtc": "2026-10-30T18:33:06.231Z",
+      "matchingStateUtc": "2026-10-30T18:33:06.391Z",
+      "collectorReceiptStartedUtc": "2026-10-30T18:33:06.4608263Z",
+      "observationEndedUtc": "2026-10-30T18:33:36.4978598Z",
+      "postTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "preTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "sampleArrivalSegments": {
+        "preTrigger": 3,
+        "triggerBeforeMatchedState": 0,
+        "matchedStateBeforeCollectorReceipt": 0,
+        "collectorReceiptThroughEnd": 0,
+        "afterEnd": 0
+      },
+      "productWindowCancellationNotifications": 0,
+      "cancellationSegments": {
+        "setup": [
+          {
+            "trial": "C3-events-lifecycle-en",
+            "utc": "2026-10-30T18:33:00.850572+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ],
+        "productWindow": [],
+        "postWindow": [],
+        "control": [
+          {
+            "trial": "C3-events-lifecycle-en-focus-control",
+            "utc": "2026-10-30T18:33:36.707408+00:00",
+            "kind": "nvda-speech-canceled"
+          },
+          {
+            "trial": "C3-events-lifecycle-en-focus-control",
+            "utc": "2026-10-30T18:33:41.775547+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ]
+      },
+      "focusAtMatchingState": {
+        "documentHasFocus": true,
+        "element": "fluent-button",
+        "ancestry": [
+          "tenants-create-refresh",
+          "tenants-create-flow",
+          "tenants-create-accordion",
+          "tenants-workspace-tenants-panel-content",
+          "tenants-workspace-tenants-panel",
+          "tenants-workspace-tabs",
+          "tenants-workspace"
+        ]
+      },
+      "fixtureAtMatchingState": {
+        "sessionOrdinal": 6,
+        "search": "up",
+        "rejectCursor": false,
+        "status": "events",
+        "projection": "hold",
+        "simulatedCommands": 1,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 0,
+        "recoveryPages": 0,
+        "continuations": 0,
+        "statusReads": 2,
+        "projectionReads": 15
+      },
+      "interpretation": "Provisional literal occurrence inventory, including focus and live output; no announcement-cause attribution, no audible-completion claim and no independent acceptance."
+    },
+    {
+      "pairing": "NVDA/Firefox",
+      "culture": "en",
+      "trial": "C1-availability-en",
+      "packet": "native-attempts/current-firefox-matrix-1.zip",
+      "speechMember": "speech.json",
+      "timelineMember": "timeline.json",
+      "queuedTextSha256": "5e7b01aa5c4329c48a96600eba7c73541f94088b082dbec3cf12a06cb0facea3",
+      "triggerUtc": "2026-10-30T18:33:49.743Z",
+      "matchingStateUtc": "2026-10-30T18:33:49.914Z",
+      "collectorReceiptStartedUtc": "2026-10-30T18:33:49.9613396Z",
+      "observationEndedUtc": "2026-10-30T18:34:19.9549211Z",
+      "postTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 1,
+        "pendingReason": 1,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "preTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "sampleArrivalSegments": {
+        "preTrigger": 3,
+        "triggerBeforeMatchedState": 0,
+        "matchedStateBeforeCollectorReceipt": 1,
+        "collectorReceiptThroughEnd": 0,
+        "afterEnd": 0
+      },
+      "productWindowCancellationNotifications": 0,
+      "cancellationSegments": {
+        "setup": [
+          {
+            "trial": "C1-availability-en",
+            "utc": "2026-10-30T18:33:44.354449+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ],
+        "productWindow": [],
+        "postWindow": [],
+        "control": [
+          {
+            "trial": "C1-availability-en-focus-control",
+            "utc": "2026-10-30T18:34:20.286405+00:00",
+            "kind": "nvda-speech-canceled"
+          },
+          {
+            "trial": "C1-availability-en-focus-control",
+            "utc": "2026-10-30T18:34:25.815527+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ]
+      },
+      "focusAtMatchingState": {
+        "documentHasFocus": true,
+        "element": "body",
+        "ancestry": []
+      },
+      "fixtureAtMatchingState": {
+        "sessionOrdinal": 7,
+        "search": "up",
+        "rejectCursor": false,
+        "status": "events",
+        "projection": "hold",
+        "simulatedCommands": 1,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 0,
+        "recoveryPages": 0,
+        "continuations": 0,
+        "statusReads": 1,
+        "projectionReads": 10
+      },
+      "interpretation": "Provisional literal occurrence inventory, including focus and live output; no announcement-cause attribution, no audible-completion claim and no independent acceptance."
+    },
+    {
+      "pairing": "NVDA/Firefox",
+      "culture": "en",
+      "trial": "C3-events-availability-en",
+      "packet": "native-attempts/current-firefox-matrix-1.zip",
+      "speechMember": "speech.json",
+      "timelineMember": "timeline.json",
+      "queuedTextSha256": "fa3e9cced9f5c4c4d70fb8f474188b8468bcdc333c841405b3401176108d9410",
+      "triggerUtc": "2026-10-30T18:34:31.865Z",
+      "matchingStateUtc": "2026-10-30T18:34:32.057Z",
+      "collectorReceiptStartedUtc": "2026-10-30T18:34:32.0952915Z",
+      "observationEndedUtc": "2026-10-30T18:35:02.1175151Z",
+      "postTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "preTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 1,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "sampleArrivalSegments": {
+        "preTrigger": 2,
+        "triggerBeforeMatchedState": 0,
+        "matchedStateBeforeCollectorReceipt": 0,
+        "collectorReceiptThroughEnd": 0,
+        "afterEnd": 0
+      },
+      "productWindowCancellationNotifications": 0,
+      "cancellationSegments": {
+        "setup": [
+          {
+            "trial": "C3-events-availability-en",
+            "utc": "2026-10-30T18:34:26.615470+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ],
+        "productWindow": [],
+        "postWindow": [],
+        "control": [
+          {
+            "trial": "C3-events-availability-en-focus-control",
+            "utc": "2026-10-30T18:35:02.324342+00:00",
+            "kind": "nvda-speech-canceled"
+          },
+          {
+            "trial": "C3-events-availability-en-focus-control",
+            "utc": "2026-10-30T18:35:07.435455+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ]
+      },
+      "focusAtMatchingState": {
+        "documentHasFocus": true,
+        "element": "fluent-button",
+        "ancestry": [
+          "tenants-audit-availability-recovery-refresh",
+          "tenants-audit-availability-actions",
+          "tenants-audit-availability",
+          "tenants-create-audit",
+          "tenants-create-lifecycle",
+          "tenants-create-flow",
+          "tenants-create-accordion",
+          "tenants-workspace-tenants-panel-content",
+          "tenants-workspace-tenants-panel",
+          "tenants-workspace-tabs",
+          "tenants-workspace"
+        ]
+      },
+      "fixtureAtMatchingState": {
+        "sessionOrdinal": 7,
+        "search": "up",
+        "rejectCursor": false,
+        "status": "events",
+        "projection": "hold",
+        "simulatedCommands": 1,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 0,
+        "recoveryPages": 0,
+        "continuations": 0,
+        "statusReads": 2,
+        "projectionReads": 15
+      },
+      "interpretation": "Provisional literal occurrence inventory, including focus and live output; no announcement-cause attribution, no audible-completion claim and no independent acceptance."
+    },
+    {
+      "pairing": "NVDA/Firefox",
+      "culture": "en",
+      "trial": "C2-lifecycle-en",
+      "packet": "native-attempts/current-firefox-matrix-1.zip",
+      "speechMember": "speech.json",
+      "timelineMember": "timeline.json",
+      "queuedTextSha256": "4615647b7a9a6c88323de01bb86a53d5abe37f60c1be58253b6d7d848b3a3720",
+      "triggerUtc": "2026-10-30T18:35:15.343Z",
+      "matchingStateUtc": "2026-10-30T18:35:15.431Z",
+      "collectorReceiptStartedUtc": "2026-10-30T18:35:15.4654212Z",
+      "observationEndedUtc": "2026-10-30T18:35:45.4886342Z",
+      "postTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 4,
+        "unavailableReason": 1
+      },
+      "preTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "sampleArrivalSegments": {
+        "preTrigger": 2,
+        "triggerBeforeMatchedState": 0,
+        "matchedStateBeforeCollectorReceipt": 1,
+        "collectorReceiptThroughEnd": 1,
+        "afterEnd": 0
+      },
+      "productWindowCancellationNotifications": 0,
+      "cancellationSegments": {
+        "setup": [
+          {
+            "trial": "C2-lifecycle-en",
+            "utc": "2026-10-30T18:35:10.121709+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ],
+        "productWindow": [],
+        "postWindow": [],
+        "control": [
+          {
+            "trial": "C2-lifecycle-en-focus-control",
+            "utc": "2026-10-30T18:35:45.694678+00:00",
+            "kind": "nvda-speech-canceled"
+          },
+          {
+            "trial": "C2-lifecycle-en-focus-control",
+            "utc": "2026-10-30T18:35:51.229855+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ]
+      },
+      "focusAtMatchingState": {
+        "documentHasFocus": true,
+        "element": "section",
+        "ancestry": [
+          "tenants-create-lifecycle",
+          "tenants-create-flow",
+          "tenants-create-accordion",
+          "tenants-workspace-tenants-panel-content",
+          "tenants-workspace-tenants-panel",
+          "tenants-workspace-tabs",
+          "tenants-workspace"
+        ]
+      },
+      "fixtureAtMatchingState": {
+        "sessionOrdinal": 8,
+        "search": "up",
+        "rejectCursor": false,
+        "status": "unavailable",
+        "projection": "hold",
+        "simulatedCommands": 1,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 0,
+        "recoveryPages": 0,
+        "continuations": 0,
+        "statusReads": 1,
+        "projectionReads": 7
+      },
+      "interpretation": "Provisional literal occurrence inventory, including focus and live output; no announcement-cause attribution, no audible-completion claim and no independent acceptance."
+    },
+    {
+      "pairing": "NVDA/Firefox",
+      "culture": "en",
+      "trial": "C3-unavailable-lifecycle-en",
+      "packet": "native-attempts/current-firefox-matrix-1.zip",
+      "speechMember": "speech.json",
+      "timelineMember": "timeline.json",
+      "queuedTextSha256": "9a467df79f5e8c3f3a23882a5542ba0b0ff9319a4b0c21810ff55ac40684824b",
+      "triggerUtc": "2026-10-30T18:35:57.394Z",
+      "matchingStateUtc": "2026-10-30T18:35:57.589Z",
+      "collectorReceiptStartedUtc": "2026-10-30T18:35:57.6399109Z",
+      "observationEndedUtc": "2026-10-30T18:36:27.6432279Z",
+      "postTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 3,
+        "unavailableReason": 1
+      },
+      "preTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "sampleArrivalSegments": {
+        "preTrigger": 3,
+        "triggerBeforeMatchedState": 0,
+        "matchedStateBeforeCollectorReceipt": 0,
+        "collectorReceiptThroughEnd": 1,
+        "afterEnd": 0
+      },
+      "productWindowCancellationNotifications": 0,
+      "cancellationSegments": {
+        "setup": [
+          {
+            "trial": "C3-unavailable-lifecycle-en",
+            "utc": "2026-10-30T18:35:52.064980+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ],
+        "productWindow": [],
+        "postWindow": [],
+        "control": [
+          {
+            "trial": "C3-unavailable-lifecycle-en-focus-control",
+            "utc": "2026-10-30T18:36:27.851589+00:00",
+            "kind": "nvda-speech-canceled"
+          },
+          {
+            "trial": "C3-unavailable-lifecycle-en-focus-control",
+            "utc": "2026-10-30T18:36:33.459029+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ]
+      },
+      "focusAtMatchingState": {
+        "documentHasFocus": true,
+        "element": "section",
+        "ancestry": [
+          "tenants-create-lifecycle",
+          "tenants-create-flow",
+          "tenants-create-accordion",
+          "tenants-workspace-tenants-panel-content",
+          "tenants-workspace-tenants-panel",
+          "tenants-workspace-tabs",
+          "tenants-workspace"
+        ]
+      },
+      "fixtureAtMatchingState": {
+        "sessionOrdinal": 8,
+        "search": "up",
+        "rejectCursor": false,
+        "status": "unavailable",
+        "projection": "hold",
+        "simulatedCommands": 1,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 0,
+        "recoveryPages": 0,
+        "continuations": 0,
+        "statusReads": 2,
+        "projectionReads": 9
+      },
+      "interpretation": "Provisional literal occurrence inventory, including focus and live output; no announcement-cause attribution, no audible-completion claim and no independent acceptance."
+    },
+    {
+      "pairing": "NVDA/Firefox",
+      "culture": "en",
+      "trial": "C2-availability-en",
+      "packet": "native-attempts/current-firefox-matrix-1.zip",
+      "speechMember": "speech.json",
+      "timelineMember": "timeline.json",
+      "queuedTextSha256": "9ffd5d42a258466329f7377b57ad1881784634933b3cc79eb0acaa7cf55ee161",
+      "triggerUtc": "2026-10-30T18:36:41.346Z",
+      "matchingStateUtc": "2026-10-30T18:36:41.528Z",
+      "collectorReceiptStartedUtc": "2026-10-30T18:36:41.5922572Z",
+      "observationEndedUtc": "2026-10-30T18:37:11.6264859Z",
+      "postTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 4,
+        "unavailableReason": 2
+      },
+      "preTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "sampleArrivalSegments": {
+        "preTrigger": 2,
+        "triggerBeforeMatchedState": 0,
+        "matchedStateBeforeCollectorReceipt": 1,
+        "collectorReceiptThroughEnd": 1,
+        "afterEnd": 0
+      },
+      "productWindowCancellationNotifications": 0,
+      "cancellationSegments": {
+        "setup": [
+          {
+            "trial": "C2-availability-en",
+            "utc": "2026-10-30T18:36:36.100125+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ],
+        "productWindow": [],
+        "postWindow": [],
+        "control": [
+          {
+            "trial": "C2-availability-en-focus-control",
+            "utc": "2026-10-30T18:37:11.824686+00:00",
+            "kind": "nvda-speech-canceled"
+          },
+          {
+            "trial": "C2-availability-en-focus-control",
+            "utc": "2026-10-30T18:37:17.395243+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ]
+      },
+      "focusAtMatchingState": {
+        "documentHasFocus": true,
+        "element": "section",
+        "ancestry": [
+          "tenants-create-lifecycle",
+          "tenants-create-flow",
+          "tenants-create-accordion",
+          "tenants-workspace-tenants-panel-content",
+          "tenants-workspace-tenants-panel",
+          "tenants-workspace-tabs",
+          "tenants-workspace"
+        ]
+      },
+      "fixtureAtMatchingState": {
+        "sessionOrdinal": 9,
+        "search": "up",
+        "rejectCursor": false,
+        "status": "unavailable",
+        "projection": "hold",
+        "simulatedCommands": 1,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 0,
+        "recoveryPages": 0,
+        "continuations": 0,
+        "statusReads": 1,
+        "projectionReads": 7
+      },
+      "interpretation": "Provisional literal occurrence inventory, including focus and live output; no announcement-cause attribution, no audible-completion claim and no independent acceptance."
+    },
+    {
+      "pairing": "NVDA/Firefox",
+      "culture": "en",
+      "trial": "C3-unavailable-availability-en",
+      "packet": "native-attempts/current-firefox-matrix-1.zip",
+      "speechMember": "speech.json",
+      "timelineMember": "timeline.json",
+      "queuedTextSha256": "1a4ab57f0d7a07f7976b840e212c55f49e33b69abbc0d8b315d6ed43f7c3e385",
+      "triggerUtc": "2026-10-30T18:37:23.545Z",
+      "matchingStateUtc": "2026-10-30T18:37:23.726Z",
+      "collectorReceiptStartedUtc": "2026-10-30T18:37:23.7597290Z",
+      "observationEndedUtc": "2026-10-30T18:37:53.7515508Z",
+      "postTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 3,
+        "unavailableReason": 1
+      },
+      "preTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 1,
+        "unavailableReason": 0
+      },
+      "sampleArrivalSegments": {
+        "preTrigger": 3,
+        "triggerBeforeMatchedState": 0,
+        "matchedStateBeforeCollectorReceipt": 0,
+        "collectorReceiptThroughEnd": 1,
+        "afterEnd": 0
+      },
+      "productWindowCancellationNotifications": 0,
+      "cancellationSegments": {
+        "setup": [
+          {
+            "trial": "C3-unavailable-availability-en",
+            "utc": "2026-10-30T18:37:18.200615+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ],
+        "productWindow": [],
+        "postWindow": [],
+        "control": [
+          {
+            "trial": "C3-unavailable-availability-en-focus-control",
+            "utc": "2026-10-30T18:37:53.943223+00:00",
+            "kind": "nvda-speech-canceled"
+          },
+          {
+            "trial": "C3-unavailable-availability-en-focus-control",
+            "utc": "2026-10-30T18:37:59.032137+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ]
+      },
+      "focusAtMatchingState": {
+        "documentHasFocus": true,
+        "element": "section",
+        "ancestry": [
+          "tenants-create-lifecycle",
+          "tenants-create-flow",
+          "tenants-create-accordion",
+          "tenants-workspace-tenants-panel-content",
+          "tenants-workspace-tenants-panel",
+          "tenants-workspace-tabs",
+          "tenants-workspace"
+        ]
+      },
+      "fixtureAtMatchingState": {
+        "sessionOrdinal": 9,
+        "search": "up",
+        "rejectCursor": false,
+        "status": "unavailable",
+        "projection": "hold",
+        "simulatedCommands": 1,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 0,
+        "recoveryPages": 0,
+        "continuations": 0,
+        "statusReads": 2,
+        "projectionReads": 9
+      },
+      "interpretation": "Provisional literal occurrence inventory, including focus and live output; no announcement-cause attribution, no audible-completion claim and no independent acceptance."
+    },
+    {
+      "pairing": "NVDA/Firefox",
+      "culture": "fr",
+      "trial": "S0-fr",
+      "packet": "native-attempts/current-firefox-matrix-1.zip",
+      "speechMember": "speech.json",
+      "timelineMember": "timeline.json",
+      "queuedTextSha256": "b0b118ff3393859abab4976d43895696c83590f651f3b9b24be9d87fa1c0b0d2",
+      "triggerUtc": "2026-10-30T18:38:05.821Z",
+      "matchingStateUtc": "2026-10-30T18:38:06.887Z",
+      "collectorReceiptStartedUtc": "2026-10-30T18:38:06.9127410Z",
+      "observationEndedUtc": "2026-10-30T18:38:36.9604187Z",
+      "postTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "preTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "sampleArrivalSegments": {
+        "preTrigger": 0,
+        "triggerBeforeMatchedState": 4,
+        "matchedStateBeforeCollectorReceipt": 0,
+        "collectorReceiptThroughEnd": 2,
+        "afterEnd": 0
+      },
+      "productWindowCancellationNotifications": 2,
+      "cancellationSegments": {
+        "setup": [],
+        "productWindow": [
+          {
+            "trial": "S0-fr",
+            "utc": "2026-10-30T18:38:06.382034+00:00",
+            "kind": "nvda-speech-canceled"
+          },
+          {
+            "trial": "S0-fr",
+            "utc": "2026-10-30T18:38:06.917697+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ],
+        "postWindow": [],
+        "control": [
+          {
+            "trial": "S0-fr-focus-control",
+            "utc": "2026-10-30T18:38:42.223613+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ]
+      },
+      "focusAtMatchingState": {
+        "documentHasFocus": true,
+        "element": "button",
+        "ancestry": [
+          "tenants-list-status-filter",
+          "tenants-workspace-tenants-panel-content",
+          "tenants-workspace-tenants-panel",
+          "tenants-workspace-tabs",
+          "tenants-workspace"
+        ]
+      },
+      "fixtureAtMatchingState": {
+        "sessionOrdinal": 10,
+        "search": "up",
+        "rejectCursor": false,
+        "status": "wait",
+        "projection": "hold",
+        "simulatedCommands": 0,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 0,
+        "recoveryPages": 0,
+        "continuations": 0,
+        "statusReads": 0,
+        "projectionReads": 48
+      },
+      "interpretation": "Provisional literal occurrence inventory, including focus and live output; no announcement-cause attribution, no audible-completion claim and no independent acceptance."
+    },
+    {
+      "pairing": "NVDA/Firefox",
+      "culture": "fr",
+      "trial": "S1-fr",
+      "packet": "native-attempts/current-firefox-matrix-1.zip",
+      "speechMember": "speech.json",
+      "timelineMember": "timeline.json",
+      "queuedTextSha256": "af7ddada5511c59964b9f310ebf74176b3093564fc75d94004c4a1addaf5de82",
+      "triggerUtc": "2026-10-30T18:38:49.686Z",
+      "matchingStateUtc": "2026-10-30T18:38:49.893Z",
+      "collectorReceiptStartedUtc": "2026-10-30T18:38:49.9187595Z",
+      "observationEndedUtc": "2026-10-30T18:39:19.9398982Z",
+      "postTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 1,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "preTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "sampleArrivalSegments": {
+        "preTrigger": 0,
+        "triggerBeforeMatchedState": 0,
+        "matchedStateBeforeCollectorReceipt": 1,
+        "collectorReceiptThroughEnd": 1,
+        "afterEnd": 0
+      },
+      "productWindowCancellationNotifications": 1,
+      "cancellationSegments": {
+        "setup": [],
+        "productWindow": [
+          {
+            "trial": "S1-fr",
+            "utc": "2026-10-30T18:38:49.908940+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ],
+        "postWindow": [],
+        "control": [
+          {
+            "trial": "S1-fr-focus-control",
+            "utc": "2026-10-30T18:39:25.293453+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ]
+      },
+      "focusAtMatchingState": {
+        "documentHasFocus": true,
+        "element": "button",
+        "ancestry": [
+          "tenants-list-status-filter",
+          "tenants-workspace-tenants-panel-content",
+          "tenants-workspace-tenants-panel",
+          "tenants-workspace-tabs",
+          "tenants-workspace"
+        ]
+      },
+      "fixtureAtMatchingState": {
+        "sessionOrdinal": 11,
+        "search": "down",
+        "rejectCursor": false,
+        "status": "wait",
+        "projection": "hold",
+        "simulatedCommands": 0,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 0,
+        "recoveryPages": 0,
+        "continuations": 0,
+        "statusReads": 0,
+        "projectionReads": 6
+      },
+      "interpretation": "Provisional literal occurrence inventory, including focus and live output; no announcement-cause attribution, no audible-completion claim and no independent acceptance."
+    },
+    {
+      "pairing": "NVDA/Firefox",
+      "culture": "fr",
+      "trial": "S2-fr",
+      "packet": "native-attempts/current-firefox-matrix-1.zip",
+      "speechMember": "speech.json",
+      "timelineMember": "timeline.json",
+      "queuedTextSha256": "30de3707c4d75918008a7019f67827102fa7e57adc80195c800cc1079bcd16b0",
+      "triggerUtc": "2026-10-30T18:39:32.952Z",
+      "matchingStateUtc": "2026-10-30T18:39:33.244Z",
+      "collectorReceiptStartedUtc": "2026-10-30T18:39:33.3152788Z",
+      "observationEndedUtc": "2026-10-30T18:40:03.2695744Z",
+      "postTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 1,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "preTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "sampleArrivalSegments": {
+        "preTrigger": 2,
+        "triggerBeforeMatchedState": 0,
+        "matchedStateBeforeCollectorReceipt": 1,
+        "collectorReceiptThroughEnd": 1,
+        "afterEnd": 0
+      },
+      "productWindowCancellationNotifications": 0,
+      "cancellationSegments": {
+        "setup": [],
+        "productWindow": [],
+        "postWindow": [],
+        "control": [
+          {
+            "trial": "S2-fr-focus-control",
+            "utc": "2026-10-30T18:40:03.506583+00:00",
+            "kind": "nvda-speech-canceled"
+          },
+          {
+            "trial": "S2-fr-focus-control",
+            "utc": "2026-10-30T18:40:09.029247+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ]
+      },
+      "focusAtMatchingState": {
+        "documentHasFocus": true,
+        "element": "h1",
+        "ancestry": [
+          "tenants-list-page-header",
+          "tenants-workspace"
+        ]
+      },
+      "fixtureAtMatchingState": {
+        "sessionOrdinal": 12,
+        "search": "up",
+        "rejectCursor": false,
+        "status": "wait",
+        "projection": "hold",
+        "simulatedCommands": 0,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 0,
+        "recoveryPages": 0,
+        "continuations": 0,
+        "statusReads": 0,
+        "projectionReads": 125
+      },
+      "interpretation": "Provisional literal occurrence inventory, including focus and live output; no announcement-cause attribution, no audible-completion claim and no independent acceptance."
+    },
+    {
+      "pairing": "NVDA/Firefox",
+      "culture": "fr",
+      "trial": "S3-fr",
+      "packet": "native-attempts/current-firefox-matrix-1.zip",
+      "speechMember": "speech.json",
+      "timelineMember": "timeline.json",
+      "queuedTextSha256": "5b64a73884975d70ce817108159effb7f92d3777cd93200a12ab120f29a2817a",
+      "triggerUtc": "2026-10-30T18:40:16.808Z",
+      "matchingStateUtc": "2026-10-30T18:40:16.961Z",
+      "collectorReceiptStartedUtc": "2026-10-30T18:40:17.0410585Z",
+      "observationEndedUtc": "2026-10-30T18:40:47.0230506Z",
+      "postTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 1,
+        "searchRefreshed": 0,
+        "listRefreshed": 1,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "preTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "sampleArrivalSegments": {
+        "preTrigger": 2,
+        "triggerBeforeMatchedState": 0,
+        "matchedStateBeforeCollectorReceipt": 1,
+        "collectorReceiptThroughEnd": 1,
+        "afterEnd": 0
+      },
+      "productWindowCancellationNotifications": 0,
+      "cancellationSegments": {
+        "setup": [
+          {
+            "trial": "S3-fr",
+            "utc": "2026-10-30T18:40:11.595542+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ],
+        "productWindow": [],
+        "postWindow": [],
+        "control": [
+          {
+            "trial": "S3-fr-focus-control",
+            "utc": "2026-10-30T18:40:47.241258+00:00",
+            "kind": "nvda-speech-canceled"
+          },
+          {
+            "trial": "S3-fr-focus-control",
+            "utc": "2026-10-30T18:40:52.799238+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ]
+      },
+      "focusAtMatchingState": {
+        "documentHasFocus": true,
+        "element": "fluent-button",
+        "ancestry": [
+          "tenants-list-next",
+          "tenants-workspace-tenants-panel-content",
+          "tenants-workspace-tenants-panel",
+          "tenants-workspace-tabs",
+          "tenants-workspace"
+        ]
+      },
+      "fixtureAtMatchingState": {
+        "sessionOrdinal": 13,
+        "search": "down",
+        "rejectCursor": false,
+        "status": "wait",
+        "projection": "hold",
+        "simulatedCommands": 0,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 1,
+        "recoveryPages": 1,
+        "continuations": 0,
+        "statusReads": 0,
+        "projectionReads": 9
+      },
+      "interpretation": "Provisional literal occurrence inventory, including focus and live output; no announcement-cause attribution, no audible-completion claim and no independent acceptance."
+    },
+    {
+      "pairing": "NVDA/Firefox",
+      "culture": "fr",
+      "trial": "C1-lifecycle-fr",
+      "packet": "native-attempts/current-firefox-matrix-1.zip",
+      "speechMember": "speech.json",
+      "timelineMember": "timeline.json",
+      "queuedTextSha256": "5a9011950224f3b518af4ab94011613acc772bada775fda931016afe4dfe7d06",
+      "triggerUtc": "2026-10-30T18:41:00.953Z",
+      "matchingStateUtc": "2026-10-30T18:41:01.140Z",
+      "collectorReceiptStartedUtc": "2026-10-30T18:41:01.2007212Z",
+      "observationEndedUtc": "2026-10-30T18:41:31.2113705Z",
+      "postTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 1,
+        "pendingReason": 1,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "preTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "sampleArrivalSegments": {
+        "preTrigger": 3,
+        "triggerBeforeMatchedState": 0,
+        "matchedStateBeforeCollectorReceipt": 1,
+        "collectorReceiptThroughEnd": 0,
+        "afterEnd": 0
+      },
+      "productWindowCancellationNotifications": 0,
+      "cancellationSegments": {
+        "setup": [
+          {
+            "trial": "C1-lifecycle-fr",
+            "utc": "2026-10-30T18:40:55.605005+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ],
+        "productWindow": [],
+        "postWindow": [],
+        "control": [
+          {
+            "trial": "C1-lifecycle-fr-focus-control",
+            "utc": "2026-10-30T18:41:31.507345+00:00",
+            "kind": "nvda-speech-canceled"
+          },
+          {
+            "trial": "C1-lifecycle-fr-focus-control",
+            "utc": "2026-10-30T18:41:36.982360+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ]
+      },
+      "focusAtMatchingState": {
+        "documentHasFocus": true,
+        "element": "body",
+        "ancestry": []
+      },
+      "fixtureAtMatchingState": {
+        "sessionOrdinal": 14,
+        "search": "up",
+        "rejectCursor": false,
+        "status": "events",
+        "projection": "hold",
+        "simulatedCommands": 1,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 0,
+        "recoveryPages": 0,
+        "continuations": 0,
+        "statusReads": 1,
+        "projectionReads": 10
+      },
+      "interpretation": "Provisional literal occurrence inventory, including focus and live output; no announcement-cause attribution, no audible-completion claim and no independent acceptance."
+    },
+    {
+      "pairing": "NVDA/Firefox",
+      "culture": "fr",
+      "trial": "C3-events-lifecycle-fr",
+      "packet": "native-attempts/current-firefox-matrix-1.zip",
+      "speechMember": "speech.json",
+      "timelineMember": "timeline.json",
+      "queuedTextSha256": "1913935a3fd8183888e951b1f7246cebd43ef773e7513482c875423006a562ed",
+      "triggerUtc": "2026-10-30T18:41:43.249Z",
+      "matchingStateUtc": "2026-10-30T18:41:43.396Z",
+      "collectorReceiptStartedUtc": "2026-10-30T18:41:43.4967048Z",
+      "observationEndedUtc": "2026-10-30T18:42:13.4822661Z",
+      "postTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "preTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "sampleArrivalSegments": {
+        "preTrigger": 3,
+        "triggerBeforeMatchedState": 0,
+        "matchedStateBeforeCollectorReceipt": 0,
+        "collectorReceiptThroughEnd": 0,
+        "afterEnd": 0
+      },
+      "productWindowCancellationNotifications": 0,
+      "cancellationSegments": {
+        "setup": [
+          {
+            "trial": "C3-events-lifecycle-fr",
+            "utc": "2026-10-30T18:41:37.905072+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ],
+        "productWindow": [],
+        "postWindow": [],
+        "control": [
+          {
+            "trial": "C3-events-lifecycle-fr-focus-control",
+            "utc": "2026-10-30T18:42:13.686780+00:00",
+            "kind": "nvda-speech-canceled"
+          },
+          {
+            "trial": "C3-events-lifecycle-fr-focus-control",
+            "utc": "2026-10-30T18:42:19.255211+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ]
+      },
+      "focusAtMatchingState": {
+        "documentHasFocus": true,
+        "element": "fluent-button",
+        "ancestry": [
+          "tenants-create-refresh",
+          "tenants-create-flow",
+          "tenants-create-accordion",
+          "tenants-workspace-tenants-panel-content",
+          "tenants-workspace-tenants-panel",
+          "tenants-workspace-tabs",
+          "tenants-workspace"
+        ]
+      },
+      "fixtureAtMatchingState": {
+        "sessionOrdinal": 14,
+        "search": "up",
+        "rejectCursor": false,
+        "status": "events",
+        "projection": "hold",
+        "simulatedCommands": 1,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 0,
+        "recoveryPages": 0,
+        "continuations": 0,
+        "statusReads": 2,
+        "projectionReads": 15
+      },
+      "interpretation": "Provisional literal occurrence inventory, including focus and live output; no announcement-cause attribution, no audible-completion claim and no independent acceptance."
+    },
+    {
+      "pairing": "NVDA/Firefox",
+      "culture": "fr",
+      "trial": "C1-availability-fr",
+      "packet": "native-attempts/current-firefox-matrix-1.zip",
+      "speechMember": "speech.json",
+      "timelineMember": "timeline.json",
+      "queuedTextSha256": "81a9e37697c77c81f15cbe60655ea9b0e330b77d0f72072ab32b2e71cc6e4dc1",
+      "triggerUtc": "2026-10-30T18:42:27.329Z",
+      "matchingStateUtc": "2026-10-30T18:42:27.511Z",
+      "collectorReceiptStartedUtc": "2026-10-30T18:42:27.5745465Z",
+      "observationEndedUtc": "2026-10-30T18:42:57.5659404Z",
+      "postTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 1,
+        "pendingReason": 1,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "preTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "sampleArrivalSegments": {
+        "preTrigger": 3,
+        "triggerBeforeMatchedState": 0,
+        "matchedStateBeforeCollectorReceipt": 1,
+        "collectorReceiptThroughEnd": 0,
+        "afterEnd": 0
+      },
+      "productWindowCancellationNotifications": 0,
+      "cancellationSegments": {
+        "setup": [
+          {
+            "trial": "C1-availability-fr",
+            "utc": "2026-10-30T18:42:21.977777+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ],
+        "productWindow": [],
+        "postWindow": [],
+        "control": [
+          {
+            "trial": "C1-availability-fr-focus-control",
+            "utc": "2026-10-30T18:42:57.865721+00:00",
+            "kind": "nvda-speech-canceled"
+          },
+          {
+            "trial": "C1-availability-fr-focus-control",
+            "utc": "2026-10-30T18:43:03.310577+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ]
+      },
+      "focusAtMatchingState": {
+        "documentHasFocus": true,
+        "element": "body",
+        "ancestry": []
+      },
+      "fixtureAtMatchingState": {
+        "sessionOrdinal": 15,
+        "search": "up",
+        "rejectCursor": false,
+        "status": "events",
+        "projection": "hold",
+        "simulatedCommands": 1,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 0,
+        "recoveryPages": 0,
+        "continuations": 0,
+        "statusReads": 1,
+        "projectionReads": 10
+      },
+      "interpretation": "Provisional literal occurrence inventory, including focus and live output; no announcement-cause attribution, no audible-completion claim and no independent acceptance."
+    },
+    {
+      "pairing": "NVDA/Firefox",
+      "culture": "fr",
+      "trial": "C3-events-availability-fr",
+      "packet": "native-attempts/current-firefox-matrix-1.zip",
+      "speechMember": "speech.json",
+      "timelineMember": "timeline.json",
+      "queuedTextSha256": "dd1162159b805fb0102c51ff4c651162c7251c18ad708f53c856c548e92cc73b",
+      "triggerUtc": "2026-10-30T18:43:09.439Z",
+      "matchingStateUtc": "2026-10-30T18:43:09.591Z",
+      "collectorReceiptStartedUtc": "2026-10-30T18:43:09.6896867Z",
+      "observationEndedUtc": "2026-10-30T18:43:39.6432874Z",
+      "postTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "preTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 1,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "sampleArrivalSegments": {
+        "preTrigger": 3,
+        "triggerBeforeMatchedState": 0,
+        "matchedStateBeforeCollectorReceipt": 0,
+        "collectorReceiptThroughEnd": 0,
+        "afterEnd": 0
+      },
+      "productWindowCancellationNotifications": 0,
+      "cancellationSegments": {
+        "setup": [
+          {
+            "trial": "C3-events-availability-fr",
+            "utc": "2026-10-30T18:43:04.174291+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ],
+        "productWindow": [],
+        "postWindow": [],
+        "control": [
+          {
+            "trial": "C3-events-availability-fr-focus-control",
+            "utc": "2026-10-30T18:43:39.847656+00:00",
+            "kind": "nvda-speech-canceled"
+          },
+          {
+            "trial": "C3-events-availability-fr-focus-control",
+            "utc": "2026-10-30T18:43:45.458218+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ]
+      },
+      "focusAtMatchingState": {
+        "documentHasFocus": true,
+        "element": "fluent-button",
+        "ancestry": [
+          "tenants-audit-availability-recovery-refresh",
+          "tenants-audit-availability-actions",
+          "tenants-audit-availability",
+          "tenants-create-audit",
+          "tenants-create-lifecycle",
+          "tenants-create-flow",
+          "tenants-create-accordion",
+          "tenants-workspace-tenants-panel-content",
+          "tenants-workspace-tenants-panel",
+          "tenants-workspace-tabs",
+          "tenants-workspace"
+        ]
+      },
+      "fixtureAtMatchingState": {
+        "sessionOrdinal": 15,
+        "search": "up",
+        "rejectCursor": false,
+        "status": "events",
+        "projection": "hold",
+        "simulatedCommands": 1,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 0,
+        "recoveryPages": 0,
+        "continuations": 0,
+        "statusReads": 2,
+        "projectionReads": 15
+      },
+      "interpretation": "Provisional literal occurrence inventory, including focus and live output; no announcement-cause attribution, no audible-completion claim and no independent acceptance."
+    },
+    {
+      "pairing": "NVDA/Firefox",
+      "culture": "fr",
+      "trial": "C2-lifecycle-fr",
+      "packet": "native-attempts/current-firefox-matrix-1.zip",
+      "speechMember": "speech.json",
+      "timelineMember": "timeline.json",
+      "queuedTextSha256": "5caf7e7e46fd70f4c2da7234d55a341653d55b0b6659062c3e2422545197c5a2",
+      "triggerUtc": "2026-10-30T18:43:53.478Z",
+      "matchingStateUtc": "2026-10-30T18:43:53.647Z",
+      "collectorReceiptStartedUtc": "2026-10-30T18:43:53.6948825Z",
+      "observationEndedUtc": "2026-10-30T18:44:23.7539482Z",
+      "postTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 4,
+        "unavailableReason": 2
+      },
+      "preTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "sampleArrivalSegments": {
+        "preTrigger": 2,
+        "triggerBeforeMatchedState": 0,
+        "matchedStateBeforeCollectorReceipt": 1,
+        "collectorReceiptThroughEnd": 1,
+        "afterEnd": 0
+      },
+      "productWindowCancellationNotifications": 0,
+      "cancellationSegments": {
+        "setup": [
+          {
+            "trial": "C2-lifecycle-fr",
+            "utc": "2026-10-30T18:43:48.157160+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ],
+        "productWindow": [],
+        "postWindow": [],
+        "control": [
+          {
+            "trial": "C2-lifecycle-fr-focus-control",
+            "utc": "2026-10-30T18:44:23.948592+00:00",
+            "kind": "nvda-speech-canceled"
+          },
+          {
+            "trial": "C2-lifecycle-fr-focus-control",
+            "utc": "2026-10-30T18:44:28.993732+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ]
+      },
+      "focusAtMatchingState": {
+        "documentHasFocus": true,
+        "element": "section",
+        "ancestry": [
+          "tenants-create-lifecycle",
+          "tenants-create-flow",
+          "tenants-create-accordion",
+          "tenants-workspace-tenants-panel-content",
+          "tenants-workspace-tenants-panel",
+          "tenants-workspace-tabs",
+          "tenants-workspace"
+        ]
+      },
+      "fixtureAtMatchingState": {
+        "sessionOrdinal": 16,
+        "search": "up",
+        "rejectCursor": false,
+        "status": "unavailable",
+        "projection": "hold",
+        "simulatedCommands": 1,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 0,
+        "recoveryPages": 0,
+        "continuations": 0,
+        "statusReads": 1,
+        "projectionReads": 7
+      },
+      "interpretation": "Provisional literal occurrence inventory, including focus and live output; no announcement-cause attribution, no audible-completion claim and no independent acceptance."
+    },
+    {
+      "pairing": "NVDA/Firefox",
+      "culture": "fr",
+      "trial": "C3-unavailable-lifecycle-fr",
+      "packet": "native-attempts/current-firefox-matrix-1.zip",
+      "speechMember": "speech.json",
+      "timelineMember": "timeline.json",
+      "queuedTextSha256": "cb1465cce926b69c57f6c2f8030375cf973c32173dc5217a40392475bf278864",
+      "triggerUtc": "2026-10-30T18:44:35.274Z",
+      "matchingStateUtc": "2026-10-30T18:44:35.454Z",
+      "collectorReceiptStartedUtc": "2026-10-30T18:44:35.4902631Z",
+      "observationEndedUtc": "2026-10-30T18:45:05.4645021Z",
+      "postTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 3,
+        "unavailableReason": 1
+      },
+      "preTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "sampleArrivalSegments": {
+        "preTrigger": 3,
+        "triggerBeforeMatchedState": 0,
+        "matchedStateBeforeCollectorReceipt": 0,
+        "collectorReceiptThroughEnd": 1,
+        "afterEnd": 0
+      },
+      "productWindowCancellationNotifications": 0,
+      "cancellationSegments": {
+        "setup": [
+          {
+            "trial": "C3-unavailable-lifecycle-fr",
+            "utc": "2026-10-30T18:44:29.967870+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ],
+        "productWindow": [],
+        "postWindow": [],
+        "control": [
+          {
+            "trial": "C3-unavailable-lifecycle-fr-focus-control",
+            "utc": "2026-10-30T18:45:05.662495+00:00",
+            "kind": "nvda-speech-canceled"
+          },
+          {
+            "trial": "C3-unavailable-lifecycle-fr-focus-control",
+            "utc": "2026-10-30T18:45:11.239026+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ]
+      },
+      "focusAtMatchingState": {
+        "documentHasFocus": true,
+        "element": "section",
+        "ancestry": [
+          "tenants-create-lifecycle",
+          "tenants-create-flow",
+          "tenants-create-accordion",
+          "tenants-workspace-tenants-panel-content",
+          "tenants-workspace-tenants-panel",
+          "tenants-workspace-tabs",
+          "tenants-workspace"
+        ]
+      },
+      "fixtureAtMatchingState": {
+        "sessionOrdinal": 16,
+        "search": "up",
+        "rejectCursor": false,
+        "status": "unavailable",
+        "projection": "hold",
+        "simulatedCommands": 1,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 0,
+        "recoveryPages": 0,
+        "continuations": 0,
+        "statusReads": 2,
+        "projectionReads": 9
+      },
+      "interpretation": "Provisional literal occurrence inventory, including focus and live output; no announcement-cause attribution, no audible-completion claim and no independent acceptance."
+    },
+    {
+      "pairing": "NVDA/Firefox",
+      "culture": "fr",
+      "trial": "C2-availability-fr",
+      "packet": "native-attempts/current-firefox-matrix-1.zip",
+      "speechMember": "speech.json",
+      "timelineMember": "timeline.json",
+      "queuedTextSha256": "36b0b46f0cec73887b913789b208db604ceac5714eb79fdb0d79ce41162bb03f",
+      "triggerUtc": "2026-10-30T18:45:19.164Z",
+      "matchingStateUtc": "2026-10-30T18:45:19.345Z",
+      "collectorReceiptStartedUtc": "2026-10-30T18:45:19.3932108Z",
+      "observationEndedUtc": "2026-10-30T18:45:49.3959440Z",
+      "postTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 4,
+        "unavailableReason": 1
+      },
+      "preTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 0,
+        "unavailableReason": 0
+      },
+      "sampleArrivalSegments": {
+        "preTrigger": 3,
+        "triggerBeforeMatchedState": 0,
+        "matchedStateBeforeCollectorReceipt": 1,
+        "collectorReceiptThroughEnd": 1,
+        "afterEnd": 0
+      },
+      "productWindowCancellationNotifications": 0,
+      "cancellationSegments": {
+        "setup": [
+          {
+            "trial": "C2-availability-fr",
+            "utc": "2026-10-30T18:45:13.796817+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ],
+        "productWindow": [],
+        "postWindow": [],
+        "control": [
+          {
+            "trial": "C2-availability-fr-focus-control",
+            "utc": "2026-10-30T18:45:49.606611+00:00",
+            "kind": "nvda-speech-canceled"
+          },
+          {
+            "trial": "C2-availability-fr-focus-control",
+            "utc": "2026-10-30T18:45:55.134159+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ]
+      },
+      "focusAtMatchingState": {
+        "documentHasFocus": true,
+        "element": "section",
+        "ancestry": [
+          "tenants-create-lifecycle",
+          "tenants-create-flow",
+          "tenants-create-accordion",
+          "tenants-workspace-tenants-panel-content",
+          "tenants-workspace-tenants-panel",
+          "tenants-workspace-tabs",
+          "tenants-workspace"
+        ]
+      },
+      "fixtureAtMatchingState": {
+        "sessionOrdinal": 17,
+        "search": "up",
+        "rejectCursor": false,
+        "status": "unavailable",
+        "projection": "hold",
+        "simulatedCommands": 1,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 0,
+        "recoveryPages": 0,
+        "continuations": 0,
+        "statusReads": 1,
+        "projectionReads": 7
+      },
+      "interpretation": "Provisional literal occurrence inventory, including focus and live output; no announcement-cause attribution, no audible-completion claim and no independent acceptance."
+    },
+    {
+      "pairing": "NVDA/Firefox",
+      "culture": "fr",
+      "trial": "C3-unavailable-availability-fr",
+      "packet": "native-attempts/current-firefox-matrix-1.zip",
+      "speechMember": "speech.json",
+      "timelineMember": "timeline.json",
+      "queuedTextSha256": "ccf854c6ca661121dc03c9bedaea4f7d470a67faa4e8ccc08927a5bf38d5d444",
+      "triggerUtc": "2026-10-30T18:46:01.275Z",
+      "matchingStateUtc": "2026-10-30T18:46:01.420Z",
+      "collectorReceiptStartedUtc": "2026-10-30T18:46:01.5014050Z",
+      "observationEndedUtc": "2026-10-30T18:46:31.4404997Z",
+      "postTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 3,
+        "unavailableReason": 1
+      },
+      "preTriggerQueuedTextOccurrences": {
+        "searchUnavailable": 0,
+        "searchRefreshed": 0,
+        "listRefreshed": 0,
+        "pendingLabel": 0,
+        "pendingReason": 0,
+        "unavailableLabel": 1,
+        "unavailableReason": 0
+      },
+      "sampleArrivalSegments": {
+        "preTrigger": 3,
+        "triggerBeforeMatchedState": 0,
+        "matchedStateBeforeCollectorReceipt": 1,
+        "collectorReceiptThroughEnd": 0,
+        "afterEnd": 0
+      },
+      "productWindowCancellationNotifications": 0,
+      "cancellationSegments": {
+        "setup": [
+          {
+            "trial": "C3-unavailable-availability-fr",
+            "utc": "2026-10-30T18:45:55.986251+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ],
+        "productWindow": [],
+        "postWindow": [],
+        "control": [
+          {
+            "trial": "C3-unavailable-availability-fr-focus-control",
+            "utc": "2026-10-30T18:46:31.636549+00:00",
+            "kind": "nvda-speech-canceled"
+          },
+          {
+            "trial": "C3-unavailable-availability-fr-focus-control",
+            "utc": "2026-10-30T18:46:36.686935+00:00",
+            "kind": "nvda-speech-canceled"
+          }
+        ]
+      },
+      "focusAtMatchingState": {
+        "documentHasFocus": true,
+        "element": "section",
+        "ancestry": [
+          "tenants-create-lifecycle",
+          "tenants-create-flow",
+          "tenants-create-accordion",
+          "tenants-workspace-tenants-panel-content",
+          "tenants-workspace-tenants-panel",
+          "tenants-workspace-tabs",
+          "tenants-workspace"
+        ]
+      },
+      "fixtureAtMatchingState": {
+        "sessionOrdinal": 17,
+        "search": "up",
+        "rejectCursor": false,
+        "status": "unavailable",
+        "projection": "hold",
+        "simulatedCommands": 1,
+        "unexpectedCommands": 0,
+        "rejectedCursors": 0,
+        "recoveryPages": 0,
+        "continuations": 0,
+        "statusReads": 2,
+        "projectionReads": 9
+      },
+      "interpretation": "Provisional literal occurrence inventory, including focus and live output; no announcement-cause attribution, no audible-completion claim and no independent acceptance."
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "capturedUtc": "2026-10-30T19:18:44.853345+00:00",
+  "scope": "Pre-review executed setup/launcher versions and pre-review derived evidence/checkers. Prospective corrections must not be attributed retroactively to completed captures. Frozen Windows inputs and raw packets are untouched.",
+  "archive": "pre-review-tools.zip",
+  "sha256": "995964e244780aa1a88795a51f02c45fe9d6e07874bb48d66a2b451573043342",
+  "members": [
+    {
+      "path": "prepare-native.py",
+      "sha256": "60d272ad4c7f9d2486a04676b07502bfb99e5fb2d667fa34067afdb6ce3e2da7"
+    },
+    {
+      "path": "refresh-native.py",
+      "sha256": "810ef728620349f913b29c76ea0abc302e4c23196674d1a50125c965f55c7819"
+    },
+    {
+      "path": "run-native-cell.ps1",
+      "sha256": "be6f5202749e2a2985a25f6fec9a50bc5193abfcfebf0e52397b6f19933d82b4"
+    },
+    {
+      "path": "build-native-matrix.py",
+      "sha256": "155b9b7e9ed6246ee6b02effc17b78ee777f5df72fbe6da5db798610c2b9e81f"
+    },
+    {
+      "path": "validate-artifacts.py",
+      "sha256": "ed3bf06fac51cb8c4088316bd9d05d5ea05545475126ee1bda48539a6f313248"
+    },
+    {
+      "path": "test-artifacts.py",
+      "sha256": "1c6b066b17e5cb291a460b091ed2a21f355204321763f183dfde205fe1538266"
+    },
+    {
+      "path": "validate-conservation.py",
+      "sha256": "2067e664a7014779c63615ade8c5bc7d23603a693b870efa934d4486a8c0f12b"
+    },
+    {
+      "path": "test-conservation.py",
+      "sha256": "c7e623256a29054a0d56a3ccf61ab785663d274b0876445b0b57c87bca9fd8c2"
+    },
+    {
+      "path": "native-matrix.json",
+      "sha256": "2c35d45c0e8712e973142435e57c2d81539df2357dcc1bd92a0107709e658f10"
+    },
+    {
+      "path": "speech-inspection.json",
+      "sha256": "f34209ed5f5b9d1e5e04581c9b838881b1f2f68941a455b3510ed30e6a507524"
+    },
+    {
+      "path": "native-runtime-summary.json",
+      "sha256": "7d67fbfbcfe08b51ab5407d3c6133ab17aa7fd7ad66f1300173c934faf475994"
+    }
+  ]
+}

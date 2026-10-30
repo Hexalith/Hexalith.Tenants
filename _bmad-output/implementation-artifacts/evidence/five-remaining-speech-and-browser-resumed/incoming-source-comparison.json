@@ -1,0 +1,68 @@
+{
+  "observedUtc": "2026-10-30T18:04:43.335721+00:00",
+  "frozenRootRevision": "e45ed9d87de7800ebb02b1cedc9c64b720763e9e",
+  "currentRootRevision": "c2da6bacff148e77608132b0e04c714228a9b199",
+  "repositories": [
+    {
+      "path": ".",
+      "frozenRevision": "e45ed9d87de7800ebb02b1cedc9c64b720763e9e",
+      "currentRevision": "c2da6bacff148e77608132b0e04c714228a9b199",
+      "changed": true
+    },
+    {
+      "path": "references/Hexalith.EventStore",
+      "frozenRevision": "e92e6694a93c79531368fa3bbf6c06462fd05484",
+      "currentRevision": "e014af6c3f1c67732485f24012cdbe528a12b0f6",
+      "changed": true
+    },
+    {
+      "path": "references/Hexalith.Commons",
+      "frozenRevision": "0604bcf5304fc09a569f7abbd8e5d1b9049c02b7",
+      "currentRevision": "0604bcf5304fc09a569f7abbd8e5d1b9049c02b7",
+      "changed": false
+    },
+    {
+      "path": "references/Hexalith.AI.Tools",
+      "frozenRevision": "9b78aa008cfc62cd88ad0ea4b39b1f07311956ce",
+      "currentRevision": "9b78aa008cfc62cd88ad0ea4b39b1f07311956ce",
+      "changed": false
+    },
+    {
+      "path": "references/Hexalith.FrontComposer",
+      "frozenRevision": "e07e2f42605ffde307606f4ee027c382ef1e8aa4",
+      "currentRevision": "61a8afbb85c7e25b2eb97acb1cac262ef3e1e33d",
+      "changed": true
+    },
+    {
+      "path": "references/Hexalith.Builds",
+      "frozenRevision": "849b0be6849f14c097ab05ff9bafbc115bdabe7e",
+      "currentRevision": "6cc96b4ff23c40c77651e1e4f85ed3170c25c7a4",
+      "changed": true
+    },
+    {
+      "path": "references/Hexalith.PolymorphicSerializations",
+      "frozenRevision": "92ede24cc11129379efe52cfe7fd2c820c567f7f",
+      "currentRevision": "92ede24cc11129379efe52cfe7fd2c820c567f7f",
+      "changed": false
+    },
+    {
+      "path": "references/Hexalith.Memories",
+      "frozenRevision": "71a721a87ebbb34c557c08517b5c39884a7417da",
+      "currentRevision": "71a721a87ebbb34c557c08517b5c39884a7417da",
+      "changed": false
+    },
+    {
+      "path": "references/Hexalith.McpCli",
+      "frozenRevision": "e74d215739766a663cb9e910f4534f383e7973ff",
+      "currentRevision": "7538bee529ab3a62c2d359fd498c9d60fca77621",
+      "changed": true
+    },
+    {
+      "path": "references/Hexalith.Platform",
+      "frozenRevision": "b8a6437f0b2648746c74155eb4728c43cb58ba30",
+      "currentRevision": "667e5a02a523cf8764ca54d6aa1b4b75db5dca64",
+      "changed": true
+    }
+  ],
+  "earlierQualificationAppliesToNewInputs": false
+}

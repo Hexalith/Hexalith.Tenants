@@ -1,0 +1,7 @@
+⧗   --- input ---
+test(ui): qualify deferred speech and recover observer sampling
+
+Retain paired native EN/FR queues and independent record dispositions.
+Keep sampling scheduled after transient observer failures without changing
+capture gates. Preserve source provenance and unresolved browser/audit holds.
+✔   found 0 problems, 0 warnings

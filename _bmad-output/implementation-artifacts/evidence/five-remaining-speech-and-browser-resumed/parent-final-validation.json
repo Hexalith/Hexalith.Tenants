@@ -1,0 +1,157 @@
+{
+  "recordedUtc": "2026-10-30T19:48:14.584948+00:00",
+  "integrationRoot": "a16d89746c0b16470df899981af889332bea8da0",
+  "parentFinalChecks": {
+    "checks": [
+      {
+        "argv": [
+          "python3",
+          "-B",
+          "tests/Hexalith.Tenants.UI.Tests/Browser/test-deferred-nvda-observer.py"
+        ],
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "...\n----------------------------------------------------------------------\nRan 3 tests in 0.003s\n\nOK\n"
+      },
+      {
+        "argv": [
+          "python3",
+          "-B",
+          "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser-resumed/test-native-matrix.py"
+        ],
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "........\n----------------------------------------------------------------------\nRan 8 tests in 0.012s\n\nOK\n"
+      },
+      {
+        "argv": [
+          "python3",
+          "-B",
+          "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser-resumed/test-native-setup.py"
+        ],
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": ".....\n----------------------------------------------------------------------\nRan 5 tests in 0.022s\n\nOK\n"
+      },
+      {
+        "argv": [
+          "python3",
+          "-B",
+          "-O",
+          "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser-resumed/validate-artifacts.py"
+        ],
+        "exitCode": 0,
+        "stdout": "{\n  \"artifactFiles\": 62,\n  \"executedHelperBindings\": 7,\n  \"grantCurrentControls\": true,\n  \"gridExternalFailurePreserved\": true,\n  \"nativeMatrixWindows\": 48,\n  \"completedCurrentProfileWindows\": 48,\n  \"unchangedFrozenRepositories\": 10,\n  \"independentAcceptanceClaimed\": false\n}\n",
+        "stderr": ""
+      },
+      {
+        "argv": [
+          "python3",
+          "-B",
+          "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser-resumed/test-artifacts.py"
+        ],
+        "exitCode": 0,
+        "stdout": "{\n  \"isolatedTemporaryCopiesOnly\": true,\n  \"optimizedPython\": true,\n  \"controls\": [\n    {\n      \"case\": \"positive\",\n      \"exitCode\": 0,\n      \"diagnostic\": \"accepted\"\n    },\n    {\n      \"case\": \"unbound bytes\",\n      \"exitCode\": 1,\n      \"diagnostic\": \"ValueError: Artifact bytes differ: grant-current-controls.json\"\n    },\n    {\n      \"case\": \"matrix coverage\",\n      \"exitCode\": 1,\n      \"diagnostic\": \"ValueError: Native matrix must cover the exact 48 windows\"\n    },\n    {\n      \"case\": \"native observer binding\",\n      \"exitCode\": 1,\n      \"diagnostic\": \"ValueError: Observer binding differs\"\n    },\n    {\n      \"case\": \"grid gate\",\n      \"exitCode\": 1,\n      \"diagnostic\": \"ValueError: Grid gate changed\"\n    },\n    {\n      \"case\": \"grant negative control\",\n      \"exitCode\": 1,\n      \"diagnostic\": \"ValueError: Current grant controls differ\"\n    },\n    {\n      \"case\": \"speech receipt boundary\",\n      \"exitCode\": 1,\n      \"diagnostic\": \"ValueError: Speech timing/occurrence inventory does not replay\"\n    },\n    {\n      \"case\": \"capture failed\",\n      \"exitCode\": 1,\n      \"diagnostic\": \"ValueError: Matrix does not replay from packet windows/controls\"\n    },\n    {\n      \"case\": \"capture incomplete\",\n      \"exitCode\": 1,\n      \"diagnostic\": \"ValueError: Matrix does not replay from packet windows/controls\"\n    },\n    {\n      \"case\": \"runner failed\",\n      \"exitCode\": 1,\n      \"diagnostic\": \"ValueError: Matrix does not replay from packet windows/controls\"\n    },\n    {\n      \"case\": \"invocation failed\",\n      \"exitCode\": 1,\n      \"diagnostic\": \"ValueError: Matrix does not replay from packet windows/controls\"\n    },\n    {\n      \"case\": \"build failed\",\n      \"exitCode\": 1,\n      \"diagnostic\": \"ValueError: Matrix does not replay from packet windows/controls\"\n    },\n    {\n      \"case\": \"build reused\",\n      \"exitCode\": 1,\n      \"diagnostic\": \"ValueError: Matrix does not replay from packet windows/controls\"\n    },\n    {\n      \"case\": \"runtime unstable\",\n      \"exitCode\": 1,\n      \"diagnostic\": \"ValueError: Matrix does not replay from packet windows/controls\"\n    },\n    {\n      \"case\": \"runtime failure\",\n      \"exitCode\": 1,\n      \"diagnostic\": \"ValueError: Matrix does not replay from packet windows/controls\"\n    },\n    {\n      \"case\": \"missing raw Search speech\",\n      \"exitCode\": 1,\n      \"diagnostic\": \"ValueError: Matrix does not replay from packet windows/controls\"\n    },\n    {\n      \"case\": \"missing raw cancellation\",\n      \"exitCode\": 1,\n      \"diagnostic\": \"ValueError: Matrix does not replay from packet windows/controls\"\n    },\n    {\n      \"case\": \"runtime browser identity\",\n      \"exitCode\": 1,\n      \"diagnostic\": \"ValueError: Native runtime/count/cleanup summary differs\"\n    },\n    {\n      \"case\": \"runtime assembly identity\",\n      \"exitCode\": 1,\n      \"diagnostic\": \"ValueError: Native runtime/count/cleanup summary differs\"\n    },\n    {\n      \"case\": \"runtime count\",\n      \"exitCode\": 1,\n      \"diagnostic\": \"ValueError: Native runtime/count/cleanup summary differs\"\n    },\n    {\n      \"case\": \"runtime cleanup\",\n      \"exitCode\": 1,\n      \"diagnostic\": \"ValueError: Native runtime/count/cleanup summary differs\"\n    },\n    {\n      \"case\": \"native packet SHA\",\n      \"exitCode\": 1,\n      \"diagnostic\": \"ValueError: Native archive hash differs\"\n    },\n    {\n      \"case\": \"partial native member inventory\",\n      \"exitCode\": 1,\n      \"diagnostic\": \"ValueError: Native ZIP needs complete unique member coverage\"\n    },\n    {\n      \"case\": \"duplicate native member inventory\",\n      \"exitCode\": 1,\n      \"diagnostic\": \"ValueError: Native ZIP needs complete unique member coverage\"\n    },\n    {\n      \"case\": \"duplicate ZIP member\",\n      \"exitCode\": 1,\n      \"diagnostic\": \"ValueError: Native ZIP needs complete unique member coverage\"\n    },\n    {\n      \"case\": \"preparation repositories omitted\",\n      \"exitCode\": 1,\n      \"diagnostic\": \"ValueError: Preparation must contain the exact unique root-plus-nine declared repositories\"\n    },\n    {\n      \"case\": \"preparation repositories duplicated\",\n      \"exitCode\": 1,\n      \"diagnostic\": \"ValueError: Preparation must contain the exact unique root-plus-nine declared repositories\"\n    },\n    {\n      \"case\": \"refresh repositories omitted\",\n      \"exitCode\": 1,\n      \"diagnostic\": \"ValueError: Refresh must contain the exact unique root-plus-nine declared repositories\"\n    },\n    {\n      \"case\": \"refresh repositories duplicated\",\n      \"exitCode\": 1,\n      \"diagnostic\": \"ValueError: Refresh must contain the exact unique root-plus-nine declared repositories\"\n    },\n    {\n      \"case\": \"final repositories omitted\",\n      \"exitCode\": 1,\n      \"diagnostic\": \"ValueError: Final verification must contain the exact unique root-plus-nine declared repositories\"\n    },\n    {\n      \"case\": \"final repositories duplicated\",\n      \"exitCode\": 1,\n      \"diagnostic\": \"ValueError: Final verification must contain the exact unique root-plus-nine declared repositories\"\n    }\n  ]\n}\n",
+        "stderr": "/usr/lib/python3.14/zipfile/__init__.py:1721: UserWarning: Duplicate name: 'speech.json'\n  return self._open_to_write(zinfo, force_zip64=force_zip64)\n"
+      },
+      {
+        "argv": [
+          "python3",
+          "-B",
+          "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser-resumed/validate-conservation.py"
+        ],
+        "exitCode": 0,
+        "stdout": "{\n  \"numberedIds\": 657,\n  \"unselectedNumberedBodiesPreserved\": 654,\n  \"selectedHistoricalFieldsPreserved\": true,\n  \"onlyApprovedClosure\": \"DW-116\",\n  \"independentlyAcceptedSearchWindows\": 16,\n  \"archivePrefixBytesUnchanged\": true,\n  \"resolvedArchiveCopiesAppended\": 1,\n  \"preExistingIncomingDefersAppended\": 1,\n  \"statusCounts\": {\n    \"done\": 655,\n    \"open\": 2\n  },\n  \"exactCoveringMaintenanceRows\": 2\n}\n",
+        "stderr": ""
+      },
+      {
+        "argv": [
+          "python3",
+          "-B",
+          "-O",
+          "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser-resumed/validate-conservation.py"
+        ],
+        "exitCode": 0,
+        "stdout": "{\n  \"numberedIds\": 657,\n  \"unselectedNumberedBodiesPreserved\": 654,\n  \"selectedHistoricalFieldsPreserved\": true,\n  \"onlyApprovedClosure\": \"DW-116\",\n  \"independentlyAcceptedSearchWindows\": 16,\n  \"archivePrefixBytesUnchanged\": true,\n  \"resolvedArchiveCopiesAppended\": 1,\n  \"preExistingIncomingDefersAppended\": 1,\n  \"statusCounts\": {\n    \"done\": 655,\n    \"open\": 2\n  },\n  \"exactCoveringMaintenanceRows\": 2\n}\n",
+        "stderr": ""
+      },
+      {
+        "argv": [
+          "python3",
+          "-B",
+          "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser-resumed/test-conservation.py"
+        ],
+        "exitCode": 0,
+        "stdout": "{\n  \"isolatedTemporaryCopiesOnly\": true,\n  \"positiveControls\": [\n    {\n      \"optimized\": false,\n      \"exitCode\": 0\n    },\n    {\n      \"optimized\": true,\n      \"exitCode\": 0\n    }\n  ],\n  \"negativeControls\": [\n    {\n      \"mutation\": \"unselected numbered history\",\n      \"optimized\": true,\n      \"rejected\": true,\n      \"diagnostic\": \"ValueError: Original DW-1 body changed\"\n    },\n    {\n      \"mutation\": \"selected original field\",\n      \"optimized\": true,\n      \"rejected\": true,\n      \"diagnostic\": \"ValueError: Original DW-116 body changed\"\n    },\n    {\n      \"mutation\": \"numbered ID conservation\",\n      \"optimized\": true,\n      \"rejected\": true,\n      \"diagnostic\": \"ValueError: Numbered IDs changed\"\n    },\n    {\n      \"mutation\": \"numbered status\",\n      \"optimized\": true,\n      \"rejected\": true,\n      \"diagnostic\": \"ValueError: Original DW-446 body changed\"\n    },\n    {\n      \"mutation\": \"unselected ledger preamble\",\n      \"optimized\": true,\n      \"rejected\": true,\n      \"diagnostic\": \"ValueError: Unselected ledger bytes changed\"\n    },\n    {\n      \"mutation\": \"archive byte conservation\",\n      \"optimized\": true,\n      \"rejected\": true,\n      \"diagnostic\": \"ValueError: Archive must preserve prefix and append only resolved DW-116\"\n    },\n    {\n      \"mutation\": \"unselected index history\",\n      \"optimized\": true,\n      \"rejected\": true,\n      \"diagnostic\": \"ValueError: Only approved index closure/annotations are permitted\"\n    },\n    {\n      \"mutation\": \"ledger LF to CRLF rewrite\",\n      \"optimized\": true,\n      \"rejected\": true,\n      \"diagnostic\": \"ValueError: Exactly the reviewed pre-existing incoming defer is permitted\"\n    },\n    {\n      \"mutation\": \"index LF to CRLF rewrite\",\n      \"optimized\": true,\n      \"rejected\": true,\n      \"diagnostic\": \"ValueError: Only approved index closure/annotations are permitted\"\n    },\n    {\n      \"mutation\": \"both unnumbered additions relocated to preamble\",\n      \"optimized\": true,\n      \"rejected\": true,\n      \"diagnostic\": \"ValueError: Unnumbered addition relocated\"\n    },\n    {\n      \"mutation\": \"approved DW-116 closure removed\",\n      \"optimized\": true,\n      \"rejected\": true,\n      \"diagnostic\": \"ValueError: Only DW-116's approved closure is required\"\n    },\n    {\n      \"mutation\": \"resolved archive copy missing\",\n      \"optimized\": true,\n      \"rejected\": true,\n      \"diagnostic\": \"ValueError: Archive must preserve prefix and append only resolved DW-116\"\n    },\n    {\n      \"mutation\": \"historical archive prefix changed\",\n      \"optimized\": true,\n      \"rejected\": true,\n      \"diagnostic\": \"ValueError: Archive must preserve prefix and append only resolved DW-116\"\n    },\n    {\n      \"mutation\": \"pre-existing defer impact upgraded\",\n      \"optimized\": true,\n      \"rejected\": true,\n      \"diagnostic\": \"ValueError: Exactly the reviewed pre-existing incoming defer is permitted\"\n    },\n    {\n      \"mutation\": \"independent acceptance missing\",\n      \"optimized\": true,\n      \"rejected\": true,\n      \"diagnostic\": \"ValueError: Independent acceptance is required for DW-116 closure\"\n    },\n    {\n      \"mutation\": \"independent DW-116 acceptance rejected\",\n      \"optimized\": true,\n      \"rejected\": true,\n      \"diagnostic\": \"ValueError: DW-116's exact 16-window acceptance is required\"\n    },\n    {\n      \"mutation\": \"capture matrix falsely upgraded to acceptance\",\n      \"optimized\": true,\n      \"rejected\": true,\n      \"diagnostic\": \"ValueError: Capture matrix must retain its pre-assessment scope\"\n    }\n  ]\n}\n",
+        "stderr": ""
+      },
+      {
+        "argv": [
+          "python3",
+          "-B",
+          "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser-resumed/validate-historical-packets.py"
+        ],
+        "exitCode": 0,
+        "stdout": "{\n  \"canonicalBaseline\": \"e45ed9d87de7800ebb02b1cedc9c64b720763e9e\",\n  \"scopedHistoricalFiles\": 124,\n  \"exactBytesEqual\": true\n}\n",
+        "stderr": ""
+      },
+      {
+        "argv": [
+          "python3",
+          "scripts/validate-story-gitlinks.py",
+          "_bmad-output/implementation-artifacts/spec-five-remaining-speech-and-browser-followups.md"
+        ],
+        "exitCode": 0,
+        "stdout": "Story:    spec-five-remaining-speech-and-browser-followups.md\nBaseline: bd1d6ea\nCompared: HEAD (a16d897) + working tree\n\n9 references/ pointer change(s) in range:\n  [declared] references/Hexalith.AI.Tools  70dbf73 -> 9b78aa0\n  [declared] references/Hexalith.Builds  4775fb7 -> 6cc96b4\n  [declared] references/Hexalith.Commons  3edfbda -> 0604bcf\n  [declared] references/Hexalith.EventStore  4cf93f9 -> e014af6\n  [declared] references/Hexalith.FrontComposer  612d234 -> 61a8afb\n  [declared] references/Hexalith.McpCli  9ba8e5b -> 7538bee\n  [declared] references/Hexalith.Memories  daa0618 -> 71a721a\n  [declared] references/Hexalith.Platform  3659a44 -> 667e5a0\n  [declared] references/Hexalith.PolymorphicSerializations  221ac45 -> 92ede24\n\nRESULT: PASS\n",
+        "stderr": ""
+      },
+      {
+        "argv": [
+          "git",
+          "diff",
+          "--check"
+        ],
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": ""
+      }
+    ]
+  },
+  "reviews": {
+    "layers": 3,
+    "findings": 12,
+    "patched": 11,
+    "preExistingDefer": 1,
+    "unresolved": 0,
+    "allOriginalReviewersClearedCorrections": true
+  },
+  "independentNativeDisposition": {
+    "source": "independent-at-assessment.json",
+    "acceptedSearchWindows": 16,
+    "onlyClosedNumberedRecord": "DW-116",
+    "remainingSelectedFollowups": [
+      "DW-446",
+      "DW-459",
+      "unnumbered historical grant Escape cause",
+      "unnumbered external Fluent grid disposal"
+    ]
+  },
+  "commitlint": {
+    "cliVersion": "21.2.3",
+    "command": "node node_modules/@commitlint/cli/cli.js --edit /tmp/tenants-resume-commit-message.txt --verbose",
+    "exitCode": 0,
+    "problems": 0,
+    "warnings": 0,
+    "messageSha256": "31f36c124b75c9380539ad9bad57409f7001d992af876d53e78f32d90510c609",
+    "retainedLogSha256": "3388b26dbdeeea32ae1b2ffbc302992cb716ab7a30f69a7508a3f0e600f41442"
+  },
+  "publication": {
+    "authorizedByUser": true,
+    "branch": "main",
+    "fetch": "git fetch --no-recurse-submodules origin main",
+    "aheadBeforeCommit": 0,
+    "behindBeforeCommit": 0,
+    "requiredBeforeCommit": "Every staged artifact blob must match the reviewed working bytes and manifest; this continuation stages no source-workspace gitlink."
+  },
+  "limits": "Collection and narrow queued-notice acceptance do not establish audible completion, unqualified latest-main native behavior, API/AppHost runtime acceptance or broad release readiness."
+}

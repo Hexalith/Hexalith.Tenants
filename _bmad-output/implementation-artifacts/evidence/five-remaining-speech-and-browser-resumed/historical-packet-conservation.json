@@ -1,0 +1,754 @@
+{
+  "checkedUtc": "2026-10-30T18:36:33.429336+00:00",
+  "canonicalBaseline": "e45ed9d87de7800ebb02b1cedc9c64b720763e9e",
+  "algorithm": "SHA1 of Git blob header plus exact working-file bytes, compared with canonical baseline ls-tree blob IDs; no newline conversion.",
+  "filesChecked": 124,
+  "allScopedTrackedBytesEqual": true,
+  "files": [
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/artifact-manifest.json",
+      "baselineBlob": "d7596dbf952e214488a9defc32db103c429f7ca4",
+      "workingBytesBlob": "d7596dbf952e214488a9defc32db103c429f7ca4",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/aspire-resource-state.json",
+      "baselineBlob": "9766570b85e15a39d843564d499f0cb37e01c920",
+      "workingBytesBlob": "9766570b85e15a39d843564d499f0cb37e01c920",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/attempt-02-sanitized.zip",
+      "baselineBlob": "933ebae8f4008130b8f54ec4b32ce0c87fd0cf8d",
+      "workingBytesBlob": "933ebae8f4008130b8f54ec4b32ce0c87fd0cf8d",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/attempt-04-sanitized.zip",
+      "baselineBlob": "40b76b03987fc99eda9ed5bfa7d0436b2a6a69b4",
+      "workingBytesBlob": "40b76b03987fc99eda9ed5bfa7d0436b2a6a69b4",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/attempt-05-sanitized.zip",
+      "baselineBlob": "8a661ebe8630eac1a651ddab77925f4efc65156e",
+      "workingBytesBlob": "8a661ebe8630eac1a651ddab77925f4efc65156e",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/attempt-06-sanitized.zip",
+      "baselineBlob": "6b140495bc1664ca48ec82c81a15430677655d25",
+      "workingBytesBlob": "6b140495bc1664ca48ec82c81a15430677655d25",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/attempt-07-executed-sources.zip",
+      "baselineBlob": "32ed6d2735e70a428beb6d96f4aef4c58a91be2b",
+      "workingBytesBlob": "32ed6d2735e70a428beb6d96f4aef4c58a91be2b",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/attempt-07-sanitized.zip",
+      "baselineBlob": "0deba669e1891502519aaeaaa80e56d20e0d491e",
+      "workingBytesBlob": "0deba669e1891502519aaeaaa80e56d20e0d491e",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/attempt-07-source-manifest.json",
+      "baselineBlob": "eb53ee7272c00e6648730506e62b61684732e2bb",
+      "workingBytesBlob": "eb53ee7272c00e6648730506e62b61684732e2bb",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/attempt-08-executed-sources.zip",
+      "baselineBlob": "c10640a7beee65aee1780ebe945c4f9ec56c4081",
+      "workingBytesBlob": "c10640a7beee65aee1780ebe945c4f9ec56c4081",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/attempt-08-sanitized.zip",
+      "baselineBlob": "666bade21057784e4da5f7b899cefdaea594be4a",
+      "workingBytesBlob": "666bade21057784e4da5f7b899cefdaea594be4a",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/attempt-08-source-manifest.json",
+      "baselineBlob": "be4b3d1cb65e9cab2b552e1d269ad2fed06ef2f5",
+      "workingBytesBlob": "be4b3d1cb65e9cab2b552e1d269ad2fed06ef2f5",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/attempt-09-executed-sources.zip",
+      "baselineBlob": "73847ce28743dda1926f7afdd6db465238d19fdc",
+      "workingBytesBlob": "73847ce28743dda1926f7afdd6db465238d19fdc",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/attempt-09-sanitized.zip",
+      "baselineBlob": "0a45d6cd326f50e614e6cc2964022389a9515fd8",
+      "workingBytesBlob": "0a45d6cd326f50e614e6cc2964022389a9515fd8",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/attempt-09-source-manifest.json",
+      "baselineBlob": "fe71f14ddbe5b9d10b9169b72af659307c7d2352",
+      "workingBytesBlob": "fe71f14ddbe5b9d10b9169b72af659307c7d2352",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/attempt-10-executed-sources.zip",
+      "baselineBlob": "57e77a1476499c698dc9cb8bcca628d8bbbcbe3d",
+      "workingBytesBlob": "57e77a1476499c698dc9cb8bcca628d8bbbcbe3d",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/attempt-10-sanitized.zip",
+      "baselineBlob": "5e756d03f025feefa575792dfb69529be352abd4",
+      "workingBytesBlob": "5e756d03f025feefa575792dfb69529be352abd4",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/attempt-10-source-manifest.json",
+      "baselineBlob": "5c6c39a3c8a1ee19a15b3f81efbde072195f078c",
+      "workingBytesBlob": "5c6c39a3c8a1ee19a15b3f81efbde072195f078c",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/attempt-11-executed-sources.zip",
+      "baselineBlob": "39712695e458778ca0ef16c38be4a50a74e98037",
+      "workingBytesBlob": "39712695e458778ca0ef16c38be4a50a74e98037",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/attempt-11-sanitized-baseline.zip",
+      "baselineBlob": "86adab4920ef47a1b87f0dbf865034802b5f3fa3",
+      "workingBytesBlob": "86adab4920ef47a1b87f0dbf865034802b5f3fa3",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/attempt-11-sanitized.zip",
+      "baselineBlob": "15b54b14d09098a2ef52850af64ae9e1170f59f2",
+      "workingBytesBlob": "15b54b14d09098a2ef52850af64ae9e1170f59f2",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/attempt-11-source-manifest.json",
+      "baselineBlob": "7c11a1d8bcc0b47f1a07a7675a9d739f06050fd3",
+      "workingBytesBlob": "7c11a1d8bcc0b47f1a07a7675a9d739f06050fd3",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/attempt-11-trial-summary.json",
+      "baselineBlob": "be41ab8f95f21c75865249fd7cc0db77aa88fce4",
+      "workingBytesBlob": "be41ab8f95f21c75865249fd7cc0db77aa88fce4",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/attempt-12-executed-sources.zip",
+      "baselineBlob": "7e0ca9cf372f51a0989c415c2858d5e37e5484bc",
+      "workingBytesBlob": "7e0ca9cf372f51a0989c415c2858d5e37e5484bc",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/attempt-12-sanitized.zip",
+      "baselineBlob": "94cd56f63ea5e1ca414d307300077bf1dbd92de7",
+      "workingBytesBlob": "94cd56f63ea5e1ca414d307300077bf1dbd92de7",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/attempt-12-source-manifest.json",
+      "baselineBlob": "0e934249c41d16f1d560bbfd713029abb660d337",
+      "workingBytesBlob": "0e934249c41d16f1d560bbfd713029abb660d337",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/attempt-13-executed-sources.zip",
+      "baselineBlob": "e8ecc64fb813ebf20ab9b90c4f59704fde9f2d8f",
+      "workingBytesBlob": "e8ecc64fb813ebf20ab9b90c4f59704fde9f2d8f",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/attempt-13-sanitized.zip",
+      "baselineBlob": "7199ff8952be5df2d4f104d72d0ddcf08ab0c92b",
+      "workingBytesBlob": "7199ff8952be5df2d4f104d72d0ddcf08ab0c92b",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/attempt-13-source-manifest.json",
+      "baselineBlob": "8afff96d90782e860c26d79fd48b731960716f63",
+      "workingBytesBlob": "8afff96d90782e860c26d79fd48b731960716f63",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/attempt-14-sanitized.zip",
+      "baselineBlob": "0332bf9a6b609d3d49f53cf4d801575feb132cc8",
+      "workingBytesBlob": "0332bf9a6b609d3d49f53cf4d801575feb132cc8",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/attempt-14-source-manifest.json",
+      "baselineBlob": "35c470100dce7f669c6c8456abd503f5522bece7",
+      "workingBytesBlob": "35c470100dce7f669c6c8456abd503f5522bece7",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/attempt-15-sanitized.zip",
+      "baselineBlob": "b7ba8cc5635ae6cb20e8960cef3ad97f24f34728",
+      "workingBytesBlob": "b7ba8cc5635ae6cb20e8960cef3ad97f24f34728",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/attempt-15-source-manifest.json",
+      "baselineBlob": "35c470100dce7f669c6c8456abd503f5522bece7",
+      "workingBytesBlob": "35c470100dce7f669c6c8456abd503f5522bece7",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/attempt-16-executed-sources.zip",
+      "baselineBlob": "f526a294a25ec95f08fedb550c7c17614e865e50",
+      "workingBytesBlob": "f526a294a25ec95f08fedb550c7c17614e865e50",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/attempt-16-sanitized.zip",
+      "baselineBlob": "8ac5aca92efa9d175eab3bc6fb842fb584e64e8c",
+      "workingBytesBlob": "8ac5aca92efa9d175eab3bc6fb842fb584e64e8c",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/attempt-16-source-manifest.json",
+      "baselineBlob": "a376fb07552a92e95137a6eb0db7e349677d07cc",
+      "workingBytesBlob": "a376fb07552a92e95137a6eb0db7e349677d07cc",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/attempt-17-sanitized.zip",
+      "baselineBlob": "78ecce5715998f555bfbda0cac19847caa69d2d0",
+      "workingBytesBlob": "78ecce5715998f555bfbda0cac19847caa69d2d0",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/attempt-17-source-manifest.json",
+      "baselineBlob": "ee8bba5cc0dfe7b30ed513c790560b9d09a05f7e",
+      "workingBytesBlob": "ee8bba5cc0dfe7b30ed513c790560b9d09a05f7e",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/attempt-18-sanitized.zip",
+      "baselineBlob": "7122f5889433ba2ea4d0b0803de8794b1d8277ae",
+      "workingBytesBlob": "7122f5889433ba2ea4d0b0803de8794b1d8277ae",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/attempt-18-source-manifest.json",
+      "baselineBlob": "ee8bba5cc0dfe7b30ed513c790560b9d09a05f7e",
+      "workingBytesBlob": "ee8bba5cc0dfe7b30ed513c790560b9d09a05f7e",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/attempt-19-sanitized.zip",
+      "baselineBlob": "c808235d58aa3307ad8e157bece8f228b411e98a",
+      "workingBytesBlob": "c808235d58aa3307ad8e157bece8f228b411e98a",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/attempt-19-source-manifest.json",
+      "baselineBlob": "ee8bba5cc0dfe7b30ed513c790560b9d09a05f7e",
+      "workingBytesBlob": "ee8bba5cc0dfe7b30ed513c790560b9d09a05f7e",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/attempt-20-sanitized.zip",
+      "baselineBlob": "b308a6995b5cc69f59cdbeac5145f0e666089c82",
+      "workingBytesBlob": "b308a6995b5cc69f59cdbeac5145f0e666089c82",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/attempt-20-source-manifest.json",
+      "baselineBlob": "ee8bba5cc0dfe7b30ed513c790560b9d09a05f7e",
+      "workingBytesBlob": "ee8bba5cc0dfe7b30ed513c790560b9d09a05f7e",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/attempt-21-sanitized.zip",
+      "baselineBlob": "8b5b10baf5901ceb0a37532e3e89ecd86954ac67",
+      "workingBytesBlob": "8b5b10baf5901ceb0a37532e3e89ecd86954ac67",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/attempt-21-source-manifest.json",
+      "baselineBlob": "ee8bba5cc0dfe7b30ed513c790560b9d09a05f7e",
+      "workingBytesBlob": "ee8bba5cc0dfe7b30ed513c790560b9d09a05f7e",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/commitlint.txt",
+      "baselineBlob": "be85ed648f07ce3e080116c23aa2b76af1fa7417",
+      "workingBytesBlob": "be85ed648f07ce3e080116c23aa2b76af1fa7417",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/conservation.json",
+      "baselineBlob": "d94472ea2e44afb32de2738e897b11dbd63fe293",
+      "workingBytesBlob": "d94472ea2e44afb32de2738e897b11dbd63fe293",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/development-test-failures.json",
+      "baselineBlob": "d805a9311e069f119ad957dfeb148d20eb818262",
+      "workingBytesBlob": "d805a9311e069f119ad957dfeb148d20eb818262",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/entry-ledger-manifest.json",
+      "baselineBlob": "3edbf7ebe1e0dc4011a33a1b056c33ce92adf905",
+      "workingBytesBlob": "3edbf7ebe1e0dc4011a33a1b056c33ce92adf905",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/entry-ledgers.zip",
+      "baselineBlob": "ab4970d7956a0e33724b5ee63857060086a4ac3a",
+      "workingBytesBlob": "ab4970d7956a0e33724b5ee63857060086a4ac3a",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/final-fixture-control-check.json",
+      "baselineBlob": "1f93e081996ccbc2929dab5828e8df3fe519fb72",
+      "workingBytesBlob": "1f93e081996ccbc2929dab5828e8df3fe519fb72",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/final-validation-manifest.json",
+      "baselineBlob": "0e80c3cb70f13da3affb8401bb9a5e6f95d20571",
+      "workingBytesBlob": "0e80c3cb70f13da3affb8401bb9a5e6f95d20571",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/final-validation.zip",
+      "baselineBlob": "62f449ca916741a5bf06175964a12da6ba6c1527",
+      "workingBytesBlob": "62f449ca916741a5bf06175964a12da6ba6c1527",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/fixture-control-check.json",
+      "baselineBlob": "b968b39870bfbf4b61d496eddd9f72203fd6cf33",
+      "workingBytesBlob": "b968b39870bfbf4b61d496eddd9f72203fd6cf33",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/focused-validation-manifest.json",
+      "baselineBlob": "d9b5ff06efa8947fe3aba1d5a851fe93e08df726",
+      "workingBytesBlob": "d9b5ff06efa8947fe3aba1d5a851fe93e08df726",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/focused-validation.zip",
+      "baselineBlob": "ba967767a2c9b11157422806d3a040144defd3f8",
+      "workingBytesBlob": "ba967767a2c9b11157422806d3a040144defd3f8",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/historical-ci-inventory.json",
+      "baselineBlob": "e10f1bae2bbbd5c2ee690e6b3f6a1654ad6cef2c",
+      "workingBytesBlob": "e10f1bae2bbbd5c2ee690e6b3f6a1654ad6cef2c",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/incoming-main-integration-blocker.json",
+      "baselineBlob": "b5ec535930e4f8aa9986830c7df701c4bde84d67",
+      "workingBytesBlob": "b5ec535930e4f8aa9986830c7df701c4bde84d67",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/integration-note-commitlint.txt",
+      "baselineBlob": "1dcc45d51a9187186c7817cea0770eb3456a34a2",
+      "workingBytesBlob": "1dcc45d51a9187186c7817cea0770eb3456a34a2",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/native-attempt-index.json",
+      "baselineBlob": "c921520b7a43b4a869c3babc780d92ba728e1dbd",
+      "workingBytesBlob": "c921520b7a43b4a869c3babc780d92ba728e1dbd",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/native-cleanup.json",
+      "baselineBlob": "95163344b84bccb758e3b029bfd302c4c8c4add8",
+      "workingBytesBlob": "95163344b84bccb758e3b029bfd302c4c8c4add8",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/native-matrix.json",
+      "baselineBlob": "40bbd4157bba8c1d179cabc65e9820a0932203e5",
+      "workingBytesBlob": "40bbd4157bba8c1d179cabc65e9820a0932203e5",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/post-review-ui-tests.zip",
+      "baselineBlob": "c0468bb30e328dd552fbd65c3ee397a9c65a8634",
+      "workingBytesBlob": "c0468bb30e328dd552fbd65c3ee397a9c65a8634",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/post-review-validation.json",
+      "baselineBlob": "162ca0708d663525a0fc2a2fb6f69ecd65c38922",
+      "workingBytesBlob": "162ca0708d663525a0fc2a2fb6f69ecd65c38922",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/story-gitlinks.txt",
+      "baselineBlob": "b87a7f999fc946b547f45abb50166f506f704558",
+      "workingBytesBlob": "b87a7f999fc946b547f45abb50166f506f704558",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/validate-conservation.py",
+      "baselineBlob": "4f4831baf54df856c4d96446ef8f13c437c08b90",
+      "workingBytesBlob": "4f4831baf54df856c4d96446ef8f13c437c08b90",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-deferred-native-speech/validation-results.json",
+      "baselineBlob": "5a31fcf541be3b351cae45ff98c23f9c7db410d8",
+      "workingBytesBlob": "5a31fcf541be3b351cae45ff98c23f9c7db410d8",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/.gitattributes",
+      "baselineBlob": "9035d1265e6d85b8d13815e011f1edb3a8977b70",
+      "workingBytesBlob": "9035d1265e6d85b8d13815e011f1edb3a8977b70",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/artifact-controls.json",
+      "baselineBlob": "ca66fbb513dcc113e78c61133a8ac06142362013",
+      "workingBytesBlob": "ca66fbb513dcc113e78c61133a8ac06142362013",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/artifact-integrity.json",
+      "baselineBlob": "db02051fc15f0e01d455650fc2e2e06f50a94c1d",
+      "workingBytesBlob": "db02051fc15f0e01d455650fc2e2e06f50a94c1d",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/artifact-manifest.json",
+      "baselineBlob": "c3bbbc4cd63b23cf9321802da184a90082cf68a4",
+      "workingBytesBlob": "c3bbbc4cd63b23cf9321802da184a90082cf68a4",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/aspire-resource-state.json",
+      "baselineBlob": "dc077b05e966241b2d16edb829038406eeb4b436",
+      "workingBytesBlob": "dc077b05e966241b2d16edb829038406eeb4b436",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/attribute-conversion-checks.json",
+      "baselineBlob": "8d243c787417ffe7dcc01fcf6471dde9584d357e",
+      "workingBytesBlob": "8d243c787417ffe7dcc01fcf6471dde9584d357e",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/browser-invocations.json",
+      "baselineBlob": "f5a053711e44c055710815b742e50a76799c4e7a",
+      "workingBytesBlob": "f5a053711e44c055710815b742e50a76799c4e7a",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/build-diagnostics.json",
+      "baselineBlob": "2a95998d72345319f76226fbba36901ab9b7c2fe",
+      "workingBytesBlob": "2a95998d72345319f76226fbba36901ab9b7c2fe",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/commitlint.txt",
+      "baselineBlob": "7346f27c0001a429355ce6b00c387edc861e48c1",
+      "workingBytesBlob": "7346f27c0001a429355ce6b00c387edc861e48c1",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/conservation-controls.json",
+      "baselineBlob": "013a1fa49f4136a7fc0fe63650dacd067db81e59",
+      "workingBytesBlob": "013a1fa49f4136a7fc0fe63650dacd067db81e59",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/conservation.json",
+      "baselineBlob": "1259ccd1a89aa3132cf56b45dcb4fe504d11ea13",
+      "workingBytesBlob": "1259ccd1a89aa3132cf56b45dcb4fe504d11ea13",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/entry-ledger-manifest.json",
+      "baselineBlob": "3b02ae03f83eac4a5405dc0b2742b75614fd9fdf",
+      "workingBytesBlob": "3b02ae03f83eac4a5405dc0b2742b75614fd9fdf",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/entry-ledgers.zip",
+      "baselineBlob": "f9b8a8298063a96509fda5d0cb65f1a37aebb72f",
+      "workingBytesBlob": "f9b8a8298063a96509fda5d0cb65f1a37aebb72f",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/executed-source-manifest.json",
+      "baselineBlob": "0c127594ae69a3b595a43d8b16e955f7289dba73",
+      "workingBytesBlob": "0c127594ae69a3b595a43d8b16e955f7289dba73",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/executed-source/capture-deferred-nvda-speech.ps1",
+      "baselineBlob": "52065c573871eb719430af9586a27b85a34410c4",
+      "workingBytesBlob": "52065c573871eb719430af9586a27b85a34410c4",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/executed-source/deferred-handoff-fixture.mjs",
+      "baselineBlob": "9acd967c88fa326206118956b89302e70a1bf6cd",
+      "workingBytesBlob": "9acd967c88fa326206118956b89302e70a1bf6cd",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/executed-source/deferred-nvda-observer.py",
+      "baselineBlob": "f3796ed331f06caf14b7629782abd6ae9c58192a",
+      "workingBytesBlob": "f3796ed331f06caf14b7629782abd6ae9c58192a",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/executed-source/local-oidc-fixture.mjs",
+      "baselineBlob": "ad596ed8e7ef6386b0c42876e48031b0d74ed3e2",
+      "workingBytesBlob": "ad596ed8e7ef6386b0c42876e48031b0d74ed3e2",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/executed-source/validate-authenticated-administrator-dialogs.mjs",
+      "baselineBlob": "f656212744d48bbfa5b3a382eaf199e4b9364f40",
+      "workingBytesBlob": "f656212744d48bbfa5b3a382eaf199e4b9364f40",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/executed-source/validate-deferred-handoff.mjs",
+      "baselineBlob": "044db1cae7723a350464e62937ef54959905269f",
+      "workingBytesBlob": "044db1cae7723a350464e62937ef54959905269f",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/executed-source/validate-deferred-native-speech.mjs",
+      "baselineBlob": "f42c6a00025c594e4c86cdc0cf49b2ff0795f8e8",
+      "workingBytesBlob": "f42c6a00025c594e4c86cdc0cf49b2ff0795f8e8",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/grant-browser-build-blocked.json",
+      "baselineBlob": "61122f08b89bf4228498add7494dbc77f3537398",
+      "workingBytesBlob": "61122f08b89bf4228498add7494dbc77f3537398",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/grid-browser-build-blocked.json",
+      "baselineBlob": "0563b02c89f759ff12382f4fb62e030b9c5655f4",
+      "workingBytesBlob": "0563b02c89f759ff12382f4fb62e030b9c5655f4",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/historical-checkout-preservation.json",
+      "baselineBlob": "b37b086ff4dba54c57b93532df1b2300d728609d",
+      "workingBytesBlob": "b37b086ff4dba54c57b93532df1b2300d728609d",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-attempt-index.json",
+      "baselineBlob": "5e963151e1fa41e88006cc3d57830d3a88f28303",
+      "workingBytesBlob": "5e963151e1fa41e88006cc3d57830d3a88f28303",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-attempts/chrome-attempt-1/capture.json",
+      "baselineBlob": "ebaff60697115541c45b1f4928821672b64d4e16",
+      "workingBytesBlob": "ebaff60697115541c45b1f4928821672b64d4e16",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-attempts/chrome-attempt-1/speech.json",
+      "baselineBlob": "609889aad07d2c031c181c4734e4cdfc4214f7dc",
+      "workingBytesBlob": "609889aad07d2c031c181c4734e4cdfc4214f7dc",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-attempts/chrome-attempt-1/timeline.json",
+      "baselineBlob": "609889aad07d2c031c181c4734e4cdfc4214f7dc",
+      "workingBytesBlob": "609889aad07d2c031c181c4734e4cdfc4214f7dc",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-attempts/chrome-attempt-2/capture.json",
+      "baselineBlob": "5ad8618efb52ca4aad0a678a1466756aaf826925",
+      "workingBytesBlob": "5ad8618efb52ca4aad0a678a1466756aaf826925",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-attempts/chrome-attempt-2/fixture.json",
+      "baselineBlob": "1f505cecdd9eb8bda4843ec74e2e9449f22f826d",
+      "workingBytesBlob": "1f505cecdd9eb8bda4843ec74e2e9449f22f826d",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-attempts/chrome-attempt-2/speech.json",
+      "baselineBlob": "609889aad07d2c031c181c4734e4cdfc4214f7dc",
+      "workingBytesBlob": "609889aad07d2c031c181c4734e4cdfc4214f7dc",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-attempts/chrome-attempt-2/timeline.json",
+      "baselineBlob": "609889aad07d2c031c181c4734e4cdfc4214f7dc",
+      "workingBytesBlob": "609889aad07d2c031c181c4734e4cdfc4214f7dc",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-attempts/chrome-attempt-3/capture.json",
+      "baselineBlob": "083ee0345c059e05dc77a458049a828fb344757f",
+      "workingBytesBlob": "083ee0345c059e05dc77a458049a828fb344757f",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-attempts/chrome-attempt-3/fixture.json",
+      "baselineBlob": "971cd84c57353caf1f67d2f30bf99be460ecc4fb",
+      "workingBytesBlob": "971cd84c57353caf1f67d2f30bf99be460ecc4fb",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-attempts/chrome-attempt-3/speech.json",
+      "baselineBlob": "609889aad07d2c031c181c4734e4cdfc4214f7dc",
+      "workingBytesBlob": "609889aad07d2c031c181c4734e4cdfc4214f7dc",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-attempts/chrome-attempt-3/timeline.json",
+      "baselineBlob": "609889aad07d2c031c181c4734e4cdfc4214f7dc",
+      "workingBytesBlob": "609889aad07d2c031c181c4734e4cdfc4214f7dc",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-attempts/firefox-attempt-1/capture.json",
+      "baselineBlob": "1d8472522211a66b12ff2e14c9e516b583db87df",
+      "workingBytesBlob": "1d8472522211a66b12ff2e14c9e516b583db87df",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-attempts/firefox-attempt-1/fixture.json",
+      "baselineBlob": "532e1d0ec175340a74e06886fc44e2e26e634fe0",
+      "workingBytesBlob": "532e1d0ec175340a74e06886fc44e2e26e634fe0",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-attempts/firefox-attempt-1/speech.json",
+      "baselineBlob": "609889aad07d2c031c181c4734e4cdfc4214f7dc",
+      "workingBytesBlob": "609889aad07d2c031c181c4734e4cdfc4214f7dc",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-attempts/firefox-attempt-1/timeline.json",
+      "baselineBlob": "609889aad07d2c031c181c4734e4cdfc4214f7dc",
+      "workingBytesBlob": "609889aad07d2c031c181c4734e4cdfc4214f7dc",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-attempts/firefox-attempt-2/capture.json",
+      "baselineBlob": "84a4fe9108ee7968f971506ab5cb10d4467a0f11",
+      "workingBytesBlob": "84a4fe9108ee7968f971506ab5cb10d4467a0f11",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-attempts/firefox-attempt-2/fixture.json",
+      "baselineBlob": "b45dab893dfd2c45f371c0687cc1d401be43c16e",
+      "workingBytesBlob": "b45dab893dfd2c45f371c0687cc1d401be43c16e",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-attempts/firefox-attempt-2/speech.json",
+      "baselineBlob": "609889aad07d2c031c181c4734e4cdfc4214f7dc",
+      "workingBytesBlob": "609889aad07d2c031c181c4734e4cdfc4214f7dc",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-attempts/firefox-attempt-2/timeline.json",
+      "baselineBlob": "609889aad07d2c031c181c4734e4cdfc4214f7dc",
+      "workingBytesBlob": "609889aad07d2c031c181c4734e4cdfc4214f7dc",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-checkout-identity.json",
+      "baselineBlob": "ab4fd1a014bc5626dfc72d272e02cb8fe3d02018",
+      "workingBytesBlob": "ab4fd1a014bc5626dfc72d272e02cb8fe3d02018",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-matrix.json",
+      "baselineBlob": "b11ec088759e643fa5acfa489b4f4453f4ab6115",
+      "workingBytesBlob": "b11ec088759e643fa5acfa489b4f4453f4ab6115",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-preparation-evidence.json",
+      "baselineBlob": "a91cb13b17db3a16dc272796d7775e57a151bc33",
+      "workingBytesBlob": "a91cb13b17db3a16dc272796d7775e57a151bc33",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/parent-validation.json",
+      "baselineBlob": "f3a857233326234e11ea921fc12ac38951ba2446",
+      "workingBytesBlob": "f3a857233326234e11ea921fc12ac38951ba2446",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/test-artifacts.py",
+      "baselineBlob": "6f9f85171fed9d2d75a8d91208bfaf8390aba5da",
+      "workingBytesBlob": "6f9f85171fed9d2d75a8d91208bfaf8390aba5da",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/test-conservation.py",
+      "baselineBlob": "e334277c35c934eec260d0bcb991a8be8b0e0011",
+      "workingBytesBlob": "e334277c35c934eec260d0bcb991a8be8b0e0011",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/validate-artifacts.py",
+      "baselineBlob": "09107ef1768392a91471e796dd57cf65a2c0b6e1",
+      "workingBytesBlob": "09107ef1768392a91471e796dd57cf65a2c0b6e1",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/validate-conservation.py",
+      "baselineBlob": "9a825885df81152c23792ffd091cccd69f548948",
+      "workingBytesBlob": "9a825885df81152c23792ffd091cccd69f548948",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/validation-results.json",
+      "baselineBlob": "146864fe975ba18236b86350973056b0d78060c4",
+      "workingBytesBlob": "146864fe975ba18236b86350973056b0d78060c4",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/five-deferred-native-speech-validation-evidence.md",
+      "baselineBlob": "c216666db735f4b0e0036a44b1cdd10df5213e5c",
+      "workingBytesBlob": "c216666db735f4b0e0036a44b1cdd10df5213e5c",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/five-deferred-runtime-followups-validation-evidence.md",
+      "baselineBlob": "5557f030f02344e9f2e95c5558a5e247d848b9d9",
+      "workingBytesBlob": "5557f030f02344e9f2e95c5558a5e247d848b9d9",
+      "equal": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/five-remaining-speech-and-browser-validation-evidence.md",
+      "baselineBlob": "f7f20d629a16d617cf141c0c7af68ba583eefcd0",
+      "workingBytesBlob": "f7f20d629a16d617cf141c0c7af68ba583eefcd0",
+      "equal": true
+    }
+  ],
+  "limit": "This covers scoped tracked historical repository packets/reports only. No before/after byte attestation of the historical Windows checkouts is claimed; no write command in this implementation targeted them."
+}

@@ -1,0 +1,85 @@
+{
+  "assessor": "/root/resume_edge_review",
+  "recordedUtc": "2026-10-30T19:16:31.128343+00:00",
+  "method": "Independent inspection of all 48 actual speech.json/timeline.json/fixture.json windows and protocol docs; completion counts alone were not acceptance.",
+  "profileRoot": "c2da6bacff148e77608132b0e04c714228a9b199",
+  "observerSha256": "5c7e5c992b45d6439eb881d7c86f3b3726acb1778e8e4415ab04fad12b20dd7f",
+  "packets": [
+    {
+      "path": "native-attempts/current-chrome-matrix-1.zip",
+      "sha256": "99da6db54ba97f6785fae7c6db9a17ff5ec020e38cd5112fbe48ff948a40acaa"
+    },
+    {
+      "path": "native-attempts/current-firefox-matrix-1.zip",
+      "sha256": "28f79a31f104bfb8d096359c1ba8a69d64ead2098a898fc85774ccfb8de32482"
+    }
+  ],
+  "recordVerdicts": {
+    "DW-116": {
+      "accepted": true,
+      "acceptedRecordWindows": 16,
+      "scope": "Narrow queued-notice contract in both Chrome/Firefox and EN/FR. No stale notice in S0; full S1 unavailable and S2 restart guidance once; S3 both complete notice bodies in order without body loss/repetition within the post-trigger window.",
+      "caveats": "Repeated component-dismiss labels remain, including English Hide this message labels in FR. Their cause is unproven; this is not whole-UI localization or audible-completion acceptance."
+    },
+    "DW-446": {
+      "accepted": false,
+      "action": "keep open",
+      "reason": "All eight first-Unavailable C2 cells queue complete standalone audit label/reason followed by repeated region-shaped audit and lifecycle text. All eight Unavailable C3 cells again queue long audit/lifecycle/recovery content after same-state Refresh. Protocol requires approved behavior fix and repeat qualification for duplicated first states. Cause is unassigned."
+    },
+    "DW-459": {
+      "accepted": false,
+      "action": "keep open separately",
+      "reason": "Same first-Unavailable and Refresh repetition blocker as DW-446; original record remains independently preserved."
+    }
+  },
+  "createObservations": {
+    "firstPendingCompleteLabelReasonOnce": 8,
+    "pendingRefreshNoNewPostTriggerQueuedOutput": 8,
+    "firstUnavailableRepeatedAuditLifecycleOutput": 8,
+    "unavailableRefreshRepeatedAuditLifecycleOutput": 8,
+    "partialRepeatExamples": [
+      {
+        "pairing": "NVDA/Firefox",
+        "trial": "C2-lifecycle-en",
+        "utc": "2026-10-30T18:35:15.5722862Z"
+      },
+      {
+        "pairing": "NVDA/Firefox",
+        "trial": "C2-availability-fr",
+        "utc": "2026-10-30T18:45:19.5168550Z"
+      }
+    ],
+    "partialRepeatLimit": "Reordered/truncated repeated fragments in second renderings are understated by literal full-string counts.",
+    "causality": "Focus movement to tenants-create-lifecycle co-occurs; no distinguishing control proves focus versus live-region contribution."
+  },
+  "independentlyAcceptedRecordWindows": 16,
+  "controlsIndependentlyChecked": {
+    "windows": 48,
+    "exactTrialsPerPairing": 24,
+    "localizedSearchPositiveControls": true,
+    "explicitCancellationResponsesAfterProductWindow": true,
+    "largestCancellationResponseMilliseconds": 7.7,
+    "samplesBrowserForegroundWithFreshMatchingMode": true,
+    "modeMaximumAgeSeconds": 2,
+    "queuedQuietBeforeTriggerAtLeastSeconds": 5,
+    "stateToEndSecondsMinimum": 30.007,
+    "stateToEndSecondsMaximum": 30.114,
+    "finalQueuedQuietSecondsMinimum": 29.66,
+    "createStatesExpectedDirectlyWithProjectionHeldAndOneSimulatedCommand": true,
+    "unexpectedCommands": 0
+  },
+  "cancellationAssessment": {
+    "S2S3PostTrigger": 0,
+    "allCreatePostTrigger": 0,
+    "S0PerCell": 2,
+    "S1PerCell": 1,
+    "S1Timing": "Cancellation precedes the notice-bearing queued sample; no post-notice cancellation or queued omission observed.",
+    "limit": "Notifications do not establish audible delivery or completion."
+  },
+  "timingScope": "Trigger, first-state UI events, later matched-state assertion, collector receipt and end are distinct; pre-receipt product speech is retained and pre-trigger/control speech separated.",
+  "limits": [
+    "Queued Speech Viewer output only; no word-level onset or audible completion.",
+    "No acceptance of unqualified latest-main/API/AppHost/backend persistence/release readiness.",
+    "One simulated command is not proof of OnSubmit callback cardinality."
+  ]
+}

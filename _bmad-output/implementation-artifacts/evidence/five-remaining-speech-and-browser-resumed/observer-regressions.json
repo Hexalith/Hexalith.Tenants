@@ -1,0 +1,21 @@
+{
+  "negativeOriginalObserver": {
+    "observerSha256": "fb2c0eb34a3fe336bda882dddcd4acbbc05e8d9ea7c53d8662861173506bd31d",
+    "testScriptSha256": "b7c4789b9afe2e094f49a580c3946bc631a5f05eb6e0beab04dfb84df67082f2",
+    "operation": "Run byte-identical regression harness in isolated directory beside original immutable observer snapshot.",
+    "exitCode": 1,
+    "stderr": "FF.\n======================================================================\nFAIL: testFocusErrorPropagatesAndStillSchedulesNextCallback (__main__.ObserverRecoveryTests.testFocusErrorPropagatesAndStillSchedulesNextCallback)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/tmp/tenants-observer-negative-4xt0k4st/test-deferred-nvda-observer.py\", line 52, in testFocusErrorPropagatesAndStillSchedulesNextCallback\n    self.clock.assert_called_once_with(100, self.plugin.capture_mode)\n    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.14/unittest/mock.py\", line 997, in assert_called_once_with\n    raise AssertionError(msg)\nAssertionError: Expected 'mock' to be called once. Called 0 times.\n\n======================================================================\nFAIL: testPublicationErrorPropagatesAndNextCallbackPublishesFreshMode (__main__.ObserverRecoveryTests.testPublicationErrorPropagatesAndNextCallbackPublishesFreshMode)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/tmp/tenants-observer-negative-4xt0k4st/test-deferred-nvda-observer.py\", line 38, in testPublicationErrorPropagatesAndNextCallbackPublishesFreshMode\n    self.clock.assert_called_once_with(100, self.plugin.capture_mode)\n    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.14/unittest/mock.py\", line 997, in assert_called_once_with\n    raise AssertionError(msg)\nAssertionError: Expected 'mock' to be called once. Called 0 times.\n\n----------------------------------------------------------------------\nRan 3 tests in 0.004s\n\nFAILED (failures=2)\n"
+  },
+  "positivePatchedObserver": {
+    "argv": [
+      "python3",
+      "-B",
+      "tests/Hexalith.Tenants.UI.Tests/Browser/test-deferred-nvda-observer.py"
+    ],
+    "exitCode": 0,
+    "tests": 3,
+    "stdout": "...\n----------------------------------------------------------------------\nRan 3 tests in 0.003s\n\nOK\n"
+  },
+  "collectorRemainsByteIdentical": true,
+  "freshnessAndTimingGatesChanged": false
+}

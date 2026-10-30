@@ -34,19 +34,24 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
     def capture_mode(self):
         if self.stopped:
             return
-        focus = api.getFocusObject()
-        interceptor = getattr(focus, "treeInterceptor", None)
-        mode = "not-applicable"
-        if interceptor is not None and hasattr(interceptor, "passThrough"):
-            mode = "focus" if interceptor.passThrough else "browse"
-        application = getattr(getattr(focus, "appModule", None), "appName", None)
-        state = {"observedUtc": datetime.now(timezone.utc).isoformat(), "mode": mode, "speechMode": speech.getState().speechMode.name,
-                 "focusApplication": application if application in {"chrome", "firefox"} else "outside-browser"}
-        target = Path(globalVars.appArgs.configPath, "effective-mode.json")
-        temporary = target.with_suffix(".tmp")
-        temporary.write_text(json.dumps(state), encoding="utf-8")
-        temporary.replace(target)
-        wx.CallLater(100, self.capture_mode)
+        try:
+            focus = api.getFocusObject()
+            interceptor = getattr(focus, "treeInterceptor", None)
+            mode = "not-applicable"
+            if interceptor is not None and hasattr(interceptor, "passThrough"):
+                mode = "focus" if interceptor.passThrough else "browse"
+            application = getattr(getattr(focus, "appModule", None), "appName", None)
+            state = {"observedUtc": datetime.now(timezone.utc).isoformat(), "mode": mode, "speechMode": speech.getState().speechMode.name,
+                     "focusApplication": application if application in {"chrome", "firefox"} else "outside-browser"}
+            target = Path(globalVars.appArgs.configPath, "effective-mode.json")
+            temporary = target.with_suffix(".tmp")
+            temporary.write_text(json.dumps(state), encoding="utf-8")
+            temporary.replace(target)
+        finally:
+            # Let NVDA report the original exception. A transient publication
+            # or focus-read error must not permanently stop future snapshots.
+            # Repeated failures still fail the collector's freshness gate.
+            wx.CallLater(100, self.capture_mode)
 
     def capture_settings(self):
         synth = synthDriverHandler.getSynth()

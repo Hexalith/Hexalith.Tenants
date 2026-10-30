@@ -1,0 +1,347 @@
+{
+  "recordedUtc": "2026-10-30T19:40:59.502379+00:00",
+  "scope": "Post-capture evidence/tooling corrections only; no native matrices, production UI/C# changes, C# suite or broad browser reruns. Frozen inputs/raw native packets untouched.",
+  "preReviewExecutedVersions": "pre-review-tools-manifest.json",
+  "preReviewHandoff": "pre-review-handoff.zip",
+  "prospectiveGuardsOnly": true,
+  "targetedChecks": [
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser-resumed/test-native-matrix.py"
+      ],
+      "exitCode": 0,
+      "tests": 8
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser-resumed/test-native-setup.py"
+      ],
+      "exitCode": 0,
+      "tests": 5
+    },
+    {
+      "argv": [
+        "powershell.exe",
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "C:\\Temp\\tenants-review-launcher-test.ps1",
+        "-Launcher",
+        "C:\\Temp\\tenants-review-launcher-guard.ps1"
+      ],
+      "exitCode": 0,
+      "result": {
+        "existingOutputCases": 3,
+        "originalBytesPreserved": true,
+        "collectorStarted": false,
+        "passed": true
+      }
+    }
+  ],
+  "floorMutation": {
+    "isolatedTemporaryCopy": true,
+    "mutation": "30-second minimum lowered to zero",
+    "exitCode": 1,
+    "expectedRegressionFailure": true,
+    "stderr": ".......F\n======================================================================\nFAIL: testThirtySecondsAcceptedAndTwentyNineRejected (__main__.MatrixReplayTests.testThirtySecondsAcceptedAndTwentyNineRejected)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/tmp/tenants-floor-regression-2_pncymi/test-native-matrix.py\", line 57, in testThirtySecondsAcceptedAndTwentyNineRejected\n    self.assertFalse(self.valid())\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^\nAssertionError: True is not false\n\n----------------------------------------------------------------------\nRan 8 tests in 0.013s\n\nFAILED (failures=1)\n"
+  },
+  "artifactControls": {
+    "isolatedTemporaryCopiesOnly": true,
+    "optimizedPython": true,
+    "controls": [
+      {
+        "case": "positive",
+        "exitCode": 0,
+        "diagnostic": "accepted"
+      },
+      {
+        "case": "unbound bytes",
+        "exitCode": 1,
+        "diagnostic": "ValueError: Artifact bytes differ: grant-current-controls.json"
+      },
+      {
+        "case": "matrix coverage",
+        "exitCode": 1,
+        "diagnostic": "ValueError: Native matrix must cover the exact 48 windows"
+      },
+      {
+        "case": "native observer binding",
+        "exitCode": 1,
+        "diagnostic": "ValueError: Observer binding differs"
+      },
+      {
+        "case": "grid gate",
+        "exitCode": 1,
+        "diagnostic": "ValueError: Grid gate changed"
+      },
+      {
+        "case": "grant negative control",
+        "exitCode": 1,
+        "diagnostic": "ValueError: Current grant controls differ"
+      },
+      {
+        "case": "speech receipt boundary",
+        "exitCode": 1,
+        "diagnostic": "ValueError: Speech timing/occurrence inventory does not replay"
+      },
+      {
+        "case": "capture failed",
+        "exitCode": 1,
+        "diagnostic": "ValueError: Matrix does not replay from packet windows/controls"
+      },
+      {
+        "case": "capture incomplete",
+        "exitCode": 1,
+        "diagnostic": "ValueError: Matrix does not replay from packet windows/controls"
+      },
+      {
+        "case": "runner failed",
+        "exitCode": 1,
+        "diagnostic": "ValueError: Matrix does not replay from packet windows/controls"
+      },
+      {
+        "case": "invocation failed",
+        "exitCode": 1,
+        "diagnostic": "ValueError: Matrix does not replay from packet windows/controls"
+      },
+      {
+        "case": "build failed",
+        "exitCode": 1,
+        "diagnostic": "ValueError: Matrix does not replay from packet windows/controls"
+      },
+      {
+        "case": "build reused",
+        "exitCode": 1,
+        "diagnostic": "ValueError: Matrix does not replay from packet windows/controls"
+      },
+      {
+        "case": "runtime unstable",
+        "exitCode": 1,
+        "diagnostic": "ValueError: Matrix does not replay from packet windows/controls"
+      },
+      {
+        "case": "runtime failure",
+        "exitCode": 1,
+        "diagnostic": "ValueError: Matrix does not replay from packet windows/controls"
+      },
+      {
+        "case": "missing raw Search speech",
+        "exitCode": 1,
+        "diagnostic": "ValueError: Matrix does not replay from packet windows/controls"
+      },
+      {
+        "case": "missing raw cancellation",
+        "exitCode": 1,
+        "diagnostic": "ValueError: Matrix does not replay from packet windows/controls"
+      },
+      {
+        "case": "runtime browser identity",
+        "exitCode": 1,
+        "diagnostic": "ValueError: Native runtime/count/cleanup summary differs"
+      },
+      {
+        "case": "runtime assembly identity",
+        "exitCode": 1,
+        "diagnostic": "ValueError: Native runtime/count/cleanup summary differs"
+      },
+      {
+        "case": "runtime count",
+        "exitCode": 1,
+        "diagnostic": "ValueError: Native runtime/count/cleanup summary differs"
+      },
+      {
+        "case": "runtime cleanup",
+        "exitCode": 1,
+        "diagnostic": "ValueError: Native runtime/count/cleanup summary differs"
+      },
+      {
+        "case": "native packet SHA",
+        "exitCode": 1,
+        "diagnostic": "ValueError: Native archive hash differs"
+      },
+      {
+        "case": "partial native member inventory",
+        "exitCode": 1,
+        "diagnostic": "ValueError: Native ZIP needs complete unique member coverage"
+      },
+      {
+        "case": "duplicate native member inventory",
+        "exitCode": 1,
+        "diagnostic": "ValueError: Native ZIP needs complete unique member coverage"
+      },
+      {
+        "case": "duplicate ZIP member",
+        "exitCode": 1,
+        "diagnostic": "ValueError: Native ZIP needs complete unique member coverage"
+      },
+      {
+        "case": "preparation repositories omitted",
+        "exitCode": 1,
+        "diagnostic": "ValueError: Preparation must contain the exact unique root-plus-nine declared repositories"
+      },
+      {
+        "case": "preparation repositories duplicated",
+        "exitCode": 1,
+        "diagnostic": "ValueError: Preparation must contain the exact unique root-plus-nine declared repositories"
+      },
+      {
+        "case": "refresh repositories omitted",
+        "exitCode": 1,
+        "diagnostic": "ValueError: Refresh must contain the exact unique root-plus-nine declared repositories"
+      },
+      {
+        "case": "refresh repositories duplicated",
+        "exitCode": 1,
+        "diagnostic": "ValueError: Refresh must contain the exact unique root-plus-nine declared repositories"
+      },
+      {
+        "case": "final repositories omitted",
+        "exitCode": 1,
+        "diagnostic": "ValueError: Final verification must contain the exact unique root-plus-nine declared repositories"
+      },
+      {
+        "case": "final repositories duplicated",
+        "exitCode": 1,
+        "diagnostic": "ValueError: Final verification must contain the exact unique root-plus-nine declared repositories"
+      }
+    ]
+  },
+  "conservationControls": {
+    "isolatedTemporaryCopiesOnly": true,
+    "positiveControls": [
+      {
+        "optimized": false,
+        "exitCode": 0
+      },
+      {
+        "optimized": true,
+        "exitCode": 0
+      }
+    ],
+    "negativeControls": [
+      {
+        "mutation": "unselected numbered history",
+        "optimized": true,
+        "rejected": true,
+        "diagnostic": "ValueError: Original DW-1 body changed"
+      },
+      {
+        "mutation": "selected original field",
+        "optimized": true,
+        "rejected": true,
+        "diagnostic": "ValueError: Original DW-116 body changed"
+      },
+      {
+        "mutation": "numbered ID conservation",
+        "optimized": true,
+        "rejected": true,
+        "diagnostic": "ValueError: Numbered IDs changed"
+      },
+      {
+        "mutation": "numbered status",
+        "optimized": true,
+        "rejected": true,
+        "diagnostic": "ValueError: Original DW-446 body changed"
+      },
+      {
+        "mutation": "unselected ledger preamble",
+        "optimized": true,
+        "rejected": true,
+        "diagnostic": "ValueError: Unselected ledger bytes changed"
+      },
+      {
+        "mutation": "archive byte conservation",
+        "optimized": true,
+        "rejected": true,
+        "diagnostic": "ValueError: Archive must preserve prefix and append only resolved DW-116"
+      },
+      {
+        "mutation": "unselected index history",
+        "optimized": true,
+        "rejected": true,
+        "diagnostic": "ValueError: Only approved index closure/annotations are permitted"
+      },
+      {
+        "mutation": "ledger LF to CRLF rewrite",
+        "optimized": true,
+        "rejected": true,
+        "diagnostic": "ValueError: Exactly the reviewed pre-existing incoming defer is permitted"
+      },
+      {
+        "mutation": "index LF to CRLF rewrite",
+        "optimized": true,
+        "rejected": true,
+        "diagnostic": "ValueError: Only approved index closure/annotations are permitted"
+      },
+      {
+        "mutation": "both unnumbered additions relocated to preamble",
+        "optimized": true,
+        "rejected": true,
+        "diagnostic": "ValueError: Unnumbered addition relocated"
+      },
+      {
+        "mutation": "approved DW-116 closure removed",
+        "optimized": true,
+        "rejected": true,
+        "diagnostic": "ValueError: Only DW-116's approved closure is required"
+      },
+      {
+        "mutation": "resolved archive copy missing",
+        "optimized": true,
+        "rejected": true,
+        "diagnostic": "ValueError: Archive must preserve prefix and append only resolved DW-116"
+      },
+      {
+        "mutation": "historical archive prefix changed",
+        "optimized": true,
+        "rejected": true,
+        "diagnostic": "ValueError: Archive must preserve prefix and append only resolved DW-116"
+      },
+      {
+        "mutation": "pre-existing defer impact upgraded",
+        "optimized": true,
+        "rejected": true,
+        "diagnostic": "ValueError: Exactly the reviewed pre-existing incoming defer is permitted"
+      },
+      {
+        "mutation": "independent acceptance missing",
+        "optimized": true,
+        "rejected": true,
+        "diagnostic": "ValueError: Independent acceptance is required for DW-116 closure"
+      },
+      {
+        "mutation": "independent DW-116 acceptance rejected",
+        "optimized": true,
+        "rejected": true,
+        "diagnostic": "ValueError: DW-116's exact 16-window acceptance is required"
+      },
+      {
+        "mutation": "capture matrix falsely upgraded to acceptance",
+        "optimized": true,
+        "rejected": true,
+        "diagnostic": "ValueError: Capture matrix must retain its pre-assessment scope"
+      }
+    ]
+  },
+  "independentDisposition": "independent-at-assessment.json",
+  "onlyClosedRecord": "DW-116",
+  "independentlyAcceptedSearchWindows": 16,
+  "numberedStatusCounts": {
+    "done": 655,
+    "open": 2
+  },
+  "maintenanceRows": 2,
+  "newPreExistingUnverifiedCoverageFollowup": 1,
+  "remainingSelectedRecords": [
+    "DW-446",
+    "DW-459",
+    "unnumbered grant Escape history",
+    "unnumbered external Fluent grid disposal"
+  ],
+  "remainingOwnerWork": "Parent final verification/reviewer rechecks, spec audit metadata, commitlint, staged/committed byte checks and authorized publication."
+}

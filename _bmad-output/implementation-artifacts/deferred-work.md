@@ -989,7 +989,7 @@ location: TenantListSurfaceTests.cs:1866
 source_spec: `_bmad-output/implementation-artifacts/spec-1-9-authoritative-memories-search-with-protected-paging.md`
 reason: The legacy ledger defers this issue: The "exactly one polite live region" proof is an artefact of bUnit's missing shadow DOM. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-1-9-authoritative-memories-search-with-protected-paging.md` summary: The "exactly one polite live region" proof is an artefact of bUnit's missing shadow DOM. evidence: `TenantListSurfaceTests.cs:1866` counts live regions in markup where `<fluent-message-bar>` renders as an inert custom element. The shipped Fluent v5 module sets `role="status" aria-live="polite"` on each bar's internal dialog at runtime, so a real browser nests a live region per bar inside the workspace's outer one. The helper degenerates to `0.ShouldBe(0)` on the empty-notice call. status: open — blocked on BROWSER-SEARCH-1.9 and AT-NVDA-1.9, both already open.
-status: open
+status: done 2026-10-30
 disposition: blocked
 verification-date: 2026-10-12
 verification: tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs counts light-DOM aria-live markup; Components/Shared/ListSurfaceStates.razor uses Fluent messages. This cannot establish the real shadow-DOM or screen-reader announcement count.
@@ -1017,6 +1017,10 @@ remaining-batch-date: 2026-10-30
 remaining-batch-result: Fresh full-plan native Chrome/Firefox EN/FR collector attempts are blocked before authentication and product capture by two RouteOperationContract CS0246 errors in the current-source build. Zero of 48 total windows qualify; no new S0-S3 search speech or independent acceptance exists. Original findings and all previous packet limitations remain unchanged; keep open.
 remaining-batch-evidence: five-remaining-speech-and-browser-validation-evidence.md
 
+
+resumed-batch-date: 2026-10-30
+resumed-batch-result: Independent assessment accepts only DW-116's 16 Search queued-notice windows on frozen c2da6bac in NVDA/Chrome and NVDA/Firefox, EN/FR: no stale notice in S0, complete S1/S2 guidance once and both S3 bodies in order without body loss/repetition. Close this narrow queued-notice contract only; repeated component dismiss labels, English dismiss labels in FR, unknown causes, audible-completion limits and unrelated release/localization holds remain. Original findings and fields are preserved. Acceptance: evidence/five-remaining-speech-and-browser-resumed/independent-at-assessment.json.
+resumed-batch-evidence: five-remaining-speech-and-browser-resumed-validation-evidence.md
 ### DW-117: Surfacing codec exceptions escape the gateway and reach an unguarded LoadAsync, tearing down the Blazor circuit
 
 status: done 2026-10-28
@@ -3626,6 +3630,10 @@ remaining-batch-date: 2026-10-30
 remaining-batch-result: Fresh full-plan native Chrome/Firefox EN/FR collector attempts are blocked before authentication and product capture by two RouteOperationContract CS0246 errors in the current-source build. Zero of 48 total windows qualify; no new C1-C3 first Pending/Unavailable and both Refresh speech or independent acceptance exists. Original findings and all previous packet limitations remain unchanged; keep open.
 remaining-batch-evidence: five-remaining-speech-and-browser-validation-evidence.md
 
+
+resumed-batch-date: 2026-10-30
+resumed-batch-result: Independent assessment keeps this record open: first-Unavailable C2 and same-state Unavailable Refresh C3 queue repeated audit/lifecycle output in both pairings/cultures; cause is unassigned. The protocol requires a separately approved behavior fix and repeat qualification. Complete protocol controls and first-Pending conveyance do not waive this blocker. Acceptance: evidence/five-remaining-speech-and-browser-resumed/independent-at-assessment.json.
+resumed-batch-evidence: five-remaining-speech-and-browser-resumed-validation-evidence.md
 ### DW-447: Stop flow-level lifecycle recovery copy from naming recovery actions that the shared availability control may not render.
 
 status: done 2026-10-21
@@ -3771,6 +3779,10 @@ remaining-batch-date: 2026-10-30
 remaining-batch-result: Fresh full-plan native Chrome/Firefox EN/FR collector attempts are blocked before authentication and product capture by two RouteOperationContract CS0246 errors in the current-source build. Zero of 48 total windows qualify; no new C1-C3 first Pending/Unavailable and both Refresh speech or independent acceptance exists. Original findings and all previous packet limitations remain unchanged; keep open.
 remaining-batch-evidence: five-remaining-speech-and-browser-validation-evidence.md
 
+
+resumed-batch-date: 2026-10-30
+resumed-batch-result: Independent assessment keeps this record open: first-Unavailable C2 and same-state Unavailable Refresh C3 queue repeated audit/lifecycle output in both pairings/cultures; cause is unassigned. The protocol requires a separately approved behavior fix and repeat qualification. Complete protocol controls and first-Pending conveyance do not waive this blocker. Acceptance: evidence/five-remaining-speech-and-browser-resumed/independent-at-assessment.json.
+resumed-batch-evidence: five-remaining-speech-and-browser-resumed-validation-evidence.md
 ### DW-460: Decide whether `TenantAuditReceipt.FromEntry` should accept authoritative lifecycle/provenance or be removed.
 
 status: done 2026-10-26
@@ -5606,6 +5618,10 @@ archived: 2026-10-22
 
 
 
+
+  resumed-batch-date: 2026-10-30
+  resumed-batch-result: Current foreground Escape, held negative control and acknowledged callback/distinct-row rendering pass; the historical timeout remains unexplained and open.
+  resumed-batch-evidence: five-remaining-speech-and-browser-resumed-validation-evidence.md
 ## Deferred from: five UI safety items independent review (2026-10-25)
 
 - source_spec: `_bmad-output/implementation-artifacts/spec-dw-194-201-221-267-609-ui-safety.md`
@@ -5638,6 +5654,10 @@ archived: 2026-10-22
 
 
 
+
+  resumed-batch-date: 2026-10-30
+  resumed-batch-result: Current connected initialization, detached navigation and release reproduce the pinned FluentDataGrid disposed-JSObjectReference circuit failure; unchanged zero-error acceptance fails and the external blocker remains open.
+  resumed-batch-evidence: five-remaining-speech-and-browser-resumed-validation-evidence.md
 ## Deferred from: release-governance independent review (2026-10-27)
 
 - source_spec: `_bmad-output/implementation-artifacts/spec-dw-540-554-570-584-593-release-governance.md`
@@ -5690,3 +5710,16 @@ archived: 2026-10-22
   summary: Reconcile the long-lived EventStore spec gitlink audit scope while preserving its original baseline and unrelated committed dependency updates.
   evidence: Review R1. The retained historical endpoint ef4b7f2f99b2a60910b94481a198f591c51bfe5c passes with --ref, while the default validate-story-gitlinks.py command exits 1 for eight intervening undeclared pointers since baseline 9e9e04308ea1060010a64bb8b800e755c4aaf99d. This continuation starts at 03615cc91d940ca37b47fb13413a90a31151dd71 and has zero gitlink diff. Package currency, both Release builds and 10887 tests pass. Resolve historical attribution without resetting the baseline, reverting independent changes or inventing story ownership; exact commands/logs are in dependency-refresh-eventstore-3.128.4-evidence-2026-10-29.json and its raw-log archive.
   resolution: done — Restored the creation snapshot's original 1846c7128cf0f6b16f9e62f38032bcab78e26e38 start instead of the narrowed October 10 checkpoint, retired the incompatible active historical endpoint, and inventoried all nine exact current range targets without claiming independent commits as story-owned. Default guard, original-range/history verifier with 23 controls, guard suite 77/77 and changed-story suite 78/78 pass. Evidence: eventstore-gitlink-reconciliation-2026-10-29.md; original review evidence above is preserved.
+
+
+## Deferred from: resumed speech review incoming coverage (2026-10-30)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-five-remaining-speech-and-browser-followups.md`
+  summary: Unverified medium, pre-existing incoming coverage gap: qualify granting and post-removal revocation through the registered bound metadata transport.
+  evidence: Incoming a16d897 src/Hexalith.Tenants/Program.cs:82 registers GatewayNativeSourceMetadataReader through TenantOwnerSourceGateway, while tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsRouteTests.cs:105 still constructs DaprNativeSourceMetadataReader directly. Those existing route tests do not establish equivalent coverage through the registered bound transport.
+  status: open
+  classification: pre-existing-incoming-test-coverage-gap
+  production-impact: Unverified; no production authorization or revocation failure is demonstrated or claimed.
+  next-action: Exercise matching granting and post-removal revocation through the registered GatewayNativeSourceMetadataReader bound transport before claiming that production path qualified; preserve current authorization and exact identity rules.
+  scope: Deferred separately from the five selected speech/browser follow-ups; excluded from numbered totals. No incoming host or unrelated integration test was changed.
+  evidence-review: RBH10; five-remaining-speech-and-browser-resumed-validation-evidence.md

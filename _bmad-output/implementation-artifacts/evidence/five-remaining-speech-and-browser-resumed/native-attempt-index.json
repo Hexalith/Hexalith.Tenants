@@ -1,0 +1,326 @@
+{
+  "attempts": [
+    {
+      "label": "chrome-s0-1",
+      "pairing": "NVDA/Chrome",
+      "packet": "native-attempts/chrome-s0-1.zip",
+      "packetSha256": "623b64b816c406fddc92c6ca7693f7d38fe905f9bb6be224100ab4fccb0ebb6c",
+      "sourceRootRevision": "e45ed9d87de7800ebb02b1cedc9c64b720763e9e",
+      "dependencyInventory": "native-preparation.json",
+      "collectorSha256": "7bdeb0c4b66cb6e5f5f039669c802ba8f157c310b5a2b9c2f6722bc1c76bfc07",
+      "observerSha256": "fb2c0eb34a3fe336bda882dddcd4acbbc05e8d9ea7c53d8662861173506bd31d",
+      "startedUtc": "2026-10-30T17:54:31.1143416Z",
+      "finishedUtc": "2026-10-30T17:55:14.6814486Z",
+      "failure": "The native fixture browser is not in the foreground.",
+      "collectorPassed": false,
+      "protocolCompleted": false,
+      "speechSamples": 0,
+      "completedTrials": [],
+      "sourceSettingsUnchanged": true,
+      "retainedMembers": [
+        {
+          "path": "fixture.json",
+          "bytes": 9286,
+          "sha256": "1c699ac86751260b0e00bbf0c1707498f040716ce40969b04d512bce0f4c6e2f"
+        },
+        {
+          "path": "speech.json",
+          "bytes": 6,
+          "sha256": "b423bb45501e0fa49d3b77e635f800a29f1fdcf5a58e00c7e04a7ff7833045f2"
+        },
+        {
+          "path": "timeline.json",
+          "bytes": 802,
+          "sha256": "1975d27cf4eec2a4f35f29644935e6ac6f3041e80ae9e26305265301439e847c"
+        },
+        {
+          "path": "capture.json",
+          "bytes": 2983,
+          "sha256": "c52b46210113366d347608f4be6d1be4e57eef66a8fc221123e2bf4f4405857e"
+        },
+        {
+          "path": "invocation.json",
+          "bytes": 1363,
+          "sha256": "234f9dd08d19150de294e47f6c0c48faefdcf9ff4163887e17b4847709f7b504"
+        },
+        {
+          "path": "retention.json",
+          "bytes": 561,
+          "sha256": "c4b968e2eb49c092fa025127c0f943bdb277ac0ab3df9c078fb9feb01aad7f2f"
+        }
+      ]
+    },
+    {
+      "label": "firefox-s0-1",
+      "pairing": "NVDA/Firefox",
+      "packet": "native-attempts/firefox-s0-1.zip",
+      "packetSha256": "52b5e69af7344ef68f980944b39a8825405cd52289db35a236d6cff36227d5a0",
+      "sourceRootRevision": "e45ed9d87de7800ebb02b1cedc9c64b720763e9e",
+      "dependencyInventory": "native-preparation.json",
+      "collectorSha256": "7bdeb0c4b66cb6e5f5f039669c802ba8f157c310b5a2b9c2f6722bc1c76bfc07",
+      "observerSha256": "fb2c0eb34a3fe336bda882dddcd4acbbc05e8d9ea7c53d8662861173506bd31d",
+      "startedUtc": "2026-10-30T17:55:46.5016978Z",
+      "finishedUtc": "2026-10-30T17:56:28.6489907Z",
+      "failure": "NVDA mode observation is stale or invalid.",
+      "collectorPassed": false,
+      "protocolCompleted": false,
+      "speechSamples": 9,
+      "completedTrials": [],
+      "sourceSettingsUnchanged": true,
+      "retainedMembers": [
+        {
+          "path": "fixture.json",
+          "bytes": 15722,
+          "sha256": "ad99b0e28dd044e3bc5f6848935d87eb206959792827af4da16f12634b1cbbd8"
+        },
+        {
+          "path": "speech.json",
+          "bytes": 4447,
+          "sha256": "b40adef2c21e0c21b916d50f8b644b4ac4eeb56e1f657b757ce01c2c76a2a4f1"
+        },
+        {
+          "path": "timeline.json",
+          "bytes": 3270,
+          "sha256": "feab7a3c75667c0af5feb507c1976b6fce0f67c3468b0e1c0b1c4efe47dbc3f5"
+        },
+        {
+          "path": "speech.jsonl",
+          "bytes": 2545,
+          "sha256": "3e3483f1ad9d7e5159bc2a958b6d294dac037c4b3efb559fd3913eb7e12196bb"
+        },
+        {
+          "path": "capture.json",
+          "bytes": 2972,
+          "sha256": "531fbcd482b51f51dc00372d7e80a12742c9a71e6ffe5362fc8df7e06c451e74"
+        },
+        {
+          "path": "invocation.json",
+          "bytes": 1363,
+          "sha256": "32c73a4320e7a7d0ca1b9a8496b16c9b2144255178375f235afe16d5fd885edc"
+        },
+        {
+          "path": "retention.json",
+          "bytes": 561,
+          "sha256": "9693ee5d56c2c3530b7fceaf630a3f2da7aadb9343d43ccc0efb18263d3950ce"
+        }
+      ]
+    },
+    {
+      "label": "chrome-s0-2",
+      "pairing": "NVDA/Chrome",
+      "packet": "native-attempts/chrome-s0-2.zip",
+      "packetSha256": "5e011d3caff67fcc4b4d228c5acd41bb70425be3666cc0c2f74160152f4b984d",
+      "sourceRootRevision": "e45ed9d87de7800ebb02b1cedc9c64b720763e9e",
+      "dependencyInventory": "native-preparation.json",
+      "collectorSha256": "7bdeb0c4b66cb6e5f5f039669c802ba8f157c310b5a2b9c2f6722bc1c76bfc07",
+      "observerSha256": "5c7e5c992b45d6439eb881d7c86f3b3726acb1778e8e4415ab04fad12b20dd7f",
+      "startedUtc": "2026-10-30T18:02:50.9410265Z",
+      "finishedUtc": "2026-10-30T18:03:54.4238220Z",
+      "failure": null,
+      "collectorPassed": true,
+      "protocolCompleted": true,
+      "speechSamples": 6,
+      "completedTrials": [
+        "S0-en"
+      ],
+      "sourceSettingsUnchanged": true,
+      "retainedMembers": [
+        {
+          "path": "fixture.json",
+          "bytes": 17962,
+          "sha256": "1d1980e9616ec776653fdda763dfe68790f6ea7c6c602e2743dcbd760e7f63c7"
+        },
+        {
+          "path": "speech.json",
+          "bytes": 3088,
+          "sha256": "0362aa82b10113eb9a3c0633355f8a4b0c6745b2e3190ba8890e623496c48f09"
+        },
+        {
+          "path": "timeline.json",
+          "bytes": 5839,
+          "sha256": "584b8fbdd3ed06f8c912eb33f29850db815b9a026695e594c6f456bdb479a01e"
+        },
+        {
+          "path": "speech.jsonl",
+          "bytes": 1819,
+          "sha256": "045b3db13ac381108182b01179292d69d6dba6be3b528ed0557162cd76822bdd"
+        },
+        {
+          "path": "capture.json",
+          "bytes": 3027,
+          "sha256": "0569a579cb7516c95925168f0134cefc7e78ef3f9dc1ef95900f94cbc5c2f42a"
+        },
+        {
+          "path": "invocation.json",
+          "bytes": 1363,
+          "sha256": "7f168f4bcf4b50246024056f29c66a92c5a35832c6e1a3df9376e2038ec365bc"
+        },
+        {
+          "path": "retention.json",
+          "bytes": 561,
+          "sha256": "5be9eb6e90854ee930c3cb3d39db6d94af0bd92682e067b03777b406ae5e4322"
+        }
+      ]
+    },
+    {
+      "label": "current-chrome-matrix-1",
+      "pairing": "NVDA/Chrome",
+      "packet": "native-attempts/current-chrome-matrix-1.zip",
+      "packetSha256": "99da6db54ba97f6785fae7c6db9a17ff5ec020e38cd5112fbe48ff948a40acaa",
+      "sourceRootRevision": "c2da6bacff148e77608132b0e04c714228a9b199",
+      "dependencyInventory": "native-refresh.json",
+      "collectorSha256": "7bdeb0c4b66cb6e5f5f039669c802ba8f157c310b5a2b9c2f6722bc1c76bfc07",
+      "observerSha256": "5c7e5c992b45d6439eb881d7c86f3b3726acb1778e8e4415ab04fad12b20dd7f",
+      "startedUtc": "2026-10-30T18:09:46.7552712Z",
+      "finishedUtc": "2026-10-30T18:27:29.4714554Z",
+      "failure": null,
+      "collectorPassed": true,
+      "protocolCompleted": true,
+      "speechSamples": 141,
+      "completedTrials": [
+        "S0-en",
+        "S1-en",
+        "S2-en",
+        "S3-en",
+        "C1-lifecycle-en",
+        "C3-events-lifecycle-en",
+        "C1-availability-en",
+        "C3-events-availability-en",
+        "C2-lifecycle-en",
+        "C3-unavailable-lifecycle-en",
+        "C2-availability-en",
+        "C3-unavailable-availability-en",
+        "S0-fr",
+        "S1-fr",
+        "S2-fr",
+        "S3-fr",
+        "C1-lifecycle-fr",
+        "C3-events-lifecycle-fr",
+        "C1-availability-fr",
+        "C3-events-availability-fr",
+        "C2-lifecycle-fr",
+        "C3-unavailable-lifecycle-fr",
+        "C2-availability-fr",
+        "C3-unavailable-availability-fr"
+      ],
+      "sourceSettingsUnchanged": true,
+      "retainedMembers": [
+        {
+          "path": "fixture.json",
+          "bytes": 146993,
+          "sha256": "fd00d014c10fbc5721659df6d7ca9e899a619149a2a6743f26d0e1d00c2a2c5b"
+        },
+        {
+          "path": "speech.json",
+          "bytes": 85055,
+          "sha256": "5ac251413da447e01ed810b5029fd101a72f4c26f3a252a01859be6027a714c9"
+        },
+        {
+          "path": "timeline.json",
+          "bytes": 152975,
+          "sha256": "337d8ebc948248ad6fd940bd23518038d91fd250ddabfc2bfbccc71803893fe9"
+        },
+        {
+          "path": "speech.jsonl",
+          "bytes": 55301,
+          "sha256": "fc87c6b9451f72494c5dff5fd1f173785f9ce17c7a0eaae80b984788cbacc7f8"
+        },
+        {
+          "path": "capture.json",
+          "bytes": 4151,
+          "sha256": "4a8e79c4a31be3e493a46b82661333471faa98e7cbf961c602e6e8f5088e2244"
+        },
+        {
+          "path": "invocation.json",
+          "bytes": 1211,
+          "sha256": "0a8c3dbccdbbfd3c10933134f5a2ef4288350404f492cbf2721b5f30b6871c31"
+        },
+        {
+          "path": "retention.json",
+          "bytes": 561,
+          "sha256": "c04901780a4e5da040db98e2cd2c4a34a62967a12a1f9e4f68ce941bafbec1db"
+        }
+      ]
+    },
+    {
+      "label": "current-firefox-matrix-1",
+      "pairing": "NVDA/Firefox",
+      "packet": "native-attempts/current-firefox-matrix-1.zip",
+      "packetSha256": "28f79a31f104bfb8d096359c1ba8a69d64ead2098a898fc85774ccfb8de32482",
+      "sourceRootRevision": "c2da6bacff148e77608132b0e04c714228a9b199",
+      "dependencyInventory": "native-refresh.json",
+      "collectorSha256": "7bdeb0c4b66cb6e5f5f039669c802ba8f157c310b5a2b9c2f6722bc1c76bfc07",
+      "observerSha256": "5c7e5c992b45d6439eb881d7c86f3b3726acb1778e8e4415ab04fad12b20dd7f",
+      "startedUtc": "2026-10-30T18:28:54.8986507Z",
+      "finishedUtc": "2026-10-30T18:46:38.1836204Z",
+      "failure": null,
+      "collectorPassed": true,
+      "protocolCompleted": true,
+      "speechSamples": 125,
+      "completedTrials": [
+        "S0-en",
+        "S1-en",
+        "S2-en",
+        "S3-en",
+        "C1-lifecycle-en",
+        "C3-events-lifecycle-en",
+        "C1-availability-en",
+        "C3-events-availability-en",
+        "C2-lifecycle-en",
+        "C3-unavailable-lifecycle-en",
+        "C2-availability-en",
+        "C3-unavailable-availability-en",
+        "S0-fr",
+        "S1-fr",
+        "S2-fr",
+        "S3-fr",
+        "C1-lifecycle-fr",
+        "C3-events-lifecycle-fr",
+        "C1-availability-fr",
+        "C3-events-availability-fr",
+        "C2-lifecycle-fr",
+        "C3-unavailable-lifecycle-fr",
+        "C2-availability-fr",
+        "C3-unavailable-availability-fr"
+      ],
+      "sourceSettingsUnchanged": true,
+      "retainedMembers": [
+        {
+          "path": "fixture.json",
+          "bytes": 147065,
+          "sha256": "92aa232f34c9aec326c12008b6eafc237f99ada8195689922bc9aa29e106e081"
+        },
+        {
+          "path": "speech.json",
+          "bytes": 75207,
+          "sha256": "a969d2734548f9cdbf357f8b9a0d8a093d0c523689866e38e2cfac7fdb6317c3"
+        },
+        {
+          "path": "timeline.json",
+          "bytes": 153903,
+          "sha256": "4862ceec749a74d6e352b1e736004acdc85c63c79d9fdd2f9fec76db9ab0c2ac"
+        },
+        {
+          "path": "speech.jsonl",
+          "bytes": 48829,
+          "sha256": "98da5f367c3410a8fa4bba5d361960c6ddc4eedb80cd3544c472812cd2a91682"
+        },
+        {
+          "path": "capture.json",
+          "bytes": 4150,
+          "sha256": "1fb37f0a6dacb401931385c332845c496598a1e9d34b96c4b63b7e87784170b6"
+        },
+        {
+          "path": "invocation.json",
+          "bytes": 1211,
+          "sha256": "fe0284c1589a8b5f329d25cfb3cabb6f0625f7f0549330257c644932eed12f65"
+        },
+        {
+          "path": "retention.json",
+          "bytes": 561,
+          "sha256": "76c0895ce308f4b12fa7603b7c54549403f9632ab7cb7baccc65aff930d4936c"
+        }
+      ]
+    }
+  ]
+}
