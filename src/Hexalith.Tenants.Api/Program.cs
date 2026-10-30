@@ -2,6 +2,7 @@ using System.Text;
 
 using Hexalith.EventStore.Client.Registration;
 using Hexalith.EventStore.ServiceDefaults;
+using Hexalith.EventStore.ServiceDefaults.Routing;
 using Hexalith.Tenants.Api.Services;
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -17,6 +18,13 @@ builder.AddServiceDefaults();
 // gateway client; the interactive UI uses EventStore client libraries directly.
 builder.Services.AddControllers();
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddEventStoreDevelopmentRouteCatalogBootstrap(builder.Configuration, async (_, token) =>
+{
+    var actual = await DevelopmentRouteCatalogInputs.CaptureAsync(builder.Configuration, "tenants-api",
+        CompiledRouteCatalogDeclarations.Read([typeof(Hexalith.Tenants.Contracts.Routing.TenantCatalogDeclarations).Assembly]),
+        [], [], [], [], token).ConfigureAwait(false);
+    return actual with { Operations = CompiledRouteCatalogDeclarations.ReadOperations([typeof(Hexalith.Tenants.Contracts.Routing.TenantCatalogDeclarations).Assembly]) };
+});
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>

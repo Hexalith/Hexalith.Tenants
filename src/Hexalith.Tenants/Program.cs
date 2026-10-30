@@ -59,6 +59,7 @@ builder.Services.AddHealthChecks()
 // replacing the hand-rolled DaprTenantProjectionStateStore + TenantProjectionWritePolicy).
 builder.Services.AddEventStoreReadModelStore();
 builder.Services.AddSingleton(ProjectionDispatcher.CatalogRegistration);
+builder.Services.AddEventStoreDevelopmentDomainCatalog(builder.Configuration, typeof(Hexalith.Tenants.Contracts.Routing.TenantCatalogDeclarations).Assembly);
 builder.Services.TryAddSingleton(TimeProvider.System);
 // Current TenantOwner evidence is rebuilt from the authoritative tenant stream on every request.
 string ownerDaprEndpoint = Environment.GetEnvironmentVariable("DAPR_HTTP_ENDPOINT")

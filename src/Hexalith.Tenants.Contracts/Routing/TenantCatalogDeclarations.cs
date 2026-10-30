@@ -10,6 +10,58 @@ namespace Hexalith.Tenants.Contracts.Routing;
 /// <summary>Owner-approved offline route and intent declarations. Grants and runtime admission remain unchanged.</summary>
 public static class TenantCatalogDeclarations
 {
+    /// <summary>Actual owner request/result shapes and explicit surface policy; existing route and intent identities remain unchanged.</summary>
+    public static IReadOnlyList<RouteOperationContract> Operations => Routes.Select(Operation).ToArray();
+
+    /// <summary>Actual owner receiver methods, selected without changing declaration identities.</summary>
+    public static IReadOnlyDictionary<string, string> ReceiverMethods => Routes.ToDictionary(route => route.RouteId,
+        route => route.Kind switch { "command" => "process", "query" => "query", _ => "project" }, StringComparer.Ordinal);
+
+    private static RouteOperationContract Operation(RouteContractDeclaration route)
+    {
+        var serializer = new System.Text.Json.JsonSerializerOptions
+        {
+            PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase,
+            Converters = { new Serialization.TenantStatusJsonConverter(), new System.Text.Json.Serialization.JsonStringEnumConverter() },
+        };
+        bool internalOperation = route.Kind == "projection" || route.Execution!.RequiresDelegatedContext
+            || route.MessageType == BootstrapGlobalAdmin.CommandType;
+        string eligibility = route.MessageType switch
+        {
+            "set-global-administrator" or "remove-global-administrator" => "confirmation-required",
+            "get-global-administrators" => "UI-only",
+            _ => "agent-eligible",
+        };
+        Type request = route.Kind == "projection" ? typeof(EventStore.Contracts.Projections.ProjectionRequest)
+            : typeof(TenantCatalogDeclarations).Assembly.GetType(route.Execution!.HandlerType, throwOnError: true)!;
+        Type result = route.Kind switch
+        {
+            "command" => typeof(SubmitCommandResponse),
+            "projection" => typeof(EventStore.Contracts.Projections.ProjectionResponse),
+            _ => route.MessageType switch
+            {
+                "get-tenant" => typeof(TenantDetail),
+                "get-tenant-users" => typeof(PaginatedResult<TenantMember>),
+                "get-tenant-audit" => typeof(PaginatedResult<TenantAuditEntry>),
+                "list-tenants" => typeof(PaginatedResult<TenantSummary>),
+                "get-user-tenants" => typeof(PaginatedResult<UserTenantMembership>),
+                "get-global-administrators" => typeof(PaginatedResult<GlobalAdministratorSummary>),
+                _ when route.MessageType == ResolveTenantOwnerAuthority.QueryType => typeof(TenantOwnerAuthorityResult),
+                _ when route.MessageType == ResolveTenantReadAuthority.QueryType => typeof(TenantReadAuthorityResult),
+                _ => throw new InvalidOperationException($"Unknown Tenants query {route.RouteId}."),
+            },
+        };
+        return RouteOperationSchema.Create(route, request, result, internalOperation ? "internal" : "public", eligibility, serializer,
+            new System.Text.Json.Schema.JsonSchemaExporterOptions
+            {
+                TransformSchemaNode = (context, node) => context.TypeInfo.Type == typeof(Enums.TenantStatus)
+                    ? new System.Text.Json.Nodes.JsonObject
+                    {
+                        ["type"] = "string", ["enum"] = new System.Text.Json.Nodes.JsonArray(Enum.GetValues<Enums.TenantStatus>()
+                            .Select(status => System.Text.Json.JsonSerializer.SerializeToNode(status, serializer)).ToArray()),
+                    } : node,
+            });
+    }
     /// <summary>Gets the twelve explicit MessageId v1, Mutation/24-hour command policies.</summary>
     public static IReadOnlyList<CommandIntentDeclaration> Commands { get; } = [
         Command<CreateTenant>("create", false, [new("name", "string"), new("description-is-null", "boolean"), new("description", "string")]),

@@ -3,6 +3,8 @@ using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Routing;
 
+[assembly: RouteCatalogAdapterSource(typeof(Hexalith.Tenants.Server.Routing.TenantIntentAdapters))]
+
 namespace Hexalith.Tenants.Server.Routing;
 
 /// <summary>Typed owner semantic policies, constructed offline without registering runtime admission.</summary>
