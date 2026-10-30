@@ -1,0 +1,44 @@
+{
+  "baselineCommit": "bd1d6ead1243237b5e84d1c1403485ee41fa9af3",
+  "source": [
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Browser/capture-deferred-nvda-speech.ps1",
+      "sha256": "7bdeb0c4b66cb6e5f5f039669c802ba8f157c310b5a2b9c2f6722bc1c76bfc07"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Browser/validate-deferred-native-speech.mjs",
+      "sha256": "49841c071c9dadb11643298d98bcb755b5d7384247ced815a9d8d3b761165a28"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Browser/deferred-nvda-observer.py",
+      "sha256": "fb2c0eb34a3fe336bda882dddcd4acbbc05e8d9ea7c53d8662861173506bd31d"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-administrator-dialogs.mjs",
+      "sha256": "8153c62a45ecee39d2f8bf74286c9b2bbb4ea8a27d1841d6b814b503d807cc5f"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Browser/deferred-handoff-fixture.mjs",
+      "sha256": "6a4908db949f08ecbacd4d2e7192f311e37fa0b866d0b84e14e98152741edcd5"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Browser/validate-deferred-handoff.mjs",
+      "sha256": "e9cbe6c51b97922ae78cd10b40c5dd3c31e993ccbab02a67525f3ef37402cde3"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Browser/local-oidc-fixture.mjs",
+      "sha256": "c3832608e33425c4e090dbf2014c246937237223c5097ea33c316363ab346b8f"
+    }
+  ],
+  "rootGitlinks": [
+    "160000 commit 70dbf73e80787299c832d30d911b16b105ab194d\treferences/Hexalith.AI.Tools",
+    "160000 commit 4775fb72e3ca3c05059830733e31a98995818cb6\treferences/Hexalith.Builds",
+    "160000 commit 3edfbdafc7d4fa915286dce8a37dc4cc7c06085a\treferences/Hexalith.Commons",
+    "160000 commit 4cf93f91e760e2d09e4fc64e1bd33a3c0a79a24d\treferences/Hexalith.EventStore",
+    "160000 commit 612d23485d7e2845d22102621a38d6c904e1ea90\treferences/Hexalith.FrontComposer",
+    "160000 commit 9ba8e5bd0e213501b39d33cedf46859566fc89a4\treferences/Hexalith.McpCli",
+    "160000 commit daa06183c0c9baa8bda71df259a7264d34684e2a\treferences/Hexalith.Memories",
+    "160000 commit 3659a44d86c08645215689eaeff8b3624d357dd5\treferences/Hexalith.Platform",
+    "160000 commit 221ac4592ba908ae7661ba1fa9e2d1fcc23baee0\treferences/Hexalith.PolymorphicSerializations"
+  ]
+}

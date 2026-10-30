@@ -1,0 +1,94 @@
+{
+  "logs": [
+    {
+      "label": "current-source UI test build",
+      "command": "dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -m:1 -p:UseNuGetDeps=false -p:HexalithEventStoreVersion=3.128.4 -p:HexalithMcpCliFromSource=false -p:NuGetAudit=false",
+      "exitCode": 1,
+      "rawLogSha256": "b133c450d2128a6189b24d1fcf9e39b48268ebce7db87398823fbf1acab2f188",
+      "rawLogBytes": 6245,
+      "diagnostics": [
+        "[workspace]/src/Hexalith.Tenants.Contracts/Routing/TenantCatalogDeclarations.cs(14,33): error CS0246: The type or namespace name 'RouteOperationContract' could not be found (are you missing a using directive or an assembly reference?) [[workspace]/src/Hexalith.Tenants.Contracts/Hexalith.Tenants.Contracts.csproj]",
+        "[workspace]/src/Hexalith.Tenants.Contracts/Routing/TenantCatalogDeclarations.cs(20,20): error CS0246: The type or namespace name 'RouteOperationContract' could not be found (are you missing a using directive or an assembly reference?) [[workspace]/src/Hexalith.Tenants.Contracts/Hexalith.Tenants.Contracts.csproj]"
+      ],
+      "warnings": 0,
+      "errors": 2
+    },
+    {
+      "label": "grant browser default build",
+      "command": "dotnet build src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj -c Debug -m:1 -p:UseNuGetDeps=false",
+      "exitCode": 1,
+      "rawLogSha256": "558066ffe4c6144bc946c8df80a710c2f6a9ede3b3d39d01c4f016c0c0a312cb",
+      "rawLogBytes": 1587,
+      "diagnostics": [
+        "[workspace]/Directory.Build.targets(17,5): error : EventStore package selection '3.128.3' must be at least 3.128.4 for completion recovery. Source mappings retain their exact producer identity. [[workspace]/references/Hexalith.McpCli/src/Hexalith.McpCli.Abstractions/Hexalith.McpCli.Abstractions.csproj]",
+        "[workspace]/Directory.Build.targets(17,5): error : EventStore package selection '3.128.3' must be at least 3.128.4 for completion recovery. Source mappings retain their exact producer identity. [[workspace]/references/Hexalith.McpCli/src/Hexalith.McpCli.Analyzers/Hexalith.McpCli.Analyzers.csproj]"
+      ],
+      "warnings": 0,
+      "errors": 2
+    },
+    {
+      "label": "grid browser default build",
+      "command": "dotnet build src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj -c Debug -m:1 -p:UseNuGetDeps=false",
+      "exitCode": 1,
+      "rawLogSha256": "9657015b204e94ea40fb7023f09c9a84b5de7da772dd18100a471b0e84731bb3",
+      "rawLogBytes": 1587,
+      "diagnostics": [
+        "[workspace]/Directory.Build.targets(17,5): error : EventStore package selection '3.128.3' must be at least 3.128.4 for completion recovery. Source mappings retain their exact producer identity. [[workspace]/references/Hexalith.McpCli/src/Hexalith.McpCli.Abstractions/Hexalith.McpCli.Abstractions.csproj]",
+        "[workspace]/Directory.Build.targets(17,5): error : EventStore package selection '3.128.3' must be at least 3.128.4 for completion recovery. Source mappings retain their exact producer identity. [[workspace]/references/Hexalith.McpCli/src/Hexalith.McpCli.Analyzers/Hexalith.McpCli.Analyzers.csproj]"
+      ],
+      "warnings": 0,
+      "errors": 2
+    },
+    {
+      "label": "chrome-attempt-2 native build",
+      "command": "dotnet build src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj -c Debug -m:1 -p:UseNuGetDeps=false -p:HexalithEventStoreVersion=3.128.4 -p:HexalithMcpCliFromSource=false -p:NuGetAudit=false",
+      "exitCode": 1,
+      "rawLogSha256": "9c5d631ee3dea879bdca91152a4555cc8f5ae5bf2a9d8c95c80f41974c36d922",
+      "rawLogBytes": 4700,
+      "diagnostics": [
+        "C:\\Program Files\\dotnet\\sdk\\10.0.403\\Microsoft.Common.targets(62,3): error MSB4019: The imported project \"[native-checkout]\\references\\Hexalith.FrontComposer\\eng\\FrontComposer.SourceReferences.targets\" was not found. Confirm that the expression in the Import declaration \"$(CustomAfterDirectoryBuildTargets)\", which evaluated to \"[native-checkout]\\references\\Hexalith.FrontComposer\\eng\\FrontComposer.SourceReferences.targets\", is correct, and that the file exists on disk. [[native-checkout]\\references\\Hexalith.FrontComposer\\src\\Hexalith.FrontComposer.Contracts\\Hexalith.FrontComposer.Contracts.csproj]"
+      ],
+      "warnings": 0,
+      "errors": 2
+    },
+    {
+      "label": "firefox-attempt-1 native build",
+      "command": "dotnet build src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj -c Debug -m:1 -p:UseNuGetDeps=false -p:HexalithEventStoreVersion=3.128.4 -p:HexalithMcpCliFromSource=false -p:NuGetAudit=false",
+      "exitCode": 1,
+      "rawLogSha256": "9a2a3ed91dd6d19e562db4265b3a3493657d64a7f4b8131cba4cae0148789c82",
+      "rawLogBytes": 2847,
+      "diagnostics": [
+        "C:\\Program Files\\dotnet\\sdk\\10.0.403\\Microsoft.Common.targets(62,3): error MSB4019: The imported project \"[native-checkout]\\references\\Hexalith.FrontComposer\\eng\\FrontComposer.SourceReferences.targets\" was not found. Confirm that the expression in the Import declaration \"$(CustomAfterDirectoryBuildTargets)\", which evaluated to \"[native-checkout]\\references\\Hexalith.FrontComposer\\eng\\FrontComposer.SourceReferences.targets\", is correct, and that the file exists on disk. [[native-checkout]\\references\\Hexalith.FrontComposer\\src\\Hexalith.FrontComposer.Contracts\\Hexalith.FrontComposer.Contracts.csproj]"
+      ],
+      "warnings": 0,
+      "errors": 2
+    },
+    {
+      "label": "chrome-attempt-3 native build",
+      "command": "dotnet build src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj -c Debug -m:1 -p:UseNuGetDeps=false -p:HexalithEventStoreVersion=3.128.4 -p:HexalithMcpCliFromSource=false -p:NuGetAudit=false",
+      "exitCode": 1,
+      "rawLogSha256": "0913cb3745f53d8a212c814e822d4562b826ce702463eeb59c6feadf2da1495d",
+      "rawLogBytes": 5193,
+      "diagnostics": [
+        "[native-checkout]\\src\\Hexalith.Tenants.Contracts\\Routing\\TenantCatalogDeclarations.cs(14,33): error CS0246: The type or namespace name 'RouteOperationContract' could not be found (are you missing a using directive or an assembly reference?) [[native-checkout]\\src\\Hexalith.Tenants.Contracts\\Hexalith.Tenants.Contracts.csproj]",
+        "[native-checkout]\\src\\Hexalith.Tenants.Contracts\\Routing\\TenantCatalogDeclarations.cs(20,20): error CS0246: The type or namespace name 'RouteOperationContract' could not be found (are you missing a using directive or an assembly reference?) [[native-checkout]\\src\\Hexalith.Tenants.Contracts\\Hexalith.Tenants.Contracts.csproj]"
+      ],
+      "warnings": 0,
+      "errors": 2
+    },
+    {
+      "label": "firefox-attempt-2 native build",
+      "command": "dotnet build src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj -c Debug -m:1 -p:UseNuGetDeps=false -p:HexalithEventStoreVersion=3.128.4 -p:HexalithMcpCliFromSource=false -p:NuGetAudit=false",
+      "exitCode": 1,
+      "rawLogSha256": "278f55460783ff1326e7389240180d46c2e2de52864f346d120be723c109c34a",
+      "rawLogBytes": 5193,
+      "diagnostics": [
+        "[native-checkout]\\src\\Hexalith.Tenants.Contracts\\Routing\\TenantCatalogDeclarations.cs(14,33): error CS0246: The type or namespace name 'RouteOperationContract' could not be found (are you missing a using directive or an assembly reference?) [[native-checkout]\\src\\Hexalith.Tenants.Contracts\\Hexalith.Tenants.Contracts.csproj]",
+        "[native-checkout]\\src\\Hexalith.Tenants.Contracts\\Routing\\TenantCatalogDeclarations.cs(20,20): error CS0246: The type or namespace name 'RouteOperationContract' could not be found (are you missing a using directive or an assembly reference?) [[native-checkout]\\src\\Hexalith.Tenants.Contracts\\Hexalith.Tenants.Contracts.csproj]"
+      ],
+      "warnings": 0,
+      "errors": 2
+    }
+  ],
+  "limit": "Only compiler/guard diagnostics are retained. Complete exact logs stay private and are bound by SHA256; no runtime assertions were executed."
+}

@@ -1,0 +1,236 @@
+{
+  "checks": [
+    {
+      "argv": [
+        "node",
+        "--test",
+        "tests/Hexalith.Tenants.UI.Tests/Browser/validate-deferred-native-speech.test.mjs"
+      ],
+      "exitCode": 0,
+      "stdout": "\u2714 a valid cell cannot hide an excluded culture in the same request (5.114484ms)\n\u2714 a valid search cell cannot hide a Create cell excluded by its group (0.331265ms)\n\u2714 empty selector entries and duplicate cultures are rejected (0.355222ms)\n\u2714 a selected Refresh requires its fresh paired first insertion and both controls (1.131633ms)\n\u2714 the default plan covers every culture and does not accept a nonempty subset (0.556173ms)\n\u2714 an alive silent mock collector cannot hold an acknowledgement forever (5.257091ms)\n\u2139 tests 6\n\u2139 suites 0\n\u2139 pass 6\n\u2139 fail 0\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 54.805727\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "node",
+        "--check",
+        "tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-administrator-dialogs.mjs"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "node",
+        "--check",
+        "tests/Hexalith.Tenants.UI.Tests/Browser/validate-deferred-native-speech.mjs"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "node",
+        "--check",
+        "tests/Hexalith.Tenants.UI.Tests/Browser/deferred-handoff-fixture.mjs"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "node",
+        "--check",
+        "tests/Hexalith.Tenants.UI.Tests/Browser/validate-deferred-handoff.mjs"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "node",
+        "--check",
+        "tests/Hexalith.Tenants.UI.Tests/Browser/local-oidc-fixture.mjs"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "pwsh",
+        "-NoProfile",
+        "-Command",
+        "$errors = $null; $tokens = $null; $null = [System.Management.Automation.Language.Parser]::ParseFile((Join-Path (Get-Location) \"tests/Hexalith.Tenants.UI.Tests/Browser/capture-deferred-nvda-speech.ps1\"), [ref]$tokens, [ref]$errors); if ($errors.Count) { $errors | ForEach-Object { Write-Output $_.Message }; exit 1 }; Write-Output \"PowerShell parser: passed\""
+      ],
+      "exitCode": 0,
+      "stdout": "PowerShell parser: passed\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "python3",
+        "-c",
+        "import ast; from pathlib import Path; ast.parse(Path('tests/Hexalith.Tenants.UI.Tests/Browser/deferred-nvda-observer.py').read_text()); print('Python observer syntax: passed')"
+      ],
+      "exitCode": 0,
+      "stdout": "Python observer syntax: passed\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "python3",
+        "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/validate-conservation.py"
+      ],
+      "exitCode": 0,
+      "stdout": "{\n  \"numberedIds\": 657,\n  \"unselectedNumberedBodiesPreserved\": 654,\n  \"selectedHistoricalFieldsPreserved\": true,\n  \"unnumberedResultsAppended\": 2,\n  \"entryArchiveBytesUnchanged\": true,\n  \"statusCounts\": {\n    \"done\": 654,\n    \"open\": 3\n  },\n  \"exactCoveringMaintenanceRows\": 3\n}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "python3",
+        "-O",
+        "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/validate-conservation.py"
+      ],
+      "exitCode": 0,
+      "stdout": "{\n  \"numberedIds\": 657,\n  \"unselectedNumberedBodiesPreserved\": 654,\n  \"selectedHistoricalFieldsPreserved\": true,\n  \"unnumberedResultsAppended\": 2,\n  \"entryArchiveBytesUnchanged\": true,\n  \"statusCounts\": {\n    \"done\": 654,\n    \"open\": 3\n  },\n  \"exactCoveringMaintenanceRows\": 3\n}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "python3",
+        "scripts/validate-story-gitlinks.py",
+        "_bmad-output/implementation-artifacts/spec-five-remaining-speech-and-browser-followups.md"
+      ],
+      "exitCode": 0,
+      "stdout": "Story:    spec-five-remaining-speech-and-browser-followups.md\nBaseline: bd1d6ea\nCompared: HEAD (bd1d6ea) + working tree\n\nNo references/ pointer changes in range.\n\nRESULT: PASS\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  ],
+  "nativeDriverMockTests": {
+    "passed": 6,
+    "failed": 0,
+    "skipped": 0
+  },
+  "runtimeQualification": "Blocked; 0/48 native product windows and 0 current browser cases. See independent build-diagnostics and packets. Current-source MTP execution is blocked by the failed test-project build.",
+  "pendingParent": [
+    "Independent review",
+    "Pinned commitlint on exact full candidate",
+    "Commit and remote divergence inspection",
+    "Authorized push"
+  ],
+  "priorChecksScope": "Original implementation checks before review corrections. Their historical results do not re-execute changed evidence validators; correction checks below cover the changed files only.",
+  "reviewCorrectionChecks": [
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/validate-conservation.py"
+      ],
+      "exitCode": 0,
+      "stdout": "{\n  \"numberedIds\": 657,\n  \"unselectedNumberedBodiesPreserved\": 654,\n  \"selectedHistoricalFieldsPreserved\": true,\n  \"unnumberedResultsAppended\": 2,\n  \"exactInputBytesPreserved\": true,\n  \"unnumberedAdditionsBoundToOriginalRecords\": true,\n  \"entryArchiveBytesUnchanged\": true,\n  \"statusCounts\": {\n    \"done\": 654,\n    \"open\": 3\n  },\n  \"exactCoveringMaintenanceRows\": 3\n}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/test-conservation.py"
+      ],
+      "exitCode": 0,
+      "stdout": "{\n  \"isolatedTemporaryCopiesOnly\": true,\n  \"positiveControls\": [\n    {\n      \"optimized\": false,\n      \"exitCode\": 0\n    },\n    {\n      \"optimized\": true,\n      \"exitCode\": 0\n    }\n  ],\n  \"negativeControls\": [\n    {\n      \"mutation\": \"unselected numbered history\",\n      \"optimized\": true,\n      \"rejected\": true,\n      \"diagnostic\": \"ValueError: Original DW-1 body changed\"\n    },\n    {\n      \"mutation\": \"selected original field\",\n      \"optimized\": true,\n      \"rejected\": true,\n      \"diagnostic\": \"ValueError: Original DW-116 body changed\"\n    },\n    {\n      \"mutation\": \"numbered ID conservation\",\n      \"optimized\": true,\n      \"rejected\": true,\n      \"diagnostic\": \"ValueError: Numbered IDs changed\"\n    },\n    {\n      \"mutation\": \"numbered status\",\n      \"optimized\": true,\n      \"rejected\": true,\n      \"diagnostic\": \"ValueError: Original DW-116 body changed\"\n    },\n    {\n      \"mutation\": \"unselected ledger preamble\",\n      \"optimized\": true,\n      \"rejected\": true,\n      \"diagnostic\": \"ValueError: Unselected ledger bytes changed\"\n    },\n    {\n      \"mutation\": \"archive byte conservation\",\n      \"optimized\": true,\n      \"rejected\": true,\n      \"diagnostic\": \"ValueError: Historical archive changed\"\n    },\n    {\n      \"mutation\": \"unselected index history\",\n      \"optimized\": true,\n      \"rejected\": true,\n      \"diagnostic\": \"ValueError: Unselected index bytes changed\"\n    },\n    {\n      \"mutation\": \"ledger LF to CRLF rewrite\",\n      \"optimized\": true,\n      \"rejected\": true,\n      \"diagnostic\": \"ValueError: Original DW-1 body changed\"\n    },\n    {\n      \"mutation\": \"index LF to CRLF rewrite\",\n      \"optimized\": true,\n      \"rejected\": true,\n      \"diagnostic\": \"ValueError: DW-116 index history changed\"\n    },\n    {\n      \"mutation\": \"both unnumbered additions relocated to preamble\",\n      \"optimized\": true,\n      \"rejected\": true,\n      \"diagnostic\": \"ValueError: Unnumbered addition must remain inside its original enclosing record\"\n    }\n  ]\n}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/test-artifacts.py"
+      ],
+      "exitCode": 0,
+      "stdout": "{\n  \"isolatedTemporaryCopiesOnly\": true,\n  \"controls\": [\n    {\n      \"mutation\": \"none\",\n      \"optimized\": true,\n      \"exitCode\": 0,\n      \"diagnostic\": \"accepted\"\n    },\n    {\n      \"mutation\": \"unbound packet bytes\",\n      \"optimized\": true,\n      \"exitCode\": 1,\n      \"diagnostic\": \"ValueError: Manifest hash/size mismatch: grant-browser-build-blocked.json\"\n    },\n    {\n      \"mutation\": \"matrix coverage\",\n      \"optimized\": true,\n      \"exitCode\": 1,\n      \"diagnostic\": \"ValueError: Native matrix does not exactly cover both full plans\"\n    },\n    {\n      \"mutation\": \"browser scenario flag\",\n      \"optimized\": true,\n      \"exitCode\": 1,\n      \"diagnostic\": \"ValueError: Browser scenario flag differs\"\n    },\n    {\n      \"mutation\": \"native source link\",\n      \"optimized\": true,\n      \"exitCode\": 1,\n      \"diagnostic\": \"ValueError: Fixture/source link mismatch: nativeSpeechChecksSha256\"\n    }\n  ]\n}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/validate-artifacts.py"
+      ],
+      "exitCode": 0,
+      "stdout": "{\n  \"manifestFilesVerified\": 48,\n  \"retainedSourceHashesVerified\": 7,\n  \"retainedNativePacketHashesVerified\": 19,\n  \"nativeFailedAttempts\": 5,\n  \"browserInvocationPacketLinksVerified\": 2,\n  \"nativeWindowCells\": 48,\n  \"completedWindows\": 0,\n  \"collectorReportsOriginalSettingsUnchanged\": true,\n  \"failedSpeechAndTimelinesEmpty\": true,\n  \"sourceAttributionLimit\": \"Recorded root/helper and FrontComposer fingerprints only; no contemporaneous full worktree fingerprints for every consumed dependency.\",\n  \"cleanupLimit\": \"Collector cleanup path requests owned-process termination; no timestamped post-termination process observation is retained. No zero-process assertion.\",\n  \"rawLogLimit\": \"Retained hashes/metadata cannot replay private raw logs or original NVDA settings; those claims are limited to collector reports.\"\n}\n",
+      "stderr": ""
+    }
+  ],
+  "posixManifestPathCorrectionChecks": [
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/validate-artifacts.py"
+      ],
+      "exitCode": 0,
+      "stdout": "{\n  \"manifestFilesVerified\": 48,\n  \"retainedSourceHashesVerified\": 7,\n  \"retainedNativePacketHashesVerified\": 19,\n  \"nativeFailedAttempts\": 5,\n  \"browserInvocationPacketLinksVerified\": 2,\n  \"nativeWindowCells\": 48,\n  \"completedWindows\": 0,\n  \"collectorReportsOriginalSettingsUnchanged\": true,\n  \"failedSpeechAndTimelinesEmpty\": true,\n  \"sourceAttributionLimit\": \"Recorded root/helper and FrontComposer fingerprints only; no contemporaneous full worktree fingerprints for every consumed dependency.\",\n  \"cleanupLimit\": \"Collector cleanup path requests owned-process termination; no timestamped post-termination process observation is retained. No zero-process assertion.\",\n  \"rawLogLimit\": \"Retained hashes/metadata cannot replay private raw logs or original NVDA settings; those claims are limited to collector reports.\"\n}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/test-artifacts.py"
+      ],
+      "exitCode": 0,
+      "stdout": "{\n  \"isolatedTemporaryCopiesOnly\": true,\n  \"controls\": [\n    {\n      \"mutation\": \"none\",\n      \"optimized\": true,\n      \"exitCode\": 0,\n      \"diagnostic\": \"accepted\"\n    },\n    {\n      \"mutation\": \"unbound packet bytes\",\n      \"optimized\": true,\n      \"exitCode\": 1,\n      \"diagnostic\": \"ValueError: Manifest hash/size mismatch: grant-browser-build-blocked.json\"\n    },\n    {\n      \"mutation\": \"matrix coverage\",\n      \"optimized\": true,\n      \"exitCode\": 1,\n      \"diagnostic\": \"ValueError: Native matrix does not exactly cover both full plans\"\n    },\n    {\n      \"mutation\": \"browser scenario flag\",\n      \"optimized\": true,\n      \"exitCode\": 1,\n      \"diagnostic\": \"ValueError: Browser scenario flag differs\"\n    },\n    {\n      \"mutation\": \"native source link\",\n      \"optimized\": true,\n      \"exitCode\": 1,\n      \"diagnostic\": \"ValueError: Fixture/source link mismatch: nativeSpeechChecksSha256\"\n    }\n  ]\n}\n",
+      "stderr": ""
+    }
+  ],
+  "posixManifestPathCorrectionNativeWindowsChecks": [
+    {
+      "argv": [
+        "C:\\Python314\\python.exe",
+        "-B",
+        "\\\\wsl.localhost\\Ubuntu-26.04\\home\\administrator\\projects\\hexalith\\tenants\\_bmad-output\\implementation-artifacts\\evidence\\five-remaining-speech-and-browser\\validate-artifacts.py"
+      ],
+      "exitCode": 0,
+      "stdout": "{\n  \"manifestFilesVerified\": 48,\n  \"retainedSourceHashesVerified\": 7,\n  \"retainedNativePacketHashesVerified\": 19,\n  \"nativeFailedAttempts\": 5,\n  \"browserInvocationPacketLinksVerified\": 2,\n  \"nativeWindowCells\": 48,\n  \"completedWindows\": 0,\n  \"collectorReportsOriginalSettingsUnchanged\": true,\n  \"failedSpeechAndTimelinesEmpty\": true,\n  \"sourceAttributionLimit\": \"Recorded root/helper and FrontComposer fingerprints only; no contemporaneous full worktree fingerprints for every consumed dependency.\",\n  \"cleanupLimit\": \"Collector cleanup path requests owned-process termination; no timestamped post-termination process observation is retained. No zero-process assertion.\",\n  \"rawLogLimit\": \"Retained hashes/metadata cannot replay private raw logs or original NVDA settings; those claims are limited to collector reports.\"\n}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "C:\\Python314\\python.exe",
+        "-B",
+        "\\\\wsl.localhost\\Ubuntu-26.04\\home\\administrator\\projects\\hexalith\\tenants\\_bmad-output\\implementation-artifacts\\evidence\\five-remaining-speech-and-browser\\test-artifacts.py"
+      ],
+      "exitCode": 0,
+      "stdout": "{\n  \"isolatedTemporaryCopiesOnly\": true,\n  \"controls\": [\n    {\n      \"mutation\": \"none\",\n      \"optimized\": true,\n      \"exitCode\": 0,\n      \"diagnostic\": \"accepted\"\n    },\n    {\n      \"mutation\": \"unbound packet bytes\",\n      \"optimized\": true,\n      \"exitCode\": 1,\n      \"diagnostic\": \"ValueError: Manifest hash/size mismatch: grant-browser-build-blocked.json\"\n    },\n    {\n      \"mutation\": \"matrix coverage\",\n      \"optimized\": true,\n      \"exitCode\": 1,\n      \"diagnostic\": \"ValueError: Native matrix does not exactly cover both full plans\"\n    },\n    {\n      \"mutation\": \"browser scenario flag\",\n      \"optimized\": true,\n      \"exitCode\": 1,\n      \"diagnostic\": \"ValueError: Browser scenario flag differs\"\n    },\n    {\n      \"mutation\": \"native source link\",\n      \"optimized\": true,\n      \"exitCode\": 1,\n      \"diagnostic\": \"ValueError: Fixture/source link mismatch: nativeSpeechChecksSha256\"\n    }\n  ]\n}\n",
+      "stderr": ""
+    }
+  ],
+  "packetBytePreservationCorrectionChecks": {
+    "attributeResult": "attribute-conversion-checks.json",
+    "artifactVerification": {
+      "argv": [
+        "python3",
+        "-B",
+        "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/validate-artifacts.py"
+      ],
+      "exitCode": 0,
+      "stdout": "{\n  \"manifestFilesVerified\": 52,\n  \"retainedSourceHashesVerified\": 7,\n  \"retainedNativePacketHashesVerified\": 19,\n  \"nativeFailedAttempts\": 5,\n  \"browserInvocationPacketLinksVerified\": 2,\n  \"nativeWindowCells\": 48,\n  \"completedWindows\": 0,\n  \"collectorReportsOriginalSettingsUnchanged\": true,\n  \"failedSpeechAndTimelinesEmpty\": true,\n  \"sourceAttributionLimit\": \"Recorded root/helper and FrontComposer fingerprints only; no contemporaneous full worktree fingerprints for every consumed dependency.\",\n  \"cleanupLimit\": \"Collector cleanup path requests owned-process termination; no timestamped post-termination process observation is retained. No zero-process assertion.\",\n  \"rawLogLimit\": \"Retained hashes/metadata cannot replay private raw logs or original NVDA settings; those claims are limited to collector reports.\"\n}\n",
+      "stderr": ""
+    }
+  }
+}

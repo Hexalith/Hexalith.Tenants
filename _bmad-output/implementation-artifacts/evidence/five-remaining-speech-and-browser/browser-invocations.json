@@ -1,0 +1,46 @@
+{
+  "originalPacketsModified": false,
+  "legacyRecordLabels": "Preserved verbatim; scenario selection is described only by this hash-bound invocation sidecar.",
+  "invocations": [
+    {
+      "scenario": "grant",
+      "packet": "grant-browser-build-blocked.json",
+      "packetSha256": "4bd21f48331c300937fd47e2e163258eabf3b4b8e4f65aef22e712f2b49a7849",
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "argv": [
+        "node",
+        "tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-administrator-dialogs.mjs",
+        "/tmp/five-remaining-private-vz92we5e/grant-browser.json"
+      ],
+      "explicitEnvironment": {
+        "TENANTS_BROWSER_STANDALONE_OIDC": "1",
+        "TENANTS_BROWSER_UI_SAFETY_ONLY": "1",
+        "CHROMIUM_BIN": "/usr/bin/google-chrome",
+        "TENANTS_BROWSER_RUNTIME_FOLLOWUPS": "1"
+      },
+      "rawLauncherLogSha256": "8625de9dc7d4d0447e5c40074caeea8779c603c54aa172d5be438d12d157a188",
+      "launcherOutput": "Authenticated administrator dialogs: failed; 0 automated cases; phase build-current-ui\n",
+      "provenance": "Reconstructed from this run’s retained tool invocation; the original packet did not record scenario flags. Variables absent here were not explicitly assigned by this invocation; no complete inherited-environment attestation is claimed."
+    },
+    {
+      "scenario": "grid",
+      "packet": "grid-browser-build-blocked.json",
+      "packetSha256": "7dd704a0f8ba1f646f5abe94c27135dec26eabbd726460bd1ca7cb7e76da1741",
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "argv": [
+        "node",
+        "tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-administrator-dialogs.mjs",
+        "/tmp/five-remaining-private-vz92we5e/grid-browser.json"
+      ],
+      "explicitEnvironment": {
+        "TENANTS_BROWSER_STANDALONE_OIDC": "1",
+        "TENANTS_BROWSER_UI_SAFETY_ONLY": "1",
+        "CHROMIUM_BIN": "/usr/bin/google-chrome",
+        "TENANTS_BROWSER_HOLD_GRID": "1"
+      },
+      "rawLauncherLogSha256": "8625de9dc7d4d0447e5c40074caeea8779c603c54aa172d5be438d12d157a188",
+      "launcherOutput": "Authenticated administrator dialogs: failed; 0 automated cases; phase build-current-ui\n",
+      "provenance": "Reconstructed from this run’s retained tool invocation; the original packet did not record scenario flags. Variables absent here were not explicitly assigned by this invocation; no complete inherited-environment attestation is claimed."
+    }
+  ]
+}

@@ -1,0 +1,221 @@
+{
+  "gitObjectFormat": "sha1",
+  "attributeCommand": [
+    "git",
+    "check-attr",
+    "-z",
+    "text",
+    "eol",
+    "--",
+    "<path>"
+  ],
+  "packets": [
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-attempts/chrome-attempt-1/speech.json",
+      "attributes": {
+        "text": "unset",
+        "eol": "lf"
+      },
+      "recordedRawSha256": "b423bb45501e0fa49d3b77e635f800a29f1fdcf5a58e00c7e04a7ff7833045f2",
+      "recordedRetainedSha256": "b423bb45501e0fa49d3b77e635f800a29f1fdcf5a58e00c7e04a7ff7833045f2",
+      "actualSha256": "b423bb45501e0fa49d3b77e635f800a29f1fdcf5a58e00c7e04a7ff7833045f2",
+      "expectedRawBlobId": "609889aad07d2c031c181c4734e4cdfc4214f7dc",
+      "cleanConversionBlobId": "609889aad07d2c031c181c4734e4cdfc4214f7dc",
+      "hashObjectArgv": [
+        "git",
+        "hash-object",
+        "--path",
+        "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-attempts/chrome-attempt-1/speech.json",
+        "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-attempts/chrome-attempt-1/speech.json"
+      ]
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-attempts/chrome-attempt-1/timeline.json",
+      "attributes": {
+        "text": "unset",
+        "eol": "lf"
+      },
+      "recordedRawSha256": "b423bb45501e0fa49d3b77e635f800a29f1fdcf5a58e00c7e04a7ff7833045f2",
+      "recordedRetainedSha256": "b423bb45501e0fa49d3b77e635f800a29f1fdcf5a58e00c7e04a7ff7833045f2",
+      "actualSha256": "b423bb45501e0fa49d3b77e635f800a29f1fdcf5a58e00c7e04a7ff7833045f2",
+      "expectedRawBlobId": "609889aad07d2c031c181c4734e4cdfc4214f7dc",
+      "cleanConversionBlobId": "609889aad07d2c031c181c4734e4cdfc4214f7dc",
+      "hashObjectArgv": [
+        "git",
+        "hash-object",
+        "--path",
+        "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-attempts/chrome-attempt-1/timeline.json",
+        "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-attempts/chrome-attempt-1/timeline.json"
+      ]
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-attempts/chrome-attempt-2/speech.json",
+      "attributes": {
+        "text": "unset",
+        "eol": "lf"
+      },
+      "recordedRawSha256": "b423bb45501e0fa49d3b77e635f800a29f1fdcf5a58e00c7e04a7ff7833045f2",
+      "recordedRetainedSha256": "b423bb45501e0fa49d3b77e635f800a29f1fdcf5a58e00c7e04a7ff7833045f2",
+      "actualSha256": "b423bb45501e0fa49d3b77e635f800a29f1fdcf5a58e00c7e04a7ff7833045f2",
+      "expectedRawBlobId": "609889aad07d2c031c181c4734e4cdfc4214f7dc",
+      "cleanConversionBlobId": "609889aad07d2c031c181c4734e4cdfc4214f7dc",
+      "hashObjectArgv": [
+        "git",
+        "hash-object",
+        "--path",
+        "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-attempts/chrome-attempt-2/speech.json",
+        "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-attempts/chrome-attempt-2/speech.json"
+      ]
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-attempts/chrome-attempt-2/timeline.json",
+      "attributes": {
+        "text": "unset",
+        "eol": "lf"
+      },
+      "recordedRawSha256": "b423bb45501e0fa49d3b77e635f800a29f1fdcf5a58e00c7e04a7ff7833045f2",
+      "recordedRetainedSha256": "b423bb45501e0fa49d3b77e635f800a29f1fdcf5a58e00c7e04a7ff7833045f2",
+      "actualSha256": "b423bb45501e0fa49d3b77e635f800a29f1fdcf5a58e00c7e04a7ff7833045f2",
+      "expectedRawBlobId": "609889aad07d2c031c181c4734e4cdfc4214f7dc",
+      "cleanConversionBlobId": "609889aad07d2c031c181c4734e4cdfc4214f7dc",
+      "hashObjectArgv": [
+        "git",
+        "hash-object",
+        "--path",
+        "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-attempts/chrome-attempt-2/timeline.json",
+        "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-attempts/chrome-attempt-2/timeline.json"
+      ]
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-attempts/chrome-attempt-3/speech.json",
+      "attributes": {
+        "text": "unset",
+        "eol": "lf"
+      },
+      "recordedRawSha256": "b423bb45501e0fa49d3b77e635f800a29f1fdcf5a58e00c7e04a7ff7833045f2",
+      "recordedRetainedSha256": "b423bb45501e0fa49d3b77e635f800a29f1fdcf5a58e00c7e04a7ff7833045f2",
+      "actualSha256": "b423bb45501e0fa49d3b77e635f800a29f1fdcf5a58e00c7e04a7ff7833045f2",
+      "expectedRawBlobId": "609889aad07d2c031c181c4734e4cdfc4214f7dc",
+      "cleanConversionBlobId": "609889aad07d2c031c181c4734e4cdfc4214f7dc",
+      "hashObjectArgv": [
+        "git",
+        "hash-object",
+        "--path",
+        "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-attempts/chrome-attempt-3/speech.json",
+        "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-attempts/chrome-attempt-3/speech.json"
+      ]
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-attempts/chrome-attempt-3/timeline.json",
+      "attributes": {
+        "text": "unset",
+        "eol": "lf"
+      },
+      "recordedRawSha256": "b423bb45501e0fa49d3b77e635f800a29f1fdcf5a58e00c7e04a7ff7833045f2",
+      "recordedRetainedSha256": "b423bb45501e0fa49d3b77e635f800a29f1fdcf5a58e00c7e04a7ff7833045f2",
+      "actualSha256": "b423bb45501e0fa49d3b77e635f800a29f1fdcf5a58e00c7e04a7ff7833045f2",
+      "expectedRawBlobId": "609889aad07d2c031c181c4734e4cdfc4214f7dc",
+      "cleanConversionBlobId": "609889aad07d2c031c181c4734e4cdfc4214f7dc",
+      "hashObjectArgv": [
+        "git",
+        "hash-object",
+        "--path",
+        "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-attempts/chrome-attempt-3/timeline.json",
+        "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-attempts/chrome-attempt-3/timeline.json"
+      ]
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-attempts/firefox-attempt-1/speech.json",
+      "attributes": {
+        "text": "unset",
+        "eol": "lf"
+      },
+      "recordedRawSha256": "b423bb45501e0fa49d3b77e635f800a29f1fdcf5a58e00c7e04a7ff7833045f2",
+      "recordedRetainedSha256": "b423bb45501e0fa49d3b77e635f800a29f1fdcf5a58e00c7e04a7ff7833045f2",
+      "actualSha256": "b423bb45501e0fa49d3b77e635f800a29f1fdcf5a58e00c7e04a7ff7833045f2",
+      "expectedRawBlobId": "609889aad07d2c031c181c4734e4cdfc4214f7dc",
+      "cleanConversionBlobId": "609889aad07d2c031c181c4734e4cdfc4214f7dc",
+      "hashObjectArgv": [
+        "git",
+        "hash-object",
+        "--path",
+        "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-attempts/firefox-attempt-1/speech.json",
+        "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-attempts/firefox-attempt-1/speech.json"
+      ]
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-attempts/firefox-attempt-1/timeline.json",
+      "attributes": {
+        "text": "unset",
+        "eol": "lf"
+      },
+      "recordedRawSha256": "b423bb45501e0fa49d3b77e635f800a29f1fdcf5a58e00c7e04a7ff7833045f2",
+      "recordedRetainedSha256": "b423bb45501e0fa49d3b77e635f800a29f1fdcf5a58e00c7e04a7ff7833045f2",
+      "actualSha256": "b423bb45501e0fa49d3b77e635f800a29f1fdcf5a58e00c7e04a7ff7833045f2",
+      "expectedRawBlobId": "609889aad07d2c031c181c4734e4cdfc4214f7dc",
+      "cleanConversionBlobId": "609889aad07d2c031c181c4734e4cdfc4214f7dc",
+      "hashObjectArgv": [
+        "git",
+        "hash-object",
+        "--path",
+        "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-attempts/firefox-attempt-1/timeline.json",
+        "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-attempts/firefox-attempt-1/timeline.json"
+      ]
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-attempts/firefox-attempt-2/speech.json",
+      "attributes": {
+        "text": "unset",
+        "eol": "lf"
+      },
+      "recordedRawSha256": "b423bb45501e0fa49d3b77e635f800a29f1fdcf5a58e00c7e04a7ff7833045f2",
+      "recordedRetainedSha256": "b423bb45501e0fa49d3b77e635f800a29f1fdcf5a58e00c7e04a7ff7833045f2",
+      "actualSha256": "b423bb45501e0fa49d3b77e635f800a29f1fdcf5a58e00c7e04a7ff7833045f2",
+      "expectedRawBlobId": "609889aad07d2c031c181c4734e4cdfc4214f7dc",
+      "cleanConversionBlobId": "609889aad07d2c031c181c4734e4cdfc4214f7dc",
+      "hashObjectArgv": [
+        "git",
+        "hash-object",
+        "--path",
+        "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-attempts/firefox-attempt-2/speech.json",
+        "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-attempts/firefox-attempt-2/speech.json"
+      ]
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-attempts/firefox-attempt-2/timeline.json",
+      "attributes": {
+        "text": "unset",
+        "eol": "lf"
+      },
+      "recordedRawSha256": "b423bb45501e0fa49d3b77e635f800a29f1fdcf5a58e00c7e04a7ff7833045f2",
+      "recordedRetainedSha256": "b423bb45501e0fa49d3b77e635f800a29f1fdcf5a58e00c7e04a7ff7833045f2",
+      "actualSha256": "b423bb45501e0fa49d3b77e635f800a29f1fdcf5a58e00c7e04a7ff7833045f2",
+      "expectedRawBlobId": "609889aad07d2c031c181c4734e4cdfc4214f7dc",
+      "cleanConversionBlobId": "609889aad07d2c031c181c4734e4cdfc4214f7dc",
+      "hashObjectArgv": [
+        "git",
+        "hash-object",
+        "--path",
+        "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-attempts/firefox-attempt-2/timeline.json",
+        "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-attempts/firefox-attempt-2/timeline.json"
+      ]
+    }
+  ],
+  "unaffectedJsonControls": [
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-attempts/chrome-attempt-1/capture.json",
+      "attributes": {
+        "text": "set",
+        "eol": "lf"
+      }
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/native-matrix.json",
+      "attributes": {
+        "text": "set",
+        "eol": "lf"
+      }
+    }
+  ],
+  "indexScope": "Read-only working-tree attribute and clean-conversion checks. Existing staged blobs were not changed or asserted correct; parent owns staging/re-staging and commit."
+}

@@ -1,0 +1,94 @@
+{
+  "review": {
+    "layers": 3,
+    "originalFindings": 11,
+    "newCorrectionFinding": 1,
+    "unresolvedFindings": 0,
+    "allOriginalReviewersRecheckedCorrections": true
+  },
+  "checks": [
+    {
+      "argv": [
+        "python3",
+        "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/validate-conservation.py"
+      ],
+      "exitCode": 0,
+      "stdout": "{\n  \"numberedIds\": 657,\n  \"unselectedNumberedBodiesPreserved\": 654,\n  \"selectedHistoricalFieldsPreserved\": true,\n  \"unnumberedResultsAppended\": 2,\n  \"exactInputBytesPreserved\": true,\n  \"unnumberedAdditionsBoundToOriginalRecords\": true,\n  \"entryArchiveBytesUnchanged\": true,\n  \"statusCounts\": {\n    \"done\": 654,\n    \"open\": 3\n  },\n  \"exactCoveringMaintenanceRows\": 3\n}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "python3",
+        "-O",
+        "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/validate-conservation.py"
+      ],
+      "exitCode": 0,
+      "stdout": "{\n  \"numberedIds\": 657,\n  \"unselectedNumberedBodiesPreserved\": 654,\n  \"selectedHistoricalFieldsPreserved\": true,\n  \"unnumberedResultsAppended\": 2,\n  \"exactInputBytesPreserved\": true,\n  \"unnumberedAdditionsBoundToOriginalRecords\": true,\n  \"entryArchiveBytesUnchanged\": true,\n  \"statusCounts\": {\n    \"done\": 654,\n    \"open\": 3\n  },\n  \"exactCoveringMaintenanceRows\": 3\n}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "python3",
+        "_bmad-output/implementation-artifacts/evidence/five-remaining-speech-and-browser/test-conservation.py"
+      ],
+      "exitCode": 0,
+      "stdout": "{\n  \"isolatedTemporaryCopiesOnly\": true,\n  \"positiveControls\": [\n    {\n      \"optimized\": false,\n      \"exitCode\": 0\n    },\n    {\n      \"optimized\": true,\n      \"exitCode\": 0\n    }\n  ],\n  \"negativeControls\": [\n    {\n      \"mutation\": \"unselected numbered history\",\n      \"optimized\": true,\n      \"rejected\": true,\n      \"diagnostic\": \"ValueError: Original DW-1 body changed\"\n    },\n    {\n      \"mutation\": \"selected original field\",\n      \"optimized\": true,\n      \"rejected\": true,\n      \"diagnostic\": \"ValueError: Original DW-116 body changed\"\n    },\n    {\n      \"mutation\": \"numbered ID conservation\",\n      \"optimized\": true,\n      \"rejected\": true,\n      \"diagnostic\": \"ValueError: Numbered IDs changed\"\n    },\n    {\n      \"mutation\": \"numbered status\",\n      \"optimized\": true,\n      \"rejected\": true,\n      \"diagnostic\": \"ValueError: Original DW-116 body changed\"\n    },\n    {\n      \"mutation\": \"unselected ledger preamble\",\n      \"optimized\": true,\n      \"rejected\": true,\n      \"diagnostic\": \"ValueError: Unselected ledger bytes changed\"\n    },\n    {\n      \"mutation\": \"archive byte conservation\",\n      \"optimized\": true,\n      \"rejected\": true,\n      \"diagnostic\": \"ValueError: Historical archive changed\"\n    },\n    {\n      \"mutation\": \"unselected index history\",\n      \"optimized\": true,\n      \"rejected\": true,\n      \"diagnostic\": \"ValueError: Unselected index bytes changed\"\n    },\n    {\n      \"mutation\": \"ledger LF to CRLF rewrite\",\n      \"optimized\": true,\n      \"rejected\": true,\n      \"diagnostic\": \"ValueError: Original DW-1 body changed\"\n    },\n    {\n      \"mutation\": \"index LF to CRLF rewrite\",\n      \"optimized\": true,\n      \"rejected\": true,\n      \"diagnostic\": \"ValueError: DW-116 index history changed\"\n    },\n    {\n      \"mutation\": \"both unnumbered additions relocated to preamble\",\n      \"optimized\": true,\n      \"rejected\": true,\n      \"diagnostic\": \"ValueError: Unnumbered addition must remain inside its original enclosing record\"\n    }\n  ]\n}\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "python3",
+        "scripts/validate-story-gitlinks.py",
+        "_bmad-output/implementation-artifacts/spec-five-remaining-speech-and-browser-followups.md"
+      ],
+      "exitCode": 0,
+      "stdout": "Story:    spec-five-remaining-speech-and-browser-followups.md\nBaseline: bd1d6ea\nCompared: HEAD (bd1d6ea) + working tree\n\nNo references/ pointer changes in range.\n\nRESULT: PASS\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  ],
+  "artifactReplay": "Parent executed validate-artifacts.py and test-artifacts.py after portability correction; all passed. Final manifest is regenerated below and replayed before staging.",
+  "commitlint": {
+    "version": "21.2.3",
+    "command": "node node_modules/@commitlint/cli/cli.js --edit /tmp/tenants-remaining-commit-message.txt --verbose",
+    "exitCode": 0,
+    "problems": 0,
+    "warnings": 0,
+    "messageSha256": "eceb1c868f8fa2f3646cfbbbdd3422985a4ac3b28015257a139c14793f10be50",
+    "retainedLogSha256": "582fe376b8087a8b536d8fb1c9bcee02626ff9cdb6fb8f6aeb4f202b44db3ee1"
+  },
+  "remoteBeforeCommit": {
+    "command": "git fetch --no-recurse-submodules origin main",
+    "localHead": "bd1d6ead1243237b5e84d1c1403485ee41fa9af3",
+    "remoteHead": "bd1d6ead1243237b5e84d1c1403485ee41fa9af3",
+    "ahead": 0,
+    "behind": 0
+  },
+  "runtimeResult": {
+    "nativeWindowsCompleted": 0,
+    "nativeWindowsRequired": 48,
+    "browserCasesCompleted": 0,
+    "allFiveRecordsRemainOpen": true
+  },
+  "scope": "Evidence, validators and append-only ledger annotations. No production/helper/dependency changes. Publication is explicitly authorized and follows final local validation.",
+  "publicationBytePreservation": {
+    "scopedAttributes": [
+      "native-attempts/*/speech.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol",
+      "native-attempts/*/timeline.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol"
+    ],
+    "reason": "Root JSON text normalization would alter ten original CRLF packet files during staging. The scoped evidence attribute preserves raw bytes and recorded hashes.",
+    "packetBytesUnchanged": true,
+    "gitCleanConversionMatchesRecordedPacketHashes": true,
+    "stagedBlobEqualityRequiredBeforeCommit": true,
+    "gitIndexRefresh": "git add --renormalize explicitly refreshes the ten previously normalized staged blobs; standard whitespace checks remain enabled with CR-at-EOL recognition for these raw paths."
+  }
+}

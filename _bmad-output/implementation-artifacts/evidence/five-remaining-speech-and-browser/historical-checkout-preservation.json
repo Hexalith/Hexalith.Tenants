@@ -1,0 +1,5 @@
+{
+  "actionScope": "No write command in this run addressed the historical Windows checkout or prior historical evidence directories. This is an action report, not a before/after content attestation.",
+  "historicalPacketEqualityAttested": false,
+  "verificationLimit": "No scoped historical packet before/after equality evidence was retained. The separate read-only Windows checkout status inspection was stopped after slow traversal; a nonrecursive bounded retry timed out at 20 seconds. No complete Windows-checkout byte attestation is claimed. Builds/npm installation addressed the new disposable checkout."
+}

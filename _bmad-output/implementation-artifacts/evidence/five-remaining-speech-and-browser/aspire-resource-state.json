@@ -1,0 +1,311 @@
+{
+  "exactAppHost": "src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj",
+  "command": "aspire start --apphost src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj; aspire describe --apphost src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj --format Json",
+  "resources": [
+    {
+      "name": "dapr-placement-mtls-usbjajfx",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "dapr-scheduler-mtls-pemtqxgp",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "dapr-sentry-scdykmaq",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "eventstore-admin-dapr-cli-zjwzgrpf",
+      "state": "Waiting",
+      "healthStatus": null
+    },
+    {
+      "name": "eventstore-admin-kwajhace",
+      "state": "Waiting",
+      "healthStatus": null
+    },
+    {
+      "name": "eventstore-admin-ui-dapr-cli-dqjjrnng",
+      "state": "Waiting",
+      "healthStatus": null
+    },
+    {
+      "name": "eventstore-admin-ui-zszdrwht",
+      "state": "Waiting",
+      "healthStatus": null
+    },
+    {
+      "name": "eventstore-app-api-token",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "eventstore-dapr-cli-rbjyvnvx",
+      "state": "Waiting",
+      "healthStatus": null
+    },
+    {
+      "name": "eventstore-rwqjnctk",
+      "state": "Waiting",
+      "healthStatus": null
+    },
+    {
+      "name": "eventstore-workload-client-secret",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "memories-dapr-cli-xuhcjmhp",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "memories-graphs-vmecupjp",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "memories-qywevvev",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "memories-vectors-avehhcqy",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "sample-app-api-token",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "sample-byjgaypw",
+      "state": "Waiting",
+      "healthStatus": null
+    },
+    {
+      "name": "sample-dapr-cli-eczqbxta",
+      "state": "Waiting",
+      "healthStatus": null
+    },
+    {
+      "name": "security-eventstore-client-password",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "security-eventstore-client-username",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "security-fvqhyaxg",
+      "state": "Running",
+      "healthStatus": "Unhealthy"
+    },
+    {
+      "name": "tenants-api-dapr-cli-ckmtxrzd",
+      "state": "Waiting",
+      "healthStatus": null
+    },
+    {
+      "name": "tenants-api-nqvjyasx",
+      "state": "Waiting",
+      "healthStatus": null
+    },
+    {
+      "name": "tenants-app-api-token",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "tenants-dapr-cli-kshmwnwq",
+      "state": "Waiting",
+      "healthStatus": null
+    },
+    {
+      "name": "tenants-source-private-key",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "tenants-ui-dapr-cli-rzbnpmxf",
+      "state": "Waiting",
+      "healthStatus": null
+    },
+    {
+      "name": "tenants-ui-sevteqhg",
+      "state": "Waiting",
+      "healthStatus": null
+    },
+    {
+      "name": "tenants-vshdkhed",
+      "state": "Waiting",
+      "healthStatus": null
+    },
+    {
+      "name": "tenants-workload-client-secret",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    }
+  ],
+  "limit": "aspire start was invoked for the named AppHost and resource states were inspected. Initial dependent resources were waiting; later inspection reports healthy security, EventStore and Tenants UI resources. No exact restart acknowledgement or before/after AppHost process identity is retained, so no restart is established. Resource health does not qualify a fresh source build or the separate OIDC fixture.",
+  "laterResources": [
+    {
+      "name": "dapr-placement-mtls-usbjajfx",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "dapr-scheduler-mtls-pemtqxgp",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "dapr-sentry-scdykmaq",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "eventstore-admin-dapr-cli-zjwzgrpf",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "eventstore-admin-kwajhace",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "eventstore-admin-ui-dapr-cli-dqjjrnng",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "eventstore-admin-ui-zszdrwht",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "eventstore-app-api-token",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "eventstore-dapr-cli-rbjyvnvx",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "eventstore-rwqjnctk",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "eventstore-workload-client-secret",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "memories-dapr-cli-xuhcjmhp",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "memories-graphs-vmecupjp",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "memories-qywevvev",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "memories-vectors-avehhcqy",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "sample-app-api-token",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "sample-byjgaypw",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "sample-dapr-cli-eczqbxta",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "security-eventstore-client-password",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "security-eventstore-client-username",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "security-fvqhyaxg",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "tenants-api-dapr-cli-ckmtxrzd",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "tenants-api-nqvjyasx",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "tenants-app-api-token",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "tenants-dapr-cli-kshmwnwq",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "tenants-source-private-key",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "tenants-ui-dapr-cli-rzbnpmxf",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "tenants-ui-sevteqhg",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "tenants-vshdkhed",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    },
+    {
+      "name": "tenants-workload-client-secret",
+      "state": "Running",
+      "healthStatus": "Healthy"
+    }
+  ],
+  "startInvoked": true,
+  "restartEstablished": false
+}
