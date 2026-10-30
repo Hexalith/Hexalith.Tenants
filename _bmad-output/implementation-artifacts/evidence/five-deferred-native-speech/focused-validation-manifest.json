@@ -1,0 +1,17 @@
+{
+  "archiveSha256": "32e0a352b4118f87a76af9da672ea1972429f392020c0018151ab9e016461b2f",
+  "files": [
+    {
+      "name": "initial-focused.json",
+      "bytes": 319975,
+      "sha256": "5052e9d57e94bb23e166c44fd0ed2960478f112e0f327e2def72bfcce2fefbc0"
+    }
+  ],
+  "tests": {
+    "passed": 886,
+    "failed": 0,
+    "skipped": 0
+  },
+  "productionSourceChanged": false,
+  "rawOriginalResultsRetainedPrivately": true
+}

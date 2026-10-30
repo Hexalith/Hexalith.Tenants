@@ -1,0 +1,42 @@
+{
+  "provenance": "Reconstructed the small recorded helper revisions from the preserved attempt-11 inputs; all collector/driver/observer bytes match the contemporaneous startup/source-before-build SHA256 values. These failed attempts remain unqualified.",
+  "archiveSha256": "4b5c8f30fb08e56e55a007b5ad0149d4f6e9a783cdd828665b499ccfdf947153",
+  "files": [
+    {
+      "path": "capture-deferred-nvda-speech.ps1",
+      "bytes": 18985,
+      "sha256": "cdc454ca6e7ebdc14d1a1c8da60eb0da4f0ad863de9f8c8b23d53f56b0de35e7"
+    },
+    {
+      "path": "validate-deferred-native-speech.mjs",
+      "bytes": 9004,
+      "sha256": "f4ed30129fe172c6bd22ad66fe801fc48838f0b0e0671987ded3a4adef7744c3"
+    },
+    {
+      "path": "deferred-nvda-observer.py",
+      "bytes": 3107,
+      "sha256": "ea40ce52d41573dad9486168725c3fc8910bbfbe759d3f44b5f040a33890f8be"
+    },
+    {
+      "path": "validate-authenticated-administrator-dialogs.mjs",
+      "bytes": 86784,
+      "sha256": "7b214af64b9e4b5a0baa68a3c87063774e604b124edd8824429266f362a85efc"
+    },
+    {
+      "path": "deferred-handoff-fixture.mjs",
+      "bytes": 9160,
+      "sha256": "6a4908db949f08ecbacd4d2e7192f311e37fa0b866d0b84e14e98152741edcd5"
+    },
+    {
+      "path": "validate-deferred-handoff.mjs",
+      "bytes": 11272,
+      "sha256": "4b4f01f2115c0797fbe501f556b4581a18691c64703940bf3e855ed328fb5d14"
+    },
+    {
+      "path": "local-oidc-fixture.mjs",
+      "bytes": 3826,
+      "sha256": "c3832608e33425c4e090dbf2014c246937237223c5097ea33c316363ab346b8f"
+    }
+  ],
+  "startupHashesVerified": true
+}

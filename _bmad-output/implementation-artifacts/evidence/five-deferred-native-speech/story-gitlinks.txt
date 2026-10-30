@@ -1,0 +1,7 @@
+Story:    spec-five-deferred-native-speech-and-dispositions.md
+Baseline: 4fa78ba
+Compared: HEAD (4fa78ba) + working tree
+
+No references/ pointer changes in range.
+
+RESULT: PASS

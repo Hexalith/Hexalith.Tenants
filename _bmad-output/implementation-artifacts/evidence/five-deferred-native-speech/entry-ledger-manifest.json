@@ -1,0 +1,22 @@
+{
+  "sourceBaseRevision": "4fa78baa94f939a2b752bce52d0bac77214ddd83",
+  "purpose": "Approved dirty-entry ledger/archive bytes, retained before implementation for exact conservation checks.",
+  "files": [
+    {
+      "name": "deferred-work.md",
+      "bytes": 427180,
+      "sha256": "a2c0a04f255e58083b05cacafedaf1a35f6a728d61604ceac49a9a2ef63125d9"
+    },
+    {
+      "name": "deferred-work-archive.md",
+      "bytes": 1573428,
+      "sha256": "29e5339a9c5bd74466e2512241f3dbcf37ec1024cfed68c935142d7330c5f165"
+    },
+    {
+      "name": "maintenance-backlog.md",
+      "bytes": 105550,
+      "sha256": "edf7c74e2a26ea2f01901f914f8cf29be32981a85e08caf1932352b356cae942"
+    }
+  ],
+  "archiveSha256": "ab63c5427f7dfe190d6b765d73add3b8600c435e97fd21a710efd76bc6845632"
+}

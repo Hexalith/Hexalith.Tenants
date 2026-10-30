@@ -1,0 +1,58 @@
+{
+  "archiveSha256": "a4683fe4818cdeb837259ae15f351183e322586ad6de98adadf454138c31eb1c",
+  "rawFinalBuildLogSha256": "3d3475060c17bbd1042bd5a4cc9380d437ce8cc5cdbe95f5a5d5ec4096133d89",
+  "files": [
+    {
+      "name": "initial-focused.json",
+      "bytes": 319975,
+      "sha256": "5052e9d57e94bb23e166c44fd0ed2960478f112e0f327e2def72bfcce2fefbc0"
+    },
+    {
+      "name": "final-focused.json",
+      "bytes": 57626,
+      "sha256": "05236ead4bfbd442d623411bbce3d34651d4d71eca29f3c841b79359f0c56790"
+    },
+    {
+      "name": "final-full.json",
+      "bytes": 2892881,
+      "sha256": "82ad48e09fbf14a0de99b62cc381acac291333f78e0e8a521696d454fe140834"
+    },
+    {
+      "name": "final-build-summary.txt",
+      "bytes": 437,
+      "sha256": "230e9185ccaa87030a283236fb8b62c61914fc581cfc7c6f240e012790741eb2"
+    }
+  ],
+  "lanes": [
+    {
+      "lane": "initial-focused",
+      "rawXmlSha256": "f6af0ff4273a9eb3df23c259384d4c0a9114a6459b8cb865ded3e89dab04c117",
+      "rawXmlBytes": 605118,
+      "retention": "Every executed case retained as ordinal/class/method/outcome/time. Theory arguments and stdout/stderr omitted to exclude identities, credentials or raw HTTP diagnostics. Original XML/TRX remain private.",
+      "total": 886,
+      "passed": 886,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "lane": "final-focused",
+      "rawXmlSha256": "574fb74864790cf1415a6015325eccf7292ccc957ec7b16f13cbf97b3719c4ff",
+      "rawXmlBytes": 109359,
+      "retention": "Every executed case retained as ordinal/class/method/outcome/time. Theory arguments and stdout/stderr omitted to exclude identities, credentials or raw HTTP diagnostics. Original XML/TRX remain private.",
+      "total": 159,
+      "passed": 159,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "lane": "final-full",
+      "rawXmlSha256": "d68b210cb6e2cb61eef404371f8a7c6afeb0b561fbce3e3ba596a003681d90b8",
+      "rawXmlBytes": 5630392,
+      "retention": "Every executed case retained as ordinal/class/method/outcome/time. Theory arguments and stdout/stderr omitted to exclude identities, credentials or raw HTTP diagnostics. Original XML/TRX remain private.",
+      "total": 8055,
+      "passed": 8055,
+      "failed": 0,
+      "skipped": 0
+    }
+  ]
+}

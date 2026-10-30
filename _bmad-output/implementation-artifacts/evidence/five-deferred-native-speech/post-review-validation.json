@@ -1,0 +1,47 @@
+{
+  "ui": {
+    "passed": 8055,
+    "failed": 0,
+    "skipped": 0,
+    "results": "post-review-ui-tests.zip"
+  },
+  "nodeMockTests": {
+    "passed": 6,
+    "failed": 0,
+    "skipped": 0
+  },
+  "powerShellParser": "passed",
+  "pythonObserverSyntax": "passed",
+  "conservationNormalAndOptimized": "passed",
+  "formatting": {
+    "command": "UseNuGetDeps=false HexalithEventStoreVersion=3.128.4 HexalithMcpCliFromSource=false dotnet format whitespace tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --include tests/Hexalith.Tenants.UI.Tests/Components/CreateTenantFlowTests.cs tests/Hexalith.Tenants.UI.Tests/Components/AuditAvailabilityStateTests.cs --no-restore --verify-no-changes --verbosity minimal",
+    "exitCode": 0,
+    "initialFindings": "Two unchanged baseline whitespace issues were corrected; no semantic change. Workspace loader emitted a nonfatal warning."
+  },
+  "review": {
+    "layers": 3,
+    "findingsTriaged": 14,
+    "unresolved": 0,
+    "rechecks": "All three original reviewers cleared their filed findings; no new defect in fixes."
+  },
+  "nativeQualification": "No native rerun of review-strengthened helpers. Earlier packets retain original limits. DW-116/446/459 remain open.",
+  "commitMessageSha256": "dc65bf25288bbd015173133a3708b05d9468a0cffccd5a218e443d26c2b69f20",
+  "currentHelperSources": [
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Browser/capture-deferred-nvda-speech.ps1",
+      "sha256": "7bdeb0c4b66cb6e5f5f039669c802ba8f157c310b5a2b9c2f6722bc1c76bfc07"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Browser/deferred-nvda-observer.py",
+      "sha256": "fb2c0eb34a3fe336bda882dddcd4acbbc05e8d9ea7c53d8662861173506bd31d"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Browser/validate-deferred-native-speech.mjs",
+      "sha256": "49841c071c9dadb11643298d98bcb755b5d7384247ced815a9d8d3b761165a28"
+    },
+    {
+      "path": "tests/Hexalith.Tenants.UI.Tests/Browser/validate-deferred-native-speech.test.mjs",
+      "sha256": "6ec6e203743b7ca594551a212e04cfee9cee70c8c051c0a4d1d06c47e975298b"
+    }
+  ]
+}
