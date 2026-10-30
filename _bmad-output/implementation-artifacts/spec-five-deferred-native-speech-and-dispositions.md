@@ -114,3 +114,8 @@ Run PowerShell/Node syntax checks for changed helpers, `git diff --check`, the m
 ## Parent completion
 
 All 14 review findings were addressed, and all three original reviewers cleared their corrections. Final parent verification: full UI 8,055/8,055, six Node mocks, PowerShell/Python syntax, normal/optimized conservation, artifact integrity and scoped formatting pass. Two unchanged baseline whitespace findings were corrected without semantic changes after the full run. Production source and original native packets are unchanged by review patches; the strengthened collector has no new native acceptance run. The first four tasks and all conditional outcomes are complete; publication follows the validated local commit under the user's explicit main-push instruction. Exact results and commitlint evidence are in the linked execution evidence. DW-116/446/459 remain open; no new work was deferred.
+
+
+## Publication integration limitation
+
+Main advanced by two unrelated build/catalog commits during final verification. A clean rebase preserves both incoming commits. The integrated Debug build is blocked by their new RouteOperationContract use against the pinned EventStore SDK (two CS0246 errors), reproduced with packaged and source McpCli. The earlier 8,055-case pass remains pre-integration evidence. Exact attempted revisions and commands are retained in the execution evidence. No dependency change or incoming-code removal is authorized or performed; integrated-head acceptance is explicitly withheld.

@@ -27,9 +27,6 @@ authoritative. If it is unavailable, stop `/pushall` and report the missing inst
   that default branch has been pushed successfully. Never delete the remote default branch or
   `origin/HEAD`. Use `--delete` with an exact expected-OID lease so deletion fails if the branch
   moved after it was merged.
-- Never merge or prune the remote name `origin`, `refs/remotes/origin`, `HEAD`, or
-  `refs/remotes/origin/HEAD`. `%(refname:short)` abbreviates `refs/remotes/origin/HEAD` to `origin`;
-  that name is the remote, not a branch. Symbolic refs are never merge or prune targets.
 - On a merge conflict, inspect the base and both sides and try to resolve it while preserving the
   intent of both branches. Never auto-resolve with `-X ours`/`-X theirs` or blindly accept one
   complete side. If a safe resolution cannot be determined or validated, run `git merge --abort`,
@@ -213,19 +210,15 @@ switch, reset, merge, push or pruning as recovery.
 
 5. Try `git -C <dir> merge --ff-only "$pushall_tracking_ref"` to catch up with the remote first.
    If this fails because local and remote diverged, record it and skip the rest of this repo.
-6. Build the merge list from both kinds of refs. A merge target is a full ref under `refs/heads/`
-   or `refs/remotes/origin/<branch>`. Never merge `origin`, `HEAD`, `refs/remotes/origin`, or
-   `refs/remotes/origin/HEAD`.
+6. Build the merge list from both kinds of refs:
    - Local branches: `git -C <dir> for-each-ref --format='%(refname)' refs/heads/`, excluding exactly
      `refs/heads/$pushall_default_branch`. Keep full refs as merge targets.
    - Remote branches: `git -C <dir> for-each-ref
-     --format='%(refname) %(objectname) %(symref)' refs/remotes/origin/`. Drop every line whose
-     symref field is non-empty, and drop the exact `$pushall_tracking_ref`. Each remaining ref must
-     be exactly `refs/remotes/origin/<branch>`, where `<branch>` is non-empty and is not `HEAD`.
-     Keep that full ref as the merge target. Keep `<branch>` and the fetched object ID for the
-     deletion lease in step 10. Do not shorten the ref: `%(refname:short)` turns
-     `refs/remotes/origin/HEAD` into `origin`.
-7. For every ref in the merge list (full local branch refs first, then full remote-tracking refs):
+     --format='%(refname) %(objectname) %(symref)' refs/remotes/origin/`. Exclude symbolic refs and
+     the exact `$pushall_tracking_ref`, derive each branch name by removing the
+     `refs/remotes/origin/` prefix, and keep its fetched object ID for the deletion lease in step
+     10.
+7. For every ref in the merge list (local refs first, then `origin` remote refs):
    - Keep the full ref in `pushall_merge_ref` and run
      `git -C <dir> merge --no-ff "$pushall_merge_ref" -m "build: merge $pushall_merge_ref into $pushall_default_branch via /pushall"`.
    - On conflict, list unresolved paths with `git -C <dir> diff --name-only --diff-filter=U`, inspect
@@ -240,9 +233,8 @@ switch, reset, merge, push or pruning as recovery.
 9. Delete local branches now fully merged into the default branch (excluding the default branch
    itself): `git -C <dir> branch --merged "refs/heads/$pushall_default_branch"` minus the exact default
    branch, then `git -C <dir> branch -d -- "$pushall_branch_to_delete"` for each remaining branch name.
-10. Only if step 8 succeeded, prune each remote branch recorded in step 6 whose fetched object ID
-    is an ancestor of the default branch. The branch name is the `<branch>` captured in step 6.
-    Refuse `origin`, `HEAD`, an empty name, and `$pushall_default_branch`:
+10. Only if step 8 succeeded, prune each non-default `origin` branch whose fetched object ID is an
+    ancestor of the default branch:
     - Keep its fetched object ID in `pushall_fetched_oid` and verify with
       `git -C <dir> merge-base --is-ancestor "$pushall_fetched_oid" "refs/heads/$pushall_default_branch"`.
     - Delete with `git -C <dir> push

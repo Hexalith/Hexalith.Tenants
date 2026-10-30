@@ -1,0 +1,27 @@
+{
+  "testedHeadBeforeEvidenceAmend": "864e915d136f78df9fe54030e719f5a4a20946d1",
+  "incomingMainParent": "ba35694a6820608cdedcb1a2ab825a76c8e8fdf6",
+  "pinnedEventStoreSource": "4cf93f91e760e2d09e4fc64e1bd33a3c0a79a24d",
+  "incomingChanges": "Two unrelated build/catalog commits were integrated by a clean rebase. Their new RouteOperationContract use cannot compile against the pinned EventStore source.",
+  "buildAttempts": [
+    {
+      "command": "dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -m:1 -p:UseNuGetDeps=false -p:HexalithEventStoreVersion=3.128.4 -p:HexalithMcpCliFromSource=false -p:NuGetAudit=false --nologo",
+      "exitCode": 1,
+      "warnings": 0,
+      "errors": 2,
+      "diagnostic": "CS0246: RouteOperationContract could not be found at src/Hexalith.Tenants.Contracts/Routing/TenantCatalogDeclarations.cs:14 and :20",
+      "privateLogSha256": "76e3358cacd3884363ab081efae3bdcbbcd358a012e454347c57e76aa4d8cf81"
+    },
+    {
+      "command": "dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -m:1 -p:UseNuGetDeps=false -p:HexalithEventStoreVersion=3.128.4 -p:HexalithMcpCliFromSource=true -p:NuGetAudit=false --nologo",
+      "exitCode": 1,
+      "warnings": 0,
+      "errors": 2,
+      "diagnostic": "CS0246: RouteOperationContract could not be found at src/Hexalith.Tenants.Contracts/Routing/TenantCatalogDeclarations.cs:14 and :20",
+      "privateLogSha256": "6f8c6ad167195fe779c6a33a14992aeb7e918cc323877404b147c846a943c910"
+    }
+  ],
+  "tests": "8055/8055 full UI tests passed before this integration; no current integrated build/test success is claimed.",
+  "scope": "No dependency upgrade, missing-type shim, incoming-code deletion, gate weakening or submodule-pointer edit was made. Existing exact native/UI evidence remains bound to its original source/runtime.",
+  "remaining": "Incoming catalog and EventStore contract alignment is required for the integrated build."
+}

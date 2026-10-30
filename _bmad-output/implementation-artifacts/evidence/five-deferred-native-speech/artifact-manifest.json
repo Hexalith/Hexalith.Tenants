@@ -286,6 +286,16 @@
       "sha256": "abbf58f1a4f18c04aa9fb3006bf13676e3111244630b4065bcd05093a8c70412"
     },
     {
+      "path": "incoming-main-integration-blocker.json",
+      "bytes": 1984,
+      "sha256": "9e14bc59387990bf3713d85f4a37ac2aef064e4a3e971557ed2a47f419d7688f"
+    },
+    {
+      "path": "integration-note-commitlint.txt",
+      "bytes": 105,
+      "sha256": "8731cb0ee9a6e88904c939a26a2d3e1d901962b5eaa4df8adc9577b4c546c66c"
+    },
+    {
       "path": "native-attempt-index.json",
       "bytes": 13163,
       "sha256": "ea24330e053718afc0868ba4186200200cb5a4322843a525de189d5f1fff5bc5"
@@ -326,5 +336,5 @@
       "sha256": "5be7ec1a11542f5c0fe7120b88932e544bf9b0e9b13e28283a3e9a0cde74f0da"
     }
   ],
-  "note": "All retained artifacts except this manifest itself. Original native packets remain immutable; post-review helper/test verification and commitlint are separately identified."
+  "note": "All retained artifacts except this manifest itself. Original native packets are immutable; post-review and incoming-main integration outcomes are separately identified."
 }
