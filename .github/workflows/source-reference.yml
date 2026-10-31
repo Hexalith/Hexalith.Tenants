@@ -44,13 +44,14 @@ jobs:
           --fail-skips on
       # Build separately and serially: implicit dotnet test builds can write the
       # shared source EventStore dependency outputs from concurrent inner builds.
-      - name: Build source-only catalog contracts
+      - name: Build source-only catalog contracts serially
         run: >
           dotnet build tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj
-          --configuration Debug -p:UseHexalithProjectReferences=true -warnaserror -m:1 -nr:false
+          --configuration Debug -p:UseHexalithProjectReferences=true -warnaserror
+          -m:1 -nr:false --disable-build-servers
       - name: Verify source-only catalog operation declarations
         run: >
           dotnet test tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj
-          --configuration Debug --no-build -p:UseHexalithProjectReferences=true
+          --configuration Debug --no-build --no-restore -p:UseHexalithProjectReferences=true
           --filter-class Hexalith.Tenants.Contracts.Tests.TenantCatalogTests
           --minimum-expected-tests 1 --fail-skips on

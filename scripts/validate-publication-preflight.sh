@@ -85,6 +85,7 @@ exec "$publication_preflight" \
   --source-branch "$source_branch" \
   --source-ci-workflow "$source_ci_workflow" \
   --container-repository "registry.hexalith.com/tenants" \
+  --container-repository "registry.hexalith.com/tenants-api" \
   --builds-execution-sha "$builds_execution_sha" \
   --environment-name "$release_environment" \
   --package-manifest "$package_manifest" \

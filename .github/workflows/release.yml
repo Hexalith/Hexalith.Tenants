@@ -317,6 +317,7 @@ jobs:
       HEXALITH_RELEASE_REQUIRE_AUTHORITY: 'false'
       HEXALITH_CONTAINER_PROJECTS: |
         src/Hexalith.Tenants/Hexalith.Tenants.csproj|tenants
+        src/Hexalith.Tenants.Api/Hexalith.Tenants.Api.csproj|tenants-api
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -440,6 +441,7 @@ jobs:
       HEXALITH_BINFMT_IMAGE: docker.io/tonistiigi/binfmt@sha256:400a4873b838d1b89194d982c45e5fb3cda4593fbfd7e08a02e76b03b21166f0
       HEXALITH_CONTAINER_PROJECTS: |
         src/Hexalith.Tenants/Hexalith.Tenants.csproj|tenants
+        src/Hexalith.Tenants.Api/Hexalith.Tenants.Api.csproj|tenants-api
     # CI (the verify-source gate above) already tested this exact head, so the release path
     # runs no test tiers.
     steps:
@@ -601,6 +603,14 @@ jobs:
           HEXALITH_ZOT_API_KEY: ${{ secrets.HEXALITH_ZOT_API_KEY }}
           HEXALITH_RELEASE_OCI_VALIDATOR: .hexalith/release/oci_registry_validator.py
         run: bash scripts/verify-release-artifacts.sh
+      - name: Verify published API image content
+        shell: bash
+        env:
+          HEXALITH_ZOT_REGISTRY: ${{ vars.HEXALITH_ZOT_REGISTRY || 'registry.hexalith.com' }}
+          HEXALITH_ZOT_USERNAME: ${{ secrets.HEXALITH_ZOT_USERNAME }}
+          HEXALITH_ZOT_API_KEY: ${{ secrets.HEXALITH_ZOT_API_KEY }}
+          HEXALITH_RELEASE_OCI_VALIDATOR: .hexalith/release/oci_registry_validator.py
+        run: bash scripts/verify-api-release-artifact.sh
       - name: Upload complete release evidence
         if: ${{ always() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

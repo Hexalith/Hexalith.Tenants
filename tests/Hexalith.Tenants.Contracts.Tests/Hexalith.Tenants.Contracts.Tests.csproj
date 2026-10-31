@@ -3,8 +3,9 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Hexalith.Tenants.Contracts\Hexalith.Tenants.Contracts.csproj" />
     <ProjectReference Include="..\..\src\Hexalith.Tenants.Testing\Hexalith.Tenants.Testing.csproj" />
-    <!-- Source-only compiled catalog discovery is not part of the published package contract. -->
+    <!-- Compiled catalog discovery uses the same selected owner SDK in both dependency modes. -->
     <ProjectReference Include="$(HexalithEventStoreRoot)\src\Hexalith.EventStore.ServiceDefaults\Hexalith.EventStore.ServiceDefaults.csproj" Condition="'$(HexalithEventStoreFromSource)' == 'true'" />
+    <PackageReference Include="Hexalith.EventStore.ServiceDefaults" Condition="'$(HexalithEventStoreFromSource)' != 'true' and $([MSBuild]::VersionGreaterThanOrEquals('$(HexalithEventStoreVersion)', '3.129.0'))" />
   </ItemGroup>
 
   <ItemGroup>

@@ -723,7 +723,7 @@ public class PackageGovernanceTests {
             foreach (string argument in new[] {
                 "msbuild", projectPath, "-nologo", "-getItem:ProjectReference",
                 $"-property:HexalithEventStoreFromSource={fromSource}",
-                "-property:HexalithEventStoreVersion=test-source-version",
+                "-property:HexalithEventStoreVersion=3.129.1",
                 $"-property:HexalithSourceMappingHash={mappingHash}",
                 $"-property:HexalithSourceMappingApplies={mappingApplies}",
                 $"-property:HexalithSourceMappingMode={mappingMode}",
@@ -742,7 +742,7 @@ public class PackageGovernanceTests {
             Dictionary<string, JsonElement> references = evaluation.RootElement.GetProperty("Items").GetProperty("ProjectReference")
                 .EnumerateArray().ToDictionary(item => item.GetProperty("Identity").GetString()!, StringComparer.Ordinal);
             references.Count.ShouldBe(2);
-            string forwarded = forwardsSourceVersion ? ";HexalithEventStoreVersion=test-source-version" : string.Empty;
+            string forwarded = forwardsSourceVersion ? ";HexalithEventStoreVersion=3.129.1" : string.Empty;
             references["existing.csproj"].GetProperty("AdditionalProperties").GetString().ShouldBe("ExistingProperty=kept" + forwarded);
             references["existing.csproj"].GetProperty("Private").GetString().ShouldBe("false");
             string emptyProperties = references["empty.csproj"].TryGetProperty("AdditionalProperties", out JsonElement additional)
@@ -755,19 +755,19 @@ public class PackageGovernanceTests {
     }
 
     [Theory]
-    [InlineData("", false, "3.128.4")]
-    [InlineData("3.128.2", false, "3.128.4")]
-    [InlineData("3.128.3", false, "3.128.4")]
-    [InlineData("3.128.4-preview.1", false, "3.128.4")]
-    [InlineData("3.128.4", false, "3.128.4")]
-    [InlineData("3.128.4+metadata-with-dash", false, "3.128.4+metadata-with-dash")]
-    [InlineData("3.128.4-preview.1+metadata-with-dash", false, "3.128.4")]
-    [InlineData("3.128.10", false, "3.128.10")]
-    [InlineData("3.128.5", false, "3.128.5")]
-    [InlineData("3.129.0-preview.1", false, "3.129.0-preview.1")]
-    [InlineData("3.128.2", true, "3.128.2")]
+    [InlineData("", false, "3.129.0")]
+    [InlineData("3.128.4", false, "3.129.0")]
+    [InlineData("3.128.10", false, "3.129.0")]
+    [InlineData("3.129.0-preview.1", false, "3.129.0")]
+    [InlineData("3.129.0", false, "3.129.0")]
+    [InlineData("3.129.0+metadata-with-dash", false, "3.129.0+metadata-with-dash")]
+    [InlineData("3.129.0-preview.1+metadata-with-dash", false, "3.129.0")]
+    [InlineData("3.129.10", false, "3.129.10")]
+    [InlineData("3.129.1", false, "3.129.1")]
+    [InlineData("3.130.0-preview.1", false, "3.130.0-preview.1")]
+    [InlineData("3.128.4", true, "3.128.4")]
     [InlineData("3.128.5", true, "3.128.5")]
-    [InlineData("3.128.4-preview.1", true, "3.128.4-preview.1")]
+    [InlineData("3.129.0-preview.1", true, "3.129.0-preview.1")]
     [InlineData("test-source-version", true, "test-source-version")]
     public Task EventStore_package_floor_preserves_newer_catalog_and_explicit_source_selectionsAsync(
         string selectedVersion,
@@ -776,16 +776,16 @@ public class PackageGovernanceTests {
         => EvaluateEventStoreVersionSelectionAsync(selectedVersion, useSource, expectedVersion, globalOverride: false, accepted: true);
 
     [Theory]
-    [InlineData("3.128.2", false, false)]
-    [InlineData("3.128.3", false, false)]
-    [InlineData("3.128.4-preview.1", false, false)]
-    [InlineData("3.128.4", false, true)]
-    [InlineData("3.128.4+metadata-with-dash", false, true)]
-    [InlineData("3.128.4-preview.1+metadata-with-dash", false, false)]
-    [InlineData("3.128.10", false, true)]
-    [InlineData("3.128.5", false, true)]
-    [InlineData("3.129.0-preview.1", false, true)]
-    [InlineData("3.128.2", true, true)]
+    [InlineData("3.128.4", false, false)]
+    [InlineData("3.128.10", false, false)]
+    [InlineData("3.129.0-preview.1", false, false)]
+    [InlineData("3.129.0", false, true)]
+    [InlineData("3.129.0+metadata-with-dash", false, true)]
+    [InlineData("3.129.0-preview.1+metadata-with-dash", false, false)]
+    [InlineData("3.129.10", false, true)]
+    [InlineData("3.129.1", false, true)]
+    [InlineData("3.130.0-preview.1", false, true)]
+    [InlineData("3.128.4", true, true)]
     [InlineData("test-source-version", true, true)]
     public Task EventStore_package_floor_rejects_older_global_package_overridesAsync(
         string selectedVersion,
@@ -866,7 +866,7 @@ public class PackageGovernanceTests {
             string standardError = await error;
             if (!accepted) {
                 process.ExitCode.ShouldNotBe(0, "An older global package override must fail before restore or build.");
-                (standardOutput + standardError).ShouldContain("must be at least 3.128.4 for completion recovery");
+                (standardOutput + standardError).ShouldContain("must be at least 3.129.0 for run-scoped catalog activation");
                 return;
             }
             process.ExitCode.ShouldBe(0, $"EventStore version evaluation failed. stdout: {standardOutput}{Environment.NewLine}stderr: {standardError}");
@@ -1267,12 +1267,19 @@ public class PackageGovernanceTests {
         containerMappings.ShouldAllBe(mapping => mapping.Length == 2, "Each release container mapping must contain exactly one project and repository.");
         containerMappings.Any(mapping => mapping is ["src/Hexalith.Tenants/Hexalith.Tenants.csproj", "tenants"])
             .ShouldBeTrue("The server container must remain in the release map.");
+        containerMappings.Any(mapping => mapping is ["src/Hexalith.Tenants.Api/Hexalith.Tenants.Api.csproj", "tenants-api"])
+            .ShouldBeTrue("The catalog cohort requires the actual Tenants API image from the same release.");
+        string[][] publicationMappings = GetYamlLiteralBlockLines(releaseJob, "HEXALITH_CONTAINER_PROJECTS")
+            .Select(mapping => mapping.Split('|', StringSplitOptions.TrimEntries)).ToArray();
+        publicationMappings.Select(mapping => string.Join('|', mapping))
+            .ShouldBe(containerMappings.Select(mapping => string.Join('|', mapping)));
         containerMappings.Any(mapping => mapping.Length == 2
                 && (string.Equals(mapping[0], "src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj", StringComparison.Ordinal)
                     || string.Equals(mapping[1], "tenants-ui", StringComparison.Ordinal)))
             .ShouldBeFalse("The UI image is environment-composed and must not be published by this release map.");
         releaseJob.ShouldContain("HEXALITH_ZOT_USERNAME: ${{ secrets.HEXALITH_ZOT_USERNAME }}");
         releaseJob.ShouldContain("HEXALITH_ZOT_API_KEY: ${{ secrets.HEXALITH_ZOT_API_KEY }}");
+        releaseJob.ShouldContain("run: bash scripts/verify-api-release-artifact.sh");
         workflow.ShouldNotContain("secrets: inherit");
         // verify-source already proved this exact head green, so the release path must not rerun
         // the test tiers.
