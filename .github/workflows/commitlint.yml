@@ -9,7 +9,7 @@ on:
     # title, so a retitled PR must be revalidated.
     types: [opened, synchronize, reopened, edited]
   push:
-    branches: [main]
+    branches: [main, fix/qualify-sdk-3.130.1]
 concurrency:
   group: commitlint-${{ github.ref }}
   cancel-in-progress: true

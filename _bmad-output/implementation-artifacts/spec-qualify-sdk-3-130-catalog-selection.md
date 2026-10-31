@@ -21,6 +21,11 @@ server/API images are unchanged and independently verified.
 
 Allowed files for this story:
 
+- `.github/workflows/ci.yml`
+- `.github/workflows/source-reference.yml`
+- `.github/workflows/story-guards.yml`
+- `.github/workflows/commitlint.yml`
+- `.github/workflows/codeql.yml`
 - `Directory.Build.targets`
 - `tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs`
 - `_bmad-output/implementation-artifacts/spec-qualify-sdk-3-130-catalog-selection.md`
@@ -73,6 +78,11 @@ pass at the exact pushed source before runtime freeze and final release acceptan
 
 ## File List
 
+- `.github/workflows/ci.yml`
+- `.github/workflows/source-reference.yml`
+- `.github/workflows/story-guards.yml`
+- `.github/workflows/commitlint.yml`
+- `.github/workflows/codeql.yml`
 - `Directory.Build.targets`
 - `tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs`
 - `_bmad-output/implementation-artifacts/spec-qualify-sdk-3-130-catalog-selection.md`
@@ -107,3 +117,29 @@ Durable patch proof:
 logs. Original checkout synchronization follows RootCI's explicit diagnostic
 cleanup/thaw receipt. Exact new owner CI must pass before final ledger/release
 acceptance; the prior130 result does not replace that requirement.
+
+## Isolated exact-source workflow qualification
+
+A separate session advanced main to 9fcc5e8b with new bootstrap and source-catalog
+features, cancelling the original 6f34ac67 main CI41248178028 before completion.
+Those features are outside the selected prerequisite scope. Preserve main and the
+original selected checkout at6f; use a dedicated qualification branch rather than
+a pull-request merge which would include that additional source.
+
+Seed `fix/qualify-sdk-3.130.1` at exact6f, then add that one exact branch to the
+existing push triggers for CI, Source-reference integration, Story Guards,
+Commitlint and CodeQL. No job, condition, command, timeout, dependency, checkout
+setting, release trigger or release-main gate changes. Push-context checkouts in
+local jobs and shared workflows select this branch's actual event commit, and the
+existing ref-specific concurrency leaves main runs independent. Seeding before
+the CI-only push provides the real nonzero before-SHA required by Story Guards.
+
+Validate the complete workflow files with actionlint, assert only those five
+push-trigger lines and this spec differ from6f, and prove every other tracked
+tree entry (including all source, tests, packages and gitlinks) is identical.
+Run the actual changed-story guard on the real6f-to-qualification event. The
+normal pinned commitlint and commit hooks apply; push only the isolated branch.
+The full exact branch CI, Source-reference, Story Guards, Commitlint and CodeQL
+must finish successfully before the selected-source remote gate is accepted.
+This qualification does not publish from a side branch or alter existing
+Tenants6.0.0/source9e publication claims.
