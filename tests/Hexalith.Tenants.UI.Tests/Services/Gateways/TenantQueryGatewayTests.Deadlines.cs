@@ -42,16 +42,20 @@ public sealed partial class TenantQueryGatewayTests
     {
         var clock = new ManualTimeProvider();
         var callback = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var callbackEntered = new ManualResetEventSlim();
         var pending = new TaskCompletionSource<SearchResult>(TaskCreationOptions.RunContinuationsAsynchronously);
         var original = new InvalidOperationException("original fatal wrapper", new OutOfMemoryException());
         var memories = new StubMemoriesClient
         {
             SearchHandler = (_, token) =>
         {
-            token.Register(() => { callback.TrySetResult(); throw new InvalidOperationException("provider callback"); });
+            token.Register(() => { callbackEntered.Set(); callback.TrySetResult(); throw new InvalidOperationException("provider callback"); });
             if (fatal)
             {
                 clock.Advance(TimeSpan.FromSeconds(10));
+                // Keep the provider active until its queued callback starts; completed-load disposal
+                // may otherwise remove the registration before CancelAsync executes it.
+                callbackEntered.Wait(TimeSpan.FromSeconds(5)).ShouldBeTrue();
                 return Task.FromException<SearchResult>(original);
             }
             return pending.Task;
@@ -60,9 +64,9 @@ public sealed partial class TenantQueryGatewayTests
         Task<TenantListSnapshot> load = CreateGateway(ReadSafetyDetails(), memoriesClient: memories, searchClock: clock)
             .ListTenantsAsync(new(Search: "needle"), null);
         if (!fatal) clock.Advance(TimeSpan.FromSeconds(10));
-        await callback.Task.WaitAsync(TimeSpan.FromSeconds(5));
-        if (fatal) (await Should.ThrowAsync<InvalidOperationException>(() => load)).ShouldBeSameAs(original);
+        if (fatal) (await Should.ThrowAsync<InvalidOperationException>(() => load.WaitAsync(TimeSpan.FromSeconds(5)))).ShouldBeSameAs(original);
         else (await load.WaitAsync(TimeSpan.FromSeconds(5))).Kind.ShouldBe(TenantListSurfaceKind.Error);
+        await callback.Task.WaitAsync(TimeSpan.FromSeconds(5));
         pending.TrySetResult(SearchResult("needle", 0));
     }
 
