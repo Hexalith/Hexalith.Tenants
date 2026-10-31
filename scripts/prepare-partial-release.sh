@@ -20,9 +20,11 @@ validated_state="$(recovery_preparation_state)"
 
 rm -f "$state_directory/prepared-packages-sha256" "$state_directory/prepared-state-sha256"
 
+export RepositoryCommit="$source_sha"
 dotnet build Hexalith.Tenants.slnx --configuration Release -p:Version="$version"
 python3 scripts/pack-release-packages.py ./nupkgs "$version" --manifest "$manifest"
 python3 scripts/validate-nuget-packages.py ./nupkgs --manifest "$manifest"
+python3 scripts/verify-catalog-package-consumer.py ./nupkgs --expected-source-sha "$source_sha" --output "$state_directory/catalog-package-consumer.json"
 python3 scripts/validate-consumer-package-references.py ./nupkgs
 
 while IFS= read -r package_id || [ -n "$package_id" ]; do

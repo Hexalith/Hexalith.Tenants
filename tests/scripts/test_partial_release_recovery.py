@@ -213,6 +213,9 @@ class PartialReleaseRecoveryTests(unittest.TestCase):
               scripts/validate-nuget-packages.py)
                 [ "${RECOVERY_FAILURE_STAGE:-}" != packages ] || return 42
                 [ "$#" = 4 ] && [ "$2" = ./nupkgs ] && [ "$3" = --manifest ] && [ "$4" = "$HEXALITH_RELEASE_PACKAGE_MANIFEST" ] ;;
+              scripts/verify-catalog-package-consumer.py)
+                [ "${RECOVERY_FAILURE_STAGE:-}" != catalog ] || return 42
+                [ "$#" = 6 ] && [ "$2" = ./nupkgs ] && [ "$3" = --expected-source-sha ] && [ "$4" = "$GITHUB_SHA" ] && [ "$5" = --output ] ;;
               scripts/validate-consumer-package-references.py)
                 [ "${RECOVERY_FAILURE_STAGE:-}" != consumers ] || return 42
                 [ "$#" = 2 ] && [ "$2" = ./nupkgs ] ;;

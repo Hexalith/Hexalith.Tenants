@@ -1,5 +1,27 @@
 <Project>
-  <PropertyGroup Condition="'$(HexalithEventStoreFromSource)' == 'true' or ('$(HexalithEventStoreVersion)' != '' and $([MSBuild]::VersionGreaterThanOrEquals('$(HexalithEventStoreVersion)', '3.129.0')))"><DefineConstants>$(DefineConstants);HEXALITH_DEVELOPMENT_CATALOG_SOURCE</DefineConstants></PropertyGroup>
+  <!-- Normalize only qualified stable binaries; metadata suffixes do not change their API. -->
+  <PropertyGroup>
+    <HexalithTenantsCatalogArtifactsAvailable>false</HexalithTenantsCatalogArtifactsAvailable>
+    <HexalithTenantsCatalogSdkVersion>$([System.Text.RegularExpressions.Regex]::Replace('$(HexalithEventStoreVersion)', '\A(3\.129\.[01])(?:\.0)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?\z', '$1'))</HexalithTenantsCatalogSdkVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(HexalithEventStoreFromSource)' == 'true' or '$(HexalithTenantsCatalogSdkVersion)' == '3.129.0' or '$(HexalithTenantsCatalogSdkVersion)' == '3.129.1'">
+    <HexalithTenantsCatalogArtifactsAvailable>true</HexalithTenantsCatalogArtifactsAvailable>
+    <DefineConstants>$(DefineConstants);HEXALITH_DEVELOPMENT_CATALOG_SOURCE</DefineConstants>
+  </PropertyGroup>
+
+  <Target Name="ValidateCatalogSdkSelection" BeforeTargets="CollectPackageReferences;PrepareForBuild"
+          Condition="'$(HexalithEventStoreFromSource)' != 'true' and '$(HexalithEventStoreVersion)' != ''">
+    <Error Condition="$([MSBuild]::VersionGreaterThanOrEquals('$(HexalithEventStoreVersion)', '3.129.0')) and '$(HexalithTenantsCatalogArtifactsAvailable)' != 'true'"
+           Text="Catalog SDK selection '$(HexalithEventStoreVersion)' is not qualified. Use stable 3.129.0 or 3.129.1, or the explicit legacy compatibility profile." />
+  </Target>
+
+  <Target Name="ValidatePublishedCatalogArtifacts" BeforeTargets="GenerateNuspec"
+          Condition="'$(IsPackable)' == 'true'">
+    <Error Condition="'$(HexalithTenantsCatalogArtifactsAvailable)' != 'true'"
+           Text="Published Tenants packages require the qualified EventStore 3.129.0 or 3.129.1 catalog SDK or an enrolled source build. The 3.128.4 compatibility profile is not publishable." />
+    <Exec Condition="'$(MSBuildProjectName)' == 'Hexalith.Tenants.Contracts' or '$(MSBuildProjectName)' == 'Hexalith.Tenants.Server' or '$(MSBuildProjectName)' == 'Hexalith.Tenants.Client' or '$(MSBuildProjectName)' == 'Hexalith.Tenants.Testing' or '$(MSBuildProjectName)' == 'Hexalith.Tenants.Aspire'"
+          Command="dotnet run --project &quot;$(MSBuildThisFileDirectory)tools/CatalogArtifactVerifier/CatalogArtifactVerifier.csproj&quot; --configuration Release --no-launch-profile -- &quot;$(TargetPath)&quot; &quot;$(MSBuildProjectName)&quot;" />
+  </Target>
 
   <!-- Carry the owning EventStore source identity through ordinary local project edges.
        A source mapping mode, or an active producer mapping, owns dependency versions
@@ -10,6 +32,15 @@
     </ProjectReference>
   </ItemGroup>
 
+  <!-- The SDK also promotes transitive project references without copying edge metadata. -->
+  <Target Name="PreserveBuildToolingCatalogSelection" AfterTargets="IncludeTransitiveProjectReferences">
+    <ItemGroup>
+      <ProjectReference Update="@(ProjectReference)" Condition="'%(ProjectReference.Filename)' == 'Hexalith.Builds.Tooling'">
+        <GlobalPropertiesToRemove>%(ProjectReference.GlobalPropertiesToRemove);HexalithEventStoreVersion</GlobalPropertiesToRemove>
+      </ProjectReference>
+    </ItemGroup>
+  </Target>
+
   <!-- Global command-line properties cannot be raised by the default floor in props.
        Refuse an older package selection before restore or compilation consumes it. -->
   <PropertyGroup>
@@ -17,8 +48,8 @@
   </PropertyGroup>
   <Target Name="ValidateEventStorePackageFloor" BeforeTargets="CollectPackageReferences;PrepareForBuild"
           Condition="'$(HexalithEventStoreFromSource)' != 'true' and !$(MSBuildProjectFullPath.StartsWith('$(_TenantsNestedReferenceRoot)'))">
-    <Error Condition="'$(HexalithEventStoreVersion)' == '' or $([MSBuild]::VersionLessThan('$(HexalithEventStoreVersion)', '3.129.0')) or ($([MSBuild]::VersionEquals('$(HexalithEventStoreVersion)', '3.129.0')) and $([System.Text.RegularExpressions.Regex]::IsMatch('$(HexalithEventStoreVersion)', '^[^+]*-')))"
-           Text="EventStore package selection '$(HexalithEventStoreVersion)' must be at least 3.129.0 for run-scoped catalog activation. Source mappings retain their exact producer identity." />
+    <Error Condition="'$(HexalithEventStoreVersion)' == '' or $([MSBuild]::VersionLessThan('$(HexalithEventStoreVersion)', '3.128.4')) or ($([MSBuild]::VersionEquals('$(HexalithEventStoreVersion)', '3.128.4')) and $([System.Text.RegularExpressions.Regex]::IsMatch('$(HexalithEventStoreVersion)', '^[^+]*-')))"
+           Text="EventStore package selection '$(HexalithEventStoreVersion)' must be at least 3.128.4 for completion recovery. Source mappings retain their exact producer identity." />
   </Target>
 
   <!--

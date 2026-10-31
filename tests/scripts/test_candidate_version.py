@@ -300,7 +300,7 @@ for (const hook of process.argv.slice(2)) await exec[hook](options, context);
         dotnet.write_text('#!/bin/bash\nprintf "dotnet %s\\n" "$*" >> "$CANDIDATE_TRACE"\n'
                           'exit "${CANDIDATE_BUILD_EXIT:-0}"\n')
         dotnet.chmod(0o755)
-        for name in ('pack-release-packages', 'validate-nuget-packages', 'validate-consumer-package-references',
+        for name in ('pack-release-packages', 'validate-nuget-packages', 'validate-consumer-package-references', 'verify-catalog-package-consumer',
                      'release-validation-context'):
             record = repr(name + '\n')
             if name == 'release-validation-context':
@@ -360,7 +360,7 @@ for (const hook of process.argv.slice(2)) await exec[hook](options, context);
         self.assertTrue(trace[0].startswith('dotnet build '), trace)
         self.assertIn('-p:Version=5.10.2', trace[0])
         self.assertEqual(trace[1:], ['pack-release-packages', 'validate-nuget-packages',
-                                     'validate-consumer-package-references', 'release-validation-context capture'])
+                                     'verify-catalog-package-consumer', 'validate-consumer-package-references', 'release-validation-context capture'])
         candidate = self.root / '.hexalith/release-candidate'
         self.assertEqual((candidate / 'version').read_text().strip(), '5.10.2')
         self.assertEqual((candidate / 'source-sha').read_text().strip(), self.git('rev-parse', 'HEAD'))

@@ -250,6 +250,58 @@ public class PackageGovernanceTests {
             "Cross-repository source builds must let EventStore select its own centrally pinned version without exporting it back into Tenants projects.");
     }
 
+    [Fact]
+    public void AppHost_build_tooling_preserves_its_authoritative_catalog_selection() {
+        XElement tooling = LoadAppHostProject().Descendants("ProjectReference")
+            .Single(item => ((string?)item.Attribute("Include"))?.EndsWith("Hexalith.Builds.Tooling.csproj", StringComparison.Ordinal) == true);
+        ItemMetadataValue(tooling, "GlobalPropertiesToRemove")
+            .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .ShouldContain("HexalithEventStoreVersion");
+    }
+
+    [Fact]
+    public void Transitive_tooling_keeps_catalog_while_runtime_keeps_explicit_sdk() {
+        string fixture = Path.Combine(Path.GetTempPath(), $"tenants-tooling-boundary-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(fixture);
+        try {
+            foreach (string name in new[] { "Hexalith.Builds.Tooling", "Runtime" }) {
+                new XDocument(new XElement("Project",
+                    new XElement("PropertyGroup", new XElement("HexalithEventStoreVersion",
+                        new XAttribute("Condition", "'$(HexalithEventStoreVersion)' == ''"), "3.128.4")),
+                    new XElement("Target", new XAttribute("Name", "Record"),
+                        new XElement("WriteLinesToFile", new XAttribute("File", Path.Combine(fixture, name + ".txt")),
+                            new XAttribute("Lines", "$(HexalithEventStoreVersion)"), new XAttribute("Overwrite", "true")))))
+                    .Save(Path.Combine(fixture, name + ".proj"));
+            }
+            string project = Path.Combine(fixture, "Parent.proj");
+            new XDocument(new XElement("Project",
+                new XElement("Import", new XAttribute("Project", Path.Combine(FindRepoRoot(), "Directory.Build.targets"))),
+                new XElement("Target", new XAttribute("Name", "IncludeTransitiveProjectReferences"),
+                    new XElement("ItemGroup", new[] { "Hexalith.Builds.Tooling", "Runtime" }.Select(name =>
+                        new XElement("ProjectReference", new XAttribute("Include", Path.Combine(fixture, name + ".proj")))))),
+                new XElement("Target", new XAttribute("Name", "Probe"), new XAttribute("DependsOnTargets", "IncludeTransitiveProjectReferences"),
+                    new XElement("MSBuild", new XAttribute("Projects", "@(ProjectReference)"), new XAttribute("Targets", "Record"),
+                        new XAttribute("RemoveProperties", "%(ProjectReference.GlobalPropertiesToRemove)")))))
+                .Save(project);
+            var start = new ProcessStartInfo("dotnet") {
+                RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false,
+            };
+            foreach (string argument in new[] { "msbuild", project, "-nologo", "-t:Probe", "-p:HexalithEventStoreVersion=3.129.0" }) {
+                start.ArgumentList.Add(argument);
+            }
+            using Process process = Process.Start(start)!;
+            string output = process.StandardOutput.ReadToEnd();
+            string error = process.StandardError.ReadToEnd();
+            process.WaitForExit();
+            process.ExitCode.ShouldBe(0, output + error);
+            File.ReadAllText(Path.Combine(fixture, "Hexalith.Builds.Tooling.txt")).Trim().ShouldBe("3.128.4");
+            File.ReadAllText(Path.Combine(fixture, "Runtime.txt")).Trim().ShouldBe("3.129.0");
+        }
+        finally {
+            Directory.Delete(fixture, recursive: true);
+        }
+    }
+
     /// <summary>
     /// Preserves the source workflow restrictions on shared builds and broad artifacts.
     /// </summary>
@@ -756,18 +808,18 @@ public class PackageGovernanceTests {
 
     [Theory]
     [InlineData("", false, "3.129.0")]
-    [InlineData("3.128.4", false, "3.129.0")]
-    [InlineData("3.128.10", false, "3.129.0")]
-    [InlineData("3.129.0-preview.1", false, "3.129.0")]
-    [InlineData("3.129.0", false, "3.129.0")]
-    [InlineData("3.129.0+metadata-with-dash", false, "3.129.0+metadata-with-dash")]
-    [InlineData("3.129.0-preview.1+metadata-with-dash", false, "3.129.0")]
-    [InlineData("3.129.10", false, "3.129.10")]
-    [InlineData("3.129.1", false, "3.129.1")]
-    [InlineData("3.130.0-preview.1", false, "3.130.0-preview.1")]
-    [InlineData("3.128.4", true, "3.128.4")]
+    [InlineData("3.128.2", false, "3.128.4")]
+    [InlineData("3.128.3", false, "3.128.4")]
+    [InlineData("3.128.4-preview.1", false, "3.128.4")]
+    [InlineData("3.128.4", false, "3.128.4")]
+    [InlineData("3.128.4+metadata-with-dash", false, "3.128.4+metadata-with-dash")]
+    [InlineData("3.128.4-preview.1+metadata-with-dash", false, "3.128.4")]
+    [InlineData("3.128.10", false, "3.128.10")]
+    [InlineData("3.128.5", false, "3.128.5")]
+    [InlineData("3.129.0-preview.1", false, "3.129.0-preview.1")]
+    [InlineData("3.128.2", true, "3.128.2")]
     [InlineData("3.128.5", true, "3.128.5")]
-    [InlineData("3.129.0-preview.1", true, "3.129.0-preview.1")]
+    [InlineData("3.128.4-preview.1", true, "3.128.4-preview.1")]
     [InlineData("test-source-version", true, "test-source-version")]
     public Task EventStore_package_floor_preserves_newer_catalog_and_explicit_source_selectionsAsync(
         string selectedVersion,
@@ -776,16 +828,16 @@ public class PackageGovernanceTests {
         => EvaluateEventStoreVersionSelectionAsync(selectedVersion, useSource, expectedVersion, globalOverride: false, accepted: true);
 
     [Theory]
-    [InlineData("3.128.4", false, false)]
-    [InlineData("3.128.10", false, false)]
-    [InlineData("3.129.0-preview.1", false, false)]
-    [InlineData("3.129.0", false, true)]
-    [InlineData("3.129.0+metadata-with-dash", false, true)]
-    [InlineData("3.129.0-preview.1+metadata-with-dash", false, false)]
-    [InlineData("3.129.10", false, true)]
-    [InlineData("3.129.1", false, true)]
-    [InlineData("3.130.0-preview.1", false, true)]
-    [InlineData("3.128.4", true, true)]
+    [InlineData("3.128.2", false, false)]
+    [InlineData("3.128.3", false, false)]
+    [InlineData("3.128.4-preview.1", false, false)]
+    [InlineData("3.128.4", false, true)]
+    [InlineData("3.128.4+metadata-with-dash", false, true)]
+    [InlineData("3.128.4-preview.1+metadata-with-dash", false, false)]
+    [InlineData("3.128.10", false, true)]
+    [InlineData("3.128.5", false, true)]
+    [InlineData("3.129.0-preview.1", false, true)]
+    [InlineData("3.128.2", true, true)]
     [InlineData("test-source-version", true, true)]
     public Task EventStore_package_floor_rejects_older_global_package_overridesAsync(
         string selectedVersion,
@@ -796,6 +848,37 @@ public class PackageGovernanceTests {
     [Fact]
     public Task EventStore_package_floor_does_not_override_nested_owner_catalogsAsync()
         => EvaluateEventStoreVersionSelectionAsync("3.128.4", false, "3.128.4", globalOverride: true, accepted: true, nestedReference: true);
+    [Theory]
+    [InlineData("3.128.4", false, false)]
+    [InlineData("3.129.0-preview.1", false, false)]
+    [InlineData("3.129.0", false, true)]
+    [InlineData("3.129.0+metadata-with-dash", false, true)]
+    [InlineData("3.129.0.0+metadata", false, true)]
+    [InlineData("3.129.1", false, true)]
+    [InlineData("3.129.1+metadata-with-dash", false, true)]
+    [InlineData("3.129.1-preview.1", false, false)]
+    [InlineData("3.129.2", false, false)]
+    [InlineData("3.130.0", false, false)]
+    [InlineData("test-source-version", true, true)]
+    public Task Published_packages_require_qualified_catalog_artifactsAsync(
+        string selectedVersion,
+        bool useSource,
+        bool accepted)
+        => EvaluateEventStoreVersionSelectionAsync(selectedVersion, useSource, selectedVersion,
+            globalOverride: true, accepted, requireCatalogPackage: true);
+
+    [Theory]
+    [InlineData("3.128.4", false, true)]
+    [InlineData("3.129.0", false, true)]
+    [InlineData("3.129.0+metadata-with-dash", false, true)]
+    [InlineData("3.129.1", false, true)]
+    [InlineData("3.129.1+metadata", false, true)]
+    [InlineData("3.129.0-preview.1", false, false)]
+    [InlineData("3.129.2", false, false)]
+    [InlineData("test-source-version", true, true)]
+    public Task Native_hosts_refuse_unqualified_catalog_sdk_selectionsAsync(string selectedVersion, bool useSource, bool accepted)
+        => EvaluateEventStoreVersionSelectionAsync(selectedVersion, useSource, selectedVersion,
+            globalOverride: true, accepted, requireSdkSelection: true);
 
     private static async Task EvaluateEventStoreVersionSelectionAsync(
         string selectedVersion,
@@ -803,7 +886,9 @@ public class PackageGovernanceTests {
         string expectedVersion,
         bool globalOverride,
         bool accepted,
-        bool nestedReference = false) {
+        bool nestedReference = false,
+        bool requireCatalogPackage = false,
+        bool requireSdkSelection = false) {
         string repoRoot = FindRepoRoot();
         string fixtureRoot = Path.Combine(Path.GetTempPath(), $"hexalith-tenants-eventstore-floor-{Guid.NewGuid():N}");
         string nestedDirectory = Path.Combine(repoRoot, "references", "story33-package-floor-fixture-" + Guid.NewGuid().ToString("N"));
@@ -843,7 +928,9 @@ public class PackageGovernanceTests {
                 _ = startInfo.Environment.Remove(property);
             }
             foreach (string argument in new[] {
-                "msbuild", projectPath, "-nologo", "-target:ValidateEventStorePackageFloor",
+                "msbuild", projectPath, "-nologo",
+                requireSdkSelection ? "-target:ValidateCatalogSdkSelection"
+                    : requireCatalogPackage ? "-target:ValidatePublishedCatalogArtifacts" : "-target:ValidateEventStorePackageFloor",
                 "-getProperty:HexalithEventStoreVersion,HexalithEventStoreFromSource", "-getItem:PackageVersion",
             }) {
                 startInfo.ArgumentList.Add(argument);
@@ -875,7 +962,9 @@ public class PackageGovernanceTests {
             string standardError = await error;
             if (!accepted) {
                 process.ExitCode.ShouldNotBe(0, "An older global package override must fail before restore or build.");
-                (standardOutput + standardError).ShouldContain("must be at least 3.129.0 for run-scoped catalog activation");
+                (standardOutput + standardError).ShouldContain(requireSdkSelection ? "is not qualified" : requireCatalogPackage
+                    ? "Published Tenants packages require the qualified EventStore"
+                    : "must be at least 3.128.4 for completion recovery");
                 return;
             }
             process.ExitCode.ShouldBe(0, $"EventStore version evaluation failed. stdout: {standardOutput}{Environment.NewLine}stderr: {standardError}");

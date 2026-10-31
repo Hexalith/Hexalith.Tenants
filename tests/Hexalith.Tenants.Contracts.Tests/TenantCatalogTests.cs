@@ -14,6 +14,21 @@ namespace Hexalith.Tenants.Contracts.Tests;
 public class TenantCatalogTests
 {
     [Fact]
+    public void CompiledRoutesAndAdaptersMatchTheCompleteOwnerInventory()
+    {
+        DirectoryInfo? root = new(AppContext.BaseDirectory);
+        while (root is not null && !File.Exists(Path.Combine(root.FullName, "tools/catalog-package-consumer/approved-route-ids.txt"))) root = root.Parent;
+        root.ShouldNotBeNull();
+        string[] approved = File.ReadAllLines(Path.Combine(root.FullName, "tools/catalog-package-consumer/approved-route-ids.txt"));
+        CompiledRouteCatalogDeclarations.Read([typeof(TenantCatalogDeclarations).Assembly])
+            .Select(route => route.RouteId).Order(StringComparer.Ordinal).ShouldBe(approved.Order(StringComparer.Ordinal));
+        var adapters = TenantIntentAdapters.Create();
+        adapters.Count.ShouldBe(12);
+        adapters.Select(adapter => adapter.Declaration.Route.RouteId).Order(StringComparer.Ordinal)
+            .ShouldBe(TenantCatalogDeclarations.Commands.Select(command => command.Route.RouteId).Order(StringComparer.Ordinal));
+    }
+
+    [Fact]
     public void EveryRouteHasDigestCoveredSerializedShapesAndExplicitPolicy()
     {
         var operations = CompiledRouteCatalogDeclarations.ReadOperations([typeof(TenantCatalogDeclarations).Assembly]);

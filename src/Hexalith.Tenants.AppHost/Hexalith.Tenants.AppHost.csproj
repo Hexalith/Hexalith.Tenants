@@ -32,7 +32,8 @@
   <ItemGroup>
     <Compile Include="$(HexalithPlatformRoot)\DaprSelfHostedMtls.cs" Link="Platform\DaprSelfHostedMtls.cs" />
     <Compile Include="$(HexalithPlatformRoot)\DaprSelfHostedMtlsSubscriber.cs" Link="Platform\DaprSelfHostedMtlsSubscriber.cs" />
-    <ProjectReference Include="$(HexalithBuildsRoot)\src\libraries\Hexalith.Builds.Tooling\Hexalith.Builds.Tooling.csproj" IsAspireProjectResource="false" />
+    <!-- Builds emits its own authoritative catalog; a Tenants runtime SDK override is not its selection. -->
+    <ProjectReference Include="$(HexalithBuildsRoot)\src\libraries\Hexalith.Builds.Tooling\Hexalith.Builds.Tooling.csproj" IsAspireProjectResource="false" GlobalPropertiesToRemove="HexalithEventStoreVersion" />
   </ItemGroup>
 
   <!-- Debug build-forcing references for the launched child host projects.

@@ -41,9 +41,13 @@ case "${GITHUB_JOB:-}" in
         exit 1
         ;;
 esac
+: "${GITHUB_ENV:?The compatibility job requires the GitHub environment file.}"
 if ! git -C "$reference_root" cat-file -e "${compatibility_revision}^{commit}" 2>/dev/null; then
     git -C "$reference_root" -c submodule.recurse=false fetch --no-recurse-submodules origin "$compatibility_revision"
 fi
 git -C "$reference_root" -c submodule.recurse=false checkout --detach "$compatibility_revision"
 test "$(git -C "$reference_root" rev-parse HEAD)" = "$compatibility_revision"
+# Subsequent .NET processes in this compatibility job must use the same SDK
+# cohort, including domain and test projects whose normal default is newer.
+echo 'HexalithEventStoreVersion=3.128.4' >> "$GITHUB_ENV"
 echo "Frozen EventStore 3.128.4 host source: $compatibility_revision."

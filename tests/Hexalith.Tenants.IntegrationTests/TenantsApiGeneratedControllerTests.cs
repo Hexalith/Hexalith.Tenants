@@ -4,6 +4,7 @@ extern alias TenantsApi;
 
 using Hexalith.Tenants.IntegrationTests.Fixtures;
 
+using System.Diagnostics;
 using System.IdentityModel.Tokens.Jwt;
 using System.Globalization;
 using System.Net;
@@ -12,6 +13,7 @@ using System.Net.Http.Json;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 
 using Hexalith.Commons.UniqueIds;
@@ -25,7 +27,10 @@ using Hexalith.EventStore.Contracts.Events;
 using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.EventStore.Contracts.Streams;
 #if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
+using Hexalith.EventStore.Contracts.Routing;
+using Hexalith.EventStore.Client.Routing;
 using Hexalith.EventStore.ServiceDefaults.Routing;
+using Hexalith.Tenants.Contracts.Routing;
 #endif
 using Hexalith.EventStore.Controllers;
 using Hexalith.EventStore.DomainService;
@@ -1600,6 +1605,364 @@ public sealed class TenantsApiGeneratedControllerTests
                 new SetGlobalAdministrator("user.beta")),
         ];
 
+#if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
+    /// <summary>Supplies the owner-declared leased snapshot for isolated generated HTTP proofs.</summary>
+    private static IRouteCatalogAuthority CreateCatalogAuthority(bool includeCommands = false, bool schemaThree = false)
+    {
+        IReadOnlyList<RouteContractDeclaration> declarations = includeCommands
+            ? [.. TenantCatalogDeclarations.Commands.Select(command => command.Route), .. TenantCatalogDeclarations.Queries]
+            : TenantCatalogDeclarations.Queries;
+        IReadOnlyList<IdempotencyCatalogEntry> admission = includeCommands
+            ? TenantCatalogDeclarations.Commands.Select(command => DevelopmentIdempotencyBindings.Bind(command, 1)).ToArray()
+            : [];
+        IReadOnlyList<RouteOperationContract>? operations = schemaThree
+            ? CompiledRouteCatalogDeclarations.ReadOperations([typeof(TenantCatalogDeclarations).Assembly])
+                .Where(operation => declarations.Any(declaration => declaration.RouteId == operation.RouteId)).ToArray()
+            : null;
+        RouteCatalogEnvelope envelope = RouteCatalogCodec.Seal(new RouteCatalogEnvelope(
+            schemaThree ? 3 : 2, 1, "Development", false,
+            declarations,
+            declarations.Select(declaration => new RouteCatalogEntry(
+                declaration.RouteId, 1, RouteCatalogCodec.ComputeDeclarationDigest(declaration),
+                "tenants", declaration.Kind == "command" ? "process" : "query", declaration.ContractVersion, declaration.CredentialKind,
+                declaration.Operation, false, "*", operations?.Single(operation => operation.RouteId == declaration.RouteId).Digest)).ToArray(),
+            admission, "", "", operations, schemaThree ? [] : null));
+        var snapshot = new CommittedRouteCatalogSnapshot(
+            RouteCatalogCodec.Encode(envelope), RouteCatalogCodec.ComputeRootDigest(envelope),
+            1, localAppId: "eventstore");
+        // These existing transport fixtures retain their schema-two contract; distributed activation
+        // and schema-three surface policy are qualified by the owning Platform runner. Each real
+        // generated action still acquires a lease and validates complete owner declarations,
+        // command admission metadata and query projection selection before reaching the stub.
+        IRouteCatalogAuthority authority = Substitute.For<IRouteCatalogAuthority>();
+        authority.AcquireAsync(Arg.Any<CancellationToken>())
+            .Returns(_ => new RouteCatalogDispatchLease(snapshot, () => Task.CompletedTask));
+        return authority;
+    }
+#endif
+
+#if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
+    /// <summary>Explicit private bootstrap cannot infer a physical Dapr app identity.</summary>
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task Private_catalog_bootstrap_requires_the_configured_actual_app_identity(string? appId)
+    {
+        string directory = Path.Combine(Path.GetTempPath(), "tenants-api-missing-catalog-identity-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try
+        {
+            using Process process = StartCatalogObservationHost(directory, appId, out Task<string> output, out Task<string> error);
+            try
+            {
+                await process.WaitForExitAsync(TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromSeconds(10));
+                process.ExitCode.ShouldNotBe(0);
+                ((await output) + (await error)).ShouldContain("requires EventStore:DomainService:AppId for the actual host identity");
+                File.Exists(Path.Combine(directory, "tenants-api.observation.json")).ShouldBeFalse();
+            }
+            finally
+            {
+                await StopCatalogObservationHostAsync(process, output, error);
+            }
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    /// <summary>The actual SDK observation preserves a run-scoped physical app identity before activation.</summary>
+    [Fact]
+    public async Task Private_catalog_observation_uses_the_configured_app_id_instead_of_the_logical_host_name()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), "tenants-api-catalog-observation-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try
+        {
+            // Observation precedes activation and topology validation; these local bytes are
+            // never submitted as an activated catalog or represented as deployment evidence.
+            await File.WriteAllTextAsync(Path.Combine(directory, "component.json"), "{}", TestContext.Current.CancellationToken);
+            await File.WriteAllTextAsync(Path.Combine(directory, "access-control.json"), "{}", TestContext.Current.CancellationToken);
+            const string actualAppId = "tenants-api-isolated-observation";
+            using Process process = StartCatalogObservationHost(directory, actualAppId, out Task<string> output, out Task<string> error);
+            try
+            {
+                string observationPath = Path.Combine(directory, "tenants-api.observation.json");
+                using var deadline = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+                deadline.CancelAfter(TimeSpan.FromSeconds(10));
+                while (!File.Exists(observationPath))
+                {
+                    if (process.HasExited)
+                    {
+                        throw new InvalidOperationException("Catalog observation host exited: " + (await output) + (await error));
+                    }
+                    await Task.Delay(20, deadline.Token);
+                }
+                using JsonDocument observation = JsonDocument.Parse(await File.ReadAllBytesAsync(observationPath, deadline.Token));
+                observation.RootElement.GetProperty("HostId").GetString().ShouldBe("tenants-api");
+                observation.RootElement.GetProperty("AppId").GetString().ShouldBe(actualAppId);
+                RouteCatalogHostObservation emitted = JsonSerializer.Deserialize<RouteCatalogHostObservation>(observation.RootElement.GetRawText())!;
+                emitted.Declarations.Select(RouteCatalogCodec.ComputeDeclarationDigest).Order(StringComparer.Ordinal)
+                    .ShouldBe(CompiledRouteCatalogDeclarations.Read([typeof(TenantCatalogDeclarations).Assembly])
+                        .Select(RouteCatalogCodec.ComputeDeclarationDigest).Order(StringComparer.Ordinal));
+                emitted.Operations.ShouldNotBeNull();
+                emitted.Operations.Select(operation => operation.Digest).Order(StringComparer.Ordinal)
+                    .ShouldBe(CompiledRouteCatalogDeclarations.ReadOperations([typeof(TenantCatalogDeclarations).Assembly])
+                        .Select(operation => operation.Digest).Order(StringComparer.Ordinal));
+                foreach (RouteOperationContract operation in emitted.Operations)
+                    operation.Digest.ShouldBe(RouteCatalogCodec.ComputeOperationContractDigest(operation));
+                File.Exists(Path.Combine(directory, "activation.json")).ShouldBeFalse();
+                File.Exists(Path.Combine(directory, "tenants-api.committed.json")).ShouldBeFalse();
+            }
+            finally
+            {
+                await StopCatalogObservationHostAsync(process, output, error);
+            }
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    /// <summary>An actual unenrolled host cannot report ready or forward a generated query in either environment.</summary>
+    [Theory]
+    [InlineData("Development")]
+    [InlineData("Production")]
+    public async Task Unenrolled_api_host_is_unready_and_refuses_generated_requests(string environment)
+    {
+        string directory = Path.Combine(Path.GetTempPath(), "tenants-api-unenrolled-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        var listener = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        int port = ((IPEndPoint)listener.LocalEndpoint).Port;
+        listener.Stop();
+        try
+        {
+            using Process process = StartCatalogObservationHost(directory, null, out Task<string> output, out Task<string> error,
+                bootstrap: false, environment: environment, port: port);
+            try
+            {
+                using var client = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:" + port), Timeout = TimeSpan.FromSeconds(1) };
+                using var deadline = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+                deadline.CancelAfter(TimeSpan.FromSeconds(10));
+                while (true)
+                {
+                    if (process.HasExited) throw new InvalidOperationException((await output) + (await error));
+                    try
+                    {
+                        using HttpResponseMessage alive = await client.GetAsync("/alive", deadline.Token);
+                        if (alive.IsSuccessStatusCode) break;
+                    }
+                    catch (HttpRequestException) { }
+                    await Task.Delay(20, deadline.Token);
+                }
+                using HttpResponseMessage readiness = await client.GetAsync("/ready", deadline.Token);
+                readiness.StatusCode.ShouldBe(HttpStatusCode.ServiceUnavailable);
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", CreateJwt("test-user", "queries:*", surfaces: ["ui"]));
+                using HttpResponseMessage query = await client.GetAsync("/api/tenants", deadline.Token);
+                query.StatusCode.ShouldBe(HttpStatusCode.ServiceUnavailable);
+            }
+            finally { await StopCatalogObservationHostAsync(process, output, error); }
+        }
+        finally { Directory.Delete(directory, recursive: true); }
+    }
+
+    /// <summary>Schema-three owner policy admits public UI/agent queries with the matching signed surface.</summary>
+    [Theory]
+    [InlineData("/api/tenants", "agent")]
+    [InlineData("/api/global-administrators", "ui")]
+    public async Task Schema_three_owner_policy_admits_eligible_generated_queries(string path, string surface)
+    {
+        CapturingEventStoreGatewayClient gateway = new();
+        if (path == "/api/tenants") gateway.EnqueueQueryResult(new PaginatedResult<TenantSummary>([], null, false));
+        else gateway.EnqueueQueryResult(new PaginatedResult<GlobalAdministratorSummary>([], null, false));
+        await using var factory = new TenantsApiWebApplicationFactory(gateway, configureServices: services =>
+            services.AddSingleton(CreateCatalogAuthority(includeCommands: true, schemaThree: true)));
+        using HttpClient client = factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", CreateJwt("test-user", "queries:*", surfaces: surface is null ? [] : [surface]));
+        using HttpResponseMessage response = await client.GetAsync(path, TestContext.Current.CancellationToken);
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        gateway.SubmittedQueries.ShouldHaveSingleItem();
+    }
+
+    /// <summary>The actual owner UI-only policy refuses absent, agent and service surfaces before gateway effects.</summary>
+    [Theory]
+    [InlineData(null)]
+    [InlineData("agent")]
+    [InlineData("service")]
+    public async Task Schema_three_owner_policy_refuses_ineligible_generated_queries(string? surface)
+    {
+        CapturingEventStoreGatewayClient gateway = new();
+        await using var factory = new TenantsApiWebApplicationFactory(gateway, configureServices: services =>
+            services.AddSingleton(CreateCatalogAuthority(includeCommands: true, schemaThree: true)));
+        using HttpClient client = factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", CreateJwt("test-user", "queries:*", surfaces: surface is null ? [] : [surface]));
+        using HttpResponseMessage response = await client.GetAsync("/api/global-administrators", TestContext.Current.CancellationToken);
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        gateway.SubmittedQueries.ShouldBeEmpty();
+    }
+
+    /// <summary>Actual internal bootstrap policy remains ineligible and has no generated public endpoint.</summary>
+    [Fact]
+    public async Task Schema_three_internal_owner_operation_is_not_exposed_to_http_callers()
+    {
+        CapturingEventStoreGatewayClient gateway = new();
+        await using var factory = new TenantsApiWebApplicationFactory(gateway, configureServices: services =>
+            services.AddSingleton(CreateCatalogAuthority(includeCommands: true, schemaThree: true)));
+        using HttpClient client = factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", CreateJwt("test-user", "commands:*", surfaces: ["ui"]));
+        RouteOperationContract operation = CompiledRouteCatalogDeclarations.ReadOperations([typeof(TenantCatalogDeclarations).Assembly])
+            .Single(operation => operation.RouteId == "global-administrators-bootstrap-global-admin");
+        operation.Ingress.ShouldBe("internal");
+        Hexalith.EventStore.ServiceDefaults.Authentication.RouteCatalogSurfacePolicy.Allows(operation,
+            new ClaimsPrincipal(new ClaimsIdentity([new Claim("eventstore:surface", "ui")], "signed-fixture"))).ShouldBeFalse();
+        factory.Services.GetRequiredService<Microsoft.AspNetCore.Routing.EndpointDataSource>().Endpoints
+            .Where(endpoint => endpoint.Metadata.GetMetadata<RouteCatalogEndpointAttribute>()?.ContractType == typeof(BootstrapGlobalAdmin)).ShouldBeEmpty();
+        using HttpResponseMessage response = await client.PostAsJsonAsync("/api/global-administrators/bootstrap-global-admin",
+            new BootstrapGlobalAdmin("user.alpha"), JsonOptions, TestContext.Current.CancellationToken);
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        gateway.SubmittedCommands.ShouldBeEmpty();
+    }
+
+    /// <summary>A retained command route cannot make missing or mismatched admission metadata into a valid lease.</summary>
+    [Theory]
+    [InlineData("missing")]
+    [InlineData("mismatch")]
+    public async Task Generated_command_refuses_invalid_admission_with_its_route_retained(string mutation)
+    {
+        const string routeId = "tenants-enable-tenant";
+        await using RouteCatalogDispatchLease valid = await CreateCatalogAuthority(includeCommands: true).AcquireAsync(TestContext.Current.CancellationToken);
+        JsonNode document = JsonNode.Parse(valid.Snapshot.GetCanonicalBytes())!;
+        JsonArray entries = document["idempotency"]!.AsArray();
+        JsonNode entry = entries.Single(entry => entry!["routeId"]!.GetValue<string>() == routeId)!;
+        if (mutation == "missing") entries.Remove(entry);
+        else entry["domain"] = "different-domain";
+        document["routes"]!.AsArray().Any(route => route!["routeId"]!.GetValue<string>() == routeId).ShouldBeTrue();
+        RouteCatalogValidationException? refusal = null;
+        IRouteCatalogAuthority authority = Substitute.For<IRouteCatalogAuthority>();
+        authority.AcquireAsync(Arg.Any<CancellationToken>()).Returns(_ =>
+        {
+            try
+            {
+                var snapshot = new CommittedRouteCatalogSnapshot(Encoding.UTF8.GetBytes(document.ToJsonString()), valid.Snapshot.RootDigest, 1);
+                return Task.FromResult(new RouteCatalogDispatchLease(snapshot, () => Task.CompletedTask));
+            }
+            catch (RouteCatalogValidationException exception)
+            {
+                refusal = exception;
+                return Task.FromException<RouteCatalogDispatchLease>(exception);
+            }
+        });
+        CapturingEventStoreGatewayClient gateway = new();
+        await using var factory = new TenantsApiWebApplicationFactory(gateway, configureServices: services => services.AddSingleton(authority));
+        using HttpClient client = CreateAuthenticatedClient(factory, "commands:*");
+        using HttpResponseMessage response = await client.PostAsJsonAsync("/api/tenants/tenant.alpha/enable",
+            new EnableTenant("tenant.alpha"), JsonOptions, TestContext.Current.CancellationToken);
+        response.StatusCode.ShouldBe(HttpStatusCode.ServiceUnavailable);
+        refusal.ShouldNotBeNull();
+        refusal.Diagnostics.ShouldContain(diagnostic => diagnostic.Path.StartsWith("$.idempotency", StringComparison.Ordinal));
+        gateway.SubmittedCommands.ShouldBeEmpty();
+        _ = authority.Received(1).AcquireAsync(Arg.Any<CancellationToken>());
+    }
+
+    /// <summary>Starts the actual API assembly with immutable startup inputs rather than late TestServer configuration.</summary>
+    private static Process StartCatalogObservationHost(string directory, string? appId, out Task<string> output, out Task<string> error,
+        bool bootstrap = true, string environment = "Development", int? port = null)
+    {
+        var start = new ProcessStartInfo("dotnet")
+        {
+            WorkingDirectory = directory,
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+        };
+        foreach (string name in start.Environment.Keys.Where(name => name.StartsWith("EventStore__", StringComparison.OrdinalIgnoreCase)
+            || name.StartsWith("DAPR_", StringComparison.OrdinalIgnoreCase) || name.StartsWith("Authentication__", StringComparison.OrdinalIgnoreCase)
+            || name.StartsWith("Jwt__", StringComparison.OrdinalIgnoreCase) || name.StartsWith("Oidc__", StringComparison.OrdinalIgnoreCase)
+            || name.StartsWith("ASPNETCORE_", StringComparison.OrdinalIgnoreCase) || name.StartsWith("OTEL_", StringComparison.OrdinalIgnoreCase)).ToArray())
+        {
+            start.Environment.Remove(name);
+        }
+        start.Environment["DOTNET_ENVIRONMENT"] = environment;
+        string testAssembly = typeof(TenantsApiGeneratedControllerTests).Assembly.Location;
+        foreach (string argument in new[]
+        {
+            "exec", "--runtimeconfig", Path.ChangeExtension(testAssembly, ".runtimeconfig.json"),
+            "--depsfile", Path.ChangeExtension(testAssembly, ".deps.json"), typeof(TenantsApi::Program).Assembly.Location,
+            "--urls=http://127.0.0.1:" + (port ?? 0), "--environment=" + environment,
+            "--DAPR_HTTP_ENDPOINT=http://127.0.0.1:1", "--EventStore:BaseUrl=http://127.0.0.1:1",
+            "--EventStore:Authentication:Issuer=" + JwtIssuer, "--EventStore:Authentication:Audience=" + JwtAudience,
+            "--EventStore:Authentication:SigningKey=" + JwtSigningKey,
+        }) start.ArgumentList.Add(argument);
+        if (bootstrap) foreach (string argument in new[]
+        {
+            "--EventStore:RouteCatalog:DevelopmentBootstrap:Directory=" + directory,
+            "--EventStore:RouteCatalog:DevelopmentBootstrap:HostId=tenants-api",
+            "--EventStore:RouteCatalog:DevelopmentBootstrap:CoordinatorHostId=eventstore",
+            "--EventStore:RouteCatalog:DevelopmentBootstrap:AttemptId=observation-attempt",
+            "--EventStore:RouteCatalog:DevelopmentBootstrap:RequiredHostIds:0=tenants-api",
+            "--EventStore:RouteCatalog:DevelopmentBootstrap:RequiredHostIds:1=eventstore",
+            "--EventStore:RouteCatalog:DevelopmentBootstrap:SelectedAppIds:0=" + appId,
+            "--EventStore:RouteCatalog:DevelopmentBootstrap:SelectedAppIds:1=eventstore-isolated-observation",
+            "--EventStore:RouteCatalog:DevelopmentBootstrap:ComponentPath=" + Path.Combine(directory, "component.json"),
+            "--EventStore:RouteCatalog:DevelopmentBootstrap:AccessControlPath=" + Path.Combine(directory, "access-control.json"),
+            "--EventStore:RouteCatalog:DevelopmentBootstrap:DeclaredInvocations=[]",
+        })
+        {
+            start.ArgumentList.Add(argument);
+        }
+        if (appId is not null) start.ArgumentList.Add("--EventStore:DomainService:AppId=" + appId);
+        Process process = Process.Start(start) ?? throw new InvalidOperationException("The API observation host did not start.");
+        output = process.StandardOutput.ReadToEndAsync();
+        error = process.StandardError.ReadToEndAsync();
+        return process;
+    }
+
+    /// <summary>Reaps only the process owned by the observation fixture before deleting its directory.</summary>
+    private static async Task StopCatalogObservationHostAsync(Process process, Task<string> output, Task<string> error)
+    {
+        if (!process.HasExited) process.Kill(entireProcessTree: true);
+        await process.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(10));
+        await Task.WhenAll(output, error).WaitAsync(TimeSpan.FromSeconds(5));
+    }
+
+    /// <summary>Missing catalog acquisition cannot reach the capturing transport.</summary>
+    [Fact]
+    public async Task Generated_query_requires_a_committed_lease_before_the_capturing_gateway()
+    {
+        CapturingEventStoreGatewayClient gateway = new();
+        IRouteCatalogAuthority unavailable = Substitute.For<IRouteCatalogAuthority>();
+        unavailable.AcquireAsync(Arg.Any<CancellationToken>()).Returns(_ =>
+            Task.FromException<RouteCatalogDispatchLease>(new RouteCatalogUnavailableException("Fixture catalog unavailable.")));
+        await using var factory = new TenantsApiWebApplicationFactory(gateway, configureServices: services =>
+            services.AddSingleton(unavailable));
+        using HttpClient client = CreateAuthenticatedClient(factory);
+
+        using HttpResponseMessage response = await client.GetAsync("/api/tenants", TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.ServiceUnavailable);
+        gateway.SubmittedQueries.ShouldBeEmpty();
+        _ = unavailable.Received(1).AcquireAsync(Arg.Any<CancellationToken>());
+    }
+
+    /// <summary>A valid query-only snapshot cannot admit a generated command.</summary>
+    [Fact]
+    public async Task Generated_command_requires_its_declared_route_before_the_capturing_gateway()
+    {
+        CapturingEventStoreGatewayClient gateway = new();
+        await using var factory = new TenantsApiWebApplicationFactory(gateway, configureServices: services =>
+            services.AddSingleton(CreateCatalogAuthority()));
+        using HttpClient client = CreateAuthenticatedClient(factory, "commands:*");
+
+        using HttpResponseMessage response = await client.PostAsJsonAsync("/api/tenants/tenant.alpha/enable",
+            new EnableTenant("tenant.alpha"), JsonOptions, TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.ServiceUnavailable);
+        gateway.SubmittedCommands.ShouldBeEmpty();
+    }
+#endif
 
     private sealed class TenantsApiWebApplicationFactory(
         IEventStoreGatewayClient gateway,
@@ -1628,8 +1991,6 @@ public sealed class TenantsApiGeneratedControllerTests
                 services.AddSingleton<IEventStoreGatewayClient>(gateway);
 #if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
                 services.AddSingleton(TenantOwnerCatalogTestAuthority.Create());
-                services.AddScoped<GeneratedRouteCatalogFilter>();
-                services.Configure<MvcOptions>(options => options.Filters.AddService<GeneratedRouteCatalogFilter>());
 #endif
                 configureServices?.Invoke(services);
             });

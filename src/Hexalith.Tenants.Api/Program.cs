@@ -23,9 +23,16 @@ builder.AddServiceDefaults();
 builder.Services.AddControllers();
 builder.Services.AddHttpContextAccessor();
 #if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
+builder.Services.AddEventStoreRouteCatalog(builder.Configuration);
+string? catalogAppId = builder.Configuration["EventStore:DomainService:AppId"];
+if (!string.IsNullOrEmpty(builder.Configuration["EventStore:RouteCatalog:DevelopmentBootstrap:Directory"])
+    && string.IsNullOrWhiteSpace(catalogAppId))
+{
+    throw new InvalidOperationException("Private catalog bootstrap requires EventStore:DomainService:AppId for the actual host identity.");
+}
 builder.Services.AddEventStoreDevelopmentRouteCatalogBootstrap(builder.Configuration, async (_, token) =>
 {
-    var actual = await DevelopmentRouteCatalogInputs.CaptureAsync(builder.Configuration, "tenants-api",
+    var actual = await DevelopmentRouteCatalogInputs.CaptureAsync(builder.Configuration, catalogAppId!,
         CompiledRouteCatalogDeclarations.Read([typeof(Hexalith.Tenants.Contracts.Routing.TenantCatalogDeclarations).Assembly]),
         [], [], [], [], token).ConfigureAwait(false);
     return actual with { Operations = CompiledRouteCatalogDeclarations.ReadOperations([typeof(Hexalith.Tenants.Contracts.Routing.TenantCatalogDeclarations).Assembly]) };

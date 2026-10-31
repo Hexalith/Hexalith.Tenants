@@ -47,6 +47,24 @@ Watch reactive cross-service access revocation in action: add a user to a tenant
 | [`Hexalith.Tenants.Testing`](https://www.nuget.org/packages/Hexalith.Tenants.Testing) | In-memory fakes and test helpers with production-parity domain logic |
 | [`Hexalith.Tenants.Aspire`](https://www.nuget.org/packages/Hexalith.Tenants.Aspire) | .NET Aspire hosting extensions for consuming AppHosts |
 
+Normal package builds use EventStore 3.129.0; the compatible 3.129.1 patch and
+same-binary metadata variants are qualified separately. Contracts includes its compiled
+route and operation declarations; Server includes its existing declared intent
+adapter enrollment. These are offline catalog inputs: the composition owner
+must still activate the catalog through the SDK before traffic is admitted.
+An activated trusted generation and matching host identity are mandatory for
+runtime readiness and generated requests. Unconfigured Production returns 503
+from `/ready` and refuses generated requests. The composition owner supplies
+Production trust through the SDK's existing extension seams; this module does
+not install a Production trust policy or auto-activate declarations.
+
+This is a runtime migration requirement for the next major release. Upgrade the
+Contracts and Server packages together, retain their exact catalog inputs and
+complete trusted activation before directing traffic to the upgraded hosts.
+When private Development bootstrap is enabled, the composition owner supplies
+the API host's actual Dapr app ID through `EventStore:DomainService:AppId`;
+the host records that exact value in its observation.
+
 ## Project Structure
 
 ```text
@@ -142,7 +160,9 @@ cold-bootstrap checks remain in the compatibility lane.
 Its disposable CI jobs also select EventStore host source
 `717a06e16c3afd81b904eaf4de646b74b13262d2`, the repository revision recorded by
 the published 3.128.4 packages. These non-packaged executable hosts therefore
-match the fixture/runtime baseline. The tracked submodule pin and the
+match the fixture/runtime baseline. The helper also exports SDK 3.128.4 to every
+subsequent domain/runtime/test build in those jobs. This legacy compatibility
+profile cannot pack publishable Tenants artifacts. The tracked submodule pin and the
 source-reference workflow continue to exercise current source.
 
 ## License

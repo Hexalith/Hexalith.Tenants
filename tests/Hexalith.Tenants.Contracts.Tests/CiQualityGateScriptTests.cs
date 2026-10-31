@@ -530,6 +530,18 @@ public class CiQualityGateScriptTests {
     }
 
     /// <summary>
+    /// Frozen topology jobs bind both host source and SDK without changing normal package builds.
+    /// </summary>
+    [Fact]
+    public async Task FrozenBootstrapJobsBindTheCompletePublishedSdkCohort()
+    {
+        CommandResult result = await RunAsync(FindRepoRoot(), "python3", "tests/scripts/test_bootstrap_compatibility.py");
+        result.ExitCode.ShouldBe(0, result.Output + result.Error);
+        result.Error.ShouldContain("Ran 8 tests");
+        result.Error.ShouldContain("OK");
+    }
+
+    /// <summary>
     /// The generic Aspire lane has explicit prerequisites and cannot hide failures or skips.
     /// </summary>
     [Fact]
