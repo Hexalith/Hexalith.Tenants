@@ -4,7 +4,7 @@ date: '2026-10-31'
 baseline_commit: 9e5a991d0ba304bac7b1a5809cd71797b47d78ed
 ---
 
-# Qualify the exact SDK 3.130.0 catalog selection
+# Qualify the exact SDK 3.130 catalog selections
 
 ## Intent
 
@@ -27,11 +27,11 @@ Allowed files for this story:
 
 ## Change
 
-Extend the finite stable catalog API selection with only 3.130.0 and its supported
+Extend the finite stable catalog API selection with only 3.130.0, 3.130.1 and their supported
 same-binary zero-revision/metadata variants. Retain 3.129.0 and 3.129.1 support,
 the default 3.129.0 selection, explicit 3.128.4 compatibility, exact producer source
 ownership, native unknown/prerelease refusal and actual-PE publication validation.
-Keep 3.130.1, 3.131.0, nonzero revisions and prereleases unqualified.
+Keep 3.130.2, 3.131.0, nonzero revisions and prereleases unqualified.
 
 The alias adds no catalog declarations, authorization, activation, route, package
 inventory or runtime environment settings. Existing publication/archive validation
@@ -76,3 +76,34 @@ pass at the exact pushed source before runtime freeze and final release acceptan
 - `Directory.Build.targets`
 - `tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs`
 - `_bmad-output/implementation-artifacts/spec-qualify-sdk-3-130-catalog-selection.md`
+
+## Qualified stable patch 3.130.1
+
+SDK 3.130.1 was published concurrently at exact source
+`1de42b706f52af0da6513f0b7663002606d17156`. All fourteen official archives
+returned HTTP200 and matched their IDs, versions and embedded source. Runtime,
+catalog and authentication sources are unchanged from 3.130.0. The added test
+stream helper is unused by this qualification; no broader Works feature is adopted.
+
+Extend only the finite selection to exact 3.130.1 and its same-binary aliases.
+Retain 3.130.0 and add independent patch-prerelease, nonzero-revision and future
+3.130.2 refusal rows in both native and packable evaluation controls. Defaults,
+legacy support, public constructors, publishing and archive policy are unchanged.
+
+The original 3.130.0 owner source af2802f6 completed exact CI41244858357,
+Source41244858103, Story41244858090, Commitlint41244858432 and CodeQL41244858326
+successfully, including the full Aspire job124671477034. That proof remains retained
+in `/tmp/tenants-sdk130-public-proof/green-ci.json` and adjacent receipts.
+
+Fresh public-only restore into `/tmp/tenants-sdk1301-qualification-nuget` succeeds.
+Actual 3.130.1 IntegrationTests, Contracts.Tests and published Tenants6 peer-host
+builds pass with zero warnings/errors. All66HTTP and71selector/floor cases pass
+with zero failures/skips; pack2, provenance5 and profile2 controls also pass.
+Runtime assets select only3.130.1; normal downloaded cache archives match official
+source1de bytes, while published Tenants6 Contracts/Server remain exact source9e.
+
+Durable patch proof:
+`/tmp/tenants-sdk1301-public-proof/qualified-public-provenance.json` and adjacent
+logs. Original checkout synchronization follows RootCI's explicit diagnostic
+cleanup/thaw receipt. Exact new owner CI must pass before final ledger/release
+acceptance; the prior130 result does not replace that requirement.
