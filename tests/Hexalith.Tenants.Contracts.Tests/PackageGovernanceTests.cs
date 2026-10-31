@@ -870,7 +870,13 @@ public class PackageGovernanceTests {
     [InlineData("3.129.1+metadata-with-dash", false, true)]
     [InlineData("3.129.1-preview.1", false, false)]
     [InlineData("3.129.2", false, false)]
-    [InlineData("3.130.0", false, false)]
+    [InlineData("3.130.0", false, true)]
+    [InlineData("3.130.0+metadata-with-dash", false, true)]
+    [InlineData("3.130.0.0+metadata", false, true)]
+    [InlineData("3.130.0-preview.1", false, false)]
+    [InlineData("3.130.0.1", false, false)]
+    [InlineData("3.130.1", false, false)]
+    [InlineData("3.131.0", false, false)]
     [InlineData("test-source-version", true, true)]
     public Task Published_packages_require_qualified_catalog_artifactsAsync(
         string selectedVersion,
@@ -887,6 +893,14 @@ public class PackageGovernanceTests {
     [InlineData("3.129.1+metadata", false, true)]
     [InlineData("3.129.0-preview.1", false, false)]
     [InlineData("3.129.2", false, false)]
+    [InlineData("3.130.0", false, true)]
+    [InlineData("3.130.0+metadata-with-dash", false, true)]
+    [InlineData("3.130.0.0+metadata", false, true)]
+    [InlineData("3.130.0-preview.1", false, false)]
+    [InlineData("3.130.0-preview.1+metadata", false, false)]
+    [InlineData("3.130.0.1", false, false)]
+    [InlineData("3.130.1", false, false)]
+    [InlineData("3.131.0", false, false)]
     [InlineData("test-source-version", true, true)]
     public Task Native_hosts_refuse_unqualified_catalog_sdk_selectionsAsync(string selectedVersion, bool useSource, bool accepted)
         => EvaluateEventStoreVersionSelectionAsync(selectedVersion, useSource, selectedVersion,
