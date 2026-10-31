@@ -12,11 +12,10 @@
     <!-- Debug source when available; Release uses the published EventStore Testing packages. -->
     <ProjectReference Include="$(HexalithEventStoreRoot)\src\Hexalith.EventStore.Testing\Hexalith.EventStore.Testing.csproj" Condition="'$(HexalithEventStoreFromSource)' == 'true'" />
     <PackageReference Include="Hexalith.EventStore.Testing" Condition="'$(HexalithEventStoreFromSource)' != 'true'" />
-    <!-- Reusable DAPR/Aspire integration-test harness (sidecar bootstrap, endpoint resolution,
-         topology fixture base, support-safe diagnostics). The domain-agnostic machinery lives here;
-         this project supplies only the Tenants subclasses. -->
-    <ProjectReference Include="$(HexalithEventStoreRoot)\src\Hexalith.EventStore.Testing.Integration\Hexalith.EventStore.Testing.Integration.csproj" Condition="'$(HexalithEventStoreFromSource)' == 'true'" />
-    <PackageReference Include="Hexalith.EventStore.Testing.Integration" Condition="'$(HexalithEventStoreFromSource)' != 'true'" />
+    <!-- Frozen bootstrap compatibility lane: the published 3.128.4 harness owns local
+         startup. Current source exports descriptor-only fixtures for Platform runner suites.
+         Keep this harness packaged in both modes while testing current runtime sources above. -->
+    <PackageReference Include="Hexalith.EventStore.Testing.Integration" />
     <!-- Keep the router implementation explicit in the source-reference lane. Package mode compiles
          the same proof against the published Gateway package reached through Hexalith.Tenants. -->
     <ProjectReference Include="$(HexalithEventStoreRoot)\src\Hexalith.EventStore\Hexalith.EventStore.csproj"

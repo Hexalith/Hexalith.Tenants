@@ -7,9 +7,7 @@
     </ProjectReference>
     <PackageReference Include="Hexalith.EventStore.Contracts" Condition="'$(HexalithEventStoreFromSource)' != 'true'" />
     <!-- McpCli Decoration Package: declares the gateway-ready operations; source when available, otherwise the pinned package. -->
-    <ProjectReference Include="$(HexalithMcpCliRoot)\src\Hexalith.McpCli.Abstractions\Hexalith.McpCli.Abstractions.csproj" Condition="'$(HexalithMcpCliFromSource)' == 'true'">
-      <AdditionalProperties Condition="'$(HexalithSourceMappingMode)' != 'source'">Version=$(HexalithMcpCliVersion)</AdditionalProperties>
-    </ProjectReference>
+    <ProjectReference Include="$(HexalithMcpCliRoot)\src\Hexalith.McpCli.Abstractions\Hexalith.McpCli.Abstractions.csproj" Condition="'$(HexalithMcpCliFromSource)' == 'true'" />
     <PackageReference Include="Hexalith.McpCli.Abstractions" Condition="'$(HexalithMcpCliFromSource)' != 'true'" />
   </ItemGroup>
 

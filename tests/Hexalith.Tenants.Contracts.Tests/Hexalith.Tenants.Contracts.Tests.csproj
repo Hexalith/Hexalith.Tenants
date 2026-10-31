@@ -3,6 +3,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Hexalith.Tenants.Contracts\Hexalith.Tenants.Contracts.csproj" />
     <ProjectReference Include="..\..\src\Hexalith.Tenants.Testing\Hexalith.Tenants.Testing.csproj" />
+    <!-- Source-only compiled catalog discovery is not part of the published package contract. -->
+    <ProjectReference Include="$(HexalithEventStoreRoot)\src\Hexalith.EventStore.ServiceDefaults\Hexalith.EventStore.ServiceDefaults.csproj" Condition="'$(HexalithEventStoreFromSource)' == 'true'" />
   </ItemGroup>
 
   <ItemGroup>

@@ -3,7 +3,9 @@ using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Routing;
 
+#if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
 [assembly: RouteCatalogAdapterSource(typeof(Hexalith.Tenants.Server.Routing.TenantIntentAdapters))]
+#endif
 
 namespace Hexalith.Tenants.Server.Routing;
 

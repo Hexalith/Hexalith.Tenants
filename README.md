@@ -131,6 +131,15 @@ dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.cs
 
 Integration and server tests require DAPR initialization (`dapr init`) and the local runtime prerequisites documented in the quickstart.
 
+`Hexalith.Tenants.IntegrationTests` is the frozen bootstrap compatibility lane and
+uses the published EventStore Testing.Integration 3.128.4 harness in both package
+and source builds. Runtime libraries still use source references in the
+source-reference lane. The newer EventStore source harness consumes Platform
+environment descriptors exclusively; new suites for that API must declare runner
+bindings and run through `hexalith-module test` with
+`HEXALITH_TEST_ENVIRONMENT_PATH`. Existing fixture-owned failure injection and
+cold-bootstrap checks remain in the compatibility lane.
+
 ## License
 
 This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.

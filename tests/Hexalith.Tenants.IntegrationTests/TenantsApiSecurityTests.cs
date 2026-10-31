@@ -22,9 +22,12 @@ public sealed class TenantsApiSecurityTests
 
     /// <summary>Resolves the shared policy and refuses absent or workload credentials at the real generated route.</summary>
     [Theory]
-    [InlineData(false, HttpStatusCode.Unauthorized)]
-    [InlineData(true, HttpStatusCode.Forbidden)]
-    public async Task PublicGeneratedRouteRejectsNonHumanCredentials(bool workload, HttpStatusCode expected)
+    [InlineData(null, HttpStatusCode.Unauthorized)]
+    [InlineData(EventStoreWorkloadAuthenticationDefaults.WorkloadClaimType, HttpStatusCode.Forbidden)]
+    [InlineData(EventStoreWorkloadAuthenticationDefaults.ChannelClaimType, HttpStatusCode.Forbidden)]
+    [InlineData(EventStoreWorkloadAuthenticationDefaults.OperationClaimType, HttpStatusCode.Forbidden)]
+    [InlineData("assertion-header", HttpStatusCode.Forbidden)]
+    public async Task PublicGeneratedRouteRejectsNonHumanCredentials(string? internalCredential, HttpStatusCode expected)
     {
         using WebApplicationFactory<TenantsApi::Program> factory = new WebApplicationFactory<TenantsApi::Program>()
             .WithWebHostBuilder(builder =>
@@ -33,15 +36,21 @@ public sealed class TenantsApiSecurityTests
                 builder.UseSetting("DAPR_HTTP_ENDPOINT", "http://127.0.0.1:4367");
             });
         using HttpClient client = factory.CreateClient();
-        if (workload)
+        if (internalCredential is not null)
         {
+            var claims = new Dictionary<string, object> { ["sub"] = "api-security-test" };
+            if (internalCredential == "assertion-header")
+            {
+                client.DefaultRequestHeaders.Add(EventStoreWorkloadAuthenticationDefaults.AssertionHeaderName, "internal-assertion");
+            }
+            else
+            {
+                claims[internalCredential] = "service-caller";
+            }
             string token = new JsonWebTokenHandler().CreateToken(new SecurityTokenDescriptor
             {
                 Issuer = "hexalith-dev", Audience = "hexalith-eventstore", Expires = DateTime.UtcNow.AddMinutes(5),
-                Claims = new Dictionary<string, object>
-                {
-                    ["sub"] = "api-security-test", [EventStoreWorkloadAuthenticationDefaults.WorkloadClaimType] = "service-caller",
-                },
+                Claims = claims,
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(Encoding.UTF8.GetBytes(SigningKey)), SecurityAlgorithms.HmacSha256),
             });
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);

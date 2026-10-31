@@ -3,10 +3,13 @@ using System.Text;
 using Hexalith.EventStore.Client.Registration;
 using Hexalith.EventStore.ServiceDefaults;
 using Hexalith.EventStore.ServiceDefaults.Authentication;
+#if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
 using Hexalith.EventStore.ServiceDefaults.Routing;
+#endif
 using Hexalith.Tenants.Api.Services;
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 
@@ -19,6 +22,7 @@ builder.AddServiceDefaults();
 // gateway client; the interactive UI uses EventStore client libraries directly.
 builder.Services.AddControllers();
 builder.Services.AddHttpContextAccessor();
+#if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
 builder.Services.AddEventStoreDevelopmentRouteCatalogBootstrap(builder.Configuration, async (_, token) =>
 {
     var actual = await DevelopmentRouteCatalogInputs.CaptureAsync(builder.Configuration, "tenants-api",
@@ -26,6 +30,7 @@ builder.Services.AddEventStoreDevelopmentRouteCatalogBootstrap(builder.Configura
         [], [], [], [], token).ConfigureAwait(false);
     return actual with { Operations = CompiledRouteCatalogDeclarations.ReadOperations([typeof(Hexalith.Tenants.Contracts.Routing.TenantCatalogDeclarations).Assembly]) };
 });
+#endif
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -77,7 +82,24 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             options.TokenValidationParameters.IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(signingKey));
         }
     });
+builder.Services.AddAuthorization();
+#if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
 builder.Services.AddEventStoreHttpHostSecurity();
+#else
+// The published runtime predates the shared human policy. Keep public generated
+// routes bound to human bearer credentials using its published credential kinds.
+builder.Services.AddAuthorizationBuilder().SetDefaultPolicy(
+    new AuthorizationPolicyBuilder(JwtBearerDefaults.AuthenticationScheme)
+        .RequireAuthenticatedUser()
+        .RequireAssertion(context => !context.User.HasClaim(claim =>
+            claim.Type is EventStoreWorkloadAuthenticationDefaults.WorkloadClaimType
+                or EventStoreWorkloadAuthenticationDefaults.ChannelClaimType
+                or EventStoreWorkloadAuthenticationDefaults.OperationClaimType)
+            && (context.Resource is not HttpContext http
+                || !http.Request.Headers.ContainsKey(EventStoreWorkloadAuthenticationDefaults.AssertionHeaderName)
+                    && http.Request.Headers.Authorization.Count <= 1))
+        .Build());
+#endif
 
 string daprHttpEndpoint = DaprHttpEndpointResolver.Resolve(builder.Configuration);
 string? daprApiToken = builder.Configuration["DAPR_API_TOKEN"];
@@ -109,7 +131,9 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseRouting();
+#if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
 app.UseEventStoreHttpHostSecurity();
+#endif
 app.UseAuthentication();
 app.UseAuthorization();
 

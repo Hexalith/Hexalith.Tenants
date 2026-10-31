@@ -42,3 +42,9 @@ jobs:
           --minimum-expected-tests 4
           --filter-method Hexalith.Tenants.IntegrationTests.TenantsApiGeneratedControllerTests.GlobalAdministratorsRealHandlerMetadataSurvivesRouterRestClientAndUiGateway
           --fail-skips on
+      - name: Verify source-only catalog operation declarations
+        run: >
+          dotnet test tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj
+          --configuration Debug -p:UseHexalithProjectReferences=true
+          --filter-class Hexalith.Tenants.Contracts.Tests.TenantCatalogTests
+          --minimum-expected-tests 1 --fail-skips on

@@ -55,9 +55,9 @@ using Shouldly;
 namespace Hexalith.Tenants.IntegrationTests;
 
 public partial class CommandApiRuntimeIntegrationTests {
-    private const string JwtAudience = "hexalith-tenants";
-    private const string JwtIssuer = "hexalith-dev";
-    private const string JwtSigningKey = "this-is-a-development-signing-key-minimum-32-chars";
+    private const string JwtAudience = TenantGatewayTestHost.Audience;
+    private const string JwtIssuer = TenantGatewayTestHost.Issuer;
+    private const string JwtSigningKey = TenantGatewayTestHost.SigningKey;
     private const string GlobalAdminExtensionKey = "actor:globalAdmin";
     private const string DomainRejectionProblemTypeBase = "https://hexalith.io/problems/domain-rejections";
     private static readonly JsonSerializerOptions ProblemDetailsJsonOptions = new(JsonSerializerDefaults.Web);
@@ -315,7 +315,7 @@ public partial class CommandApiRuntimeIntegrationTests {
         };
         ICommandStatusStore store = Substitute.For<ICommandStatusStore>();
         _ = store.ReadStatusAsync("system", messageId, Arg.Any<CancellationToken>()).Returns(record);
-        await using var factory = new CommandApiWebApplicationFactory(statusStore: store, useLegacyStatusAdapter: false);
+        await using var factory = new TenantGatewayTestHost(statusStore: store, useLegacyStatusAdapter: false);
         using HttpClient client = CreateClientWithBearer(factory, CreateJwt("status-reader"));
 
         using HttpResponseMessage response = await client.GetAsync($"/api/v1/commands/status/{messageId}");
@@ -440,7 +440,7 @@ public partial class CommandApiRuntimeIntegrationTests {
         string authorizedTenant = invalidProof == "wrong-tenant" ? "other-system" : "system";
         ICommandStatusStore store = Substitute.For<ICommandStatusStore>();
         _ = store.ReadStatusAsync(authorizedTenant, messageId, Arg.Any<CancellationToken>()).Returns(record);
-        await using var factory = new CommandApiWebApplicationFactory(statusStore: store, useLegacyStatusAdapter: false);
+        await using var factory = new TenantGatewayTestHost(statusStore: store, useLegacyStatusAdapter: false);
         using HttpClient client = CreateClientWithBearer(factory, CreateJwt("status-reader",
             claims: [new Claim("eventstore:tenant", authorizedTenant)]));
         using HttpResponseMessage response = await client.GetAsync($"/api/v1/commands/status/{messageId}");
@@ -870,9 +870,8 @@ public partial class CommandApiRuntimeIntegrationTests {
 
         ICommandArchiveStore archiveStore = Substitute.For<ICommandArchiveStore>();
 
-        await using var factory = new CommandApiWebApplicationFactory(router, statusStore, archiveStore, useTestAuthentication: true);
-        using HttpClient client = factory.CreateClient();
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Test");
+        await using var factory = new TenantGatewayTestHost(router, statusStore, archiveStore);
+        using HttpClient client = CreateClientWithBearer(factory, CreateJwt("test-user"));
 
         JsonElement payload = JsonSerializer.SerializeToElement(new BootstrapGlobalAdmin("admin-1"));
         var request = new Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest(
@@ -917,11 +916,10 @@ public partial class CommandApiRuntimeIntegrationTests {
                 FailureReason: "ConcurrencyConflict",
                 TimeoutDuration: null));
 
-        await using var factory = new CommandApiWebApplicationFactory(
+        await using var factory = new TenantGatewayTestHost(
             router,
             statusStore,
-            Substitute.For<ICommandArchiveStore>(),
-            useTestAuthentication: false);
+            Substitute.For<ICommandArchiveStore>());
         using HttpClient client = CreateJwtClient(factory);
         Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateUpdateTenantRequest();
 
@@ -956,11 +954,10 @@ public partial class CommandApiRuntimeIntegrationTests {
         _ = statusStore.ReadStatusAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(new CommandStatusRecord(CommandStatus.Completed, DateTimeOffset.UtcNow, "global-administrators", 1, null, null, null));
 
-        await using var factory = new CommandApiWebApplicationFactory(
+        await using var factory = new TenantGatewayTestHost(
             router,
             statusStore,
-            Substitute.For<ICommandArchiveStore>(),
-            useTestAuthentication: false);
+            Substitute.For<ICommandArchiveStore>());
         using HttpClient client = CreateJwtClient(factory);
         Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateBootstrapRequest();
 
@@ -983,11 +980,10 @@ public partial class CommandApiRuntimeIntegrationTests {
         _ = statusStore.ReadStatusAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(new CommandStatusRecord(CommandStatus.Completed, DateTimeOffset.UtcNow, "acme", 1, null, null, null));
 
-        await using var factory = new CommandApiWebApplicationFactory(
+        await using var factory = new TenantGatewayTestHost(
             router,
             statusStore,
-            Substitute.For<ICommandArchiveStore>(),
-            useTestAuthentication: false);
+            Substitute.For<ICommandArchiveStore>());
         string token = CreateJwt(
             "global-admin",
             claims:
@@ -1031,11 +1027,10 @@ public partial class CommandApiRuntimeIntegrationTests {
         _ = statusStore.ReadStatusAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(new CommandStatusRecord(CommandStatus.Completed, DateTimeOffset.UtcNow, "global-administrators", 1, null, null, null));
 
-        await using var factory = new CommandApiWebApplicationFactory(
+        await using var factory = new TenantGatewayTestHost(
             router,
             statusStore,
-            Substitute.For<ICommandArchiveStore>(),
-            useTestAuthentication: false);
+            Substitute.For<ICommandArchiveStore>());
         string token = CreateJwt(
             "platform-admin",
             claims:
@@ -1078,11 +1073,10 @@ public partial class CommandApiRuntimeIntegrationTests {
         _ = statusStore.ReadStatusAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(new CommandStatusRecord(CommandStatus.Completed, DateTimeOffset.UtcNow, "global-administrators", 1, null, null, null));
 
-        await using var factory = new CommandApiWebApplicationFactory(
+        await using var factory = new TenantGatewayTestHost(
             router,
             statusStore,
-            Substitute.For<ICommandArchiveStore>(),
-            useTestAuthentication: false);
+            Substitute.For<ICommandArchiveStore>());
         string token = CreateJwt(
             "platform-admin",
             claims:
@@ -1125,11 +1119,10 @@ public partial class CommandApiRuntimeIntegrationTests {
         _ = statusStore.ReadStatusAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(new CommandStatusRecord(CommandStatus.Completed, DateTimeOffset.UtcNow, "acme", 1, null, null, null));
 
-        await using var factory = new CommandApiWebApplicationFactory(
+        await using var factory = new TenantGatewayTestHost(
             router,
             statusStore,
-            Substitute.For<ICommandArchiveStore>(),
-            useTestAuthentication: false);
+            Substitute.For<ICommandArchiveStore>());
         string token = CreateJwt(
             "global-admin",
             claims:
@@ -1171,11 +1164,10 @@ public partial class CommandApiRuntimeIntegrationTests {
         _ = statusStore.ReadStatusAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(new CommandStatusRecord(CommandStatus.Completed, DateTimeOffset.UtcNow, "acme", 1, null, null, null));
 
-        await using var factory = new CommandApiWebApplicationFactory(
+        await using var factory = new TenantGatewayTestHost(
             router,
             statusStore,
-            Substitute.For<ICommandArchiveStore>(),
-            useTestAuthentication: false);
+            Substitute.For<ICommandArchiveStore>());
         string token = CreateJwt(
             "global-admin",
             claims:
@@ -1216,11 +1208,10 @@ public partial class CommandApiRuntimeIntegrationTests {
         _ = statusStore.ReadStatusAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(new CommandStatusRecord(CommandStatus.Completed, DateTimeOffset.UtcNow, "acme", 1, null, null, null));
 
-        await using var factory = new CommandApiWebApplicationFactory(
+        await using var factory = new TenantGatewayTestHost(
             router,
             statusStore,
-            Substitute.For<ICommandArchiveStore>(),
-            useTestAuthentication: false);
+            Substitute.For<ICommandArchiveStore>());
         string token = CreateJwt(
             "global-admin",
             claims:
@@ -1262,11 +1253,10 @@ public partial class CommandApiRuntimeIntegrationTests {
         _ = statusStore.ReadStatusAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(new CommandStatusRecord(CommandStatus.Completed, DateTimeOffset.UtcNow, "acme", 1, null, null, null));
 
-        await using var factory = new CommandApiWebApplicationFactory(
+        await using var factory = new TenantGatewayTestHost(
             router,
             statusStore,
-            Substitute.For<ICommandArchiveStore>(),
-            useTestAuthentication: false);
+            Substitute.For<ICommandArchiveStore>());
         string token = CreateJwt(
             "global-admin",
             claims:
@@ -1309,11 +1299,10 @@ public partial class CommandApiRuntimeIntegrationTests {
 
         ICommandRouter router = Substitute.For<ICommandRouter>();
 
-        await using var factory = new CommandApiWebApplicationFactory(
+        await using var factory = new TenantGatewayTestHost(
             router,
             Substitute.For<ICommandStatusStore>(),
-            Substitute.For<ICommandArchiveStore>(),
-            useTestAuthentication: false);
+            Substitute.For<ICommandArchiveStore>());
         string token = CreateJwt(
             "global-admin",
             claims:
@@ -1357,11 +1346,10 @@ public partial class CommandApiRuntimeIntegrationTests {
                 null,
                 null));
 
-        await using var factory = new CommandApiWebApplicationFactory(
+        await using var factory = new TenantGatewayTestHost(
             router,
             statusStore,
-            Substitute.For<ICommandArchiveStore>(),
-            useTestAuthentication: false);
+            Substitute.For<ICommandArchiveStore>());
         using HttpClient client = CreateJwtClient(factory);
         Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateAddUserToTenantRequest();
 
@@ -1397,11 +1385,10 @@ public partial class CommandApiRuntimeIntegrationTests {
                 null,
                 null));
 
-        await using var factory = new CommandApiWebApplicationFactory(
+        await using var factory = new TenantGatewayTestHost(
             router,
             statusStore,
-            Substitute.For<ICommandArchiveStore>(),
-            useTestAuthentication: false);
+            Substitute.For<ICommandArchiveStore>());
         using HttpClient client = CreateJwtClient(factory);
         Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateChangeUserRoleRequest();
 
@@ -1431,11 +1418,10 @@ public partial class CommandApiRuntimeIntegrationTests {
         _ = statusStore.ReadStatusAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(new CommandStatusRecord(CommandStatus.Completed, DateTimeOffset.UtcNow, "acme", 1, null, null, null));
 
-        await using var factory = new CommandApiWebApplicationFactory(
+        await using var factory = new TenantGatewayTestHost(
             router,
             statusStore,
-            Substitute.For<ICommandArchiveStore>(),
-            useTestAuthentication: false);
+            Substitute.For<ICommandArchiveStore>());
         string token = CreateJwt(
             "global-admin",
             claims:
@@ -1477,11 +1463,10 @@ public partial class CommandApiRuntimeIntegrationTests {
         _ = statusStore.ReadStatusAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(new CommandStatusRecord(CommandStatus.Completed, DateTimeOffset.UtcNow, "acme", 1, null, null, null));
 
-        await using var factory = new CommandApiWebApplicationFactory(
+        await using var factory = new TenantGatewayTestHost(
             router,
             statusStore,
-            Substitute.For<ICommandArchiveStore>(),
-            useTestAuthentication: false);
+            Substitute.For<ICommandArchiveStore>());
         string token = CreateJwt(
             "global-admin",
             claims:
@@ -1521,11 +1506,10 @@ public partial class CommandApiRuntimeIntegrationTests {
         _ = statusStore.ReadStatusAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(new CommandStatusRecord(CommandStatus.Completed, DateTimeOffset.UtcNow, "acme", 1, null, null, null));
 
-        await using var factory = new CommandApiWebApplicationFactory(
+        await using var factory = new TenantGatewayTestHost(
             router,
             statusStore,
-            Substitute.For<ICommandArchiveStore>(),
-            useTestAuthentication: false);
+            Substitute.For<ICommandArchiveStore>());
         string token = CreateJwt(
             "global-admin",
             claims:
@@ -1571,11 +1555,10 @@ public partial class CommandApiRuntimeIntegrationTests {
                 null,
                 null));
 
-        await using var factory = new CommandApiWebApplicationFactory(
+        await using var factory = new TenantGatewayTestHost(
             router,
             statusStore,
-            Substitute.For<ICommandArchiveStore>(),
-            useTestAuthentication: false);
+            Substitute.For<ICommandArchiveStore>());
         using HttpClient client = CreateJwtClient(factory);
         Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateCreateTenantRequest();
 
@@ -1615,11 +1598,10 @@ public partial class CommandApiRuntimeIntegrationTests {
                 null,
                 null));
 
-        await using var factory = new CommandApiWebApplicationFactory(
+        await using var factory = new TenantGatewayTestHost(
             router,
             statusStore,
-            Substitute.For<ICommandArchiveStore>(),
-            useTestAuthentication: false);
+            Substitute.For<ICommandArchiveStore>());
         string token = CreateJwt(
             "platform-admin",
             claims:
@@ -1680,11 +1662,10 @@ public partial class CommandApiRuntimeIntegrationTests {
                 null,
                 null));
 
-        await using var factory = new CommandApiWebApplicationFactory(
+        await using var factory = new TenantGatewayTestHost(
             router,
             statusStore,
-            Substitute.For<ICommandArchiveStore>(),
-            useTestAuthentication: false);
+            Substitute.For<ICommandArchiveStore>());
         string token = CreateJwt(
             "platform-admin",
             claims:
@@ -1731,11 +1712,10 @@ public partial class CommandApiRuntimeIntegrationTests {
                 null,
                 null));
 
-        await using var factory = new CommandApiWebApplicationFactory(
+        await using var factory = new TenantGatewayTestHost(
             router,
             statusStore,
-            Substitute.For<ICommandArchiveStore>(),
-            useTestAuthentication: false);
+            Substitute.For<ICommandArchiveStore>());
         using HttpClient client = CreateJwtClient(factory);
         Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateAddUserToTenantRequest();
 
@@ -1772,11 +1752,10 @@ public partial class CommandApiRuntimeIntegrationTests {
                 null,
                 null));
 
-        await using var factory = new CommandApiWebApplicationFactory(
+        await using var factory = new TenantGatewayTestHost(
             router,
             statusStore,
-            Substitute.For<ICommandArchiveStore>(),
-            useTestAuthentication: false);
+            Substitute.For<ICommandArchiveStore>());
         using HttpClient client = CreateJwtClient(factory);
         Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateRemoveUserFromTenantRequest();
 
@@ -1812,11 +1791,10 @@ public partial class CommandApiRuntimeIntegrationTests {
                 null,
                 null));
 
-        await using var factory = new CommandApiWebApplicationFactory(
+        await using var factory = new TenantGatewayTestHost(
             router,
             statusStore,
-            Substitute.For<ICommandArchiveStore>(),
-            useTestAuthentication: false);
+            Substitute.For<ICommandArchiveStore>());
         using HttpClient client = CreateJwtClient(factory);
         Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateDisableTenantRequest();
 
@@ -1853,11 +1831,10 @@ public partial class CommandApiRuntimeIntegrationTests {
                 null,
                 null));
 
-        await using var factory = new CommandApiWebApplicationFactory(
+        await using var factory = new TenantGatewayTestHost(
             router,
             statusStore,
-            Substitute.For<ICommandArchiveStore>(),
-            useTestAuthentication: false);
+            Substitute.For<ICommandArchiveStore>());
         using HttpClient client = CreateJwtClient(factory);
         Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateUpdateTenantRequest();
 
@@ -1894,11 +1871,10 @@ public partial class CommandApiRuntimeIntegrationTests {
                 null,
                 null));
 
-        await using var factory = new CommandApiWebApplicationFactory(
+        await using var factory = new TenantGatewayTestHost(
             router,
             statusStore,
-            Substitute.For<ICommandArchiveStore>(),
-            useTestAuthentication: false);
+            Substitute.For<ICommandArchiveStore>());
         using HttpClient client = CreateJwtClient(factory);
         Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateUpdateTenantRequest();
 
@@ -1961,11 +1937,10 @@ public partial class CommandApiRuntimeIntegrationTests {
                 null,
                 null));
 
-        await using var factory = new CommandApiWebApplicationFactory(
+        await using var factory = new TenantGatewayTestHost(
             router,
             statusStore,
-            Substitute.For<ICommandArchiveStore>(),
-            useTestAuthentication: false);
+            Substitute.For<ICommandArchiveStore>());
         using HttpClient client = CreateJwtClient(factory);
         Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateUpdateTenantRequest();
 
@@ -2003,11 +1978,10 @@ public partial class CommandApiRuntimeIntegrationTests {
         _ = statusStore.ReadStatusAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(new CommandStatusRecord(CommandStatus.Completed, DateTimeOffset.UtcNow, "acme", 1, null, null, null));
 
-        await using var factory = new CommandApiWebApplicationFactory(
+        await using var factory = new TenantGatewayTestHost(
             router,
             statusStore,
-            Substitute.For<ICommandArchiveStore>(),
-            useTestAuthentication: false);
+            Substitute.For<ICommandArchiveStore>());
         string token = CreateJwt(
             "tenant-operator",
             claims:
@@ -2042,11 +2016,10 @@ public partial class CommandApiRuntimeIntegrationTests {
         _ = statusStore.ReadStatusAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(new CommandStatusRecord(CommandStatus.Completed, DateTimeOffset.UtcNow, "acme", 1, null, null, null));
 
-        await using var factory = new CommandApiWebApplicationFactory(
+        await using var factory = new TenantGatewayTestHost(
             router,
             statusStore,
-            Substitute.For<ICommandArchiveStore>(),
-            useTestAuthentication: false);
+            Substitute.For<ICommandArchiveStore>());
         string token = CreateJwt(
             "global-admin",
             claims:
@@ -2079,11 +2052,10 @@ public partial class CommandApiRuntimeIntegrationTests {
         _ = statusStore.ReadStatusAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(new CommandStatusRecord(CommandStatus.Completed, DateTimeOffset.UtcNow, "global-administrators", 1, null, null, null));
 
-        await using var factory = new CommandApiWebApplicationFactory(
+        await using var factory = new TenantGatewayTestHost(
             router,
             statusStore,
-            Substitute.For<ICommandArchiveStore>(),
-            useTestAuthentication: false);
+            Substitute.For<ICommandArchiveStore>());
         string token = CreateJwt("admin-user", claims: [new Claim("tenants", JsonSerializer.Serialize(new[] { "system" }))]);
         using HttpClient client = CreateClientWithBearer(factory, token);
         Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateBootstrapRequest();
@@ -2100,11 +2072,10 @@ public partial class CommandApiRuntimeIntegrationTests {
     public async Task Commands_endpoint_returns_403_when_jwt_tenant_claim_is_missing() {
         ICommandRouter router = Substitute.For<ICommandRouter>();
 
-        await using var factory = new CommandApiWebApplicationFactory(
+        await using var factory = new TenantGatewayTestHost(
             router,
             Substitute.For<ICommandStatusStore>(),
-            Substitute.For<ICommandArchiveStore>(),
-            useTestAuthentication: false);
+            Substitute.For<ICommandArchiveStore>());
         string token = CreateJwt("admin-user", claims: Array.Empty<Claim>());
         using HttpClient client = CreateClientWithBearer(factory, token);
         Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateBootstrapRequest();
@@ -2125,11 +2096,10 @@ public partial class CommandApiRuntimeIntegrationTests {
     public async Task Commands_endpoint_returns_403_when_global_admin_jwt_tenant_claim_is_missing() {
         ICommandRouter router = Substitute.For<ICommandRouter>();
 
-        await using var factory = new CommandApiWebApplicationFactory(
+        await using var factory = new TenantGatewayTestHost(
             router,
             Substitute.For<ICommandStatusStore>(),
-            Substitute.For<ICommandArchiveStore>(),
-            useTestAuthentication: false);
+            Substitute.For<ICommandArchiveStore>());
         string token = CreateJwt("admin-user", claims: [new Claim("global_admin", "true")]);
         using HttpClient client = CreateClientWithBearer(factory, token);
         Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateBootstrapRequest();
@@ -2148,11 +2118,10 @@ public partial class CommandApiRuntimeIntegrationTests {
     public async Task Commands_endpoint_returns_403_when_direct_eventstore_tenant_claim_is_blank_even_with_source_alias() {
         ICommandRouter router = Substitute.For<ICommandRouter>();
 
-        await using var factory = new CommandApiWebApplicationFactory(
+        await using var factory = new TenantGatewayTestHost(
             router,
             Substitute.For<ICommandStatusStore>(),
-            Substitute.For<ICommandArchiveStore>(),
-            useTestAuthentication: false);
+            Substitute.For<ICommandArchiveStore>());
         string token = CreateJwt(
             "admin-user",
             claims:
@@ -2184,11 +2153,10 @@ public partial class CommandApiRuntimeIntegrationTests {
     public async Task Commands_endpoint_returns_403_when_jwt_tenant_claim_does_not_satisfy_system_contract(string claimTenant, string requestTenant) {
         ICommandRouter router = Substitute.For<ICommandRouter>();
 
-        await using var factory = new CommandApiWebApplicationFactory(
+        await using var factory = new TenantGatewayTestHost(
             router,
             Substitute.For<ICommandStatusStore>(),
-            Substitute.For<ICommandArchiveStore>(),
-            useTestAuthentication: false);
+            Substitute.For<ICommandArchiveStore>());
         string token = CreateJwt("admin-user", claims: [new Claim("eventstore:tenant", claimTenant)]);
         using HttpClient client = CreateClientWithBearer(factory, token);
         Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateBootstrapRequest(tenant: requestTenant);
@@ -2207,11 +2175,10 @@ public partial class CommandApiRuntimeIntegrationTests {
     public async Task Commands_endpoint_returns_403_when_global_admin_jwt_uses_system_claim_with_non_system_request_tenant() {
         ICommandRouter router = Substitute.For<ICommandRouter>();
 
-        await using var factory = new CommandApiWebApplicationFactory(
+        await using var factory = new TenantGatewayTestHost(
             router,
             Substitute.For<ICommandStatusStore>(),
-            Substitute.For<ICommandArchiveStore>(),
-            useTestAuthentication: false);
+            Substitute.For<ICommandArchiveStore>());
         string token = CreateJwt(
             "admin-user",
             claims:
@@ -2241,11 +2208,10 @@ public partial class CommandApiRuntimeIntegrationTests {
         _ = statusStore.ReadStatusAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(new CommandStatusRecord(CommandStatus.Completed, DateTimeOffset.UtcNow, "global-administrators", 1, null, null, null));
 
-        await using var factory = new CommandApiWebApplicationFactory(
+        await using var factory = new TenantGatewayTestHost(
             router,
             statusStore,
-            Substitute.For<ICommandArchiveStore>(),
-            useTestAuthentication: false);
+            Substitute.For<ICommandArchiveStore>());
         string token = CreateJwt("admin-user", claims: [new Claim("eventstore:tenant", "system")]);
         using HttpClient client = CreateClientWithBearer(factory, token);
         Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateBootstrapRequest();
@@ -2311,9 +2277,9 @@ public partial class CommandApiRuntimeIntegrationTests {
     }
 
     [Fact]
-    public async Task Tenants_host_keeps_raw_sub_claim_under_real_jwt_pipeline() {
-        // P6: companion to Tenants_host_keeps_jwt_bearer_map_inbound_claims_false — that test checks
-        // the host-effective options bag; this test exercises the live JWT bearer middleware via an
+    public async Task Gateway_keeps_raw_sub_claim_under_real_jwt_pipeline() {
+        // The domain host keeps MapInboundClaims=false; this gateway contract exercises the
+        // live JWT bearer middleware at the current public command boundary via an
         // HTTP request. CommandsController.cs:67 reads UserId via `User.FindFirst("sub")?.Value`.
         // With MapInboundClaims=true (regression), JWT bearer would consume the `sub` claim and
         // remap it to ClaimTypes.NameIdentifier, leaving `User.FindFirst("sub")` returning null and
@@ -2326,11 +2292,10 @@ public partial class CommandApiRuntimeIntegrationTests {
         _ = statusStore.ReadStatusAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(new CommandStatusRecord(CommandStatus.Completed, DateTimeOffset.UtcNow, "global-administrators", 1, null, null, null));
 
-        await using var factory = new CommandApiWebApplicationFactory(
+        await using var factory = new TenantGatewayTestHost(
             router,
             statusStore,
-            Substitute.For<ICommandArchiveStore>(),
-            useTestAuthentication: false);
+            Substitute.For<ICommandArchiveStore>());
         string token = CreateJwt(
             "admin-user",
             claims:
@@ -2420,11 +2385,10 @@ public partial class CommandApiRuntimeIntegrationTests {
     public async Task Commands_endpoint_returns_401_when_jwt_carries_only_name_claim_without_sub() {
         ICommandRouter router = Substitute.For<ICommandRouter>();
 
-        await using var factory = new CommandApiWebApplicationFactory(
+        await using var factory = new TenantGatewayTestHost(
             router,
             Substitute.For<ICommandStatusStore>(),
-            Substitute.For<ICommandArchiveStore>(),
-            useTestAuthentication: false);
+            Substitute.For<ICommandArchiveStore>());
         string token = CreateJwtWithoutSub(claims: [new Claim("name", "display-only-user")]);
         using HttpClient client = CreateClientWithBearer(factory, token);
         Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateBootstrapRequest();
@@ -2456,11 +2420,10 @@ public partial class CommandApiRuntimeIntegrationTests {
         _ = statusStore.ReadStatusAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(new CommandStatusRecord(CommandStatus.Completed, DateTimeOffset.UtcNow, "global-administrators", 1, null, null, null));
 
-        await using var factory = new CommandApiWebApplicationFactory(
+        await using var factory = new TenantGatewayTestHost(
             router,
             statusStore,
-            Substitute.For<ICommandArchiveStore>(),
-            useTestAuthentication: false);
+            Substitute.For<ICommandArchiveStore>());
         var claims = new List<Claim> { new(claim1Type, claim1Value) };
         if (claim2Type is not null) {
             claims.Add(new Claim(claim2Type, claim2Value!));
@@ -2493,11 +2456,10 @@ public partial class CommandApiRuntimeIntegrationTests {
         _ = statusStore.ReadStatusAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(new CommandStatusRecord(CommandStatus.Completed, DateTimeOffset.UtcNow, "global-administrators", 1, null, null, null));
 
-        await using var factory = new CommandApiWebApplicationFactory(
+        await using var factory = new TenantGatewayTestHost(
             router,
             statusStore,
-            Substitute.For<ICommandArchiveStore>(),
-            useTestAuthentication: false);
+            Substitute.For<ICommandArchiveStore>());
         string token = CreateJwt(
             "admin-user",
             claims:
@@ -2528,11 +2490,10 @@ public partial class CommandApiRuntimeIntegrationTests {
     public async Task Commands_endpoint_returns_403_when_jwt_carries_only_unrelated_permission_claims(bool duplicate) {
         ICommandRouter router = Substitute.For<ICommandRouter>();
 
-        await using var factory = new CommandApiWebApplicationFactory(
+        await using var factory = new TenantGatewayTestHost(
             router,
             Substitute.For<ICommandStatusStore>(),
-            Substitute.For<ICommandArchiveStore>(),
-            useTestAuthentication: false);
+            Substitute.For<ICommandArchiveStore>());
         var claims = new List<Claim> {
             new("eventstore:tenant", "system"),
             new("eventstore:permission", nameof(CreateTenant)),
@@ -2586,8 +2547,8 @@ public partial class CommandApiRuntimeIntegrationTests {
             .Returns(new CommandStatusRecord(
                 CommandStatus.Rejected, DateTimeOffset.UtcNow, "global-administrators", 1,
                 typeof(InsufficientPermissionsRejection).FullName, null, null));
-        await using var factory = new CommandApiWebApplicationFactory(
-            router, statusStore, Substitute.For<ICommandArchiveStore>(), useTestAuthentication: false);
+        await using var factory = new TenantGatewayTestHost(
+            router, statusStore, Substitute.For<ICommandArchiveStore>());
         string token = CreateJwt(actorUserId, claims:
         [
             new Claim("name", targetUserId),
@@ -2612,7 +2573,7 @@ public partial class CommandApiRuntimeIntegrationTests {
         domainResult.Events.ShouldNotContain(static e => e.GetType() == typeof(GlobalAdministratorSet));
     }
 
-    private static HttpClient CreateJwtClient(WebApplicationFactory<TenantBootstrapOptions> factory)
+    private static HttpClient CreateJwtClient(TenantGatewayTestHost factory)
         => CreateClientWithBearer(factory, CreateJwt("admin-user"));
 
     private static TenantState CreateRoleBehaviorState() {
@@ -2692,7 +2653,7 @@ public partial class CommandApiRuntimeIntegrationTests {
     private static string? GetProblemExtension(ProblemDetails details, string key)
         => details.Extensions.TryGetValue(key, out object? value) ? value?.ToString() : null;
 
-    private static HttpClient CreateClientWithBearer(WebApplicationFactory<TenantBootstrapOptions> factory, string token) {
+    private static HttpClient CreateClientWithBearer(TenantGatewayTestHost factory, string token) {
         HttpClient client = factory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         return client;

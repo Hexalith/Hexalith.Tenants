@@ -24,6 +24,11 @@ using Hexalith.EventStore.Contracts.Projections;
 using Hexalith.EventStore.Contracts.Events;
 using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.EventStore.Contracts.Streams;
+#if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
+using Hexalith.EventStore.Contracts.Routing;
+using Hexalith.EventStore.ServiceDefaults.Routing;
+using Hexalith.Tenants.Contracts.Routing;
+#endif
 using Hexalith.EventStore.Controllers;
 using Hexalith.EventStore.DomainService;
 using Hexalith.EventStore.Queries;
@@ -497,7 +502,11 @@ public sealed class TenantsApiGeneratedControllerTests
         var handler = new GetTenantAuditQueryHandler(store, GlobalAdministratorTestAuthority.Create("admin.current"),
             new QueryCursorCodec(new EphemeralDataProtectionProvider(), "failure-boundary"),
             new TenantTelemetry(diagnostics), NullLogger<GetTenantAuditQueryHandler>.Instance);
-        var router = new HandlerAwareQueryRouter(new UnexpectedInnerQueryRouter(), new AlwaysSupportedDomainQueryHandlerRegistry(),
+        var router = new HandlerAwareQueryRouter(
+#if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
+            CreateQueryCatalogAuthority(),
+#endif
+            new UnexpectedInnerQueryRouter(), new AlwaysSupportedDomainQueryHandlerRegistry(),
             new DirectDomainQueryInvoker(handler), NullLogger<HandlerAwareQueryRouter>.Instance);
         var submit = new Hexalith.EventStore.Server.Pipeline.SubmitQueryHandler(router,
             NullLogger<Hexalith.EventStore.Server.Pipeline.SubmitQueryHandler>.Instance);
@@ -1574,6 +1583,31 @@ public sealed class TenantsApiGeneratedControllerTests
                 new SetGlobalAdministrator("user.beta")),
         ];
 
+#if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
+    /// <summary>Supplies the owner-declared query snapshot for isolated real-handler HTTP proofs.</summary>
+    private static IRouteCatalogAuthority CreateQueryCatalogAuthority()
+    {
+        IReadOnlyList<RouteContractDeclaration> declarations = TenantCatalogDeclarations.Queries;
+        RouteCatalogEnvelope envelope = RouteCatalogCodec.Seal(new RouteCatalogEnvelope(
+            2, 1, "Development", false,
+            declarations,
+            declarations.Select(declaration => new RouteCatalogEntry(
+                declaration.RouteId, 1, RouteCatalogCodec.ComputeDeclarationDigest(declaration),
+                "tenants", "query", declaration.ContractVersion, declaration.CredentialKind,
+                declaration.Operation, false, "*")).ToArray(),
+            [], "", ""));
+        var snapshot = new CommittedRouteCatalogSnapshot(
+            RouteCatalogCodec.Encode(envelope), RouteCatalogCodec.ComputeRootDigest(envelope),
+            1, localAppId: "eventstore");
+        // Distributed activation is outside these isolated HTTP proofs. Each real router/controller
+        // still acquires a lease and validates the canonical owner query and projection selection.
+        IRouteCatalogAuthority authority = Substitute.For<IRouteCatalogAuthority>();
+        authority.AcquireAsync(Arg.Any<CancellationToken>())
+            .Returns(_ => new RouteCatalogDispatchLease(snapshot, () => Task.CompletedTask));
+        return authority;
+    }
+#endif
+
     private sealed class TenantsApiWebApplicationFactory(
         IEventStoreGatewayClient gateway,
         IReadOnlyDictionary<string, string?>? authenticationConfiguration = null,
@@ -1599,6 +1633,14 @@ public sealed class TenantsApiGeneratedControllerTests
             {
                 services.RemoveAll<IEventStoreGatewayClient>();
                 services.AddSingleton<IEventStoreGatewayClient>(gateway);
+#if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
+                if (gateway is HandlerRoutedEventStoreGatewayClient)
+                {
+                    services.AddSingleton(CreateQueryCatalogAuthority());
+                    services.AddScoped<GeneratedRouteCatalogFilter>();
+                    services.Configure<MvcOptions>(options => options.Filters.AddService<GeneratedRouteCatalogFilter>());
+                }
+#endif
                 configureServices?.Invoke(services);
             });
         }
@@ -1627,6 +1669,9 @@ public sealed class TenantsApiGeneratedControllerTests
                 }),
                 new FixedTimeProvider(now));
             _router = new HandlerAwareQueryRouter(
+#if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
+                CreateQueryCatalogAuthority(),
+#endif
                 new UnexpectedInnerQueryRouter(),
                 new AlwaysSupportedDomainQueryHandlerRegistry(),
                 new DirectDomainQueryInvoker(handler),
@@ -1635,7 +1680,11 @@ public sealed class TenantsApiGeneratedControllerTests
 
         public HandlerRoutedEventStoreGatewayClient(IDomainQueryHandler handler)
         {
-            _router = new HandlerAwareQueryRouter(new UnexpectedInnerQueryRouter(),
+            _router = new HandlerAwareQueryRouter(
+#if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
+                CreateQueryCatalogAuthority(),
+#endif
+                new UnexpectedInnerQueryRouter(),
                 new AlwaysSupportedDomainQueryHandlerRegistry(), new DirectDomainQueryInvoker(handler),
                 NullLogger<HandlerAwareQueryRouter>.Instance);
         }
@@ -1697,6 +1746,9 @@ public sealed class TenantsApiGeneratedControllerTests
                     Arg.Any<string?>())
                 .Returns(RbacValidationResult.Allowed);
             var controller = new QueriesController(
+#if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
+                CreateQueryCatalogAuthority(),
+#endif
                 mediator,
                 eTagService,
                 tenantValidator,

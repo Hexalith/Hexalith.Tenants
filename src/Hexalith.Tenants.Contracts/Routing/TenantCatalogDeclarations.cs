@@ -10,13 +10,16 @@ namespace Hexalith.Tenants.Contracts.Routing;
 /// <summary>Owner-approved offline route and intent declarations. Grants and runtime admission remain unchanged.</summary>
 public static class TenantCatalogDeclarations
 {
+#if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
     /// <summary>Actual owner request/result shapes and explicit surface policy; existing route and intent identities remain unchanged.</summary>
     public static IReadOnlyList<RouteOperationContract> Operations => Routes.Select(Operation).ToArray();
+#endif
 
     /// <summary>Actual owner receiver methods, selected without changing declaration identities.</summary>
     public static IReadOnlyDictionary<string, string> ReceiverMethods => Routes.ToDictionary(route => route.RouteId,
         route => route.Kind switch { "command" => "process", "query" => "query", _ => "project" }, StringComparer.Ordinal);
 
+#if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
     private static RouteOperationContract Operation(RouteContractDeclaration route)
     {
         var serializer = new System.Text.Json.JsonSerializerOptions
@@ -62,6 +65,7 @@ public static class TenantCatalogDeclarations
                     } : node,
             });
     }
+#endif
     /// <summary>Gets the twelve explicit MessageId v1, Mutation/24-hour command policies.</summary>
     public static IReadOnlyList<CommandIntentDeclaration> Commands { get; } = [
         Command<CreateTenant>("create", false, [new("name", "string"), new("description-is-null", "boolean"), new("description", "string")]),

@@ -100,6 +100,10 @@
     <ItemGroup>
         <!-- Preserve the effective published package pin after the centralized import above. -->
         <PackageVersion Update="Hexalith.EventStore.*" Version="$(HexalithEventStoreVersion)" />
+        <!-- Frozen bootstrap compatibility suites depend on the published legacy fixture API.
+             New descriptor-only suites must use the Platform runner instead. Keep this harness
+             independent of runtime source mappings and future central version bumps. -->
+        <PackageVersion Update="Hexalith.EventStore.Testing.Integration" Version="3.128.4" />
     </ItemGroup>
 
     <!-- Deliberate exception to the "centralized build config" convention: this module
