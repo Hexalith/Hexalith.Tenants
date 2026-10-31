@@ -300,9 +300,15 @@ public class PartialReleaseRecoveryWorkflowTests
         YamlMappingNode[] steps = GetSteps("release.yml", "release");
         int publish = Array.FindIndex(steps, step => Value(step, "name") == "Semantic Release");
         int verify = Array.FindIndex(steps, step => Value(step, "name") == "Verify published destination content");
+        int apiVerify = Array.FindIndex(steps, step => Value(step, "name") == "Verify published API image content");
         int upload = Array.FindIndex(steps, step => Value(step, "name") == "Upload complete release evidence");
         verify.ShouldBe(publish + 1);
-        upload.ShouldBe(verify + 1);
+        apiVerify.ShouldBe(verify + 1);
+        upload.ShouldBe(apiVerify + 1);
+        Value(steps[apiVerify], "run").ShouldBe("bash scripts/verify-api-release-artifact.sh");
+        Value(steps[apiVerify], "shell").ShouldBe("bash");
+        Value(steps[apiVerify], "if").ShouldBeEmpty();
+        Value(steps[apiVerify], "continue-on-error").ShouldBeEmpty();
         AssertDestinationVerificationBindings(steps[verify]);
         Value(steps[upload], "if").ShouldBe("${{ always() }}");
         MappingValue(steps[upload], "with", "path").ShouldBe(".hexalith/release-evidence/**");
