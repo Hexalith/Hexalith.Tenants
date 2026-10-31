@@ -793,20 +793,29 @@ public class PackageGovernanceTests {
         bool accepted)
         => EvaluateEventStoreVersionSelectionAsync(selectedVersion, useSource, selectedVersion, globalOverride: true, accepted);
 
+    [Fact]
+    public Task EventStore_package_floor_does_not_override_nested_owner_catalogsAsync()
+        => EvaluateEventStoreVersionSelectionAsync("3.128.4", false, "3.128.4", globalOverride: true, accepted: true, nestedReference: true);
+
     private static async Task EvaluateEventStoreVersionSelectionAsync(
         string selectedVersion,
         bool useSource,
         string expectedVersion,
         bool globalOverride,
-        bool accepted) {
+        bool accepted,
+        bool nestedReference = false) {
         string repoRoot = FindRepoRoot();
         string fixtureRoot = Path.Combine(Path.GetTempPath(), $"hexalith-tenants-eventstore-floor-{Guid.NewGuid():N}");
+        string nestedDirectory = Path.Combine(repoRoot, "references", "story33-package-floor-fixture-" + Guid.NewGuid().ToString("N"));
         string contractsDirectory = Path.Combine(fixtureRoot, "src", "Hexalith.EventStore.Contracts");
         _ = Directory.CreateDirectory(contractsDirectory);
 
         try {
             File.WriteAllText(Path.Combine(contractsDirectory, "Hexalith.EventStore.Contracts.csproj"), "<Project />");
-            string projectPath = Path.Combine(fixtureRoot, "PackageFloor.proj");
+            string projectPath = nestedReference
+                ? Path.Combine(nestedDirectory, "External.proj")
+                : Path.Combine(fixtureRoot, "PackageFloor.proj");
+            if (nestedReference) _ = Directory.CreateDirectory(Path.GetDirectoryName(projectPath)!);
             new XDocument(new XElement("Project",
                 new XElement("PropertyGroup",
                     new XElement("HexalithVersionsLoaded", "true"),
@@ -883,6 +892,7 @@ public class PackageGovernanceTests {
         }
         finally {
             Directory.Delete(fixtureRoot, recursive: true);
+            if (nestedReference && Directory.Exists(nestedDirectory)) Directory.Delete(nestedDirectory, recursive: true);
         }
     }
 

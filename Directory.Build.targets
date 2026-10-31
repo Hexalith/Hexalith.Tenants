@@ -12,8 +12,11 @@
 
   <!-- Global command-line properties cannot be raised by the default floor in props.
        Refuse an older package selection before restore or compilation consumes it. -->
+  <PropertyGroup>
+    <_TenantsNestedReferenceRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)references/'))</_TenantsNestedReferenceRoot>
+  </PropertyGroup>
   <Target Name="ValidateEventStorePackageFloor" BeforeTargets="CollectPackageReferences;PrepareForBuild"
-          Condition="'$(HexalithEventStoreFromSource)' != 'true'">
+          Condition="'$(HexalithEventStoreFromSource)' != 'true' and !$(MSBuildProjectFullPath.StartsWith('$(_TenantsNestedReferenceRoot)'))">
     <Error Condition="'$(HexalithEventStoreVersion)' == '' or $([MSBuild]::VersionLessThan('$(HexalithEventStoreVersion)', '3.129.0')) or ($([MSBuild]::VersionEquals('$(HexalithEventStoreVersion)', '3.129.0')) and $([System.Text.RegularExpressions.Regex]::IsMatch('$(HexalithEventStoreVersion)', '^[^+]*-')))"
            Text="EventStore package selection '$(HexalithEventStoreVersion)' must be at least 3.129.0 for run-scoped catalog activation. Source mappings retain their exact producer identity." />
   </Target>
