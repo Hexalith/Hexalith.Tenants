@@ -719,6 +719,37 @@ public class EventPublicationConfigurationTests {
     }
 
     [Fact]
+    public void LocalKeycloakRealm_StampsOnlyTheActualBrowserClientsAccessTokenAsUi()
+    {
+        string realmPath = RepositoryPath("src", "Hexalith.Tenants.AppHost", "KeycloakRealms", "hexalith-realm.json");
+        using JsonDocument document = JsonDocument.Parse(File.ReadAllText(realmPath));
+        JsonElement[] clients = [.. document.RootElement.GetProperty("clients").EnumerateArray()];
+        JsonElement browser = clients.Single(client => client.GetProperty("clientId").GetString() == "hexalith-tenants-ui");
+        browser.GetProperty("standardFlowEnabled").GetBoolean().ShouldBeTrue();
+        browser.GetProperty("serviceAccountsEnabled").GetBoolean().ShouldBeFalse();
+        browser.GetProperty("directAccessGrantsEnabled").GetBoolean().ShouldBeFalse();
+        JsonElement SurfaceMapper(JsonElement client) => client.GetProperty("protocolMappers").EnumerateArray()
+            .Single(mapper => mapper.GetProperty("config").TryGetProperty("claim.name", out var claim) && claim.GetString() == "eventstore:surface");
+        JsonElement mapper = SurfaceMapper(browser);
+        mapper.GetProperty("protocolMapper").GetString().ShouldBe("oidc-hardcoded-claim-mapper");
+        JsonElement config = mapper.GetProperty("config");
+        config.GetProperty("claim.value").GetString().ShouldBe("ui");
+        config.GetProperty("access.token.claim").GetString().ShouldBe("true");
+        config.GetProperty("id.token.claim").GetString().ShouldBe("false");
+        config.GetProperty("userinfo.token.claim").GetString().ShouldBe("false");
+        foreach (JsonElement client in clients.Where(client => client.GetProperty("clientId").GetString() != "hexalith-tenants-ui"))
+        {
+            if (client.TryGetProperty("protocolMappers", out var mappers))
+                mappers.EnumerateArray().Any(candidate => candidate.GetProperty("config").TryGetProperty("claim.name", out var name) && name.GetString() == "eventstore:surface").ShouldBeFalse();
+        }
+        foreach (JsonElement scope in document.RootElement.GetProperty("clientScopes").EnumerateArray())
+        {
+            if (scope.TryGetProperty("protocolMappers", out var mappers))
+                mappers.EnumerateArray().Any(candidate => candidate.GetProperty("config").TryGetProperty("claim.name", out var name) && name.GetString() == "eventstore:surface").ShouldBeFalse();
+        }
+    }
+
+    [Fact]
     public void LocalKeycloakRealm_DeclaresScopedEventStoreWorkloadClientAndDefaultHumanScopes()
     {
         string realmPath = RepositoryPath("src", "Hexalith.Tenants.AppHost", "KeycloakRealms", "hexalith-realm.json");

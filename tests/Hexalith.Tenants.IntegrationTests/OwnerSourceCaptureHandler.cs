@@ -11,6 +11,11 @@ namespace Hexalith.Tenants.IntegrationTests;
 /// <summary>Captures the owner-source HTTP boundary without a sidecar or network listener.</summary>
 internal sealed class OwnerSourceCaptureHandler(AuthoritativeEventStream? source = null, RSA? scopeKey = null) : HttpMessageHandler
 {
+    private OwnerSourceCaptureHandler? _observer;
+
+    /// <summary>Creates a separately owned nonredirecting SDK test transport sharing only recorded observations.</summary>
+    internal OwnerSourceCaptureHandler CreateIndependentTransport() => new(source, scopeKey) { _observer = this };
+
     internal int ReadCount { get; private set; }
     internal HttpMethod? Method { get; private set; }
     internal Uri? Uri { get; private set; }
@@ -24,6 +29,14 @@ internal sealed class OwnerSourceCaptureHandler(AuthoritativeEventStream? source
         Headers = request.Headers.ToDictionary(static header => header.Key, static header => header.Value.ToArray(), StringComparer.OrdinalIgnoreCase);
         Body = await request.Content!.ReadAsStringAsync(cancellationToken);
         ReadCount++;
+        if (_observer is { } observer)
+        {
+            observer.Method = Method;
+            observer.Uri = Uri;
+            observer.Headers = Headers;
+            observer.Body = Body;
+            observer.ReadCount++;
+        }
         var read = JsonSerializer.Deserialize<StreamReadRequest>(Body, JsonSerializerOptions.Web)!;
         if (source is not null)
         {

@@ -23,7 +23,8 @@ namespace Hexalith.Tenants.IntegrationTests.Fixtures;
 /// and requires projected caller authority after its explicit post-startup bootstrap.
 /// </remarks>
 public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith_Tenants_AppHost>, IAsyncLifetime {
-    internal const string DemoSigningKey = "DevOnlySigningKey-AtLeast32Chars!";
+    internal static string DemoSigningKey => Environment.GetEnvironmentVariable("TENANTS_SOURCE_CATALOG_SIGNING_KEY")
+        ?? "DevOnlySigningKey-AtLeast32Chars!";
     private static readonly TimeSpan CommandApiHealthTimeout = TimeSpan.FromMinutes(4);
     private static readonly TimeSpan TenantsApiHealthTimeout = TimeSpan.FromMinutes(4);
     private static readonly TimeSpan SampleHealthTimeout = TimeSpan.FromMinutes(2);
@@ -65,6 +66,8 @@ public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith
             string.Equals(Environment.GetEnvironmentVariable("TENANTS_LIVE_REQUIRE_COLD_BOOTSTRAP"), "true", StringComparison.OrdinalIgnoreCase),
             timeout.Token);
     }
+
+    internal static bool IsSourceCatalogProfile => string.Equals(Environment.GetEnvironmentVariable("TENANTS_SOURCE_CATALOG_PROFILE"), "true", StringComparison.Ordinal);
 
     /// <summary>Gets the inherited worker profile captured before the AppHost child processes start.</summary>
     internal bool ProjectionWorkersEnabledAtStartup { get; private set; }
@@ -117,7 +120,7 @@ public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith
         string?[] previous = keys.Select(Environment.GetEnvironmentVariable).ToArray();
         try
         {
-            Environment.SetEnvironmentVariable(keys[0], "false");
+            Environment.SetEnvironmentVariable(keys[0], IsSourceCatalogProfile ? "true" : "false");
             Environment.SetEnvironmentVariable(keys[1], "00:00:01");
             await initialize();
         }
@@ -179,6 +182,10 @@ public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith
     private static async Task<(long? Sequence, string? Failure)> SubmitBootstrapAsync(
         HttpClient commandApi, string token, bool requireColdBootstrap, CancellationToken cancellationToken)
     {
+#if HEXALITH_DEVELOPMENT_CATALOG_COHORT
+        if (IsSourceCatalogProfile)
+            return await SourceCatalogBootstrapEvidence.WaitForOwnedBootstrapAsync(commandApi, token, requireColdBootstrap, cancellationToken);
+#endif
         // Retrying the same immutable request preserves the gateway's command/idempotency identity.
         var command = AspireTopologyTests.CreateCommand("global-administrators", "global-administrators",
             nameof(BootstrapGlobalAdmin), new BootstrapGlobalAdmin(AuthenticatedRouteState.CallerId));
@@ -342,6 +349,12 @@ public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith
         new("tenants-dapr-cli", "http", TenantsApiClientTimeout, TenantsApiHealthTimeout, WaitForAliveness: false, TenantsApiHealthTimeout),
         new("tenants-ui-dapr-cli", "http", TenantsApiClientTimeout, TenantsApiHealthTimeout, WaitForAliveness: false, TenantsApiHealthTimeout),
         new("sample", "http", SampleClientTimeout, SampleHealthTimeout, WaitForAliveness: true, SampleHealthTimeout),
+#if HEXALITH_DEVELOPMENT_CATALOG_COHORT
+        // The source qualification also drives the real Admin UI's existing SSR/client transport.
+        .. IsSourceCatalogProfile
+            ? new AspireResource[] { new("eventstore-admin-ui", "http", TenantsApiClientTimeout, TenantsApiHealthTimeout, WaitForAliveness: false, TenantsApiHealthTimeout) }
+            : [],
+#endif
         // HTTPS is required because tenants-api redirects HTTP. Aliveness is polled by the Story 4.7
         // proof with that test's timeout so a slow or unhealthy generated API does not stall the
         // shared fixture's 6-minute startup budget or the other topology tests.
@@ -381,4 +394,9 @@ public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith
 
     /// <summary>Gets the HTTP client for the Sample service.</summary>
     public HttpClient SampleClient => Client("sample");
+
+#if HEXALITH_DEVELOPMENT_CATALOG_COHORT
+    /// <summary>Gets the real Admin UI child for source-profile issuer and proxy qualification.</summary>
+    internal HttpClient AdminUiClient => Client("eventstore-admin-ui");
+#endif
 }

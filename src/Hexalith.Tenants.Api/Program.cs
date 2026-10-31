@@ -22,7 +22,10 @@ builder.AddServiceDefaults();
 // gateway client; the interactive UI uses EventStore client libraries directly.
 builder.Services.AddControllers();
 builder.Services.AddHttpContextAccessor();
-#if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
+#if HEXALITH_DEVELOPMENT_CATALOG_COHORT
+builder.Services.AddEventStoreDevelopmentGeneratedRestCatalog(builder.Configuration, "tenants-api",
+    typeof(Hexalith.Tenants.Contracts.Routing.TenantCatalogDeclarations).Assembly);
+#elif HEXALITH_DEVELOPMENT_CATALOG_SOURCE
 builder.Services.AddEventStoreRouteCatalog(builder.Configuration);
 string? catalogAppId = builder.Configuration["EventStore:DomainService:AppId"];
 if (!string.IsNullOrEmpty(builder.Configuration["EventStore:RouteCatalog:DevelopmentBootstrap:Directory"])
@@ -138,6 +141,9 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseRouting();
+#if HEXALITH_DEVELOPMENT_CATALOG_COHORT
+app.UseEventStoreDevelopmentGeneratedRestCatalogReceiver();
+#endif
 #if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
 app.UseEventStoreHttpHostSecurity();
 #endif

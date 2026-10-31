@@ -764,6 +764,7 @@ public class AspireTopologyTests : IDisposable {
         Claim[] claims =
         [
             new("sub", BootstrapGlobalAdminUserId),
+            new("eventstore:surface", "ui"),
             new("tenants", "[\"system\"]"),
             new("domains", "[\"global-administrators\",\"tenants\"]"),
             new("permissions", "[\"command:submit\",\"query:read\"]"),
