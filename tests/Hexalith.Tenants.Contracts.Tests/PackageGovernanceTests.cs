@@ -135,10 +135,22 @@ public class PackageGovernanceTests {
     }
 
     [Fact]
+    public void Source_edges_do_not_export_a_foreign_assembly_version() {
+        string root = FindRepoRoot();
+        foreach (string project in Directory.EnumerateFiles(Path.Combine(root, "src"), "*.csproj", SearchOption.AllDirectories)) {
+            foreach (XElement edge in XDocument.Load(project).Descendants("ProjectReference")) {
+                string metadata = ItemMetadataValue(edge, "AdditionalProperties");
+                metadata.Split(';').Any(value => value.TrimStart().StartsWith("Version=", StringComparison.OrdinalIgnoreCase))
+                    .ShouldBeFalse($"{project}: source references must retain their dependency's assembly version.");
+            }
+        }
+    }
+
+    [Fact]
     public void EventStore_host_dependencies_follow_one_complementary_source_package_policy() {
         const string SourceCondition = "'$(HexalithEventStoreFromSource)' == 'true'";
         const string PackageCondition = "'$(HexalithEventStoreFromSource)' != 'true'";
-        const string VersionMetadata = "Version=$(HexalithEventStoreVersion)";
+        const string VersionMetadata = "HexalithEventStoreVersion=$(HexalithEventStoreVersion)";
         const string HostProjectPath = "src/Hexalith.Tenants/Hexalith.Tenants.csproj";
 
         string repoRoot = FindRepoRoot();
