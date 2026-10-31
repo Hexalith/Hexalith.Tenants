@@ -65,6 +65,26 @@ suites because current tests assert fixture-owned fakes and startup controls.
   Result: zero problems, zero warnings; evidence is retained at
   `/tmp/tenants-ci-fix-commitlint.log`. Live CI and release publication follow this
   implementation commit and remain subject to the unchanged workflow gates.
+- Live-topology inspection found a second compatibility boundary: the shared
+  Aspire helper launches source executable hosts. Current EventStore source now
+  requires catalog identity/profile while this frozen topology supplies neither.
+  Disposable package-CI jobs select source revision
+  717a06e16c3afd81b904eaf4de646b74b13262d2, verified from all inspected 3.128.4
+  package nuspecs, through the existing package preparation hook. The source lane
+  and tracked submodule gitlink remain current; catalog admission is not weakened.
+- The preparation hook preserves current source in build-and-test; only the three
+  declared topology executor jobs select frozen hosts. Disposable-clone validation
+  proved exact selection, preservation in build-and-test, refusal outside Actions,
+  refusal for unknown jobs/dirty checkouts, and no change to this workspace.
+- Wider package validation passed Client 50, Testing 182, UI 8,054, Sample 40,
+  AppHost 42 and Server 1,624 tests. Contracts had 769 passing tests and two
+  governance failures: an attribute-only metadata reader and four missing parent
+  Version-removal entries. Both were repaired and their focused tests passed (2/2)
+  after a warning-free package build. The unchanged complementary dependency and
+  dependency-owned-version requirements remain enforced.
+- Follow-up script/workflow review reported no actionable findings. The follow-up
+  commit message also passed pinned commitlint with zero problems/warnings;
+  evidence: /tmp/tenants-bootstrap-host-commitlint.log.
 
 ## Review Triage Log
 

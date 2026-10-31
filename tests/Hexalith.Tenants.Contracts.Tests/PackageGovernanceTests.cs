@@ -181,7 +181,7 @@ public class PackageGovernanceTests {
                 violations.Add($"{HostProjectPath}: {packageId} ProjectReference condition is '{condition}', expected '{SourceCondition}'.");
             }
 
-            if (!string.Equals((string?)projectReference.Attribute("AdditionalProperties"), VersionMetadata, StringComparison.Ordinal)) {
+            if (!string.Equals(ItemMetadataValue(projectReference, "AdditionalProperties"), VersionMetadata, StringComparison.Ordinal)) {
                 violations.Add($"{HostProjectPath}: {packageId} ProjectReference must carry AdditionalProperties=\"{VersionMetadata}\".");
             }
         }

@@ -139,6 +139,11 @@ environment descriptors exclusively; new suites for that API must declare runner
 bindings and run through `hexalith-module test` with
 `HEXALITH_TEST_ENVIRONMENT_PATH`. Existing fixture-owned failure injection and
 cold-bootstrap checks remain in the compatibility lane.
+Its disposable CI jobs also select EventStore host source
+`717a06e16c3afd81b904eaf4de646b74b13262d2`, the repository revision recorded by
+the published 3.128.4 packages. These non-packaged executable hosts therefore
+match the fixture/runtime baseline. The tracked submodule pin and the
+source-reference workflow continue to exercise current source.
 
 ## License
 

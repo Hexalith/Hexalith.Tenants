@@ -32,6 +32,8 @@ jobs:
           persist-credentials: false
       - name: Initialize root-declared submodules
         run: git -c submodule.recurse=false submodule update --init
+      - name: Select published bootstrap compatibility hosts
+        run: bash scripts/prepare-bootstrap-compatibility.sh
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           global-json-file: global.json
@@ -237,6 +239,9 @@ jobs:
       solution: Hexalith.Tenants.slnx
       test-platform: microsoft-testing-platform
       run-consumer-validation: true
+      # The hook selects published 3.128.4 host source in topology jobs only;
+      # build-and-test and source-reference.yml retain the current source gitlink.
+      package-prepare-script: scripts/prepare-bootstrap-compatibility.sh
       run-coverage-gate: true
       # Restore/build/package consumers plus the bounded recovery controls exceed the shared 15-minute default.
       build-timeout-minutes: 25
