@@ -51,6 +51,23 @@ public class PartialReleasePublicationTests
     }
 
     /// <summary>
+    /// Catalog artifact qualification must succeed before any recovery destination changes.
+    /// </summary>
+    /// <param name="inventory">The destinations requiring publication.</param>
+    [Theory]
+    [InlineData("package")]
+    [InlineData("package-existing")]
+    [InlineData("container")]
+    [InlineData("release")]
+    [InlineData("mixed")]
+    [InlineData("mixed-existing")]
+    [InlineData("all-missing")]
+    public async Task CatalogQualificationFailurePreventsEveryPublication(string inventory)
+    {
+        await RunPublisherAsync(inventory, "catalog-refused");
+    }
+
+    /// <summary>
     /// Main advancement during any preparation stage prevents every publication path.
     /// </summary>
     /// <param name="inventory">The destinations requiring publication.</param>
@@ -59,26 +76,31 @@ public class PartialReleasePublicationTests
     [InlineData("package", "build")]
     [InlineData("package", "pack")]
     [InlineData("package", "packages")]
+    [InlineData("package", "catalog-consumer")]
     [InlineData("package", "consumers")]
     [InlineData("package", "hash")]
     [InlineData("container", "build")]
     [InlineData("container", "pack")]
     [InlineData("container", "packages")]
+    [InlineData("container", "catalog-consumer")]
     [InlineData("container", "consumers")]
     [InlineData("container", "hash")]
     [InlineData("release", "build")]
     [InlineData("release", "pack")]
     [InlineData("release", "packages")]
+    [InlineData("release", "catalog-consumer")]
     [InlineData("release", "consumers")]
     [InlineData("release", "hash")]
     [InlineData("mixed", "build")]
     [InlineData("mixed", "pack")]
     [InlineData("mixed", "packages")]
+    [InlineData("mixed", "catalog-consumer")]
     [InlineData("mixed", "consumers")]
     [InlineData("mixed", "hash")]
     [InlineData("all-missing", "build")]
     [InlineData("all-missing", "pack")]
     [InlineData("all-missing", "packages")]
+    [InlineData("all-missing", "catalog-consumer")]
     [InlineData("all-missing", "consumers")]
     public async Task MainAdvancementDuringPreparationRefusesPublication(string inventory, string stage)
     {
@@ -486,6 +508,11 @@ public class PartialReleasePublicationTests
                     "${FIXTURE_PACKER} --manifest ${FIXTURE_MANIFEST} --validate-only") command python3 "$@" ;;
                     "scripts/pack-release-packages.py ./nupkgs ${FIXTURE_VERSION} --manifest ${FIXTURE_MANIFEST}") prepare pack ;;
                     "scripts/validate-nuget-packages.py ./nupkgs --manifest ${FIXTURE_MANIFEST}") prepare packages ;;
+                    "scripts/verify-catalog-package-consumer.py ./nupkgs --expected-source-sha ${FIXTURE_SHA} --output ${HEXALITH_RECOVERY_STATE_DIRECTORY}/catalog-package-consumer.json")
+                      [ "$#" = 6 ] && [ "${RepositoryCommit:-}" = "$FIXTURE_SHA" ] || { unexpected "catalog consumer $*"; return 97; }
+                      prepare catalog-consumer
+                      if [ "$FIXTURE_RESPONSE" = catalog-refused ]; then echo 'Catalog package qualification failed.' >&2; return 17; fi
+                      printf '{"result":"pass"}\n' > "$6" ;;
                     'scripts/validate-consumer-package-references.py ./nupkgs') prepare consumers ;;
                     *) unexpected "python3 $*" ;;
                   esac
@@ -587,7 +614,7 @@ public class PartialReleasePublicationTests
             string diagnostics = await output + await error;
             (await File.ReadAllTextAsync(unexpectedLog)).ShouldBeEmpty(diagnostics);
             string[] calls = await File.ReadAllLinesAsync(callLog);
-            List<string> expected = ["main", "build", "pack", "packages", "consumers"];
+            List<string> expected = ["main", "build", "pack", "packages", "catalog-consumer", "consumers"];
             expected.AddRange(existingIds.Select(id => $"hash nupkgs/{id}.{version}.nupkg"));
             expected.AddRange(ids.Select(id => $"hash nupkgs/{id}.{version}.nupkg"));
             expected.AddRange(ids.Select(id => $"hash nupkgs/{id}.{version}.nupkg"));
@@ -600,6 +627,7 @@ public class PartialReleasePublicationTests
             }
             string? refusal = response switch
             {
+                "catalog-refused" => "Catalog package qualification failed.",
                 "source-mismatch" => "Source changed during recovery.",
                 "version-mismatch" => "Recovery version changed.",
                 "missing-inventory" => "Missing-package state is absent.",
@@ -618,14 +646,18 @@ public class PartialReleasePublicationTests
             {
                 expected = ["main"];
             }
+            else if (response == "catalog-refused")
+            {
+                expected = ["main", "build", "pack", "packages", "catalog-consumer"];
+            }
             else if (response == "hash-mismatch")
             {
-                expected = ["main", "build", "pack", "packages", "consumers"];
+                expected = ["main", "build", "pack", "packages", "catalog-consumer", "consumers"];
                 expected.AddRange(existingIds.Take(mismatchIndex + 1).Select(id => $"hash nupkgs/{id}.{version}.nupkg"));
             }
             else if (response.StartsWith("hash-", StringComparison.Ordinal))
             {
-                expected = ["main", "build", "pack", "packages", "consumers"];
+                expected = ["main", "build", "pack", "packages", "catalog-consumer", "consumers"];
                 expected.AddRange(existingIds.Take(mismatchIndex).Select(id => $"hash nupkgs/{id}.{version}.nupkg"));
             }
 
@@ -652,7 +684,7 @@ public class PartialReleasePublicationTests
             }
             else
             {
-                process.ExitCode.ShouldBe(response == "stable" ? 0 : response == "unavailable" ? 7 : 1, diagnostics);
+                process.ExitCode.ShouldBe(response == "stable" ? 0 : response == "unavailable" ? 7 : response == "catalog-refused" ? 17 : 1, diagnostics);
             }
             if (refusal is not null)
             {
@@ -673,8 +705,10 @@ public class PartialReleasePublicationTests
             string[] gateEvidenceFiles = response is "source-mismatch" or "version-mismatch" or "missing-inventory"
                 ? [] : preparedFiles.Length > 0
                     ? ["source-gates-preparation.json", "source-gates-publication.json"] : ["source-gates-preparation.json"];
+            string[] catalogEvidenceFiles = response is "source-mismatch" or "version-mismatch" or "missing-inventory" or "initially-stale" or "catalog-refused"
+                ? [] : ["catalog-package-consumer.json"];
             Directory.GetFiles(stateDirectory).Select(Path.GetFileName).Order(StringComparer.Ordinal)
-                .ShouldBe(originalState.Keys.Concat(preparedFiles).Concat(gateEvidenceFiles)
+                .ShouldBe(originalState.Keys.Concat(preparedFiles).Concat(gateEvidenceFiles).Concat(catalogEvidenceFiles)
                     .Concat(existingIds.Select(id => $"{id}.{version}.nupkg")).Order(StringComparer.Ordinal));
         }
         finally

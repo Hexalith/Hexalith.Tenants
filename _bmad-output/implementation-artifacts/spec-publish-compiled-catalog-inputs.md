@@ -73,6 +73,7 @@ Allowed files for this story:
 - `tools/catalog-package-consumer/approved-route-ids.txt`
 - `src/Hexalith.Tenants/Hexalith.Tenants.csproj`
 - `tests/scripts/test_hosted_package_profile.py`
+- `tests/Hexalith.Tenants.Contracts.Tests/PartialReleasePublicationTests.cs`
 
 No declaration body, canonical intent normalization, grant or Production trust implementation changes.
 
@@ -158,6 +159,7 @@ The parent owns three independent reviews, hosted exact-source CI and Release.
 - `tools/catalog-package-consumer/approved-route-ids.txt`
 - `src/Hexalith.Tenants/Hexalith.Tenants.csproj`
 - `tests/scripts/test_hosted_package_profile.py`
+- `tests/Hexalith.Tenants.Contracts.Tests/PartialReleasePublicationTests.cs`
 
 ## Completion Notes
 
@@ -502,3 +504,34 @@ both owner dependencies are packages, with no owner project dependency. Logs
 `/tmp/tenants-hosted-public-profile-assets.json`. This is ABI/profile proof only;
 5.11.2 lacks compiled catalog enrollment and cannot qualify Root's actual6.0.0
 catalog. Parent owns the mandatory future6.0.0 public-PE runtime qualification.
+
+
+### Complete recovery-publication harness routing
+
+Final67d9 CI41203800517 has green published-catalog, blocking HTTP,
+authenticated live routes, source-reference41203800132, CodeQL and story guards.
+The shared job builds successfully and every shard except Contracts.Tests passes.
+Its138 failures all come from the unchanged strict unexpected-command assertion
+in PartialReleasePublicationTests: this C# recovery harness was omitted when the
+new required actual catalog-consumer command was added to recovery preparation.
+Python candidate/recovery harness adapters had been updated; this separate C#
+harness adapter was still missing. Production validation correctly remained
+mandatory and did not fail open.
+
+Update only the isolated C# publication tool adapter to accept exactly the new
+consumer script/path, six arguments, expected reviewed source and receipt output,
+and require RepositoryCommit to match that reviewed source. Record the new gate
+in exact expected call ordering and the receipt in exact state-file inventories.
+All existing source/hash/main/destination/refusal assertions remain. Add5 cases
+for main advancement during the new preparation gate and7 cases requiring catalog
+qualification failure to stop all recovery publication inventories before effects.
+Actual production scripts, validators, public artifacts and runtime code are
+unchanged.
+
+All142 existing class cases plus12 new cases pass154/154, zero errors/failures/
+skips, in148.600s. Affected Contracts.Tests build has zero warnings/errors. Logs
+`/tmp/tenants-recovery-consumer-fixture-build.log` and
+`/tmp/tenants-recovery-consumer-fixture-tests.log`. The first archive-only fixture
+probe lacked the existing helper's required Builds checkout; final proof uses
+the already recorded genuine detached exact source worktrees and bypasses no
+guard. Only this affected class was executed; no broader rerun.
