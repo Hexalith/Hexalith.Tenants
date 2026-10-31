@@ -984,43 +984,13 @@ source_spec: `_bmad-output/implementation-artifacts/spec-1-9-authoritative-memor
 archived: 2026-10-12
 
 ### DW-116: The "exactly one polite live region" proof is an artefact of bUnit's missing shadow DOM
-origin: migrated from legacy ledger ("Deferred from: code review of spec-1-9-authoritative-memories-search-with-protected-paging (2026-07-27)"), 2026-08-25
-location: TenantListSurfaceTests.cs:1866
-source_spec: `_bmad-output/implementation-artifacts/spec-1-9-authoritative-memories-search-with-protected-paging.md`
-reason: The legacy ledger defers this issue: The "exactly one polite live region" proof is an artefact of bUnit's missing shadow DOM. Original context is preserved in legacy-detail.
-legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-1-9-authoritative-memories-search-with-protected-paging.md` summary: The "exactly one polite live region" proof is an artefact of bUnit's missing shadow DOM. evidence: `TenantListSurfaceTests.cs:1866` counts live regions in markup where `<fluent-message-bar>` renders as an inert custom element. The shipped Fluent v5 module sets `role="status" aria-live="polite"` on each bar's internal dialog at runtime, so a real browser nests a live region per bar inside the workspace's outer one. The helper degenerates to `0.ShouldBe(0)` on the empty-notice call. status: open — blocked on BROWSER-SEARCH-1.9 and AT-NVDA-1.9, both already open.
+
 status: done 2026-10-30
-disposition: blocked
-verification-date: 2026-10-12
-verification: tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs counts light-DOM aria-live markup; Components/Shared/ListSurfaceStates.razor uses Fluent messages. This cannot establish the real shadow-DOM or screen-reader announcement count.
-verification-files: tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs; src/Hexalith.Tenants.UI/Components/Shared/ListSurfaceStates.razor
-evidence-kind: unverified-risk
+origin: migrated from legacy ledger ("Deferred from: code review of spec-1-9-authoritative-memories-search-with-protected-paging (2026-07-27)"), 2026-08-25
+source_spec: `_bmad-output/implementation-artifacts/spec-1-9-authoritative-memories-search-with-protected-paging.md`
 priority: P2
-owner: unassigned
-dependencies: BROWSER-SEARCH-1.9 and AT-NVDA-1.9
-next-action: Capture authenticated search live-region and NVDA evidence with the shipped Fluent runtime.
-related: DW-104
+archived: 2026-10-30
 
-qualification-date: 2026-10-29
-qualification: Authenticated Chromium qualification captures the existing outer status/polite/atomic region, notice containment, Fluent 5.0.1 ElementInternals role=status and computed AX live semantics for empty, one-notice and two-notice search states. Each notice contributes another computed status; the light-DOM helper now names only its actual structural proof. Browser evidence does not count or prove speech.
-qualification-decision: Keep open pending actual authenticated NVDA search speech evidence; the browser portion has current qualification and does not waive AT-NVDA-1.9.
-qualification-next-action: Execute docs/tenants-ui-deferred-at-handoff.md in EN/FR and record actual speech, omissions and duplicates before proposing closure.
-qualification-evidence: dw-116-137-446-459-466-validation-evidence.md
-
-native-disposition-date: 2026-10-30
-native-disposition: open-incomplete-native-qualification
-native-outcome: 2026-10-30: Clean native EN S3 traces on NVDA/Chrome and NVDA/Firefox convey both notices once; remaining search culture/pairing cells and independent acceptance remain open.
-native-blocker: Complete applicable EN/FR S0–S3 or C1–C3 cells on both declared pairings and independent acceptance are still missing. Repeated external foreground interruptions and contaminated queued output remain failures, with no waiver.
-native-evidence: five-deferred-native-speech-validation-evidence.md; evidence/five-deferred-native-speech/
-
-remaining-batch-date: 2026-10-30
-remaining-batch-result: Fresh full-plan native Chrome/Firefox EN/FR collector attempts are blocked before authentication and product capture by two RouteOperationContract CS0246 errors in the current-source build. Zero of 48 total windows qualify; no new S0-S3 search speech or independent acceptance exists. Original findings and all previous packet limitations remain unchanged; keep open.
-remaining-batch-evidence: five-remaining-speech-and-browser-validation-evidence.md
-
-
-resumed-batch-date: 2026-10-30
-resumed-batch-result: Independent assessment accepts only DW-116's 16 Search queued-notice windows on frozen c2da6bac in NVDA/Chrome and NVDA/Firefox, EN/FR: no stale notice in S0, complete S1/S2 guidance once and both S3 bodies in order without body loss/repetition. Close this narrow queued-notice contract only; repeated component dismiss labels, English dismiss labels in FR, unknown causes, audible-completion limits and unrelated release/localization holds remain. Original findings and fields are preserved. Acceptance: evidence/five-remaining-speech-and-browser-resumed/independent-at-assessment.json.
-resumed-batch-evidence: five-remaining-speech-and-browser-resumed-validation-evidence.md
 ### DW-117: Surfacing codec exceptions escape the gateway and reach an unguarded LoadAsync, tearing down the Blazor circuit
 
 status: done 2026-10-28
@@ -1166,36 +1136,11 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-1-10-di
 archived: 2026-10-12
 
 ### DW-137: Future feature — reversible route identifiers:
-origin: migrated from legacy ledger ("Deferred from: code review of spec-1-10-direct-tenants-reads-and-authoritative-freshness (2026-07-29)"), 2026-08-25
-location: src/Hexalith.Tenants.UI/Services/Gateways/TenantsRestQueryClient.cs:530
-reason: The legacy ledger defers this issue: Future feature — reversible route identifiers:. Original context is preserved in legacy-detail.
-legacy-detail: - **Future feature — reversible route identifiers:** Define an explicit backend route contract for literal tenant/user identifiers containing `/`, then update the six direct-read endpoints and clients to round-trip that representation. Until this is delivered, the direct-read client must fail closed for this identifier class rather than issue an ambiguous encoded-slash request. Owner: future Tenants API route-contract work. Reason: future feature. [src/Hexalith.Tenants.UI/Services/Gateways/TenantsRestQueryClient.cs:530]
+
 status: done 2026-10-30
-decision: 2026-08-27 Define reversible routes — Define and implement a reversible identifier route contract across all six API endpoints and clients, with slash and dot round-trip and traversal-safety tests.
-decision: 2026-08-27 Define reversible routes — Define and implement a reversible identifier route contract across all six API endpoints and clients, with slash and dot round-trip and traversal-safety tests.
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Services/Gateways/TenantsRestQueryClient.cs still rejects ambiguous slash/all-dot route identifiers. The 2026-08-27 decision approves defining reversible routes, but there is no implemented six-route round-trip contract.
-verification-files: src/Hexalith.Tenants.UI/Services/Gateways/TenantsRestQueryClient.cs
-evidence-kind: recommendation
+origin: migrated from legacy ledger ("Deferred from: code review of spec-1-10-direct-tenants-reads-and-authoritative-freshness (2026-07-29)"), 2026-08-25
 priority: P2
-owner: future Tenants API route-contract work
-dependencies: Tenants API route-contract design
-next-action: Specify the reversible route representation and slash/dot/traversal tests before changing client/controller behavior.
-related: none
-
-qualification-date: 2026-10-29
-qualification: The existing pre-HTTP slash/backslash/all-dot refusal passes current Debug/source tests and remains unchanged. Tenant identifiers feed durable AggregateIdentity addresses, so reversible route encoding cannot override downstream shared identity validation. GetUserTenantsQuery instead binds the fixed index aggregate and the requested UserId as EntityId: a user lookup need not change durable tenant aggregate addresses.
-qualification-decision: Preserve the shared identifier restrictions and keep open. User-only reversible route support would be a separate future feature requiring an approved contract; it is not implemented or authorized by this qualification.
-qualification-next-action: Obtain the appropriate shared contract decision for tenant identities, or separately scope and approve user-only lookup support, before changing routes, validators or transport.
-qualification-evidence: dw-116-137-446-459-466-validation-evidence.md
-
-native-disposition-date: 2026-10-30
-native-disposition: accepted-contract-limitation
-native-approval: The user approved the frozen spec and said "approve and continue" on 2026-10-30. This supersedes the earlier reversible-route implementation decision for this record only.
-native-resolution: Reversible-identifier support is withdrawn. Existing pre-HTTP slash/backslash/all-dot refusals and shared durable AggregateIdentity restrictions remain. No reversible-route feature, transport change or durable-identity fix is implemented or claimed.
-native-reopen: Reopen only through separately approved shared-identity contract work or separately approved user-only route-contract work.
-native-evidence: five-deferred-native-speech-validation-evidence.md
+archived: 2026-10-30
 
 ### DW-138: Deferred to Story 1.11
 
@@ -1577,28 +1522,12 @@ priority: P2
 archived: 2026-10-30
 
 ### DW-195: JS/viewport submit-time narrow-layout guard beyond CSS fail-closed for remove-member
+
+status: done 2026-10-14
 origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md (2026-08-08)"), 2026-08-25
-location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md`
-reason: The legacy ledger defers this issue: JS/viewport submit-time narrow-layout guard beyond CSS fail-closed for remove-member. Original context is preserved in legacy-detail.
-legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md` summary: JS/viewport submit-time narrow-layout guard beyond CSS fail-closed for remove-member. evidence: Matches established RemoveTenantConfigurationFlow CSS-only narrow gate; changing to a runtime viewport gate needs an explicit Ask First decision.
-pre-b7-verification-date: 2026-10-12
-pre-b7-verification: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor still has no measured viewport gate at submit; its stylesheet alone hides the form. Existing 2026-08-25/26 decisions require fail-closed runtime measurement.
-pre-b7-next-action: Use the selected viewport observation gate and refuse unknown/narrow submissions.
-status: done 2026-10-14 (B7 closure)
-decision: 2026-08-26 Runtime viewport gate — Reuse viewport observation and refuse submit whenever measured safety is unknown or narrow.
-decision: 2026-08-25 Runtime viewport gate — Reuse the high-impact viewport observation pattern and refuse submit whenever measured safety is unknown or narrow.
-disposition: done
-verification-date: 2026-10-14
-verification: B7 reuses TenantHighImpactViewportObservation and requires HasMeasurement plus Safe for direct submit/retry and after awaited admission. Missing, unmeasured, measured Unknown, Phone and resize cases prove zero dispatch; safe measured submissions and retained proof pass. See b7-validation-evidence.md.
-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor
-evidence-kind: verified-closure
 priority: P2
-owner: unassigned
-dependencies: shared viewport observation
-next-action: None for this finding; validated B7 closure does not imply release readiness.
-closure-evidence: `_bmad-output/implementation-artifacts/b7-validation-evidence.md`; `_bmad-output/implementation-artifacts/spec-b7-live-admission.md`
-related: DW-242
+archived: 2026-10-31
 
 ### DW-196: Remove-member WP-2A assembly only inspects the first audit page; matching UserRemovedFromTenant rows on later pages can leave proof pending
 
@@ -1674,28 +1603,12 @@ source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadat
 archived: 2026-10-12
 
 ### DW-206: Metadata IsAuthorized still defaults true with no contributor/global-admin BFF authorization reflection wired from TenantDetailPage
+
+status: done 2026-10-14
 origin: migrated from legacy ledger ("Deferred from: implementation of spec-3-2-edit-tenant-metadata-with-recorded-updates.md (2026-08-08)"), 2026-08-25
-location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md`
-reason: The legacy ledger defers this issue: Metadata IsAuthorized still defaults true with no contributor/global-admin BFF authorization reflection wired from TenantDetailPage. Original context is preserved in legacy-detail.
-legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md` summary: Metadata IsAuthorized still defaults true with no contributor/global-admin BFF authorization reflection wired from TenantDetailPage. evidence: Story 3.2 blind-hunter review and Ask First deferral; member flows share the same default-true pattern, so inventing metadata-only reflection was out of this slice.
-pre-b7-verification-date: 2026-10-12
-pre-b7-verification: src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor still defaults IsAuthorized=true; Components/Pages/TenantDetailPage.razor does not bind it. Recorded 2026-08-25/26 contributor/global-administrator reflection decisions are not implemented for metadata.
-pre-b7-next-action: Bind tenant-scoped contributor/global-administrator evidence and fail closed while authority is indeterminate.
-status: done 2026-10-14 (B7 closure)
-decision: 2026-08-26 Role-aware BFF reflection — Add tenant-scoped contributor or global-administrator reflection and fail closed while authority is indeterminate.
-decision: 2026-08-25 Role-aware BFF reflection — Extend BFF composition with tenant-scoped role-aware reflection and fail closed while contributor authority is indeterminate.
-disposition: done
-verification-date: 2026-10-14
-verification: B7 binds metadata to the current literal-tenant Owner/Contributor or global-administrator BFF reflection; defaults and failed/pending authority are closed. Real parent/fresh membership, stale caller/tenant/response, preview revocation, post-lease and successful submission regressions pass. See b7-validation-evidence.md.
-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor; src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor
-evidence-kind: verified-closure
 priority: P2
-owner: unassigned
-dependencies: role-aware BFF seam
-next-action: None for this finding; validated B7 closure does not imply release readiness.
-closure-evidence: `_bmad-output/implementation-artifacts/b7-validation-evidence.md`; `_bmad-output/implementation-artifacts/spec-b7-live-admission.md`
-related: DW-235, DW-264
+archived: 2026-10-31
 
 ### DW-207: After Confirmed/Rejected/Failed, retained MessageId can be reused on a deliberate new metadata edit instead of minting a new ULID
 
@@ -1911,28 +1824,12 @@ priority: P2
 archived: 2026-10-16
 
 ### DW-235: Fail membership action availability closed against live authorization reflection
+
+status: done 2026-10-14
 origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof (2026-08-20)"), 2026-08-25
-location: MemberAccessReview
 source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md`
-reason: The legacy ledger defers this issue: Fail membership action availability closed against live authorization reflection. Original context is preserved in legacy-detail.
-legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md` summary: Fail membership action availability closed against live authorization reflection. evidence: `MemberAccessReview` defaults add/change/remove authorization parameters to true, `TenantDetailPage` does not bind membership authorization evidence, and `BuildActionSlots` ignores the change-role and remove-member authorization values when deciding whether to render launch buttons; denial is enforced only after a flow is opened.
-pre-b7-verification-date: 2026-10-12
-pre-b7-verification: src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor still defaults authorization flags true and BuildActionSlots ignores change/remove authority; Components/Pages/TenantDetailPage.razor still omits bindings. Recorded owner/global-administrator reflection decisions remain pending; backend enforcement is separate.
-pre-b7-next-action: Bind live tenant-scoped authority to every membership launcher and fail closed with specific reasons.
-status: done 2026-10-14 (B7 closure)
-decision: 2026-08-26 Bind role reflection — Add tenant-scoped owner or global-administrator reflection, bind all flags, and show denial or indeterminate reasons.
-decision: 2026-08-25 Role-aware BFF reflection — Add tenant-scoped owner or global-administrator reflection, bind all flags, and include denial or indeterminate reasons.
-disposition: done
-verification-date: 2026-10-14
-verification: B7 binds add/change/remove availability and direct launchers to current tenant Owner or global-administrator reflection with distinct denied/indeterminate reasons. Fresh role changes and target/caller/tenant/preview/retry races prove zero unauthorized dispatch, preserving bootstrap, exact attempts, proof and leases. See b7-validation-evidence.md.
-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor; src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor
-evidence-kind: verified-closure
 priority: P2
-owner: unassigned
-dependencies: role-aware BFF reflection
-next-action: None for this finding; validated B7 closure does not imply release readiness.
-closure-evidence: `_bmad-output/implementation-artifacts/b7-validation-evidence.md`; `_bmad-output/implementation-artifacts/spec-b7-live-admission.md`
-related: DW-206, DW-264
+archived: 2026-10-31
 
 ### DW-236: Serialize child membership-command lease acquisition
 
@@ -2144,26 +2041,12 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-rem
 archived: 2026-10-12
 
 ### DW-264: Create availability derives `IsAuthorized` from the tenant-list surface kind rather than `ITenantsBffComposition.GlobalAdministratorsAuthorizationReflection`, so an `Indeterminate` authorization reflection still leaves create enabled -- against the Always fail-closed clause
+
+status: done 2026-10-14
 origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md (2026-08-21)"), 2026-08-25
-location: IsAuthorized
 source_spec: `_bmad-output/implementation-artifacts/spec-3-1-create-tenant-with-projection-confirmation.md`
-reason: The legacy ledger defers this issue: Create availability derives `IsAuthorized` from the tenant-list surface kind rather than `ITenantsBffComposition.GlobalAdministratorsAuthorizationReflection`, so an `Indeterminate` authorization reflection still leaves create enabled -- against the Always fail-closed clause. Original context is preserved in legacy-detail.
-legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-3-1-create-tenant-with-projection-confirmation.md` summary: Create availability derives `IsAuthorized` from the tenant-list surface kind rather than `ITenantsBffComposition.GlobalAdministratorsAuthorizationReflection`, so an `Indeterminate` authorization reflection still leaves create enabled -- against the Always fail-closed clause. evidence: Deferred to Story 3.3 by code-review decision D5 (2026-08-21). Story 3.3 is scoped exactly as the fail-closed availability guardrail for lifecycle and configuration; server/API/domain authorization remains the enforcement boundary, so this is UI honesty rather than a security hole. Story 3.3 must cover create availability, not only lifecycle and configuration.
-pre-b7-verification-date: 2026-10-12
-pre-b7-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor still binds CreateTenantFlow.IsAuthorized from _snapshot.Kind excluding Error/Unauthorized, rather than the async global authority reflection. Indeterminate authority can still leave create enabled.
-pre-b7-next-action: Bind create availability to resolved authority while preserving the documented first-tenant freshness exception.
-status: done 2026-10-14 (B7 closure)
-disposition: done
-verification-date: 2026-10-14
-verification: B7 derives create availability from resolved current-caller global-administrator reflection, reauthorizes before dispatch and refuses stale/pending/denied results. Authorized first-tenant Unknown freshness and delayed audit return remain supported; denied/indeterminate cases prove zero dispatch. See b7-validation-evidence.md.
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor
-evidence-kind: verified-closure
 priority: P2
-owner: unassigned
-dependencies: create authority reflection
-next-action: None for this finding; validated B7 closure does not imply release readiness.
-closure-evidence: `_bmad-output/implementation-artifacts/b7-validation-evidence.md`; `_bmad-output/implementation-artifacts/spec-b7-live-admission.md`
-related: DW-206, DW-235
+archived: 2026-10-31
 
 ### DW-265: Refresh coalescing downgrades a user-initiated projection refresh to a status-only refresh and re-enters recursively
 
@@ -3839,40 +3722,11 @@ archived: 2026-10-12
 
 ### DW-466: Some bUnit `WaitForAssertion` checks in the UI suite time out under load.
 
-origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-4-understand-audit-availability-and-recovery-3.md (2026-09-30)"), 2026-10-12
-location: tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs
-source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery-3.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery-3.md`\n  summary: Some bUnit `WaitForAssertion` checks in the UI suite time out under load.\n  evidence: `TenantDetailSurfaceTests.Detail_lifecycle_actions_fail_closed_while_authorization_is_pending` (`:1924`) failed with check count 85 and render count 86 in a full MTP run (3,585/3,586) while four review agents were running; it passes 3 of 3 runs on its own. Story 5.4's verification report also records an unnamed \"metadata-confirmation\" timeout (3,579/3,580) that passed on rerun. Neither test is in the reviewed diff. Name the tests, then raise their per-call timeouts or make their waits event-driven."
 status: done 2026-10-30
-disposition: uncertain
-verification-date: 2026-10-12
-verification: tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs still contains Detail_lifecycle_actions_fail_closed_while_authorization_is_pending with render-based WaitForAssertion. The 2026-09-30 evidence reports load-dependent failures and an unnamed metadata-confirmation timeout; no current controlled load reproduction or precise identity for the second test is available.
-verification-files: tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs
-evidence-kind: unverified-risk
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-4-understand-audit-availability-and-recovery-3.md (2026-09-30)"), 2026-10-12
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery-3.md`
 priority: P2
-owner: unassigned
-dependencies: Historical full-suite raw logs; controlled load reproduction
-next-action: Identify the metadata test from raw historical logs and reproduce both waits under controlled load before changing timeout or synchronization.
-related: none
-followup-verification-date: 2026-10-28
-followup-verification: The corrected load runner requires exactly one passing unskipped executed xUnit XML case per iteration and five completed iterations. Two workers must be ready/alive on the same allowed CPU and show increased loop counters and process CPU time across every iteration; all five pass. Empty/aborted cases or missing/dead/inactive workers fail qualification. Its existing gate proves authorization is pending before release; no timeout or synchronization change was justified. The retained September report and archive-name inventory do not identify the metadata-confirmation case. Passing current tests does not explain either historical failure.
-followup-evidence: five-deferred-runtime-followups-validation-evidence.md
-followup-blocker: Original September failing-test output identifying the metadata-confirmation method, plus a reproduced causal scheduling failure.
-
-
-qualification-date: 2026-10-29
-qualification: The maintained MTP run retains per-test TRX and xUnit output. The existing named authorization test waits for ResolutionEntered before asserting fail-closed pending state, then releases its dependency before waiting for enabled rendering; it passes unchanged. Existing 2026-10-28 five-iteration CPU-contention evidence remains bounded passing evidence. Neither result identifies or explains the September metadata-confirmation timeout.
-qualification-decision: Keep open; do not increase timeouts, change parallelism or claim a causal synchronization fix. The planning-only 1,589 archive-member search has no retained scan packet; four September CI log retrievals returned empty stdout and reveal no method identity.
-qualification-next-action: Recover the original failing metadata-confirmation method name and per-test failure/render evidence, then reproduce a causal scheduling failure before changing timeout or synchronization. Passing reruns cannot substitute for that missing evidence.
-qualification-evidence: dw-116-137-446-459-466-validation-evidence.md
-
-native-disposition-date: 2026-10-30
-native-disposition: accepted-unresolved-historical-incident
-native-approval: The user approved the frozen spec and said "approve and continue" on 2026-10-30. This explicitly accepts tracking closure with the historical evidence gap retained.
-native-resolution: The September metadata-confirmation method and original failing per-test/render evidence remain unidentified; no causal scheduling reproduction or causal fix is claimed. Current dependency-entry-gated passing tests and prior controlled-load passes do not explain the missing failure. The four recovered CI ZIPs contain no executed-test result that identifies it. No timeout or parallelism change is made.
-native-reopen: Reopen on an identified original failure or a causal reproduction; retain the historical missing method/root-cause evidence until then.
-native-evidence: five-deferred-native-speech-validation-evidence.md; evidence/five-deferred-native-speech/historical-ci-inventory.json
+archived: 2026-10-30
 
 ### DW-467: `validate-story-gitlinks.py` still exits 1 on the legacy Story 5.4 artifact. This recurs the 2026-09-30 entry above; add no separate action.
 
