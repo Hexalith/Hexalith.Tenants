@@ -65,3 +65,103 @@ jobs:
           --configuration Debug --no-build --no-restore -p:UseHexalithProjectReferences=true
           --filter-class Hexalith.Tenants.Contracts.Tests.TenantCatalogTests
           --minimum-expected-tests 1 --fail-skips on
+
+  development-catalog:
+    name: Actual source catalog owner profile
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      UseHexalithProjectReferences: 'true'
+      UseNuGetDeps: 'false'
+      SSL_CERT_DIR: /home/runner/.aspnet/dev-certs/trust:/usr/lib/ssl/certs
+      TENANTS_LIVE_REQUIRE_COLD_BOOTSTRAP: 'true'
+      TENANTS_SOURCE_CATALOG_RESULT: ${{ runner.temp }}/tenants-source-catalog-result.json
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          submodules: false
+          persist-credentials: false
+      - name: Initialize only this standalone repository's declared roots
+        run: git -c submodule.recurse=false submodule update --init
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - name: Record the actual selected SDK source and producer version
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_sha="$(git rev-parse HEAD:references/Hexalith.EventStore)"
+          test "$(git -C references/Hexalith.EventStore rev-parse HEAD)" = "$source_sha"
+          printf 'TENANTS_SOURCE_SDK_SHA=%s\n' "$source_sha" >> "$GITHUB_ENV"
+          source_version="$(dotnet msbuild references/Hexalith.EventStore/src/Hexalith.EventStore.Client/Hexalith.EventStore.Client.csproj -nologo -getProperty:Version)"
+          if [[ ! "$source_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.+-][0-9A-Za-z.-]+)?$ ]]; then
+            echo 'The selected source producer version is invalid.' >&2
+            exit 1
+          fi
+          printf 'TENANTS_SOURCE_SDK_PRODUCER_VERSION=%s\n' "$source_version" >> "$GITHUB_ENV"
+          # Record provenance; do not replace another dependency owner's numeric catalog pin.
+          python3 - <<'PY'
+          import datetime, json, os, pathlib, subprocess
+          before = pathlib.Path(os.environ["RUNNER_TEMP"]) / "tenants-source-before-volumes.json"
+          volumes = subprocess.check_output(["docker", "volume", "ls", "-q"], text=True, timeout=30).splitlines()
+          with before.open("x", encoding="utf-8") as output:
+              json.dump(volumes, output)
+          with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as output:
+              output.write("TENANTS_SOURCE_BACKEND_BEFORE_PATH=" + str(before) + "\n")
+              output.write("TENANTS_SOURCE_BACKEND_STARTED_AT=" + datetime.datetime.now(datetime.timezone.utc).isoformat() + "\n")
+          PY
+      - name: Verify material provisioning refuses retained or substituted inputs
+        run: python3 -m unittest discover -s scripts/tests -p 'test_source_catalog_profile.py' -v
+      - name: Initialize the same Dapr tuple as the selected SDK source gate
+        uses: Hexalith/Hexalith.Builds/Github/dapr-init@fff4a212180d8cd1c5c0759655a9bc4fb6963c45
+        with:
+          version: '1.18.2'
+          runtime-version: '1.18.7'
+      - name: Prove fresh backend ownership before provisioning private owner material
+        run: >-
+          python3 scripts/prepare-source-catalog-profile.py
+          --sdk-source-sha "$TENANTS_SOURCE_SDK_SHA"
+          --output "${{ runner.temp }}/tenants-source-backend.json"
+      - name: Trust the SDK development certificate for actual HTTPS peers
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y libnss3-tools
+          for live_nss_directory in "$HOME/.pki/nssdb" "$HOME/.local/share/pki/nssdb"; do
+            mkdir -p "$live_nss_directory"
+            if [ ! -f "$live_nss_directory/cert9.db" ]; then
+              certutil -N -d "sql:$live_nss_directory" --empty-password
+            fi
+          done
+          dotnet dev-certs https --trust
+          for live_nss_directory in "$HOME/.pki/nssdb" "$HOME/.local/share/pki/nssdb"; do
+            live_cert_index=0
+            for live_certificate in "$HOME"/.aspnet/dev-certs/trust/*.pem; do
+              [ -f "$live_certificate" ] || continue
+              certutil -A -d "sql:$live_nss_directory" -n "tenants-source-dev-cert-$live_cert_index" -t 'P,,' -i "$live_certificate"
+              live_cert_index=$((live_cert_index + 1))
+            done
+          done
+      - name: Build the actual source runtime graph serially
+        run: >-
+          dotnet build tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj
+          --configuration Debug -p:UseHexalithProjectReferences=true -p:UseNuGetDeps=false
+          -warnaserror -m:1 -nr:false --disable-build-servers
+      - name: Require actual cohort binding, owned bootstrap, persisted effects and refusal
+        run: >-
+          dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj
+          --configuration Debug --no-build --no-restore
+          -p:UseHexalithProjectReferences=true -p:UseNuGetDeps=false
+          --filter-class Hexalith.Tenants.IntegrationTests.SourceCatalogOwnerProfileTests
+          --minimum-expected-tests 1 --fail-skips on
+      - name: Retain only credential-free source qualification results
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: tenants-source-catalog-owner-profile
+          path: |
+            ${{ runner.temp }}/tenants-source-backend.json
+            ${{ runner.temp }}/tenants-source-catalog-result.json
+          if-no-files-found: warn

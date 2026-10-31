@@ -334,6 +334,11 @@ else {
     : null;
 try
 {
+#if HEXALITH_DEVELOPMENT_CATALOG_COHORT
+    await using DevelopmentRouteCatalogComposition? localCatalog = builder.ExecutionContext.IsRunMode
+        ? TenantsDevelopmentRoutingCatalog.Create(builder, eventStore, tenants, tenantsApi, tenantsUI, adminServer, adminUI, stateStoreComponentPath)
+        : null;
+#endif
     DistributedApplication application = builder.Build();
     await using (application.ConfigureAwait(false))
     {

@@ -17,6 +17,7 @@ public sealed class BootstrapResourceFailureDiagnosticsTests
         observed.ExceptionTypes.ShouldContain("System.MissingMethodException");
         observed.ApiSymbols.ShouldContain("Hexalith.EventStore.Client.Routing.PublicApi.Read");
         observed.CatalogReasons.ShouldBe(["configuration-missing"]);
+        observed.CapturedLineCount.ShouldBe(2);
     }
 
     [Fact]
@@ -44,7 +45,7 @@ public sealed class BootstrapResourceFailureDiagnosticsTests
         using CancellationTokenSource bound = new(TimeSpan.FromSeconds(2));
         var observed = await BootstrapResourceFailureDiagnostics.ReadAsync(logger.WatchAsync, bound.Token);
         observed.Count.ShouldBe(3);
-        observed.Values.ShouldAllBe(value => value.ExceptionTypes.Contains("System.MissingMethodException"));
+        observed.Values.ShouldAllBe(value => value.ExceptionTypes.Contains("System.MissingMethodException") && value.CapturedLineCount > 0);
         await bound.CancelAsync();
         await Should.ThrowAsync<OperationCanceledException>(() => BootstrapResourceFailureDiagnostics.ReadAsync(logger.WatchAsync, bound.Token));
     }

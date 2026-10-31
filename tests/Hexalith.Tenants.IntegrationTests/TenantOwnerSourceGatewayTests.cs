@@ -1,4 +1,8 @@
 using System.Diagnostics;
+#if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
+using Hexalith.EventStore.Contracts.Routing;
+using Hexalith.EventStore.ServiceDefaults.Routing;
+#endif
 using Hexalith.EventStore.Client.Streams;
 using Hexalith.Tenants.Contracts.Events;
 using Hexalith.Tenants.IntegrationTests.Fixtures;
@@ -53,6 +57,16 @@ public sealed class TenantOwnerSourceGatewayTests
                     {
                         services.RemoveAll<IWorkloadAssertionIssuer>();
                         services.AddSingleton(issuer);
+#if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
+                        // Keep the real invocation guard and its separate no-redirect transport.
+                        // Activation is isolated; the permitted technical target is the SDK's existing workload read.
+                        var owner = TenantOwnerCatalogTestAuthority.CreateSnapshot("tenants");
+                        var selected = new CommittedRouteCatalogSnapshot(RouteCatalogCodec.Encode(owner.Envelope), owner.RootDigest, owner.Epoch,
+                            [new("eventstore", "api/v1/streams/read/workload", "eventstore:stream-read", "gateway")], localAppId: "tenants");
+                        services.RemoveAll<IRouteCatalogAuthority>();
+                        services.AddSingleton(TenantOwnerCatalogTestAuthority.Create(selected));
+                        services.Configure<RouteCatalogHostOptions>(options => options.InvocationTransportFactory = _ => terminal.CreateIndependentTransport());
+#endif
                         services.AddHttpClient<TenantOwnerSourceGateway>()
                             .ConfigurePrimaryHttpMessageHandler(() => terminal);
                     });
@@ -72,6 +86,10 @@ public sealed class TenantOwnerSourceGatewayTests
                 terminal.Method.ShouldBe(HttpMethod.Post);
                 terminal.Uri.ShouldBe(new Uri("http://127.0.0.1:3579/api/v1/streams/read/workload"));
                 terminal.Headers["dapr-app-id"].ShouldBe(["eventstore"]);
+#if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
+                terminal.Headers[RouteCatalogInvocationHandler.RootHeader].ShouldBe([TenantOwnerCatalogTestAuthority.CreateSnapshot("tenants").RootDigest]);
+                terminal.Headers[RouteCatalogInvocationHandler.EpochHeader].ShouldBe(["1"]);
+#endif
                 if (token is null) terminal.Headers.ContainsKey("dapr-api-token").ShouldBeFalse();
                 else terminal.Headers["dapr-api-token"].ShouldBe([token]);
                 terminal.Headers[EventStoreWorkloadAuthenticationDefaults.AssertionHeaderName].ShouldBe([assertion]);

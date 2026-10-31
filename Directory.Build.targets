@@ -1,4 +1,8 @@
 <Project>
+  <!-- The next SDK cohort API is source-only until its normal released package is qualified. -->
+  <PropertyGroup Condition="'$(HexalithEventStoreFromSource)' == 'true'">
+    <DefineConstants>$(DefineConstants);HEXALITH_DEVELOPMENT_CATALOG_COHORT</DefineConstants>
+  </PropertyGroup>
   <!-- Normalize only qualified stable binaries; metadata suffixes do not change their API. -->
   <PropertyGroup>
     <HexalithTenantsCatalogArtifactsAvailable>false</HexalithTenantsCatalogArtifactsAvailable>

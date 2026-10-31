@@ -15,7 +15,7 @@ internal static class BootstrapResourceFailureDiagnostics
     private static readonly string[] Reasons = ["configuration-missing", "owner-trust-refused", "topology-disagreement", "installed-inventory-disagreement", "store-or-transport-unavailable", "catalog-disagreement", "catalog-invalid", "host-validation-unavailable"];
     private static readonly string[] SensitiveMarkers = ["Bearer ", "Authorization:", "password", "privatekey", "signingkey", "apikey", "api_key", "token="];
 
-    internal sealed record Observation(string[] ExceptionTypes, string[] ApiSymbols, string[] CatalogReasons, bool Truncated);
+    internal sealed record Observation(string[] ExceptionTypes, string[] ApiSymbols, string[] CatalogReasons, bool Truncated, int CapturedLineCount);
 
     internal static Observation Classify(IEnumerable<string> lines)
     {
@@ -37,7 +37,7 @@ internal static class BootstrapResourceFailureDiagnostics
             foreach (Match match in Regex.Matches(line, @"\b(?:System|Microsoft|Hexalith|Dapr)\.[A-Za-z_][A-Za-z0-9_.+`]{1,180}", RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100)).Cast<Match>().Take(32))
                 if (symbols.Count < 32) symbols.Add(match.Value);
         }
-        return new(exceptions.Order(StringComparer.Ordinal).ToArray(), symbols.Order(StringComparer.Ordinal).ToArray(), reasons.Order(StringComparer.Ordinal).ToArray(), truncated);
+        return new(exceptions.Order(StringComparer.Ordinal).ToArray(), symbols.Order(StringComparer.Ordinal).ToArray(), reasons.Order(StringComparer.Ordinal).ToArray(), truncated, Math.Min(count, 2048));
     }
 
     internal static Task<IReadOnlyDictionary<string, Observation>> ReadAsync(ResourceLoggerService logger, CancellationToken cancellationToken)
@@ -73,8 +73,17 @@ internal static class BootstrapResourceFailureDiagnostics
                 .GetField("_app", BindingFlags.Instance | BindingFlags.NonPublic)?.GetValue(fixture) as DistributedApplication;
             if (app is null) return;
             using CancellationTokenSource bound = new(TimeSpan.FromSeconds(3));
-            IReadOnlyDictionary<string, Observation> resources = await ReadAsync(app.Services.GetRequiredService<ResourceLoggerService>(), bound.Token);
-            string json = JsonSerializer.Serialize(new { kind = "owned-bootstrap-failure-categories", fixtureVersion = typeof(AspireTopologyFixtureBase<>).Assembly.GetName().Version?.ToString(), resources });
+            ResourceLoggerService logger = app.Services.GetRequiredService<ResourceLoggerService>();
+            DistributedApplicationModel model = app.Services.GetRequiredService<DistributedApplicationModel>();
+            // Resolve each logical resource to its allocated DCP instance names through Aspire's
+            // resource overload; a project replica does not write to the logical-name stream.
+            IReadOnlyDictionary<string, Observation> resources = await ReadAsync(
+                name => logger.GetAllAsync(model.Resources.Single(resource => resource.Name == name)), bound.Token);
+            string json = JsonSerializer.Serialize(new
+            {
+                kind = "owned-bootstrap-failure-categories", source = "Aspire.GetAllAsync(IResource)",
+                fixtureVersion = typeof(AspireTopologyFixtureBase<>).Assembly.GetName().Version?.ToString(), resources,
+            });
             string directory = Path.Combine(temporary, "tenants-bootstrap-diagnostics");
             Directory.CreateDirectory(directory);
             await File.WriteAllTextAsync(Path.Combine(directory, Guid.NewGuid().ToString("N") + ".json"), json, bound.Token);
