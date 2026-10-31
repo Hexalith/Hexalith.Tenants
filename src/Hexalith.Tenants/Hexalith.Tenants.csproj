@@ -13,8 +13,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Hexalith.Tenants.Server\Hexalith.Tenants.Server.csproj" />
-    <ProjectReference Include="..\Hexalith.Tenants.Contracts\Hexalith.Tenants.Contracts.csproj" />
+    <ProjectReference Include="..\Hexalith.Tenants.Server\Hexalith.Tenants.Server.csproj" Condition="'$(HexalithUsePublishedSdkForHostedTests)' != 'true'" />
+    <ProjectReference Include="..\Hexalith.Tenants.Contracts\Hexalith.Tenants.Contracts.csproj" Condition="'$(HexalithUsePublishedSdkForHostedTests)' != 'true'" />
     <!-- Reuse the EventStore HTTP gateway library. The EventStore web/container host stays separate and
          non-packable; this app composes the shared gateway controllers, auth, middleware, and OpenAPI wiring. -->
     <ProjectReference Include="$(HexalithEventStoreRoot)\src\Hexalith.EventStore.Gateway\Hexalith.EventStore.Gateway.csproj"
@@ -25,6 +25,12 @@
       <AdditionalProperties Condition="'$(HexalithSourceMappingMode)' != 'source'">Version=$(HexalithEventStoreVersion)</AdditionalProperties>
     </ProjectReference>
     <PackageReference Include="Hexalith.EventStore.DomainService" Condition="'$(HexalithEventStoreFromSource)' != 'true'" />
+  </ItemGroup>
+
+  <!-- Explicit hosted-test profile; native builds and publishing retain the owner source edges. -->
+  <ItemGroup Condition="'$(HexalithUsePublishedSdkForHostedTests)' == 'true'">
+    <PackageReference Include="Hexalith.Tenants.Server" />
+    <PackageReference Include="Hexalith.Tenants.Contracts" />
   </ItemGroup>
 
   <ItemGroup>

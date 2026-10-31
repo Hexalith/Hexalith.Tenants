@@ -71,6 +71,8 @@ Allowed files for this story:
 - `tools/CatalogArtifactVerifier/Program.cs`
 - `tools/catalog-package-consumer/Program.cs`
 - `tools/catalog-package-consumer/approved-route-ids.txt`
+- `src/Hexalith.Tenants/Hexalith.Tenants.csproj`
+- `tests/scripts/test_hosted_package_profile.py`
 
 No declaration body, canonical intent normalization, grant or Production trust implementation changes.
 
@@ -154,6 +156,8 @@ The parent owns three independent reviews, hosted exact-source CI and Release.
 - `tools/CatalogArtifactVerifier/Program.cs`
 - `tools/catalog-package-consumer/Program.cs`
 - `tools/catalog-package-consumer/approved-route-ids.txt`
+- `src/Hexalith.Tenants/Hexalith.Tenants.csproj`
+- `tests/scripts/test_hosted_package_profile.py`
 
 ## Completion Notes
 
@@ -468,3 +472,33 @@ compiled catalog cases pass2/2 (zero skips) in0.783s. Logs:
 `/tmp/tenants-source-producer-actual-client-identity.txt`. The exact workflow
 selection shell passes syntax validation and actually supplies the tested
 producer binding. No wider tests were run for this workflow-only correction.
+
+
+### Root B7 hosted public-artifact profile
+
+Parent's combined artifact review found the native domain host's own source
+Contracts/Server PE identities colliding with the Root's actual published owner
+artifacts in the default AssemblyLoadContext. At the parent's explicit bounded
+request, mirror the SDK hosted-test opt-in: only when
+HexalithUsePublishedSdkForHostedTests=true, replace the nonpackable native
+Tenants host's two existing own Contracts/Server project references with their
+existing public CPM package references. HexalithTenantsVersion remains the exact
+version authority. Existing SDK edges, normal native/default/publish behavior,
+all public package projects and all production code bodies remain unchanged.
+No API-host, trust, activation, grant or artifact reader changes.
+
+Actual MSBuild evaluation covers default/false, package/source intent and
+publishing configurations: all retain the native owner project references. The
+explicit true profile removes exactly those two source edges, selects both exact
+CPM6.0.0 packages without local versions, keeps the host nonpackable and leaves
+every other SDK/dependency edge unchanged. Checked published-catalog CI runs the
+new2-test/10-configuration regression suite; log
+`/tmp/tenants-hosted-package-profile-tests.log` (PASS in4.507s).
+
+A disposable host build against the actual current public Contracts/Server5.11.2
+and SDK3.129.0 succeeds with zero warnings/errors in1.31s. Its assets prove
+both owner dependencies are packages, with no owner project dependency. Logs
+`/tmp/tenants-hosted-public-profile-build.log` and
+`/tmp/tenants-hosted-public-profile-assets.json`. This is ABI/profile proof only;
+5.11.2 lacks compiled catalog enrollment and cannot qualify Root's actual6.0.0
+catalog. Parent owns the mandatory future6.0.0 public-PE runtime qualification.
