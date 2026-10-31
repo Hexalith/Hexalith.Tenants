@@ -1,4 +1,8 @@
 using Hexalith.EventStore.Client.Streams;
+#if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
+using Hexalith.EventStore.Contracts.Routing;
+using Hexalith.EventStore.ServiceDefaults.Routing;
+#endif
 #pragma warning disable CA2007
 
 using System.IdentityModel.Tokens.Jwt;
@@ -226,6 +230,34 @@ public partial class CommandApiRuntimeIntegrationTests {
         JsonSerializer.Serialize(auditAfter.Value).ShouldBe(JsonSerializer.Serialize(auditBefore.Value));
         store.Count.ShouldBe(2);
     }
+
+#if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
+    /// <summary>Retains real generation admission before projection business-store access.</summary>
+    [Theory]
+    [InlineData("missing-root")]
+    [InlineData("wrong-root")]
+    [InlineData("wrong-epoch")]
+    public async Task ProjectContractRejectsUncommittedGenerationBeforeStoreAccess(string scenario)
+    {
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        await using var factory = new CommandApiWebApplicationFactory(projectionStore: store);
+        using HttpClient client = factory.CreateClient();
+        if (scenario is "missing-root" or "wrong-root")
+        {
+            client.DefaultRequestHeaders.Remove(RouteCatalogInvocationHandler.RootHeader);
+            if (scenario == "wrong-root") client.DefaultRequestHeaders.Add(RouteCatalogInvocationHandler.RootHeader, new string('0', 64));
+        }
+        else
+        {
+            client.DefaultRequestHeaders.Remove(RouteCatalogInvocationHandler.EpochHeader);
+            client.DefaultRequestHeaders.Add(RouteCatalogInvocationHandler.EpochHeader, "2");
+        }
+        store.ClearReceivedCalls();
+        using HttpResponseMessage response = await client.PostAsJsonAsync("/project", new ProjectionRequest("system", "tenants", "uncommitted", []));
+        response.StatusCode.ShouldBe(HttpStatusCode.ServiceUnavailable);
+        store.ReceivedCalls().ShouldBeEmpty();
+    }
+#endif
 
     /// <summary>Checks workload and channel admission while preserving the persisted read-model contents.</summary>
     /// <param name="scenario">The credential boundary to exercise.</param>
@@ -2668,7 +2700,7 @@ public partial class CommandApiRuntimeIntegrationTests {
         IEnumerable<Claim>? claims = null) {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(signingKey ?? JwtSigningKey));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-        var tokenClaims = new List<Claim> { new("sub", userId) };
+        var tokenClaims = new List<Claim> { new("sub", userId), new("eventstore:surface", "ui") };
         if (claims is null) {
             tokenClaims.Add(new Claim("eventstore:tenant", "system"));
         }
@@ -2692,7 +2724,7 @@ public partial class CommandApiRuntimeIntegrationTests {
     private static string CreateJwtWithoutSub(IEnumerable<Claim>? claims = null) {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(JwtSigningKey));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-        var tokenClaims = new List<Claim>();
+        var tokenClaims = new List<Claim> { new("eventstore:surface", "ui") };
         if (claims is not null) {
             tokenClaims.AddRange(claims);
         }
@@ -2862,6 +2894,7 @@ public partial class CommandApiRuntimeIntegrationTests {
             Expires = now.AddMinutes(4),
             Claims = new Dictionary<string, object>(StringComparer.Ordinal)
             {
+                ["eventstore:surface"] = "service",
                 [EventStoreWorkloadAuthenticationDefaults.CallerClaimType] = caller,
                 [EventStoreWorkloadAuthenticationDefaults.OperationClaimType] = operations ?? new[]
                 {
@@ -2895,6 +2928,9 @@ public partial class CommandApiRuntimeIntegrationTests {
         bool useLegacyStatusAdapter = true,
         IReadModelStore? projectionStore = null,
         MutableGlobalAdministratorSource? administratorSource = null) : WebApplicationFactory<TenantBootstrapOptions> {
+#if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
+        private readonly CommittedRouteCatalogSnapshot _catalog = TenantOwnerCatalogTestAuthority.CreateSnapshot(WorkloadAudience);
+#endif
         /// <summary>Gets the isolated store so read-only projection contracts can verify its persisted end state.</summary>
         public InMemoryReadModelStore ReadModelStore { get; } = new();
 
@@ -2905,6 +2941,10 @@ public partial class CommandApiRuntimeIntegrationTests {
         protected override void ConfigureClient(HttpClient client) {
             ArgumentNullException.ThrowIfNull(client);
             base.ConfigureClient(client);
+#if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
+            client.DefaultRequestHeaders.Add(RouteCatalogInvocationHandler.RootHeader, _catalog.RootDigest);
+            client.DefaultRequestHeaders.Add(RouteCatalogInvocationHandler.EpochHeader, _catalog.Epoch.ToString(System.Globalization.CultureInfo.InvariantCulture));
+#endif
             if (presentWorkloadAssertion) {
                 client.DefaultRequestHeaders.Add(DaprAppChannelToken.HeaderName, WorkloadChannelToken);
                 client.DefaultRequestHeaders.Add(
@@ -2917,6 +2957,14 @@ public partial class CommandApiRuntimeIntegrationTests {
             .UseSetting("EventStore:DomainService:AppId", WorkloadAudience)
             .UseSetting(DaprAppChannelToken.ConfigurationKey, WorkloadChannelToken)
             .ConfigureServices(services => {
+#if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
+            services.RemoveAll<IRouteCatalogAuthority>();
+            services.AddSingleton(TenantOwnerCatalogTestAuthority.Create(_catalog));
+            // This isolated receiver has the same explicit target as the compiled owner bindings.
+            // Distributed activation and attestation are exercised by the normal package profile.
+            services.Configure<RouteCatalogHostOptions>(options => options.Identity = new RouteCatalogHostIdentity(
+                WorkloadAudience, WorkloadAudience, _catalog.RootDigest, _catalog.RootDigest, _catalog.RootDigest));
+#endif
             // Projection membership is independently seeded from the native source used by administrator verification.
             InMemoryReadModelStore store = ReadModelStore;
             store.SeedRaw(
@@ -2968,6 +3016,7 @@ public partial class CommandApiRuntimeIntegrationTests {
             var identity = new ClaimsIdentity(
             [
                 new Claim("sub", "test-user"),
+                new Claim("eventstore:surface", "ui"),
                 new Claim("eventstore:tenant", "system"),
             ],
             SchemeName);

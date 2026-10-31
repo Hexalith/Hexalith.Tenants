@@ -25,10 +25,7 @@ using Hexalith.EventStore.Contracts.Events;
 using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.EventStore.Contracts.Streams;
 #if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
-using Hexalith.EventStore.Client.Routing;
-using Hexalith.EventStore.Contracts.Routing;
 using Hexalith.EventStore.ServiceDefaults.Routing;
-using Hexalith.Tenants.Contracts.Routing;
 #endif
 using Hexalith.EventStore.Controllers;
 using Hexalith.EventStore.DomainService;
@@ -523,7 +520,7 @@ public sealed class TenantsApiGeneratedControllerTests
             new TenantTelemetry(diagnostics), NullLogger<GetTenantAuditQueryHandler>.Instance);
         var router = new HandlerAwareQueryRouter(
 #if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
-            CreateOwnerCatalogAuthority(),
+            TenantOwnerCatalogTestAuthority.Create(),
 #endif
             new UnexpectedInnerQueryRouter(), new AlwaysSupportedDomainQueryHandlerRegistry(),
             new DirectDomainQueryInvoker(handler), NullLogger<HandlerAwareQueryRouter>.Instance);
@@ -1603,29 +1600,6 @@ public sealed class TenantsApiGeneratedControllerTests
                 new SetGlobalAdministrator("user.beta")),
         ];
 
-#if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
-    /// <summary>Supplies the compiled owner catalog for isolated generated HTTP and real-handler proofs.</summary>
-    private static IRouteCatalogAuthority CreateOwnerCatalogAuthority()
-    {
-        IReadOnlyList<RouteContractDeclaration> declarations = CompiledRouteCatalogDeclarations.Read([typeof(TenantCatalogDeclarations).Assembly]);
-        RouteCatalogEnvelope envelope = VersionedRouteCatalogBuilder.Build(new(
-            1, "Development", declarations,
-            CompiledRouteCatalogDeclarations.ReadOperations([typeof(TenantCatalogDeclarations).Assembly]),
-            declarations.Select(declaration => new RouteCompositionBinding(
-                declaration.RouteId, "tenants", TenantCatalogDeclarations.ReceiverMethods[declaration.RouteId],
-                declaration.ContractVersion, false, "*")).ToArray(),
-            TenantCatalogDeclarations.Commands.Select(command => DevelopmentIdempotencyBindings.Bind(command, 1)).ToArray()));
-        var snapshot = new CommittedRouteCatalogSnapshot(
-            RouteCatalogCodec.Encode(envelope), RouteCatalogCodec.ComputeRootDigest(envelope),
-            1, localAppId: "eventstore");
-        // Distributed activation is outside these isolated HTTP proofs. Each generated action and
-        // real router still validates the compiled owner operation, policy and projection selection.
-        IRouteCatalogAuthority authority = Substitute.For<IRouteCatalogAuthority>();
-        authority.AcquireAsync(Arg.Any<CancellationToken>())
-            .Returns(_ => new RouteCatalogDispatchLease(snapshot, () => Task.CompletedTask));
-        return authority;
-    }
-#endif
 
     private sealed class TenantsApiWebApplicationFactory(
         IEventStoreGatewayClient gateway,
@@ -1653,7 +1627,7 @@ public sealed class TenantsApiGeneratedControllerTests
                 services.RemoveAll<IEventStoreGatewayClient>();
                 services.AddSingleton<IEventStoreGatewayClient>(gateway);
 #if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
-                services.AddSingleton(CreateOwnerCatalogAuthority());
+                services.AddSingleton(TenantOwnerCatalogTestAuthority.Create());
                 services.AddScoped<GeneratedRouteCatalogFilter>();
                 services.Configure<MvcOptions>(options => options.Filters.AddService<GeneratedRouteCatalogFilter>());
 #endif
@@ -1686,7 +1660,7 @@ public sealed class TenantsApiGeneratedControllerTests
                 new FixedTimeProvider(now));
             _router = new HandlerAwareQueryRouter(
 #if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
-                CreateOwnerCatalogAuthority(),
+                TenantOwnerCatalogTestAuthority.Create(),
 #endif
                 new UnexpectedInnerQueryRouter(),
                 new AlwaysSupportedDomainQueryHandlerRegistry(),
@@ -1698,7 +1672,7 @@ public sealed class TenantsApiGeneratedControllerTests
         {
             _router = new HandlerAwareQueryRouter(
 #if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
-                CreateOwnerCatalogAuthority(),
+                TenantOwnerCatalogTestAuthority.Create(),
 #endif
                 new UnexpectedInnerQueryRouter(),
                 new AlwaysSupportedDomainQueryHandlerRegistry(), new DirectDomainQueryInvoker(handler),
@@ -1763,7 +1737,7 @@ public sealed class TenantsApiGeneratedControllerTests
                 .Returns(RbacValidationResult.Allowed);
             var controller = new QueriesController(
 #if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
-                CreateOwnerCatalogAuthority(),
+                TenantOwnerCatalogTestAuthority.Create(),
 #endif
                 mediator,
                 eTagService,

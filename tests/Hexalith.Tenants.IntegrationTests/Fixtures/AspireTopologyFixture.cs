@@ -57,7 +57,11 @@ public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith
         await CompleteBootstrapAsync(CommandApiClient, token,
             (cursor, cancellationToken) => client.GetGlobalAdministratorsAsync(
                 new GetGlobalAdministratorsQuery { PageSize = 100, Cursor = cursor }, null, cancellationToken),
-            () => base.DisposeAsync(),
+            async () =>
+            {
+                await BootstrapResourceFailureDiagnostics.CaptureAsync(this);
+                await base.DisposeAsync();
+            },
             string.Equals(Environment.GetEnvironmentVariable("TENANTS_LIVE_REQUIRE_COLD_BOOTSTRAP"), "true", StringComparison.OrdinalIgnoreCase),
             timeout.Token);
     }

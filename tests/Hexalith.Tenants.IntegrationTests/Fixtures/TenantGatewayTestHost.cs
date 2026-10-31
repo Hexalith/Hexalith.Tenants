@@ -89,6 +89,9 @@ internal sealed class TenantGatewayTestHost(
         // The gateway owns authentication, authorization, validation, controllers, and the
         // real SubmitCommandHandler. Only its external routing and persistence seams are doubled.
         builder.Services.AddEventStore();
+#if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
+        builder.Services.AddSingleton(TenantOwnerCatalogTestAuthority.Create());
+#endif
         builder.Services.AddControllers().AddApplicationPart(typeof(CommandsController).Assembly);
         builder.Services.AddValidatorsFromAssembly(typeof(TenantSubmitCommandValidator).Assembly);
         builder.Services.AddValidatorsFromAssembly(typeof(TenantAggregate).Assembly);
