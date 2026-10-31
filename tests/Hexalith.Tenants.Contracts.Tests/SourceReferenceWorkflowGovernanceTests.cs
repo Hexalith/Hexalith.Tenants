@@ -10,6 +10,7 @@ namespace Hexalith.Tenants.Contracts.Tests;
 /// </summary>
 public class SourceReferenceWorkflowGovernanceTests
 {
+    private const string QualificationBranch = "fix/qualify-sdk-3.130.1";
     private const string InitializeStep = "Initialize root-declared submodules";
     private const string BuildStep = "Build the source-reference integration graph";
     private const string VerifyStep = "Verify real-handler projection provenance";
@@ -256,6 +257,67 @@ public class SourceReferenceWorkflowGovernanceTests
     }
 
     /// <summary>
+    /// Preserves main validation while allowing the one isolated qualification push branch.
+    /// </summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Workflow_governance_accepts_only_the_qualified_additional_push_branch(bool qualification)
+    {
+        YamlMappingNode workflow = ParseWorkflow(ReadWorkflow());
+        YamlMappingNode triggers = (YamlMappingNode)Value(workflow, "on")!;
+        YamlMappingNode push = (YamlMappingNode)Value(triggers, "push")!;
+        push.Children[new YamlScalarNode("branches")] = qualification
+            ? new YamlSequenceNode("main", QualificationBranch)
+            : new YamlSequenceNode("main");
+
+        WorkflowViolations(SerializeWorkflow(workflow)).ShouldBeEmpty();
+    }
+
+    /// <summary>
+    /// Rejects unapproved, wildcard, duplicate or missing-main event branch selections.
+    /// </summary>
+    [Theory]
+    [InlineData("push")]
+    [InlineData("push", QualificationBranch)]
+    [InlineData("push", "release")]
+    [InlineData("push", "main", "release")]
+    [InlineData("push", "main", "*")]
+    [InlineData("push", "main", "fix/qualify-sdk-*")]
+    [InlineData("push", "main", "fix/qualify-sdk-3.130.2")]
+    [InlineData("push", "main", "main")]
+    [InlineData("push", "main", QualificationBranch, "release")]
+    [InlineData("push", "main", QualificationBranch, QualificationBranch)]
+    [InlineData("push", "!main", QualificationBranch)]
+    [InlineData("pull_request", "main", QualificationBranch)]
+    [InlineData("pull_request", "main", "*")]
+    public void Workflow_governance_rejects_unqualified_branch_selections(string eventName, params string[] branches)
+    {
+        YamlMappingNode workflow = ParseWorkflow(ReadWorkflow());
+        YamlMappingNode triggers = (YamlMappingNode)Value(workflow, "on")!;
+        YamlMappingNode eventTrigger = (YamlMappingNode)Value(triggers, eventName)!;
+        eventTrigger.Children[new YamlScalarNode("branches")] = new YamlSequenceNode(branches);
+
+        WorkflowViolations(SerializeWorkflow(workflow)).ShouldNotBeEmpty();
+    }
+
+    /// <summary>
+    /// Rejects a non-scalar value in the otherwise qualified push branch selection.
+    /// </summary>
+    [Fact]
+    public void Workflow_governance_rejects_non_scalar_qualification_branches()
+    {
+        YamlMappingNode workflow = ParseWorkflow(ReadWorkflow());
+        YamlMappingNode triggers = (YamlMappingNode)Value(workflow, "on")!;
+        YamlMappingNode push = (YamlMappingNode)Value(triggers, "push")!;
+        push.Children[new YamlScalarNode("branches")] = new YamlSequenceNode(
+            new YamlScalarNode("main"),
+            new YamlMappingNode { { "branch", QualificationBranch } });
+
+        WorkflowViolations(SerializeWorkflow(workflow)).ShouldNotBeEmpty();
+    }
+
+    /// <summary>
     /// Rejects trigger changes that suppress required automated main validation.
     /// </summary>
     [Theory]
@@ -416,8 +478,11 @@ public class SourceReferenceWorkflowGovernanceTests
             if (Value(triggers, eventName) is not YamlMappingNode eventTrigger
                 || eventTrigger.Children.Count != 1
                 || Value(eventTrigger, "branches") is not YamlSequenceNode branches
-                || branches.Children.Count != 1
-                || branches.Children[0] is not YamlScalarNode { Value: "main" })
+                || branches.Children.Count is < 1 or > 2
+                || branches.Children[0] is not YamlScalarNode { Value: "main" }
+                || (branches.Children.Count == 2
+                    && (eventName != "push"
+                        || branches.Children[1] is not YamlScalarNode { Value: QualificationBranch })))
             {
                 violations.Add($"The {eventName} trigger must select main with no event filters that suppress validation.");
             }

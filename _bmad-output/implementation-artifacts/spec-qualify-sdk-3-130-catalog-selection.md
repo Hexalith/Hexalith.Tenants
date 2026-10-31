@@ -28,6 +28,7 @@ Allowed files for this story:
 - `.github/workflows/codeql.yml`
 - `Directory.Build.targets`
 - `tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs`
+- `tests/Hexalith.Tenants.Contracts.Tests/SourceReferenceWorkflowGovernanceTests.cs`
 - `_bmad-output/implementation-artifacts/spec-qualify-sdk-3-130-catalog-selection.md`
 
 ## Change
@@ -85,6 +86,7 @@ pass at the exact pushed source before runtime freeze and final release acceptan
 - `.github/workflows/codeql.yml`
 - `Directory.Build.targets`
 - `tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs`
+- `tests/Hexalith.Tenants.Contracts.Tests/SourceReferenceWorkflowGovernanceTests.cs`
 - `_bmad-output/implementation-artifacts/spec-qualify-sdk-3-130-catalog-selection.md`
 
 ## Qualified stable patch 3.130.1
@@ -168,3 +170,35 @@ The complete CI, Source-reference, Story Guards, Commitlint and CodeQL workflows
 on this exact recovery commit are the final selected-source remote gate.
 Preserve newer main without merging, rewinding or pruning it; leave original
 producer checkout selection and fresh runtime preparation to RootCI.
+
+## Qualify the finite workflow branch fixture
+
+Exact4d CI41250098352 built and consumed packages successfully. Its Contracts
+shard then exposed33 failures in SourceReferenceWorkflowGovernanceTests: the
+existing branch-shape predicate accepted only the singleton main push list.
+All failures shared that one baseline violation; the other six test shards
+passed. Local execution of the whole affected class reproduces68cases with
+33failures and zero skips before the correction.
+
+Extend only that fixture's accepted push lists to `[main]` or
+`[main, fix/qualify-sdk-3.130.1]`. Pull requests still require exactly main.
+Keep main mandatory, refuse all additional or duplicate branches, and retain
+every command, ordering, source-mode, floor, fail-skips, suppression-filter,
+shell-override and dependency refusal. Add positive main-only/qualified-push
+controls and negative arbitrary, wildcard, future, missing-main, duplicate,
+extra, non-scalar and pull-request qualifier cases. No workflow job or product
+source changes.
+
+Run only the complete affected class after a warning-free public3.130.1 build.
+The scope receipt must identify this intentional test-only difference while
+proving all production/package/gitlink entries remain identical6f and every
+workflow remains identical4d. Apply pinned commitlint, normal hooks and the
+actual nonzero-before story guard, then push only the qualification branch.
+Repeat its full exact remote checks; do not accept skipped downstream Aspire
+from the failed4d unit gate as qualification.
+
+Focused proof: the unchanged pre-fix class reproduces68total/33failed/0skipped.
+After the finite fixture correction, its full84cases pass with0failures/skips
+(901ms); its actual published3.130.1 Release build has0warnings/errors.
+Logs are `/tmp/tenants-sdk1301-public-proof/workflow-governance-{red,build,green}.log`.
+No broader local tests were run for this test-only correction.
