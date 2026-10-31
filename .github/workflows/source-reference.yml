@@ -42,9 +42,15 @@ jobs:
           --minimum-expected-tests 4
           --filter-method Hexalith.Tenants.IntegrationTests.TenantsApiGeneratedControllerTests.GlobalAdministratorsRealHandlerMetadataSurvivesRouterRestClientAndUiGateway
           --fail-skips on
+      # Build separately and serially: implicit dotnet test builds can write the
+      # shared source EventStore dependency outputs from concurrent inner builds.
+      - name: Build source-only catalog contracts
+        run: >
+          dotnet build tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj
+          --configuration Debug -p:UseHexalithProjectReferences=true -warnaserror -m:1 -nr:false
       - name: Verify source-only catalog operation declarations
         run: >
           dotnet test tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj
-          --configuration Debug -p:UseHexalithProjectReferences=true
+          --configuration Debug --no-build -p:UseHexalithProjectReferences=true
           --filter-class Hexalith.Tenants.Contracts.Tests.TenantCatalogTests
           --minimum-expected-tests 1 --fail-skips on
