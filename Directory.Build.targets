@@ -15,10 +15,14 @@
            Text="Catalog SDK selection '$(HexalithEventStoreVersion)' is not qualified. Use stable 3.129.0 or 3.129.1, or the explicit legacy compatibility profile." />
   </Target>
 
-  <Target Name="ValidatePublishedCatalogArtifacts" BeforeTargets="GenerateNuspec"
-          Condition="'$(IsPackable)' == 'true'">
-    <Error Condition="'$(HexalithTenantsCatalogArtifactsAvailable)' != 'true'"
+  <Target Name="ValidatePublishedCatalogSdk">
+    <Error Condition="'$(IsPackable)' == 'true' and '$(HexalithTenantsCatalogArtifactsAvailable)' != 'true'"
            Text="Published Tenants packages require the qualified EventStore 3.129.0 or 3.129.1 catalog SDK or an enrolled source build. The 3.128.4 compatibility profile is not publishable." />
+  </Target>
+
+  <!-- Foreign repositories can inherit this targets file while generating their own packages. -->
+  <Target Name="ValidatePublishedCatalogArtifacts" BeforeTargets="GenerateNuspec" DependsOnTargets="ValidatePublishedCatalogSdk"
+          Condition="'$(IsPackable)' == 'true' and ('$(MSBuildProjectName)' == 'Hexalith.Tenants.Contracts' or '$(MSBuildProjectName)' == 'Hexalith.Tenants.Server' or '$(MSBuildProjectName)' == 'Hexalith.Tenants.Client' or '$(MSBuildProjectName)' == 'Hexalith.Tenants.Testing' or '$(MSBuildProjectName)' == 'Hexalith.Tenants.Aspire')">
     <Exec Condition="'$(MSBuildProjectName)' == 'Hexalith.Tenants.Contracts' or '$(MSBuildProjectName)' == 'Hexalith.Tenants.Server' or '$(MSBuildProjectName)' == 'Hexalith.Tenants.Client' or '$(MSBuildProjectName)' == 'Hexalith.Tenants.Testing' or '$(MSBuildProjectName)' == 'Hexalith.Tenants.Aspire'"
           Command="dotnet run --project &quot;$(MSBuildThisFileDirectory)tools/CatalogArtifactVerifier/CatalogArtifactVerifier.csproj&quot; --configuration Release --no-launch-profile -- &quot;$(TargetPath)&quot; &quot;$(MSBuildProjectName)&quot;" />
   </Target>

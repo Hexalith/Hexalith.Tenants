@@ -930,7 +930,7 @@ public class PackageGovernanceTests {
             foreach (string argument in new[] {
                 "msbuild", projectPath, "-nologo",
                 requireSdkSelection ? "-target:ValidateCatalogSdkSelection"
-                    : requireCatalogPackage ? "-target:ValidatePublishedCatalogArtifacts" : "-target:ValidateEventStorePackageFloor",
+                    : requireCatalogPackage ? "-target:ValidatePublishedCatalogSdk" : "-target:ValidateEventStorePackageFloor",
                 "-getProperty:HexalithEventStoreVersion,HexalithEventStoreFromSource", "-getItem:PackageVersion",
             }) {
                 startInfo.ArgumentList.Add(argument);

@@ -389,3 +389,45 @@ script cases. Logs `/tmp/tenants-review-fixes-concurrent-governance-tests.log`,
 pack lifecycle rerun passes2package refusal controls with no archive;5archive
 metadata refusals also pass. Final proposed gitlink audit PASS. No new broad
 verification run was performed; parent owns hosted CI and publication.
+
+
+### Hosted CI follow-up: keep foreign generated packages owner-controlled
+
+Exactb992 CI41200328508 job124534690515 and source run41200328264
+job124534689801 exposed the publication guard applying to foreign Commons
+Aspire/ServiceDefaults/UniqueIds packages. Those projects inherit Tenants targets
+through the ordinary nested build/solution graph and correctly retain their own
+SDK3.128.4 catalog. Scope the automatic GenerateNuspec guard to the same finite
+five Tenants package names already used by its actual PE verifier. Extract only
+the SDK availability predicate to an explicit internal target for its existing
+selector controls. The five owned package floors, actual Contracts/Server PE
+enrollment guard, explicit legacy build support and source support remain.
+
+Reproduced using exact Commons0604bcf5304fc09a569f7abbd8e5d1b9049c02b7
+and qualified Buildsa22 ordinary archives inside a disposable nested layout,
+with the actual Directory.Solution.targets forcing serial native builds. Original
+b992 targets refuse all3 foreign build-generated packages. With only this guard
+correction, the identical solution builds with zero warnings/errors and produces
+all3 Commons archives. No foreign source changes or nested initialization. Logs:
+`/tmp/tenants-real-commons-pack-boundary-before.log`,
+`/tmp/tenants-real-commons-pack-boundary-after.log`, and
+`/tmp/tenants-real-commons-pack-boundary-proof.log`.
+
+The checked regression suite builds actual SDK fixture projects through the
+solution target and verifies all3 foreign generated archives retain SDK3.128.4.
+It also builds all5 owned legacy outputs, requires ordinary no-build packing to
+refuse every legacy package with no archive, and retains both actual stale-PE
+Contracts/Server refusals. Two tests/10 bounded package controls pass in15.581s,
+log `/tmp/tenants-owner-pack-boundary-tests.log`. Parent authorized this precise
+hosted-CI repair with no new review loop. No production artifact body or public
+package inventory changes.
+
+
+Final repair proof:19 SDK/publication selector cases pass with zero skips, log
+`/tmp/tenants-owner-pack-boundary-selector-tests.log`. All5 normal SDK3.129.0
+packages pass their unchanged actual-PE guards and archive validation, logs
+`/tmp/tenants-owner-pack-boundary-normal-five-pack.log` and
+`/tmp/tenants-owner-pack-boundary-normal-five-validation.log`. The affected
+Contracts.Tests build has zero warnings/errors. Exact fix candidate passes the
+pinned owner commitlint, log `/tmp/tenants-owner-pack-boundary-commitlint.log`.
+No wider test run was performed for this bounded guard correction.
