@@ -5,6 +5,7 @@ using System.Text.Json;
 using Dapr.Client;
 
 using Hexalith.Commons.UniqueIds;
+using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.Tenants.Configuration;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Identity;
@@ -108,18 +109,34 @@ public partial class TenantBootstrapHostedService(
                     return;
                 }
 
-                using HttpRequestMessage httpRequest = daprClient.CreateInvokeMethodRequest(
-                    HttpMethod.Post,
-                    EventStoreAppId,
-                    CommandEndpoint);
-                httpRequest.Content = JsonContent.Create(commandBody);
-                httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+                HttpRequestMessage? selectedRequest;
+                if (configuration.GetValue<bool>("Tenants:BootstrapBoundWorkloadEnabled"))
+                {
+                    phase = "bound-administrator-validation";
+                    var submitted = new SubmitCommandRequest(messageId, TenantIdentity.DefaultTenantId,
+                        TenantIdentity.GlobalAdministratorsDomain, TenantIdentity.GlobalAdministratorsAggregateId,
+                        nameof(BootstrapGlobalAdmin), payloadElement, correlationId);
+                    selectedRequest = await TenantBootstrapBoundCommand.CreateAsync(scope.ServiceProvider, configuration,
+                        daprClient, submitted, userId, accessToken, timeProvider ?? TimeProvider.System,
+                        httpClient.Timeout, cancellationToken).ConfigureAwait(false);
+                    if (selectedRequest is null) return;
+                }
+                else
+                {
+                    selectedRequest = daprClient.CreateInvokeMethodRequest(HttpMethod.Post, EventStoreAppId, CommandEndpoint);
+                    selectedRequest.Content = JsonContent.Create(commandBody);
+                    selectedRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+                }
+                using HttpRequestMessage httpRequest = selectedRequest;
 
+                TenantBootstrapReceipt? receipt = configuration.GetValue<bool>("Tenants:BootstrapBoundWorkloadEnabled")
+                    ? await TenantBootstrapReceipt.BeginAsync(configuration, messageId, correlationId, userId, cancellationToken).ConfigureAwait(false) : null;
                 phase = "command-dispatch";
                 Log.BootstrapAttempt(logger, messageId, correlationId);
                 using HttpResponseMessage httpResponse = await httpClient.SendAsync(httpRequest, cancellationToken).ConfigureAwait(false);
 
                 if (httpResponse.StatusCode == HttpStatusCode.Accepted) {
+                    if (receipt is not null) await receipt.CompleteAsync(configuration, (int)httpResponse.StatusCode, "accepted", cancellationToken).ConfigureAwait(false);
                     Log.BootstrapCommandSent(logger);
                     return;
                 }
@@ -133,10 +150,12 @@ public partial class TenantBootstrapHostedService(
                 // support-safe body mentions the marker.
                 if (httpResponse.StatusCode == HttpStatusCode.Conflict
                     && errorBody.Contains("GlobalAdminAlreadyBootstrappedRejection", StringComparison.Ordinal)) {
+                    if (receipt is not null) await receipt.CompleteAsync(configuration, (int)httpResponse.StatusCode, "already-bootstrapped", cancellationToken).ConfigureAwait(false);
                     Log.BootstrapAlreadyDone(logger);
                     return;
                 }
 
+                if (receipt is not null) await receipt.CompleteAsync(configuration, (int)httpResponse.StatusCode, "response-received", cancellationToken).ConfigureAwait(false);
                 Log.BootstrapUnexpectedResponse(logger, (int)httpResponse.StatusCode);
             }
         }
