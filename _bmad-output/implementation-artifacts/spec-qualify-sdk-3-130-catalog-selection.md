@@ -143,3 +143,28 @@ The full exact branch CI, Source-reference, Story Guards, Commitlint and CodeQL
 must finish successfully before the selected-source remote gate is accepted.
 This qualification does not publish from a side branch or alter existing
 Tenants6.0.0/source9e publication claims.
+
+## Recover the qualification ref after external pruning
+
+The isolated qualification commit3dc758ed preserves all4,814 non-workflow/spec
+entries from6f and passed actionlint, the actual nonzero-before changed-story
+event, pinned commitlint and normal hooks. Its blocking HTTP job passed270cases
+with zero failures/skips, published-catalog HTTP passed, and source-reference
+integration passed.
+
+A competing external sync then merged the branch into newer main60cc86e2 and
+deleted its remote ref. CodeQL completed analysis but could not upload because
+that exact qualification ref no longer existed. Restoring the same3dc ref
+created a branch-creation push and superseded unfinished same-ref workflows.
+Preserve those results and failures as evidence; do not weaken the strict
+changed-story requirement for a real, nonzero before-SHA.
+
+After the user confirmed the external sync stopped, add only this recovery note
+to the now-seeded branch and perform a normal push from3dc. Every other tracked
+entry, including all five workflow files, remains byte/mode-identical to3dc;
+production, tests, package selectors and gitlinks remain identical to6f. Run
+pinned commitlint and normal hooks and the actual new push-context story guard.
+The complete CI, Source-reference, Story Guards, Commitlint and CodeQL workflows
+on this exact recovery commit are the final selected-source remote gate.
+Preserve newer main without merging, rewinding or pruning it; leave original
+producer checkout selection and fresh runtime preparation to RootCI.
