@@ -30,6 +30,16 @@ jobs:
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           global-json-file: global.json
+      - name: Select the pinned source producer assembly identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_sdk_version="$(dotnet msbuild references/Hexalith.EventStore/src/Hexalith.EventStore.Client/Hexalith.EventStore.Client.csproj -nologo -getProperty:Version)"
+          if [[ ! "$source_sdk_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.+-][0-9A-Za-z.-]+)?$ ]]; then
+            echo "The pinned EventStore source must report one valid producer version." >&2
+            exit 1
+          fi
+          printf 'HexalithEventStoreVersion=%s\n' "$source_sdk_version" >> "$GITHUB_ENV"
       - name: Build the source-reference integration graph
         run: >
           dotnet build tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj

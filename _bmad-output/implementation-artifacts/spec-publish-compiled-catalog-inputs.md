@@ -44,6 +44,7 @@ The composition owner remains responsible for real SDK activation/readback.
 Allowed files for this story:
 
 - `.github/workflows/ci.yml`
+- `.github/workflows/source-reference.yml`
 - `Directory.Build.props`
 - `Directory.Build.targets`
 - `README.md`
@@ -126,6 +127,7 @@ The parent owns three independent reviews, hosted exact-source CI and Release.
 ## File List
 
 - `.github/workflows/ci.yml`
+- `.github/workflows/source-reference.yml`
 - `Directory.Build.props`
 - `Directory.Build.targets`
 - `README.md`
@@ -431,3 +433,38 @@ packages pass their unchanged actual-PE guards and archive validation, logs
 Contracts.Tests build has zero warnings/errors. Exact fix candidate passes the
 pinned owner commitlint, log `/tmp/tenants-owner-pack-boundary-commitlint.log`.
 No wider test run was performed for this bounded guard correction.
+
+
+### Source-only assembly identity follow-up
+
+Exact8a27567 source41201634020 job124538416728 now builds successfully
+with zero warnings/errors. All4 retained real-handler cases then refuse to load
+EventStore.Client3.129.0.0. The Tenants Client source edge exports its selected
+SDK as Version, while other source edges retain the pinned SDK producer's own
+3.128.4 catalog, rebuilding the shared output with a different assembly identity.
+This is a source-only cohort mismatch, not a handler assertion failure.
+
+Before source building, evaluate Version from the actual checked-out EventStore
+Client producer and bind that value through GITHUB_ENV for every remaining
+source build/test step. Do not invent a source version or change a package pin.
+Normal package qualification stays SDK3.129.0 and frozen public compatibility
+remains its explicit separate job profile. Existing four provenance and compiled
+operation checks, counts, serial builds and fail-skips gates remain unchanged.
+File Scope/List now include the source workflow.
+
+Local exact source qualification uses all nine top-level root-declared repositories
+at the owning Tenants gitlink SHAs in genuine detached disposable worktrees,
+recorded in `/tmp/tenants-source-identity-detached-worktrees.tsv`. No nested
+submodule initialization/update or original producer output build. Ordinary
+archives first hit Memories' existing genuine-Git check; no fake Git markers or
+guard bypass was used. Both resulting source builds have zero warnings/errors;
+actual EventStore.Client PE identity is3.128.4.0, matching the evaluated pinned
+producer. The exact4 real-handler cases pass4/4 (zero skips) in1.910s, and
+compiled catalog cases pass2/2 (zero skips) in0.783s. Logs:
+`/tmp/tenants-source-producer-coherent-build.log`,
+`/tmp/tenants-source-producer-four-handler-tests.log`,
+`/tmp/tenants-source-producer-catalog-build.log`,
+`/tmp/tenants-source-producer-catalog-tests.log`, and
+`/tmp/tenants-source-producer-actual-client-identity.txt`. The exact workflow
+selection shell passes syntax validation and actually supplies the tested
+producer binding. No wider tests were run for this workflow-only correction.
