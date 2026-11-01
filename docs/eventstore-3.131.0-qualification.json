@@ -1,0 +1,136 @@
+{
+  "date": "2026-11-01",
+  "scope": "Local working-tree qualification; hosted committed-source bootstrap and release gates remain required.",
+  "source_base": "48ba1fcb74779e8dc9dd4851d55e1055762eebab",
+  "sdk_default": "3.131.0",
+  "public_sdk_archives": [
+    {
+      "id": "Hexalith.EventStore.Contracts",
+      "version": "3.131.0",
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/Hexalith/Hexalith.EventStore",
+        "commit": "7776e64fdb5b9b86d0d180a3a8f47c1f11379466"
+      },
+      "source": "https://api.nuget.org/v3/index.json",
+      "sha256": "b1f296913ccc1c23963a8eef796426bc9ee6ef660027826aee349a00cd2fc21a"
+    },
+    {
+      "id": "Hexalith.EventStore.DomainService",
+      "version": "3.131.0",
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/Hexalith/Hexalith.EventStore",
+        "commit": "7776e64fdb5b9b86d0d180a3a8f47c1f11379466"
+      },
+      "source": "https://api.nuget.org/v3/index.json",
+      "sha256": "43da072acf3da50ec13dcfd4343b41fc502ed9c919db092f277e29021edade3d"
+    },
+    {
+      "id": "Hexalith.EventStore.Server",
+      "version": "3.131.0",
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/Hexalith/Hexalith.EventStore",
+        "commit": "7776e64fdb5b9b86d0d180a3a8f47c1f11379466"
+      },
+      "source": "https://api.nuget.org/v3/index.json",
+      "sha256": "8d1ec84bccd16175fc9bfcead3c63561c990c72d2705957d4fcf6f4a73060498"
+    },
+    {
+      "id": "Hexalith.EventStore.ServiceDefaults",
+      "version": "3.131.0",
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/Hexalith/Hexalith.EventStore",
+        "commit": "7776e64fdb5b9b86d0d180a3a8f47c1f11379466"
+      },
+      "source": "https://api.nuget.org/v3/index.json",
+      "sha256": "5551b88b38c1ffd4c30290311cfbd7e3152b77c90fabb05530261c2fc8df8d8e"
+    }
+  ],
+  "results": {
+    "sdk_selection_and_compiled_catalog": {
+      "total": 104,
+      "passed": 104,
+      "failed": 0,
+      "skipped": 0,
+      "errors": 0
+    },
+    "generated_http_default": {
+      "total": 66,
+      "passed": 66,
+      "failed": 0,
+      "skipped": 0,
+      "errors": 0
+    },
+    "archive_metadata_script": {
+      "tests": 6,
+      "passed": 6,
+      "qualified_sdk_alias_subcases": 24
+    },
+    "ordinary_pack_guards": {
+      "tests": 2,
+      "passed": 2
+    },
+    "generated_http_explicit_3.129.0": {
+      "total": 66,
+      "passed": 66,
+      "failed": 0,
+      "skipped": 0,
+      "errors": 0
+    },
+    "compiled_catalog_explicit_3.129.0": {
+      "total": 3,
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0,
+      "errors": 0
+    }
+  },
+  "candidate": {
+    "version": "0.0.0-sdk131.20261101",
+    "sdk": "3.131.0",
+    "packages": {
+      "Hexalith.Tenants.Contracts": {
+        "sha256": "1f882b155580bcf7266bea695ad5283374d35da1c15300b5a6ec3f6488bf8def",
+        "dll_sha256": "c09a0f92fd0b3fec91706068a518cd3e5b55774bcfa77695996555a38c37dc08",
+        "source": "48ba1fcb74779e8dc9dd4851d55e1055762eebab"
+      },
+      "Hexalith.Tenants.Server": {
+        "sha256": "f78b66dd072bd7b8261c36c8f70f76efd78349f8b861d45be131e7c333612aba",
+        "dll_sha256": "6830be08035d95fa8d74ae83db0691440a58663e8f05bc8d67f9d9d812e2241b",
+        "source": "48ba1fcb74779e8dc9dd4851d55e1055762eebab"
+      }
+    },
+    "discovery": {
+      "routes": 22,
+      "operations": 22,
+      "adapters": 12
+    },
+    "verifier_succeeded": true,
+    "metadata_source_base": "48ba1fcb74779e8dc9dd4851d55e1055762eebab"
+  },
+  "commands_documented_in": "development-route-catalog.md#published-sdk-qualification",
+  "builds": {
+    "default_package_contracts_debug": "passed; zero warnings/errors",
+    "default_package_integration_release": "passed; zero warnings/errors",
+    "explicit_3.129.0_integration_and_contracts_release": "both passed; zero warnings/errors",
+    "source_integration_debug": {
+      "status": "passed; zero warnings/errors; parent verified completion",
+      "command": "CI=true NUGET_PACKAGES=/tmp/projects-release-maintenance/nuget dotnet build tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Debug -p:UseHexalithProjectReferences=true -p:UseNuGetDeps=false -p:HexalithEventStoreVersion=3.131.0 -p:NuGetAudit=false -m:1 -nr:false --disable-build-servers",
+      "log": "/tmp/tenants-sdk131-revised-source-build.log"
+    }
+  },
+  "checks": {
+    "actionlint": "passed with -shellcheck=",
+    "git_diff_check": "passed including final evidence record"
+  },
+  "working_tree_patch": {
+    "base": "48ba1fcb74779e8dc9dd4851d55e1055762eebab",
+    "sha256": "2cf7e37452de3a8e7e6161ff8a56ba173e8285e6f6bdc0bf780924f70c63234d",
+    "scope": "Tracked staged and unstaged diff after final documentation corrections; excludes this evidence JSON. Local working-tree qualification only.",
+    "regeneration_command": "git diff --no-ext-diff --no-textconv --full-index --submodule=short --no-color --no-renames --diff-algorithm=myers --no-indent-heuristic --src-prefix=a/ --dst-prefix=b/ 48ba1fcb74779e8dc9dd4851d55e1055762eebab -- . ':(exclude)docs/eventstore-3.131.0-qualification.json' | sha256sum",
+    "declared_builds_gitlink": "4d2ef11ea7f36b955ed701fef5af1f26a6414942"
+  }
+}

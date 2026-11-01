@@ -17,7 +17,15 @@ permissions:
 
 jobs:
   published-catalog-http:
-    name: Published catalog HTTP
+    name: Published catalog HTTP (${{ matrix.profile }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - profile: current default 3.131.0
+            sdk-argument: ''
+          - profile: explicit floor 3.129.0
+            sdk-argument: '-p:HexalithEventStoreVersion=3.129.0'
     env:
       RepositoryCommit: ${{ github.sha }}
     runs-on: ubuntu-latest
@@ -45,14 +53,37 @@ jobs:
           dotnet build tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj
           --configuration Release -warnaserror -m:1 -nr:false
           -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true
-          -p:HexalithEventStoreFromSource=false -p:HexalithEventStoreVersion=3.129.0
+          -p:HexalithEventStoreFromSource=false ${{ matrix.sdk-argument }}
           -p:HexalithFrontComposerFromSource=false -p:HexalithMemoriesFromSource=false
+      - name: Build compiled owner catalog assertions against the published SDK
+        run: >-
+          dotnet build tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj
+          --configuration Release -warnaserror -m:1 -nr:false
+          -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true
+          -p:HexalithEventStoreFromSource=false ${{ matrix.sdk-argument }}
+          -p:HexalithFrontComposerFromSource=false -p:HexalithMemoriesFromSource=false
+      - name: Require compiled published enrollment and the complete owner catalog
+        run: |
+          dotnet test tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj \
+            --configuration Release --no-build \
+            -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true \
+            -p:HexalithEventStoreFromSource=false ${{ matrix.sdk-argument }} \
+            -p:HexalithFrontComposerFromSource=false -p:HexalithMemoriesFromSource=false \
+            --filter-class Hexalith.Tenants.Contracts.Tests.PublishedTenantCatalogTests \
+            --minimum-expected-tests 1 --fail-skips on
+          dotnet test tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj \
+            --configuration Release --no-build \
+            -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true \
+            -p:HexalithEventStoreFromSource=false ${{ matrix.sdk-argument }} \
+            -p:HexalithFrontComposerFromSource=false -p:HexalithMemoriesFromSource=false \
+            --filter-class Hexalith.Tenants.Contracts.Tests.TenantCatalogTests \
+            --minimum-expected-tests 2 --fail-skips on
       - name: Require every generated HTTP case and catalog refusal control
         run: >-
           dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj
           --configuration Release --no-build
           -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true
-          -p:HexalithEventStoreFromSource=false -p:HexalithEventStoreVersion=3.129.0
+          -p:HexalithEventStoreFromSource=false ${{ matrix.sdk-argument }}
           -p:HexalithFrontComposerFromSource=false -p:HexalithMemoriesFromSource=false
           --filter-class Hexalith.Tenants.IntegrationTests.TenantsApiGeneratedControllerTests
           --minimum-expected-tests 66 --fail-skips on
@@ -64,7 +95,8 @@ jobs:
           for catalog_package in Contracts Server; do
             dotnet pack "src/Hexalith.Tenants.${catalog_package}/Hexalith.Tenants.${catalog_package}.csproj" \
               --configuration Release --no-build --output "${RUNNER_TEMP}/catalog-packages" \
-              -p:Version="$catalog_version" -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true
+              -p:Version="$catalog_version" -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true \
+              -p:HexalithEventStoreFromSource=false ${{ matrix.sdk-argument }}
           done
           python3 scripts/verify-catalog-package-consumer.py "${RUNNER_TEMP}/catalog-packages" \
             --expected-source-sha "$GITHUB_SHA" --output "${RUNNER_TEMP}/catalog-package-consumer.json"

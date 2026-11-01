@@ -819,7 +819,9 @@ public class PackageGovernanceTests {
     }
 
     [Theory]
-    [InlineData("", false, "3.129.0")]
+    [InlineData("", false, "3.131.0")]
+    [InlineData("3.129.0", false, "3.129.0")]
+    [InlineData("3.131.0", false, "3.131.0")]
     [InlineData("3.128.2", false, "3.128.4")]
     [InlineData("3.128.3", false, "3.128.4")]
     [InlineData("3.128.4-preview.1", false, "3.128.4")]
@@ -888,7 +890,15 @@ public class PackageGovernanceTests {
     [InlineData("3.130.2-preview.1+metadata", false, false)]
     [InlineData("3.130.2.1", false, false)]
     [InlineData("3.130.3", false, false)]
-    [InlineData("3.131.0", false, false)]
+    [InlineData("3.131.0", false, true)]
+    [InlineData("3.131.0.0", false, true)]
+    [InlineData("3.131.0+metadata-with-dash", false, true)]
+    [InlineData("3.131.0.0+metadata.1", false, true)]
+    [InlineData("3.131.0-preview.1", false, false)]
+    [InlineData("3.131.0-preview.1+metadata", false, false)]
+    [InlineData("3.131.0.1", false, false)]
+    [InlineData("3.131.1", false, false)]
+    [InlineData("3.132.0", false, false)]
     [InlineData("test-source-version", true, true)]
     public Task Published_packages_require_qualified_catalog_artifactsAsync(
         string selectedVersion,
@@ -924,7 +934,15 @@ public class PackageGovernanceTests {
     [InlineData("3.130.2-preview.1+metadata", false, false)]
     [InlineData("3.130.2.1", false, false)]
     [InlineData("3.130.3", false, false)]
-    [InlineData("3.131.0", false, false)]
+    [InlineData("3.131.0", false, true)]
+    [InlineData("3.131.0.0", false, true)]
+    [InlineData("3.131.0+metadata-with-dash", false, true)]
+    [InlineData("3.131.0.0+metadata.1", false, true)]
+    [InlineData("3.131.0-preview.1", false, false)]
+    [InlineData("3.131.0-preview.1+metadata", false, false)]
+    [InlineData("3.131.0.1", false, false)]
+    [InlineData("3.131.1", false, false)]
+    [InlineData("3.132.0", false, false)]
     [InlineData("test-source-version", true, true)]
     public Task Native_hosts_refuse_unqualified_catalog_sdk_selectionsAsync(string selectedVersion, bool useSource, bool accepted)
         => EvaluateEventStoreVersionSelectionAsync(selectedVersion, useSource, selectedVersion,
@@ -939,6 +957,8 @@ public class PackageGovernanceTests {
         bool nestedReference = false,
         bool requireCatalogPackage = false,
         bool requireSdkSelection = false) {
+        ArgumentNullException.ThrowIfNull(selectedVersion);
+        ArgumentNullException.ThrowIfNull(expectedVersion);
         string repoRoot = FindRepoRoot();
         string fixtureRoot = Path.Combine(Path.GetTempPath(), $"hexalith-tenants-eventstore-floor-{Guid.NewGuid():N}");
         string nestedDirectory = Path.Combine(repoRoot, "references", "story33-package-floor-fixture-" + Guid.NewGuid().ToString("N"));
@@ -981,7 +1001,7 @@ public class PackageGovernanceTests {
                 "msbuild", projectPath, "-nologo",
                 requireSdkSelection ? "-target:ValidateCatalogSdkSelection"
                     : requireCatalogPackage ? "-target:ValidatePublishedCatalogSdk" : "-target:ValidateEventStorePackageFloor",
-                "-getProperty:HexalithEventStoreVersion,HexalithEventStoreFromSource", "-getItem:PackageVersion",
+                "-getProperty:HexalithEventStoreVersion,HexalithEventStoreFromSource,HexalithTenantsCatalogArtifactsAvailable,HexalithTenantsCatalogSdkVersion,DefineConstants", "-getItem:PackageVersion",
             }) {
                 startInfo.ArgumentList.Add(argument);
             }
@@ -1023,6 +1043,17 @@ public class PackageGovernanceTests {
             JsonElement properties = evaluation.RootElement.GetProperty("Properties");
             properties.GetProperty("HexalithEventStoreVersion").GetString().ShouldBe(expectedVersion);
             properties.GetProperty("HexalithEventStoreFromSource").GetString().ShouldBe(useSource ? "true" : string.Empty);
+            if (requireCatalogPackage || requireSdkSelection || string.IsNullOrEmpty(selectedVersion)) {
+                bool catalogAvailable = useSource || !expectedVersion.StartsWith("3.128.", StringComparison.Ordinal);
+                properties.GetProperty("HexalithTenantsCatalogArtifactsAvailable").GetString().ShouldBe(catalogAvailable ? "true" : "false");
+                string[] constants = properties.GetProperty("DefineConstants").GetString()!.Split(';', StringSplitOptions.RemoveEmptyEntries);
+                constants.Contains("HEXALITH_DEVELOPMENT_CATALOG_SOURCE").ShouldBe(catalogAvailable);
+                constants.Contains("HEXALITH_DEVELOPMENT_CATALOG_COHORT").ShouldBe(useSource);
+                if (catalogAvailable && !useSource) {
+                    properties.GetProperty("HexalithTenantsCatalogSdkVersion").GetString()
+                        .ShouldBe(string.Join(".", expectedVersion.Split('+')[0].Split('.').Take(3)));
+                }
+            }
             JsonElement[] packages = evaluation.RootElement.GetProperty("Items").GetProperty("PackageVersion").EnumerateArray().ToArray();
             packages.Length.ShouldBe(3);
             foreach (JsonElement package in packages) {
