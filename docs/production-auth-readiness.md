@@ -87,8 +87,8 @@ Global-administrator authority is verified from the `global-administrators` read
 
 ### Unexpected-response diagnostics
 
-Bootstrap warning `2003` records the actual `StatusCode` plus `ResponseKind` and
-`ResponseCode`. These are closed diagnostic classifications, never delivery,
+Bootstrap warning `2003` records the actual `StatusCode` plus `ResponseKind`,
+`ResponseCode` and `ValidationField`. These are closed diagnostic classifications, never delivery,
 non-delivery, authorization, or administrator-membership authority. Keep the
 attempt IDs from event `2008` and follow the status and membership recovery
 checks below; a classification does not authorize another submission or restart.
@@ -110,6 +110,15 @@ shape. Raw body text, type URLs, unknown codes, details, credentials and returne
 identities are excluded from these fields. A recognized value remains an
 untrusted response description and does not replace command-status or membership
 evidence.
+
+For the SDK's `problem-validation-error` response only, `ValidationField` labels
+recognized command/request fields such as `message-id`, `payload`,
+`payload-user-id`, `extensions` or `principal-id`. It never copies raw validation
+keys, messages or values. Equivalent wrapper paths share one label; disagreeing
+labels use `multiple`, unknown or malformed keys use `unrecognized`, and absent
+or empty dictionaries use `none`. Other response families always use `none`.
+This field is also diagnostic-only and does not prove which request was delivered
+or whether administrator membership exists.
 
 ### Explicit bootstrap recovery
 

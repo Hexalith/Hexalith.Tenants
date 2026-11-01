@@ -595,6 +595,82 @@ public class TenantBootstrapHostedServiceTests
         AssertSupportSafeDiagnostics(logger, "protected-response-marker", body);
     }
 
+    /// <summary>Classifies SDK validation keys into fixed labels while excluding unknown keys and every message/value.</summary>
+    [Theory]
+    [InlineData("messageId", "message-id")]
+    [InlineData("tenant", "tenant")]
+    [InlineData("domain", "domain")]
+    [InlineData("aggregateId", "aggregate-id")]
+    [InlineData("commandType", "command-type")]
+    [InlineData("payload", "payload")]
+    [InlineData("payload.UserId", "payload-user-id")]
+    [InlineData("correlationId", "correlation-id")]
+    [InlineData("extensions", "extensions")]
+    [InlineData("idempotencyKey", "idempotency-key")]
+    [InlineData("principalId", "principal-id")]
+    [InlineData("userId", "user-id")]
+    [InlineData("command", "command")]
+    [InlineData("$", "request")]
+    [InlineData("", "request")]
+    [InlineData("$.command.Payload", "payload")]
+    [InlineData("request.Command.MessageId", "message-id")]
+    [InlineData("protected-response-marker", "unrecognized")]
+    [InlineData("payload.protected-response-marker", "unrecognized")]
+    [InlineData("extensions\nprotected-response-marker", "unrecognized")]
+    public async Task ValidationErrorsExposeOnlyClosedKnownFieldLabels(string field, string expectedField)
+    {
+        ArgumentNullException.ThrowIfNull(field);
+        var problem = ValidationProblemDetailsFactory.Create("protected-response-marker",
+            new Dictionary<string, string> { [field] = "https://private.example.test?token=protected-response-marker" },
+            "fixture-correlation", "private-tenant-marker");
+        string body = JsonSerializer.Serialize(problem);
+        TestLogEntry entry = await AssertUnexpectedBootstrapResponseAsync(body, HttpStatusCode.BadRequest, "problem-validation-error", "none", false,
+            "private-tenant-marker", "fixture-correlation", "https://private.example.test?token=protected-response-marker");
+        entry.DiagnosticState.Split('\n').ShouldContain("ValidationField=" + expectedField);
+        if (expectedField == "unrecognized") entry.DiagnosticState.ShouldNotContain(field);
+    }
+
+    /// <summary>Non-validation responses never cause the validation dictionary to be interpreted.</summary>
+    [Fact]
+    public async Task OtherProblemTypesDoNotExposeValidationFields()
+    {
+        string body = JsonSerializer.Serialize(new { type = ProblemTypeUris.Forbidden, errors = new { payload = "protected-response-marker" } });
+        TestLogEntry entry = await AssertUnexpectedBootstrapResponseAsync(body, HttpStatusCode.Forbidden, "problem-forbidden", "none", false, ProblemTypeUris.Forbidden);
+        entry.DiagnosticState.Split('\n').ShouldContain("ValidationField=none");
+    }
+
+    /// <summary>Malformed and combined validation dictionaries retain the status and emit only closed aggregate labels.</summary>
+    [Theory]
+    [InlineData("missing", "none")]
+    [InlineData("empty", "none")]
+    [InlineData("array", "unrecognized")]
+    [InlineData("scalar", "unrecognized")]
+    [InlineData("null", "unrecognized")]
+    [InlineData("different", "multiple")]
+    [InlineData("mixed", "multiple")]
+    [InlineData("same", "payload")]
+    [InlineData("surrogate-key", "unrecognized")]
+    public async Task ValidationFieldClassificationKeepsMalformedAndMultipleKeysPrivate(string scenario, string expectedField)
+    {
+        const string marker = "protected-response-marker";
+        string errors = scenario switch
+        {
+            "empty" => "{}",
+            "array" => "[\"protected-response-marker\"]",
+            "scalar" => "\"protected-response-marker\"",
+            "null" => "null",
+            "different" => JsonSerializer.Serialize(new { payload = marker, extensions = marker }),
+            "mixed" => JsonSerializer.Serialize(new Dictionary<string, string> { ["payload"] = marker, [marker] = marker }),
+            "same" => JsonSerializer.Serialize(new Dictionary<string, string> { ["payload"] = marker, ["command.Payload"] = marker }),
+            "surrogate-key" => "{\"\\uD800\":\"protected-response-marker\"}",
+            _ => "{}",
+        };
+        string body = "{\"type\":\"https://hexalith.io/problems/validation-error\""
+            + (scenario == "missing" ? string.Empty : ",\"errors\":" + errors) + ",\"detail\":\"protected-response-marker\"}";
+        TestLogEntry entry = await AssertUnexpectedBootstrapResponseAsync(body, HttpStatusCode.BadRequest, "problem-validation-error", "none", false, "\\uD800");
+        entry.DiagnosticState.Split('\n').ShouldContain("ValidationField=" + expectedField);
+    }
+
     private static string SizedBootstrapResponse(int bytes, bool multibyte, bool alreadyBootstrapped = false)
     {
         string prefix = alreadyBootstrapped
@@ -607,7 +683,7 @@ public class TenantBootstrapHostedServiceTests
         return body;
     }
 
-    private static async Task AssertUnexpectedBootstrapResponseAsync(string body, HttpStatusCode status, string kind, string code,
+    private static async Task<TestLogEntry> AssertUnexpectedBootstrapResponseAsync(string body, HttpStatusCode status, string kind, string code,
         bool understateLength = false, params string[] protectedValues)
     {
         using var content = new StringContent(body);
@@ -627,6 +703,7 @@ public class TenantBootstrapHostedServiceTests
         logger.Entries.ShouldNotContain(entry => entry.EventId.Id == 2002 || entry.EventId.Id == 2004);
         AssertSupportSafeDiagnostics(logger, "protected-response-marker", body);
         AssertSupportSafeDiagnostics(logger, protectedValues);
+        return entry;
     }
 
     [Fact]

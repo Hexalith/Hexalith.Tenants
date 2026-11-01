@@ -171,7 +171,8 @@ public partial class TenantBootstrapHostedService(
 
                 if (receipt is not null) await receipt.CompleteAsync(configuration, (int)httpResponse.StatusCode, "response-received", cancellationToken).ConfigureAwait(false);
                 (string responseKind, string responseCode) = ClassifyUnexpectedResponse(errorBody);
-                Log.BootstrapUnexpectedResponse(logger, (int)httpResponse.StatusCode, responseKind, responseCode);
+                string validationField = ClassifyValidationField(errorBody, responseKind);
+                Log.BootstrapUnexpectedResponse(logger, (int)httpResponse.StatusCode, responseKind, responseCode, validationField);
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -330,6 +331,55 @@ public partial class TenantBootstrapHostedService(
         }
     }
 
+    // Only known SDK request fields become fixed diagnostic labels. Do not read or log
+    // messages, values, or arbitrary keys from the untrusted validation dictionary.
+    private static string ClassifyValidationField(string body, string responseKind)
+    {
+        if (responseKind != "problem-validation-error") return "none";
+        try
+        {
+            using JsonDocument document = JsonDocument.Parse(body, new JsonDocumentOptions { MaxDepth = 16 });
+            if (!document.RootElement.TryGetProperty("errors", out JsonElement errors)) return "none";
+            if (errors.ValueKind != JsonValueKind.Object) return "unrecognized";
+            string? selected = null;
+            foreach (JsonProperty property in errors.EnumerateObject())
+            {
+                string path = property.Name.ToLowerInvariant();
+                if (path.StartsWith("$.", StringComparison.Ordinal)) path = path[2..];
+                if (path.StartsWith("request.", StringComparison.Ordinal)) path = path[8..];
+                string field = path switch
+                {
+                    "" or "$" or "request" => "request",
+                    "command" => "command",
+                    "messageid" or "command.messageid" => "message-id",
+                    "tenant" or "tenantid" or "command.tenant" or "command.tenantid" => "tenant",
+                    "domain" or "command.domain" => "domain",
+                    "aggregateid" or "command.aggregateid" => "aggregate-id",
+                    "commandtype" or "command.commandtype" => "command-type",
+                    "payload" or "command.payload" => "payload",
+                    "payload.userid" or "command.payload.userid" => "payload-user-id",
+                    "correlationid" or "command.correlationid" => "correlation-id",
+                    "extensions" or "command.extensions" => "extensions",
+                    "idempotencykey" or "command.idempotencykey" => "idempotency-key",
+                    "principalid" => "principal-id",
+                    "userid" or "command.userid" => "user-id",
+                    _ => "unrecognized",
+                };
+                if (selected is not null && selected != field) return "multiple";
+                selected = field;
+            }
+            return selected ?? "none";
+        }
+        catch (JsonException)
+        {
+            return "unrecognized";
+        }
+        catch (InvalidOperationException)
+        {
+            return "unrecognized";
+        }
+    }
+
     private static partial class Log
     {
         [LoggerMessage(
@@ -359,8 +409,8 @@ public partial class TenantBootstrapHostedService(
         [LoggerMessage(
             EventId = 2003,
             Level = LogLevel.Warning,
-            Message = "Bootstrap unexpected response: StatusCode={StatusCode}, ResponseKind={ResponseKind}, ResponseCode={ResponseCode}. Verify command status and projected membership before explicit operator recovery")]
-        public static partial void BootstrapUnexpectedResponse(ILogger logger, int statusCode, string responseKind, string responseCode);
+            Message = "Bootstrap unexpected response: StatusCode={StatusCode}, ResponseKind={ResponseKind}, ResponseCode={ResponseCode}, ValidationField={ValidationField}. Verify command status and projected membership before explicit operator recovery")]
+        public static partial void BootstrapUnexpectedResponse(ILogger logger, int statusCode, string responseKind, string responseCode, string validationField);
 
         [LoggerMessage(
             EventId = 2002,
