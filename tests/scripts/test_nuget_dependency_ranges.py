@@ -116,6 +116,8 @@ class NuGetDependencyRangeTests(unittest.TestCase):
                            "Hexalith.Tenants.Aspire", "Unknown.Package"):
             for dependency_id in ("Hexalith.EventStore.ServiceDefaults", "Hexalith.Commons.ServiceDefaults",
                                   "Other.ServiceDefaults", "Hexalith.EventStore.ServiceDefaults.Extra"):
+                if package_id == "Hexalith.Tenants.Aspire" and dependency_id == "Hexalith.EventStore.ServiceDefaults":
+                    continue  # Public EventStore.Aspire's exact promoted technical dependency is tested separately.
                 with self.subTest(package=package_id, dependency=dependency_id):
                     self.package_id = package_id
                     self.assets["project"]["restore"]["projectName"] = package_id
@@ -125,6 +127,27 @@ class NuGetDependencyRangeTests(unittest.TestCase):
                     group = f'<dependencies><group targetFramework="net10.0"><dependency id="{dependency_id}" version="1.0.0" /></group></dependencies>'
                     result = self.run_validator(group, False)
                     self.assertIn("forbidden projects", result.stdout + result.stderr)
+
+    def test_aspire_exact_sdk_exception_retains_restore_range_and_framework_checks(self):
+        for package_id in ("Hexalith.Tenants.Aspire", "HEXALITH.TENANTS.ASPIRE"):
+            self.package_id = package_id
+            self.assets["project"]["restore"]["projectName"] = package_id
+            self.manifest.write_text(json.dumps({"packages": [{"id": package_id, "project": "src/Fixture.csproj"}]}))
+            for restored_id, packed_id in (("Hexalith.EventStore.ServiceDefaults", "HEXALITH.EVENTSTORE.SERVICEDEFAULTS"),
+                                            ("HEXALITH.EVENTSTORE.SERVICEDEFAULTS", "Hexalith.EventStore.ServiceDefaults")):
+                for promoted in (False, True):
+                    with self.subTest(package=package_id, restored=restored_id, packed=packed_id, promoted=promoted):
+                        self.assets["projectFileDependencyGroups"]["net10.0"] = [] if promoted else [restored_id + " >= 3.131.0"]
+                        self.assets["centralTransitiveDependencyGroups"]["net10.0"] = {restored_id: {"version": "[3.131.0, )"}} if promoted else {}
+                        group = '<dependencies><group targetFramework="net10.0"><dependency id="' + packed_id + '" version="{}" /></group></dependencies>'
+                        self.run_validator(group.format("3.131.0"))
+                        self.run_validator(group.format("3.130.2"), False)
+                        self.run_validator(group.format("[3.131.0]"), False)
+                        self.run_validator(group.format("3.131.0").replace('targetFramework="net10.0"', 'targetFramework="net9.0"'), False)
+                        self.run_validator('<dependencies><group targetFramework="net10.0" /></dependencies>', False)
+                        self.assets["projectFileDependencyGroups"]["net10.0"] = []
+                        self.assets["centralTransitiveDependencyGroups"]["net10.0"] = {}
+                        self.run_validator(group.format("3.131.0"), False)
 
     def test_unusable_central_evidence_is_rejected(self):
         for details in ({}, {"version": ""}, {"version": "1.*"}, {"version": None}):

@@ -45,6 +45,7 @@ FORBIDDEN_DEPENDENCY_FRAGMENTS_NORMALIZED = tuple(
     fragment.casefold() for fragment in FORBIDDEN_DEPENDENCY_FRAGMENTS
 )
 ALLOWED_DEPENDENCIES_BY_PACKAGE = {
+    "hexalith.tenants.aspire": frozenset({"hexalith.eventstore.servicedefaults"}),
     "hexalith.tenants.server": frozenset(
         dependency_id.casefold() for dependency_id in SERVER_TECHNICAL_DEPENDENCY_IDS
     ),
