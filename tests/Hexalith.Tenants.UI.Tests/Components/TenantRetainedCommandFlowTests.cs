@@ -39,6 +39,182 @@ public sealed class TenantRetainedCommandFlowTests : FluentBunitContext
         Services.AddSingleton(viewport);
     }
 
+    /// <summary>Cleanup after provider shutdown detaches the exact attempt and removes its rendering subscription.</summary>
+    [Theory]
+    [InlineData("create", false)]
+    [InlineData("create", true)]
+    [InlineData("add", false)]
+    [InlineData("add", true)]
+    [InlineData("change", false)]
+    [InlineData("change", true)]
+    [InlineData("remove", false)]
+    [InlineData("remove", true)]
+    [InlineData("metadata", false)]
+    [InlineData("metadata", true)]
+    public async Task ProviderDisposalBeforeComponentCleanupPreservesExactRetainedOwnership(string kind, bool providerOwnsTracker)
+    {
+        TenantAggregateCommandAdmissionGate gate = new();
+        using TenantCommandAttemptTracker tracker = new(gate);
+        Services.AddSingleton(gate);
+        Services.AddSingleton(new TenantCreateAttemptTracker(tracker));
+        if (providerOwnsTracker)
+        {
+            Services.AddSingleton<TenantCommandAttemptTracker>(_ => tracker);
+        }
+        else
+        {
+            // External ownership keeps the tracker live so provider disposal cannot mask a leaked subscription.
+            Services.AddSingleton(tracker);
+        }
+        RegisterGateway((_, id) => Task.FromResult(TenantCommandSubmissionResult.Failed("Delivery is uncertain.")
+            with { MessageId = id, IsAmbiguousFailure = true }));
+        (IRenderedComponent<IComponent> cut, object component) = RenderFlow(kind);
+        Services.GetRequiredService<TenantCommandAttemptTracker>().ShouldBeSameAs(tracker);
+        Submit(kind, cut, send: false);
+        await InvokeSubmissionAsync(cut, component);
+        object original = Snapshot(component);
+        TenantRetainedCommandAttempt attempt = RetainedAttempt(component);
+        TenantAggregateCommandLease lease = attempt.Lease;
+        object leaseOwner = attempt.LeaseOwner;
+        tracker.IsAttached(attempt, component).ShouldBeTrue();
+        IsSubscribed(tracker, component).ShouldBeTrue();
+        lease.IsDispatchMarked.ShouldBeTrue();
+        int notifications = 0;
+        tracker.StateChanged += (_, _) => notifications++;
+
+        Services.Dispose();
+        Should.Throw<ObjectDisposedException>(() => Services.GetRequiredService<TenantCommandAttemptTracker>());
+        ((IDisposable)component).Dispose();
+
+        IsSubscribed(tracker, component).ShouldBeFalse();
+        tracker.IsAttached(attempt, component).ShouldBeFalse();
+        attempt.SurfaceOwner.ShouldBeNull();
+        ReadRetained(tracker, kind).ShouldBeSameAs(original);
+        tracker.HasPendingOwnership("tenant.alpha").ShouldBeTrue();
+        lease.CurrentOwner.ShouldBeSameAs(leaseOwner);
+        lease.IsReleased.ShouldBeFalse();
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeTrue();
+        if (!providerOwnsTracker)
+        {
+            int renders = cut.RenderCount;
+            object advanced = ApplyStatus(original, new(CommandStatus.Processing, HasVerifiedCommandIdentity: true));
+            tracker.TryUpdate(attempt, original, advanced).ShouldBeTrue();
+            notifications.ShouldBe(1);
+            Snapshot(component).ShouldBeSameAs(original);
+            cut.RenderCount.ShouldBe(renders);
+            object replacement = new();
+            tracker.TryAdopt<object>("tenant.alpha", replacement, out TenantRetainedCommandAttempt? adopted, out object? evidence).ShouldBeTrue();
+            adopted.ShouldBeSameAs(attempt);
+            evidence.ShouldBeSameAs(advanced);
+            adopted!.Lease.ShouldBeSameAs(lease);
+            tracker.IsAttached(attempt, replacement).ShouldBeTrue();
+            ((IDisposable)component).Dispose();
+            tracker.IsAttached(attempt, replacement).ShouldBeTrue();
+        }
+    }
+
+    /// <summary>A changed provider cannot redirect cleanup, including create's facade-selected attempt store.</summary>
+    [Theory]
+    [InlineData("create")]
+    [InlineData("add")]
+    [InlineData("change")]
+    [InlineData("remove")]
+    [InlineData("metadata")]
+    public async Task CleanupUsesTheInitializedTrackerWhenTheProviderChanges(string kind)
+    {
+        TenantAggregateCommandAdmissionGate gate = new();
+        using TenantCommandAttemptTracker originalTracker = new(gate);
+        TenantAggregateCommandAdmissionGate otherGate = new();
+        using TenantCommandAttemptTracker otherTracker = new(otherGate);
+        Services.AddSingleton(gate);
+        Services.AddSingleton(new TenantCreateAttemptTracker(originalTracker));
+        // The create flow must keep the facade's store even when the direct registration differs.
+        Services.AddSingleton(kind is "create" ? otherTracker : originalTracker);
+        RegisterGateway((_, id) => Task.FromResult(TenantCommandSubmissionResult.Failed("Delivery is uncertain.")
+            with { MessageId = id, IsAmbiguousFailure = true }));
+        (IRenderedComponent<IComponent> cut, object component) = RenderFlow(kind);
+        Submit(kind, cut, send: false);
+        await InvokeSubmissionAsync(cut, component);
+        TenantRetainedCommandAttempt attempt = RetainedAttempt(component);
+        IsSubscribed(originalTracker, component).ShouldBeTrue();
+        originalTracker.IsAttached(attempt, component).ShouldBeTrue();
+        using ServiceProvider otherProvider = new ServiceCollection()
+            .AddSingleton(otherGate)
+            .AddSingleton(otherTracker)
+            .AddSingleton(new TenantCreateAttemptTracker(otherTracker))
+            .BuildServiceProvider();
+        SetComponentServices(component, otherProvider);
+
+        ((IDisposable)component).Dispose();
+
+        IsSubscribed(originalTracker, component).ShouldBeFalse();
+        originalTracker.IsAttached(attempt, component).ShouldBeFalse();
+        IsSubscribed(otherTracker, component).ShouldBeFalse();
+        originalTracker.HasPendingOwnership("tenant.alpha").ShouldBeTrue();
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeTrue();
+        object replacement = new();
+        originalTracker.TryAdopt<object>("tenant.alpha", replacement, out TenantRetainedCommandAttempt? adopted, out object? evidence).ShouldBeTrue();
+        adopted.ShouldBeSameAs(attempt);
+        evidence.ShouldBeSameAs(Snapshot(component));
+    }
+
+    /// <summary>Missing optional services never cause disposal to acquire a store that appeared later.</summary>
+    [Theory]
+    [InlineData("create", "gate")]
+    [InlineData("create", "tracker")]
+    [InlineData("add", "gate")]
+    [InlineData("add", "tracker")]
+    [InlineData("change", "gate")]
+    [InlineData("change", "tracker")]
+    [InlineData("remove", "gate")]
+    [InlineData("remove", "tracker")]
+    [InlineData("metadata", "gate")]
+    [InlineData("metadata", "tracker")]
+    public void CleanupWithoutAnInitializedTrackerNeverResolvesLaterServices(string kind, string missing)
+    {
+        RegisterGateway((_, id) => Task.FromResult(TenantCommandSubmissionResult.Accepted(id, "unused")));
+        if (missing is "gate")
+        {
+            Services.RemoveAll<TenantAggregateCommandAdmissionGate>();
+        }
+        else
+        {
+            Services.RemoveAll<TenantCommandAttemptTracker>();
+            Services.RemoveAll<TenantCreateAttemptTracker>();
+        }
+        (_, object component) = RenderFlow(kind);
+        TenantAggregateCommandAdmissionGate laterGate = new();
+        using TenantCommandAttemptTracker laterTracker = new(laterGate);
+        int resolutions = 0;
+        using ServiceProvider laterProvider = new ServiceCollection()
+            .AddSingleton(laterGate)
+            .AddSingleton<TenantCommandAttemptTracker>(_ => { resolutions++; return laterTracker; })
+            .AddSingleton<TenantCreateAttemptTracker>(_ => { resolutions++; return new(laterTracker); })
+            .BuildServiceProvider();
+        SetComponentServices(component, laterProvider);
+
+        ((IDisposable)component).Dispose();
+
+        resolutions.ShouldBe(0);
+        IsSubscribed(laterTracker, component).ShouldBeFalse();
+        laterTracker.HasPendingOwnership("tenant.alpha").ShouldBeFalse();
+        laterGate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeFalse();
+        laterProvider.Dispose();
+        ((IDisposable)component).Dispose();
+    }
+
+    private static TenantRetainedCommandAttempt RetainedAttempt(object component)
+        => ((TenantRetainedCommandAttempt?)component.GetType()
+            .GetField("_retainedAttempt", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(component)).ShouldNotBeNull();
+
+    private static bool IsSubscribed(TenantCommandAttemptTracker tracker, object component)
+        => ((EventHandler?)typeof(TenantCommandAttemptTracker)
+            .GetField(nameof(TenantCommandAttemptTracker.StateChanged), BindingFlags.Instance | BindingFlags.NonPublic)!
+            .GetValue(tracker))?.GetInvocationList().Any(handler => ReferenceEquals(handler.Target, component)) is true;
+
+    private static void SetComponentServices(object component, IServiceProvider provider)
+        => component.GetType().GetProperty("Services", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(component, provider);
+
     /// <summary>Keyed-only failures keep their localized explanation through initial and reused delivery paths.</summary>
     [Theory]
     [InlineData("add", "en", "initial")]
@@ -551,7 +727,7 @@ public sealed class TenantRetainedCommandFlowTests : FluentBunitContext
     }
 
     private static object ApplyStatus(object snapshot, TenantCommandStatusResult status)
-        => snapshot.GetType().GetMethod("ApplyStatus")!.Invoke(snapshot, [status])!;
+        => snapshot.GetType().GetMethod("ApplyStatus", [typeof(TenantCommandStatusResult)])!.Invoke(snapshot, [status])!;
 
     [Theory]
     [InlineData("add")]

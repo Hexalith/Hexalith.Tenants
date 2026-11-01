@@ -26,6 +26,10 @@ internal static class TenantsDevelopmentRoutingCatalog
         gateway.WithEnvironment("Authentication__BoundCommand__AllowedDomains__tenants", "global-administrators");
         if (string.Equals(Environment.GetEnvironmentVariable("TENANTS_SOURCE_CATALOG_PROFILE"), "true", StringComparison.Ordinal))
         {
+            if (string.Equals(Environment.GetEnvironmentVariable("TENANTS_SOURCE_WORKER_BACKED_RESPONSES_ENABLED"), "true", StringComparison.Ordinal))
+            {
+                gateway.WithEnvironment("EventStore__Projections__WorkerBackedResponsesEnabled", "true");
+            }
             gateway.WithEnvironment("Logging__LogLevel__Hexalith.EventStore.ServiceDefaults.Routing.TechnicalHttpRouteCatalogReceiver", "Debug");
             gateway.WithEnvironment("Logging__LogLevel__Hexalith.EventStore.Server.Commands.CommandRouter", "Debug");
             gateway.WithEnvironment("Logging__LogLevel__Hexalith.EventStore.Server.Pipeline.SubmitCommandHandler", "Debug");

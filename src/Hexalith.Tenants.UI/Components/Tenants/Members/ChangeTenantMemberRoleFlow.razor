@@ -174,6 +174,7 @@
         TenantRole.TenantReader,
     ];
 
+    private TenantCommandAttemptTracker? _subscribedAttempts;
     private TenantRetainedCommandAttempt? _retainedAttempt;
     private string? _attemptMemberUserId;
     private int _attemptGeneration;
@@ -623,10 +624,10 @@
 
     protected override void OnInitialized()
     {
-        TenantCommandAttemptTracker? attempts = Services.GetService<TenantAggregateCommandAdmissionGate>() is null ? null : Services.GetService<TenantCommandAttemptTracker>();
-        if (attempts is not null)
+        _subscribedAttempts = Services.GetService<TenantAggregateCommandAdmissionGate>() is null ? null : Services.GetService<TenantCommandAttemptTracker>();
+        if (_subscribedAttempts is not null)
         {
-            attempts.StateChanged += OnRetainedAttemptChanged;
+            _subscribedAttempts.StateChanged += OnRetainedAttemptChanged;
         }
     }
 
@@ -1208,12 +1209,11 @@
     {
         _disposed = true;
         InvalidateAdmission();
-        TenantCommandAttemptTracker? attempts = Services.GetService<TenantAggregateCommandAdmissionGate>() is null ? null : Services.GetService<TenantCommandAttemptTracker>();
-        if (attempts is not null)
+        if (_subscribedAttempts is not null)
         {
-            attempts.StateChanged -= OnRetainedAttemptChanged;
+            _subscribedAttempts.StateChanged -= OnRetainedAttemptChanged;
         }
         _attemptGeneration++;
-        attempts?.Detach(_retainedAttempt, this);
+        _subscribedAttempts?.Detach(_retainedAttempt, this);
     }
 }

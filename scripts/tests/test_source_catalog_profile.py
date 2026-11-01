@@ -77,6 +77,7 @@ class SourceCatalogProfileProvisioningTests(unittest.TestCase):
                     self.assertEqual(evidence["sdkProducerVersion"], "3.128.4")
                     self.assertNotIn("DigestKeys", output.read_text(encoding="utf-8"))
                     self.assertIn("Tenants__DevelopmentRouteCatalog__CustodyDirectory=", environment.read_text(encoding="utf-8"))
+                    self.assertIn("TENANTS_SOURCE_WORKER_BACKED_RESPONSES_ENABLED=true\n", environment.read_text(encoding="utf-8"))
                     self.assertEqual(diagnostics.getvalue().count("::add-mask::"), 2)
                     log_settings = dict(line.split("=", 1) for line in environment.read_text(encoding="utf-8").splitlines()
                                         if line.startswith("Logging__"))

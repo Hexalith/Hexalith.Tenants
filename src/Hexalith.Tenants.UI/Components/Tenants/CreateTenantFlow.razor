@@ -183,6 +183,7 @@
     public string? WorkspaceAuditReturnUrl { get; set; }
 
     private readonly object _formModel = new();
+    private TenantCommandAttemptTracker? _subscribedAttempts;
     private TenantRetainedCommandAttempt? _retainedAttempt;
     private int _attemptGeneration;
     private readonly TenantMembershipStatusRefreshDrain _statusRefreshDrain = new();
@@ -435,10 +436,10 @@
         {
             _viewportObservation.StateChanged += OnViewportStateChanged;
         }
-        TenantCommandAttemptTracker? attempts = AttemptTracker?.Attempts;
-        if (attempts is not null)
+        _subscribedAttempts = AttemptTracker?.Attempts;
+        if (_subscribedAttempts is not null)
         {
-            attempts.StateChanged += OnRetainedAttemptChanged;
+            _subscribedAttempts.StateChanged += OnRetainedAttemptChanged;
         }
 
     }
@@ -1301,13 +1302,12 @@
         }
         RetireReadRefresh();
         InvalidateAdmission();
-        TenantCommandAttemptTracker? attempts = AttemptTracker?.Attempts;
-        if (attempts is not null)
+        if (_subscribedAttempts is not null)
         {
-            attempts.StateChanged -= OnRetainedAttemptChanged;
+            _subscribedAttempts.StateChanged -= OnRetainedAttemptChanged;
         }
         _attemptGeneration++;
-        AttemptTracker?.Attempts.Detach(_retainedAttempt, this);
+        _subscribedAttempts?.Detach(_retainedAttempt, this);
     }
 
     // Returns null when baseline absence can be neither proved nor disproved, so the caller fails closed

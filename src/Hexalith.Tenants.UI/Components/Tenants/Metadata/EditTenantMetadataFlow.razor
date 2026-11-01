@@ -173,6 +173,7 @@
     [CascadingParameter(Name = "DetailAuditReturnUrl")]
     public string? DetailAuditReturnUrl { get; set; }
 
+    private TenantCommandAttemptTracker? _subscribedAttempts;
     private TenantRetainedCommandAttempt? _retainedAttempt;
     private int _attemptGeneration;
     private bool _readOnlyDetached;
@@ -701,10 +702,10 @@
 
     protected override void OnInitialized()
     {
-        TenantCommandAttemptTracker? attempts = Services.GetService<TenantAggregateCommandAdmissionGate>() is null ? null : Services.GetService<TenantCommandAttemptTracker>();
-        if (attempts is not null)
+        _subscribedAttempts = Services.GetService<TenantAggregateCommandAdmissionGate>() is null ? null : Services.GetService<TenantCommandAttemptTracker>();
+        if (_subscribedAttempts is not null)
         {
-            attempts.StateChanged += OnRetainedAttemptChanged;
+            _subscribedAttempts.StateChanged += OnRetainedAttemptChanged;
         }
     }
 
@@ -1406,12 +1407,11 @@
     {
         _disposed = true;
         InvalidateAdmission();
-        TenantCommandAttemptTracker? attempts = Services.GetService<TenantAggregateCommandAdmissionGate>() is null ? null : Services.GetService<TenantCommandAttemptTracker>();
-        if (attempts is not null)
+        if (_subscribedAttempts is not null)
         {
-            attempts.StateChanged -= OnRetainedAttemptChanged;
+            _subscribedAttempts.StateChanged -= OnRetainedAttemptChanged;
         }
         _attemptGeneration++;
-        attempts?.Detach(_retainedAttempt, this);
+        _subscribedAttempts?.Detach(_retainedAttempt, this);
     }
 }
