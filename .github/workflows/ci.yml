@@ -135,7 +135,8 @@ jobs:
             samples/Hexalith.Tenants.Sample/Hexalith.Tenants.Sample.csproj \
             tests/Hexalith.Tenants.AppHost.Tests/Hexalith.Tenants.AppHost.Tests.csproj \
             tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj; do
-            dotnet build "$project" --configuration Release \
+            env -u HexalithEventStoreVersion dotnet build "$project" --configuration Release \
+              -p:HexalithEventStoreVersion="${HexalithEventStoreVersion:?}" \
               -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true \
               -p:HexalithFrontComposerFromSource=false -p:HexalithMemoriesFromSource=false \
               -warnaserror -m:1 -nr:false

@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import subprocess
 import tempfile
+import textwrap
 import unittest
 
 
@@ -82,6 +83,44 @@ elif arguments == ['rev-parse', 'HEAD']:
                 self.assertEqual(self.environment_file.read_text(),
                                  'Retained=value\nHexalithEventStoreVersion=3.128.4\n')
                 self.assertIn('checkout', self.log.read_text())
+
+    def run_live_build(self, version):
+        log = self.root / 'dotnet-calls.jsonl'
+        dotnet = self.bin / 'dotnet'
+        dotnet.write_text("""#!/usr/bin/env python3
+import json, os, sys
+with open(os.environ['MOCK_DOTNET_LOG'], 'a') as output:
+    output.write(json.dumps({'arguments': sys.argv[1:],
+                            'versionEnvironment': os.environ.get('HexalithEventStoreVersion')}) + '\\n')
+""")
+        dotnet.chmod(0o755)
+        workflow = (ROOT / '.github/workflows/ci.yml').read_text()
+        step = workflow.split('      - name: Build live hosts and focused suites against published packages\n', 1)[1]
+        block = step.split('        run: |\n', 1)[1].split('\n      - name:', 1)[0]
+        environment = self.environment | {'MOCK_DOTNET_LOG': str(log)}
+        if version is None:
+            environment.pop('HexalithEventStoreVersion', None)
+        else:
+            environment['HexalithEventStoreVersion'] = version
+        result = subprocess.run(['bash', '-c', textwrap.dedent(block)], env=environment,
+                                capture_output=True, text=True, timeout=20)
+        calls = [json.loads(line) for line in log.read_text().splitlines()] if log.exists() else []
+        return result, calls
+
+    def test_live_build_retains_legacy_selection_without_leaking_environment_to_tooling(self):
+        result, calls = self.run_live_build('3.128.4')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(len(calls), 6)
+        for call in calls:
+            self.assertIsNone(call['versionEnvironment'])
+            self.assertIn('-p:HexalithEventStoreVersion=3.128.4', call['arguments'])
+            self.assertIn('-p:UseHexalithProjectReferences=false', call['arguments'])
+        self.assertEqual(len({call['arguments'][1] for call in calls}), 6)
+
+    def test_live_build_refuses_a_missing_compatibility_selection(self):
+        result, calls = self.run_live_build(None)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(calls, [])
 
     def test_build_and_test_keeps_current_source_and_normal_sdk_default(self):
         result = self.run_script(GITHUB_JOB='build-and-test', GITHUB_ENV=None)
