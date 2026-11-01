@@ -12,6 +12,35 @@ namespace Hexalith.Tenants.AppHost.Tests;
 public sealed class AppHostSecurityResourceGraphTests
 {
     [Theory]
+    [InlineData(null, "30")]
+    [InlineData("5", "5")]
+    [InlineData("45", "45")]
+    public async Task GatewayDomainInvocationBudgetAccommodatesNativeAuthorityAndPreservesOperatorOverride(
+        string? configuredSeconds, string expectedSeconds)
+    {
+        // Capture the offline model without enrolling a local source-runtime custody owner.
+        List<string> args = ["--publisher", "manifest", "--output-path",
+            Path.Combine(Path.GetTempPath(), $"tenants-invocation-model-{Guid.NewGuid():N}.json"),
+            "--EnableKeycloak=true", "--EnableMemories=false"];
+        if (configuredSeconds is not null)
+            args.Add($"--EventStore:DomainServices:InvocationTimeoutSeconds={configuredSeconds}");
+        await using IDistributedApplicationTestingBuilder builder = await DistributedApplicationTestingBuilder
+            .CreateAsync<Projects.Hexalith_Tenants_AppHost>([.. args]);
+        builder.ExecutionContext.IsPublishMode.ShouldBeTrue();
+        ProjectResource gateway = builder.Resources.OfType<ProjectResource>()
+            .Single(static resource => resource.Name == "eventstore");
+
+        IReadOnlyDictionary<string, object> environment = await GetEnvironmentAsync(gateway, builder.ExecutionContext);
+        string seconds = environment["EventStore__DomainServices__InvocationTimeoutSeconds"].ShouldBeOfType<string>();
+        seconds.ShouldBe(expectedSeconds);
+        if (configuredSeconds is null)
+        {
+            int.Parse(seconds, System.Globalization.CultureInfo.InvariantCulture).ShouldBeGreaterThan(10 + 2,
+                "the gateway must leave room for the bounded native read and independent final observation");
+        }
+    }
+
+    [Theory]
     [InlineData(true)]
     [InlineData(false)]
     public async Task PublishModeRetainsOneSharedAppChannelTokenPerService(bool enableKeycloak)
