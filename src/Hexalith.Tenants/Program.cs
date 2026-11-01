@@ -64,14 +64,7 @@ builder.Services.AddEventStoreDevelopmentDomainCatalog(builder.Configuration, ty
 #endif
 builder.Services.TryAddSingleton(TimeProvider.System);
 // Current TenantOwner evidence is rebuilt from the authoritative tenant stream on every request.
-string ownerDaprEndpoint = Environment.GetEnvironmentVariable("DAPR_HTTP_ENDPOINT")
-    ?? $"http://127.0.0.1:{Environment.GetEnvironmentVariable("DAPR_HTTP_PORT") ?? "3500"}";
-builder.Services.AddHttpClient<TenantOwnerSourceGateway>(client =>
-    client.BaseAddress = new Uri(ownerDaprEndpoint.Replace("localhost", "127.0.0.1", StringComparison.OrdinalIgnoreCase)))
-    .AddEventStoreDaprServiceInvocation(
-        static _ => Environment.GetEnvironmentVariable("DAPR_API_TOKEN"),
-        static _ => "eventstore",
-        static token => token);
+builder.Services.AddTenantOwnerSourceGateway(builder.Configuration);
 builder.Services.AddScoped<IAuthoritativeEventStreamReader>(provider =>
     new AuthoritativeEventStreamReader(provider.GetRequiredService<TenantOwnerSourceGateway>(),
         provider.GetRequiredService<TimeProvider>(), TimeSpan.FromSeconds(10)));

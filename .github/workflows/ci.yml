@@ -24,8 +24,10 @@ jobs:
         include:
           - profile: current default 3.131.0
             sdk-argument: ''
+            owner-source-minimum: 25
           - profile: explicit floor 3.129.0
             sdk-argument: '-p:HexalithEventStoreVersion=3.129.0'
+            owner-source-minimum: 21
     env:
       RepositoryCommit: ${{ github.sha }}
     runs-on: ubuntu-latest
@@ -87,6 +89,15 @@ jobs:
           -p:HexalithFrontComposerFromSource=false -p:HexalithMemoriesFromSource=false
           --filter-class Hexalith.Tenants.IntegrationTests.TenantsApiGeneratedControllerTests
           --minimum-expected-tests 66 --fail-skips on
+      - name: Require the production owner-source registration and endpoint controls
+        run: >-
+          dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj
+          --configuration Release --no-build
+          -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true
+          -p:HexalithEventStoreFromSource=false ${{ matrix.sdk-argument }}
+          -p:HexalithFrontComposerFromSource=false -p:HexalithMemoriesFromSource=false
+          --filter-class Hexalith.Tenants.IntegrationTests.TenantOwnerSourceGatewayTests
+          --minimum-expected-tests ${{ matrix.owner-source-minimum }} --fail-skips on
       - name: Pack and consume the actual compiled catalog archives
         shell: bash
         run: |

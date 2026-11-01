@@ -13,6 +13,11 @@
     <DefineConstants>$(DefineConstants);HEXALITH_DEVELOPMENT_CATALOG_SOURCE</DefineConstants>
   </PropertyGroup>
 
+  <!-- Technical HTTP activation v2 is available only in this qualified binary or the enrolled source graph. -->
+  <PropertyGroup Condition="'$(HexalithEventStoreFromSource)' == 'true' or '$(HexalithTenantsCatalogSdkVersion)' == '3.131.0'">
+    <DefineConstants>$(DefineConstants);HEXALITH_TECHNICAL_HTTP_CATALOG_BINDING</DefineConstants>
+  </PropertyGroup>
+
   <Target Name="ValidateCatalogSdkSelection" BeforeTargets="CollectPackageReferences;PrepareForBuild"
           Condition="'$(HexalithEventStoreFromSource)' != 'true' and '$(HexalithEventStoreVersion)' != ''">
     <Error Condition="$([MSBuild]::VersionGreaterThanOrEquals('$(HexalithEventStoreVersion)', '3.129.0')) and '$(HexalithTenantsCatalogArtifactsAvailable)' != 'true'"

@@ -31,22 +31,17 @@ namespace Hexalith.Tenants.IntegrationTests;
 [Collection("BootstrapReadiness")]
 public sealed class TenantOwnerSourceGatewayTests
 {
-    [Theory]
-    [InlineData("tenants", "owner-source")]
-    [InlineData("global-administrators", "global-administrators")]
-    public async Task ProductionRegistration_PreservesBoundWorkloadRequestAndPerSendSidecarToken(string domain, string aggregate)
+    [Fact]
+    public async Task ActualProgramRegistersTheOwnerSourceClientWithTheSelectedEndpoint()
     {
+        const string endpoint = "http://localhost:3579";
         using RSA key = RSA.Create(2048);
-        var issuer = Substitute.For<IWorkloadAssertionIssuer>();
-        string assertion = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
-        issuer.IssueAsync(Arg.Any<WorkloadAssertionRequest>(), Arg.Any<CancellationToken>())
-            .Returns(ValueTask.FromResult<string?>(assertion));
+        var issuer = CreateIssuer();
         var terminal = new OwnerSourceCaptureHandler();
-        string? previousToken = Environment.GetEnvironmentVariable("DAPR_API_TOKEN");
         string? previousEndpoint = Environment.GetEnvironmentVariable("DAPR_HTTP_ENDPOINT");
         try
         {
-            Environment.SetEnvironmentVariable("DAPR_HTTP_ENDPOINT", "http://localhost:3579");
+            Environment.SetEnvironmentVariable("DAPR_HTTP_ENDPOINT", endpoint);
             using var factory = new WebApplicationFactory<TenantOwnerSourceGateway>()
                 .WithWebHostBuilder(builder =>
                 {
@@ -58,20 +53,49 @@ public sealed class TenantOwnerSourceGatewayTests
                         services.RemoveAll<IWorkloadAssertionIssuer>();
                         services.AddSingleton(issuer);
 #if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
-                        // Keep the real invocation guard and its separate no-redirect transport.
-                        // Activation is isolated; the permitted technical target is the SDK's existing workload read.
-                        var owner = TenantOwnerCatalogTestAuthority.CreateSnapshot("tenants");
-                        var selected = new CommittedRouteCatalogSnapshot(RouteCatalogCodec.Encode(owner.Envelope), owner.RootDigest, owner.Epoch,
-                            [new("eventstore", "api/v1/streams/read/workload", "eventstore:stream-read", "gateway")], localAppId: "tenants");
-                        services.RemoveAll<IRouteCatalogAuthority>();
-                        services.AddSingleton(TenantOwnerCatalogTestAuthority.Create(selected));
-                        services.Configure<RouteCatalogHostOptions>(options => options.InvocationTransportFactory = _ => terminal.CreateIndependentTransport());
+                        ConfigureCatalogAuthorityControl(services, CreateConfiguration(endpoint), terminal);
 #endif
-                        services.AddHttpClient<TenantOwnerSourceGateway>()
-                            .ConfigurePrimaryHttpMessageHandler(() => terminal);
+                        // Configure only the primary transport; Program must supply the production endpoint and Dapr handlers.
+                        services.AddHttpClient<TenantOwnerSourceGateway>().ConfigurePrimaryHttpMessageHandler(() => terminal);
                     });
                 });
-            TenantOwnerSourceGateway gateway = factory.Services.GetRequiredService<TenantOwnerSourceGateway>();
+            await factory.Services.GetRequiredService<TenantOwnerSourceGateway>().ReadStreamAsync(
+                new("system", "tenants", "owner-source"), TestContext.Current.CancellationToken);
+            terminal.ReadCount.ShouldBe(1);
+            terminal.Uri.ShouldBe(new Uri(endpoint + "/api/v1/streams/read/workload"));
+            terminal.Headers["dapr-app-id"].ShouldBe(["eventstore"]);
+#if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
+            AssertCatalogHeaders(factory.Services, terminal);
+#endif
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("DAPR_HTTP_ENDPOINT", previousEndpoint);
+        }
+    }
+
+    [Theory]
+    [InlineData("http://localhost:3579", "tenants", "owner-source")]
+    [InlineData("http://127.0.0.1:3579", "tenants", "owner-source")]
+    [InlineData("https://localhost:4579", "tenants", "owner-source")]
+    [InlineData("http://localhost:3579", "global-administrators", "global-administrators")]
+    [InlineData("http://127.0.0.1:3579", "global-administrators", "global-administrators")]
+    [InlineData("https://localhost:4579", "global-administrators", "global-administrators")]
+    public async Task ProductionRegistration_PreservesBoundWorkloadRequestAndPerSendSidecarToken(string endpoint, string domain, string aggregate)
+    {
+        using RSA key = RSA.Create(2048);
+        var issuer = Substitute.For<IWorkloadAssertionIssuer>();
+        string assertion = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
+        issuer.IssueAsync(Arg.Any<WorkloadAssertionRequest>(), Arg.Any<CancellationToken>())
+            .Returns(ValueTask.FromResult<string?>(assertion));
+        var terminal = new OwnerSourceCaptureHandler();
+        string? previousToken = Environment.GetEnvironmentVariable("DAPR_API_TOKEN");
+        try
+        {
+            IConfiguration configuration = CreateConfiguration(endpoint, key);
+            // Coordinates are selected independently of the production client registration.
+            using ServiceProvider services = CreateProductionServices(configuration, CreateConfiguration(endpoint), issuer, terminal);
+            TenantOwnerSourceGateway gateway = services.GetRequiredService<TenantOwnerSourceGateway>();
             string[]? previousProof = null;
             string?[] tokens = [Convert.ToHexString(RandomNumberGenerator.GetBytes(16)), Convert.ToHexString(RandomNumberGenerator.GetBytes(16)), null];
             foreach (string? token in tokens)
@@ -84,11 +108,10 @@ public sealed class TenantOwnerSourceGatewayTests
                 StreamReadPage page = await gateway.ReadStreamAsync(request, TestContext.Current.CancellationToken);
                 page.AggregateId.ShouldBe(request.AggregateId);
                 terminal.Method.ShouldBe(HttpMethod.Post);
-                terminal.Uri.ShouldBe(new Uri("http://127.0.0.1:3579/api/v1/streams/read/workload"));
+                terminal.Uri.ShouldBe(new Uri(new Uri(endpoint), "api/v1/streams/read/workload"));
                 terminal.Headers["dapr-app-id"].ShouldBe(["eventstore"]);
 #if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
-                terminal.Headers[RouteCatalogInvocationHandler.RootHeader].ShouldBe([TenantOwnerCatalogTestAuthority.CreateSnapshot("tenants").RootDigest]);
-                terminal.Headers[RouteCatalogInvocationHandler.EpochHeader].ShouldBe(["1"]);
+                AssertCatalogHeaders(services, terminal);
 #endif
                 if (token is null) terminal.Headers.ContainsKey("dapr-api-token").ShouldBeFalse();
                 else terminal.Headers["dapr-api-token"].ShouldBe([token]);
@@ -113,8 +136,102 @@ public sealed class TenantOwnerSourceGatewayTests
         finally
         {
             Environment.SetEnvironmentVariable("DAPR_API_TOKEN", previousToken);
-            Environment.SetEnvironmentVariable("DAPR_HTTP_ENDPOINT", previousEndpoint);
         }
+    }
+
+    [Theory]
+    [InlineData("http://localhost:3579", "4679", "http://localhost:3579/")]
+    [InlineData("http://127.0.0.1:3579", "4679", "http://127.0.0.1:3579/")]
+    [InlineData(null, "4679", "http://127.0.0.1:4679/")]
+    [InlineData(null, null, "http://127.0.0.1:3500/")]
+    public async Task ProductionRegistration_UsesEffectiveConfigurationAndSdkPortFallback(
+        string? endpoint, string? port, string selectedEndpoint)
+    {
+        string? previousEndpoint = Environment.GetEnvironmentVariable("DAPR_HTTP_ENDPOINT");
+        string? previousPort = Environment.GetEnvironmentVariable("DAPR_HTTP_PORT");
+        try
+        {
+            Environment.SetEnvironmentVariable("DAPR_HTTP_ENDPOINT", "https://stale-runtime.invalid:5999");
+            Environment.SetEnvironmentVariable("DAPR_HTTP_PORT", "5999");
+            using RSA key = RSA.Create(2048);
+            IConfiguration configuration = new ConfigurationBuilder().AddEnvironmentVariables()
+                .AddInMemoryCollection(new Dictionary<string, string?>
+                {
+                    ["DAPR_HTTP_ENDPOINT"] = endpoint,
+                    ["DAPR_HTTP_PORT"] = port,
+                    ["Authentication:BoundStreamRead:PrivateKey"] = Convert.ToBase64String(key.ExportPkcs8PrivateKey()),
+                }).Build();
+            var issuer = CreateIssuer();
+            var terminal = new OwnerSourceCaptureHandler();
+            using ServiceProvider services = CreateProductionServices(configuration, CreateConfiguration(selectedEndpoint), issuer, terminal);
+            await services.GetRequiredService<TenantOwnerSourceGateway>().ReadStreamAsync(
+                new("system", "tenants", "owner-source"), TestContext.Current.CancellationToken);
+            terminal.Uri.ShouldBe(new Uri(new Uri(selectedEndpoint), "api/v1/streams/read/workload"));
+            terminal.ReadCount.ShouldBe(1);
+#if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
+            AssertCatalogHeaders(services, terminal);
+#endif
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("DAPR_HTTP_ENDPOINT", previousEndpoint);
+            Environment.SetEnvironmentVariable("DAPR_HTTP_PORT", previousPort);
+        }
+    }
+
+#if HEXALITH_TECHNICAL_HTTP_CATALOG_BINDING
+    [Theory]
+    [InlineData("http://localhost:3579", "http://127.0.0.1:3579")]
+    [InlineData("http://127.0.0.1:3579", "http://localhost:3579")]
+    [InlineData("http://localhost:3579", "http://localhost:3580")]
+    [InlineData("http://localhost:3579", "https://localhost:3579")]
+    public async Task ProductionRegistration_RefusesDifferentBoundCoordinatesBeforeTransport(
+        string endpoint, string authorityEndpoint)
+    {
+        using RSA key = RSA.Create(2048);
+        IConfiguration configuration = CreateConfiguration(endpoint, key);
+        var issuer = CreateIssuer();
+        var matched = new OwnerSourceCaptureHandler();
+        using (ServiceProvider services = CreateProductionServices(configuration, CreateConfiguration(endpoint), issuer, matched))
+        {
+            await services.GetRequiredService<TenantOwnerSourceGateway>().ReadStreamAsync(
+                new("system", "tenants", "owner-source"), TestContext.Current.CancellationToken);
+            matched.ReadCount.ShouldBe(1);
+            AssertCatalogHeaders(services, matched);
+        }
+
+        var refused = new OwnerSourceCaptureHandler();
+        using ServiceProvider mismatched = CreateProductionServices(configuration, CreateConfiguration(authorityEndpoint), issuer, refused);
+        var exception = await Should.ThrowAsync<RouteCatalogUnavailableException>(() =>
+            mismatched.GetRequiredService<TenantOwnerSourceGateway>().ReadStreamAsync(
+                new("system", "tenants", "owner-source"), TestContext.Current.CancellationToken));
+        exception.Message.ShouldBe("The v2 invocation uses a different Dapr runtime endpoint.");
+        refused.ReadCount.ShouldBe(0);
+        refused.Headers.ShouldBeEmpty();
+    }
+#endif
+
+    [Theory]
+    [InlineData("http://localhost:3579/", "http://localhost:3579")]
+    [InlineData("http://localhost:3579", "http://localhost:3579/")]
+    [InlineData("http://LOCALHOST:3579", "http://localhost:3579")]
+    [InlineData("http://localhost:3579", "http://LOCALHOST:3579")]
+    [InlineData("http://localhost:80", "http://localhost")]
+    [InlineData("http://localhost", "http://localhost:80")]
+    public async Task ProductionRegistration_AcceptsEquivalentIndependentCoordinateSpellings(
+        string endpoint, string authorityEndpoint)
+    {
+        using RSA key = RSA.Create(2048);
+        var terminal = new OwnerSourceCaptureHandler();
+        using ServiceProvider services = CreateProductionServices(
+            CreateConfiguration(endpoint, key), CreateConfiguration(authorityEndpoint), CreateIssuer(), terminal);
+        await services.GetRequiredService<TenantOwnerSourceGateway>().ReadStreamAsync(
+            new("system", "tenants", "owner-source"), TestContext.Current.CancellationToken);
+        terminal.ReadCount.ShouldBe(1);
+        terminal.Uri.ShouldBe(new Uri(new Uri(endpoint), "api/v1/streams/read/workload"));
+#if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
+        AssertCatalogHeaders(services, terminal);
+#endif
     }
 
     [Theory]
@@ -158,6 +275,104 @@ public sealed class TenantOwnerSourceGatewayTests
         terminal.ReadCount.ShouldBe(102);
         TestContext.Current.TestOutputHelper!.WriteLine($"10000 native events through {terminal.ReadCount} signed/verified in-process HTTP windows, copy/digest validation, fold and final proof: {timer.Elapsed.TotalMilliseconds:F2} ms. External workload-token issuance and Dapr/network excluded.");
     }
+
+    private static IConfiguration CreateConfiguration(string endpoint, RSA? key = null)
+        => new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["DAPR_HTTP_ENDPOINT"] = endpoint,
+            ["Authentication:BoundStreamRead:PrivateKey"] = key is null ? null : Convert.ToBase64String(key.ExportPkcs8PrivateKey()),
+        }).Build();
+
+    private static IWorkloadAssertionIssuer CreateIssuer()
+    {
+        var issuer = Substitute.For<IWorkloadAssertionIssuer>();
+        issuer.IssueAsync(Arg.Any<WorkloadAssertionRequest>(), Arg.Any<CancellationToken>())
+            .Returns(ValueTask.FromResult<string?>("isolated-owner-source-assertion"));
+        return issuer;
+    }
+
+    private static ServiceProvider CreateProductionServices(
+        IConfiguration configuration, IConfiguration authorityConfiguration,
+        IWorkloadAssertionIssuer issuer, OwnerSourceCaptureHandler terminal)
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddSingleton(configuration);
+        services.AddSingleton(TimeProvider.System);
+        services.AddSingleton(issuer);
+#if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
+        services.AddEventStoreRouteCatalog(configuration);
+        ConfigureCatalogAuthorityControl(services, authorityConfiguration, terminal);
+#endif
+        services.AddTenantOwnerSourceGateway(configuration)
+            .ConfigurePrimaryHttpMessageHandler(() => terminal);
+        return services.BuildServiceProvider();
+    }
+
+#if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
+    private static void ConfigureCatalogAuthorityControl(
+        IServiceCollection services, IConfiguration authorityConfiguration, OwnerSourceCaptureHandler terminal)
+    {
+#if HEXALITH_TECHNICAL_HTTP_CATALOG_BINDING
+        // Isolated endpoint-guard control: these authority/receiver identities are test doubles,
+        // not native source proof or evidence of a deployed receiver inventory/activation.
+        CommittedRouteCatalogSnapshot selected = CreateBoundSnapshot(authorityConfiguration);
+        selected.TechnicalHttpReceivers.ShouldNotBeEmpty();
+        selected.ActivationBindingDigest.ShouldNotBeNullOrWhiteSpace();
+        selected.AuthorityCoordinates.ShouldNotBeNull();
+#else
+        // Supported older catalog SDKs retain their existing auxiliary workload inventory.
+        CommittedRouteCatalogSnapshot owner = TenantOwnerCatalogTestAuthority.CreateSnapshot("tenants");
+        var selected = new CommittedRouteCatalogSnapshot(owner.GetCanonicalBytes(), owner.RootDigest, owner.Epoch,
+            [new("eventstore", "api/v1/streams/read/workload", "eventstore:stream-read", "gateway")], localAppId: "tenants");
+#endif
+        services.AddSingleton(selected);
+        services.RemoveAll<IRouteCatalogAuthority>();
+        services.AddSingleton(TenantOwnerCatalogTestAuthority.Create(selected));
+        services.Configure<RouteCatalogHostOptions>(options =>
+        {
+#if HEXALITH_TECHNICAL_HTTP_CATALOG_BINDING
+            options.RequireTechnicalHttpBinding = true;
+#endif
+            options.InvocationTransportFactory = _ => terminal.CreateIndependentTransport();
+        });
+    }
+#endif
+
+#if HEXALITH_TECHNICAL_HTTP_CATALOG_BINDING
+    private static CommittedRouteCatalogSnapshot CreateBoundSnapshot(IConfiguration authorityConfiguration)
+    {
+        CommittedRouteCatalogSnapshot owner = TenantOwnerCatalogTestAuthority.CreateSnapshot("tenants");
+        string digest = Convert.ToHexStringLower(SHA256.HashData("isolated-endpoint-guard"u8));
+        var activation = new RouteCatalogActivation("isolated-owner-source-endpoint", owner.GetCanonicalBytes(),
+            owner.RootDigest, null,
+            [new("tenants", "tenants", digest, digest, "isolated-test"),
+             new("eventstore", "eventstore", digest, digest, "isolated-test")],
+            "isolated-endpoint-guard", "isolated-test")
+        {
+            TechnicalHttpReceivers =
+            [new("eventstore", RouteCatalogTechnicalHttpPolicy.FenceVersion,
+                [new("/api/v1/streams/read/workload", ["POST"], "isolated-workload-read-action", digest, digest,
+                    ["DaprInternal:eventstore:stream-read"], digest, digest) { CredentialKind = "workload" }])
+                { Invocations = [new("tenants", "/api/v1/streams/read/workload", ["POST"])] }],
+        };
+        return new CommittedRouteCatalogSnapshot(activation, owner.Epoch, "tenants",
+            RouteCatalogStateCoordinates.Capture(authorityConfiguration, new RouteCatalogHostOptions()));
+    }
+
+#endif
+
+#if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
+    private static void AssertCatalogHeaders(IServiceProvider services, OwnerSourceCaptureHandler terminal)
+    {
+        CommittedRouteCatalogSnapshot selected = services.GetRequiredService<CommittedRouteCatalogSnapshot>();
+        terminal.Headers[RouteCatalogInvocationHandler.RootHeader].ShouldBe([selected.RootDigest]);
+        terminal.Headers[RouteCatalogInvocationHandler.EpochHeader].ShouldBe(["1"]);
+#if HEXALITH_TECHNICAL_HTTP_CATALOG_BINDING
+        terminal.Headers[RouteCatalogInvocationHandler.BindingHeader].ShouldBe([selected.ActivationBindingDigest!]);
+#endif
+    }
+#endif
 
     private static byte[] Decode(string value)
     {

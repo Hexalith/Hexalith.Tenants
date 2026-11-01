@@ -44,6 +44,13 @@ jobs:
         run: >
           dotnet build tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj
           --configuration Debug -p:UseHexalithProjectReferences=true -warnaserror -m:1 -nr:false --no-incremental
+      - name: Verify the production owner-source registration and bound endpoint controls
+        run: >-
+          dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj
+          --configuration Debug --no-build
+          -p:UseHexalithProjectReferences=true
+          --filter-class Hexalith.Tenants.IntegrationTests.TenantOwnerSourceGatewayTests
+          --minimum-expected-tests 25 --fail-skips on
       - name: Verify real-handler projection provenance
         run: >
           dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj
