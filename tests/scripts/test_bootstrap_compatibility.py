@@ -25,6 +25,7 @@ class BootstrapCompatibilityTests(unittest.TestCase):
         self.log = self.root / 'git-calls.jsonl'
         self.sha = self.root / 'selected-sha'
         self.sha.write_text('current-source')
+        self.response = self.root / 'Directory.Build.rsp'
         self.environment_file = self.root / 'github-env'
         self.environment_file.write_text('Retained=value\n')
         git = self.bin / 'git'
@@ -69,6 +70,7 @@ elif arguments == ['rev-parse', 'HEAD']:
     def check_no_selection(self):
         self.assertEqual(self.sha.read_text(), 'current-source')
         self.assertEqual(self.environment_file.read_text(), 'Retained=value\n')
+        self.assertFalse(self.response.exists())
         calls = [json.loads(line) for line in self.log.read_text().splitlines()]
         self.assertFalse(any('checkout' in call or 'fetch' in call for call in calls))
 
@@ -77,11 +79,13 @@ elif arguments == ['rev-parse', 'HEAD']:
             with self.subTest(job=job):
                 self.sha.write_text('current-source')
                 self.environment_file.write_text('Retained=value\n')
+                self.response.unlink(missing_ok=True)
                 result = self.run_script(GITHUB_JOB=job)
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
                 self.assertEqual(self.sha.read_text(), REVISION)
                 self.assertEqual(self.environment_file.read_text(),
-                                 'Retained=value\nHexalithEventStoreVersion=3.128.4\n')
+                                 'Retained=value\nTENANTS_BOOTSTRAP_COMPAT_SDK_VERSION=3.128.4\n')
+                self.assertEqual(self.response.read_text(), '-p:HexalithEventStoreVersion=3.128.4\n')
                 self.assertIn('checkout', self.log.read_text())
 
     def run_live_build(self, version):
@@ -98,10 +102,11 @@ with open(os.environ['MOCK_DOTNET_LOG'], 'a') as output:
         step = workflow.split('      - name: Build live hosts and focused suites against published packages\n', 1)[1]
         block = step.split('        run: |\n', 1)[1].split('\n      - name:', 1)[0]
         environment = self.environment | {'MOCK_DOTNET_LOG': str(log)}
+        environment['HexalithEventStoreVersion'] = 'must-not-leak'
         if version is None:
-            environment.pop('HexalithEventStoreVersion', None)
+            environment.pop('TENANTS_BOOTSTRAP_COMPAT_SDK_VERSION', None)
         else:
-            environment['HexalithEventStoreVersion'] = version
+            environment['TENANTS_BOOTSTRAP_COMPAT_SDK_VERSION'] = version
         result = subprocess.run(['bash', '-c', textwrap.dedent(block)], env=environment,
                                 capture_output=True, text=True, timeout=20)
         calls = [json.loads(line) for line in log.read_text().splitlines()] if log.exists() else []
@@ -121,6 +126,30 @@ with open(os.environ['MOCK_DOTNET_LOG'], 'a') as output:
         result, calls = self.run_live_build(None)
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(calls, [])
+
+    def test_response_file_selects_the_sdk_for_nested_msbuild_invocations(self):
+        result = self.run_script()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        project = self.root / 'nested' / 'Probe.proj'
+        project.parent.mkdir()
+        project.write_text('<Project />')
+        environment = self.environment.copy()
+        environment.pop('HexalithEventStoreVersion', None)
+        probe = subprocess.run(['dotnet', 'msbuild', str(project), '-nologo',
+                                '-getProperty:HexalithEventStoreVersion'], cwd=self.root,
+                               env=environment, capture_output=True, text=True, timeout=30)
+        self.assertEqual(probe.returncode, 0, probe.stdout + probe.stderr)
+        self.assertEqual(probe.stdout.strip(), '3.128.4')
+
+    def test_existing_response_file_is_preserved_before_source_selection(self):
+        self.response.write_text('-p:Existing=value\n')
+        result = self.run_script()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('response file already exists', result.stderr)
+        self.assertEqual(self.sha.read_text(), 'current-source')
+        self.assertEqual(self.environment_file.read_text(), 'Retained=value\n')
+        self.assertEqual(self.response.read_text(), '-p:Existing=value\n')
+        self.assertNotIn('checkout', self.log.read_text())
 
     def test_build_and_test_keeps_current_source_and_normal_sdk_default(self):
         result = self.run_script(GITHUB_JOB='build-and-test', GITHUB_ENV=None)

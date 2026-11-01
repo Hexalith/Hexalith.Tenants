@@ -537,7 +537,8 @@ public class CiQualityGateScriptTests {
     {
         CommandResult result = await RunAsync(FindRepoRoot(), "python3", "tests/scripts/test_bootstrap_compatibility.py");
         result.ExitCode.ShouldBe(0, result.Output + result.Error);
-        result.Error.ShouldContain("Ran 8 tests");
+        var count = System.Text.RegularExpressions.Regex.Match(result.Error, @"Ran ([0-9]+) tests");
+        int.Parse(count.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture).ShouldBeGreaterThanOrEqualTo(12);
         result.Error.ShouldContain("OK");
     }
 

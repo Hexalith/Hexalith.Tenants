@@ -42,12 +42,19 @@ case "${GITHUB_JOB:-}" in
         ;;
 esac
 : "${GITHUB_ENV:?The compatibility job requires the GitHub environment file.}"
+compatibility_response="$workspace_root/Directory.Build.rsp"
+if [ -e "$compatibility_response" ] || [ -L "$compatibility_response" ]; then
+    echo 'The compatibility response file already exists; refusing to replace it.' >&2
+    exit 1
+fi
 if ! git -C "$reference_root" cat-file -e "${compatibility_revision}^{commit}" 2>/dev/null; then
     git -C "$reference_root" -c submodule.recurse=false fetch --no-recurse-submodules origin "$compatibility_revision"
 fi
 git -C "$reference_root" -c submodule.recurse=false checkout --detach "$compatibility_revision"
 test "$(git -C "$reference_root" rev-parse HEAD)" = "$compatibility_revision"
-# Subsequent .NET processes in this compatibility job must use the same SDK
-# cohort, including domain and test projects whose normal default is newer.
-echo 'HexalithEventStoreVersion=3.128.4' >> "$GITHUB_ENV"
+# Select the cohort as a global MSBuild property for subsequent CLI invocations.
+# Project-reference metadata can then remove it from the independent Builds.Tooling
+# catalog. An environment override would leak through that boundary into its writer.
+(set -o noclobber; printf '%s\n' '-p:HexalithEventStoreVersion=3.128.4' > "$compatibility_response")
+echo 'TENANTS_BOOTSTRAP_COMPAT_SDK_VERSION=3.128.4' >> "$GITHUB_ENV"
 echo "Frozen EventStore 3.128.4 host source: $compatibility_revision."

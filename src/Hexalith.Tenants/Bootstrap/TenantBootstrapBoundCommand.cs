@@ -28,6 +28,9 @@ internal static class TenantBootstrapBoundCommand
         TimeSpan readinessTimeout, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
+        // Resilience handlers legitimately disable the transport timeout. Catalog readiness
+        // still gets HttpClient's normal finite budget rather than waiting indefinitely.
+        if (readinessTimeout == Timeout.InfiniteTimeSpan) readinessTimeout = TimeSpan.FromSeconds(100);
         if (readinessTimeout <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(readinessTimeout));
         var context = new DefaultHttpContext { RequestServices = services, RequestAborted = token };
         context.Request.Headers.Authorization = "Bearer " + accessToken;
@@ -50,7 +53,8 @@ internal static class TenantBootstrapBoundCommand
         if (services.GetService<IRouteCatalogAuthority>() is { } authority
             && configuration["EventStore:RouteCatalog:DevelopmentBootstrap:RootDigest"] is { Length: > 0 } root)
         {
-            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token); deadline.CancelAfter(readinessTimeout);
+            using var readinessDeadline = new CancellationTokenSource(readinessTimeout, clock);
+            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token, readinessDeadline.Token);
             while (true)
             {
                 try
