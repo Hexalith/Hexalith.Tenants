@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Headers;
+using System.Text;
 using System.Text.Json;
 
 using Dapr.Client;
@@ -31,25 +32,31 @@ public partial class TenantBootstrapHostedService(
     IHostEnvironment environment,
     IHostApplicationLifetime lifetime,
     ILogger<TenantBootstrapHostedService> logger,
-    TimeProvider? timeProvider = null) : IHostedService {
+    TimeProvider? timeProvider = null) : IHostedService
+{
     private const string EventStoreAppId = "eventstore";
     private const string CommandEndpoint = "api/v1/commands";
     private const long MaxExpectedRejectionProbeBytes = 8192;
+    private const string DomainRejectionProblemPrefix = "https://hexalith.io/problems/domain-rejections/";
 
-    public Task StartAsync(CancellationToken cancellationToken) {
-        if (!options.Value.BootstrapGlobalAdminEnabled) {
+    public Task StartAsync(CancellationToken cancellationToken)
+    {
+        if (!options.Value.BootstrapGlobalAdminEnabled)
+        {
             Log.BootstrapDisabled(logger);
             return Task.CompletedTask;
         }
 
         string? userId = options.Value.BootstrapGlobalAdminUserId;
 
-        if (string.IsNullOrWhiteSpace(userId)) {
+        if (string.IsNullOrWhiteSpace(userId))
+        {
             Log.BootstrapSkipped(logger);
             return Task.CompletedTask;
         }
 
-        if (cancellationToken.IsCancellationRequested) {
+        if (cancellationToken.IsCancellationRequested)
+        {
             return Task.CompletedTask;
         }
 
@@ -67,11 +74,14 @@ public partial class TenantBootstrapHostedService(
         return Task.CompletedTask;
     }
 
-    private async Task RunBootstrapAsync(string userId, CancellationToken cancellationToken) {
+    private async Task RunBootstrapAsync(string userId, CancellationToken cancellationToken)
+    {
         string phase = "initialization";
-        try {
+        try
+        {
             AsyncServiceScope scope = scopeFactory.CreateAsyncScope();
-            await using (scope.ConfigureAwait(false)) {
+            await using (scope.ConfigureAwait(false))
+            {
                 DaprClient daprClient = scope.ServiceProvider.GetRequiredService<DaprClient>();
                 IHttpClientFactory httpClientFactory = scope.ServiceProvider.GetRequiredService<IHttpClientFactory>();
 
@@ -80,7 +90,8 @@ public partial class TenantBootstrapHostedService(
 
                 string messageId = UniqueIdHelper.GenerateSortableUniqueStringId();
                 string correlationId = UniqueIdHelper.GenerateSortableUniqueStringId();
-                object commandBody = new {
+                object commandBody = new
+                {
                     messageId,
                     tenant = TenantIdentity.DefaultTenantId,
                     domain = TenantIdentity.GlobalAdministratorsDomain,
@@ -105,7 +116,8 @@ public partial class TenantBootstrapHostedService(
                 // the host's existing default transport, independently of this credential-only policy.
                 HttpClient credentialClient = httpClientFactory.CreateClient(TenantBootstrapServiceCollectionExtensions.CredentialClientName);
                 string? accessToken = await credentialProvider.AcquireAsync(userId, credentialClient, cancellationToken).ConfigureAwait(false);
-                if (string.IsNullOrWhiteSpace(accessToken)) {
+                if (string.IsNullOrWhiteSpace(accessToken))
+                {
                     return;
                 }
 
@@ -135,7 +147,8 @@ public partial class TenantBootstrapHostedService(
                 Log.BootstrapAttempt(logger, messageId, correlationId);
                 using HttpResponseMessage httpResponse = await httpClient.SendAsync(httpRequest, cancellationToken).ConfigureAwait(false);
 
-                if (httpResponse.StatusCode == HttpStatusCode.Accepted) {
+                if (httpResponse.StatusCode == HttpStatusCode.Accepted)
+                {
                     if (receipt is not null) await receipt.CompleteAsync(configuration, (int)httpResponse.StatusCode, "accepted", cancellationToken).ConfigureAwait(false);
                     Log.BootstrapCommandSent(logger);
                     return;
@@ -149,20 +162,24 @@ public partial class TenantBootstrapHostedService(
                 // after the first successful run). Other status codes must remain unexpected even if their
                 // support-safe body mentions the marker.
                 if (httpResponse.StatusCode == HttpStatusCode.Conflict
-                    && errorBody.Contains("GlobalAdminAlreadyBootstrappedRejection", StringComparison.Ordinal)) {
+                    && errorBody.Contains("GlobalAdminAlreadyBootstrappedRejection", StringComparison.Ordinal))
+                {
                     if (receipt is not null) await receipt.CompleteAsync(configuration, (int)httpResponse.StatusCode, "already-bootstrapped", cancellationToken).ConfigureAwait(false);
                     Log.BootstrapAlreadyDone(logger);
                     return;
                 }
 
                 if (receipt is not null) await receipt.CompleteAsync(configuration, (int)httpResponse.StatusCode, "response-received", cancellationToken).ConfigureAwait(false);
-                Log.BootstrapUnexpectedResponse(logger, (int)httpResponse.StatusCode);
+                (string responseKind, string responseCode) = ClassifyUnexpectedResponse(errorBody);
+                Log.BootstrapUnexpectedResponse(logger, (int)httpResponse.StatusCode, responseKind, responseCode);
             }
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
             throw;
         }
-        catch (Exception ex) {
+        catch (Exception ex)
+        {
             // HTTP and token-parser exception details may contain credentials, bearer tokens, or authority URLs.
             Log.BootstrapFailed(logger, "bootstrap-operation-failed", phase, ex.GetType().Name);
         }
@@ -170,20 +187,151 @@ public partial class TenantBootstrapHostedService(
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
-    private static async Task<string> ReadExpectedRejectionProbeAsync(HttpContent content, CancellationToken cancellationToken) {
-        try {
+    private static async Task<string> ReadExpectedRejectionProbeAsync(HttpContent content, CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (content.Headers.ContentLength is > MaxExpectedRejectionProbeBytes) return string.Empty;
             await content.LoadIntoBufferAsync(MaxExpectedRejectionProbeBytes, cancellationToken).ConfigureAwait(false);
-            return await content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+            string body = await content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+            // Already-buffered content can bypass LoadIntoBufferAsync's limit. Keep the
+            // diagnostic/parser input bounded even when the transport supplied a buffer.
+            return body.Length <= MaxExpectedRejectionProbeBytes && Encoding.UTF8.GetByteCount(body) <= MaxExpectedRejectionProbeBytes
+                ? body : string.Empty;
         }
-        catch (HttpRequestException) {
+        catch (HttpRequestException)
+        {
             return string.Empty;
         }
-        catch (InvalidOperationException) {
+        catch (InvalidOperationException)
+        {
             return string.Empty;
         }
     }
 
-    private static partial class Log {
+    // This is diagnostic classification only: neither response fields nor error detail are authority.
+    // Return closed literals exclusively; credentials and arbitrary URLs may appear in any body field.
+    private static (string Kind, string Code) ClassifyUnexpectedResponse(string body)
+    {
+        if (string.IsNullOrWhiteSpace(body)) return ("unavailable", "none");
+        try
+        {
+            using JsonDocument document = JsonDocument.Parse(body, new JsonDocumentOptions { MaxDepth = 16 });
+            JsonElement root = document.RootElement;
+            if (root.ValueKind != JsonValueKind.Object) return ("json-other", "none");
+            if (root.TryGetProperty("errorCode", out JsonElement error))
+            {
+                return ("dapr", error.ValueKind == JsonValueKind.String ? error.GetString() switch
+                {
+                    "ERR_DIRECT_INVOKE" => "ERR_DIRECT_INVOKE",
+                    "ERR_PERMISSION_DENIED" => "ERR_PERMISSION_DENIED",
+                    "ERR_ACTOR_INVOKE_METHOD" => "ERR_ACTOR_INVOKE_METHOD",
+                    "ERR_ACTOR_INSTANCE_MISSING" => "ERR_ACTOR_INSTANCE_MISSING",
+                    "ERR_ACTOR_RUNTIME_NOT_FOUND" => "ERR_ACTOR_RUNTIME_NOT_FOUND",
+                    "ERR_ACTOR_NO_ADDRESS" => "ERR_ACTOR_NO_ADDRESS",
+                    "ERR_ACTOR_NO_PLACEMENT" => "ERR_ACTOR_NO_PLACEMENT",
+                    "ERR_STATE_SAVE" => "ERR_STATE_SAVE",
+                    _ => "unrecognized",
+                } : "unrecognized");
+            }
+            string kind = root.TryGetProperty("type", out JsonElement type) ? type.ValueKind == JsonValueKind.String ? type.GetString() switch
+            {
+                "https://hexalith.io/problems/validation-error" => "problem-validation-error",
+                "https://hexalith.io/problems/bad-request" => "problem-bad-request",
+                "https://tools.ietf.org/html/rfc9110#section-15.5.1" => "problem-bad-request",
+                "https://hexalith.io/problems/forbidden" => "problem-forbidden",
+                "https://hexalith.io/problems/domain-rejections" => "problem-domain-rejection",
+                "https://hexalith.io/problems/idempotency-admission-failure" => "problem-idempotency-admission",
+                "https://hexalith.io/problems/command-identity-conflict" => "problem-command-identity",
+                "https://hexalith.io/problems/concurrency-conflict" => "problem-concurrency",
+                "https://hexalith.io/problems/service-unavailable" => "problem-service-unavailable",
+                "https://hexalith.io/problems/internal-server-error" => "problem-internal-error",
+                "https://hexalith.io/problems/authentication-required" => "problem-authentication-required",
+                "https://hexalith.io/problems/token-expired" => "problem-token-expired",
+                "https://hexalith.io/problems/not-found" => "problem-not-found",
+                "https://hexalith.io/problems/not-implemented" => "problem-not-implemented",
+                "https://hexalith.io/problems/unsupported-api-version" => "problem-unsupported-api-version",
+                "https://hexalith.io/problems/idempotency-conflict" => "problem-idempotency-conflict",
+                "https://hexalith.io/problems/idempotency-key-expired" => "problem-idempotency-key-expired",
+                "https://hexalith.io/problems/command-correlation-ambiguous" => "problem-command-correlation-ambiguous",
+                "https://hexalith.io/problems/rate-limit-exceeded" => "problem-rate-limit",
+                "https://hexalith.io/problems/backpressure-exceeded" => "problem-backpressure",
+                "https://hexalith.io/problems/command-status-not-found" => "problem-command-status-not-found",
+                string uri when uri.Length > DomainRejectionProblemPrefix.Length
+                    && uri.StartsWith(DomainRejectionProblemPrefix, StringComparison.Ordinal) => "problem-domain-rejection",
+                _ => "problem-other",
+            } : "problem-other" : "json-object";
+            JsonElement code = root.TryGetProperty("reasonCode", out JsonElement reason) ? reason
+                : root.TryGetProperty("code", out JsonElement canonical) ? canonical : default;
+            return (kind, code.ValueKind == JsonValueKind.Undefined ? "none" : code.ValueKind == JsonValueKind.String ? code.GetString() switch
+            {
+                "authentication_required" => "authentication_required",
+                "subject_missing" => "subject_missing",
+                "tenant_missing" => "tenant_missing",
+                "tenant_mismatch" => "tenant_mismatch",
+                "tenant_not_found" => "tenant_not_found",
+                "tenant_disabled" => "tenant_disabled",
+                "tenant_suspended" => "tenant_suspended",
+                "tenant_stale" => "tenant_stale",
+                "tenant_unavailable" => "tenant_unavailable",
+                "tenant_ambiguous" => "tenant_ambiguous",
+                "principal_not_member" => "principal_not_member",
+                "insufficient_role" => "insufficient_role",
+                "insufficient_permission" => "insufficient_permission",
+                "authorization_service_unavailable" => "authorization_service_unavailable",
+                "channel-unconfigured" => "channel-unconfigured",
+                "channel-token-missing" => "channel-token-missing",
+                "channel-token-duplicate" => "channel-token-duplicate",
+                "channel-token-invalid" => "channel-token-invalid",
+                "assertion-missing" => "assertion-missing",
+                "assertion-duplicate" => "assertion-duplicate",
+                "credential-conflict" => "credential-conflict",
+                "assertion-malformed" => "assertion-malformed",
+                "assertion-expired" => "assertion-expired",
+                "assertion-not-yet-valid" => "assertion-not-yet-valid",
+                "assertion-stale" => "assertion-stale",
+                "assertion-invalid" => "assertion-invalid",
+                "audience-invalid" => "audience-invalid",
+                "issuer-invalid" => "issuer-invalid",
+                "signature-invalid" => "signature-invalid",
+                "algorithm-invalid" => "algorithm-invalid",
+                "caller-missing" => "caller-missing",
+                "caller-ambiguous" => "caller-ambiguous",
+                "caller-not-allowed" => "caller-not-allowed",
+                "caller-conflict" => "caller-conflict",
+                "operation-missing" => "operation-missing",
+                "operation-not-granted" => "operation-not-granted",
+                "binding-ambiguous" => "binding-ambiguous",
+                "binding-mismatch" => "binding-mismatch",
+                "binding-missing" => "binding-missing",
+                "verifier-unconfigured" => "verifier-unconfigured",
+                "verifier-unavailable" => "verifier-unavailable",
+                "administrator-verifier-unavailable" => "administrator-verifier-unavailable",
+                "idempotency_conflict" => "idempotency_conflict",
+                "idempotency_key_expired" => "idempotency_key_expired",
+                "idempotency_admission_rejected" => "idempotency_admission_rejected",
+                "idempotency_admission_unavailable" => "idempotency_admission_unavailable",
+                "idempotency_admission_corrupt" => "idempotency_admission_corrupt",
+                "idempotency_key_collision" => "idempotency_key_collision",
+                "idempotency_unsafe_legacy_state" => "idempotency_unsafe_legacy_state",
+                "idempotency_reconciliation_unavailable" => "idempotency_reconciliation_unavailable",
+                "idempotency_outcome_unknown" => "idempotency_outcome_unknown",
+                _ => "unrecognized",
+            } : "unrecognized");
+        }
+        catch (JsonException)
+        {
+            return ("non-json", "none");
+        }
+        catch (InvalidOperationException)
+        {
+            // JsonElement.GetString can reject malformed escaped Unicode after parsing.
+            return ("non-json", "none");
+        }
+    }
+
+    private static partial class Log
+    {
         [LoggerMessage(
             EventId = 2008,
             Level = LogLevel.Information,
@@ -211,8 +359,8 @@ public partial class TenantBootstrapHostedService(
         [LoggerMessage(
             EventId = 2003,
             Level = LogLevel.Warning,
-            Message = "Bootstrap unexpected response: StatusCode={StatusCode}. Verify command status and projected membership before explicit operator recovery")]
-        public static partial void BootstrapUnexpectedResponse(ILogger logger, int statusCode);
+            Message = "Bootstrap unexpected response: StatusCode={StatusCode}, ResponseKind={ResponseKind}, ResponseCode={ResponseCode}. Verify command status and projected membership before explicit operator recovery")]
+        public static partial void BootstrapUnexpectedResponse(ILogger logger, int statusCode, string responseKind, string responseCode);
 
         [LoggerMessage(
             EventId = 2002,

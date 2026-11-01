@@ -7,6 +7,7 @@ using System.Text.Json;
 using Dapr.Client;
 
 using Hexalith.Commons.UniqueIds;
+using Hexalith.EventStore.ErrorHandling;
 using Hexalith.Tenants.Bootstrap;
 using Hexalith.Tenants.Configuration;
 
@@ -25,7 +26,8 @@ using Shouldly;
 
 namespace Hexalith.Tenants.Server.Tests.Bootstrap;
 
-public class TenantBootstrapHostedServiceTests {
+public class TenantBootstrapHostedServiceTests
+{
     [Fact]
     public async Task CredentialsAndCommandsUseTheirSeparatelyOwnedClients()
     {
@@ -106,22 +108,26 @@ public class TenantBootstrapHostedServiceTests {
     }
 
     [Fact]
-    public void BootstrapControlDefaultsToEnabled() {
+    public void BootstrapControlDefaultsToEnabled()
+    {
         new TenantBootstrapOptions().BootstrapGlobalAdminEnabled.ShouldBeTrue();
     }
 
     [Fact]
-    public async Task StartAsync_with_configured_userId_sends_BootstrapGlobalAdmin_command() {
+    public async Task StartAsync_with_configured_userId_sends_BootstrapGlobalAdmin_command()
+    {
         // Arrange
         string? capturedBody = null;
-        var handler = new TestHttpMessageHandler(async (request, _) => {
+        var handler = new TestHttpMessageHandler(async (request, _) =>
+        {
             capturedBody = await request.Content!.ReadAsStringAsync();
             return new HttpResponseMessage(HttpStatusCode.Accepted);
         });
 
         IServiceScopeFactory scopeFactory = CreateScopeFactory(handler);
         var lifetime = new TestHostApplicationLifetime();
-        IOptions<TenantBootstrapOptions> options = Options.Create(new TenantBootstrapOptions {
+        IOptions<TenantBootstrapOptions> options = Options.Create(new TenantBootstrapOptions
+        {
             BootstrapGlobalAdminUserId = "admin-user-1",
         });
 
@@ -208,17 +214,20 @@ public class TenantBootstrapHostedServiceTests {
     [InlineData(null)]
     [InlineData("")]
     [InlineData("   ")]
-    public async Task StartAsync_with_empty_userId_skips_bootstrap(string? userId) {
+    public async Task StartAsync_with_empty_userId_skips_bootstrap(string? userId)
+    {
         // Arrange
         bool httpCalled = false;
-        var handler = new TestHttpMessageHandler((_, _) => {
+        var handler = new TestHttpMessageHandler((_, _) =>
+        {
             httpCalled = true;
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.Accepted));
         });
 
         IServiceScopeFactory scopeFactory = CreateScopeFactory(handler);
         var lifetime = new TestHostApplicationLifetime();
-        IOptions<TenantBootstrapOptions> options = Options.Create(new TenantBootstrapOptions {
+        IOptions<TenantBootstrapOptions> options = Options.Create(new TenantBootstrapOptions
+        {
             BootstrapGlobalAdminUserId = userId,
         });
 
@@ -232,14 +241,16 @@ public class TenantBootstrapHostedServiceTests {
     }
 
     [Fact]
-    public async Task StartAsync_handles_infrastructure_exception_without_crashing() {
+    public async Task StartAsync_handles_infrastructure_exception_without_crashing()
+    {
         // Arrange — handler simulates a network-level failure
         var handler = new TestHttpMessageHandler((_, _)
             => throw new HttpRequestException("DAPR sidecar not ready"));
 
         IServiceScopeFactory scopeFactory = CreateScopeFactory(handler);
         var lifetime = new TestHostApplicationLifetime();
-        IOptions<TenantBootstrapOptions> options = Options.Create(new TenantBootstrapOptions {
+        IOptions<TenantBootstrapOptions> options = Options.Create(new TenantBootstrapOptions
+        {
             BootstrapGlobalAdminUserId = "admin-user-1",
         });
 
@@ -252,16 +263,19 @@ public class TenantBootstrapHostedServiceTests {
     }
 
     [Fact]
-    public async Task StartAsync_when_non_accepted_response_logs_unexpected_response() {
+    public async Task StartAsync_when_non_accepted_response_logs_unexpected_response()
+    {
         // Arrange — EventStore returns 409 Conflict (e.g., global admin already bootstrapped)
         var handler = new TestHttpMessageHandler((_, _)
-            => Task.FromResult(new HttpResponseMessage(HttpStatusCode.Conflict) {
+            => Task.FromResult(new HttpResponseMessage(HttpStatusCode.Conflict)
+            {
                 Content = new StringContent("{\"detail\":\"Global administrator already bootstrapped\"}"),
             }));
 
         IServiceScopeFactory scopeFactory = CreateScopeFactory(handler);
         var lifetime = new TestHostApplicationLifetime();
-        IOptions<TenantBootstrapOptions> options = Options.Create(new TenantBootstrapOptions {
+        IOptions<TenantBootstrapOptions> options = Options.Create(new TenantBootstrapOptions
+        {
             BootstrapGlobalAdminUserId = "admin-user-1",
         });
 
@@ -278,16 +292,19 @@ public class TenantBootstrapHostedServiceTests {
     }
 
     [Fact]
-    public async Task StartAsync_when_already_bootstrapped_rejection_logs_information_without_response_body() {
+    public async Task StartAsync_when_already_bootstrapped_rejection_logs_information_without_response_body()
+    {
         const string sensitiveBody = "{\"type\":\"GlobalAdminAlreadyBootstrappedRejection\",\"payload\":{\"token\":\"secret-token\"}}";
         var handler = new TestHttpMessageHandler((_, _)
-            => Task.FromResult(new HttpResponseMessage(HttpStatusCode.Conflict) {
+            => Task.FromResult(new HttpResponseMessage(HttpStatusCode.Conflict)
+            {
                 Content = new StringContent(sensitiveBody),
             }));
 
         IServiceScopeFactory scopeFactory = CreateScopeFactory(handler);
         var lifetime = new TestHostApplicationLifetime();
-        IOptions<TenantBootstrapOptions> options = Options.Create(new TenantBootstrapOptions {
+        IOptions<TenantBootstrapOptions> options = Options.Create(new TenantBootstrapOptions
+        {
             BootstrapGlobalAdminUserId = "admin-user-1",
         });
 
@@ -307,16 +324,19 @@ public class TenantBootstrapHostedServiceTests {
     }
 
     [Fact]
-    public async Task StartAsync_when_non_conflict_body_mentions_already_bootstrapped_logs_unexpected_response() {
+    public async Task StartAsync_when_non_conflict_body_mentions_already_bootstrapped_logs_unexpected_response()
+    {
         const string sensitiveBody = "{\"type\":\"GlobalAdminAlreadyBootstrappedRejection\",\"payload\":{\"token\":\"secret-token\"}}";
         var handler = new TestHttpMessageHandler((_, _)
-            => Task.FromResult(new HttpResponseMessage(HttpStatusCode.InternalServerError) {
+            => Task.FromResult(new HttpResponseMessage(HttpStatusCode.InternalServerError)
+            {
                 Content = new StringContent(sensitiveBody),
             }));
 
         IServiceScopeFactory scopeFactory = CreateScopeFactory(handler);
         var lifetime = new TestHostApplicationLifetime();
-        IOptions<TenantBootstrapOptions> options = Options.Create(new TenantBootstrapOptions {
+        IOptions<TenantBootstrapOptions> options = Options.Create(new TenantBootstrapOptions
+        {
             BootstrapGlobalAdminUserId = "admin-user-1",
         });
 
@@ -334,16 +354,19 @@ public class TenantBootstrapHostedServiceTests {
     }
 
     [Fact]
-    public async Task StartAsync_when_unexpected_response_logs_status_without_response_body() {
+    public async Task StartAsync_when_unexpected_response_logs_status_without_response_body()
+    {
         const string sensitiveBody = "{\"detail\":\"do-not-log-command-payload-or-token\"}";
         var handler = new TestHttpMessageHandler((_, _)
-            => Task.FromResult(new HttpResponseMessage(HttpStatusCode.InternalServerError) {
+            => Task.FromResult(new HttpResponseMessage(HttpStatusCode.InternalServerError)
+            {
                 Content = new StringContent(sensitiveBody),
             }));
 
         IServiceScopeFactory scopeFactory = CreateScopeFactory(handler);
         var lifetime = new TestHostApplicationLifetime();
-        IOptions<TenantBootstrapOptions> options = Options.Create(new TenantBootstrapOptions {
+        IOptions<TenantBootstrapOptions> options = Options.Create(new TenantBootstrapOptions
+        {
             BootstrapGlobalAdminUserId = "admin-user-1",
         });
 
@@ -359,11 +382,260 @@ public class TenantBootstrapHostedServiceTests {
         logger.Messages.ShouldNotContain(m => m.Contains("do-not-log-command-payload-or-token", StringComparison.Ordinal));
     }
 
+    /// <summary>Logs only recognized SDK classifications even when every other response field carries protected content.</summary>
+    [Theory]
+    [InlineData("errorCode", "ERR_DIRECT_INVOKE", "dapr", "ERR_DIRECT_INVOKE")]
+    [InlineData("errorCode", "ERR_ACTOR_INVOKE_METHOD", "dapr", "ERR_ACTOR_INVOKE_METHOD")]
+    [InlineData("errorCode", "ERR_STATE_SAVE", "dapr", "ERR_STATE_SAVE")]
+    [InlineData("errorCode", "ERR_SECRET_TOKEN", "dapr", "unrecognized")]
+    [InlineData("errorCode", "ERR_DIRECT_INVOKE\nprotected-response-marker", "dapr", "unrecognized")]
+    [InlineData("type", "https://hexalith.io/problems/validation-error", "problem-validation-error", "unrecognized")]
+    [InlineData("type", "https://hexalith.io/problems/bad-request", "problem-bad-request", "unrecognized")]
+    [InlineData("type", "https://tools.ietf.org/html/rfc9110#section-15.5.1", "problem-bad-request", "unrecognized")]
+    [InlineData("type", "https://private.example.test?token=protected-response-marker", "problem-other", "unrecognized")]
+    [InlineData("reasonCode", "idempotency_admission_rejected", "json-object", "idempotency_admission_rejected")]
+    [InlineData("reasonCode", "protected-response-marker", "json-object", "unrecognized")]
+    public async Task UnexpectedResponseLogsOnlyClosedSdkClassification(string field, string value, string expectedKind, string expectedCode)
+    {
+        ArgumentNullException.ThrowIfNull(field);
+        const string marker = "protected-response-marker";
+        const string privateUrl = "https://private.example.test?token=protected-response-marker";
+        var body = new Dictionary<string, object?>
+        {
+            ["detail"] = marker,
+            ["title"] = marker,
+            ["message"] = privateUrl,
+            ["instance"] = privateUrl,
+            ["payload"] = marker,
+            ["errors"] = new Dictionary<string, string> { [marker] = privateUrl },
+            ["reasonCode"] = marker,
+            [field] = value,
+        };
+        string json = JsonSerializer.Serialize(body);
+        using var handler = new TestHttpMessageHandler((_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.BadRequest)
+        {
+            Content = new StringContent(json),
+        }));
+        var logger = new TestLogger<TenantBootstrapHostedService>();
+        using var lifetime = new TestHostApplicationLifetime();
+        var service = CreateService(CreateScopeFactory(handler), Options.Create(new TenantBootstrapOptions { BootstrapGlobalAdminUserId = "admin-user-1" }), lifetime, logger);
+        await service.StartAsync(CancellationToken.None);
+        lifetime.StartApplication();
+        await WaitUntilAsync(() => logger.Entries.Any(entry => entry.EventId.Id == 2003));
+        TestLogEntry entry = logger.Entries.Single(entry => entry.EventId.Id == 2003);
+        entry.DiagnosticState.ShouldContain("ResponseKind=" + expectedKind);
+        entry.DiagnosticState.ShouldContain("ResponseCode=" + expectedCode);
+        entry.DiagnosticState.ShouldContain("StatusCode=400");
+        entry.ExceptionText.ShouldBeNull();
+        AssertSupportSafeDiagnostics(logger, marker, privateUrl, json);
+        if (expectedCode != value) AssertSupportSafeDiagnostics(logger, value);
+        logger.Entries.ShouldNotContain(entry => entry.EventId.Id == 2004);
+    }
+
+    /// <summary>Malformed, non-object and oversized bodies remain support-safe and never prevent failure reporting.</summary>
+    [Theory]
+    [InlineData("malformed", "non-json", "none")]
+    [InlineData("array", "json-other", "none")]
+    [InlineData("nonstring-code", "dapr", "unrecognized")]
+    [InlineData("oversized", "unavailable", "none")]
+    [InlineData("oversized-unicode", "unavailable", "none")]
+    [InlineData("oversized-unknown", "unavailable", "none")]
+    [InlineData("deep", "non-json", "none")]
+    [InlineData("empty", "unavailable", "none")]
+    [InlineData("whitespace", "unavailable", "none")]
+    public async Task UnexpectedResponseClassificationKeepsMalformedAndOversizedBodiesPrivate(string scenario, string expectedKind, string expectedCode)
+    {
+        const string marker = "protected-response-marker";
+        string body = scenario switch
+        {
+            "empty" => string.Empty,
+            "whitespace" => " \r\n\t ",
+            "array" => JsonSerializer.Serialize(new[] { marker }),
+            "nonstring-code" => JsonSerializer.Serialize(new { errorCode = new[] { marker }, detail = marker }),
+            "oversized" or "oversized-unknown" => JsonSerializer.Serialize(new { errorCode = "ERR_DIRECT_INVOKE", detail = marker + new string('x', 8192) }),
+            "oversized-unicode" => JsonSerializer.Serialize(new { errorCode = "ERR_DIRECT_INVOKE", detail = marker + new string('é', 4096) }, new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping }),
+            "deep" => "{\"detail\":" + new string('[', 20) + JsonSerializer.Serialize(marker) + new string(']', 20) + "}",
+            _ => marker,
+        };
+        using HttpContent responseContent = scenario == "oversized-unknown"
+            ? new StreamContent(new BootstrapTokenResponseStream(Encoding.UTF8.GetBytes(body), readChunkSize: 64))
+            : new StringContent(body);
+        if (scenario == "oversized-unicode")
+        {
+            body.Length.ShouldBeLessThan(8192);
+            Encoding.UTF8.GetByteCount(body).ShouldBeGreaterThan(8192);
+            // A prebuffered response can carry an incorrect declared length. The actual
+            // UTF-8 size must still be checked before JSON diagnostic classification.
+            responseContent.Headers.ContentLength = 1;
+        }
+        using var handler = new TestHttpMessageHandler((_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.BadRequest)
+        {
+            Content = responseContent,
+        }));
+        var logger = new TestLogger<TenantBootstrapHostedService>();
+        using var lifetime = new TestHostApplicationLifetime();
+        var service = CreateService(CreateScopeFactory(handler), Options.Create(new TenantBootstrapOptions { BootstrapGlobalAdminUserId = "admin-user-1" }), lifetime, logger);
+        await service.StartAsync(CancellationToken.None);
+        lifetime.StartApplication();
+        await WaitUntilAsync(() => logger.Entries.Any(entry => entry.EventId.Id == 2003));
+        TestLogEntry entry = logger.Entries.Single(entry => entry.EventId.Id == 2003);
+        entry.DiagnosticState.Split('\n').ShouldContain("ResponseKind=" + expectedKind);
+        entry.DiagnosticState.Split('\n').ShouldContain("ResponseCode=" + expectedCode);
+        entry.DiagnosticState.Split('\n').ShouldContain("StatusCode=400");
+        entry.ExceptionText.ShouldBeNull();
+        AssertSupportSafeDiagnostics(logger, marker);
+        if (!string.IsNullOrWhiteSpace(body)) AssertSupportSafeDiagnostics(logger, body);
+    }
+
+    /// <summary>A parsed but malformed JSON scalar must retain the actual failure status without leaking escaped content.</summary>
+    [Theory]
+    [InlineData("errorCode")]
+    [InlineData("type")]
+    [InlineData("reasonCode")]
+    [InlineData("code")]
+    public async Task UnpairedSurrogateResponseRetainsUnexpectedStatusAndClosedFallback(string field)
+    {
+        string body = "{\"" + field + "\":\"\\uD800\",\"detail\":\"protected-response-marker\"}";
+        await AssertUnexpectedBootstrapResponseAsync(body, HttpStatusCode.BadRequest, "non-json", "none", false, "\\uD800");
+    }
+
+    /// <summary>Matches actual SDK problem shapes, canonical codes and explicit reason-code precedence.</summary>
+    [Theory]
+    [InlineData(null, null, "idempotency_admission_rejected", 400, "json-object", "idempotency_admission_rejected")]
+    [InlineData(null, "principal_not_member", "idempotency_admission_rejected", 403, "json-object", "principal_not_member")]
+    [InlineData(null, "protected-response-marker", "idempotency_admission_rejected", 400, "json-object", "unrecognized")]
+    [InlineData("forbidden", "principal_not_member", null, 403, "problem-forbidden", "principal_not_member")]
+    [InlineData("forbidden", "tenant_mismatch", null, 403, "problem-forbidden", "tenant_mismatch")]
+    [InlineData("forbidden", "operation-not-granted", null, 403, "problem-forbidden", "operation-not-granted")]
+    [InlineData("authentication-required", "authentication_required", null, 401, "problem-authentication-required", "authentication_required")]
+    [InlineData("token-expired", null, null, 401, "problem-token-expired", "none")]
+    [InlineData("idempotency-admission-failure", "idempotency_admission_unavailable", "idempotency_admission_unavailable", 503, "problem-idempotency-admission", "idempotency_admission_unavailable")]
+    [InlineData("idempotency-conflict", "idempotency_conflict", null, 409, "problem-idempotency-conflict", "idempotency_conflict")]
+    [InlineData("idempotency-key-expired", "idempotency_key_expired", null, 409, "problem-idempotency-key-expired", "idempotency_key_expired")]
+    [InlineData("unsupported-api-version", null, null, 400, "problem-unsupported-api-version", "none")]
+    [InlineData("not-found", null, null, 404, "problem-not-found", "none")]
+    [InlineData("not-implemented", null, null, 501, "problem-not-implemented", "none")]
+    [InlineData("command-correlation-ambiguous", null, null, 409, "problem-command-correlation-ambiguous", "none")]
+    [InlineData("rate-limit-exceeded", null, null, 429, "problem-rate-limit", "none")]
+    [InlineData("backpressure-exceeded", null, null, 429, "problem-backpressure", "none")]
+    [InlineData("command-status-not-found", null, null, 404, "problem-command-status-not-found", "none")]
+    public async Task SdkProblemResponsesRetainStatusAndOnlyClosedClassifications(string? problem, string? reason, string? canonicalCode,
+        int status, string expectedKind, string expectedCode)
+    {
+        const string privateUrl = "https://private.example.test?token=protected-response-marker";
+        var body = new Dictionary<string, object?> { ["status"] = status, ["detail"] = "protected-response-marker", ["instance"] = privateUrl };
+        string? type = problem is null ? null : "https://hexalith.io/problems/" + problem;
+        if (type is not null) body["type"] = type;
+        if (reason is not null) body["reasonCode"] = reason;
+        if (canonicalCode is not null) body["code"] = canonicalCode;
+        await AssertUnexpectedBootstrapResponseAsync(JsonSerializer.Serialize(body), (HttpStatusCode)status, expectedKind, expectedCode, false,
+            new[] { type, reason == expectedCode ? null : reason, canonicalCode == expectedCode ? null : canonicalCode, privateUrl }
+                .Where(value => value is not null).Select(value => value!).ToArray());
+    }
+
+    /// <summary>Classifies the SDK's actual reason-suffixed domain problem URI without copying its suffix or detail.</summary>
     [Fact]
-    public async Task StartAsync_when_cancelled_before_application_start_does_not_send_command() {
+    public async Task ActualSdkDomainRejectionUriIsClassifiedWithoutLoggingItsReasonOrType()
+    {
+        DomainRejectionProblem problem = DomainRejectionProblemCatalog.FromRejectionType("GlobalAdministratorAlreadyExistsRejection");
+        string body = JsonSerializer.Serialize(new { type = problem.TypeUri, reasonCode = problem.ReasonCode, status = problem.StatusCode, detail = "protected-response-marker" });
+        await AssertUnexpectedBootstrapResponseAsync(body, (HttpStatusCode)problem.StatusCode, "problem-domain-rejection", "unrecognized", false,
+            problem.TypeUri, problem.ReasonCode);
+    }
+
+    /// <summary>Accepts exactly 8KiB of UTF-8 diagnostic input and rejects the next byte, independent of character count or declared length.</summary>
+    [Theory]
+    [InlineData(8192, false, false)]
+    [InlineData(8193, false, false)]
+    [InlineData(8192, true, false)]
+    [InlineData(8193, true, false)]
+    [InlineData(8192, false, true)]
+    [InlineData(8193, false, true)]
+    [InlineData(8192, true, true)]
+    [InlineData(8193, true, true)]
+    public async Task DiagnosticProbeHasAnExactUtf8ByteBoundary(int bytes, bool multibyte, bool understateLength)
+    {
+        string body = SizedBootstrapResponse(bytes, multibyte);
+        await AssertUnexpectedBootstrapResponseAsync(body, HttpStatusCode.BadRequest, bytes == 8192 ? "dapr" : "unavailable",
+            bytes == 8192 ? "ERR_DIRECT_INVOKE" : "none", understateLength);
+    }
+
+    /// <summary>Retains ordinary bounded 409 marker handling but never scans an oversized marker body.</summary>
+    [Theory]
+    [InlineData(8192, false)]
+    [InlineData(8193, false)]
+    [InlineData(8192, true)]
+    [InlineData(8193, true)]
+    public async Task AlreadyBootstrappedMarkerMustRemainInsideTheUtf8ProbeLimit(int bytes, bool multibyte)
+    {
+        string body = SizedBootstrapResponse(bytes, multibyte, alreadyBootstrapped: true);
+        using var content = new StringContent(body);
+        content.Headers.ContentLength = 1;
+        using var handler = new TestHttpMessageHandler((_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.Conflict) { Content = content }));
+        var logger = new TestLogger<TenantBootstrapHostedService>();
+        using var lifetime = new TestHostApplicationLifetime();
+        var service = CreateService(CreateScopeFactory(handler), Options.Create(new TenantBootstrapOptions { BootstrapGlobalAdminUserId = "admin-user-1" }), lifetime, logger);
+        await service.StartAsync(CancellationToken.None);
+        lifetime.StartApplication();
+        await WaitUntilAsync(() => logger.Entries.Any(entry => entry.EventId.Id is 2003 or 2004));
+        if (bytes == 8192)
+        {
+            logger.Entries.ShouldContain(entry => entry.EventId.Id == 2004);
+            logger.Entries.ShouldNotContain(entry => entry.EventId.Id == 2003);
+        }
+        else
+        {
+            TestLogEntry entry = logger.Entries.Single(entry => entry.EventId.Id == 2003);
+            entry.DiagnosticState.Split('\n').ShouldContain("StatusCode=409");
+            entry.DiagnosticState.Split('\n').ShouldContain("ResponseKind=unavailable");
+            entry.DiagnosticState.Split('\n').ShouldContain("ResponseCode=none");
+            logger.Entries.ShouldNotContain(entry => entry.EventId.Id == 2004);
+        }
+        logger.Entries.ShouldNotContain(entry => entry.EventId.Id == 2002);
+        AssertSupportSafeDiagnostics(logger, "protected-response-marker", body);
+    }
+
+    private static string SizedBootstrapResponse(int bytes, bool multibyte, bool alreadyBootstrapped = false)
+    {
+        string prefix = alreadyBootstrapped
+            ? "{\"rejectionType\":\"GlobalAdminAlreadyBootstrappedRejection\",\"detail\":\"protected-response-marker"
+            : "{\"errorCode\":\"ERR_DIRECT_INVOKE\",\"detail\":\"protected-response-marker";
+        const string suffix = "\"}";
+        int padding = bytes - Encoding.UTF8.GetByteCount(prefix + suffix);
+        string body = prefix + (multibyte ? new string('é', padding / 2) + new string('x', padding % 2) : new string('x', padding)) + suffix;
+        Encoding.UTF8.GetByteCount(body).ShouldBe(bytes);
+        return body;
+    }
+
+    private static async Task AssertUnexpectedBootstrapResponseAsync(string body, HttpStatusCode status, string kind, string code,
+        bool understateLength = false, params string[] protectedValues)
+    {
+        using var content = new StringContent(body);
+        if (understateLength) content.Headers.ContentLength = 1;
+        using var handler = new TestHttpMessageHandler((_, _) => Task.FromResult(new HttpResponseMessage(status) { Content = content }));
+        var logger = new TestLogger<TenantBootstrapHostedService>();
+        using var lifetime = new TestHostApplicationLifetime();
+        var service = CreateService(CreateScopeFactory(handler), Options.Create(new TenantBootstrapOptions { BootstrapGlobalAdminUserId = "admin-user-1" }), lifetime, logger);
+        await service.StartAsync(CancellationToken.None);
+        lifetime.StartApplication();
+        await WaitUntilAsync(() => logger.Entries.Any(entry => entry.EventId.Id is 2002 or 2003));
+        TestLogEntry entry = logger.Entries.Single(entry => entry.EventId.Id == 2003);
+        entry.DiagnosticState.Split('\n').ShouldContain("StatusCode=" + (int)status);
+        entry.DiagnosticState.Split('\n').ShouldContain("ResponseKind=" + kind);
+        entry.DiagnosticState.Split('\n').ShouldContain("ResponseCode=" + code);
+        entry.ExceptionText.ShouldBeNull();
+        logger.Entries.ShouldNotContain(entry => entry.EventId.Id == 2002 || entry.EventId.Id == 2004);
+        AssertSupportSafeDiagnostics(logger, "protected-response-marker", body);
+        AssertSupportSafeDiagnostics(logger, protectedValues);
+    }
+
+    [Fact]
+    public async Task StartAsync_when_cancelled_before_application_start_does_not_send_command()
+    {
         // Arrange — handler honours cancellation
         bool httpCalled = false;
-        var handler = new TestHttpMessageHandler((_, ct) => {
+        var handler = new TestHttpMessageHandler((_, ct) =>
+        {
             httpCalled = true;
             ct.ThrowIfCancellationRequested();
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.Accepted));
@@ -371,7 +643,8 @@ public class TenantBootstrapHostedServiceTests {
 
         IServiceScopeFactory scopeFactory = CreateScopeFactory(handler);
         var lifetime = new TestHostApplicationLifetime();
-        IOptions<TenantBootstrapOptions> options = Options.Create(new TenantBootstrapOptions {
+        IOptions<TenantBootstrapOptions> options = Options.Create(new TenantBootstrapOptions
+        {
             BootstrapGlobalAdminUserId = "admin-user-1",
         });
 
@@ -391,9 +664,11 @@ public class TenantBootstrapHostedServiceTests {
 
     // EventStore Story 5.5: the bootstrap is authorized only by the configured administrator's delegated credential.
     [Fact]
-    public async Task Development_symmetric_credential_is_a_short_lived_delegated_token_for_the_configured_administrator() {
+    public async Task Development_symmetric_credential_is_a_short_lived_delegated_token_for_the_configured_administrator()
+    {
         string? authorization = null;
-        var handler = new TestHttpMessageHandler((request, _) => {
+        var handler = new TestHttpMessageHandler((request, _) =>
+        {
             authorization = request.Headers.Authorization?.ToString();
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.Accepted));
         });
@@ -410,7 +685,8 @@ public class TenantBootstrapHostedServiceTests {
 
         authorization.ShouldStartWith("Bearer ");
         string token = authorization!["Bearer ".Length..];
-        TokenValidationResult validation = await new JsonWebTokenHandler().ValidateTokenAsync(token, new TokenValidationParameters {
+        TokenValidationResult validation = await new JsonWebTokenHandler().ValidateTokenAsync(token, new TokenValidationParameters
+        {
             ValidIssuer = DevelopmentIssuer,
             ValidAudience = DevelopmentAudience,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(DevelopmentSigningKey)),
@@ -429,19 +705,23 @@ public class TenantBootstrapHostedServiceTests {
     [InlineData("no-credential")]
     [InlineData("production-signing-key")]
     [InlineData("authority-without-password")]
-    public async Task Without_a_delegated_credential_the_command_is_not_sent(string scenario) {
+    public async Task Without_a_delegated_credential_the_command_is_not_sent(string scenario)
+    {
         ArgumentNullException.ThrowIfNull(scenario);
         bool commandSent = false;
-        var handler = new TestHttpMessageHandler((request, _) => {
+        var handler = new TestHttpMessageHandler((request, _) =>
+        {
             commandSent = true;
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.Accepted));
         });
         var lifetime = new TestHostApplicationLifetime();
         var logger = new TestLogger<TenantBootstrapHostedService>();
-        Dictionary<string, string?> settings = scenario switch {
+        Dictionary<string, string?> settings = scenario switch
+        {
             "no-credential" => [],
             "production-signing-key" => DevelopmentContract(),
-            _ => new() {
+            _ => new()
+            {
                 ["EventStore:Authentication:Authority"] = "https://identity.example.test/realms/hexalith",
                 ["EventStore:Authentication:Username"] = "admin",
             },
@@ -491,9 +771,11 @@ public class TenantBootstrapHostedServiceTests {
     [InlineData("Development", "http://diagnostic-username:diagnostic-password@localhost/realms/hexalith")]
     [InlineData("Development", "http://localhost/realms/hexalith?token=diagnostic-token")]
     [InlineData("Development", "http://localhost/realms/hexalith#diagnostic-token")]
-    public async Task InvalidAuthorityConfigurationSendsNoHttpRequests(string environmentName, string? authority) {
+    public async Task InvalidAuthorityConfigurationSendsNoHttpRequests(string environmentName, string? authority)
+    {
         int requestCount = 0;
-        using var handler = new TestHttpMessageHandler((_, _) => {
+        using var handler = new TestHttpMessageHandler((_, _) =>
+        {
             requestCount++;
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.Accepted));
         });
@@ -518,7 +800,8 @@ public class TenantBootstrapHostedServiceTests {
         requestCount.ShouldBe(0);
         logger.Entries.ShouldContain(static entry => entry.EventId.Id == 2006);
         AssertSupportSafeDiagnostics(logger, "diagnostic-username", "diagnostic-password", "diagnostic-client", "diagnostic-administrator", "diagnostic-token", DevelopmentSigningKey);
-        if (!string.IsNullOrWhiteSpace(authority)) {
+        if (!string.IsNullOrWhiteSpace(authority))
+        {
             AssertSupportSafeDiagnostics(logger, authority);
         }
     }
@@ -532,25 +815,30 @@ public class TenantBootstrapHostedServiceTests {
     [InlineData("Development", "http://localhost:18080/realms/hexalith", true)]
     [InlineData("Development", "http://localhost:18080/realms/hexalith", false)]
     [InlineData("Development", "https://identity.example.test/realms/hexalith", true)]
-    public async Task ValidAuthorityPreservesRealmPathAndRequiresAdministratorSubject(string environmentName, string authority, bool subjectMatches) {
+    public async Task ValidAuthorityPreservesRealmPathAndRequiresAdministratorSubject(string environmentName, string authority, bool subjectMatches)
+    {
         ArgumentNullException.ThrowIfNull(authority);
         const string administrator = "diagnostic-administrator";
         const string username = "diagnostic-username";
         const string password = "diagnostic-password";
-        string delegatedToken = new JsonWebTokenHandler().CreateToken(new SecurityTokenDescriptor {
-            Claims = new Dictionary<string, object>(StringComparer.Ordinal) {
+        string delegatedToken = new JsonWebTokenHandler().CreateToken(new SecurityTokenDescriptor
+        {
+            Claims = new Dictionary<string, object>(StringComparer.Ordinal)
+            {
                 ["sub"] = subjectMatches ? administrator : "diagnostic-other-subject",
             },
         });
         int requestCount = 0;
         Uri? capturedUri = null;
         string? capturedForm = null;
-        using var handler = new TestHttpMessageHandler(async (request, cancellationToken) => {
+        using var handler = new TestHttpMessageHandler(async (request, cancellationToken) =>
+        {
             requestCount++;
             request.Method.ShouldBe(HttpMethod.Post);
             capturedUri = request.RequestUri;
             capturedForm = await request.Content!.ReadAsStringAsync(cancellationToken);
-            return new HttpResponseMessage(HttpStatusCode.OK) {
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
                 Content = new StringContent(JsonSerializer.Serialize(new { access_token = delegatedToken })),
             };
         });
@@ -559,7 +847,8 @@ public class TenantBootstrapHostedServiceTests {
         IHostEnvironment environment = Substitute.For<IHostEnvironment>();
         environment.EnvironmentName.Returns(environmentName);
         var provider = new TenantBootstrapCredentialProvider(
-            new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> {
+            new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+            {
                 ["EventStore:Authentication:Authority"] = authority,
                 ["EventStore:Authentication:Username"] = username,
                 ["EventStore:Authentication:Password"] = password,
@@ -577,7 +866,8 @@ public class TenantBootstrapHostedServiceTests {
         capturedForm.ShouldContain($"username={username}");
         capturedForm.ShouldContain($"password={password}");
         acquiredToken.ShouldBe(subjectMatches ? delegatedToken : null);
-        if (!subjectMatches) {
+        if (!subjectMatches)
+        {
             logger.Messages.ShouldContain(static message => message.Contains("authority-subject-mismatch", StringComparison.Ordinal));
         }
 
@@ -776,16 +1066,20 @@ public class TenantBootstrapHostedServiceTests {
     [Theory]
     [InlineData(HttpStatusCode.Unauthorized)]
     [InlineData(HttpStatusCode.OK)]
-    public async Task AuthorityResponseDiagnosticsExcludeCredentialsAndTokens(HttpStatusCode statusCode) {
+    public async Task AuthorityResponseDiagnosticsExcludeCredentialsAndTokens(HttpStatusCode statusCode)
+    {
         const string administrator = "diagnostic-administrator";
         const string username = "diagnostic-username";
         const string password = "diagnostic-password";
         const string malformedToken = "diagnostic-token";
         int requestCount = 0;
-        using var handler = new TestHttpMessageHandler((_, _) => {
+        using var handler = new TestHttpMessageHandler((_, _) =>
+        {
             requestCount++;
-            return Task.FromResult(new HttpResponseMessage(statusCode) {
-                Content = new StringContent(JsonSerializer.Serialize(new {
+            return Task.FromResult(new HttpResponseMessage(statusCode)
+            {
+                Content = new StringContent(JsonSerializer.Serialize(new
+                {
                     access_token = malformedToken,
                     username,
                     password,
@@ -797,7 +1091,8 @@ public class TenantBootstrapHostedServiceTests {
         IHostEnvironment environment = Substitute.For<IHostEnvironment>();
         environment.EnvironmentName.Returns(Environments.Production);
         var provider = new TenantBootstrapCredentialProvider(
-            new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> {
+            new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+            {
                 ["EventStore:Authentication:Authority"] = "https://identity.example.test/realms/hexalith",
                 ["EventStore:Authentication:Username"] = username,
                 ["EventStore:Authentication:Password"] = password,
@@ -818,16 +1113,19 @@ public class TenantBootstrapHostedServiceTests {
     [InlineData("authority-request", "credential-acquisition", "HttpRequestException", 1)]
     [InlineData("token-json", "credential-acquisition", "JsonReaderException", 1)]
     [InlineData("command-dispatch", "command-dispatch", "HttpRequestException", 2)]
-    public async Task BootstrapFailureDiagnosticsExcludeExceptionCredentialsAndTokens(string scenario, string phase, string exceptionType, int expectedRequests) {
+    public async Task BootstrapFailureDiagnosticsExcludeExceptionCredentialsAndTokens(string scenario, string phase, string exceptionType, int expectedRequests)
+    {
         const string administrator = "diagnostic-administrator";
         const string username = "diagnostic-username";
         const string password = "diagnostic-password";
         const string authority = "https://identity.example.test/realms/hexalith";
-        string token = new JsonWebTokenHandler().CreateToken(new SecurityTokenDescriptor {
+        string token = new JsonWebTokenHandler().CreateToken(new SecurityTokenDescriptor
+        {
             Claims = new Dictionary<string, object>(StringComparer.Ordinal) { ["sub"] = administrator },
         });
         int requestCount = 0;
-        using var handler = new TestHttpMessageHandler((_, _) => {
+        using var handler = new TestHttpMessageHandler((_, _) =>
+        {
             requestCount++;
             if (scenario == "token-json")
             {
@@ -854,7 +1152,8 @@ public class TenantBootstrapHostedServiceTests {
             Options.Create(new TenantBootstrapOptions { BootstrapGlobalAdminUserId = administrator }),
             lifetime,
             logger,
-            new Dictionary<string, string?> {
+            new Dictionary<string, string?>
+            {
                 ["EventStore:Authentication:Authority"] = authority,
                 ["EventStore:Authentication:Username"] = username,
                 ["EventStore:Authentication:Password"] = password,
@@ -877,17 +1176,22 @@ public class TenantBootstrapHostedServiceTests {
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public async Task Authority_mode_sends_only_the_configured_administrators_own_token(bool subjectMatches) {
-        string adminToken = new JsonWebTokenHandler().CreateToken(new SecurityTokenDescriptor {
+    public async Task Authority_mode_sends_only_the_configured_administrators_own_token(bool subjectMatches)
+    {
+        string adminToken = new JsonWebTokenHandler().CreateToken(new SecurityTokenDescriptor
+        {
             Issuer = "https://identity.example.test/realms/hexalith",
             Claims = new Dictionary<string, object>(StringComparer.Ordinal) { ["sub"] = subjectMatches ? "admin-user-1" : "someone-else" },
         });
         string? tokenRequest = null;
         string? commandAuthorization = null;
-        var handler = new TestHttpMessageHandler(async (request, cancellationToken) => {
-            if (request.RequestUri!.AbsolutePath.EndsWith("/protocol/openid-connect/token", StringComparison.Ordinal)) {
+        var handler = new TestHttpMessageHandler(async (request, cancellationToken) =>
+        {
+            if (request.RequestUri!.AbsolutePath.EndsWith("/protocol/openid-connect/token", StringComparison.Ordinal))
+            {
                 tokenRequest = await request.Content!.ReadAsStringAsync(cancellationToken);
-                return new HttpResponseMessage(HttpStatusCode.OK) {
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
                     Content = new StringContent(JsonSerializer.Serialize(new Dictionary<string, object> { ["access_token"] = adminToken, ["expires_in"] = 300 })),
                 };
             }
@@ -902,7 +1206,8 @@ public class TenantBootstrapHostedServiceTests {
             Options.Create(new TenantBootstrapOptions { BootstrapGlobalAdminUserId = "admin-user-1" }),
             lifetime,
             logger,
-            new Dictionary<string, string?> {
+            new Dictionary<string, string?>
+            {
                 ["EventStore:Authentication:Authority"] = "https://identity.example.test/realms/hexalith",
                 ["EventStore:Authentication:ClientId"] = "hexalith-eventstore",
                 ["EventStore:Authentication:Username"] = "admin",
@@ -915,10 +1220,12 @@ public class TenantBootstrapHostedServiceTests {
 
         tokenRequest.ShouldNotBeNull();
         tokenRequest.ShouldContain("grant_type=password");
-        if (subjectMatches) {
+        if (subjectMatches)
+        {
             commandAuthorization.ShouldBe("Bearer " + adminToken);
         }
-        else {
+        else
+        {
             commandAuthorization.ShouldBeNull();
             logger.Messages.ShouldContain(static message => message.Contains("authority-subject-mismatch", StringComparison.Ordinal));
         }
@@ -1280,10 +1587,13 @@ public class TenantBootstrapHostedServiceTests {
         return body;
     }
 
-    private static void AssertSupportSafeDiagnostics(TestLogger<TenantBootstrapHostedService> logger, params string[] sensitiveValues) {
-        foreach (TestLogEntry entry in logger.Entries) {
+    private static void AssertSupportSafeDiagnostics(TestLogger<TenantBootstrapHostedService> logger, params string[] sensitiveValues)
+    {
+        foreach (TestLogEntry entry in logger.Entries)
+        {
             string diagnostics = $"{entry.Message}\n{entry.DiagnosticState}\n{entry.ExceptionText}";
-            foreach (string sensitiveValue in sensitiveValues) {
+            foreach (string sensitiveValue in sensitiveValues)
+            {
                 diagnostics.ShouldNotContain(sensitiveValue);
             }
         }
@@ -1353,7 +1663,8 @@ public class TenantBootstrapHostedServiceTests {
     private static readonly string DevelopmentSigningKey = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
 
     private static Dictionary<string, string?> DevelopmentContract()
-        => new(StringComparer.Ordinal) {
+        => new(StringComparer.Ordinal)
+        {
             ["Authentication:JwtBearer:Issuer"] = DevelopmentIssuer,
             ["Authentication:JwtBearer:Audience"] = DevelopmentAudience,
             ["Authentication:JwtBearer:SigningKey"] = DevelopmentSigningKey,
@@ -1367,7 +1678,8 @@ public class TenantBootstrapHostedServiceTests {
         IHostApplicationLifetime lifetime,
         ILogger<TenantBootstrapHostedService> logger,
         Dictionary<string, string?>? settings = null,
-        string environmentName = "Development") {
+        string environmentName = "Development")
+    {
         IHostEnvironment environment = Substitute.For<IHostEnvironment>();
         environment.EnvironmentName.Returns(environmentName);
         return new TenantBootstrapHostedService(
@@ -1379,14 +1691,17 @@ public class TenantBootstrapHostedServiceTests {
             logger);
     }
 
-    private static async Task WaitUntilAsync(Func<bool> condition) {
+    private static async Task WaitUntilAsync(Func<bool> condition)
+    {
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
-        while (!condition()) {
+        while (!condition())
+        {
             await Task.Delay(10, cts.Token);
         }
     }
 
-    private static IServiceScopeFactory CreateScopeFactory(TestHttpMessageHandler handler) {
+    private static IServiceScopeFactory CreateScopeFactory(TestHttpMessageHandler handler)
+    {
         ServiceCollection services = new();
         services.AddDaprClient();
 
@@ -1400,14 +1715,16 @@ public class TenantBootstrapHostedServiceTests {
 
     private sealed class TestHttpMessageHandler(
         Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> handler)
-        : HttpMessageHandler {
+        : HttpMessageHandler
+    {
         protected override Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request,
             CancellationToken cancellationToken)
             => handler(request, cancellationToken);
     }
 
-    private sealed class TestHostApplicationLifetime : IHostApplicationLifetime, IDisposable {
+    private sealed class TestHostApplicationLifetime : IHostApplicationLifetime, IDisposable
+    {
         private readonly CancellationTokenSource _started = new();
         private readonly CancellationTokenSource _stopping = new();
         private readonly CancellationTokenSource _stopped = new();
@@ -1422,14 +1739,16 @@ public class TenantBootstrapHostedServiceTests {
 
         public void StartApplication() => _started.Cancel();
 
-        public void Dispose() {
+        public void Dispose()
+        {
             _started.Dispose();
             _stopping.Dispose();
             _stopped.Dispose();
         }
     }
 
-    private sealed class TestLogger<T> : ILogger<T> {
+    private sealed class TestLogger<T> : ILogger<T>
+    {
         private readonly ConcurrentQueue<string> _messages = new();
         private readonly ConcurrentQueue<TestLogEntry> _entries = new();
 
@@ -1441,7 +1760,8 @@ public class TenantBootstrapHostedServiceTests {
 
         public bool IsEnabled(LogLevel logLevel) => true;
 
-        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) {
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+        {
             string message = formatter(state, exception);
             _messages.Enqueue(message);
             string diagnosticState = state is IEnumerable<KeyValuePair<string, object?>> fields
@@ -1450,10 +1770,12 @@ public class TenantBootstrapHostedServiceTests {
             _entries.Enqueue(new TestLogEntry(logLevel, eventId, message, diagnosticState, exception?.ToString()));
         }
 
-        private sealed class NullScope : IDisposable {
+        private sealed class NullScope : IDisposable
+        {
             public static readonly NullScope Instance = new();
 
-            public void Dispose() {
+            public void Dispose()
+            {
             }
         }
     }

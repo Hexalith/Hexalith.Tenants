@@ -85,6 +85,32 @@ In production, supply the administrator password from a secret store for the boo
 
 Global-administrator authority is verified from the `global-administrators` read model after `GlobalAdministratorSet` has been projected. Wire administrator hints alone do not grant domain authority. Use the [quickstart membership and human handoff commands](quickstart.md#get-an-access-token) against `tenants-api`; a successful full-page membership lookup under the configured subject is the authoritative handoff check.
 
+### Unexpected-response diagnostics
+
+Bootstrap warning `2003` records the actual `StatusCode` plus `ResponseKind` and
+`ResponseCode`. These are closed diagnostic classifications, never delivery,
+non-delivery, authorization, or administrator-membership authority. Keep the
+attempt IDs from event `2008` and follow the status and membership recovery
+checks below; a classification does not authorize another submission or restart.
+
+`ResponseKind` identifies a recognized SDK `problem-*` family or `dapr`. Unknown
+problem types use `problem-other`; ordinary JSON objects and other JSON values
+use `json-object` and `json-other`. Empty, whitespace, unreadable or oversized
+probe input uses `unavailable`; malformed JSON, escaped scalar data or excessive
+nesting uses `non-json`. Only the existing diagnostic probe is limited to 8192
+UTF-8 bytes; HTTP transport completion policy is unchanged. An oversized 409 body
+is not scanned for the already-bootstrapped marker; ordinary bounded marker
+responses retain event `2004` and still require the membership check.
+
+`ResponseCode` is a fixed recognized SDK/Dapr code. Dapr `errorCode` selects the
+Dapr classification; otherwise `reasonCode` takes precedence over canonical
+`code`, including when its value is unrecognized. `none` means no code was
+available; `unrecognized` means a supplied code was unknown or had the wrong
+shape. Raw body text, type URLs, unknown codes, details, credentials and returned
+identities are excluded from these fields. A recognized value remains an
+untrusted response description and does not replace command-status or membership
+evidence.
+
 ### Explicit bootstrap recovery
 
 1. Stop the handoff after token failure, HTTP failure, unexpected response, ambiguous delivery, command-status failure or projection timeout. Resource health is insufficient. Logs `2005`/`2006` indicate credential acquisition did not yield dispatch; `2001` indicates acceptance only, `2003` an unexpected response, `2002` a safe phase/category, and `2004` the already-bootstrapped response only. None prove the configured subject's membership.
