@@ -136,6 +136,7 @@ public partial class CommandApiRuntimeIntegrationTests
         };
         var claims = Hexalith.EventStore.ServiceDefaults.Authentication.QueryCallerAuthorityBinding.Bind(query)
             .ToDictionary(pair => pair.Key, pair => (object)pair.Value, StringComparer.Ordinal);
+        claims["eventstore:surface"] = "service";
         claims[Hexalith.EventStore.ServiceDefaults.Authentication.EventStoreWorkloadAuthenticationDefaults.CallerClaimType] = "eventstore";
         claims[Hexalith.EventStore.ServiceDefaults.Authentication.EventStoreWorkloadAuthenticationDefaults.OperationClaimType] = "domain-service:query";
         var descriptor = new Microsoft.IdentityModel.Tokens.SecurityTokenDescriptor
