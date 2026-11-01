@@ -1276,7 +1276,7 @@ public class PackageGovernanceTests {
         string workflow = File.ReadAllText(workflowPath);
 
         workflow.ShouldContain("permissions:\n  contents: read");
-        workflow.ShouldContain("uses: Hexalith/Hexalith.Builds/.github/workflows/domain-ci.yml@main");
+        workflow.ShouldContain("uses: Hexalith/Hexalith.Builds/.github/workflows/domain-ci.yml@1cc94bbb932be0d08a31b4e1393fcfc450a0b1c9");
         workflow.ShouldContain("solution: Hexalith.Tenants.slnx");
         workflow.ShouldContain("test-platform: microsoft-testing-platform");
         string ciJob = GetYamlJobBlock(workflow, "ci");
@@ -1322,7 +1322,8 @@ public class PackageGovernanceTests {
             "Hexalith/Hexalith.Builds/Github/dapr-init",
         ];
         GetWorkflowActionReferences(workflow).ShouldAllBe(
-            action => action.Action.StartsWith("Hexalith/Hexalith.Builds/.github/workflows/", StringComparison.Ordinal) && action.Reference == "main"
+            action => action.Action == "Hexalith/Hexalith.Builds/.github/workflows/domain-ci.yml"
+                && action.Reference == "1cc94bbb932be0d08a31b4e1393fcfc450a0b1c9"
                 || ownedHttpActions.Contains(action.Action, StringComparer.Ordinal) && IsFullCommitSha(action.Reference),
             "Shared CI stays delegated to Builds; the owning HTTP qualification jobs use approved actions at immutable commits.");
     }
@@ -2568,7 +2569,7 @@ public class PackageGovernanceTests {
         string repoRoot = FindRepoRoot();
         string workflow = File.ReadAllText(Path.Combine(repoRoot, ".github/workflows/ci.yml"));
 
-        workflow.ShouldContain("uses: Hexalith/Hexalith.Builds/.github/workflows/domain-ci.yml@main");
+        workflow.ShouldContain("uses: Hexalith/Hexalith.Builds/.github/workflows/domain-ci.yml@1cc94bbb932be0d08a31b4e1393fcfc450a0b1c9");
         workflow.ShouldContain("run-consumer-validation: true");
         workflow.ShouldContain("solution: Hexalith.Tenants.slnx");
     }

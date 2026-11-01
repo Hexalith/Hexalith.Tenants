@@ -5577,3 +5577,16 @@ archived: 2026-10-22
   next-action: Exercise matching granting and post-removal revocation through the registered GatewayNativeSourceMetadataReader bound transport before claiming that production path qualified; preserve current authorization and exact identity rules.
   scope: Deferred separately from the five selected speech/browser follow-ups; excluded from numbered totals. No incoming host or unrelated integration test was changed.
   evidence-review: RBH10; five-remaining-speech-and-browser-resumed-validation-evidence.md
+
+
+## Deferred from: merged-main CI repair independent review (2026-11-01)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md`
+  summary: Pre-existing verification gap: qualify bootstrap catalog readiness across a wrong-root to matching-root transition and cancellation.
+  evidence: tests/Hexalith.Tenants.Server.Tests/Bootstrap/TenantBootstrapBoundCommandTests.cs constructs its service provider without IRouteCatalogAuthority or the expected development root. Its existing authenticated bound-command assertions therefore do not exercise the readiness loop in src/Hexalith.Tenants/Bootstrap/TenantBootstrapBoundCommand.cs; neither delayed matching-root readiness nor cancellation during catalog waiting has distinguishing coverage.
+  status: open
+  classification: pre-existing-test-coverage-gap
+  production-impact: Unverified; no readiness or authenticated bound-command failure is demonstrated or claimed.
+  next-action: Register a controlled IRouteCatalogAuthority and expected root in focused tests; prove no bound command is issued while a different root is serving, progress after the matching root becomes serving, and cancellation interrupts waiting without issuing a command. Retain all existing identity, administrator and workload proof checks.
+  scope: Deferred from this bounded CI compatibility repair; excluded from numbered totals. Production and test behavior remain unchanged by this record.
+  evidence-review: Independent review of spec-ci-repair-2026-11-01.md; verification-gap finding explicitly triaged as defer.

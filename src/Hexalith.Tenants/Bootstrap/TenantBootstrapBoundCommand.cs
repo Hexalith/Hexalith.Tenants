@@ -8,7 +8,9 @@ using Hexalith.EventStore.Authorization;
 using Hexalith.EventStore.Client.Gateway;
 using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.EventStore.ServiceDefaults.Authentication;
+#if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
 using Hexalith.EventStore.ServiceDefaults.Routing;
+#endif
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Identity;
 
@@ -44,6 +46,7 @@ internal static class TenantBootstrapBoundCommand
         string? caller = configuration["Authentication:WorkloadIssuer:Workload"];
         string? privateKey = configuration["Authentication:BoundStreamRead:PrivateKey"];
         if (string.IsNullOrWhiteSpace(caller) || string.IsNullOrWhiteSpace(privateKey)) return null;
+#if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
         if (services.GetService<IRouteCatalogAuthority>() is { } authority
             && configuration["EventStore:RouteCatalog:DevelopmentBootstrap:RootDigest"] is { Length: > 0 } root)
         {
@@ -59,6 +62,7 @@ internal static class TenantBootstrapBoundCommand
                 await Task.Delay(100, deadline.Token).ConfigureAwait(false);
             }
         }
+#endif
         string? assertion = await services.GetRequiredService<IWorkloadAssertionIssuer>()
             .IssueAsync(new("eventstore", EventStoreWorkloadOperations.GatewayCommandSubmit), token).ConfigureAwait(false);
         if (string.IsNullOrWhiteSpace(assertion)) return null;

@@ -78,6 +78,7 @@ pass at the exact pushed source before runtime freeze and final release acceptan
 
 ## File List
 
+- `references/Hexalith.EventStore`
 - `.github/workflows/ci.yml`
 - `.github/workflows/source-reference.yml`
 - `.github/workflows/story-guards.yml`
@@ -86,6 +87,15 @@ pass at the exact pushed source before runtime freeze and final release acceptan
 - `Directory.Build.targets`
 - `tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs`
 - `_bmad-output/implementation-artifacts/spec-qualify-sdk-3-130-catalog-selection.md`
+
+## Completion Notes List
+
+The integrated owner qualification retains the EventStore source dependency move
+from `e014af6c3f1c67732485f24012cdbe528a12b0f6` to
+`316da6cf7c12582dc4cddeecb6f2f06f64588817`. This source revision supplies the
+development catalog owner qualification consumed by the merged main graph; it
+does not change the published 3.130.0/3.130.1 package selections or the frozen
+3.128.4 bootstrap compatibility host.
 
 ## Qualified stable patch 3.130.1
 

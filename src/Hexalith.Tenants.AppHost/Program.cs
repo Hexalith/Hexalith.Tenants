@@ -335,14 +335,26 @@ else {
 try
 {
 #if HEXALITH_DEVELOPMENT_CATALOG_COHORT
-    await using DevelopmentRouteCatalogComposition? localCatalog = builder.ExecutionContext.IsRunMode
+    DevelopmentRouteCatalogComposition? localCatalog = builder.ExecutionContext.IsRunMode
         ? TenantsDevelopmentRoutingCatalog.Create(builder, eventStore, tenants, tenantsApi, tenantsUI, adminServer, adminUI, stateStoreComponentPath)
         : null;
 #endif
-    DistributedApplication application = builder.Build();
-    await using (application.ConfigureAwait(false))
+    try
     {
-        await application.RunAsync().ConfigureAwait(false);
+        DistributedApplication application = builder.Build();
+        await using (application.ConfigureAwait(false))
+        {
+            await application.RunAsync().ConfigureAwait(false);
+        }
+    }
+    finally
+    {
+#if HEXALITH_DEVELOPMENT_CATALOG_COHORT
+        if (localCatalog is not null)
+        {
+            await localCatalog.DisposeAsync().ConfigureAwait(false);
+        }
+#endif
     }
 }
 finally
