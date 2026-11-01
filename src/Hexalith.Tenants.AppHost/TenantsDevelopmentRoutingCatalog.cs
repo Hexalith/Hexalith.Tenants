@@ -24,6 +24,12 @@ internal static class TenantsDevelopmentRoutingCatalog
         // bound command proof, never a human submission of an internal operation.
         domain.WithEnvironment("Tenants__BootstrapBoundWorkloadEnabled", "true");
         gateway.WithEnvironment("Authentication__BoundCommand__AllowedDomains__tenants", "global-administrators");
+        if (string.Equals(Environment.GetEnvironmentVariable("TENANTS_SOURCE_CATALOG_PROFILE"), "true", StringComparison.Ordinal))
+        {
+            gateway.WithEnvironment("Logging__LogLevel__Hexalith.EventStore.Server.Commands.CommandRouter", "Debug");
+            gateway.WithEnvironment("Logging__LogLevel__Hexalith.EventStore.Server.Pipeline.SubmitCommandHandler", "Debug");
+            gateway.WithEnvironment("Logging__LogLevel__Hexalith.EventStore.Controllers.CommandsController", "Debug");
+        }
         DevelopmentRouteCatalogInvocation[] domainCalls = EventStoreDomainServiceRoutes.Operational
             .Select(route => new DevelopmentRouteCatalogInvocation(gateway, route.Route, ["POST"])).ToArray();
         var catalog = builder.AddEventStoreDevelopmentRouteCatalog(gateway,
