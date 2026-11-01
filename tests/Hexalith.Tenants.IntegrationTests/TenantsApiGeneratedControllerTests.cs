@@ -1991,6 +1991,12 @@ public sealed class TenantsApiGeneratedControllerTests
                 services.AddSingleton<IEventStoreGatewayClient>(gateway);
 #if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
                 services.AddSingleton(TenantOwnerCatalogTestAuthority.Create());
+#if HEXALITH_DEVELOPMENT_CATALOG_COHORT
+                // Isolated hosts have no private bootstrap directory. Install the real SDK filter
+                // alongside their committed authority so generated actions still validate each lease.
+                services.AddScoped<GeneratedRouteCatalogFilter>();
+                services.Configure<MvcOptions>(mvc => mvc.Filters.AddService<GeneratedRouteCatalogFilter>());
+#endif
 #endif
                 configureServices?.Invoke(services);
             });

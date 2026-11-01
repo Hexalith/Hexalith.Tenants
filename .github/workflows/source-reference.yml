@@ -100,7 +100,8 @@ jobs:
             exit 1
           fi
           printf 'TENANTS_SOURCE_SDK_PRODUCER_VERSION=%s\n' "$source_version" >> "$GITHUB_ENV"
-          # Record provenance; do not replace another dependency owner's numeric catalog pin.
+          printf 'HexalithEventStoreVersion=%s\n' "$source_version" >> "$GITHUB_ENV"
+          # Bind this source graph to its producer; Builds.Tooling retains its own catalog selection.
           python3 - <<'PY'
           import datetime, json, os, pathlib, subprocess
           before = pathlib.Path(os.environ["RUNNER_TEMP"]) / "tenants-source-before-volumes.json"
