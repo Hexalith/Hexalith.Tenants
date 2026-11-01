@@ -28,15 +28,17 @@ Allowed files for this story:
 - `.github/workflows/codeql.yml`
 - `Directory.Build.targets`
 - `tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs`
+- `tests/Hexalith.Tenants.Contracts.Tests/SourceReferenceWorkflowGovernanceTests.cs`
 - `_bmad-output/implementation-artifacts/spec-qualify-sdk-3-130-catalog-selection.md`
 
 ## Change
 
-Extend the finite stable catalog API selection with only 3.130.0, 3.130.1 and their supported
+Extend the finite stable catalog API selection with only 3.130.0, 3.130.1 and the
+pending 3.130.2 maintenance selection, with their supported
 same-binary zero-revision/metadata variants. Retain 3.129.0 and 3.129.1 support,
 the default 3.129.0 selection, explicit 3.128.4 compatibility, exact producer source
 ownership, native unknown/prerelease refusal and actual-PE publication validation.
-Keep 3.130.2, 3.131.0, nonzero revisions and prereleases unqualified.
+Keep 3.130.3, 3.131.0, nonzero revisions and prereleases unqualified.
 
 The alias adds no catalog declarations, authorization, activation, route, package
 inventory or runtime environment settings. Existing publication/archive validation
@@ -86,6 +88,7 @@ pass at the exact pushed source before runtime freeze and final release acceptan
 - `.github/workflows/codeql.yml`
 - `Directory.Build.targets`
 - `tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs`
+- `tests/Hexalith.Tenants.Contracts.Tests/SourceReferenceWorkflowGovernanceTests.cs`
 - `_bmad-output/implementation-artifacts/spec-qualify-sdk-3-130-catalog-selection.md`
 
 ## Completion Notes List
@@ -153,3 +156,106 @@ The full exact branch CI, Source-reference, Story Guards, Commitlint and CodeQL
 must finish successfully before the selected-source remote gate is accepted.
 This qualification does not publish from a side branch or alter existing
 Tenants6.0.0/source9e publication claims.
+
+## Recover the qualification ref after external pruning
+
+The isolated qualification commit3dc758ed preserves all4,814 non-workflow/spec
+entries from6f and passed actionlint, the actual nonzero-before changed-story
+event, pinned commitlint and normal hooks. Its blocking HTTP job passed270cases
+with zero failures/skips, published-catalog HTTP passed, and source-reference
+integration passed.
+
+A competing external sync then merged the branch into newer main60cc86e2 and
+deleted its remote ref. CodeQL completed analysis but could not upload because
+that exact qualification ref no longer existed. Restoring the same3dc ref
+created a branch-creation push and superseded unfinished same-ref workflows.
+Preserve those results and failures as evidence; do not weaken the strict
+changed-story requirement for a real, nonzero before-SHA.
+
+After the user confirmed the external sync stopped, add only this recovery note
+to the now-seeded branch and perform a normal push from3dc. Every other tracked
+entry, including all five workflow files, remains byte/mode-identical to3dc;
+production, tests, package selectors and gitlinks remain identical to6f. Run
+pinned commitlint and normal hooks and the actual new push-context story guard.
+The complete CI, Source-reference, Story Guards, Commitlint and CodeQL workflows
+on this exact recovery commit are the final selected-source remote gate.
+Preserve newer main without merging, rewinding or pruning it; leave original
+producer checkout selection and fresh runtime preparation to RootCI.
+
+## Qualify the finite workflow branch fixture
+
+Exact4d CI41250098352 built and consumed packages successfully. Its Contracts
+shard then exposed33 failures in SourceReferenceWorkflowGovernanceTests: the
+existing branch-shape predicate accepted only the singleton main push list.
+All failures shared that one baseline violation; the other six test shards
+passed. Local execution of the whole affected class reproduces68cases with
+33failures and zero skips before the correction.
+
+Extend only that fixture's accepted push lists to `[main]` or
+`[main, fix/qualify-sdk-3.130.1]`. Pull requests still require exactly main.
+Keep main mandatory, refuse all additional or duplicate branches, and retain
+every command, ordering, source-mode, floor, fail-skips, suppression-filter,
+shell-override and dependency refusal. Add positive main-only/qualified-push
+controls and negative arbitrary, wildcard, future, missing-main, duplicate,
+extra, non-scalar and pull-request qualifier cases. No workflow job or product
+source changes.
+
+Run only the complete affected class after a warning-free public3.130.1 build.
+The scope receipt must identify this intentional test-only difference while
+proving all production/package/gitlink entries remain identical6f and every
+workflow remains identical4d. Apply pinned commitlint, normal hooks and the
+actual nonzero-before story guard, then push only the qualification branch.
+Repeat its full exact remote checks; do not accept skipped downstream Aspire
+from the failed4d unit gate as qualification.
+
+Focused proof: the unchanged pre-fix class reproduces68total/33failed/0skipped.
+After the finite fixture correction, its full84cases pass with0failures/skips
+(901ms); its actual published3.130.1 Release build has0warnings/errors.
+Logs are `/tmp/tenants-sdk1301-public-proof/workflow-governance-{red,build,green}.log`.
+No broader local tests were run for this test-only correction.
+
+
+## Pending SDK 3.130.2 maintenance qualification
+
+Prepare this bounded draft from selected source8e785341 while the SDK owner
+repairs method-specific technical reachability on its maintenance branch. At
+preparation time 3.130.2 has no verified public archives or published source;
+this draft is not qualified, committed, pushed or enrolled in remote CI.
+
+Add only exact stable3.130.2 and its existing same-binary zero-revision/metadata
+forms to the catalog API selector. Keep the default3.129.0, explicit3.128.4,
+all previously qualified versions, exact source ownership and actual-PE pack
+guards unchanged. Add equivalent selector positives and prerelease, nonzero
+revision and next-patch3.130.3 refusal controls. Do not add declarations,
+authorization, activation, package defaults or Production trust.
+
+After the actual official fourteen archives and immutable SDK source are
+verified, require normal public NuGet restore, warning-free builds, the existing
+66 HTTP contracts and affected selector/floor/profile/pack/provenance controls.
+Only then apply pinned commitlint, normal hooks and a normal push advancing the
+existing exact qualification branch. Its full exact-source remote gates must
+pass. Original checkout selection remains RootCI-coordinated. Published
+Tenants6.0.0/source9e and its default release inputs remain unchanged.
+
+
+## SDK 3.130.2 local public qualification completed
+
+Official source is28e3f260bbaf4619d1a99d656fba04c0c532387b. All fourteen
+actual NuGet.org archives are HTTP200 with exact IDs/version/source/repository
+URL; receipt SHA256 is8e07e4b6be063dd23b60483e3dd920078dd78c1bcfc3b70e8341a0751a2ae312.
+Normal public restore succeeds after using the supported no-http-cache option
+to avoid a stale version index; the initial NU1102 evidence is retained. No
+candidate feed, archive injection, global-cache cleanup or gate waiver is used.
+
+Actual Release IntegrationTests, Contracts.Tests and published Tenants6 native
+host builds have zero warnings/errors. All66 HTTP and83 selector/floor tests
+pass, with zero failures/skips. Both ordinary stale/legacy pack guards, all five
+archive provenance controls and both profile control groups pass. Restored
+API/host SDK132 archives and output DLLs match the official source28e cohort;
+the own public Contracts/Server pair still exactly matches Tenants6/source9e.
+
+Proof is retained under /tmp/downstream-sdk132-drafts-wd24gzkq/proof/tenants132,
+with qualified-public132-provenance.json beside it. The exact owner commit/push
+and full remote checks remain required; local proof does not replace those
+gates. Original selection remains coordinated with RootCI. No default package
+or release input, production authority or previously qualified support changes.
