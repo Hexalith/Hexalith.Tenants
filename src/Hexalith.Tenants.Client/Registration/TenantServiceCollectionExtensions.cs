@@ -1,3 +1,5 @@
+using Hexalith.EventStore.Client.Gateway;
+using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Client.Registration;
 using Hexalith.EventStore.Client.Subscriptions;
 using Hexalith.EventStore.Contracts.Events;
@@ -6,6 +8,8 @@ using Hexalith.Tenants.Client.Projections;
 using Hexalith.Tenants.Contracts.Events;
 
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 
 namespace Hexalith.Tenants.Client.Registration;
 
@@ -71,6 +75,46 @@ public static class TenantServiceCollectionExtensions {
         // Domain-specific consumer: the tenant local projection and its store.
         EnsureTenantProjectionRegistrations(services);
 
+        return services;
+    }
+
+    /// <summary>
+    /// Opts the tenant projection into the durable, checkpointed EventStore read-model record so every replica
+    /// and every restart reads the same persisted state, health, and checkpoint.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Registers <see cref="DurableTenantProjectionStore"/> as both <see cref="ITenantProjectionStore"/> and
+    /// <see cref="ITenantProjectionSnapshotStore"/>, replacing any earlier projection store registration. Call it
+    /// before or after <see cref="AddHexalithTenants(IServiceCollection)"/>; without this opt-in the default
+    /// in-memory store is unchanged.
+    /// </para>
+    /// <para>
+    /// Persistence uses the platform <see cref="IReadModelStore"/> (registered when absent). Older-delivery
+    /// verification and gap recovery read authoritative history through a registered
+    /// <see cref="IEventStoreGatewayClient"/>; without one they stay retryable-unavailable and deny.
+    /// </para>
+    /// </remarks>
+    /// <param name="services">The service collection.</param>
+    /// <param name="stateStoreName">The read-model state-store component name.</param>
+    /// <returns>The service collection for chaining.</returns>
+    public static IServiceCollection AddHexalithTenantsDurableProjection(this IServiceCollection services, string stateStoreName) {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentException.ThrowIfNullOrWhiteSpace(stateStoreName);
+
+        _ = services.AddEventStoreReadModelStore();
+        _ = services.RemoveAll<DurableTenantProjectionOptions>();
+        _ = services.AddSingleton(new DurableTenantProjectionOptions(stateStoreName));
+        services.TryAddSingleton(static sp => new DurableTenantProjectionStore(
+            sp.GetRequiredService<IReadModelStore>(),
+            sp.GetRequiredService<DurableTenantProjectionOptions>(),
+            sp.GetService<IEventStoreGatewayClient>(),
+            sp.GetService<TimeProvider>(),
+            sp.GetService<ILogger<DurableTenantProjectionStore>>()));
+        _ = services.RemoveAll<ITenantProjectionStore>();
+        _ = services.AddSingleton<ITenantProjectionStore>(static sp => sp.GetRequiredService<DurableTenantProjectionStore>());
+        _ = services.RemoveAll<ITenantProjectionSnapshotStore>();
+        _ = services.AddSingleton<ITenantProjectionSnapshotStore>(static sp => sp.GetRequiredService<DurableTenantProjectionStore>());
         return services;
     }
 

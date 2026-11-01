@@ -1,8 +1,8 @@
 using System.Collections.Concurrent;
 
 using Hexalith.EventStore.Client.Subscriptions;
+using Hexalith.EventStore.Contracts.Events;
 using Hexalith.Tenants.Client.Projections;
-using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Events;
 
 namespace Hexalith.Tenants.Client.Handlers;
@@ -12,6 +12,11 @@ namespace Hexalith.Tenants.Client.Handlers;
 /// projections. Implements the platform <see cref="IEventStoreDomainEventHandler{TEvent}"/> (A3) for all
 /// tenant event types; the generic subscription/dedup plumbing is provided by the EventStore client SDK.
 /// </summary>
+/// <remarks>
+/// Every event is applied through the pure <see cref="TenantProjectionTransition"/>. When the registered
+/// <see cref="ITenantProjectionStore"/> also implements <see cref="ITenantProjectionSnapshotStore"/>, deliveries
+/// route through its checkpointed write; otherwise the local store keeps its historical skip-older behavior.
+/// </remarks>
 public class TenantProjectionEventHandler :
     IEventStoreDomainEventHandler<TenantCreated>,
     IEventStoreDomainEventHandler<TenantUpdated>,
@@ -36,91 +41,53 @@ public class TenantProjectionEventHandler :
 
     /// <inheritdoc/>
     public Task HandleAsync(TenantCreated @event, EventStoreDomainEventContext context, CancellationToken cancellationToken = default)
-        => ApplyAsync(
-            @event,
-            context,
-            static (state, tenantCreated) => {
-                state.Name = tenantCreated.Name;
-                state.Description = tenantCreated.Description;
-                state.Status = TenantStatus.Active;
-            },
-            cancellationToken);
+        => ApplyAsync(@event, context, cancellationToken);
 
     /// <inheritdoc/>
     public Task HandleAsync(TenantUpdated @event, EventStoreDomainEventContext context, CancellationToken cancellationToken = default)
-        => ApplyAsync(
-            @event,
-            context,
-            static (state, tenantUpdated) => {
-                state.Name = tenantUpdated.Name;
-                state.Description = tenantUpdated.Description;
-            },
-            cancellationToken);
+        => ApplyAsync(@event, context, cancellationToken);
 
     /// <inheritdoc/>
     public Task HandleAsync(TenantDisabled @event, EventStoreDomainEventContext context, CancellationToken cancellationToken = default)
-        => ApplyAsync(
-            @event,
-            context,
-            static (state, _) => state.Status = TenantStatus.Disabled,
-            cancellationToken);
+        => ApplyAsync(@event, context, cancellationToken);
 
     /// <inheritdoc/>
     public Task HandleAsync(TenantEnabled @event, EventStoreDomainEventContext context, CancellationToken cancellationToken = default)
-        => ApplyAsync(
-            @event,
-            context,
-            static (state, _) => state.Status = TenantStatus.Active,
-            cancellationToken);
+        => ApplyAsync(@event, context, cancellationToken);
 
     /// <inheritdoc/>
     public Task HandleAsync(UserAddedToTenant @event, EventStoreDomainEventContext context, CancellationToken cancellationToken = default)
-        => ApplyAsync(
-            @event,
-            context,
-            static (state, userAdded) => state.Members[userAdded.UserId] = userAdded.Role,
-            cancellationToken);
+        => ApplyAsync(@event, context, cancellationToken);
 
     /// <inheritdoc/>
     public Task HandleAsync(UserRemovedFromTenant @event, EventStoreDomainEventContext context, CancellationToken cancellationToken = default)
-        => ApplyAsync(
-            @event,
-            context,
-            static (state, userRemoved) => _ = state.Members.Remove(userRemoved.UserId),
-            cancellationToken);
+        => ApplyAsync(@event, context, cancellationToken);
 
     /// <inheritdoc/>
     public Task HandleAsync(UserRoleChanged @event, EventStoreDomainEventContext context, CancellationToken cancellationToken = default)
-        => ApplyAsync(
-            @event,
-            context,
-            static (state, roleChanged) => state.Members[roleChanged.UserId] = roleChanged.NewRole,
-            cancellationToken);
+        => ApplyAsync(@event, context, cancellationToken);
 
     /// <inheritdoc/>
     public Task HandleAsync(TenantConfigurationSet @event, EventStoreDomainEventContext context, CancellationToken cancellationToken = default)
-        => ApplyAsync(
-            @event,
-            context,
-            static (state, configurationSet) => state.Configuration[configurationSet.Key] = configurationSet.Value,
-            cancellationToken);
+        => ApplyAsync(@event, context, cancellationToken);
 
     /// <inheritdoc/>
     public Task HandleAsync(TenantConfigurationRemoved @event, EventStoreDomainEventContext context, CancellationToken cancellationToken = default)
-        => ApplyAsync(
-            @event,
-            context,
-            static (state, configurationRemoved) => _ = state.Configuration.Remove(configurationRemoved.Key),
-            cancellationToken);
+        => ApplyAsync(@event, context, cancellationToken);
 
-    private async Task ApplyAsync<TEvent>(
-        TEvent @event,
+    private async Task ApplyAsync(
+        IEventPayload @event,
         EventStoreDomainEventContext context,
-        Action<TenantLocalState, TEvent> apply,
         CancellationToken cancellationToken) {
         ArgumentNullException.ThrowIfNull(@event);
         ArgumentNullException.ThrowIfNull(context);
-        ArgumentNullException.ThrowIfNull(apply);
+
+        if (_store is ITenantProjectionSnapshotStore durable) {
+            // The durable projection owns identity, compare-and-swap, gaps, and recovery. A durable outcome
+            // returns (and is acknowledged); a retryable one throws so the delivery is not acknowledged.
+            _ = await durable.ApplyAsync(@event, context, cancellationToken).ConfigureAwait(false);
+            return;
+        }
 
         SemaphoreSlim tenantLock = _tenantLocks.GetOrAdd(context.AggregateId, static _ => new SemaphoreSlim(1, 1));
         await tenantLock.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -130,13 +97,16 @@ public class TenantProjectionEventHandler :
                 return;
             }
 
-            apply(state, @event);
-            state.LastEvent = new TenantProjectionEventMetadata(
-                context.MessageId,
-                context.SequenceNumber,
-                context.Timestamp,
-                context.CorrelationId);
-            await _store.SaveAsync(state, cancellationToken).ConfigureAwait(false);
+            TenantLocalState next = TenantProjectionTransition.Apply(
+                state,
+                context.AggregateId,
+                @event,
+                new TenantProjectionEventMetadata(
+                    context.MessageId,
+                    context.SequenceNumber,
+                    context.Timestamp,
+                    context.CorrelationId));
+            await _store.SaveAsync(next, cancellationToken).ConfigureAwait(false);
         }
         finally {
             _ = tenantLock.Release();
