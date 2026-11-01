@@ -1,6 +1,7 @@
 using Hexalith.EventStore.Contracts.Events;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Events;
+using Hexalith.Tenants.Contracts.Events.Rejections;
 
 namespace Hexalith.Tenants.Client.Projections;
 
@@ -25,6 +26,17 @@ public static class TenantProjectionTransition {
         typeof(UserRoleChanged),
         typeof(TenantConfigurationSet),
         typeof(TenantConfigurationRemoved),
+    ];
+
+    /// <summary>
+    /// Gets the persisted tenant rejection event types, which only advance the checkpoint.
+    /// </summary>
+    public static IReadOnlyList<Type> RejectionEventTypes { get; } = [
+        .. typeof(TenantDisabledRejection).Assembly.GetTypes()
+            .Where(static type => type is { IsClass: true, IsAbstract: false }
+                && typeof(IRejectionEvent).IsAssignableFrom(type)
+                && string.Equals(type.Namespace, typeof(TenantDisabledRejection).Namespace, StringComparison.Ordinal))
+            .OrderBy(static type => type.FullName, StringComparer.Ordinal),
     ];
 
     /// <summary>

@@ -40,6 +40,12 @@ internal sealed class TenantHistoryGateway : IEventStoreGatewayClient {
     public Task<StreamReadPage> ReadStreamAsync(StreamReadRequest request, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
         cancellationToken.ThrowIfCancellationRequested();
+
+        // Tenant events live in the system tenant's tenants domain; any other stream identity is a defect.
+        if (request.Tenant != "system" || request.Domain != "tenants" || string.IsNullOrWhiteSpace(request.AggregateId)) {
+            throw new InvalidOperationException($"Unexpected history stream {request.Tenant}/{request.Domain}/{request.AggregateId}.");
+        }
+
         lock (_gate) {
             Reads++;
             if (Unavailable) {

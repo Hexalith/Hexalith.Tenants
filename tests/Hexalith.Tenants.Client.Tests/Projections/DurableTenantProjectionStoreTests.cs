@@ -3,6 +3,7 @@ using Hexalith.EventStore.Client.Subscriptions;
 using Hexalith.Tenants.Client.Projections;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Events;
+using Hexalith.Tenants.Contracts.Events.Rejections;
 
 using Microsoft.Extensions.DependencyInjection;
 
@@ -184,8 +185,47 @@ public sealed class DurableTenantProjectionStoreTests {
     public void KeyForHashesUnsafeTenantIdentifiers(string tenantId) {
         string key = DurableTenantProjectionStore.KeyFor(tenantId);
 
-        key.ShouldStartWith(DurableTenantProjectionStore.KeyPrefix + "sha256-");
+        key.ShouldStartWith(DurableTenantProjectionStore.KeyPrefix + DurableTenantProjectionStore.HashedKeyMarker);
         key.ShouldNotContain(tenantId);
-        key.Length.ShouldBe(DurableTenantProjectionStore.KeyPrefix.Length + 7 + 64);
+        key.Length.ShouldBe(DurableTenantProjectionStore.KeyPrefix.Length + DurableTenantProjectionStore.HashedKeyMarker.Length + 64);
+    }
+
+    [Fact]
+    public void VerbatimKeysNeverCollideWithHashedKeys() {
+        string unsafeTenant = "tenant||collision";
+        string hashed = DurableTenantProjectionStore.KeyFor(unsafeTenant);
+        string digest = hashed[(DurableTenantProjectionStore.KeyPrefix.Length + DurableTenantProjectionStore.HashedKeyMarker.Length)..];
+
+        // A safe identifier spelling the old hashed form stays verbatim and can never produce the hashed key.
+        string lookalike = DurableTenantProjectionStore.KeyFor("sha256-" + digest);
+        string verbatimSegment = lookalike[DurableTenantProjectionStore.KeyPrefix.Length..];
+
+        lookalike.ShouldNotBe(hashed);
+        verbatimSegment.ShouldNotContain(':');
+        hashed[DurableTenantProjectionStore.KeyPrefix.Length..].ShouldContain(':');
+    }
+
+    [Fact]
+    public async Task RejectionFollowedByTheNextEventStaysHealthyWithoutHistory() {
+        var harness = new DurableTenantProjectionHarness();
+        using ServiceProvider host = harness.CreateHost(withHistory: false);
+        EventStoreDomainEventEnvelope created = harness.Persist(new TenantCreated(Tenant, "Rejected once", null, s_at), Tenant, 1);
+        EventStoreDomainEventEnvelope rejection = harness.Persist(new TenantAlreadyExistsRejection(Tenant), Tenant, 2);
+        EventStoreDomainEventEnvelope member = harness.Persist(new UserAddedToTenant(Tenant, "user-1", TenantRole.TenantReader), Tenant, 3);
+
+        (await DurableTenantProjectionHarness.ProcessAsync(host, created)).ShouldBe(EventStoreDomainEventProcessingResult.Processed);
+        (await DurableTenantProjectionHarness.ProcessAsync(host, rejection)).ShouldBe(EventStoreDomainEventProcessingResult.Processed);
+        CheckpointedProjectionRecord<TenantLocalState> afterRejection = harness.Record(Tenant).ShouldNotBeNull();
+        (await DurableTenantProjectionHarness.ProcessAsync(host, member)).ShouldBe(EventStoreDomainEventProcessingResult.Processed);
+
+        afterRejection.Health.ShouldBe(CheckpointedProjectionHealth.Healthy);
+        afterRejection.LastContiguousSequence.ShouldBe(2);
+        afterRejection.State.ShouldNotBeNull().Name.ShouldBe("Rejected once", "a rejection advances the checkpoint without changing state");
+        afterRejection.State.LastEvent.ShouldNotBeNull().LastSequenceNumber.ShouldBe(2);
+        CheckpointedProjectionRecord<TenantLocalState> record = harness.Record(Tenant).ShouldNotBeNull();
+        record.Health.ShouldBe(CheckpointedProjectionHealth.Healthy);
+        record.LastContiguousSequence.ShouldBe(3);
+        record.State.ShouldNotBeNull().Members["user-1"].ShouldBe(TenantRole.TenantReader);
+        harness.Gateway.Reads.ShouldBe(0, "no history was needed");
     }
 }

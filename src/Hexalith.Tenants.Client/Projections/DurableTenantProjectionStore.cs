@@ -30,6 +30,12 @@ public sealed class DurableTenantProjectionStore : ITenantProjectionStore, ITena
     /// <summary>The versioned key prefix of tenant projection records.</summary>
     public const string KeyPrefix = "tenants-projection:v1:";
 
+    /// <summary>
+    /// The marker in front of a hashed tenant segment. It contains <c>:</c>, which a tenant identifier kept verbatim
+    /// can never contain, so a verbatim key and a hashed key never collide.
+    /// </summary>
+    public const string HashedKeyMarker = "sha256:";
+
     private readonly CheckpointedProjectionWriter<TenantLocalState> _writer;
     private readonly string _storeName;
 
@@ -46,14 +52,37 @@ public sealed class DurableTenantProjectionStore : ITenantProjectionStore, ITena
         DurableTenantProjectionOptions options,
         IEventStoreGatewayClient? gateway = null,
         TimeProvider? timeProvider = null,
-        ILogger<DurableTenantProjectionStore>? logger = null) {
+        ILogger<DurableTenantProjectionStore>? logger = null)
+        : this(
+            store,
+            options ?? throw new ArgumentNullException(nameof(options)),
+            gateway is null ? null : new CheckpointedProjectionHistory(gateway, options.Checkpoint),
+            timeProvider,
+            logger) {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DurableTenantProjectionStore"/> class over an explicit
+    /// authoritative history reader.
+    /// </summary>
+    /// <param name="store">The EventStore read-model store.</param>
+    /// <param name="options">The state-store binding and checkpoint options.</param>
+    /// <param name="history">The authoritative history reader; without it, verification and recovery stay unavailable.</param>
+    /// <param name="timeProvider">The recovery lease clock.</param>
+    /// <param name="logger">The logger.</param>
+    public DurableTenantProjectionStore(
+        IReadModelStore store,
+        DurableTenantProjectionOptions options,
+        CheckpointedProjectionHistory? history,
+        TimeProvider? timeProvider,
+        ILogger<DurableTenantProjectionStore>? logger) {
         ArgumentNullException.ThrowIfNull(store);
         ArgumentNullException.ThrowIfNull(options);
         _storeName = options.StateStoreName;
         _writer = new CheckpointedProjectionWriter<TenantLocalState>(
             store,
             TenantProjectionCheckpointTransition.Instance,
-            gateway is null ? null : new CheckpointedProjectionHistory(gateway, options.Checkpoint),
+            history,
             options.Checkpoint,
             timeProvider,
             logger);
@@ -62,13 +91,17 @@ public sealed class DurableTenantProjectionStore : ITenantProjectionStore, ITena
     /// <summary>
     /// Gets the state key of a tenant's projection record.
     /// </summary>
+    /// <remarks>
+    /// Identifiers of at most 128 ASCII letters, digits, <c>-</c>, <c>_</c> or <c>.</c> are kept verbatim; any other
+    /// identifier is replaced by <see cref="HashedKeyMarker"/> and its lowercase SHA-256.
+    /// </remarks>
     /// <param name="tenantId">The managed tenant identifier.</param>
     /// <returns>The state key.</returns>
     public static string KeyFor(string tenantId) {
         ArgumentException.ThrowIfNullOrWhiteSpace(tenantId);
         return tenantId.Length <= 128 && tenantId.All(static c => char.IsAsciiLetterOrDigit(c) || c is '-' or '_' or '.')
             ? KeyPrefix + tenantId
-            : KeyPrefix + "sha256-" + Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(tenantId)));
+            : KeyPrefix + HashedKeyMarker + Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(tenantId)));
     }
 
     /// <inheritdoc/>

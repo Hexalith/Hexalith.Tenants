@@ -1,5 +1,6 @@
 using Hexalith.EventStore.Client.Gateway;
 using Hexalith.EventStore.Client.Projections;
+using Hexalith.EventStore.Client.Projections.Checkpointed;
 using Hexalith.EventStore.Client.Registration;
 using Hexalith.EventStore.Client.Subscriptions;
 using Hexalith.EventStore.Contracts.Events;
@@ -24,6 +25,8 @@ namespace Hexalith.Tenants.Client.Registration;
 /// </remarks>
 public static class TenantServiceCollectionExtensions {
     private sealed class TenantProjectionRegistrationMarker;
+
+    private sealed class TenantRejectionCheckpointRegistrationMarker;
 
     /// <summary>
     /// The DAPR pub/sub topic carrying tenant domain events.
@@ -87,12 +90,13 @@ public static class TenantServiceCollectionExtensions {
     /// Registers <see cref="DurableTenantProjectionStore"/> as both <see cref="ITenantProjectionStore"/> and
     /// <see cref="ITenantProjectionSnapshotStore"/>, replacing any earlier projection store registration. Call it
     /// before or after <see cref="AddHexalithTenants(IServiceCollection)"/>; without this opt-in the default
-    /// in-memory store is unchanged.
+    /// in-memory store is unchanged. Every tenant rejection event is also handled, as a checkpoint-only transition.
     /// </para>
     /// <para>
     /// Persistence uses the platform <see cref="IReadModelStore"/> (registered when absent). Older-delivery
     /// verification and gap recovery read authoritative history through a registered
-    /// <see cref="IEventStoreGatewayClient"/>; without one they stay retryable-unavailable and deny.
+    /// <see cref="IEventStoreGatewayClient"/>, resolved in a new scope for every read; without one they stay
+    /// retryable-unavailable and deny.
     /// </para>
     /// </remarks>
     /// <param name="services">The service collection.</param>
@@ -105,17 +109,40 @@ public static class TenantServiceCollectionExtensions {
         _ = services.AddEventStoreReadModelStore();
         _ = services.RemoveAll<DurableTenantProjectionOptions>();
         _ = services.AddSingleton(new DurableTenantProjectionOptions(stateStoreName));
-        services.TryAddSingleton(static sp => new DurableTenantProjectionStore(
-            sp.GetRequiredService<IReadModelStore>(),
-            sp.GetRequiredService<DurableTenantProjectionOptions>(),
-            sp.GetService<IEventStoreGatewayClient>(),
-            sp.GetService<TimeProvider>(),
-            sp.GetService<ILogger<DurableTenantProjectionStore>>()));
+        services.TryAddSingleton(static sp => {
+            DurableTenantProjectionOptions options = sp.GetRequiredService<DurableTenantProjectionOptions>();
+
+            // The singleton store never holds a typed gateway HttpClient: history resolves one per read in its own scope.
+            bool hasGateway = sp.GetService<IServiceProviderIsService>()?.IsService(typeof(IEventStoreGatewayClient)) == true;
+            return new DurableTenantProjectionStore(
+                sp.GetRequiredService<IReadModelStore>(),
+                options,
+                hasGateway ? new CheckpointedProjectionHistory(sp.GetRequiredService<IServiceScopeFactory>(), options.Checkpoint) : null,
+                sp.GetService<TimeProvider>(),
+                sp.GetService<ILogger<DurableTenantProjectionStore>>());
+        });
         _ = services.RemoveAll<ITenantProjectionStore>();
         _ = services.AddSingleton<ITenantProjectionStore>(static sp => sp.GetRequiredService<DurableTenantProjectionStore>());
         _ = services.RemoveAll<ITenantProjectionSnapshotStore>();
         _ = services.AddSingleton<ITenantProjectionSnapshotStore>(static sp => sp.GetRequiredService<DurableTenantProjectionStore>());
+        RegisterRejectionCheckpointHandlers(services);
         return services;
+    }
+
+    // In durable mode every persisted tenant rejection advances the checkpoint without changing state, so it never
+    // leaves a gap in front of the next projected event.
+    private static void RegisterRejectionCheckpointHandlers(IServiceCollection services) {
+        if (services.Any(static s => s.ServiceType == typeof(TenantRejectionCheckpointRegistrationMarker))) {
+            return;
+        }
+
+        _ = services.AddSingleton<TenantRejectionCheckpointRegistrationMarker>();
+        foreach (Type rejection in TenantProjectionTransition.RejectionEventTypes) {
+            Type handler = typeof(TenantRejectionCheckpointHandler<>).MakeGenericType(rejection);
+            _ = services.AddSingleton(
+                typeof(IEventStoreDomainEventHandler<>).MakeGenericType(rejection),
+                sp => ActivatorUtilities.CreateInstance(sp, handler));
+        }
     }
 
     private static void EnsureTenantProjectionRegistrations(IServiceCollection services) {
