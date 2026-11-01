@@ -32,7 +32,6 @@ public partial class TenantBootstrapHostedService(
     IHostApplicationLifetime lifetime,
     ILogger<TenantBootstrapHostedService> logger,
     TimeProvider? timeProvider = null) : IHostedService {
-    private const string EventStoreAppId = "eventstore";
     private const string CommandEndpoint = "api/v1/commands";
     private const long MaxExpectedRejectionProbeBytes = 8192;
 
@@ -118,12 +117,12 @@ public partial class TenantBootstrapHostedService(
                         nameof(BootstrapGlobalAdmin), payloadElement, correlationId);
                     selectedRequest = await TenantBootstrapBoundCommand.CreateAsync(scope.ServiceProvider, configuration,
                         daprClient, submitted, userId, accessToken, timeProvider ?? TimeProvider.System,
-                        httpClient.Timeout, cancellationToken).ConfigureAwait(false);
+                        TenantBootstrapReadinessBudget.Resolve(httpClient, scope.ServiceProvider), cancellationToken).ConfigureAwait(false);
                     if (selectedRequest is null) return;
                 }
                 else
                 {
-                    selectedRequest = daprClient.CreateInvokeMethodRequest(HttpMethod.Post, EventStoreAppId, CommandEndpoint);
+                    selectedRequest = daprClient.CreateInvokeMethodRequest(HttpMethod.Post, TenantEventStoreTarget.AppId(configuration), CommandEndpoint);
                     selectedRequest.Content = JsonContent.Create(commandBody);
                     selectedRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
                 }

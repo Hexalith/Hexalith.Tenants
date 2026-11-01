@@ -30,6 +30,8 @@ internal sealed class TenantOwnerSourceGateway(
             throw new InvalidOperationException("Tenant owner source scope is unavailable.");
         }
 
+        string caller = configuration["Authentication:WorkloadIssuer:Workload"] ?? "tenants";
+        if (string.IsNullOrWhiteSpace(caller)) throw new InvalidOperationException("Tenant source caller is unavailable.");
         string proof;
         try
         {
@@ -37,7 +39,7 @@ internal sealed class TenantOwnerSourceGateway(
             rsa.ImportPkcs8PrivateKey(Convert.FromBase64String(key), out _);
             if (rsa.KeySize < 2048) { throw new InvalidOperationException("Tenant source key is unavailable."); }
             DateTimeOffset now = clock.GetUtcNow();
-            var payload = new ProofPayload(1, "tenants", request.Tenant, request.Domain, request.AggregateId!,
+            var payload = new ProofPayload(1, caller, request.Tenant, request.Domain, request.AggregateId!,
                 now.ToUnixTimeSeconds(), now.AddSeconds(30).ToUnixTimeSeconds(),
                 Convert.ToHexString(RandomNumberGenerator.GetBytes(16)));
             string body = Base64Url(JsonSerializer.SerializeToUtf8Bytes(payload, JsonOptions));

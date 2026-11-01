@@ -11,6 +11,7 @@ using Hexalith.EventStore.ServiceDefaults.Authentication;
 #if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
 using Hexalith.EventStore.ServiceDefaults.Routing;
 #endif
+using Hexalith.Tenants.Configuration;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Identity;
 
@@ -67,10 +68,23 @@ internal static class TenantBootstrapBoundCommand
             .IssueAsync(new("eventstore", EventStoreWorkloadOperations.GatewayCommandSubmit), token).ConfigureAwait(false);
         if (string.IsNullOrWhiteSpace(assertion)) return null;
         var bound = new BoundWorkloadCommandRequest(command, subjects[0].Value);
-        var request = dapr.CreateInvokeMethodRequest(HttpMethod.Post, "eventstore", "api/v1/commands/bound/workload");
-        request.Content = JsonContent.Create(bound);
-        request.Headers.Add(EventStoreWorkloadAuthenticationDefaults.AssertionHeaderName, assertion);
-        request.Headers.Add(BoundWorkloadCommandProof.HeaderName, BoundWorkloadCommandProof.Issue(bound, caller, privateKey, clock.GetUtcNow()));
-        return request;
+        var request = dapr.CreateInvokeMethodRequest(HttpMethod.Post, TenantEventStoreTarget.AppId(configuration), "api/v1/commands/bound/workload");
+        try
+        {
+            request.Content = JsonContent.Create(bound);
+            request.Headers.Add(EventStoreWorkloadAuthenticationDefaults.AssertionHeaderName, assertion);
+            request.Headers.Add(BoundWorkloadCommandProof.HeaderName, BoundWorkloadCommandProof.Issue(bound, caller, privateKey, clock.GetUtcNow()));
+            // Match the bound endpoint's existing RequestSizeLimit. A computed Content-Length
+            // lets Dapr retain this bounded JSON for its installed transport retry policy.
+            token.ThrowIfCancellationRequested();
+            await request.Content.LoadIntoBufferAsync(1_048_576, token).ConfigureAwait(false);
+            token.ThrowIfCancellationRequested();
+            return request;
+        }
+        catch
+        {
+            request.Dispose();
+            throw;
+        }
     }
 }
