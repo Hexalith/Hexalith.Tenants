@@ -33,11 +33,12 @@ Allowed files for this story:
 
 ## Change
 
-Extend the finite stable catalog API selection with only 3.130.0, 3.130.1 and their supported
+Extend the finite stable catalog API selection with only 3.130.0, 3.130.1 and the
+pending 3.130.2 maintenance selection, with their supported
 same-binary zero-revision/metadata variants. Retain 3.129.0 and 3.129.1 support,
 the default 3.129.0 selection, explicit 3.128.4 compatibility, exact producer source
 ownership, native unknown/prerelease refusal and actual-PE publication validation.
-Keep 3.130.2, 3.131.0, nonzero revisions and prereleases unqualified.
+Keep 3.130.3, 3.131.0, nonzero revisions and prereleases unqualified.
 
 The alias adds no catalog declarations, authorization, activation, route, package
 inventory or runtime environment settings. Existing publication/archive validation
@@ -202,3 +203,49 @@ After the finite fixture correction, its full84cases pass with0failures/skips
 (901ms); its actual published3.130.1 Release build has0warnings/errors.
 Logs are `/tmp/tenants-sdk1301-public-proof/workflow-governance-{red,build,green}.log`.
 No broader local tests were run for this test-only correction.
+
+
+## Pending SDK 3.130.2 maintenance qualification
+
+Prepare this bounded draft from selected source8e785341 while the SDK owner
+repairs method-specific technical reachability on its maintenance branch. At
+preparation time 3.130.2 has no verified public archives or published source;
+this draft is not qualified, committed, pushed or enrolled in remote CI.
+
+Add only exact stable3.130.2 and its existing same-binary zero-revision/metadata
+forms to the catalog API selector. Keep the default3.129.0, explicit3.128.4,
+all previously qualified versions, exact source ownership and actual-PE pack
+guards unchanged. Add equivalent selector positives and prerelease, nonzero
+revision and next-patch3.130.3 refusal controls. Do not add declarations,
+authorization, activation, package defaults or Production trust.
+
+After the actual official fourteen archives and immutable SDK source are
+verified, require normal public NuGet restore, warning-free builds, the existing
+66 HTTP contracts and affected selector/floor/profile/pack/provenance controls.
+Only then apply pinned commitlint, normal hooks and a normal push advancing the
+existing exact qualification branch. Its full exact-source remote gates must
+pass. Original checkout selection remains RootCI-coordinated. Published
+Tenants6.0.0/source9e and its default release inputs remain unchanged.
+
+
+## SDK 3.130.2 local public qualification completed
+
+Official source is28e3f260bbaf4619d1a99d656fba04c0c532387b. All fourteen
+actual NuGet.org archives are HTTP200 with exact IDs/version/source/repository
+URL; receipt SHA256 is8e07e4b6be063dd23b60483e3dd920078dd78c1bcfc3b70e8341a0751a2ae312.
+Normal public restore succeeds after using the supported no-http-cache option
+to avoid a stale version index; the initial NU1102 evidence is retained. No
+candidate feed, archive injection, global-cache cleanup or gate waiver is used.
+
+Actual Release IntegrationTests, Contracts.Tests and published Tenants6 native
+host builds have zero warnings/errors. All66 HTTP and83 selector/floor tests
+pass, with zero failures/skips. Both ordinary stale/legacy pack guards, all five
+archive provenance controls and both profile control groups pass. Restored
+API/host SDK132 archives and output DLLs match the official source28e cohort;
+the own public Contracts/Server pair still exactly matches Tenants6/source9e.
+
+Proof is retained under /tmp/downstream-sdk132-drafts-wd24gzkq/proof/tenants132,
+with qualified-public132-provenance.json beside it. The exact owner commit/push
+and full remote checks remain required; local proof does not replace those
+gates. Original selection remains coordinated with RootCI. No default package
+or release input, production authority or previously qualified support changes.
