@@ -101,7 +101,7 @@ public partial class TenantBootstrapHostedService(
                     correlationId,
                 };
 
-                HttpClient httpClient = httpClientFactory.CreateClient();
+                using HttpClient readinessClient = httpClientFactory.CreateClient();
 
                 // The EventStore command endpoint requires the configured administrator's own delegated credential
                 // (EventStore Story 5.5): no app-id grant exists. Dapr service invocation relays the Authorization
@@ -112,9 +112,8 @@ public partial class TenantBootstrapHostedService(
                     timeProvider ?? TimeProvider.System,
                     logger);
                 phase = "credential-acquisition";
-                // Password forms must never be replayed by an automatic redirect. Command invocation keeps
-                // the host's existing default transport, independently of this credential-only policy.
-                HttpClient credentialClient = httpClientFactory.CreateClient(TenantBootstrapServiceCollectionExtensions.CredentialClientName);
+                // Password forms must never be replayed by an automatic redirect.
+                using HttpClient credentialClient = httpClientFactory.CreateClient(TenantBootstrapServiceCollectionExtensions.CredentialClientName);
                 string? accessToken = await credentialProvider.AcquireAsync(userId, credentialClient, cancellationToken).ConfigureAwait(false);
                 if (string.IsNullOrWhiteSpace(accessToken))
                 {
@@ -130,7 +129,7 @@ public partial class TenantBootstrapHostedService(
                         nameof(BootstrapGlobalAdmin), payloadElement, correlationId);
                     selectedRequest = await TenantBootstrapBoundCommand.CreateAsync(scope.ServiceProvider, configuration,
                         daprClient, submitted, userId, accessToken, timeProvider ?? TimeProvider.System,
-                        httpClient.Timeout, cancellationToken).ConfigureAwait(false);
+                        readinessClient.Timeout, cancellationToken).ConfigureAwait(false);
                     if (selectedRequest is null) return;
                 }
                 else
@@ -145,7 +144,8 @@ public partial class TenantBootstrapHostedService(
                     ? await TenantBootstrapReceipt.BeginAsync(configuration, messageId, correlationId, userId, cancellationToken).ConfigureAwait(false) : null;
                 phase = "command-dispatch";
                 Log.BootstrapAttempt(logger, messageId, correlationId);
-                using HttpResponseMessage httpResponse = await httpClient.SendAsync(httpRequest, cancellationToken).ConfigureAwait(false);
+                using HttpClient commandClient = httpClientFactory.CreateClient(TenantBootstrapServiceCollectionExtensions.CommandClientName);
+                using HttpResponseMessage httpResponse = await commandClient.SendAsync(httpRequest, cancellationToken).ConfigureAwait(false);
 
                 if (httpResponse.StatusCode == HttpStatusCode.Accepted)
                 {

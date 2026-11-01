@@ -366,6 +366,44 @@ public class EventPublicationConfigurationTests {
         }
     }
 
+    /// <summary>Bounds EventStore invocation while preserving independent read, state and retry policies.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void CommandInvocationBudgetPreservesReadStateAndRetryPolicies(bool production) {
+        YamlMappingNode resiliency = LoadYaml(production
+            ? RepositoryPath("deploy", "dapr", "resiliency.yaml")
+            : RepositoryPath("src", "Hexalith.Tenants.AppHost", "DaprComponents", "resiliency.yaml"));
+        string commandTimeout = Scalar(resiliency, "spec", "targets", "apps", "eventstore", "timeout").ShouldNotBeNull();
+        Scalar(resiliency, "spec", "policies", "timeouts", commandTimeout).ShouldBe("30s");
+        Scalar(resiliency, "spec", "targets", "apps", "eventstore", "retry").ShouldBe("defaultRetry");
+        Scalar(resiliency, "spec", "targets", "apps", "eventstore", "circuitBreaker").ShouldBe("defaultBreaker");
+        foreach (var app in ((YamlMappingNode)Node(resiliency, "spec", "targets", "apps")).Children) {
+            string name = ((YamlScalarNode)app.Key).Value.ShouldNotBeNull();
+            if (name == "eventstore") continue;
+            Scalar(resiliency, "spec", "targets", "apps", name, "timeout").ShouldBe("daprSidecar");
+        }
+        Scalar(resiliency, "spec", "policies", "timeouts", "daprSidecar").ShouldBe("5s");
+        Scalar(resiliency, "spec", "targets", "apps", "tenants-api", "retry").ShouldBe("noReadRetry");
+        Scalar(resiliency, "spec", "policies", "retries", "noReadRetry", "policy").ShouldBe("constant");
+        Scalar(resiliency, "spec", "policies", "retries", "noReadRetry", "duration").ShouldBe("1ms");
+        Scalar(resiliency, "spec", "policies", "retries", "noReadRetry", "maxRetries").ShouldBe("0");
+        Scalar(resiliency, "spec", "policies", "retries", "defaultRetry", "policy").ShouldBe("constant");
+        Scalar(resiliency, "spec", "policies", "retries", "defaultRetry", "duration").ShouldBe("1s");
+        Scalar(resiliency, "spec", "policies", "retries", "defaultRetry", "maxRetries").ShouldBe("3");
+        Scalar(resiliency, "spec", "targets", "components", "statestore", "timeout").ShouldBe("daprSidecar");
+        Scalar(resiliency, "spec", "targets", "components", "statestore", "retry").ShouldBe("defaultRetry");
+        Scalar(resiliency, "spec", "targets", "components", "statestore", "circuitBreaker").ShouldBe("defaultBreaker");
+        Scalar(resiliency, "spec", "policies", "circuitBreakers", "defaultBreaker", "maxRequests").ShouldBe("1");
+        Scalar(resiliency, "spec", "policies", "circuitBreakers", "defaultBreaker", "interval").ShouldBe("10s");
+        Scalar(resiliency, "spec", "policies", "circuitBreakers", "defaultBreaker", "timeout").ShouldBe("30s");
+        Scalar(resiliency, "spec", "policies", "circuitBreakers", "defaultBreaker", "trip").ShouldBe("consecutiveFailures > 3");
+        if (production) {
+            Scalar(resiliency, "spec", "targets", "apps", "tenants", "retry").ShouldBe("defaultRetry");
+            Scalar(resiliency, "spec", "targets", "apps", "tenants", "circuitBreaker").ShouldBe("defaultBreaker");
+        }
+    }
+
     [Fact]
     public void PubSubRecoveryDocumentation_RecordsDurabilityCatchUpBoundariesAndSupportSafeEvidence() {
         string eventContract = File.ReadAllText(RepositoryPath("docs", "event-contract-reference.md"));

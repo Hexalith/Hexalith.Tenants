@@ -42,9 +42,11 @@ public class TenantBootstrapHostedServiceTests
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.Accepted));
         });
         using var credentialClient = new HttpClient(credentialHandler);
+        using var readinessClient = new HttpClient();
         using var commandClient = new HttpClient(commandHandler);
         IHttpClientFactory factory = Substitute.For<IHttpClientFactory>();
-        factory.CreateClient(string.Empty).Returns(commandClient);
+        factory.CreateClient(string.Empty).Returns(readinessClient);
+        factory.CreateClient(TenantBootstrapServiceCollectionExtensions.CommandClientName).Returns(commandClient);
         factory.CreateClient(TenantBootstrapServiceCollectionExtensions.CredentialClientName).Returns(credentialClient);
         var services = new ServiceCollection();
         services.AddDaprClient();
@@ -62,6 +64,7 @@ public class TenantBootstrapHostedServiceTests
 
         factory.Received(1).CreateClient(string.Empty);
         factory.Received(1).CreateClient(TenantBootstrapServiceCollectionExtensions.CredentialClientName);
+        factory.Received(1).CreateClient(TenantBootstrapServiceCollectionExtensions.CommandClientName);
     }
 
     [Fact]

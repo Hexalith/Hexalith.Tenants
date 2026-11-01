@@ -24,6 +24,8 @@ spec:
         maxRetries: 10
     timeouts:
       daprSidecar: 5s
+      # App-wide EventStore invocation limit, including commands, reads and readiness.
+      eventStoreInvocation: 30s
       pubsubTimeout: 10s
       subscriberTimeout: 30s
     circuitBreakers:
@@ -44,7 +46,7 @@ spec:
         timeout: daprSidecar
       eventstore:
         retry: defaultRetry
-        timeout: daprSidecar
+        timeout: eventStoreInvocation
         circuitBreaker: defaultBreaker
       tenants:
         retry: defaultRetry
