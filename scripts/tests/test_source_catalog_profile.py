@@ -78,6 +78,13 @@ class SourceCatalogProfileProvisioningTests(unittest.TestCase):
                     self.assertNotIn("DigestKeys", output.read_text(encoding="utf-8"))
                     self.assertIn("Tenants__DevelopmentRouteCatalog__CustodyDirectory=", environment.read_text(encoding="utf-8"))
                     self.assertEqual(diagnostics.getvalue().count("::add-mask::"), 2)
+                    log_settings = dict(line.split("=", 1) for line in environment.read_text(encoding="utf-8").splitlines()
+                                        if line.startswith("Logging__"))
+                    self.assertEqual(log_settings, {
+                        "Logging__LogLevel__Hexalith.EventStore.ServiceDefaults.Routing.TechnicalHttpRouteCatalogReceiver": "Debug",
+                        "Logging__LogLevel__Hexalith.EventStore.Server.Commands.CommandRouter": "Debug",
+                        "Logging__LogLevel__Hexalith.EventStore.Server.Pipeline.SubmitCommandHandler": "Debug",
+                    })
                 else:
                     with self.assertRaises(ValueError): profile.main()
                     self.assertEqual(environment.read_text(encoding="utf-8"), "preserved=true\n")

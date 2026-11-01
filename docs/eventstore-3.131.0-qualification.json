@@ -129,8 +129,9 @@
   "working_tree_patch": {
     "base": "48ba1fcb74779e8dc9dd4851d55e1055762eebab",
     "sha256": "2cf7e37452de3a8e7e6161ff8a56ba173e8285e6f6bdc0bf780924f70c63234d",
-    "scope": "Tracked staged and unstaged diff after final documentation corrections; excludes this evidence JSON. Local working-tree qualification only.",
-    "regeneration_command": "git diff --no-ext-diff --no-textconv --full-index --submodule=short --no-color --no-renames --diff-algorithm=myers --no-indent-heuristic --src-prefix=a/ --dst-prefix=b/ 48ba1fcb74779e8dc9dd4851d55e1055762eebab -- . ':(exclude)docs/eventstore-3.131.0-qualification.json' | sha256sum",
-    "declared_builds_gitlink": "4d2ef11ea7f36b955ed701fef5af1f26a6414942"
+    "scope": "The recorded local working-tree patch was subsequently committed as the pinned qualified implementation; later diagnostics and package-boundary maintenance do not rewrite those observations.",
+    "regeneration_command": "git diff --no-ext-diff --no-textconv --full-index --submodule=short --no-color --no-renames --diff-algorithm=myers --no-indent-heuristic --src-prefix=a/ --dst-prefix=b/ 48ba1fcb74779e8dc9dd4851d55e1055762eebab 331c528219e921e990402a6134fed9bfc50f0441 -- . ':(exclude)docs/eventstore-3.131.0-qualification.json' | sha256sum",
+    "declared_builds_gitlink": "4d2ef11ea7f36b955ed701fef5af1f26a6414942",
+    "qualified_implementation_commit": "331c528219e921e990402a6134fed9bfc50f0441"
   }
 }

@@ -67,6 +67,10 @@ def main():
         print("::add-mask::" + secret, flush=True)
     values = {
         "TENANTS_SOURCE_CATALOG_PROFILE": "true",
+        # Exact owning categories only; do not enable HTTP/header or arbitrary transport logging.
+        "Logging__LogLevel__Hexalith.EventStore.ServiceDefaults.Routing.TechnicalHttpRouteCatalogReceiver": "Debug",
+        "Logging__LogLevel__Hexalith.EventStore.Server.Commands.CommandRouter": "Debug",
+        "Logging__LogLevel__Hexalith.EventStore.Server.Pipeline.SubmitCommandHandler": "Debug",
         "TENANTS_SOURCE_CATALOG_SIGNING_KEY": signer,
         "Tenants__DevelopmentRouteCatalog__CustodyDirectory": str(private / "custody"),
         "Tenants__DevelopmentRouteCatalog__AuthorityComponentName": "routing-tenants-owner",
