@@ -72,9 +72,21 @@ internal static class TenantBootstrapBoundCommand
         if (string.IsNullOrWhiteSpace(assertion)) return null;
         var bound = new BoundWorkloadCommandRequest(command, subjects[0].Value);
         var request = dapr.CreateInvokeMethodRequest(HttpMethod.Post, "eventstore", "api/v1/commands/bound/workload");
-        request.Content = JsonContent.Create(bound);
-        request.Headers.Add(EventStoreWorkloadAuthenticationDefaults.AssertionHeaderName, assertion);
-        request.Headers.Add(BoundWorkloadCommandProof.HeaderName, BoundWorkloadCommandProof.Issue(bound, caller, privateKey, clock.GetUtcNow()));
-        return request;
+        try
+        {
+            request.Content = JsonContent.Create(bound);
+            // Dapr must see a known-length body so its timeout retry can replay the same
+            // signed command instead of reusing a consumed chunked request stream.
+            token.ThrowIfCancellationRequested();
+            await request.Content.LoadIntoBufferAsync(token).ConfigureAwait(false);
+            request.Headers.Add(EventStoreWorkloadAuthenticationDefaults.AssertionHeaderName, assertion);
+            request.Headers.Add(BoundWorkloadCommandProof.HeaderName, BoundWorkloadCommandProof.Issue(bound, caller, privateKey, clock.GetUtcNow()));
+            return request;
+        }
+        catch
+        {
+            request.Dispose();
+            throw;
+        }
     }
 }

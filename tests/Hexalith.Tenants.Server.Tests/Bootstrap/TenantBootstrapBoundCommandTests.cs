@@ -1,4 +1,6 @@
+using System.Collections.Concurrent;
 using System.IdentityModel.Tokens.Jwt;
+using System.Net;
 using System.Net.Http.Json;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -19,9 +21,15 @@ using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Identity;
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Hosting.Server;
+using Microsoft.AspNetCore.Hosting.Server.Features;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 
 using NSubstitute;
@@ -36,6 +44,9 @@ public sealed class TenantBootstrapBoundCommandTests
     [InlineData("valid")]
     [InlineData("web-payload")]
     [InlineData("infinite-timeout")]
+    [InlineData("loopback")]
+    [InlineData("loopback-web")]
+    [InlineData("cancel-before-buffer")]
 #if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
     [InlineData("finite-catalog-ready")]
     [InlineData("infinite-catalog-ready")]
@@ -56,6 +67,7 @@ public sealed class TenantBootstrapBoundCommandTests
     public async Task OnlyTheValidatedAdministratorCanBindTheExactInternalBootstrap(string scenario)
     {
         ArgumentNullException.ThrowIfNull(scenario);
+        using var callerCancellation = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
         string key = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
         using RSA proofKey = RSA.Create(2048);
         var settings = new Dictionary<string, string?>
@@ -75,6 +87,16 @@ public sealed class TenantBootstrapBoundCommandTests
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
             JwtBearerAuthenticationContract.Configure(options, configuration.GetSection("Authentication:JwtBearer").Get<JwtBearerAuthenticationOptions>()!));
         services.AddEventStoreWorkloadAssertionIssuer(configuration);
+        if (scenario == "cancel-before-buffer")
+        {
+            var issuer = Substitute.For<IWorkloadAssertionIssuer>();
+            issuer.IssueAsync(Arg.Any<WorkloadAssertionRequest>(), Arg.Any<CancellationToken>()).Returns(_ =>
+            {
+                callerCancellation.Cancel();
+                return new ValueTask<string?>("cancelled-fixture-assertion");
+            });
+            services.AddSingleton(issuer);
+        }
         services.ConfigureHttpClientDefaults(http => http.AddStandardResilienceHandler());
         TimeProvider clock = TimeProvider.System;
 #if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
@@ -124,14 +146,18 @@ public sealed class TenantBootstrapBoundCommandTests
         string bearer = new JwtSecurityTokenHandler().WriteToken(jwt);
         var command = new SubmitCommandRequest("01ARZ3NDEKTSV4RRFFQ69G5FAV", TenantIdentity.DefaultTenantId,
             TenantIdentity.GlobalAdministratorsDomain, TenantIdentity.GlobalAdministratorsAggregateId, nameof(BootstrapGlobalAdmin),
-            JsonSerializer.SerializeToElement(new BootstrapGlobalAdmin(scenario == "payload" ? "foreign" : "bootstrap-administrator"), scenario == "web-payload" ? JsonSerializerOptions.Web : JsonSerializerOptions.Default), "01ARZ3NDEKTSV4RRFFQ69G5FAW");
-        using var callerCancellation = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+            JsonSerializer.SerializeToElement(new BootstrapGlobalAdmin(scenario == "payload" ? "foreign" : "bootstrap-administrator"), scenario is "web-payload" or "loopback-web" ? JsonSerializerOptions.Web : JsonSerializerOptions.Default), "01ARZ3NDEKTSV4RRFFQ69G5FAW");
         TimeSpan readinessTimeout = scenario.StartsWith("infinite", StringComparison.Ordinal)
             ? provider.GetRequiredService<IHttpClientFactory>().CreateClient().Timeout
             : TimeSpan.FromSeconds(1);
         if (scenario.StartsWith("infinite", StringComparison.Ordinal)) readinessTimeout.ShouldBe(Timeout.InfiniteTimeSpan);
         Task<HttpRequestMessage?> creation = TenantBootstrapBoundCommand.CreateAsync(scope.ServiceProvider, configuration, dapr, command,
             "bootstrap-administrator", bearer, clock, readinessTimeout, callerCancellation.Token);
+        if (scenario == "cancel-before-buffer")
+        {
+            await Should.ThrowAsync<OperationCanceledException>(() => creation);
+            return;
+        }
 #if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
         if (scenario is "finite-catalog-timeout" or "infinite-catalog-cancel" or "infinite-catalog-deadline")
         {
@@ -160,10 +186,24 @@ public sealed class TenantBootstrapBoundCommandTests
         }
 #endif
         using var request = await creation;
-        if (scenario is not ("valid" or "web-payload" or "infinite-timeout" or "finite-catalog-ready" or "infinite-catalog-ready")) { request.ShouldBeNull(); return; }
+        if (scenario is not ("valid" or "web-payload" or "infinite-timeout" or "finite-catalog-ready" or "infinite-catalog-ready" or "loopback" or "loopback-web")) { request.ShouldBeNull(); return; }
         request.ShouldNotBeNull(); request.RequestUri!.AbsolutePath.ShouldEndWith("/api/v1/commands/bound/workload");
         request.Headers.Authorization.ShouldBeNull();
-        var bound = (await request.Content!.ReadFromJsonAsync<BoundWorkloadCommandRequest>(TestContext.Current.CancellationToken)).ShouldNotBeNull();
+        HttpContent content = request.Content.ShouldNotBeNull();
+        // Read length before ANY target-content read: a read can itself buffer JsonContent
+        // and would hide the non-replayable request stream this regression guards.
+        long declaredLength = content.Headers.ContentLength.ShouldNotBeNull();
+        declaredLength.ShouldBeGreaterThan(0L);
+        content.Headers.ContentType!.ToString().ShouldBe("application/json; charset=utf-8");
+        using var expectedContent = JsonContent.Create(new BoundWorkloadCommandRequest(command, "bootstrap-administrator"));
+        byte[] expectedBytes = await expectedContent.ReadAsByteArrayAsync(TestContext.Current.CancellationToken);
+        declaredLength.ShouldBe(expectedBytes.LongLength);
+        if (scenario.StartsWith("loopback", StringComparison.Ordinal))
+            await AssertKnownLengthReplayOverLoopbackAsync(request, expectedBytes, TestContext.Current.CancellationToken);
+        byte[] actualBytes = await content.ReadAsByteArrayAsync(TestContext.Current.CancellationToken);
+        actualBytes.ShouldBe(expectedBytes);
+        (await content.ReadAsByteArrayAsync(TestContext.Current.CancellationToken)).ShouldBe(actualBytes);
+        var bound = (await content.ReadFromJsonAsync<BoundWorkloadCommandRequest>(TestContext.Current.CancellationToken)).ShouldNotBeNull();
         bound.PrincipalId.ShouldBe("bootstrap-administrator"); bound.Command.MessageId.ShouldBe(command.MessageId);
         string proof = request.Headers.GetValues(BoundWorkloadCommandProof.HeaderName).ShouldHaveSingleItem();
         string publicKey = Convert.ToBase64String(proofKey.ExportSubjectPublicKeyInfo());
@@ -183,6 +223,73 @@ public sealed class TenantBootstrapBoundCommandTests
         validated.IsValid.ShouldBeTrue();
         validated.ClaimsIdentity.FindFirst("azp")!.Value.ShouldBe("tenants");
         validated.ClaimsIdentity.FindFirst(EventStoreWorkloadAuthenticationDefaults.OperationClaimType)!.Value.ShouldBe(EventStoreWorkloadOperations.GatewayCommandSubmit);
+    }
+
+    private static async Task AssertKnownLengthReplayOverLoopbackAsync(HttpRequestMessage original, byte[] expectedBytes, CancellationToken token)
+    {
+        var observed = new ConcurrentQueue<(long? Length, string TransferEncoding, string? ContentType, string Protocol, string Proof, string Assertion, byte[] Body)>();
+        var builder = WebApplication.CreateBuilder();
+        builder.Configuration.Sources.Clear();
+        builder.Configuration.AddInMemoryCollection();
+        builder.Logging.ClearProviders();
+        builder.WebHost.UseUrls("http://127.0.0.1:0");
+        await using WebApplication receiver = builder.Build();
+        receiver.Run(async context =>
+        {
+            long? length = context.Request.ContentLength;
+            string transferEncoding = context.Request.Headers.TransferEncoding.ToString();
+            using var body = new MemoryStream();
+            await context.Request.Body.CopyToAsync(body, context.RequestAborted);
+            observed.Enqueue((length, transferEncoding, context.Request.ContentType, context.Request.Protocol,
+                context.Request.Headers[BoundWorkloadCommandProof.HeaderName].ToString(),
+                context.Request.Headers[EventStoreWorkloadAuthenticationDefaults.AssertionHeaderName].ToString(), body.ToArray()));
+            context.Response.StatusCode = StatusCodes.Status202Accepted;
+        });
+        await receiver.StartAsync(token);
+        try
+        {
+            string address = receiver.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single();
+            var endpoint = new Uri(new Uri(address), original.RequestUri!.PathAndQuery);
+            using var client = new HttpClient(new SocketsHttpHandler { UseProxy = false });
+            for (int attempt = 0; attempt < 2; attempt++)
+            {
+                using var outgoing = new HttpRequestMessage(original.Method, endpoint)
+                {
+                    Content = original.Content,
+                    Version = HttpVersion.Version11,
+                    VersionPolicy = HttpVersionPolicy.RequestVersionExact,
+                };
+                foreach (var header in original.Headers) outgoing.Headers.TryAddWithoutValidation(header.Key, header.Value).ShouldBeTrue();
+                try
+                {
+                    using HttpResponseMessage response = await client.SendAsync(outgoing, token);
+                    response.StatusCode.ShouldBe(HttpStatusCode.Accepted);
+                }
+                finally
+                {
+                    // Both sends use the same production content instance; its original
+                    // request retains ownership after each temporary HTTP envelope.
+                    outgoing.Content = null;
+                }
+            }
+            observed.Count.ShouldBe(2);
+            string proof = original.Headers.GetValues(BoundWorkloadCommandProof.HeaderName).ShouldHaveSingleItem();
+            string assertion = original.Headers.GetValues(EventStoreWorkloadAuthenticationDefaults.AssertionHeaderName).ShouldHaveSingleItem();
+            foreach (var request in observed)
+            {
+                request.Length.ShouldBe(expectedBytes.LongLength);
+                request.TransferEncoding.ShouldBeEmpty();
+                request.ContentType.ShouldBe("application/json; charset=utf-8");
+                request.Protocol.ShouldBe("HTTP/1.1");
+                request.Proof.ShouldBe(proof);
+                request.Assertion.ShouldBe(assertion);
+                request.Body.ShouldBe(expectedBytes);
+            }
+        }
+        finally
+        {
+            await receiver.StopAsync(CancellationToken.None);
+        }
     }
 
     /// <summary>Rejects invalid readiness budgets before authentication or command construction.</summary>
