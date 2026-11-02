@@ -127,7 +127,11 @@ public sealed class DurableTenantProjectionStore : ITenantProjectionStore, ITena
             return null;
         }
 
-        bool trustedState = record.State is { } state && string.Equals(state.TenantId, tenantId, StringComparison.Ordinal);
+        bool trustedState = record.State is { } state
+            && string.Equals(state.TenantId, tenantId, StringComparison.Ordinal)
+            && state.Members is not null
+            && state.Configuration is not null
+            && state.LastEvent?.LastSequenceNumber == record.LastContiguousSequence;
         if (record.IsHealthy && !trustedState) {
             return new TenantProjectionSnapshot(tenantId, CheckpointedProjectionHealth.Unavailable, null, record.LastContiguousSequence, record.Version);
         }
