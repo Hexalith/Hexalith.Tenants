@@ -58,7 +58,8 @@ public sealed class SourceCatalogOwnerProfileTests(AspireTopologyFixture fixture
         persisted.ShouldNotBeNull();
         using var scoped = AspireTopologyTests.CreateIsolatedTenantsApiClient(fixture.TenantsApiClient, token, _ => { });
         var rest = new TenantsRestQueryClient(scoped);
-        (await rest.ListTenantsAsync(new ListTenantsQuery { PageSize = 100 }, null, deadline.Token)).IsSuccess.ShouldBeTrue();
+        var list = await rest.ListTenantsAsync(new ListTenantsQuery { PageSize = 100 }, null, deadline.Token);
+        list.IsSuccess.ShouldBeTrue(list.ToString());
         var detail = await rest.GetTenantAsync(new GetTenantQuery { TenantId = tenantId }, null, deadline.Token); detail.IsSuccess.ShouldBeTrue();
         (await rest.GetTenantUsersAsync(new GetTenantUsersQuery { TenantId = tenantId, PageSize = 100 }, null, deadline.Token)).IsSuccess.ShouldBeTrue();
         (await rest.GetUserTenantsAsync(new GetUserTenantsQuery { UserId = AuthenticatedRouteState.CallerId, PageSize = 100 }, null, deadline.Token)).IsSuccess.ShouldBeTrue();

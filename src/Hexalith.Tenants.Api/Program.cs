@@ -11,6 +11,7 @@ using Hexalith.Tenants.Api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Http.Resilience;
 using Microsoft.IdentityModel.Tokens;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
@@ -115,7 +116,31 @@ string daprHttpEndpoint = DaprHttpEndpointResolver.Resolve(builder.Configuration
 string? daprApiToken = builder.Configuration["DAPR_API_TOKEN"];
 
 builder.Services.AddTransient<InboundBearerForwardingHandler>();
-builder.Services.AddEventStoreGatewayClient(options => options.BaseAddress = new Uri(daprHttpEndpoint))
+IHttpClientBuilder gatewayClient = builder.Services.AddEventStoreGatewayClient(
+    options => options.BaseAddress = new Uri(daprHttpEndpoint));
+// One query can require a bounded 10-second native read and a separate 2-second
+// final observation. Keep the total bound and standard resilience on this client only.
+// Earlier transient failures can retry within that total; an attempt timeout consumes it.
+gatewayClient.ConfigureAdditionalHttpMessageHandlers(static (handlers, _) =>
+{
+    for (int index = handlers.Count - 1; index >= 0; index--)
+    {
+        if (handlers[index] is ResilienceHandler) handlers.RemoveAt(index);
+    }
+});
+gatewayClient.AddStandardResilienceHandler(static options =>
+{
+    options.AttemptTimeout.Timeout = TimeSpan.FromSeconds(30);
+    options.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(30);
+    options.CircuitBreaker.SamplingDuration = TimeSpan.FromSeconds(60);
+});
+gatewayClient.ConfigureAdditionalHttpMessageHandlers(static (handlers, _) =>
+{
+    ResilienceHandler resilience = handlers.OfType<ResilienceHandler>().Single();
+    handlers.Remove(resilience);
+    handlers.Insert(0, resilience);
+});
+gatewayClient
     .AddHttpMessageHandler<InboundBearerForwardingHandler>()
     .AddEventStoreDaprServiceInvocation("eventstore", daprApiToken);
 string? gatewayReadinessEndpoint = builder.Configuration["EventStore:GatewayReadiness:BaseAddress"];
