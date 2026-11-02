@@ -26,6 +26,8 @@ spec:
       daprSidecar: 5s
       # App-wide EventStore invocation limit, including commands, reads and readiness.
       eventStoreInvocation: 30s
+      # Tenants processing includes the complete native authority check.
+      tenantsInvocation: 30s
       pubsubTimeout: 10s
       subscriberTimeout: 30s
     circuitBreakers:
@@ -50,7 +52,7 @@ spec:
         circuitBreaker: defaultBreaker
       tenants:
         retry: defaultRetry
-        timeout: daprSidecar
+        timeout: tenantsInvocation
         circuitBreaker: defaultBreaker
     components:
       pubsub:

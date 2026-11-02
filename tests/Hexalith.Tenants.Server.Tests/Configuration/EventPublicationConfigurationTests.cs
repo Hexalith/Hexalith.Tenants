@@ -380,7 +380,7 @@ public class EventPublicationConfigurationTests {
         Scalar(resiliency, "spec", "targets", "apps", "eventstore", "circuitBreaker").ShouldBe("defaultBreaker");
         foreach (var app in ((YamlMappingNode)Node(resiliency, "spec", "targets", "apps")).Children) {
             string name = ((YamlScalarNode)app.Key).Value.ShouldNotBeNull();
-            if (name == "eventstore") continue;
+            if (name == "eventstore" || (production && name == "tenants")) continue;
             Scalar(resiliency, "spec", "targets", "apps", name, "timeout").ShouldBe("daprSidecar");
         }
         Scalar(resiliency, "spec", "policies", "timeouts", "daprSidecar").ShouldBe("5s");
@@ -399,8 +399,14 @@ public class EventPublicationConfigurationTests {
         Scalar(resiliency, "spec", "policies", "circuitBreakers", "defaultBreaker", "timeout").ShouldBe("30s");
         Scalar(resiliency, "spec", "policies", "circuitBreakers", "defaultBreaker", "trip").ShouldBe("consecutiveFailures > 3");
         if (production) {
+            Scalar(resiliency, "spec", "targets", "apps", "tenants", "timeout").ShouldBe("tenantsInvocation");
+            Scalar(resiliency, "spec", "policies", "timeouts", "tenantsInvocation").ShouldBe("30s");
             Scalar(resiliency, "spec", "targets", "apps", "tenants", "retry").ShouldBe("defaultRetry");
             Scalar(resiliency, "spec", "targets", "apps", "tenants", "circuitBreaker").ShouldBe("defaultBreaker");
+        }
+        else {
+            ((YamlMappingNode)Node(resiliency, "spec", "targets", "apps")).Children
+                .ContainsKey(new YamlScalarNode("tenants")).ShouldBeFalse();
         }
     }
 
