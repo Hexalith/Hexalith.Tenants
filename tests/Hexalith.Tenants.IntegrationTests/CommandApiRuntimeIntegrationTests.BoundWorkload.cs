@@ -120,7 +120,7 @@ public partial class CommandApiRuntimeIntegrationTests
 
         using HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", command);
 
-        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         router.ReceivedCalls().ShouldBeEmpty();
         status.ReceivedCalls().ShouldBeEmpty();
         archive.ReceivedCalls().ShouldBeEmpty();
