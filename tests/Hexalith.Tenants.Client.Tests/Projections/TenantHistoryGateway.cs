@@ -37,6 +37,16 @@ internal sealed class TenantHistoryGateway : IEventStoreGatewayClient {
         }
     }
 
+    public void ReplaceHistoryMetadata(string aggregateId, long sequence, string serializationFormat, int? payloadVersion) {
+        lock (_gate) {
+            StreamReadEvent original = _streams[aggregateId][sequence];
+            _streams[aggregateId][sequence] = original with {
+                SerializationFormat = serializationFormat,
+                PayloadVersion = payloadVersion,
+            };
+        }
+    }
+
     public Task<StreamReadPage> ReadStreamAsync(StreamReadRequest request, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
         cancellationToken.ThrowIfCancellationRequested();

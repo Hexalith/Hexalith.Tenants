@@ -103,6 +103,30 @@ public sealed class DurableTenantProjectionStoreTests {
         recovered.State.Status.ShouldBe(TenantStatus.Disabled);
     }
 
+    [Theory]
+    [InlineData("json", 2)]
+    [InlineData("binary", 1)]
+    public async Task UnsupportedTenantHistoryMetadataKeepsTheRecordGapped(string format, int version) {
+        var harness = new DurableTenantProjectionHarness();
+        using ServiceProvider host = harness.CreateHost();
+        _ = await DurableTenantProjectionHarness.ProcessAsync(
+            host, harness.Persist(new TenantCreated(Tenant, "Created", null, s_at), Tenant, 1));
+        _ = harness.Persist(new UserAddedToTenant(Tenant, "user-1", TenantRole.TenantReader), Tenant, 2);
+        EventStoreDomainEventEnvelope future = harness.Persist(new TenantDisabled(Tenant, s_at), Tenant, 3);
+        harness.Gateway.ReplaceHistoryMetadata(Tenant, 2, format, version);
+
+        CheckpointedProjectionUnavailableException failure = await Should.ThrowAsync<CheckpointedProjectionUnavailableException>(
+            () => DurableTenantProjectionHarness.ProcessAsync(host, future));
+
+        failure.Reason.ShouldBe(CheckpointedProjectionUnavailableReason.TransitionFailed);
+        CheckpointedProjectionRecord<TenantLocalState> record = harness.Record(Tenant).ShouldNotBeNull();
+        record.Health.ShouldBe(CheckpointedProjectionHealth.Gapped);
+        record.CorruptionReason.ShouldBeNull();
+        record.Lease.ShouldBeNull();
+        record.LastContiguousSequence.ShouldBe(1);
+        (await host.GetRequiredService<ITenantProjectionStore>().GetAsync(Tenant, TestContext.Current.CancellationToken)).ShouldBeNull();
+    }
+
     [Fact]
     public async Task ConflictingDeliveryAtTheAcceptedSequencePersistsCorruptAndDenies() {
         var harness = new DurableTenantProjectionHarness();
