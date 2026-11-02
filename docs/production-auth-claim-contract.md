@@ -13,10 +13,16 @@ Tenant-management commands and queries run against the EventStore tenant `system
 | `sub` | Stable subject ID | Authenticated user identifier used by EventStore and Tenants. Do not use `name` as the trusted subject. |
 | `eventstore:tenant` | `system` | Authorizes access to the platform tenant used to manage tenant records. |
 | `eventstore:domain` | `tenants` | Authorizes the Tenants domain when domain claims are present. |
-| `eventstore:permission` (command path) | `command:submit`, `commands:*`, or an exact command type token (for example `BootstrapGlobalAdmin`) | Authorizes the command submission path. Listed in match precedence order (`commands:*` wildcard first, then `command:submit`, then exact type). |
+| `eventstore:permission` (command path) | `command:submit`, `commands:*`, or an exact command type token (for example `UpdateTenant`) | Authorizes the command submission path. Listed in match precedence order (`commands:*` wildcard first, then `command:submit`, then exact type). |
 | `eventstore:permission` (query path) | `query:read`, `queries:*`, the legacy `command:query`, or an exact query type token (for example `list-tenants`) | Authorizes the query routing path. `command:query` is the explicit `LegacyQueryPermission` constant in `references/Hexalith.EventStore/src/Hexalith.EventStore/Authorization/ClaimsRbacValidator.cs` (still accepted for back-compat with the local sample realm at `src/Hexalith.Tenants.AppHost/KeycloakRealms/hexalith-realm.json`). New IdP integrations should emit `query:read` rather than the legacy shape. |
 
 For Tenants deployment, `eventstore:tenant=system` is the safest production contract. A non-global-admin token with a missing, blank, or wrong `eventstore:tenant` claim fails closed with `403 Forbidden` before command/query dispatch.
+
+`BootstrapGlobalAdmin` remains an internal bound-workload operation. A human
+permission claim does not expose bootstrap through the public command route.
+The internal request retains the cryptographically validated human subject and
+requires its separate workload assertion, exact signed command proof and Dapr
+application-channel token.
 
 ### Global Administrators
 

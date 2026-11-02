@@ -31,12 +31,14 @@ namespace Hexalith.Tenants.IntegrationTests.Fixtures;
 /// <param name="router">The command routing boundary supplied by the contract test.</param>
 /// <param name="statusStore">The status producer supplied by the contract test.</param>
 /// <param name="archiveStore">The archive supplied by the contract test.</param>
+/// <param name="boundAuthority">Optional real signed workload and channel configuration for internal controls.</param>
 /// <param name="useLegacyStatusAdapter">Whether lifecycle-only records need their status-key message identity.</param>
 internal sealed class TenantGatewayTestHost(
     ICommandRouter? router = null,
     ICommandStatusStore? statusStore = null,
     ICommandArchiveStore? archiveStore = null,
-    bool useLegacyStatusAdapter = true) : IAsyncDisposable
+    bool useLegacyStatusAdapter = true,
+    TenantGatewayBoundWorkloadAuthority? boundAuthority = null) : IAsyncDisposable
 {
     private WebApplication? _application;
 
@@ -56,6 +58,9 @@ internal sealed class TenantGatewayTestHost(
         _application ??= CreateApplication();
         return _application.GetTestClient();
     }
+
+    /// <summary>Gets the real gateway services used to authenticate the represented human.</summary>
+    internal IServiceProvider Services => (_application ??= CreateApplication()).Services;
 
     /// <inheritdoc/>
     public async ValueTask DisposeAsync()
@@ -85,6 +90,12 @@ internal sealed class TenantGatewayTestHost(
             ["Authentication:JwtBearer:AllowInsecureSymmetricKey"] = "true",
             ["EventStore:RateLimiting:PermitLimit"] = "10000",
         });
+
+        if (boundAuthority is not null)
+        {
+            builder.Configuration.AddInMemoryCollection(boundAuthority.Settings);
+            builder.Services.AddEventStoreWorkloadAssertionIssuer(builder.Configuration);
+        }
 
         // The gateway owns authentication, authorization, validation, controllers, and the
         // real SubmitCommandHandler. Only its external routing and persistence seams are doubled.

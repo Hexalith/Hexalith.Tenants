@@ -1,0 +1,1567 @@
+{
+  "date": "2026-11-02",
+  "scope": "Working-tree public-package and isolated HTTP qualification; parent-owned exact-head hosted/native and release gates remain required.",
+  "source_base": "228418fbd4ef34200d4f1d0ded6f0934f7e30ddf",
+  "sdk_default": "3.132.0",
+  "public_sdk_verification": {
+    "version": "3.132.0",
+    "producer": "bb1e93c57180c7aeb6093564608738ddd1a7c28e",
+    "signature_verification_exit_code": 0,
+    "manifest_sha256": "6b0b70b856839d4117bcd969f6a2de0093c477c109cb79f3f2882b1f05effcae",
+    "archive_count": 14,
+    "independent_recheck": "All 14 SHA-256 hashes, nuspec IDs, stable versions, official repository URLs and producer commits matched the signed public verification gate. No initial propagation 404 was accepted.",
+    "official_cohort_manifest": {
+      "repository": "https://github.com/Hexalith/Hexalith.EventStore",
+      "path": "tools/release-packages.json",
+      "producer": "bb1e93c57180c7aeb6093564608738ddd1a7c28e",
+      "url": "https://github.com/Hexalith/Hexalith.EventStore/blob/bb1e93c57180c7aeb6093564608738ddd1a7c28e/tools/release-packages.json",
+      "sha256": "6b0b70b856839d4117bcd969f6a2de0093c477c109cb79f3f2882b1f05effcae",
+      "read_command": [
+        "git",
+        "-C",
+        "/home/administrator/projects/hexalith/works/references/Hexalith.EventStore",
+        "show",
+        "bb1e93c57180c7aeb6093564608738ddd1a7c28e:tools/release-packages.json"
+      ],
+      "package_count": 14,
+      "integrity_scope": "Official producer-pinned package inventory and hash; archive signatures are separately verified by the commands below."
+    },
+    "public_archive_verifier": {
+      "script": "/home/administrator/projects/hexalith/works/.artifacts/upgrade-release-orchestration-20261101/tools/verify-public-nuget-release.py",
+      "script_sha256": "70a348955fec04bf81a98665e151de6e63644d81ad35e041d6754632a39d021b",
+      "reproduction_command": [
+        "python3",
+        "/home/administrator/projects/hexalith/works/.artifacts/upgrade-release-orchestration-20261101/tools/verify-public-nuget-release.py",
+        "Hexalith/Hexalith.EventStore",
+        "3.132.0",
+        "bb1e93c57180c7aeb6093564608738ddd1a7c28e",
+        "/home/administrator/projects/hexalith/works/.artifacts/upgrade-release-orchestration-20261101/sdk-3.132.0-public",
+        "--repository-dir",
+        "/home/administrator/projects/hexalith/works/references/Hexalith.EventStore",
+        "--manifest",
+        "tools/release-packages.json"
+      ],
+      "gate_record": "/home/administrator/projects/hexalith/works/.artifacts/upgrade-release-orchestration-20261101/sdk-3.132.0-public/verification.json",
+      "gate_record_sha256": "ee115eda87e60ca8ef34e8f7af2b0391cbebce0d29cada2cb5b78d00ffc50265",
+      "signature_command_per_archive": [
+        "dotnet",
+        "nuget",
+        "verify",
+        "--all",
+        "{archive}"
+      ],
+      "signature_log": "/home/administrator/projects/hexalith/works/.artifacts/upgrade-release-orchestration-20261101/sdk-3.132.0-public/signature-verification.log",
+      "signature_log_sha256": "1ba5284201281dc2631b03d1227495954095782e1404bff9a15d181fedb197fb",
+      "observed_signature_verification_exit_code": 0,
+      "scope": "Previously completed public HTTP200 archive identity/producer/hash and NuGet repository-signature verification for all14 packages. No new public package or wider verification accepted during these review fixes."
+    }
+  },
+  "public_sdk_archives": [
+    {
+      "id": "Hexalith.EventStore.Contracts",
+      "version": "3.132.0",
+      "commit": "bb1e93c57180c7aeb6093564608738ddd1a7c28e",
+      "repositoryUrl": "https://github.com/Hexalith/Hexalith.EventStore",
+      "url": "https://api.nuget.org/v3-flatcontainer/hexalith.eventstore.contracts/3.132.0/hexalith.eventstore.contracts.3.132.0.nupkg",
+      "sha256": "945dab03b632dc3d30eb64eea4d01de22ddb3f10ae6ca655681eacc7f43372d9"
+    },
+    {
+      "id": "Hexalith.EventStore.Client",
+      "version": "3.132.0",
+      "commit": "bb1e93c57180c7aeb6093564608738ddd1a7c28e",
+      "repositoryUrl": "https://github.com/Hexalith/Hexalith.EventStore",
+      "url": "https://api.nuget.org/v3-flatcontainer/hexalith.eventstore.client/3.132.0/hexalith.eventstore.client.3.132.0.nupkg",
+      "sha256": "14b6f5a3e20560bb959a9b3176651910fb406942cd07b50d4be44796c241dc0b"
+    },
+    {
+      "id": "Hexalith.EventStore.Server",
+      "version": "3.132.0",
+      "commit": "bb1e93c57180c7aeb6093564608738ddd1a7c28e",
+      "repositoryUrl": "https://github.com/Hexalith/Hexalith.EventStore",
+      "url": "https://api.nuget.org/v3-flatcontainer/hexalith.eventstore.server/3.132.0/hexalith.eventstore.server.3.132.0.nupkg",
+      "sha256": "0d29b9679cea7c124fd647b17a6c1034a01e391178564603ca41e739129cc6ed"
+    },
+    {
+      "id": "Hexalith.EventStore.SignalR",
+      "version": "3.132.0",
+      "commit": "bb1e93c57180c7aeb6093564608738ddd1a7c28e",
+      "repositoryUrl": "https://github.com/Hexalith/Hexalith.EventStore",
+      "url": "https://api.nuget.org/v3-flatcontainer/hexalith.eventstore.signalr/3.132.0/hexalith.eventstore.signalr.3.132.0.nupkg",
+      "sha256": "f5fedc2c729b9825ef7b1fd913a8df803f5b0e85fdd7ab278ca8bc147762c472"
+    },
+    {
+      "id": "Hexalith.EventStore.Testing",
+      "version": "3.132.0",
+      "commit": "bb1e93c57180c7aeb6093564608738ddd1a7c28e",
+      "repositoryUrl": "https://github.com/Hexalith/Hexalith.EventStore",
+      "url": "https://api.nuget.org/v3-flatcontainer/hexalith.eventstore.testing/3.132.0/hexalith.eventstore.testing.3.132.0.nupkg",
+      "sha256": "11e0b2db1e99ef635ae682596e8794b6a3ed6f88b6983c841811c6b754c1e1ee"
+    },
+    {
+      "id": "Hexalith.EventStore.Testing.Integration",
+      "version": "3.132.0",
+      "commit": "bb1e93c57180c7aeb6093564608738ddd1a7c28e",
+      "repositoryUrl": "https://github.com/Hexalith/Hexalith.EventStore",
+      "url": "https://api.nuget.org/v3-flatcontainer/hexalith.eventstore.testing.integration/3.132.0/hexalith.eventstore.testing.integration.3.132.0.nupkg",
+      "sha256": "69973e280e0798c20d59f175479b041444e7eb150992a86eb4f69c7aaf97bb9d"
+    },
+    {
+      "id": "Hexalith.EventStore.Aspire",
+      "version": "3.132.0",
+      "commit": "bb1e93c57180c7aeb6093564608738ddd1a7c28e",
+      "repositoryUrl": "https://github.com/Hexalith/Hexalith.EventStore",
+      "url": "https://api.nuget.org/v3-flatcontainer/hexalith.eventstore.aspire/3.132.0/hexalith.eventstore.aspire.3.132.0.nupkg",
+      "sha256": "04c3e9ebce29a055800677ab52b3c486a7426a6278c77713ce1913d03df06762"
+    },
+    {
+      "id": "Hexalith.EventStore.ServiceDefaults",
+      "version": "3.132.0",
+      "commit": "bb1e93c57180c7aeb6093564608738ddd1a7c28e",
+      "repositoryUrl": "https://github.com/Hexalith/Hexalith.EventStore",
+      "url": "https://api.nuget.org/v3-flatcontainer/hexalith.eventstore.servicedefaults/3.132.0/hexalith.eventstore.servicedefaults.3.132.0.nupkg",
+      "sha256": "4d688b864ba36d6fb496fa2ce9b68360d0ecaaadecfd2316415e87a751b4f025"
+    },
+    {
+      "id": "Hexalith.EventStore.DomainService",
+      "version": "3.132.0",
+      "commit": "bb1e93c57180c7aeb6093564608738ddd1a7c28e",
+      "repositoryUrl": "https://github.com/Hexalith/Hexalith.EventStore",
+      "url": "https://api.nuget.org/v3-flatcontainer/hexalith.eventstore.domainservice/3.132.0/hexalith.eventstore.domainservice.3.132.0.nupkg",
+      "sha256": "f18d66c985e3e347beab777a7e0998b172e4d3b96c53a2b426280a9249ab7114"
+    },
+    {
+      "id": "Hexalith.EventStore.RestApi.Generators",
+      "version": "3.132.0",
+      "commit": "bb1e93c57180c7aeb6093564608738ddd1a7c28e",
+      "repositoryUrl": "https://github.com/Hexalith/Hexalith.EventStore",
+      "url": "https://api.nuget.org/v3-flatcontainer/hexalith.eventstore.restapi.generators/3.132.0/hexalith.eventstore.restapi.generators.3.132.0.nupkg",
+      "sha256": "a15d7fd9765ce6ce1727dc3e9b5e9c0b60f32ccd49d4a074a5cff47aaebdde16"
+    },
+    {
+      "id": "Hexalith.EventStore.Gateway",
+      "version": "3.132.0",
+      "commit": "bb1e93c57180c7aeb6093564608738ddd1a7c28e",
+      "repositoryUrl": "https://github.com/Hexalith/Hexalith.EventStore",
+      "url": "https://api.nuget.org/v3-flatcontainer/hexalith.eventstore.gateway/3.132.0/hexalith.eventstore.gateway.3.132.0.nupkg",
+      "sha256": "bc4d7f231a404910c75dae502a23274c438d2e5b5c030ff00724d61a6ef2e45c"
+    },
+    {
+      "id": "Hexalith.EventStore.Admin.Abstractions",
+      "version": "3.132.0",
+      "commit": "bb1e93c57180c7aeb6093564608738ddd1a7c28e",
+      "repositoryUrl": "https://github.com/Hexalith/Hexalith.EventStore",
+      "url": "https://api.nuget.org/v3-flatcontainer/hexalith.eventstore.admin.abstractions/3.132.0/hexalith.eventstore.admin.abstractions.3.132.0.nupkg",
+      "sha256": "9f56a07d78f09d72dc0d678c081a359551bf7d1470e732dfb50dad3cd907958e"
+    },
+    {
+      "id": "Hexalith.EventStore.Admin.Cli",
+      "version": "3.132.0",
+      "commit": "bb1e93c57180c7aeb6093564608738ddd1a7c28e",
+      "repositoryUrl": "https://github.com/Hexalith/Hexalith.EventStore",
+      "url": "https://api.nuget.org/v3-flatcontainer/hexalith.eventstore.admin.cli/3.132.0/hexalith.eventstore.admin.cli.3.132.0.nupkg",
+      "sha256": "d5f5a3266afd29050da7df4b732130fbb96b9bbac08864781edaba214e0c9eea"
+    },
+    {
+      "id": "Hexalith.EventStore.Admin.Server",
+      "version": "3.132.0",
+      "commit": "bb1e93c57180c7aeb6093564608738ddd1a7c28e",
+      "repositoryUrl": "https://github.com/Hexalith/Hexalith.EventStore",
+      "url": "https://api.nuget.org/v3-flatcontainer/hexalith.eventstore.admin.server/3.132.0/hexalith.eventstore.admin.server.3.132.0.nupkg",
+      "sha256": "00329198830de185156fb0e4f805ed3e7cfef7ae52d6a4b4c2791755952591ac"
+    }
+  ],
+  "runtime_sdk_bytes": {
+    "Hexalith.EventStore.Admin.Abstractions": {
+      "version": "3.132.0",
+      "producer": "bb1e93c57180c7aeb6093564608738ddd1a7c28e",
+      "sha256": "9e75ba4ae57bcefba53f8cf6514c191a9e0d90f8437da72b634f973d87ca6495"
+    },
+    "Hexalith.EventStore.Aspire": {
+      "version": "3.132.0",
+      "producer": "bb1e93c57180c7aeb6093564608738ddd1a7c28e",
+      "sha256": "c8e836892fb0b84075124b298d225410f360432228ac48a438e30155204dfd5a"
+    },
+    "Hexalith.EventStore.Client": {
+      "version": "3.132.0",
+      "producer": "bb1e93c57180c7aeb6093564608738ddd1a7c28e",
+      "sha256": "3ed18c7881275ff52d4ff7a695ca9d53f5328f31537d061a1302fb484f8a4917"
+    },
+    "Hexalith.EventStore.Contracts": {
+      "version": "3.132.0",
+      "producer": "bb1e93c57180c7aeb6093564608738ddd1a7c28e",
+      "sha256": "f52b7fb323e513aab555d25348d2041ac24e340a109ce2cc8f85f72e8ecafaba"
+    },
+    "Hexalith.EventStore.DomainService": {
+      "version": "3.132.0",
+      "producer": "bb1e93c57180c7aeb6093564608738ddd1a7c28e",
+      "sha256": "501afcecf8fd90c62d66810accbbe34c5c98720cfab2a0d2ccdc8286b5866487"
+    },
+    "Hexalith.EventStore.Gateway": {
+      "version": "3.132.0",
+      "producer": "bb1e93c57180c7aeb6093564608738ddd1a7c28e",
+      "sha256": "62d9544cfa4807dda362a20222b533f2ec793e1294794605b9605d2b5cbb264a"
+    },
+    "Hexalith.EventStore.Server": {
+      "version": "3.132.0",
+      "producer": "bb1e93c57180c7aeb6093564608738ddd1a7c28e",
+      "sha256": "87231d522f95ca8ede1a734a056dd8e151e467841cc806650004c47584d0c12d"
+    },
+    "Hexalith.EventStore.ServiceDefaults": {
+      "version": "3.132.0",
+      "producer": "bb1e93c57180c7aeb6093564608738ddd1a7c28e",
+      "sha256": "d46d5f00d86d2018120cd71afcb3fe23ad5b113f1bc49cde23a04868482f5d7f"
+    },
+    "Hexalith.EventStore.Testing": {
+      "version": "3.132.0",
+      "producer": "bb1e93c57180c7aeb6093564608738ddd1a7c28e",
+      "sha256": "3ba124c913362c68c39cc356ede2762e71d150ee54fa89f5f80c3f0208b3651e"
+    }
+  },
+  "runtime_asset_cohort": {
+    "Hexalith.EventStore.Admin.Abstractions/3.132.0": "package",
+    "Hexalith.EventStore.Aspire/3.132.0": "package",
+    "Hexalith.EventStore.Client/3.132.0": "package",
+    "Hexalith.EventStore.Contracts/3.132.0": "package",
+    "Hexalith.EventStore.DomainService/3.132.0": "package",
+    "Hexalith.EventStore.Gateway/3.132.0": "package",
+    "Hexalith.EventStore.Server/3.132.0": "package",
+    "Hexalith.EventStore.ServiceDefaults/3.132.0": "package",
+    "Hexalith.EventStore.Testing/3.132.0": "package",
+    "Hexalith.EventStore.Testing.Integration/3.128.4": "package"
+  },
+  "results": {
+    "default": [
+      {
+        "label": "default-3.132.0-runtime",
+        "command": [
+          "dotnet",
+          "tests/Hexalith.Tenants.IntegrationTests/bin/Release/net10.0/Hexalith.Tenants.IntegrationTests.dll",
+          "-class",
+          "Hexalith.Tenants.IntegrationTests.CommandApiRuntimeIntegrationTests",
+          "-noColor",
+          "-result-xml",
+          "/tmp/tenants-sdk132-qualification-20261102/legacy-compat-repair/default-3.132.0-runtime.xml"
+        ],
+        "cwd": "/home/administrator/projects/hexalith/works/references/Hexalith.Tenants",
+        "exit_code": 0,
+        "log": "/tmp/tenants-sdk132-qualification-20261102/legacy-compat-repair/default-3.132.0-runtime.log",
+        "xml": "/tmp/tenants-sdk132-qualification-20261102/legacy-compat-repair/default-3.132.0-runtime.xml",
+        "counts": {
+          "total": 176,
+          "passed": 176,
+          "failed": 0,
+          "skipped": 0,
+          "errors": 0
+        },
+        "wrong_target_cases": [
+          {
+            "name": "Hexalith.Tenants.IntegrationTests.CommandApiRuntimeIntegrationTests.AuthenticatedBootstrapCannotAssignDifferentTarget(targetUserId: \\\"different-admin\\\")",
+            "result": "Pass"
+          },
+          {
+            "name": "Hexalith.Tenants.IntegrationTests.CommandApiRuntimeIntegrationTests.AuthenticatedBootstrapCannotAssignDifferentTarget(targetUserId: \\\"Authenticated-admin\\\")",
+            "result": "Pass"
+          }
+        ]
+      },
+      {
+        "command": [
+          "dotnet",
+          "tests/Hexalith.Tenants.IntegrationTests/bin/Release/net10.0/Hexalith.Tenants.IntegrationTests.dll",
+          "-class",
+          "Hexalith.Tenants.IntegrationTests.TenantsApiGeneratedControllerTests",
+          "-noColor",
+          "-result-xml",
+          "/tmp/tenants-sdk132-qualification-20261102/generated-controllers.xml"
+        ],
+        "cwd": "/home/administrator/projects/hexalith/works/references/Hexalith.Tenants",
+        "exit_code": 0,
+        "log": "/tmp/tenants-sdk132-qualification-20261102/generated-controllers.log",
+        "xml": "/tmp/tenants-sdk132-qualification-20261102/generated-controllers.xml",
+        "counts": {
+          "total": 66,
+          "passed": 66,
+          "failed": 0,
+          "skipped": 0,
+          "errors": 0
+        }
+      },
+      {
+        "command": [
+          "dotnet",
+          "tests/Hexalith.Tenants.IntegrationTests/bin/Release/net10.0/Hexalith.Tenants.IntegrationTests.dll",
+          "-class",
+          "Hexalith.Tenants.IntegrationTests.TenantsApiGatewayHandlerTests",
+          "-class",
+          "Hexalith.Tenants.IntegrationTests.TenantsApiGatewayResilienceTests",
+          "-class",
+          "Hexalith.Tenants.IntegrationTests.TenantOwnerSourceGatewayTests",
+          "-noColor",
+          "-result-xml",
+          "/tmp/tenants-sdk132-qualification-20261102/gateway-controls.xml"
+        ],
+        "cwd": "/home/administrator/projects/hexalith/works/references/Hexalith.Tenants",
+        "exit_code": 0,
+        "log": "/tmp/tenants-sdk132-qualification-20261102/gateway-controls.log",
+        "xml": "/tmp/tenants-sdk132-qualification-20261102/gateway-controls.xml",
+        "counts": {
+          "total": 46,
+          "passed": 46,
+          "failed": 0,
+          "skipped": 0,
+          "errors": 0
+        }
+      },
+      {
+        "command": [
+          "dotnet",
+          "tests/Hexalith.Tenants.Contracts.Tests/bin/Release/net10.0/Hexalith.Tenants.Contracts.Tests.dll",
+          "-class",
+          "Hexalith.Tenants.Contracts.Tests.PackageGovernanceTests",
+          "-class",
+          "Hexalith.Tenants.Contracts.Tests.PublishedTenantCatalogTests",
+          "-class",
+          "Hexalith.Tenants.Contracts.Tests.TenantCatalogTests",
+          "-noColor",
+          "-result-xml",
+          "/tmp/tenants-sdk132-qualification-20261102/governance-catalog.xml"
+        ],
+        "cwd": "/home/administrator/projects/hexalith/works/references/Hexalith.Tenants",
+        "exit_code": 0,
+        "log": "/tmp/tenants-sdk132-qualification-20261102/governance-catalog.log",
+        "xml": "/tmp/tenants-sdk132-qualification-20261102/governance-catalog.xml",
+        "counts": {
+          "total": 380,
+          "passed": 380,
+          "failed": 0,
+          "skipped": 0,
+          "errors": 0
+        }
+      }
+    ],
+    "bootstrap": {
+      "command": [
+        "dotnet",
+        "tests/Hexalith.Tenants.Server.Tests/bin/Release/net10.0/Hexalith.Tenants.Server.Tests.dll",
+        "-class",
+        "Hexalith.Tenants.Server.Tests.Bootstrap.TenantBootstrapBoundCommandTests",
+        "-class",
+        "Hexalith.Tenants.Server.Tests.Bootstrap.TenantBootstrapCommandTransportTests",
+        "-class",
+        "Hexalith.Tenants.Server.Tests.Bootstrap.TenantBootstrapHostedServiceTests",
+        "-class",
+        "Hexalith.Tenants.Server.Tests.Bootstrap.TenantBootstrapRedirectTests",
+        "-class",
+        "Hexalith.Tenants.Server.Tests.Bootstrap.TenantBootstrapReceiptTests",
+        "-noColor",
+        "-result-xml",
+        "/tmp/tenants-sdk132-qualification-20261102/bootstrap-controls.xml"
+      ],
+      "exit_code": 0,
+      "counts": {
+        "total": 288,
+        "passed": 288,
+        "failed": 0,
+        "skipped": 0,
+        "errors": 0
+      }
+    },
+    "explicit_3.129.0": [
+      {
+        "command": [
+          "dotnet",
+          "build",
+          "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+          "-c",
+          "Release",
+          "-warnaserror",
+          "-m:1",
+          "-nr:false",
+          "-p:UseHexalithProjectReferences=false",
+          "-p:UseNuGetDeps=true",
+          "-p:HexalithEventStoreFromSource=false",
+          "-p:HexalithEventStoreVersion=3.129.0",
+          "-p:HexalithFrontComposerFromSource=false",
+          "-p:HexalithMemoriesFromSource=false",
+          "-p:HexalithBuildsRoot=/home/administrator/projects/hexalith/works/references/Hexalith.Builds"
+        ],
+        "exit_code": 0,
+        "log": "/tmp/tenants-sdk132-qualification-20261102/floor-build-IntegrationTests.log"
+      },
+      {
+        "command": [
+          "dotnet",
+          "build",
+          "tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj",
+          "-c",
+          "Release",
+          "-warnaserror",
+          "-m:1",
+          "-nr:false",
+          "-p:UseHexalithProjectReferences=false",
+          "-p:UseNuGetDeps=true",
+          "-p:HexalithEventStoreFromSource=false",
+          "-p:HexalithEventStoreVersion=3.129.0",
+          "-p:HexalithFrontComposerFromSource=false",
+          "-p:HexalithMemoriesFromSource=false",
+          "-p:HexalithBuildsRoot=/home/administrator/projects/hexalith/works/references/Hexalith.Builds"
+        ],
+        "exit_code": 0,
+        "log": "/tmp/tenants-sdk132-qualification-20261102/floor-build-Contracts.Tests.log"
+      },
+      {
+        "command": [
+          "dotnet",
+          "tests/Hexalith.Tenants.IntegrationTests/bin/Release/net10.0/Hexalith.Tenants.IntegrationTests.dll",
+          "-class",
+          "Hexalith.Tenants.IntegrationTests.TenantsApiGeneratedControllerTests",
+          "-class",
+          "Hexalith.Tenants.IntegrationTests.TenantOwnerSourceGatewayTests",
+          "-noColor",
+          "-result-xml",
+          "/tmp/tenants-sdk132-qualification-20261102/floor-tests-IntegrationTests.xml"
+        ],
+        "exit_code": 0,
+        "log": "/tmp/tenants-sdk132-qualification-20261102/floor-tests-IntegrationTests.log",
+        "counts": {
+          "total": 87,
+          "passed": 87,
+          "failed": 0,
+          "skipped": 0,
+          "errors": 0
+        }
+      },
+      {
+        "command": [
+          "dotnet",
+          "tests/Hexalith.Tenants.Contracts.Tests/bin/Release/net10.0/Hexalith.Tenants.Contracts.Tests.dll",
+          "-class",
+          "Hexalith.Tenants.Contracts.Tests.PublishedTenantCatalogTests",
+          "-class",
+          "Hexalith.Tenants.Contracts.Tests.TenantCatalogTests",
+          "-noColor",
+          "-result-xml",
+          "/tmp/tenants-sdk132-qualification-20261102/floor-tests-Contracts.Tests.xml"
+        ],
+        "exit_code": 0,
+        "log": "/tmp/tenants-sdk132-qualification-20261102/floor-tests-Contracts.Tests.log",
+        "counts": {
+          "total": 3,
+          "passed": 3,
+          "failed": 0,
+          "skipped": 0,
+          "errors": 0
+        }
+      }
+    ],
+    "python_catalog_consumer": {
+      "tests": 6,
+      "passed": 6,
+      "qualified_sdk_alias_subcases": 28,
+      "mixed_cohort_negative_subcases": 4,
+      "unknown_prerelease_revision_metadata_negative_subcases": 17
+    },
+    "ordinary_pack_guards": {
+      "tests": 2,
+      "passed": 2
+    },
+    "actionlint": {
+      "command": "actionlint -shellcheck= .github/workflows/ci.yml",
+      "exit_code": 0
+    },
+    "format": {
+      "scope": "New bound-workload partial, authority fixture and extended gateway host",
+      "exit_code": 0
+    },
+    "final_default_builds": [
+      {
+        "command": [
+          "dotnet",
+          "build",
+          "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+          "-c",
+          "Release",
+          "-warnaserror",
+          "-m:1",
+          "-nr:false",
+          "-p:UseHexalithProjectReferences=false",
+          "-p:UseNuGetDeps=true",
+          "-p:HexalithEventStoreFromSource=false",
+          "-p:HexalithFrontComposerFromSource=false",
+          "-p:HexalithMemoriesFromSource=false",
+          "-p:HexalithBuildsRoot=/home/administrator/projects/hexalith/works/references/Hexalith.Builds"
+        ],
+        "exit_code": 0,
+        "log": "/tmp/tenants-sdk132-qualification-20261102/final-default-build-IntegrationTests.log"
+      },
+      {
+        "command": [
+          "dotnet",
+          "build",
+          "tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj",
+          "-c",
+          "Release",
+          "-warnaserror",
+          "-m:1",
+          "-nr:false",
+          "-p:UseHexalithProjectReferences=false",
+          "-p:UseNuGetDeps=true",
+          "-p:HexalithEventStoreFromSource=false",
+          "-p:HexalithFrontComposerFromSource=false",
+          "-p:HexalithMemoriesFromSource=false",
+          "-p:HexalithBuildsRoot=/home/administrator/projects/hexalith/works/references/Hexalith.Builds"
+        ],
+        "exit_code": 0,
+        "log": "/tmp/tenants-sdk132-qualification-20261102/final-default-build-Contracts.Tests.log"
+      }
+    ],
+    "server_build": {
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj",
+        "-c",
+        "Release",
+        "-warnaserror",
+        "-m:1",
+        "-nr:false",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseNuGetDeps=true",
+        "-p:HexalithEventStoreFromSource=false",
+        "-p:HexalithFrontComposerFromSource=false",
+        "-p:HexalithMemoriesFromSource=false",
+        "-p:HexalithBuildsRoot=/home/administrator/projects/hexalith/works/references/Hexalith.Builds"
+      ],
+      "exit_code": 0,
+      "warnings": 0,
+      "errors": 0
+    },
+    "packing": [
+      {
+        "environment": {
+          "RepositoryCommit": "228418fbd4ef34200d4f1d0ded6f0934f7e30ddf"
+        },
+        "command": [
+          "dotnet",
+          "pack",
+          "src/Hexalith.Tenants.Contracts/Hexalith.Tenants.Contracts.csproj",
+          "-c",
+          "Release",
+          "--no-build",
+          "--output",
+          "/tmp/tenants-sdk132-qualification-20261102/packages",
+          "-p:Version=0.0.0-sdk132.20261102",
+          "-p:UseHexalithProjectReferences=false",
+          "-p:UseNuGetDeps=true",
+          "-p:HexalithEventStoreFromSource=false",
+          "-p:HexalithFrontComposerFromSource=false",
+          "-p:HexalithMemoriesFromSource=false",
+          "-p:HexalithBuildsRoot=/home/administrator/projects/hexalith/works/references/Hexalith.Builds"
+        ],
+        "exit_code": 0
+      },
+      {
+        "environment": {
+          "RepositoryCommit": "228418fbd4ef34200d4f1d0ded6f0934f7e30ddf"
+        },
+        "command": [
+          "dotnet",
+          "pack",
+          "src/Hexalith.Tenants.Server/Hexalith.Tenants.Server.csproj",
+          "-c",
+          "Release",
+          "--no-build",
+          "--output",
+          "/tmp/tenants-sdk132-qualification-20261102/packages",
+          "-p:Version=0.0.0-sdk132.20261102",
+          "-p:UseHexalithProjectReferences=false",
+          "-p:UseNuGetDeps=true",
+          "-p:HexalithEventStoreFromSource=false",
+          "-p:HexalithFrontComposerFromSource=false",
+          "-p:HexalithMemoriesFromSource=false",
+          "-p:HexalithBuildsRoot=/home/administrator/projects/hexalith/works/references/Hexalith.Builds"
+        ],
+        "exit_code": 0
+      }
+    ],
+    "package_consumer": {
+      "command": [
+        "python3",
+        "scripts/verify-catalog-package-consumer.py",
+        "/tmp/tenants-sdk132-qualification-20261102/packages",
+        "--expected-source-sha",
+        "228418fbd4ef34200d4f1d0ded6f0934f7e30ddf",
+        "--output",
+        "/tmp/tenants-sdk132-qualification-20261102/consumer.json"
+      ],
+      "exit_code": 0
+    },
+    "frozen_legacy_floor_default_runtime_recheck": [
+      {
+        "label": "legacy-3.128.4-build",
+        "command": [
+          "dotnet",
+          "build",
+          "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+          "-c",
+          "Release",
+          "-warnaserror",
+          "-m:1",
+          "-nr:false",
+          "-p:UseHexalithProjectReferences=false",
+          "-p:UseNuGetDeps=true",
+          "-p:HexalithEventStoreFromSource=false",
+          "-p:HexalithFrontComposerFromSource=false",
+          "-p:HexalithMemoriesFromSource=false",
+          "-p:HexalithBuildsRoot=/home/administrator/projects/hexalith/works/references/Hexalith.Builds",
+          "-p:HexalithEventStoreVersion=3.128.4"
+        ],
+        "cwd": "/home/administrator/projects/hexalith/works/references/Hexalith.Tenants",
+        "exit_code": 0,
+        "log": "/tmp/tenants-sdk132-qualification-20261102/legacy-compat-repair/legacy-3.128.4-build.log"
+      },
+      {
+        "label": "legacy-3.128.4-runtime",
+        "command": [
+          "dotnet",
+          "tests/Hexalith.Tenants.IntegrationTests/bin/Release/net10.0/Hexalith.Tenants.IntegrationTests.dll",
+          "-class",
+          "Hexalith.Tenants.IntegrationTests.CommandApiRuntimeIntegrationTests",
+          "-noColor",
+          "-result-xml",
+          "/tmp/tenants-sdk132-qualification-20261102/legacy-compat-repair/legacy-3.128.4-runtime.xml"
+        ],
+        "cwd": "/home/administrator/projects/hexalith/works/references/Hexalith.Tenants",
+        "exit_code": 0,
+        "log": "/tmp/tenants-sdk132-qualification-20261102/legacy-compat-repair/legacy-3.128.4-runtime.log",
+        "xml": "/tmp/tenants-sdk132-qualification-20261102/legacy-compat-repair/legacy-3.128.4-runtime.xml",
+        "counts": {
+          "total": 173,
+          "passed": 173,
+          "failed": 0,
+          "skipped": 0,
+          "errors": 0
+        },
+        "wrong_target_cases": [
+          {
+            "name": "Hexalith.Tenants.IntegrationTests.CommandApiRuntimeIntegrationTests.AuthenticatedBootstrapCannotAssignDifferentTarget(targetUserId: \\\"different-admin\\\")",
+            "result": "Pass"
+          },
+          {
+            "name": "Hexalith.Tenants.IntegrationTests.CommandApiRuntimeIntegrationTests.AuthenticatedBootstrapCannotAssignDifferentTarget(targetUserId: \\\"Authenticated-admin\\\")",
+            "result": "Pass"
+          }
+        ]
+      },
+      {
+        "label": "floor-3.129.0-build",
+        "command": [
+          "dotnet",
+          "build",
+          "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+          "-c",
+          "Release",
+          "-warnaserror",
+          "-m:1",
+          "-nr:false",
+          "-p:UseHexalithProjectReferences=false",
+          "-p:UseNuGetDeps=true",
+          "-p:HexalithEventStoreFromSource=false",
+          "-p:HexalithFrontComposerFromSource=false",
+          "-p:HexalithMemoriesFromSource=false",
+          "-p:HexalithBuildsRoot=/home/administrator/projects/hexalith/works/references/Hexalith.Builds",
+          "-p:HexalithEventStoreVersion=3.129.0"
+        ],
+        "cwd": "/home/administrator/projects/hexalith/works/references/Hexalith.Tenants",
+        "exit_code": 0,
+        "log": "/tmp/tenants-sdk132-qualification-20261102/legacy-compat-repair/floor-3.129.0-build.log"
+      },
+      {
+        "label": "floor-3.129.0-runtime",
+        "command": [
+          "dotnet",
+          "tests/Hexalith.Tenants.IntegrationTests/bin/Release/net10.0/Hexalith.Tenants.IntegrationTests.dll",
+          "-class",
+          "Hexalith.Tenants.IntegrationTests.CommandApiRuntimeIntegrationTests",
+          "-noColor",
+          "-result-xml",
+          "/tmp/tenants-sdk132-qualification-20261102/legacy-compat-repair/floor-3.129.0-runtime.xml"
+        ],
+        "cwd": "/home/administrator/projects/hexalith/works/references/Hexalith.Tenants",
+        "exit_code": 0,
+        "log": "/tmp/tenants-sdk132-qualification-20261102/legacy-compat-repair/floor-3.129.0-runtime.log",
+        "xml": "/tmp/tenants-sdk132-qualification-20261102/legacy-compat-repair/floor-3.129.0-runtime.xml",
+        "counts": {
+          "total": 176,
+          "passed": 176,
+          "failed": 0,
+          "skipped": 0,
+          "errors": 0
+        },
+        "wrong_target_cases": [
+          {
+            "name": "Hexalith.Tenants.IntegrationTests.CommandApiRuntimeIntegrationTests.AuthenticatedBootstrapCannotAssignDifferentTarget(targetUserId: \\\"different-admin\\\")",
+            "result": "Pass"
+          },
+          {
+            "name": "Hexalith.Tenants.IntegrationTests.CommandApiRuntimeIntegrationTests.AuthenticatedBootstrapCannotAssignDifferentTarget(targetUserId: \\\"Authenticated-admin\\\")",
+            "result": "Pass"
+          }
+        ]
+      },
+      {
+        "label": "default-3.132.0-build",
+        "command": [
+          "dotnet",
+          "build",
+          "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+          "-c",
+          "Release",
+          "-warnaserror",
+          "-m:1",
+          "-nr:false",
+          "-p:UseHexalithProjectReferences=false",
+          "-p:UseNuGetDeps=true",
+          "-p:HexalithEventStoreFromSource=false",
+          "-p:HexalithFrontComposerFromSource=false",
+          "-p:HexalithMemoriesFromSource=false",
+          "-p:HexalithBuildsRoot=/home/administrator/projects/hexalith/works/references/Hexalith.Builds"
+        ],
+        "cwd": "/home/administrator/projects/hexalith/works/references/Hexalith.Tenants",
+        "exit_code": 0,
+        "log": "/tmp/tenants-sdk132-qualification-20261102/legacy-compat-repair/default-3.132.0-build.log"
+      },
+      {
+        "label": "default-3.132.0-runtime",
+        "command": [
+          "dotnet",
+          "tests/Hexalith.Tenants.IntegrationTests/bin/Release/net10.0/Hexalith.Tenants.IntegrationTests.dll",
+          "-class",
+          "Hexalith.Tenants.IntegrationTests.CommandApiRuntimeIntegrationTests",
+          "-noColor",
+          "-result-xml",
+          "/tmp/tenants-sdk132-qualification-20261102/legacy-compat-repair/default-3.132.0-runtime.xml"
+        ],
+        "cwd": "/home/administrator/projects/hexalith/works/references/Hexalith.Tenants",
+        "exit_code": 0,
+        "log": "/tmp/tenants-sdk132-qualification-20261102/legacy-compat-repair/default-3.132.0-runtime.log",
+        "xml": "/tmp/tenants-sdk132-qualification-20261102/legacy-compat-repair/default-3.132.0-runtime.xml",
+        "counts": {
+          "total": 176,
+          "passed": 176,
+          "failed": 0,
+          "skipped": 0,
+          "errors": 0
+        },
+        "wrong_target_cases": [
+          {
+            "name": "Hexalith.Tenants.IntegrationTests.CommandApiRuntimeIntegrationTests.AuthenticatedBootstrapCannotAssignDifferentTarget(targetUserId: \\\"different-admin\\\")",
+            "result": "Pass"
+          },
+          {
+            "name": "Hexalith.Tenants.IntegrationTests.CommandApiRuntimeIntegrationTests.AuthenticatedBootstrapCannotAssignDifferentTarget(targetUserId: \\\"Authenticated-admin\\\")",
+            "result": "Pass"
+          }
+        ]
+      }
+    ],
+    "review_fix_selected_mtp": {
+      "scope": "Only the three edited/scoped method families were rerun in normal MTP current/floor lanes after review repairs; previous broader counts remain historical, with final full verification owned by the parent.",
+      "lanes": {
+        "current_default_3.132.0": {
+          "BoundBootstrap*": 13,
+          "AuthenticatedBootstrapCannotAssignDifferentTarget": 2,
+          "Commands_endpoint_returns_problem_details_for_domain_rejection": 1
+        },
+        "explicit_floor_3.129.0": {
+          "BoundBootstrap*": 13,
+          "AuthenticatedBootstrapCannotAssignDifferentTarget": 2,
+          "Commands_endpoint_returns_problem_details_for_domain_rejection": 1
+        }
+      },
+      "failed": 0,
+      "skipped": 0,
+      "commands_and_logs": "/tmp/tenants-sdk132-qualification-20261102/review-fixes/selected-results.json",
+      "normal_mtp_commands": [
+        {
+          "label": "default-bound-mtp",
+          "command": [
+            "dotnet",
+            "test",
+            "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+            "--configuration",
+            "Release",
+            "--no-build",
+            "-p:UseHexalithProjectReferences=false",
+            "-p:UseNuGetDeps=true",
+            "-p:HexalithEventStoreFromSource=false",
+            "-p:HexalithFrontComposerFromSource=false",
+            "-p:HexalithMemoriesFromSource=false",
+            "--filter-method",
+            "Hexalith.Tenants.IntegrationTests.CommandApiRuntimeIntegrationTests.BoundBootstrap*",
+            "--minimum-expected-tests",
+            "13",
+            "--fail-skips",
+            "on"
+          ],
+          "cwd": "/home/administrator/projects/hexalith/works/references/Hexalith.Tenants",
+          "exit_code": 0,
+          "log": "/tmp/tenants-sdk132-qualification-20261102/review-fixes/default-bound-mtp.log",
+          "counts": {
+            "total": 13,
+            "passed": 13,
+            "failed": 0,
+            "skipped": 0
+          }
+        },
+        {
+          "label": "default-actor-mtp",
+          "command": [
+            "dotnet",
+            "test",
+            "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+            "--configuration",
+            "Release",
+            "--no-build",
+            "-p:UseHexalithProjectReferences=false",
+            "-p:UseNuGetDeps=true",
+            "-p:HexalithEventStoreFromSource=false",
+            "-p:HexalithFrontComposerFromSource=false",
+            "-p:HexalithMemoriesFromSource=false",
+            "--filter-method",
+            "Hexalith.Tenants.IntegrationTests.CommandApiRuntimeIntegrationTests.AuthenticatedBootstrapCannotAssignDifferentTarget",
+            "--minimum-expected-tests",
+            "2",
+            "--fail-skips",
+            "on"
+          ],
+          "cwd": "/home/administrator/projects/hexalith/works/references/Hexalith.Tenants",
+          "exit_code": 0,
+          "log": "/tmp/tenants-sdk132-qualification-20261102/review-fixes/default-actor-mtp.log",
+          "counts": {
+            "total": 2,
+            "passed": 2,
+            "failed": 0,
+            "skipped": 0
+          }
+        },
+        {
+          "label": "default-conflict-mtp",
+          "command": [
+            "dotnet",
+            "test",
+            "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+            "--configuration",
+            "Release",
+            "--no-build",
+            "-p:UseHexalithProjectReferences=false",
+            "-p:UseNuGetDeps=true",
+            "-p:HexalithEventStoreFromSource=false",
+            "-p:HexalithFrontComposerFromSource=false",
+            "-p:HexalithMemoriesFromSource=false",
+            "--filter-method",
+            "Hexalith.Tenants.IntegrationTests.CommandApiRuntimeIntegrationTests.Commands_endpoint_returns_problem_details_for_domain_rejection",
+            "--minimum-expected-tests",
+            "1",
+            "--fail-skips",
+            "on"
+          ],
+          "cwd": "/home/administrator/projects/hexalith/works/references/Hexalith.Tenants",
+          "exit_code": 0,
+          "log": "/tmp/tenants-sdk132-qualification-20261102/review-fixes/default-conflict-mtp.log",
+          "counts": {
+            "total": 1,
+            "passed": 1,
+            "failed": 0,
+            "skipped": 0
+          }
+        },
+        {
+          "label": "floor-build",
+          "command": [
+            "dotnet",
+            "build",
+            "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+            "-c",
+            "Release",
+            "-warnaserror",
+            "-m:1",
+            "-nr:false",
+            "-p:UseHexalithProjectReferences=false",
+            "-p:UseNuGetDeps=true",
+            "-p:HexalithEventStoreFromSource=false",
+            "-p:HexalithFrontComposerFromSource=false",
+            "-p:HexalithMemoriesFromSource=false",
+            "-p:HexalithBuildsRoot=/home/administrator/projects/hexalith/works/references/Hexalith.Builds",
+            "-p:HexalithEventStoreVersion=3.129.0"
+          ],
+          "cwd": "/home/administrator/projects/hexalith/works/references/Hexalith.Tenants",
+          "exit_code": 0,
+          "log": "/tmp/tenants-sdk132-qualification-20261102/review-fixes/floor-build.log"
+        },
+        {
+          "label": "floor-bound-mtp",
+          "command": [
+            "dotnet",
+            "test",
+            "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+            "--configuration",
+            "Release",
+            "--no-build",
+            "-p:UseHexalithProjectReferences=false",
+            "-p:UseNuGetDeps=true",
+            "-p:HexalithEventStoreFromSource=false",
+            "-p:HexalithEventStoreVersion=3.129.0",
+            "-p:HexalithFrontComposerFromSource=false",
+            "-p:HexalithMemoriesFromSource=false",
+            "--filter-method",
+            "Hexalith.Tenants.IntegrationTests.CommandApiRuntimeIntegrationTests.BoundBootstrap*",
+            "--minimum-expected-tests",
+            "13",
+            "--fail-skips",
+            "on"
+          ],
+          "cwd": "/home/administrator/projects/hexalith/works/references/Hexalith.Tenants",
+          "exit_code": 0,
+          "log": "/tmp/tenants-sdk132-qualification-20261102/review-fixes/floor-bound-mtp.log",
+          "counts": {
+            "total": 13,
+            "passed": 13,
+            "failed": 0,
+            "skipped": 0
+          }
+        },
+        {
+          "label": "floor-actor-mtp",
+          "command": [
+            "dotnet",
+            "test",
+            "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+            "--configuration",
+            "Release",
+            "--no-build",
+            "-p:UseHexalithProjectReferences=false",
+            "-p:UseNuGetDeps=true",
+            "-p:HexalithEventStoreFromSource=false",
+            "-p:HexalithEventStoreVersion=3.129.0",
+            "-p:HexalithFrontComposerFromSource=false",
+            "-p:HexalithMemoriesFromSource=false",
+            "--filter-method",
+            "Hexalith.Tenants.IntegrationTests.CommandApiRuntimeIntegrationTests.AuthenticatedBootstrapCannotAssignDifferentTarget",
+            "--minimum-expected-tests",
+            "2",
+            "--fail-skips",
+            "on"
+          ],
+          "cwd": "/home/administrator/projects/hexalith/works/references/Hexalith.Tenants",
+          "exit_code": 0,
+          "log": "/tmp/tenants-sdk132-qualification-20261102/review-fixes/floor-actor-mtp.log",
+          "counts": {
+            "total": 2,
+            "passed": 2,
+            "failed": 0,
+            "skipped": 0
+          }
+        },
+        {
+          "label": "floor-conflict-mtp",
+          "command": [
+            "dotnet",
+            "test",
+            "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+            "--configuration",
+            "Release",
+            "--no-build",
+            "-p:UseHexalithProjectReferences=false",
+            "-p:UseNuGetDeps=true",
+            "-p:HexalithEventStoreFromSource=false",
+            "-p:HexalithEventStoreVersion=3.129.0",
+            "-p:HexalithFrontComposerFromSource=false",
+            "-p:HexalithMemoriesFromSource=false",
+            "--filter-method",
+            "Hexalith.Tenants.IntegrationTests.CommandApiRuntimeIntegrationTests.Commands_endpoint_returns_problem_details_for_domain_rejection",
+            "--minimum-expected-tests",
+            "1",
+            "--fail-skips",
+            "on"
+          ],
+          "cwd": "/home/administrator/projects/hexalith/works/references/Hexalith.Tenants",
+          "exit_code": 0,
+          "log": "/tmp/tenants-sdk132-qualification-20261102/review-fixes/floor-conflict-mtp.log",
+          "counts": {
+            "total": 1,
+            "passed": 1,
+            "failed": 0,
+            "skipped": 0
+          }
+        },
+        {
+          "label": "final-default-build",
+          "command": [
+            "dotnet",
+            "build",
+            "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+            "-c",
+            "Release",
+            "-warnaserror",
+            "-m:1",
+            "-nr:false",
+            "-p:UseHexalithProjectReferences=false",
+            "-p:UseNuGetDeps=true",
+            "-p:HexalithEventStoreFromSource=false",
+            "-p:HexalithFrontComposerFromSource=false",
+            "-p:HexalithMemoriesFromSource=false",
+            "-p:HexalithBuildsRoot=/home/administrator/projects/hexalith/works/references/Hexalith.Builds"
+          ],
+          "cwd": "/home/administrator/projects/hexalith/works/references/Hexalith.Tenants",
+          "exit_code": 0,
+          "log": "/tmp/tenants-sdk132-qualification-20261102/review-fixes/final-default-build.log"
+        }
+      ],
+      "initial_public_boundary_control": {
+        "command": [
+          "dotnet",
+          "tests/Hexalith.Tenants.IntegrationTests/bin/Release/net10.0/Hexalith.Tenants.IntegrationTests.dll",
+          "-method",
+          "Hexalith.Tenants.IntegrationTests.CommandApiRuntimeIntegrationTests.BoundBootstrapPublicHumanCannotInvokeInternalOperation",
+          "-noColor",
+          "-result-xml",
+          "/tmp/tenants-sdk132-qualification-20261102/review-fixes/public-denial.xml"
+        ],
+        "total": 1,
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0,
+        "actual_http_status": 403
+      },
+      "ci": "published-catalog-http retains its exact default/floor SDK arguments, --minimum-expected-tests13/2/1 and --fail-skips on; timeout unchanged."
+    },
+    "applicable_command_runtime_inventory": {
+      "qualified_catalog_profiles": 178,
+      "frozen_legacy_3.128.4": 174,
+      "frozen_composition": "All original173 frozen-profile assertions plus the unconditional real-producer matching-subject success. The one new modern public catalog restriction test is not compiled in this profile.",
+      "modern_composition": "The previous176 catalog-profile cases plus the new modern public restriction and real-producer success controls.",
+      "scope": "Applicable full-class inventories are distinguished from the selected counts below. This repair did not rerun full classes; parent owns full three-profile runtime verification."
+    },
+    "modern_public_control_scope_selected_bound": {
+      "scope": "Only BoundBootstrap* rerun after the compile-scope correction. No skips, production authorization/fixture changes, wider suites or deadline changes.",
+      "records": [
+        {
+          "label": "legacy-build",
+          "command": [
+            "dotnet",
+            "build",
+            "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+            "-c",
+            "Release",
+            "-warnaserror",
+            "-m:1",
+            "-nr:false",
+            "-p:UseHexalithProjectReferences=false",
+            "-p:UseNuGetDeps=true",
+            "-p:HexalithEventStoreFromSource=false",
+            "-p:HexalithFrontComposerFromSource=false",
+            "-p:HexalithMemoriesFromSource=false",
+            "-p:HexalithBuildsRoot=/home/administrator/projects/hexalith/works/references/Hexalith.Builds",
+            "-p:HexalithEventStoreVersion=3.128.4"
+          ],
+          "cwd": "/home/administrator/projects/hexalith/works/references/Hexalith.Tenants",
+          "exit_code": 0,
+          "log": "/tmp/tenants-sdk132-qualification-20261102/modern-control-scope/legacy-build.log"
+        },
+        {
+          "label": "legacy-bound-mtp",
+          "command": [
+            "dotnet",
+            "test",
+            "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+            "--configuration",
+            "Release",
+            "--no-build",
+            "-p:UseHexalithProjectReferences=false",
+            "-p:UseNuGetDeps=true",
+            "-p:HexalithEventStoreFromSource=false",
+            "-p:HexalithEventStoreVersion=3.128.4",
+            "-p:HexalithFrontComposerFromSource=false",
+            "-p:HexalithMemoriesFromSource=false",
+            "--filter-method",
+            "Hexalith.Tenants.IntegrationTests.CommandApiRuntimeIntegrationTests.BoundBootstrap*",
+            "--minimum-expected-tests",
+            "12",
+            "--fail-skips",
+            "on"
+          ],
+          "cwd": "/home/administrator/projects/hexalith/works/references/Hexalith.Tenants",
+          "exit_code": 0,
+          "log": "/tmp/tenants-sdk132-qualification-20261102/modern-control-scope/legacy-bound-mtp.log",
+          "counts": {
+            "total": 12,
+            "passed": 12,
+            "failed": 0,
+            "skipped": 0
+          }
+        },
+        {
+          "label": "floor-build",
+          "command": [
+            "dotnet",
+            "build",
+            "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+            "-c",
+            "Release",
+            "-warnaserror",
+            "-m:1",
+            "-nr:false",
+            "-p:UseHexalithProjectReferences=false",
+            "-p:UseNuGetDeps=true",
+            "-p:HexalithEventStoreFromSource=false",
+            "-p:HexalithFrontComposerFromSource=false",
+            "-p:HexalithMemoriesFromSource=false",
+            "-p:HexalithBuildsRoot=/home/administrator/projects/hexalith/works/references/Hexalith.Builds",
+            "-p:HexalithEventStoreVersion=3.129.0"
+          ],
+          "cwd": "/home/administrator/projects/hexalith/works/references/Hexalith.Tenants",
+          "exit_code": 0,
+          "log": "/tmp/tenants-sdk132-qualification-20261102/modern-control-scope/floor-build.log"
+        },
+        {
+          "label": "floor-bound-mtp",
+          "command": [
+            "dotnet",
+            "test",
+            "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+            "--configuration",
+            "Release",
+            "--no-build",
+            "-p:UseHexalithProjectReferences=false",
+            "-p:UseNuGetDeps=true",
+            "-p:HexalithEventStoreFromSource=false",
+            "-p:HexalithEventStoreVersion=3.129.0",
+            "-p:HexalithFrontComposerFromSource=false",
+            "-p:HexalithMemoriesFromSource=false",
+            "--filter-method",
+            "Hexalith.Tenants.IntegrationTests.CommandApiRuntimeIntegrationTests.BoundBootstrap*",
+            "--minimum-expected-tests",
+            "13",
+            "--fail-skips",
+            "on"
+          ],
+          "cwd": "/home/administrator/projects/hexalith/works/references/Hexalith.Tenants",
+          "exit_code": 0,
+          "log": "/tmp/tenants-sdk132-qualification-20261102/modern-control-scope/floor-bound-mtp.log",
+          "counts": {
+            "total": 13,
+            "passed": 13,
+            "failed": 0,
+            "skipped": 0
+          }
+        },
+        {
+          "label": "default-build",
+          "command": [
+            "dotnet",
+            "build",
+            "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+            "-c",
+            "Release",
+            "-warnaserror",
+            "-m:1",
+            "-nr:false",
+            "-p:UseHexalithProjectReferences=false",
+            "-p:UseNuGetDeps=true",
+            "-p:HexalithEventStoreFromSource=false",
+            "-p:HexalithFrontComposerFromSource=false",
+            "-p:HexalithMemoriesFromSource=false",
+            "-p:HexalithBuildsRoot=/home/administrator/projects/hexalith/works/references/Hexalith.Builds"
+          ],
+          "cwd": "/home/administrator/projects/hexalith/works/references/Hexalith.Tenants",
+          "exit_code": 0,
+          "log": "/tmp/tenants-sdk132-qualification-20261102/modern-control-scope/default-build.log"
+        },
+        {
+          "label": "default-bound-mtp",
+          "command": [
+            "dotnet",
+            "test",
+            "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+            "--configuration",
+            "Release",
+            "--no-build",
+            "-p:UseHexalithProjectReferences=false",
+            "-p:UseNuGetDeps=true",
+            "-p:HexalithEventStoreFromSource=false",
+            "-p:HexalithFrontComposerFromSource=false",
+            "-p:HexalithMemoriesFromSource=false",
+            "--filter-method",
+            "Hexalith.Tenants.IntegrationTests.CommandApiRuntimeIntegrationTests.BoundBootstrap*",
+            "--minimum-expected-tests",
+            "13",
+            "--fail-skips",
+            "on"
+          ],
+          "cwd": "/home/administrator/projects/hexalith/works/references/Hexalith.Tenants",
+          "exit_code": 0,
+          "log": "/tmp/tenants-sdk132-qualification-20261102/modern-control-scope/default-bound-mtp.log",
+          "counts": {
+            "total": 13,
+            "passed": 13,
+            "failed": 0,
+            "skipped": 0
+          }
+        }
+      ],
+      "selected_counts": {
+        "frozen_legacy_3.128.4": 12,
+        "explicit_floor_3.129.0": 13,
+        "current_default_3.132.0": 13
+      },
+      "failed": 0,
+      "skipped": 0,
+      "final_outputs": "Default public3.132.0.",
+      "production_creator_success": "Compiled and passed in all three selected profiles.",
+      "public_restriction": "Compiled only with HEXALITH_DEVELOPMENT_CATALOG_SOURCE and passed exact403/no-routing/no-status/no-archive assertions in both qualified floor/current profiles."
+    }
+  },
+  "candidate": {
+    "version": "0.0.0-sdk132.20261102",
+    "sdk": "3.132.0",
+    "source": "228418fbd4ef34200d4f1d0ded6f0934f7e30ddf",
+    "packages": {
+      "Hexalith.Tenants.Contracts": {
+        "sha256": "d4b34016c920641501f4c79f1a22041dd2e26a4edbaaa13d9cc45dedb9e76cd5",
+        "dll_sha256": "c3bfc8d320b3489f9e889f74761750f3726456804296a8d37876dbd4fa8e1dcb",
+        "source": "228418fbd4ef34200d4f1d0ded6f0934f7e30ddf"
+      },
+      "Hexalith.Tenants.Server": {
+        "sha256": "c25d890fdd587bf54a424c0f958d3d02a95a58f4caa85aa1e501e6d1235713a5",
+        "dll_sha256": "6d68e0501cde07fb37ae7199577e6364e02165a623ee93eaade6dffd15294075",
+        "source": "228418fbd4ef34200d4f1d0ded6f0934f7e30ddf"
+      }
+    },
+    "discovery": {
+      "routes": 22,
+      "operations": 22,
+      "adapters": 12,
+      "declarations": {
+        "global-administrators-bootstrap-global-admin": "c41925331a45971ed7cbdf6ecd0ca80b90a7450dc370743cc9b0d62f8eefac0e",
+        "global-administrators-get-global-administrators": "bec1b27c3db50899721f927b670460cd8f877317508c931184d266ae59fc2ffa",
+        "global-administrators-projection": "00e31c6c924c376662f79ba2b80918a8f62529fc581aefdf68d09aa2968084a9",
+        "global-administrators-remove-global-administrator": "ab14077b7d46420b2510f1960b392de3b78ef9c4dd43871d8715592aa1d4c162",
+        "global-administrators-set-global-administrator": "c4526c84a72c3fbdf4ba4fa6f6fec652de38dcb59b86a9645d0f507ff9b2b00f",
+        "tenants-add-user-to-tenant": "d4ca327d104029c8feb284e750916f93f02cecc2e9f4c3bdea2ed5eae8ee0f32",
+        "tenants-change-user-role": "5735692ae865d62a17d2610a8dd38975242cf77118c090b4461affb58c0fe7c2",
+        "tenants-create-tenant": "104459078b70fa5420550e6358f0f099fe2dca559e4e52ae133955c59603e9b9",
+        "tenants-disable-tenant": "da2284d2d3494c8ae57a525683b9e76e230caf9f9ab2c55396a2efed55076b71",
+        "tenants-enable-tenant": "aac5b853556b800be94f9e47b08ea0649e77ccb3038cca1e2d7b1fb7163dd412",
+        "tenants-get-tenant": "1499654957b0675334f4840b5fb65cd53282c6be74ec7dd945603d1914b5b449",
+        "tenants-get-tenant-audit": "cfcb0a308855da9abb014b35a2768595ea85fa964d2b683a0707207185f45967",
+        "tenants-get-tenant-users": "38a850e40513a3165ee453c4033f8b7d133feff26268c9df93941eda99e629ac",
+        "tenants-get-user-tenants": "2c3bf7da0c37b8fe063630e2a7cbbef6ab94446e4cd58b7f2fd85e3a0d825259",
+        "tenants-list-tenants": "cf10b6703de0a664b7e7d62de566b3e594b8b5c4526aaab0d46752dd0d5775e4",
+        "tenants-projection": "3e8a178eefb392df64ccaee8465a865ab8f3a63bed9e61bb69f8395963883da5",
+        "tenants-remove-tenant-configuration": "82dc531566e7c1305b452af9ce3b7de318c9274e0e93096d91d3e46adf6f716b",
+        "tenants-remove-user-from-tenant": "72f03564d9aba28ac6b8980faf0d35fe4a628a76647fe54d64754b39ea14fff1",
+        "tenants-resolve-tenant-owner-authority": "934b8362be878406e94804bd3edc33939f88776f739d7dbeb71070eda9655f26",
+        "tenants-resolve-tenant-read-authority": "09af66f99d5e998246065eaa25a76086f29444053fe2c19ce4ef336075a71063",
+        "tenants-set-tenant-configuration": "38d1e3af8124ab6bbe36909bdf235eda4b26ac3f256809afbfa5a33644d22b55",
+        "tenants-update-tenant": "53e9dd223bdcadb582f421acb1ec41e5fe5734f8fe994a3ea56fb4bedcd6ca57"
+      },
+      "operationDigests": {
+        "global-administrators-bootstrap-global-admin": "7c04cb0ee03dd2692f0008803cfa398113807747bde50a617d5aac80729f3f31",
+        "global-administrators-get-global-administrators": "436294d5549400cc7b64afd5fe4298b482e8dce8119fc186af85a7c2b149295c",
+        "global-administrators-projection": "f0c26597fbdfe346240de179e1afc919608f6b38478af04942b454dcdd569cd2",
+        "global-administrators-remove-global-administrator": "455534887f791703b8a1aa014fdfe7081f34a0031a02d1605040aa48fc74eb73",
+        "global-administrators-set-global-administrator": "e32824222830d65c22ee074543f9b5ad484f337e34cd4e1a8c29a0d7e0508b56",
+        "tenants-add-user-to-tenant": "ac784d735efbb4d2eefa67ebe8ec6133595640b696e526d4222084af2cfafe88",
+        "tenants-change-user-role": "410832953a12dfef78f556eda528e6fec6271b460292c622e736ad016cea743b",
+        "tenants-create-tenant": "bf4fce7c8bfef896b2cb861af22698a51fa6b297b47c35dd606397ff0be09376",
+        "tenants-disable-tenant": "f38b4f9098a94a66b1b683d237a17256368351edb90c145443ed71636d39b415",
+        "tenants-enable-tenant": "21104e64bb6081d1364d7adfd0cdd2aa0f0c5062b9915b6f4fc374adca8dfab4",
+        "tenants-get-tenant": "fbe050c4f57384199213764b14114a028d2b6766e64d0112a38ec72e49054321",
+        "tenants-get-tenant-audit": "0ab70e176e147a0deccf46db700041a518cfb340fe0d4885e8972aaef065ede1",
+        "tenants-get-tenant-users": "8f775f5dedc54929c5681c90b4affe2a55dcae39532062006a67df8415448964",
+        "tenants-get-user-tenants": "1d41e481f9d4d761144a5e2692970faea3b8900c005fcff5529a68a047cf6ad9",
+        "tenants-list-tenants": "cb34561d5859d48456a1a432894d176326e02d84b5ce53eec887120d7b834d89",
+        "tenants-projection": "be19dbffcebbe3f528bb668031ac50f6eb8e3ec4c84a909a37c31df3b05f0289",
+        "tenants-remove-tenant-configuration": "88abbb63706e2334650c41fec938cd42feaec3af3fd18f22d9f2bf952eb587a6",
+        "tenants-remove-user-from-tenant": "fc406278c159a5fd26b1ab9f9ad4e475ae527a866cd5e1ec4e8708d5067e7040",
+        "tenants-resolve-tenant-owner-authority": "2836e99ce8b645f19e202d27b59a3283a715eca9456e224c1f48f6fb9b0b8b4f",
+        "tenants-resolve-tenant-read-authority": "f51946ce8d63905d5df5674465efa6a2691a085262844cedacfebdfb02637621",
+        "tenants-set-tenant-configuration": "ca9f3c5c8def2abf607b5b587ff32c6832e2359bad6a0d0be08cf815057b7374",
+        "tenants-update-tenant": "cdaddd4785b8993d33ba06ef162dc735f2d2340169099e7bf27ae7eca53c1f24"
+      }
+    },
+    "local_dirty_candidate_limits": "These private Contracts/Server candidates were packed before the subsequent test/CI/evidence repairs from source base 228418fbd4ef34200d4f1d0ded6f0934f7e30ddf plus the original dirty implementation. Package metadata binds that base, not a final committed or rebased tree. Their actual archive/DLL hashes and SDK discovery are recorded; test-only repairs were not repacked. They are not published releases, native/container qualification, or acceptance of a later SDK."
+  },
+  "fixture_transport": {
+    "public_positive_cases": 11,
+    "operation": "UpdateTenant",
+    "status_aggregate": "acme",
+    "internal_cases": 4,
+    "endpoint": "/api/v1/commands/bound/workload",
+    "human_identity": "Real JwtBearer signature/issuer/audience/lifetime authentication; exactly one raw sub; name is untrusted.",
+    "workload_identity": "Real IWorkloadAssertionIssuer, azp=tenants, GatewayCommandSubmit and existing bounded lifetime. Catalog-enabled SDKs emit service surface; the frozen 3.128.4 issuer emits no surface claim. Both exact authentic shapes are asserted.",
+    "proof": "Existing SDK BoundWorkloadCommandProof.Issue, fresh paired 2048-bit RSA keys; no proof/time policy changed.",
+    "channel": "Configured APP_API_TOKEN and real dapr-api-token verification.",
+    "domain_grant": "Only global-administrators for tenants. No public bootstrap grant.",
+    "internal_assertions": "409 GlobalAdminAlreadyBootstrappedRejection ProblemDetails preserved; real aggregate422 wrong-target/ordinal mismatch preserves validated UserId/AuthenticatedSubject, verified origin, InsufficientPermissionsRejection and absence of GlobalAdministratorSet.",
+    "new_negative_cases": 12,
+    "negative_controls": [
+      "malformed proof",
+      "tampered represented principal after signing",
+      "missing proof",
+      "caller header/assertion mismatch",
+      "signed untrusted caller",
+      "signed wrong domain",
+      "missing channel",
+      "wrong channel",
+      "missing assertion",
+      "invalid human signature",
+      "name-only human identity",
+      "correctly addressed public bootstrap with sufficient validated human tenant/domain/exact-permission/global-admin claims"
+    ],
+    "external_doubles": "Only existing routing/persistence seams; protected controller, authentication, authorization and SubmitCommandHandler remain real.",
+    "production_creator_success": "The additional legitimate matching-subject/target request is created by real TenantBootstrapBoundCommand.CreateAsync and received by the real gateway/SubmitCommandHandler. Its generated buffered body, proof and workload assertion are preserved; only Dapr delivery URI, channel token and caller attribution are supplied locally. The real empty-state GlobalAdministratorsAggregate emits exactly one GlobalAdministratorSet. Assertions retain validated UserId/AuthenticatedSubject and SDK verified origin, and reject human administrator-role propagation onto the workload.",
+    "modern_public_bootstrap_restriction": {
+      "compile_condition": "HEXALITH_DEVELOPMENT_CATALOG_SOURCE",
+      "applies_to": "Finite qualified catalog SDK3.129+ and enrolled catalog source profiles; public human bootstrap is refused with403 before routing/persistence.",
+      "frozen_legacy": "The frozen3.128.4 topology profile predates this guard and does not compile the one newly introduced modern public restriction test. Original assertions are unchanged; real-producer success remains unconditional. Frozen topology evidence does not qualify current production authorization."
+    },
+    "new_negative_cases_by_profile": {
+      "qualified_catalog": 12,
+      "frozen_legacy": 11
+    }
+  },
+  "working_tree_patch": {
+    "base": "228418fbd4ef34200d4f1d0ded6f0934f7e30ddf",
+    "sha256": "9d188342aa63ba52c4cac97f6aebab6760c5208e2a4bb32d79493887972d6de3",
+    "excludes": "docs/eventstore-3.132.0-qualification.json",
+    "includes": "Complete tracked staged and unstaged owned implementation against HEAD; qualification self-record excluded from its implementation digest.",
+    "protocol": {
+      "cwd": "/home/administrator/projects/hexalith/works/references/Hexalith.Tenants",
+      "resolved_HEAD": "228418fbd4ef34200d4f1d0ded6f0934f7e30ddf",
+      "argv": [
+        "git",
+        "diff",
+        "--full-index",
+        "HEAD",
+        "--",
+        ".",
+        ":(exclude)docs/eventstore-3.132.0-qualification.json"
+      ],
+      "shell_command": "git diff --full-index HEAD -- . ':(exclude)docs/eventstore-3.132.0-qualification.json'",
+      "hash_algorithm": "SHA-256 of the exact stdout bytes, without newline, encoding or index-width transformation.",
+      "full_owned_patch_argv": [
+        "git",
+        "diff",
+        "--full-index",
+        "HEAD"
+      ],
+      "full_owned_patch_location": "/tmp/tenants-sdk132-qualification-20261102/modern-control-scope/full-owned.diff",
+      "self_reference": "The full patch includes this record; its digest is stored in the separate private verification receipt to avoid self-reference.",
+      "ordinary_diff_limit": "An ordinary git diff omits full-width index IDs, yielding a different digest even when file content/hunks agree.",
+      "pre_rebase_limit": "HEAD remains the source base above. Incoming2d5bd163 and any later rebase/full verification are parent-owned and require refreshed exact-head evidence."
+    },
+    "file_hashes": {
+      ".github/workflows/ci.yml": {
+        "sha256": "7832306261c0440a49b16cfc893102b0f20b73901e33d3661a83a56d1437e0b9",
+        "normalized_lf_sha256": "7832306261c0440a49b16cfc893102b0f20b73901e33d3661a83a56d1437e0b9"
+      },
+      "Directory.Build.props": {
+        "sha256": "d5e4fd486e362ca9190cb53378696c86a232fc8c7e6a793a4e15d8bee374b4c1",
+        "normalized_lf_sha256": "d5e4fd486e362ca9190cb53378696c86a232fc8c7e6a793a4e15d8bee374b4c1"
+      },
+      "Directory.Build.targets": {
+        "sha256": "2ea247fe1c45eb27e17f9c0cb4355da05c6f64d15ab165aa2c5e7d3c32434d65",
+        "normalized_lf_sha256": "2ea247fe1c45eb27e17f9c0cb4355da05c6f64d15ab165aa2c5e7d3c32434d65"
+      },
+      "README.md": {
+        "sha256": "f0325a4c7bd9748d601ad9e902c8d52a477ac123b585aad8fd9422821fd3ff99",
+        "normalized_lf_sha256": "f0325a4c7bd9748d601ad9e902c8d52a477ac123b585aad8fd9422821fd3ff99"
+      },
+      "docs/development-route-catalog.md": {
+        "sha256": "2e6a87e37f855ee43e37abc04373a47a2b8dcbed32320a7d5ac81f9798098753",
+        "normalized_lf_sha256": "2e6a87e37f855ee43e37abc04373a47a2b8dcbed32320a7d5ac81f9798098753"
+      },
+      "docs/production-auth-claim-contract.md": {
+        "sha256": "a517ffbc503c4b3ee34070b4c888cb729e4e124215e3c2b6f43134e0a351e009",
+        "normalized_lf_sha256": "a517ffbc503c4b3ee34070b4c888cb729e4e124215e3c2b6f43134e0a351e009"
+      },
+      "scripts/verify-catalog-package-consumer.py": {
+        "sha256": "1e47fc671d95c46caad611f64533014381e05a10a47ab6d4ad82aaa2b377eb1b",
+        "normalized_lf_sha256": "1e47fc671d95c46caad611f64533014381e05a10a47ab6d4ad82aaa2b377eb1b"
+      },
+      "tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs": {
+        "sha256": "134daeb2ef7610b3a83a6f08d2cb6c111f405c3329456318f0811d39abfecfa0",
+        "normalized_lf_sha256": "134daeb2ef7610b3a83a6f08d2cb6c111f405c3329456318f0811d39abfecfa0"
+      },
+      "tests/Hexalith.Tenants.IntegrationTests/CommandApiRuntimeIntegrationTests.BoundWorkload.cs": {
+        "sha256": "75345dad4c8abc1e29db65a4f278a9ede55c335d512d9e7fac7749e029908670",
+        "normalized_lf_sha256": "556174adb3105e64fbf05d032fcac34ccb09fd3fdc297e09921b69879b125cb9"
+      },
+      "tests/Hexalith.Tenants.IntegrationTests/CommandApiRuntimeIntegrationTests.cs": {
+        "sha256": "fe8e7931b072da053629b082d02352d59ac061d6facc00f5b8d7e2b6c1fae580",
+        "normalized_lf_sha256": "fe8e7931b072da053629b082d02352d59ac061d6facc00f5b8d7e2b6c1fae580"
+      },
+      "tests/Hexalith.Tenants.IntegrationTests/Fixtures/TenantGatewayBoundWorkloadAuthority.cs": {
+        "sha256": "df252db6e40f95105f63d9bf938a706059b579070e339bebb1d4d290fa522fbb",
+        "normalized_lf_sha256": "ca9c22eca72fef43427a375d0a474e90577808a89171a387b82124d7cd0186ba"
+      },
+      "tests/Hexalith.Tenants.IntegrationTests/Fixtures/TenantGatewayTestHost.cs": {
+        "sha256": "0d3687ad6c00adbcda20421531bf14adbd86c5eecebc0c809294cc8d89235f18",
+        "normalized_lf_sha256": "c2eee6836873890b1b3cba1740f56a7ca85a2fc1dfdc6485e3c9f5df5f840aee"
+      },
+      "tests/scripts/test_catalog_package_consumer.py": {
+        "sha256": "ff9bc4081e1afd5d06e8dbba3f0c1bba0ab98a6ff97407e6a3af1806dd325776",
+        "normalized_lf_sha256": "ff9bc4081e1afd5d06e8dbba3f0c1bba0ab98a6ff97407e6a3af1806dd325776"
+      }
+    }
+  },
+  "retained_attempts": {
+    "command_runtime_initial": {
+      "total": 173,
+      "passed": 173,
+      "failed": 0,
+      "skipped": 0,
+      "note": "Pre-strengthening success retained; final176 includes three additional authority controls."
+    },
+    "tool_discovery": [
+      "Initial python alias was unavailable (127); python3 archive verification passed.",
+      "Installed dotnet-inspect rejected the skill legacy --oneline option; current documented -m Issue -n20 succeeded."
+    ],
+    "default_runtime_before_frozen_profile_repair": {
+      "command": [
+        "dotnet",
+        "tests/Hexalith.Tenants.IntegrationTests/bin/Release/net10.0/Hexalith.Tenants.IntegrationTests.dll",
+        "-class",
+        "Hexalith.Tenants.IntegrationTests.CommandApiRuntimeIntegrationTests",
+        "-noColor",
+        "-result-xml",
+        "/tmp/tenants-sdk132-qualification-20261102/command-runtime-final.xml"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/works/references/Hexalith.Tenants",
+      "exit_code": 0,
+      "log": "/tmp/tenants-sdk132-qualification-20261102/command-runtime-final.log",
+      "xml": "/tmp/tenants-sdk132-qualification-20261102/command-runtime-final.xml",
+      "counts": {
+        "total": 176,
+        "passed": 176,
+        "failed": 0,
+        "skipped": 0,
+        "errors": 0
+      }
+    },
+    "parent_frozen_legacy_failure": {
+      "selection": "HexalithEventStoreVersion=3.128.4, UseHexalithProjectReferences=false, UseNuGetDeps=true, HexalithEventStoreFromSource=false",
+      "results": [
+        {
+          "label": "legacy-ci-build",
+          "args": [
+            "dotnet",
+            "build",
+            "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+            "-c",
+            "Release",
+            "-warnaserror",
+            "-m:1",
+            "-nr:false",
+            "-p:UseHexalithProjectReferences=false",
+            "-p:UseNuGetDeps=true",
+            "-p:HexalithEventStoreFromSource=false",
+            "-p:HexalithFrontComposerFromSource=false",
+            "-p:HexalithMemoriesFromSource=false",
+            "-p:HexalithBuildsRoot=/home/administrator/projects/hexalith/works/references/Hexalith.Builds",
+            "-p:HexalithEventStoreVersion=3.128.4"
+          ],
+          "cwd": "/home/administrator/projects/hexalith/works/references/Hexalith.Tenants",
+          "exitCode": 0
+        },
+        {
+          "label": "legacy-ci-runtime",
+          "args": [
+            "dotnet",
+            "tests/Hexalith.Tenants.IntegrationTests/bin/Release/net10.0/Hexalith.Tenants.IntegrationTests.dll",
+            "-class",
+            "Hexalith.Tenants.IntegrationTests.CommandApiRuntimeIntegrationTests",
+            "-noColor",
+            "-result-xml",
+            "/home/administrator/projects/hexalith/works/.artifacts/tenants-sdk31320-parent-20261102/legacy-ci-runtime.xml"
+          ],
+          "cwd": "/home/administrator/projects/hexalith/works/references/Hexalith.Tenants",
+          "exitCode": 1,
+          "counts": {
+            "total": "173",
+            "passed": "171",
+            "failed": "2",
+            "skipped": "0",
+            "not-run": "0"
+          }
+        }
+      ],
+      "failure": "Both wrong-target cases passed original 422/actor/origin assertions before the added catalog service-surface assertion threw Sequence contains no matching element. The real frozen issuer predates that claim.",
+      "evidence_files": {
+        "/tmp/tenants-sdk132-qualification-20261102/legacy-compat-repair/retained-parent-legacy-failure/legacy-ci-build.log": "f56d68ca893c536ac4e0df41c97358ce79506eb1520f214e4060d5dbdf236b86",
+        "/tmp/tenants-sdk132-qualification-20261102/legacy-compat-repair/retained-parent-legacy-failure/legacy-ci-runtime.log": "7e17e3648390334ee945fa9a295fd6f13cdb72c99a977f0012a4dc12da279ac3",
+        "/tmp/tenants-sdk132-qualification-20261102/legacy-compat-repair/retained-parent-legacy-failure/legacy-ci-runtime.xml": "9dc4db03874cd5cb27169be32744bf21f1c56026c1865ad9760c5e59a7ffd530",
+        "/tmp/tenants-sdk132-qualification-20261102/legacy-compat-repair/retained-parent-legacy-failure/verification.json": "e037351d0976f3bca7a8e79696aee8bc781eef1716980503ad3833da9c48ac4f"
+      },
+      "original_evidence_directory": "/home/administrator/projects/hexalith/works/.artifacts/tenants-sdk31320-parent-20261102"
+    },
+    "review_fix_compile_missing_namespace": {
+      "command": "Default Release/public IntegrationTests build using the same flags as the successful selected-lane builds.",
+      "exit_code": 1,
+      "error": "CS0246 CommandProcessingResult namespace import absent in the new partial; added Hexalith.EventStore.Server.Actors using.",
+      "log": "/tmp/tenants-sdk132-qualification-20261102/review-fixes/composition-build.log",
+      "successful_retry_log": "/tmp/tenants-sdk132-qualification-20261102/review-fixes/composition-build-2.log"
+    },
+    "parent_modern_public_control_in_frozen_profile": {
+      "profile": "Frozen public SDK3.128.4 compatibility/topology profile, catalog symbol absent.",
+      "counts": {
+        "total": 175,
+        "passed": 174,
+        "failed": 1,
+        "skipped": 0,
+        "errors": 0
+      },
+      "failures": [
+        {
+          "name": "Hexalith.Tenants.IntegrationTests.CommandApiRuntimeIntegrationTests.BoundBootstrapPublicHumanCannotInvokeInternalOperation",
+          "message": "Shouldly.ShouldAssertException : response.StatusCode\n    should be\nHttpStatusCode.Forbidden\n    but was\nHttpStatusCode.InternalServerError"
+        }
+      ],
+      "actual_http_status": 500,
+      "expected_modern_http_status": 403,
+      "reason": "The newly added public catalog restriction control was incorrectly compiled into the frozen SDK profile, which predates that guard. Its modern assertions are preserved, and only this new inapplicable control is now compile-scoped to qualified catalog profiles. The legacy500 is neither accepted as a replacement expectation nor treated as production authorization qualification.",
+      "original_evidence_directory": "/home/administrator/projects/hexalith/works/.artifacts/tenants-sdk31320-parent-20261102/review-final",
+      "retained_evidence_files": {
+        "/tmp/tenants-sdk132-qualification-20261102/modern-control-scope/retained-parent-failure/legacy-build.log": "ee223b57974ea23a881c5a82414dace03a95d55474f8ec6238895ce48440a406",
+        "/tmp/tenants-sdk132-qualification-20261102/modern-control-scope/retained-parent-failure/legacy-runtime.log": "1a9d706920b0994b2c04a19987e4798c2279170343c89f269f4534ad630d8efa",
+        "/tmp/tenants-sdk132-qualification-20261102/modern-control-scope/retained-parent-failure/legacy.xml": "603c5bd36fe4b4e94bd74ce16438e19264362e855fe291968fd1d0cc730175f3",
+        "/tmp/tenants-sdk132-qualification-20261102/modern-control-scope/retained-parent-failure/source-files-before.json": "669a9023a53cf076f99de7b8e7a7e3a8dfe043a32c5382cab3778e7a562bafc6",
+        "/tmp/tenants-sdk132-qualification-20261102/modern-control-scope/retained-parent-failure/verification.json": "f741949d853fcf10287ebbb8e4e8dc3ee8ccf9f0202965f8fdda2b6802fae968"
+      }
+    }
+  },
+  "limits": [
+    "Local candidate metadata identifies the source base plus this uncommitted implementation, not a committed-source public release.",
+    "No native Dapr, containers or external infrastructure started; local transport doubles do not provide native qualification.",
+    "Source-only runtime cohort flag, frozen Testing.Integration3.128.4, explicit old/source selections and original API30-second resilience/credential behavior preserved.",
+    "No staging, commit, push, branching, SDK/peer pointers, submodule initialization or historical evidence changes.",
+    "Independent review and fresh exact-head hosted/native gates remain parent responsibilities.",
+    "Frozen3.128.4 compatibility/topology qualification does not qualify the modern public catalog authorization restriction or current production authorization."
+  ],
+  "private_evidence_directory": "/tmp/tenants-sdk132-qualification-20261102",
+  "commands_documented_in": "development-route-catalog.md#published-sdk-qualification",
+  "legacy_ci_compatibility": {
+    "declared_selection": "scripts/prepare-bootstrap-compatibility.sh writes the exact global -p:HexalithEventStoreVersion=3.128.4 for the declared disposable topology jobs; ci.yml passes it to the public-package builds. The script was inspected, not invoked.",
+    "repair": "Preserved the catalog-enabled service-surface assertion and added an explicit absent-surface assertion for the frozen issuer. No claim fabrication, credential changes, route/authentication changes, assertion deletion, skips, or deadline changes.",
+    "coverage": "Full runtime: legacy173/173; explicit3.129.0 floor176/176; default3.132.0 176/176. Every run includes both original wrong-target variants and all eleven new authority negatives. Zero failures, errors and skips.",
+    "qualification_sequence": "Earlier unchanged focused suites, package consumer and provenance checks remain recorded. The assertion-only repair reran all affected runtime coverage in all three profiles, ending with the restored default public SDK.",
+    "modern_public_control_scope": "Only the new public catalog prohibition control is compiled conditionally. Original173 legacy assertions and the additional producer success remain applicable, yielding174 legacy versus178 modern cases. The frozen profile is compatibility/topology evidence, not current production authorization qualification."
+  },
+  "parent_index_preservation": {
+    "staged_diff_sha256_before": "7f7413beb17352303a2549107ce1ac390c9d6200a3c9e6d4e94ab2d12deace74",
+    "staged_diff_sha256_after": "7f7413beb17352303a2549107ce1ac390c9d6200a3c9e6d4e94ab2d12deace74",
+    "scope": "All14 parent-staged files retained. The existing four review-patch files remain unstaged; this follow-up changed only the new control compile scope and qualification record."
+  }
+}
