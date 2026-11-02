@@ -4,8 +4,10 @@ using System.Text.Json;
 using Hexalith.EventStore.Client.Streams;
 using Hexalith.EventStore.Contracts.Identity;
 using Hexalith.EventStore.Contracts.Streams;
+using Hexalith.EventStore.ServiceDefaults.Routing;
 using Hexalith.Tenants.Server.Aggregates;
 using Hexalith.Tenants.Contracts.Events.Rejections;
+using Hexalith.Tenants.Configuration;
 
 using Microsoft.Extensions.DependencyInjection;
 
@@ -15,10 +17,14 @@ namespace Hexalith.Tenants.Authorization;
 /// <param name="reader">The authenticated reader requiring native proof.</param>
 /// <param name="metadata">The final native source observation.</param>
 /// <param name="clock">The observation clock.</param>
+/// <param name="invocationScope">Optional SDK-owned durable fence for one complete native read.</param>
+/// <param name="configuration">The exact configured EventStore gateway target.</param>
 public sealed class TenantsGlobalAdministratorAuthority(
     [FromKeyedServices("native-tenant-source")] IAuthoritativeEventStreamReader reader,
     INativeSourceMetadataReader metadata,
-    TimeProvider clock) : ITenantsGlobalAdministratorAuthority
+    TimeProvider clock,
+    RouteCatalogInvocationScope? invocationScope = null,
+    IConfiguration? configuration = null) : ITenantsGlobalAdministratorAuthority
 {
     private static readonly AggregateIdentity Identity = new("system", "global-administrators", "global-administrators");
     private static readonly IReadOnlyDictionary<string, (Type Type, MethodInfo Method)> EventTypes =
@@ -36,6 +42,15 @@ public sealed class TenantsGlobalAdministratorAuthority(
         cancellationToken.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(userId)) return false;
         if (_verifiedAdministrators is { } verified) return verified.Contains(userId);
+        return invocationScope is null
+            ? await VerifyCurrentAsync(userId, cancellationToken).ConfigureAwait(false)
+            : await invocationScope.ExecuteNativeSourceReadAsync(TenantEventStoreTarget.AppId(configuration
+                ?? throw new TenantsGlobalAdministratorAuthorityUnavailableException()),
+                () => VerifyCurrentAsync(userId, cancellationToken), cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<bool> VerifyCurrentAsync(string userId, CancellationToken cancellationToken)
+    {
         AuthoritativeStreamReadResult read = await reader.ReadAsync(Identity, cancellationToken).ConfigureAwait(false);
         if (!read.IsAuthoritative || read.Stream is not { NativeProof: { Erased: false } proof } source
             || source.Identity != Identity || source.Head <= 0 || source.Head > 10_000
