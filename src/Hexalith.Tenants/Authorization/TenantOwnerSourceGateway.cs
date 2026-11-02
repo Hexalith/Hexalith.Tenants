@@ -9,6 +9,7 @@ using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.EventStore.Contracts.Streams;
 using Hexalith.EventStore.ServiceDefaults.Authentication;
+using Hexalith.Tenants.Contracts.Identity;
 
 namespace Hexalith.Tenants.Authorization;
 
@@ -30,6 +31,10 @@ internal sealed class TenantOwnerSourceGateway(
             throw new InvalidOperationException("Tenant owner source scope is unavailable.");
         }
 
+        string platformScope = request.Domain == TenantIdentity.Domain
+            ? TenantPlatformScopes.Tenants : TenantPlatformScopes.GlobalAdministrators;
+        StreamReadRequest outbound = request with { Tenant = platformScope };
+
         string caller = configuration["Authentication:WorkloadIssuer:Workload"] ?? "tenants";
         if (string.IsNullOrWhiteSpace(caller)) throw new InvalidOperationException("Tenant source caller is unavailable.");
         string proof;
@@ -39,7 +44,7 @@ internal sealed class TenantOwnerSourceGateway(
             rsa.ImportPkcs8PrivateKey(Convert.FromBase64String(key), out _);
             if (rsa.KeySize < 2048) { throw new InvalidOperationException("Tenant source key is unavailable."); }
             DateTimeOffset now = clock.GetUtcNow();
-            var payload = new ProofPayload(1, caller, request.Tenant, request.Domain, request.AggregateId!,
+            var payload = new ProofPayload(1, caller, outbound.Tenant, outbound.Domain, outbound.AggregateId!,
                 now.ToUnixTimeSeconds(), now.AddSeconds(30).ToUnixTimeSeconds(),
                 Convert.ToHexString(RandomNumberGenerator.GetBytes(16)));
             string body = Base64Url(JsonSerializer.SerializeToUtf8Bytes(payload, JsonOptions));
@@ -55,8 +60,9 @@ internal sealed class TenantOwnerSourceGateway(
         if (string.IsNullOrWhiteSpace(assertion)) { throw new InvalidOperationException("Tenant source assertion is unavailable."); }
         using HttpRequestMessage message = new(HttpMethod.Post, "api/v1/streams/read/workload")
         {
-            Content = JsonContent.Create(request, options: JsonOptions),
+            Content = JsonContent.Create(outbound, options: JsonOptions),
         };
+        message.Headers.Add("X-Hexalith-Scope", platformScope);
         message.Headers.TryAddWithoutValidation(EventStoreWorkloadAuthenticationDefaults.AssertionHeaderName, assertion);
         message.Headers.TryAddWithoutValidation("X-Hexalith-Bound-Stream-Read-Proof", proof);
         using HttpResponseMessage response = await http.SendAsync(message, cancellationToken).ConfigureAwait(false);

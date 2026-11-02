@@ -45,10 +45,8 @@ public sealed class TenantsRestQueryClientTests
         empty.Payload.ShouldNotBeNull().Items.ShouldBeEmpty();
     }
 
-    [Theory]
-    [InlineData("tenant")]
-    [InlineData("global-administrators")]
-    public async Task Audit_stream_selector_survives_the_direct_rest_transport(string stream)
+    [Fact]
+    public async Task Global_audit_uses_the_platform_route_without_exposing_the_storage_identity()
     {
         var handler = new RecordingHandler(Success("{\"items\":[],\"cursor\":null,\"hasMore\":false}"));
         using var httpClient = new HttpClient(handler)
@@ -58,11 +56,12 @@ public sealed class TenantsRestQueryClientTests
         var client = new TenantsRestQueryClient(httpClient);
 
         _ = await client.GetTenantAuditAsync(
-            new GetTenantAuditQuery { TenantId = "system", Stream = stream, PageSize = 30 },
+            new GetTenantAuditQuery { TenantId = "system", Stream = "global-administrators", PageSize = 30 },
             null,
             TestContext.Current.CancellationToken);
 
-        handler.Requests.ShouldHaveSingleItem().PathAndQuery.ShouldContain("stream=" + stream);
+        handler.Requests.ShouldHaveSingleItem().PathAndQuery.ShouldBe("/api/global-administrators/audit?pageSize=30");
+        handler.Requests[0].Scope.ShouldBe("platform:tenants");
     }
 
     [Fact]
@@ -70,7 +69,7 @@ public sealed class TenantsRestQueryClientTests
     {
         var handler = new RecordingHandler(
             Success("{\"items\":[],\"cursor\":null,\"hasMore\":false}"),
-            Success("{\"tenantId\":\"tenant.alpha\",\"name\":\"Alpha\",\"description\":null,\"status\":\"Active\",\"members\":[],\"configuration\":{},\"createdAt\":\"2026-07-28T08:00:00Z\"}"),
+            Success("{\"tenantId\":\"tenant-alpha\",\"name\":\"Alpha\",\"description\":null,\"status\":\"Active\",\"members\":[],\"configuration\":{},\"createdAt\":\"2026-07-28T08:00:00Z\"}"),
             Success("{\"items\":[],\"cursor\":null,\"hasMore\":false}"),
             Success("{\"items\":[],\"cursor\":null,\"hasMore\":false}"),
             Success("{\"items\":[],\"cursor\":null,\"hasMore\":false}"),
@@ -86,11 +85,11 @@ public sealed class TenantsRestQueryClientTests
             "list-etag",
             TestContext.Current.CancellationToken);
         _ = await client.GetTenantAsync(
-            new GetTenantQuery { TenantId = "tenant.alpha" },
+            new GetTenantQuery { TenantId = "tenant-alpha" },
             "detail-etag",
             TestContext.Current.CancellationToken);
         _ = await client.GetTenantUsersAsync(
-            new GetTenantUsersQuery { TenantId = "tenant.alpha", Cursor = "users cursor/+", PageSize = 20 },
+            new GetTenantUsersQuery { TenantId = "tenant-alpha", Cursor = "users cursor/+", PageSize = 20 },
             "users-etag",
             TestContext.Current.CancellationToken);
         _ = await client.GetUserTenantsAsync(
@@ -100,7 +99,7 @@ public sealed class TenantsRestQueryClientTests
         _ = await client.GetTenantAuditAsync(
             new GetTenantAuditQuery
             {
-                TenantId = "tenant.alpha",
+                TenantId = "tenant-alpha",
                 From = DateTimeOffset.Parse("2026-07-01T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture),
                 To = DateTimeOffset.Parse("2026-07-28T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture),
                 Category = AuditEventCategory.Access,
@@ -117,10 +116,10 @@ public sealed class TenantsRestQueryClientTests
         handler.Requests.Select(static request => request.PathAndQuery).ShouldBe(
         [
             "/api/tenants?cursor=list%20cursor%2F%2B&pageSize=25",
-            "/api/tenants/tenant.alpha",
-            "/api/tenants/tenant.alpha/users?cursor=users%20cursor%2F%2B&pageSize=20",
+            "/api/tenants/tenant-alpha",
+            "/api/tenants/tenant-alpha/users?cursor=users%20cursor%2F%2B&pageSize=20",
             "/api/users/user.alpha/tenants?cursor=membership%20cursor%2F%2B&pageSize=12",
-            "/api/tenants/tenant.alpha/audit?from=2026-07-01T00%3A00%3A00.0000000%2B00%3A00&to=2026-07-28T00%3A00%3A00.0000000%2B00%3A00&category=Access&cursor=audit%20cursor%2F%2B&pageSize=30",
+            "/api/tenants/tenant-alpha/audit?from=2026-07-01T00%3A00%3A00.0000000%2B00%3A00&to=2026-07-28T00%3A00%3A00.0000000%2B00%3A00&category=Access&cursor=audit%20cursor%2F%2B&pageSize=30",
             "/api/global-administrators?cursor=admin%20cursor%2F%2B&pageSize=10",
         ]);
         // All six, not just the list and member reads. Previously only Requests[0] and Requests[2] were
@@ -144,11 +143,11 @@ public sealed class TenantsRestQueryClientTests
     public async Task Six_typed_reads_deserialize_their_success_payloads()
     {
         var handler = new RecordingHandler(
-            Success("{\"items\":[{\"tenantId\":\"tenant.alpha\",\"name\":\"Alpha\",\"status\":\"Active\"}],\"cursor\":\"list-next\",\"hasMore\":true}"),
-            Success("{\"tenantId\":\"tenant.alpha\",\"name\":\"Alpha\",\"description\":null,\"status\":\"Active\",\"members\":[{\"userId\":\"user.alpha\",\"role\":\"TenantOwner\"}],\"configuration\":{},\"createdAt\":\"2026-07-28T08:00:00Z\"}"),
+            Success("{\"items\":[{\"tenantId\":\"tenant-alpha\",\"name\":\"Alpha\",\"status\":\"Active\"}],\"cursor\":\"list-next\",\"hasMore\":true}"),
+            Success("{\"tenantId\":\"tenant-alpha\",\"name\":\"Alpha\",\"description\":null,\"status\":\"Active\",\"members\":[{\"userId\":\"user.alpha\",\"role\":\"TenantOwner\"}],\"configuration\":{},\"createdAt\":\"2026-07-28T08:00:00Z\"}"),
             Success("{\"items\":[{\"userId\":\"user.alpha\",\"role\":\"TenantOwner\"}],\"cursor\":null,\"hasMore\":false}"),
-            Success("{\"items\":[{\"tenantId\":\"tenant.alpha\",\"name\":\"Alpha\",\"status\":\"Active\",\"role\":\"TenantOwner\"}],\"cursor\":null,\"hasMore\":false}"),
-            Success("{\"items\":[{\"eventId\":\"event-1\",\"eventType\":\"TenantUpdated\",\"category\":\"Administrative\",\"actorId\":\"user.alpha\",\"timestamp\":\"2026-07-28T08:00:00Z\",\"tenantId\":\"tenant.alpha\",\"narrativePayload\":{}}],\"cursor\":null,\"hasMore\":false}"),
+            Success("{\"items\":[{\"tenantId\":\"tenant-alpha\",\"name\":\"Alpha\",\"status\":\"Active\",\"role\":\"TenantOwner\"}],\"cursor\":null,\"hasMore\":false}"),
+            Success("{\"items\":[{\"eventId\":\"event-1\",\"eventType\":\"TenantUpdated\",\"category\":\"Administrative\",\"actorId\":\"user.alpha\",\"timestamp\":\"2026-07-28T08:00:00Z\",\"tenantId\":\"tenant-alpha\",\"narrativePayload\":{}}],\"cursor\":null,\"hasMore\":false}"),
             Success("{\"items\":[{\"userId\":\"admin.alpha\"}],\"cursor\":null,\"hasMore\":false}"));
         using var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://tenants.invalid") };
         var client = new TenantsRestQueryClient(httpClient);
@@ -156,20 +155,20 @@ public sealed class TenantsRestQueryClientTests
         TenantsRestQueryResponse<PaginatedResult<TenantSummary>> tenants = await client.ListTenantsAsync(
             new ListTenantsQuery { PageSize = 20 }, null, TestContext.Current.CancellationToken);
         TenantsRestQueryResponse<TenantDetail> detail = await client.GetTenantAsync(
-            new GetTenantQuery { TenantId = "tenant.alpha" }, null, TestContext.Current.CancellationToken);
+            new GetTenantQuery { TenantId = "tenant-alpha" }, null, TestContext.Current.CancellationToken);
         TenantsRestQueryResponse<PaginatedResult<TenantMember>> users = await client.GetTenantUsersAsync(
-            new GetTenantUsersQuery { TenantId = "tenant.alpha", PageSize = 20 }, null, TestContext.Current.CancellationToken);
+            new GetTenantUsersQuery { TenantId = "tenant-alpha", PageSize = 20 }, null, TestContext.Current.CancellationToken);
         TenantsRestQueryResponse<PaginatedResult<UserTenantMembership>> memberships = await client.GetUserTenantsAsync(
             new GetUserTenantsQuery { UserId = "user.alpha", PageSize = 20 }, null, TestContext.Current.CancellationToken);
         TenantsRestQueryResponse<PaginatedResult<TenantAuditEntry>> audit = await client.GetTenantAuditAsync(
-            new GetTenantAuditQuery { TenantId = "tenant.alpha", PageSize = 20 }, null, TestContext.Current.CancellationToken);
+            new GetTenantAuditQuery { TenantId = "tenant-alpha", PageSize = 20 }, null, TestContext.Current.CancellationToken);
         TenantsRestQueryResponse<PaginatedResult<GlobalAdministratorSummary>> administrators = await client.GetGlobalAdministratorsAsync(
             new GetGlobalAdministratorsQuery { PageSize = 20 }, null, TestContext.Current.CancellationToken);
 
-        tenants.Payload!.Items.Single().TenantId.ShouldBe("tenant.alpha");
-        detail.Payload!.TenantId.ShouldBe("tenant.alpha");
+        tenants.Payload!.Items.Single().TenantId.ShouldBe("tenant-alpha");
+        detail.Payload!.TenantId.ShouldBe("tenant-alpha");
         users.Payload!.Items.Single().UserId.ShouldBe("user.alpha");
-        memberships.Payload!.Items.Single().TenantId.ShouldBe("tenant.alpha");
+        memberships.Payload!.Items.Single().TenantId.ShouldBe("tenant-alpha");
         audit.Payload!.Items.Single().EventId.ShouldBe("event-1");
         administrators.Payload!.Items.Single().UserId.ShouldBe("admin.alpha");
         new[] { tenants.IsSuccess, detail.IsSuccess, users.IsSuccess, memberships.IsSuccess, audit.IsSuccess, administrators.IsSuccess }
@@ -185,7 +184,7 @@ public sealed class TenantsRestQueryClientTests
         var client = new TenantsRestQueryClient(httpClient);
 
         TenantsRestQueryResponse<PaginatedResult<TenantAuditEntry>> result = await client.GetTenantAuditAsync(
-            new GetTenantAuditQuery { TenantId = "tenant.alpha", PageSize = 20 },
+            new GetTenantAuditQuery { TenantId = "tenant-alpha", PageSize = 20 },
             null,
             TestContext.Current.CancellationToken);
 
@@ -704,10 +703,9 @@ public sealed class TenantsRestQueryClientTests
     }
 
     [Fact]
-    public async Task An_identifier_containing_dots_among_other_characters_is_still_escaped_and_sent()
+    public async Task Dotted_tenant_identifier_is_rejected_before_the_request()
     {
-        // The rejection is for identities that are ONLY dots; ordinary dotted ids must keep working.
-        var handler = new RecordingHandler(Success("{}"));
+        var handler = new RecordingHandler();
         using var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://tenants.invalid") };
         var client = new TenantsRestQueryClient(httpClient);
 
@@ -716,7 +714,7 @@ public sealed class TenantsRestQueryClientTests
             null,
             TestContext.Current.CancellationToken);
 
-        handler.Requests.Select(static request => request.PathAndQuery).ShouldBe(["/api/tenants/tenant.alpha"]);
+        handler.Requests.ShouldBeEmpty();
     }
 
     [Theory]
@@ -747,12 +745,12 @@ public sealed class TenantsRestQueryClientTests
     [Theory]
     [InlineData("{\"tenantId\":null,\"name\":\"Alpha\",\"members\":[],\"configuration\":{}}")]
     [InlineData("{\"tenantId\":\"   \",\"name\":\"Alpha\",\"members\":[],\"configuration\":{}}")]
-    [InlineData("{\"tenantId\":\"tenant.alpha\",\"name\":null,\"members\":[],\"configuration\":{}}")]
-    [InlineData("{\"tenantId\":\"tenant.alpha\",\"name\":\"Alpha\",\"members\":null,\"configuration\":{}}")]
-    [InlineData("{\"tenantId\":\"tenant.alpha\",\"name\":\"Alpha\",\"members\":[null],\"configuration\":{}}")]
-    [InlineData("{\"tenantId\":\"tenant.alpha\",\"name\":\"Alpha\",\"members\":[{\"userId\":null,\"role\":\"TenantOwner\"}],\"configuration\":{}}")]
-    [InlineData("{\"tenantId\":\"tenant.alpha\",\"name\":\"Alpha\",\"members\":[{\"userId\":\"   \",\"role\":\"TenantOwner\"}],\"configuration\":{}}")]
-    [InlineData("{\"tenantId\":\"tenant.alpha\",\"name\":\"Alpha\",\"members\":[],\"configuration\":null}")]
+    [InlineData("{\"tenantId\":\"tenant-alpha\",\"name\":null,\"members\":[],\"configuration\":{}}")]
+    [InlineData("{\"tenantId\":\"tenant-alpha\",\"name\":\"Alpha\",\"members\":null,\"configuration\":{}}")]
+    [InlineData("{\"tenantId\":\"tenant-alpha\",\"name\":\"Alpha\",\"members\":[null],\"configuration\":{}}")]
+    [InlineData("{\"tenantId\":\"tenant-alpha\",\"name\":\"Alpha\",\"members\":[{\"userId\":null,\"role\":\"TenantOwner\"}],\"configuration\":{}}")]
+    [InlineData("{\"tenantId\":\"tenant-alpha\",\"name\":\"Alpha\",\"members\":[{\"userId\":\"   \",\"role\":\"TenantOwner\"}],\"configuration\":{}}")]
+    [InlineData("{\"tenantId\":\"tenant-alpha\",\"name\":\"Alpha\",\"members\":[],\"configuration\":null}")]
     public async Task Tenant_detail_payload_shape_is_rejected_when_identity_members_or_configuration_are_malformed(string json)
     {
         var handler = new RecordingHandler(Success(json));
@@ -760,7 +758,7 @@ public sealed class TenantsRestQueryClientTests
         var client = new TenantsRestQueryClient(httpClient);
 
         TenantsRestQueryResponse<TenantDetail> result = await client.GetTenantAsync(
-            new GetTenantQuery { TenantId = "tenant.alpha" },
+            new GetTenantQuery { TenantId = "tenant-alpha" },
             null,
             TestContext.Current.CancellationToken);
 
@@ -772,19 +770,19 @@ public sealed class TenantsRestQueryClientTests
     public async Task Well_formed_tenant_detail_payload_is_accepted()
     {
         var handler = new RecordingHandler(Success(
-            "{\"tenantId\":\"tenant.alpha\",\"name\":\"Alpha\","
+            "{\"tenantId\":\"tenant-alpha\",\"name\":\"Alpha\","
             + "\"members\":[{\"userId\":\"user.alpha\",\"role\":\"TenantOwner\"}],\"configuration\":{}}"));
         using var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://tenants.invalid") };
         var client = new TenantsRestQueryClient(httpClient);
 
         TenantsRestQueryResponse<TenantDetail> result = await client.GetTenantAsync(
-            new GetTenantQuery { TenantId = "tenant.alpha" },
+            new GetTenantQuery { TenantId = "tenant-alpha" },
             null,
             TestContext.Current.CancellationToken);
 
         result.FailureKind.ShouldBe(TenantsRestQueryFailureKind.None);
         result.Payload.ShouldNotBeNull();
-        result.Payload!.TenantId.ShouldBe("tenant.alpha");
+        result.Payload!.TenantId.ShouldBe("tenant-alpha");
         result.Payload.Members.Count.ShouldBe(1);
     }
 
@@ -797,7 +795,7 @@ public sealed class TenantsRestQueryClientTests
         var client = new TenantsRestQueryClient(httpClient);
 
         TenantsRestQueryResponse<PaginatedResult<TenantMember>> result = await client.GetTenantUsersAsync(
-            new GetTenantUsersQuery { TenantId = "tenant.alpha", PageSize = 20 },
+            new GetTenantUsersQuery { TenantId = "tenant-alpha", PageSize = 20 },
             null,
             TestContext.Current.CancellationToken);
 
@@ -840,7 +838,7 @@ public sealed class TenantsRestQueryClientTests
         var client = new TenantsRestQueryClient(httpClient);
 
         TenantsRestQueryResponse<TenantDetail> result = await client.GetTenantAsync(
-            new GetTenantQuery { TenantId = "tenant.alpha" },
+            new GetTenantQuery { TenantId = "tenant-alpha" },
             null,
             TestContext.Current.CancellationToken);
 
@@ -931,7 +929,7 @@ public sealed class TenantsRestQueryClientTests
         var client = new TenantsRestQueryClient(httpClient);
 
         TenantsRestQueryResponse<TenantDetail> result = await client.GetTenantAsync(
-            new GetTenantQuery { TenantId = "tenant.alpha" },
+            new GetTenantQuery { TenantId = "tenant-alpha" },
             null,
             TestContext.Current.CancellationToken);
 
@@ -950,7 +948,7 @@ public sealed class TenantsRestQueryClientTests
         var client = new TenantsRestQueryClient(httpClient);
 
         TenantsRestQueryResponse<TenantDetail> result = await client.GetTenantAsync(
-            new GetTenantQuery { TenantId = "tenant.alpha" },
+            new GetTenantQuery { TenantId = "tenant-alpha" },
             null,
             TestContext.Current.CancellationToken);
 
@@ -994,7 +992,7 @@ public sealed class TenantsRestQueryClientTests
         var client = new TenantsRestQueryClient(httpClient);
 
         TenantsRestQueryResponse<TenantDetail> result = await client.GetTenantAsync(
-            new GetTenantQuery { TenantId = "tenant.alpha" },
+            new GetTenantQuery { TenantId = "tenant-alpha" },
             null,
             TestContext.Current.CancellationToken);
 
@@ -1091,29 +1089,23 @@ public sealed class TenantsRestQueryClientTests
     }
 
     [Theory]
-    [InlineData("alpha?pageSize=9999", "/api/tenants/alpha%3FpageSize%3D9999")]
-    [InlineData("alpha#fragment", "/api/tenants/alpha%23fragment")]
-    [InlineData("alpha beta", "/api/tenants/alpha%20beta")]
-    [InlineData("alpha&x=1", "/api/tenants/alpha%26x%3D1")]
-    public async Task Route_identifiers_are_percent_escaped_before_the_uri_is_built(
-        string tenantId,
-        string expectedPath)
+    [InlineData("alpha?pageSize=9999")]
+    [InlineData("alpha#fragment")]
+    [InlineData("alpha beta")]
+    [InlineData("alpha&x=1")]
+    public async Task Invalid_tenant_route_identifiers_are_rejected_before_the_uri_is_built(string tenantId)
     {
-        // The only prior escaping test used "tenant.alpha", where every character is unreserved and
-        // Uri.EscapeDataString is the identity function -- so the escape call was unpinned. It matters
-        // because TryEscapeRouteValue rejects only '/', '\\' and all-dot values, and CreateRequestUri runs
-        // with DangerousDisablePathAndQueryCanonicalization = true: without the escape, a caller-supplied
-        // tenant id splices a query parameter into the request or truncates it at a fragment.
-        var handler = new RecordingHandler(Success("{\"tenantId\":\"alpha\",\"name\":\"Alpha\",\"members\":[],\"configuration\":{}}"));
+        var handler = new RecordingHandler();
         using var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://tenants.invalid") };
         var client = new TenantsRestQueryClient(httpClient);
 
-        _ = await client.GetTenantAsync(
+        TenantsRestQueryResponse<TenantDetail> result = await client.GetTenantAsync(
             new GetTenantQuery { TenantId = tenantId },
             null,
             TestContext.Current.CancellationToken);
 
-        handler.Requests.ShouldHaveSingleItem().PathAndQuery.ShouldBe(expectedPath);
+        handler.Requests.ShouldBeEmpty();
+        result.FailureKind.ShouldBe(TenantsRestQueryFailureKind.UnsupportedRouteIdentifier);
     }
 
     [Theory]
@@ -1299,7 +1291,7 @@ public sealed class TenantsRestQueryClientTests
         var client = new TenantsRestQueryClient(httpClient);
 
         TenantsRestQueryResponse<PaginatedResult<TenantMember>> result = await client.GetTenantUsersAsync(
-            new GetTenantUsersQuery { TenantId = "tenant.alpha", PageSize = 20 },
+            new GetTenantUsersQuery { TenantId = "tenant-alpha", PageSize = 20 },
             null,
             TestContext.Current.CancellationToken);
 
@@ -1311,7 +1303,7 @@ public sealed class TenantsRestQueryClientTests
     [InlineData("null", "\"Alpha\"")]
     [InlineData("\"\"", "\"Alpha\"")]
     [InlineData("\"   \"", "\"Alpha\"")]
-    [InlineData("\"tenant.alpha\"", "null")]
+    [InlineData("\"tenant-alpha\"", "null")]
     public async Task Membership_page_shape_requires_a_tenant_identity_and_non_null_name_on_every_row(
         string tenantId,
         string name)
@@ -1365,7 +1357,7 @@ public sealed class TenantsRestQueryClientTests
         var client = new TenantsRestQueryClient(httpClient);
 
         TenantsRestQueryResponse<PaginatedResult<TenantMember>> result = await client.GetTenantUsersAsync(
-            new GetTenantUsersQuery { TenantId = "tenant.alpha", PageSize = 20 },
+            new GetTenantUsersQuery { TenantId = "tenant-alpha", PageSize = 20 },
             null,
             TestContext.Current.CancellationToken);
 
@@ -1382,11 +1374,11 @@ public sealed class TenantsRestQueryClientTests
     /// narrative payload reached the surface as authoritative audit evidence.
     /// </remarks>
     [Theory]
-    [InlineData("event id", "null", "\"TenantUpdated\"", "\"actor.user\"", "\"tenant.alpha\"", "{}")]
-    [InlineData("event type", "\"event-1\"", "\" \"", "\"actor.user\"", "\"tenant.alpha\"", "{}")]
-    [InlineData("actor", "\"event-1\"", "\"TenantUpdated\"", "null", "\"tenant.alpha\"", "{}")]
+    [InlineData("event id", "null", "\"TenantUpdated\"", "\"actor.user\"", "\"tenant-alpha\"", "{}")]
+    [InlineData("event type", "\"event-1\"", "\" \"", "\"actor.user\"", "\"tenant-alpha\"", "{}")]
+    [InlineData("actor", "\"event-1\"", "\"TenantUpdated\"", "null", "\"tenant-alpha\"", "{}")]
     [InlineData("tenant scope", "\"event-1\"", "\"TenantUpdated\"", "\"actor.user\"", "\"\"", "{}")]
-    [InlineData("narrative payload", "\"event-1\"", "\"TenantUpdated\"", "\"actor.user\"", "\"tenant.alpha\"", "null")]
+    [InlineData("narrative payload", "\"event-1\"", "\"TenantUpdated\"", "\"actor.user\"", "\"tenant-alpha\"", "null")]
     public async Task Audit_page_shape_requires_every_evidence_field_on_every_row(
         string because,
         string eventId,
@@ -1404,7 +1396,7 @@ public sealed class TenantsRestQueryClientTests
         var client = new TenantsRestQueryClient(httpClient);
 
         TenantsRestQueryResponse<PaginatedResult<TenantAuditEntry>> result = await client.GetTenantAuditAsync(
-            new GetTenantAuditQuery { TenantId = "tenant.alpha", PageSize = 50 },
+            new GetTenantAuditQuery { TenantId = "tenant-alpha", PageSize = 50 },
             null,
             TestContext.Current.CancellationToken);
 
@@ -1426,7 +1418,7 @@ public sealed class TenantsRestQueryClientTests
     public async Task List_page_shape_requires_a_non_null_name_on_every_row()
     {
         var handler = new RecordingHandler(Success(
-            "{\"items\":[{\"tenantId\":\"tenant.alpha\",\"name\":null,\"status\":\"Active\"}],\"cursor\":null,\"hasMore\":false}"));
+            "{\"items\":[{\"tenantId\":\"tenant-alpha\",\"name\":null,\"status\":\"Active\"}],\"cursor\":null,\"hasMore\":false}"));
         using var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://tenants.invalid") };
         var client = new TenantsRestQueryClient(httpClient);
 
@@ -1612,7 +1604,8 @@ public sealed class TenantsRestQueryClientTests
             Requests.Add(new(
                 request.Method,
                 request.RequestUri?.PathAndQuery ?? string.Empty,
-                request.Headers.IfNoneMatch.SingleOrDefault()?.ToString()));
+                request.Headers.IfNoneMatch.SingleOrDefault()?.ToString(),
+                request.Headers.TryGetValues("X-Hexalith-Scope", out IEnumerable<string>? scopes) ? scopes.SingleOrDefault() : null));
             if (_responses.Count == 0)
             {
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
@@ -1625,7 +1618,7 @@ public sealed class TenantsRestQueryClientTests
         }
     }
 
-    private sealed record RecordedRequest(HttpMethod Method, string PathAndQuery, string? IfNoneMatch);
+    private sealed record RecordedRequest(HttpMethod Method, string PathAndQuery, string? IfNoneMatch, string? Scope);
 
     private sealed class ThrowingHandler(Exception exception) : HttpMessageHandler
     {

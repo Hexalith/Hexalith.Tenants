@@ -77,9 +77,9 @@ public class QueryContractNamingTests {
     }
 
     [Fact]
-    public void Exactly_6_IQueryContract_implementations_exist() {
+    public void Exactly_7_IQueryContract_implementations_exist() {
         List<Type> types = GetQueryContractTypes();
-        types.Count.ShouldBe(6, $"Expected 6 IQueryContract implementations, found {types.Count}: {string.Join(", ", types.Select(t => t.Name))}");
+        types.Count.ShouldBe(7, $"Expected 7 IQueryContract implementations, found {types.Count}: {string.Join(", ", types.Select(t => t.Name))}");
     }
 
     [Fact]

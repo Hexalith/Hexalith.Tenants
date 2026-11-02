@@ -86,7 +86,9 @@ public class TenantIntentDeclarationTests
     [Fact]
     public void PublicAndInternalQueryKindsAndExactPermissionsRemainExplicit()
     {
-        TenantCatalogDeclarations.Queries.Count.ShouldBe(8);
+        TenantCatalogDeclarations.Queries.Count.ShouldBe(9);
+        TenantCatalogDeclarations.Queries.Single(q => q.MessageType == "get-global-administrator-audit")
+            .PlatformAdmission!.RequiredHumanPermission.ShouldBe("tenants:read");
         TenantCatalogDeclarations.Queries.Count(q => q.Execution!.RequiresDelegatedContext).ShouldBe(2);
         TenantCatalogDeclarations.Queries.Where(q => q.Execution!.RequiresDelegatedContext).ShouldAllBe(q => q.Execution!.QueryKind == "computed" && q.ProjectionType == null);
         TenantCatalogDeclarations.Commands.Select(c => c.Route.PlatformAdmission!.RequiredHumanPermission).Order().ShouldBe(new[] {

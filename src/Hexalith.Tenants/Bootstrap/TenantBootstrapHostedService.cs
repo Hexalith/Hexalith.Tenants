@@ -92,7 +92,7 @@ public partial class TenantBootstrapHostedService(
                 object commandBody = new
                 {
                     messageId,
-                    tenant = TenantIdentity.DefaultTenantId,
+                    tenant = TenantPlatformScopes.GlobalAdministrators,
                     domain = TenantIdentity.GlobalAdministratorsDomain,
                     aggregateId = TenantIdentity.GlobalAdministratorsAggregateId,
                     commandType = nameof(BootstrapGlobalAdmin),
@@ -123,7 +123,7 @@ public partial class TenantBootstrapHostedService(
                 if (configuration.GetValue<bool>("Tenants:BootstrapBoundWorkloadEnabled"))
                 {
                     phase = "bound-administrator-validation";
-                    var submitted = new SubmitCommandRequest(messageId, TenantIdentity.DefaultTenantId,
+                    var submitted = new SubmitCommandRequest(messageId, TenantPlatformScopes.GlobalAdministrators,
                         TenantIdentity.GlobalAdministratorsDomain, TenantIdentity.GlobalAdministratorsAggregateId,
                         nameof(BootstrapGlobalAdmin), payloadElement, correlationId);
                     selectedRequest = await TenantBootstrapBoundCommand.CreateAsync(scope.ServiceProvider, configuration,
@@ -138,6 +138,8 @@ public partial class TenantBootstrapHostedService(
                     selectedRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
                 }
                 using HttpRequestMessage httpRequest = selectedRequest;
+                if (!httpRequest.Headers.Contains("X-Hexalith-Scope"))
+                    httpRequest.Headers.Add("X-Hexalith-Scope", TenantPlatformScopes.GlobalAdministrators);
 
                 TenantBootstrapReceipt? receipt = configuration.GetValue<bool>("Tenants:BootstrapBoundWorkloadEnabled")
                     ? await TenantBootstrapReceipt.BeginAsync(configuration, messageId, correlationId, userId, cancellationToken).ConfigureAwait(false) : null;

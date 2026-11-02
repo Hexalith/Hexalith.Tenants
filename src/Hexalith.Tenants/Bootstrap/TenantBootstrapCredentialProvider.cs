@@ -3,7 +3,6 @@ using System.Text;
 using System.Text.Json;
 
 using Hexalith.EventStore.ServiceDefaults.Authentication;
-using Hexalith.Tenants.Contracts.Identity;
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.JsonWebTokens;
@@ -193,7 +192,7 @@ internal sealed partial class TenantBootstrapCredentialProvider(
                     [JwtRegisteredClaimNames.Sub] = userId,
                     [JwtRegisteredClaimNames.Jti] = Convert.ToHexString(RandomNumberGenerator.GetBytes(16)).ToLowerInvariant(),
                     ["global_admin"] = "true",
-                    ["eventstore:tenant"] = TenantIdentity.DefaultTenantId,
+                    ["eventstore:permission"] = "global-administrators:bootstrap",
                 },
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256),
             };

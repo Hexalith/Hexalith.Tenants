@@ -15,7 +15,7 @@ namespace Hexalith.Tenants.Queries.Handlers;
 /// Serves the <c>get-tenant-audit</c> query: the paginated audit trail for a tenant, restricted to
 /// global administrators and defended in depth against cross-tenant row leakage.
 /// </summary>
-public sealed class GetTenantAuditQueryHandler(
+public class GetTenantAuditQueryHandler(
     IReadModelStore store,
     ITenantsGlobalAdministratorAuthority administratorAuthority,
     IQueryCursorCodec cursorCodec,
@@ -34,8 +34,12 @@ public sealed class GetTenantAuditQueryHandler(
 
     public override string QueryType => CatalogDeclaration.MessageType!;
 
+    /// <summary>Gets an owner selector enforced by a dedicated audit route.</summary>
+    protected virtual string? RequiredStream => null;
+
     /// <inheritdoc/>
     protected override async Task<QueryResult> ExecuteCoreAsync(QueryEnvelope envelope, CancellationToken cancellationToken) {
+        ArgumentNullException.ThrowIfNull(envelope);
         // CRITICAL: Check GlobalAdmin FIRST — non-admins must get 403, not 501
         if (!await IsGlobalAdminAsync(envelope, cancellationToken).ConfigureAwait(false)) {
             return new QueryResult(false, default, ErrorMessage: "Forbidden");
@@ -46,6 +50,12 @@ public sealed class GetTenantAuditQueryHandler(
 
         // Present envelope paging alone governs the page, so the legacy payload paging fields are not read.
         TenantAuditQueryPayload query = DeserializeAuditPayload(envelope.Payload, includePaging: envelope.Paging is null);
+        if (RequiredStream is { } owner)
+        {
+            if (envelope.AggregateId != "system" || query.Stream is not null && query.Stream != owner)
+                return new QueryResult(false, default, ErrorMessage: QueryAdapterFailureReason.InvalidEnvelope);
+            query = query with { Stream = owner };
+        }
         if (query.ErrorMessage is not null || !TenantAuditOwnership.IsValidSelector(query.Stream, envelope.AggregateId)) {
             return new QueryResult(false, default, ErrorMessage: query.ErrorMessage ?? QueryAdapterFailureReason.InvalidEnvelope);
         }
@@ -62,8 +72,8 @@ public sealed class GetTenantAuditQueryHandler(
             query.To,
             query.Category,
             query.Stream);
-        if (!CursorCodec.TryDecode(pagination.Cursor, GetTenantAuditQuery.QueryType, scope, out string? cursor, out string? failureReason)) {
-            return InvalidCursorResult(GetTenantAuditQuery.QueryType, "get-tenant-audit", envelope.AggregateId, envelope.UserId, failureReason);
+        if (!CursorCodec.TryDecode(pagination.Cursor, QueryType, scope, out string? cursor, out string? failureReason)) {
+            return InvalidCursorResult(QueryType, QueryType, envelope.AggregateId, envelope.UserId, failureReason);
         }
 
         cancellationToken.ThrowIfCancellationRequested();
@@ -107,7 +117,7 @@ public sealed class GetTenantAuditQueryHandler(
         PaginatedResult<TenantAuditEntry> result = ProtectCursor(
             PaginateAuditEntries(entries, cursor, pagination.PageSize, cancellationToken,
                 distinguishOwners: envelope.AggregateId == "system" && query.Stream is null),
-            GetTenantAuditQuery.QueryType,
+            QueryType,
             scope);
         cancellationToken.ThrowIfCancellationRequested();
         return CreateSuccessResult(

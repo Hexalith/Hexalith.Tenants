@@ -10,6 +10,7 @@ namespace Hexalith.Tenants.Contracts.Commands;
 [RestRoute(RestVerb.Put, "{tenantId}/configuration/{key}", ApiScope = "tenants")]
 [HexalithCommand(
     "Create or overwrite one configuration setting, a key with a string value, on an active tenant. Allowed for a global administrator or a TenantOwner of the tenant. A tenant holds at most 100 keys, so adding a new key beyond that is rejected while overwriting an existing key still works; setting a key to the value it already has changes nothing. Every tenant member can read the values, so do not store secrets.",
+    PlatformScope = TenantPlatformScopes.Tenants,
     Example = """{"TenantId":"acme","Key":"billing.plan","Value":"enterprise"}""")]
 public record SetTenantConfiguration(
     [property: HexalithIdentifier]

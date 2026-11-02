@@ -63,11 +63,13 @@ Expected: each line starts with a commit hash or a leading space. A leading `-` 
 
 > **Do not use recursive initialization.** Do not run `git submodule update --init --recursive`; nested submodules are intentionally left alone for this repository.
 
-### About the `system` Tenant
+### About platform scopes and `system` storage
 
-Hexalith.Tenants operates as a platform-level service within EventStore's multi-tenant model. All tenant management commands run under the `system` tenant context — this is a platform tenant that manages other tenants, not a user-facing tenant.
+Hexalith.Tenants stores its existing tenant histories in EventStore's shared `system` partition. That partition is not a managed tenant or a public request scope. Source-level platform commands and cross-tenant reads now request the cataloged `platform:tenants` scope; single-tenant reads request the canonical tenant ID. The gateway maps an authorized request to retained storage after checking the catalog and the caller's permission.
 
-For local development, the Aspire AppHost topology handles the `system` tenant configuration automatically. By default it starts a local Keycloak realm. AppHost generates the service administrator credentials for each run unless you supply the secret parameters below, and wires them into the realm and services. Do not extract generated credentials from resource environments or logs. You do not need to manually deploy EventStore or configure JWT tenant claims.
+The manual `system` request and claim examples later in this guide describe the currently published legacy package. They must be replaced and requalified with the coordinated EventStore, McpCli, and Tenants package release before use against the new boundary.
+
+For local development, the Aspire AppHost topology handles the retained storage configuration automatically. By default it starts a local Keycloak realm. AppHost generates the service administrator credentials for each run unless you supply the secret parameters below, and wires them into the realm and services. Do not extract generated credentials from resource environments or logs. You do not need to manually deploy EventStore or configure JWT tenant claims.
 
 ## Clone and Build
 

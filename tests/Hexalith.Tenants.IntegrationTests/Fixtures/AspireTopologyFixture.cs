@@ -194,6 +194,7 @@ public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith
             cancellationToken.ThrowIfCancellationRequested();
             using var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/commands") { Content = JsonContent.Create(command) };
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            request.Headers.Add("X-Hexalith-Scope", command.Tenant);
             HttpResponseMessage response;
             try
             {
@@ -227,7 +228,7 @@ public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith
                         return (null, "bootstrap-command-acceptance-invalid");
 
                     Hexalith.EventStore.Models.CommandStatusResponse status = await AspireTopologyTests.WaitForTerminalStatusAsync(
-                        commandApi, accepted.CorrelationId, token, cancellationToken);
+                        commandApi, accepted.CorrelationId, token, "platform:global-administrators", cancellationToken);
                     if (status.CorrelationId != accepted.CorrelationId
                         || status.MessageId is not null && status.MessageId != command.MessageId
                         || status.AggregateId != command.AggregateId

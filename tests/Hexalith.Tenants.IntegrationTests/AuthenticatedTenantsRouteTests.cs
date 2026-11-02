@@ -191,6 +191,16 @@ public sealed class AuthenticatedTenantsRouteTests(AuthenticatedRouteTopologyFix
             .ShouldBe(state.SeededAuditEvents.OrderBy(static item => item.Sequence).Select(static item => (item.EventType, item.Target)));
         var administrators = await AssertReadAsync(tag => client.GetGlobalAdministratorsAsync(new GetGlobalAdministratorsQuery { PageSize = 100 }, tag, timeout.Token));
         administrators.Items.ShouldContain(item => item.UserId == AuthenticatedRouteState.CallerId);
+        var globalAudit = await AssertReadAsync(tag => client.GetTenantAuditAsync(
+            new GetTenantAuditQuery { TenantId = "system", Stream = "global-administrators", PageSize = 100 }, tag, timeout.Token),
+            page => page.Items.Any(item => item.EventType == nameof(GlobalAdministratorSet)));
+        globalAudit.Items.ShouldAllBe(item => item.TenantId == "system"
+            && (item.EventType == nameof(GlobalAdministratorSet) || item.EventType == nameof(GlobalAdministratorRemoved)));
+        using var deniedRequest = new HttpRequestMessage(HttpMethod.Get, "/api/tenants/system/audit");
+        deniedRequest.Headers.Add("dapr-app-id", "tenants-api");
+        deniedRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", state.Token);
+        using HttpResponseMessage denied = await fixture.TenantsUiDaprClient.SendAsync(deniedRequest, timeout.Token);
+        denied.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
     }
 
     [DaprFact]

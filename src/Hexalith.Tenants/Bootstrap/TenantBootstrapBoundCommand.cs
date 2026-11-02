@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using System.Net.Http.Headers;
 using System.Security.Claims;
 using System.Text.Json;
 
@@ -43,8 +44,9 @@ internal static class TenantBootstrapBoundCommand
         var human = new ClaimsPrincipal(principal.Identities.Where(identity => identity.IsAuthenticated));
         Claim[] subjects = human.FindAll("sub").ToArray();
         if (subjects.Length != 1 || subjects[0].Value != administrator || !GlobalAdministratorHelper.IsGlobalAdministrator(human)
+            || !human.HasClaim("eventstore:permission", "global-administrators:bootstrap")
             || human.HasClaim(claim => claim.Type == EventStoreWorkloadAuthenticationDefaults.WorkloadClaimType)
-            || command.Tenant != TenantIdentity.DefaultTenantId || command.Domain != TenantIdentity.GlobalAdministratorsDomain
+            || command.Tenant != TenantPlatformScopes.GlobalAdministrators || command.Domain != TenantIdentity.GlobalAdministratorsDomain
             || command.AggregateId != TenantIdentity.GlobalAdministratorsAggregateId || command.CommandType != nameof(BootstrapGlobalAdmin)
             || command.Payload.Deserialize<BootstrapGlobalAdmin>(JsonSerializerOptions.Web)?.UserId != subjects[0].Value) return null;
         string? caller = configuration["Authentication:WorkloadIssuer:Workload"];
@@ -81,6 +83,8 @@ internal static class TenantBootstrapBoundCommand
             token.ThrowIfCancellationRequested();
             await request.Content.LoadIntoBufferAsync(1_048_576, token).ConfigureAwait(false);
             token.ThrowIfCancellationRequested();
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+            request.Headers.Add("X-Hexalith-Scope", TenantPlatformScopes.GlobalAdministrators);
             request.Headers.Add(EventStoreWorkloadAuthenticationDefaults.AssertionHeaderName, assertion);
             request.Headers.Add(BoundWorkloadCommandProof.HeaderName, BoundWorkloadCommandProof.Issue(bound, caller, privateKey, clock.GetUtcNow()));
             return request;

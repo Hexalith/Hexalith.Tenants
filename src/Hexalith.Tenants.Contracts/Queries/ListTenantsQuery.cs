@@ -3,6 +3,7 @@ using System.ComponentModel;
 using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.EventStore.Contracts.Rest;
 using Hexalith.McpCli.Abstractions;
+using Hexalith.Tenants.Contracts.Identity;
 
 namespace Hexalith.Tenants.Contracts.Queries;
 
@@ -13,6 +14,7 @@ namespace Hexalith.Tenants.Contracts.Queries;
 [HexalithQuery(
     "List the tenants visible to the caller, ordered by tenant identifier: every tenant for a global administrator, otherwise only the tenants the caller is a member of. Each item gives the tenant identifier, name and status (Active or Disabled). Results are paged: pageSize takes 1 to 100 (default 20, larger values are reduced to 100); to read the next page, pass the returned next-page cursor as the cursor argument: it is the result document's cursor, also reported as paging.nextCursor when a paging argument was sent. offset is not supported.",
     AggregateId = "index",
+    PlatformScope = TenantPlatformScopes.Tenants,
     Example = "{}")]
 public sealed class ListTenantsQuery : IQueryContract {
     [Description("Has no effect: use the pageSize and cursor call arguments instead.")]

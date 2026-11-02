@@ -42,6 +42,7 @@ internal static class TenantQueryTestHarness {
             new GetUserTenantsQueryHandler(store, administratorAuthority, cursorCodec, domainTelemetry, factory.CreateLogger<GetUserTenantsQueryHandler>(), options, timeProvider),
             new ListTenantsQueryHandler(store, administratorAuthority, cursorCodec, domainTelemetry, factory.CreateLogger<ListTenantsQueryHandler>(), options, timeProvider),
             new GetTenantAuditQueryHandler(store, administratorAuthority, cursorCodec, domainTelemetry, factory.CreateLogger<GetTenantAuditQueryHandler>(), options, timeProvider),
+            new GetGlobalAdministratorAuditQueryHandler(store, administratorAuthority, cursorCodec, domainTelemetry, factory.CreateLogger<GetTenantAuditQueryHandler>(), options, timeProvider),
             new GetGlobalAdministratorsQueryHandler(store, administratorAuthority, cursorCodec, domainTelemetry, factory.CreateLogger<GetGlobalAdministratorsQueryHandler>(), options, timeProvider),
         ];
     }

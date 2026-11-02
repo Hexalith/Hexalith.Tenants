@@ -304,7 +304,11 @@ public sealed class TenantOwnerSourceGatewayTests
         services.AddEventStoreRouteCatalog(configuration);
         ConfigureCatalogAuthorityControl(services, authorityConfiguration, terminal);
 #endif
+#if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
+        services.AddTenantOwnerSourceGateway()
+#else
         services.AddTenantOwnerSourceGateway(configuration)
+#endif
             .ConfigurePrimaryHttpMessageHandler(() => terminal);
         return services.BuildServiceProvider();
     }

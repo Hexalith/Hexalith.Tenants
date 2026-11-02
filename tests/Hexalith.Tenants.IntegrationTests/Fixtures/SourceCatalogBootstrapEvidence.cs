@@ -60,7 +60,8 @@ internal static class SourceCatalogBootstrapEvidence
                         || receipt.PrincipalId != AuthenticatedRouteState.CallerId || receipt.Phase != "accepted"
                         || receipt.HttpStatus != (int)HttpStatusCode.Accepted)
                         return (null, "bootstrap-owned-receipt-invalid");
-                    var status = await AspireTopologyTests.WaitForTerminalStatusAsync(commandApi, receipt.CorrelationId, humanToken, token);
+                    var status = await AspireTopologyTests.WaitForTerminalStatusAsync(commandApi, receipt.CorrelationId, humanToken,
+                        "platform:global-administrators", token);
                     if (status.CorrelationId != receipt.CorrelationId || status.MessageId is not null && status.MessageId != receipt.MessageId
                         || status.Domain is not null && status.Domain != TenantIdentity.GlobalAdministratorsDomain || status.AggregateId != TenantIdentity.GlobalAdministratorsAggregateId
                         || status.Status != "Completed" || status.StatusCode != (int)Hexalith.EventStore.Contracts.Commands.CommandStatus.Completed || status.EventCount != 1 || status.CommittedEventSequence is not > 0)

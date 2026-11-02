@@ -28,9 +28,9 @@ internal sealed record AuthenticatedRouteState(string TenantId, string TargetUse
     /// <summary>Creates state only through the command gateway and reads its persisted end state.</summary>
     internal static async Task<AuthenticatedRouteState> CreateAsync(HttpClient commandApi, CancellationToken cancellationToken)
     {
-        string token = AspireTopologyTests.CreateDemoJwt();
         // Sort after the populated-page control so retained route cursors are exercised with a full corpus.
         string tenantId = $"zz-live-routes-{Guid.NewGuid():N}";
+        string token = AspireTopologyTests.CreateDemoJwt(tenantId);
         string target = $"live-member-{Guid.NewGuid():N}";
         var bootstrap = await AspireTopologyTests.SubmitAndWaitForTerminalStatusAsync(
             commandApi,

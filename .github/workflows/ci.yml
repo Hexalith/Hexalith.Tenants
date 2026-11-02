@@ -244,7 +244,7 @@ jobs:
           name: tenants-dapr-read-retry-evidence
           path: ${{ runner.temp }}/tenants-dapr-*.json
           if-no-files-found: warn
-      - name: Verify cold bootstrap, six REST reads, conditional responses and cursor recovery
+      - name: Verify cold bootstrap, six REST reads, global-owner audit, public system denial and cursor recovery
         if: ${{ !cancelled() && steps.live-build.outcome == 'success' }}
         env:
           # This is the first live fixture on a fresh runner: require a newly committed bootstrap.

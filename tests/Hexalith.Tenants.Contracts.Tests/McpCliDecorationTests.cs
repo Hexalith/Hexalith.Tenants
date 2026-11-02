@@ -16,8 +16,8 @@ using Shouldly;
 namespace Hexalith.Tenants.Contracts.Tests;
 
 /// <summary>
-/// Pins the McpCli decoration of the Tenants Contracts: one "tenants" module with String identifiers and the fixed
-/// "system" tenant, exactly the nine approved Commands and five approved Queries, interface-only routing, and a
+/// Pins the McpCli decoration of the Tenants Contracts: one "tenants" module with String identifiers,
+/// explicit operation scopes, exactly the nine approved Commands and five approved Queries, interface-only routing, and a
 /// described, schema-valid payload for every exposed operation.
 /// </summary>
 public class McpCliDecorationTests {
@@ -72,8 +72,7 @@ public class McpCliDecorationTests {
 
         module.Name.ShouldBe("tenants");
         module.IdentifierKind.ShouldBe(IdentifierKind.String);
-        module.FixedTenant.ShouldBe("system");
-        module.FixedTenant.ShouldBe(TenantIdentity.DefaultTenantId);
+        module.FixedTenant.ShouldBeNull();
         module.WireTypeConvention.ShouldBe(WireTypeConvention.Explicit);
         module.SerializerOptionsProvider.ShouldBeNull();
         module.Description.ShouldNotBeNullOrWhiteSpace();
@@ -116,6 +115,7 @@ public class McpCliDecorationTests {
             command.CorrelationProperty.ShouldBeNull(type.Name);
             command.IdempotencyKeyProperty.ShouldBeNull(type.Name);
             command.ActorProperty.ShouldBeNull(type.Name);
+            command.PlatformScope.ShouldBe(TenantPlatformScopes.Tenants, type.Name);
 
             // The aggregate identifier stays the interface's TenantId projection and remains on the wire.
             PropertyInfo aggregateId = type.GetProperty(nameof(ICommandContract.AggregateId)).ShouldNotBeNull(type.Name);
@@ -135,6 +135,8 @@ public class McpCliDecorationTests {
             query.ProjectionType.ShouldBeNull(type.Name);
             query.ProjectionActorType.ShouldBeNull(type.Name);
             query.TenantProperty.ShouldBeNull(type.Name);
+            query.PlatformScope.ShouldBe(type == typeof(ListTenantsQuery) || type == typeof(GetUserTenantsQuery)
+                ? TenantPlatformScopes.Tenants : null, type.Name);
         }
 
         foreach (Type type in new[] { typeof(GetTenantQuery), typeof(GetTenantUsersQuery), typeof(GetTenantAuditQuery) }) {

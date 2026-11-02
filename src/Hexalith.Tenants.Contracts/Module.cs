@@ -1,11 +1,8 @@
 using Hexalith.McpCli.Abstractions;
-using Hexalith.Tenants.Contracts.Identity;
 
-// Declares this Contracts assembly as the McpCli "tenants" module. Every operation is submitted under the
-// fixed platform tenant "system"; managed tenants are aggregates, never envelope tenants. Payload
-// identifiers are opaque strings.
+// Platform operations declare their request scope individually. Single-tenant reads use the
+// caller's explicit canonical tenant; the Gateway maps authorized reads to retained storage.
 [assembly: HexalithModule(
     "tenants",
-    "Manage tenants: their lifecycle, user memberships and roles, configuration settings, and audit trail. Calls are always submitted under the fixed platform tenant 'system'; operations that take a TenantId act on that tenant, while tenants.list-tenants and tenants.get-user-tenants read across tenants. A global administrator is a platform operator allowed to manage every tenant.",
-    IdentifierKind.String,
-    FixedTenant = TenantIdentity.DefaultTenantId)]
+    "Manage tenant lifecycle, memberships, roles, configuration and audit. Commands and cross-tenant reads use their declared platform scope; single-tenant reads require an explicit canonical tenant. A global administrator may manage every tenant.",
+    IdentifierKind.String)]
