@@ -131,19 +131,23 @@ public class AspireTopologyTests : IDisposable {
         const string tenantDescription = "Created by the Story 4.7 persisted-route proof";
         using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(5));
 
-        CommandStatusResponse bootstrapStatus = await SubmitAndWaitForTerminalStatusAsync(
-            _fixture.CommandApiClient,
-            CreateCommand(
-                "global-administrators",
-                "global-administrators",
-                nameof(BootstrapGlobalAdmin),
-                new BootstrapGlobalAdmin(BootstrapGlobalAdminUserId)),
-            token,
-            timeout.Token,
-            allowAlreadyBootstrappedConflict: true);
-        (bootstrapStatus.Status == "Completed"
-            || (bootstrapStatus.Status == "Rejected" && bootstrapStatus.RejectionEventType == "GlobalAdminAlreadyBootstrappedRejection"))
-            .ShouldBeTrue($"Bootstrap status was {bootstrapStatus.Status}:{bootstrapStatus.RejectionEventType}.");
+        // In the catalog profile, fixture initialization already proved the owner-bound
+        // bootstrap. A second human command must remain forbidden.
+        if (!AspireTopologyFixture.IsSourceCatalogProfile) {
+            CommandStatusResponse bootstrapStatus = await SubmitAndWaitForTerminalStatusAsync(
+                _fixture.CommandApiClient,
+                CreateCommand(
+                    "global-administrators",
+                    "global-administrators",
+                    nameof(BootstrapGlobalAdmin),
+                    new BootstrapGlobalAdmin(BootstrapGlobalAdminUserId)),
+                token,
+                timeout.Token,
+                allowAlreadyBootstrappedConflict: true);
+            (bootstrapStatus.Status == "Completed"
+                || (bootstrapStatus.Status == "Rejected" && bootstrapStatus.RejectionEventType == "GlobalAdminAlreadyBootstrappedRejection"))
+                .ShouldBeTrue($"Bootstrap status was {bootstrapStatus.Status}:{bootstrapStatus.RejectionEventType}.");
+        }
 
         CommandStatusResponse createStatus = await SubmitAndWaitForTerminalStatusAsync(
             _fixture.CommandApiClient,

@@ -299,7 +299,9 @@ public sealed class AuthenticatedTenantsRouteTests(AuthenticatedRouteTopologyFix
         request.Headers.Add("dapr-app-id", "tenants-api");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AspireTopologyTests.CreateDemoJwt());
         using HttpResponseMessage response = await fixture.EventStoreDaprClient.SendAsync(request, TestContext.Current.CancellationToken);
-        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        // The gateway may reject this UI-surface token during authentication or
+        // after authenticating it; either boundary must refuse the wrong peer.
+        new[] { HttpStatusCode.Unauthorized, HttpStatusCode.Forbidden }.ShouldContain(response.StatusCode);
     }
 
     [DaprFact]

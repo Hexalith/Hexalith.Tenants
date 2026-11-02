@@ -32,11 +32,16 @@ internal sealed record AuthenticatedRouteState(string TenantId, string TargetUse
         string tenantId = $"zz-live-routes-{Guid.NewGuid():N}";
         string token = AspireTopologyTests.CreateDemoJwt(tenantId);
         string target = $"live-member-{Guid.NewGuid():N}";
-        var bootstrap = await AspireTopologyTests.SubmitAndWaitForTerminalStatusAsync(
-            commandApi,
-            AspireTopologyTests.CreateCommand("global-administrators", "global-administrators", nameof(BootstrapGlobalAdmin), new BootstrapGlobalAdmin(CallerId)),
-            token, cancellationToken, allowAlreadyBootstrappedConflict: true);
-        (bootstrap.Status == "Completed" || bootstrap.RejectionEventType == "GlobalAdminAlreadyBootstrappedRejection").ShouldBeTrue();
+        // The source catalog fixture already verified its owner-bound bootstrap.
+        // A human-scoped repeat is forbidden by the current catalog authority.
+        if (!AspireTopologyFixture.IsSourceCatalogProfile)
+        {
+            var bootstrap = await AspireTopologyTests.SubmitAndWaitForTerminalStatusAsync(
+                commandApi,
+                AspireTopologyTests.CreateCommand("global-administrators", "global-administrators", nameof(BootstrapGlobalAdmin), new BootstrapGlobalAdmin(CallerId)),
+                token, cancellationToken, allowAlreadyBootstrappedConflict: true);
+            (bootstrap.Status == "Completed" || bootstrap.RejectionEventType == "GlobalAdminAlreadyBootstrappedRejection").ShouldBeTrue();
+        }
         TestContext.Current.TestOutputHelper?.WriteLine("Live route seed: bootstrap checked.");
 
         var createRequest = AspireTopologyTests.CreateCommand("tenants", tenantId, nameof(CreateTenant), new CreateTenant(tenantId, "Live authenticated routes", "Command-seeded route qualification"));
