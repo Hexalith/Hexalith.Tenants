@@ -14,6 +14,8 @@ internal static class AppHostModelBuilder
         string digestKey = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
         string[] modelArgs =
         [
+            // Live-route CI exports this profile for its runtime. Model assertions select it explicitly.
+            "--TENANTS_SOURCE_CATALOG_PROFILE=false",
             .. args,
             $"--Tenants:DevelopmentRouteCatalog:CustodyDirectory={custodyDirectory}",
             "--Tenants:DevelopmentRouteCatalog:AuthorityComponentName=routing-tenants-owner",
