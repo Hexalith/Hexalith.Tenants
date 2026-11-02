@@ -13,8 +13,9 @@ using Hexalith.Tenants.UI.Services.Gateways;
 namespace Hexalith.Tenants.IntegrationTests.Fixtures;
 
 /// <summary>
-/// Shared xUnit fixture that boots the full Tenants Aspire AppHost topology
-/// (CommandApi + Sample with DAPR sidecars) and creates HTTP clients for smoke tests.
+/// Shared xUnit fixture that boots the Tenants Aspire AppHost topology
+/// and creates HTTP clients for smoke tests. The private source catalog profile
+/// omits the optional Sample service.
 /// </summary>
 /// <remarks>
 /// All DAPR/Aspire plumbing — placement/scheduler endpoint resolution, prerequisite probing, build/
@@ -348,7 +349,9 @@ public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith
         new("eventstore-dapr-cli", "http", TenantsApiClientTimeout, TenantsApiHealthTimeout, WaitForAliveness: false, TenantsApiHealthTimeout),
         new("tenants-dapr-cli", "http", TenantsApiClientTimeout, TenantsApiHealthTimeout, WaitForAliveness: false, TenantsApiHealthTimeout),
         new("tenants-ui-dapr-cli", "http", TenantsApiClientTimeout, TenantsApiHealthTimeout, WaitForAliveness: false, TenantsApiHealthTimeout),
-        new("sample", "http", SampleClientTimeout, SampleHealthTimeout, WaitForAliveness: true, SampleHealthTimeout),
+        .. IsSourceCatalogProfile
+            ? []
+            : new AspireResource[] { new("sample", "http", SampleClientTimeout, SampleHealthTimeout, WaitForAliveness: true, SampleHealthTimeout) },
 #if HEXALITH_DEVELOPMENT_CATALOG_COHORT
         // The source qualification also drives the real Admin UI's existing SSR/client transport.
         .. IsSourceCatalogProfile
