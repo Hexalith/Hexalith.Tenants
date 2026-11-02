@@ -287,6 +287,9 @@ jobs:
           --minimum-expected-tests 5 --fail-skips on
       - name: Verify bootstrap lifecycle and authority guards
         if: ${{ !cancelled() && steps.live-build.outcome == 'success' }}
+        # This fake-HTTP suite checks default bootstrap behavior; the live catalog profile belongs to later socket checks.
+        env:
+          TENANTS_SOURCE_CATALOG_PROFILE: 'false'
         run: >
           dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj
           --configuration Release --no-build
