@@ -62,7 +62,7 @@ public sealed class SourceCatalogOwnerProfileTests(AspireTopologyFixture fixture
         status.Status.ShouldBe("Completed"); status.EventCount.HasValue.ShouldBeTrue(); status.EventCount.Value.ShouldBeGreaterThan(0);
         var persisted = await AspireTopologyTests.WaitForPersistedTenantAsync(tenantId, null, deadline.Token);
         persisted.ShouldNotBeNull();
-        using var scoped = AspireTopologyTests.CreateIsolatedTenantsApiClient(fixture.TenantsApiClient, token, _ => { });
+        using var scoped = AspireTopologyTests.CreateIsolatedTenantsApiClient(fixture.TenantsApiClient, AspireTopologyTests.CreateDemoJwt(tenantId), _ => { });
         var rest = new TenantsRestQueryClient(scoped);
         var list = await rest.ListTenantsAsync(new ListTenantsQuery { PageSize = 100 }, null, deadline.Token);
         list.IsSuccess.ShouldBeTrue(list.ToString());

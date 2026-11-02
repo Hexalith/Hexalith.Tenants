@@ -139,6 +139,8 @@ Edge-case reviewer returned no findings. Verification-gap reviewer returned no f
 
 ## File List
 
+- `references/Hexalith.EventStore`
+
 - `references/Hexalith.Builds`
 - `references/Hexalith.FrontComposer`
 - `references/Hexalith.Memories`
@@ -146,16 +148,19 @@ Edge-case reviewer returned no findings. Verification-gap reviewer returned no f
 
 ## Completion Notes List
 
-These four root dependency pointer changes implement the user's explicit synchronization request. Builds includes the compatible package upgrades and generated audit; FrontComposer includes its reviewed accessibility evidence; Memories includes its current release workflow fixes; Platform includes current scoped catalog consumer qualification. The remaining five root pointers were already current. No nested submodule was initialized.
+These root dependency pointer changes implement the user's explicit synchronization request. Builds includes the compatible package upgrades and generated audit; FrontComposer includes its reviewed accessibility evidence; Memories includes its current release workflow fixes; Platform includes current scoped catalog consumer qualification. EventStore advanced during the final push with canonical platform-scope validation fixes; the remaining four root pointers were already current. No nested submodule was initialized.
 
 | Path | Baseline | Target |
 | --- | --- | --- |
+| `references/Hexalith.EventStore` | `ff5a38f5b80d66bafbac9ddc2388510534fb0ddd` | `853721d77b9f15fc2963ef0b9a019d4a2cf22f1e` |
 | `references/Hexalith.Builds` | `728945314c3b7adf300df1964d5668047cfc338a` | `8f3ce34436299d4682ff50dc3fe18360a09a88e1` |
 | `references/Hexalith.FrontComposer` | `d1236f9e5f21c0a000e1081846a2ea6308a35fd3` | `73ff2f87e430d983661c42674c0e433b4b76045f` |
 | `references/Hexalith.Memories` | `9c0fac6ec0227b318662dcb9bb3217c5de995c66` | `66822bc5bc4858c824f17b7d093f5f0f676b03ea` |
 | `references/Hexalith.Platform` | `52e361d4a41b681b06f5e885f9f9857d8b08f5b2` | `c635a2dc22f404d97c9fe7e27f7e7f4c9017943b` |
 
 The first exact push-range gitlink check exposed missing declarations in this new spec. These declarations and exact targets repair that evidence omission; the baseline and production guard remain unchanged.
+
+Final synchronization also records EventStore `853721d77b9f15fc2963ef0b9a019d4a2cf22f1e`, already pushed by concurrent upstream work. It adds canonical platform scope acceptance to the four API request validators and their focused regressions. This inspected upstream commit changes no library source edge used by the final Tenants unit suites. EventStore run41488610131 passed on its preceding main; the new commit has its own pending CI. FrontComposer retry remains green. No unfinished upstream edits were staged by this task.
 
 ## Verification
 
