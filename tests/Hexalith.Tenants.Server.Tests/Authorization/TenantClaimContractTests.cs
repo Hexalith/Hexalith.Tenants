@@ -103,23 +103,46 @@ public class TenantClaimContractTests {
         TenantClaims(result).ShouldBe(["system", "tenant-a"]);
     }
 
-    [Fact]
-    public async Task DuplicateSourceTenantValuesAreRetainedAndStillAuthorizeSystemTenant() {
-        string tenants = JsonSerializer.Serialize(new[] { "system", "system" });
+    [Theory]
+    [InlineData("tenant-a", "tenant-a")]
+    [InlineData("TENANT-A", "tenant-a")]
+    [InlineData("tenant-a", "TENANT-A")]
+    [InlineData("TENANT-A", "TENANT-A")]
+    public async Task MatchingCanonicalTenantGrantAuthorizesAndForwardsLowercaseTenant(string requestTenant, string grant) {
+        ClaimsPrincipal principal = CreatePrincipal(
+            new Claim("sub", "user-1"),
+            new Claim(TenantClaimType, grant));
+
+        ClaimsPrincipal result = await _transformation.TransformAsync(principal);
+        TenantValidationResult validation = await new ClaimsTenantValidator()
+            .ValidateAsync(result, requestTenant, CancellationToken.None);
+
+        TenantClaims(result).ShouldBe([grant]);
+        validation.IsAuthorized.ShouldBeTrue();
+        validation.CanonicalTenantId.ShouldBe("tenant-a");
+        validation.ReasonCode.ShouldBe(AuthorizationFailureReason.None);
+    }
+
+    [Theory]
+    [InlineData("tenant-a")]
+    [InlineData("TENANT-A")]
+    public async Task DuplicateCanonicalSourceTenantValuesAreRetainedAndFailClosed(string duplicate) {
+        string tenants = JsonSerializer.Serialize(new[] { "tenant-a", duplicate });
         ClaimsPrincipal principal = CreatePrincipal(
             new Claim("sub", "user-1"),
             new Claim("tenants", tenants));
 
         ClaimsPrincipal result = await _transformation.TransformAsync(principal);
         TenantValidationResult validation = await new ClaimsTenantValidator()
-            .ValidateAsync(result, "system", CancellationToken.None);
+            .ValidateAsync(result, "tenant-a", CancellationToken.None);
 
-        TenantClaims(result).ShouldBe(["system", "system"]);
-        validation.IsAuthorized.ShouldBeTrue();
+        TenantClaims(result).ShouldBe(["tenant-a", duplicate]);
+        validation.IsAuthorized.ShouldBeFalse();
+        validation.ReasonCode.ShouldBe(AuthorizationFailureReason.TenantAmbiguous);
     }
 
     [Fact]
-    public async Task WhitespaceOnlyTenantSourceClaimFailsClosedForSystemTenant() {
+    public async Task WhitespaceOnlyTenantSourceClaimFailsClosedForCanonicalTenant() {
         string tenants = JsonSerializer.Serialize(new[] { " " });
         ClaimsPrincipal principal = CreatePrincipal(
             new Claim("sub", "user-1"),
@@ -127,10 +150,10 @@ public class TenantClaimContractTests {
 
         ClaimsPrincipal result = await _transformation.TransformAsync(principal);
         TenantValidationResult validation = await new ClaimsTenantValidator()
-            .ValidateAsync(result, "system", CancellationToken.None);
+            .ValidateAsync(result, "tenant-a", CancellationToken.None);
 
         validation.IsAuthorized.ShouldBeFalse();
-        validation.ReasonCode.ShouldBe(AuthorizationFailureReason.PrincipalNotMember);
+        validation.ReasonCode.ShouldBe(AuthorizationFailureReason.TenantAmbiguous);
     }
 
     [Fact]
@@ -160,19 +183,19 @@ public class TenantClaimContractTests {
         ClaimsPrincipal principal = CreatePrincipal(
             new Claim("sub", "user-1"),
             new Claim(TenantClaimType, directValue),
-            new Claim("tenants", "system"));
+            new Claim("tenants", "tenant-a"));
 
         ClaimsPrincipal result = await _transformation.TransformAsync(principal);
         TenantValidationResult validation = await new ClaimsTenantValidator()
-            .ValidateAsync(result, "system", CancellationToken.None);
+            .ValidateAsync(result, "tenant-a", CancellationToken.None);
 
         TenantClaims(result).ShouldBe([directValue]);
         validation.IsAuthorized.ShouldBeFalse();
-        validation.ReasonCode.ShouldBe(AuthorizationFailureReason.PrincipalNotMember);
+        validation.ReasonCode.ShouldBe(AuthorizationFailureReason.TenantAmbiguous);
     }
 
-    // Story 7.3: Tenants keeps EventStore's shared global-admin tenant bypass intact, but wraps it
-    // with a host-level production contract that still requires eventstore:tenant=system.
+    // Administrator identity hints never bypass canonical tenant membership. The retained
+    // system-tenant wrapper also continues to deny principals without tenant grants.
     [Theory]
     [InlineData("global_admin", "true")]
     [InlineData("global_admin", "True")]
@@ -184,19 +207,20 @@ public class TenantClaimContractTests {
     [InlineData("roles", "[\"GlobalAdministrator\"]")]
     [InlineData("roles", "GlobalAdministrator other-role")]
     [InlineData("roles", "user,GlobalAdministrator")]
-    public async Task TenantsGlobalAdministratorMissingTenantClaimFailsClosedForSystemTenant(string claimType, string claimValue) {
+    public async Task GlobalAdministratorMissingTenantClaimFailsClosed(string claimType, string claimValue) {
         ClaimsPrincipal principal = CreatePrincipal(
             new Claim("sub", "admin-user"),
             new Claim(claimType, claimValue));
 
         ClaimsPrincipal result = await _transformation.TransformAsync(principal);
         TenantValidationResult sharedValidation = await new ClaimsTenantValidator()
-            .ValidateAsync(result, "system", CancellationToken.None);
+            .ValidateAsync(result, "tenant-a", CancellationToken.None);
         TenantValidationResult tenantsValidation = await new TenantsSystemTenantValidator(new ClaimsTenantValidator())
             .ValidateAsync(result, "system", CancellationToken.None);
 
         TenantClaims(result).ShouldBeEmpty();
-        sharedValidation.IsAuthorized.ShouldBeTrue();
+        sharedValidation.IsAuthorized.ShouldBeFalse();
+        sharedValidation.ReasonCode.ShouldBe(AuthorizationFailureReason.PrincipalNotMember);
         tenantsValidation.IsAuthorized.ShouldBeFalse();
         tenantsValidation.ReasonCode.ShouldBe(AuthorizationFailureReason.PrincipalNotMember);
     }
@@ -212,7 +236,7 @@ public class TenantClaimContractTests {
     [InlineData("global_admin", "yes")]
     [InlineData("global_admin", "1")]
     [InlineData("is_global_admin", "false")]
-    public async Task NonGlobalAdministratorMissingTenantClaimFailsClosedForSystemTenant(string? claimType, string? claimValue) {
+    public async Task NonGlobalAdministratorMissingTenantClaimFailsClosedForCanonicalTenant(string? claimType, string? claimValue) {
         // Companion to GlobalAdministratorMissingTenantClaim... — proves that the same missing-
         // tenant principal without truthy global-admin evidence is denied. Spec Tasks line 47
         // requires non-global-admin and global-admin missing-tenant cases be kept distinct.
@@ -222,7 +246,7 @@ public class TenantClaimContractTests {
 
         ClaimsPrincipal result = await _transformation.TransformAsync(principal);
         TenantValidationResult validation = await new ClaimsTenantValidator()
-            .ValidateAsync(result, "system", CancellationToken.None);
+            .ValidateAsync(result, "tenant-a", CancellationToken.None);
 
         TenantClaims(result).ShouldBeEmpty();
         validation.IsAuthorized.ShouldBeFalse();
@@ -244,7 +268,28 @@ public class TenantClaimContractTests {
         validation.ReasonCode.ShouldBe(AuthorizationFailureReason.TenantMismatch);
     }
 
-    // Pins docs/production-auth-claim-contract.md:13 — "Do not use `name` as the trusted subject."
+    [Theory]
+    [InlineData("system", false)]
+    [InlineData("system", true)]
+    [InlineData("System", false)]
+    [InlineData("System", true)]
+    [InlineData("SYSTEM", false)]
+    [InlineData("SYSTEM", true)]
+    public async Task ReservedSystemRequestTenantFailsClosedEvenWithMatchingGrant(string tenant, bool administrator) {
+        ClaimsPrincipal principal = CreatePrincipal(
+            new Claim("sub", "user-1"),
+            new Claim("global_admin", administrator.ToString()),
+            new Claim(TenantClaimType, tenant));
+
+        ClaimsPrincipal result = await _transformation.TransformAsync(principal);
+        TenantValidationResult validation = await new ClaimsTenantValidator()
+            .ValidateAsync(result, tenant, CancellationToken.None);
+
+        validation.IsAuthorized.ShouldBeFalse();
+        validation.ReasonCode.ShouldBe(AuthorizationFailureReason.TenantMismatch);
+    }
+
+    // Pins docs/production-auth-claim-contract.md — "Do not use `name` as the trusted subject."
     // A token carrying only `name` (no `sub`) must NOT be promoted to NameIdentifier and must
     // NOT authorize without an eventstore:tenant claim. Sourced from 11-2 review deferred-work
     // (see _bmad-output/implementation-artifacts/deferred-work.md).
@@ -255,7 +300,7 @@ public class TenantClaimContractTests {
 
         ClaimsPrincipal result = await _transformation.TransformAsync(principal);
         TenantValidationResult validation = await new ClaimsTenantValidator()
-            .ValidateAsync(result, "system", CancellationToken.None);
+            .ValidateAsync(result, "tenant-a", CancellationToken.None);
 
         // NOTE: assert on the Claim itself, not `?.Value`. The conditional access on a missing
         // claim short-circuits the whole expression to null and `.ShouldBeNull()` is never

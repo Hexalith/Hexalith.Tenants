@@ -155,6 +155,7 @@ public class EventPublicationConfigurationTests {
         IDomainQueryHandler[] handlers = [.. scope.ServiceProvider.GetServices<IDomainQueryHandler>()];
         handlers.Select(handler => handler.QueryType).ShouldBe(
             [
+                GetGlobalAdministratorAuditQuery.QueryType,
                 GetGlobalAdministratorsQuery.QueryType,
                 GetTenantAuditQuery.QueryType,
                 GetTenantQuery.QueryType,
@@ -176,6 +177,7 @@ public class EventPublicationConfigurationTests {
             .Single(domain => domain.Domain == GetTenantQuery.Domain);
         tenants.QueryTypes.ShouldBe(
             [
+                GetGlobalAdministratorAuditQuery.QueryType,
                 GetTenantAuditQuery.QueryType,
                 GetTenantQuery.QueryType,
                 GetTenantUsersQuery.QueryType,

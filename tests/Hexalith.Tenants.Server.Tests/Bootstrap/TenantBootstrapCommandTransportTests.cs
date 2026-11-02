@@ -155,11 +155,27 @@ public sealed class TenantBootstrapCommandTransportTests
                 sent = request;
                 request.Method.ShouldBe(HttpMethod.Post);
                 request.RequestUri!.AbsoluteUri.ShouldStartWith("http://127.0.0.1:3500/v1.0/invoke/eventstore/method/");
+                request.Headers.GetValues("X-Hexalith-Scope").ShouldHaveSingleItem().ShouldBe(TenantPlatformScopes.GlobalAdministrators);
+                var authorization = request.Headers.Authorization.ShouldNotBeNull();
+                authorization.Scheme.ShouldBe("Bearer");
+                var validation = await new JsonWebTokenHandler().ValidateTokenAsync(authorization.Parameter.ShouldNotBeNull(),
+                    new TokenValidationParameters
+                    {
+                        ValidIssuer = "bootstrap-origin",
+                        ValidAudience = "bootstrap-reader",
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Authentication:JwtBearer:SigningKey"]!)),
+                        ValidateIssuerSigningKey = true,
+                        ValidateLifetime = true,
+                    });
+                validation.IsValid.ShouldBeTrue();
+                validation.ClaimsIdentity.FindFirst("sub")!.Value.ShouldBe("bootstrap-administrator");
+                validation.ClaimsIdentity.FindFirst("global_admin")!.Value.ShouldBe("true");
+                validation.ClaimsIdentity.FindFirst("eventstore:permission")!.Value.ShouldBe("global-administrators:bootstrap");
+                validation.ClaimsIdentity.FindFirst("eventstore:tenant").ShouldBeNull();
                 SubmitCommandRequest submitted;
                 if (boundWorkload)
                 {
                     request.RequestUri.AbsolutePath.ShouldEndWith("/api/v1/commands/bound/workload");
-                    request.Headers.Authorization.ShouldBeNull();
                     request.Headers.GetValues(EventStoreWorkloadAuthenticationDefaults.AssertionHeaderName).ShouldHaveSingleItem().ShouldNotBeNullOrWhiteSpace();
                     request.Content!.Headers.ContentLength.ShouldNotBeNull().ShouldBeGreaterThan(0L);
                     byte[] bytes = await request.Content.ReadAsByteArrayAsync(token);
@@ -175,23 +191,9 @@ public sealed class TenantBootstrapCommandTransportTests
                     request.RequestUri.AbsolutePath.ShouldEndWith("/api/v1/commands");
                     request.Headers.Contains(EventStoreWorkloadAuthenticationDefaults.AssertionHeaderName).ShouldBeFalse();
                     request.Headers.Contains(BoundWorkloadCommandProof.HeaderName).ShouldBeFalse();
-                    var authorization = request.Headers.Authorization.ShouldNotBeNull();
-                    authorization.Scheme.ShouldBe("Bearer");
-                    var validation = await new JsonWebTokenHandler().ValidateTokenAsync(authorization.Parameter.ShouldNotBeNull(),
-                        new TokenValidationParameters
-                        {
-                            ValidIssuer = "bootstrap-origin",
-                            ValidAudience = "bootstrap-reader",
-                            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Authentication:JwtBearer:SigningKey"]!)),
-                            ValidateIssuerSigningKey = true,
-                            ValidateLifetime = true,
-                        });
-                    validation.IsValid.ShouldBeTrue();
-                    validation.ClaimsIdentity.FindFirst("sub")!.Value.ShouldBe("bootstrap-administrator");
-                    validation.ClaimsIdentity.FindFirst("global_admin")!.Value.ShouldBe("true");
                     submitted = (await request.Content!.ReadFromJsonAsync<SubmitCommandRequest>(token)).ShouldNotBeNull();
                 }
-                submitted.Tenant.ShouldBe(TenantIdentity.DefaultTenantId);
+                submitted.Tenant.ShouldBe(TenantPlatformScopes.GlobalAdministrators);
                 submitted.Domain.ShouldBe(TenantIdentity.GlobalAdministratorsDomain);
                 submitted.AggregateId.ShouldBe(TenantIdentity.GlobalAdministratorsAggregateId);
                 submitted.CommandType.ShouldBe(nameof(BootstrapGlobalAdmin));
@@ -394,7 +396,7 @@ public sealed class TenantBootstrapCommandTransportTests
             originCalls.ShouldBe(1);
 
             using RSA proofKey = RSA.Create(2048);
-            var submitted = new SubmitCommandRequest("01ARZ3NDEKTSV4RRFFQ69G5FAV", TenantIdentity.DefaultTenantId,
+            var submitted = new SubmitCommandRequest("01ARZ3NDEKTSV4RRFFQ69G5FAV", TenantPlatformScopes.GlobalAdministrators,
                 TenantIdentity.GlobalAdministratorsDomain, TenantIdentity.GlobalAdministratorsAggregateId, nameof(BootstrapGlobalAdmin),
                 JsonSerializer.SerializeToElement(new BootstrapGlobalAdmin("bootstrap-administrator")), "01ARZ3NDEKTSV4RRFFQ69G5FAW");
             var bound = new BoundWorkloadCommandRequest(submitted, "bootstrap-administrator");

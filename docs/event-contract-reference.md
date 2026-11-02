@@ -65,11 +65,13 @@ All tenant domain events use the following identity components:
 
 | Field           | Value                                                            | Description                                          |
 | --------------- | ---------------------------------------------------------------- | ---------------------------------------------------- |
-| Platform tenant | `system`                                                         | All tenant management runs under the platform tenant |
+| Internal storage tenant | `system`                                                 | Retained event-stream identity behind authenticated workload routes |
 | Domain          | `tenants` or `global-administrators`                             | The aggregate domain; both publish to `tenants.events` |
 | Aggregate ID    | Managed tenant ID (e.g., `acme-corp`) or `global-administrators` | Identifies the specific aggregate instance           |
 
 The canonical composite identity is `system:tenants:{managedTenantId}` for managed tenant aggregates and `system:global-administrators:global-administrators` for the global administrator aggregate. Both aggregate families publish on the shared `tenants.events` topic; consumers filter by event type rather than by topic.
+
+These are internal storage identities. Public requests reserve `system`: tenant-management commands and cross-tenant reads use their declared platform scope, while single-tenant reads require an explicit canonical tenant. EventStore maps authorized requests to the retained storage identities. See the [canonical scope upgrade](guides/canonical-scope-upgrade.md).
 
 Command contracts expose REST-generation metadata members: `AggregateId` maps the command payload to the EventStore aggregate identity, `CommandType` provides the stable kebab-case command name, and `Domain` identifies the command aggregate family (`tenants` or `global-administrators`). Tenant-scoped commands return `TenantId` for `AggregateId`, while global-administrator commands return `global-administrators`. These members are adapter metadata for generated API hosts; EventStore still persists commands under the canonical composite identity above.
 
@@ -77,7 +79,7 @@ Command contracts expose REST-generation metadata members: `AggregateId` maps th
 
 All public contracts in this reference are owned by package `Hexalith.Tenants.Contracts`. The tables below are the source-backed index for commands, success events, rejections, queries, DTOs, and enums. Detailed field tables appear in the aggregate, rejection, query, and enum sections that follow.
 
-The package also declares the Hexalith McpCli module `tenants` (String identifiers, fixed envelope tenant `system`) through `Hexalith.McpCli.Abstractions`. It exposes nine commands (`CreateTenant`, `UpdateTenant`, `DisableTenant`, `EnableTenant`, `AddUserToTenant`, `RemoveUserFromTenant`, `ChangeUserRole`, `SetTenantConfiguration`, `RemoveTenantConfiguration`) and five queries (`ListTenantsQuery`, `GetTenantQuery`, `GetTenantUsersQuery`, `GetUserTenantsQuery`, `GetTenantAuditQuery`) with their interface routing; the per-tenant queries route to the `TenantId` aggregate and the list queries to the constant aggregate `index`. The global-administrator commands, `GetGlobalAdministratorsQuery`, and `ResolveTenantOwnerAuthority` are not exposed. Its conformance vectors live in `tests/conformance-vectors/mcpcli-v1/`.
+The package also declares the Hexalith McpCli module `tenants` (String identifiers) through `Hexalith.McpCli.Abstractions`. It exposes nine commands (`CreateTenant`, `UpdateTenant`, `DisableTenant`, `EnableTenant`, `AddUserToTenant`, `RemoveUserFromTenant`, `ChangeUserRole`, `SetTenantConfiguration`, `RemoveTenantConfiguration`) and five queries (`ListTenantsQuery`, `GetTenantQuery`, `GetTenantUsersQuery`, `GetUserTenantsQuery`, `GetTenantAuditQuery`) with their interface routing. Commands and cross-tenant reads declare `platform:tenants`; per-tenant reads require the caller's explicit canonical tenant. The per-tenant queries route to the `TenantId` aggregate and the list queries to the constant aggregate `index`. The global-administrator commands, `GetGlobalAdministratorsQuery`, `GetGlobalAdministratorAuditQuery`, and `ResolveTenantOwnerAuthority` are not exposed through these McpCli decorations. Its conformance vectors live in `tests/conformance-vectors/mcpcli-v1/`.
 
 ### Command Contracts
 
@@ -116,7 +118,7 @@ Every success event below is published to `tenants.events`. The EventStore envel
 
 ### Query and DTO Contracts
 
-The six read-model query contracts below implement `IQueryContract`; controllers are REST adapters that dispatch through EventStore `SubmitQuery`. Query request members are explicit bindable adapter fields: `TenantId` and `UserId` come from route segments where applicable, paged queries accept `Cursor` and `PageSize`, and tenant-audit queries additionally accept `Category`, `From`, and `To` filters. Query response DTOs are public contracts in the same package and are safe for consumers to deserialize by property name. The delegated owner-evidence request is documented separately in [Delegated TenantOwner Evidence](#delegated-tenantowner-evidence).
+The seven read-model query contracts below implement `IQueryContract`; controllers are REST adapters that dispatch through EventStore `SubmitQuery`. Query request members are explicit bindable adapter fields: `TenantId` and `UserId` come from route segments where applicable, paged queries accept `Cursor` and `PageSize`, and audit queries additionally accept `Category`, `From`, and `To` filters. Query response DTOs are public contracts in the same package and are safe for consumers to deserialize by property name. The delegated owner-evidence request is documented separately in [Delegated TenantOwner Evidence](#delegated-tenantowner-evidence).
 
 | Query contract | Package | `QueryType` | `Domain` | `ProjectionType` | Response shape | Intended REST adapter | Intended consumer |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -125,6 +127,7 @@ The six read-model query contracts below implement `IQueryContract`; controllers
 | `GetTenantUsersQuery` | `Hexalith.Tenants.Contracts` | `get-tenant-users` | `tenants` | `tenants` | `PaginatedResult<TenantMember>` | `GET /api/tenants/{tenantId}/users` | Tenant access review screens and owner tooling |
 | `GetUserTenantsQuery` | `Hexalith.Tenants.Contracts` | `get-user-tenants` | `tenants` | `tenant-index` | `PaginatedResult<UserTenantMembership>` | `GET /api/users/{userId}/tenants` | User access review screens and self-service access views |
 | `GetTenantAuditQuery` | `Hexalith.Tenants.Contracts` | `get-tenant-audit` | `tenants` | `tenants` | `PaginatedResult<TenantAuditEntry>` | `GET /api/tenants/{tenantId}/audit` | Support, audit, and compliance evidence workflows |
+| `GetGlobalAdministratorAuditQuery` | `Hexalith.Tenants.Contracts` | `get-global-administrator-audit` | `tenants` | `tenants` | `PaginatedResult<TenantAuditEntry>` | `GET /api/global-administrators/audit` | Global-administrator audit evidence through `platform:tenants` with `tenants:read` permission |
 | `GetGlobalAdministratorsQuery` | `Hexalith.Tenants.Contracts` | `get-global-administrators` | `global-administrators` | `global-administrators` | `PaginatedResult<GlobalAdministratorSummary>` | `GET /api/global-administrators` | Platform governance review screens |
 
 | DTO | Fields |
@@ -141,7 +144,7 @@ For audit-based global-administrator correction on an existing installation, fir
 
 #### Delegated TenantOwner Evidence
 
-`ResolveTenantOwnerAuthority` is a delegated request served by `TenantOwnerAuthorityQueryHandler` in the `tenants` domain. It uses the `TenantAggregate` source stream to establish current owner evidence for the bound requester and operation. Its static `QueryType` is `Hexalith.Tenants.Contracts.Queries.ResolveTenantOwnerAuthority`. It is a plain request record served through the domain-service query dispatcher; the six read-model `IQueryContract` adapters above remain the canonical REST read inventory.
+`ResolveTenantOwnerAuthority` is a delegated request served by `TenantOwnerAuthorityQueryHandler` in the `tenants` domain. It uses the `TenantAggregate` source stream to establish current owner evidence for the bound requester and operation. Its static `QueryType` is `Hexalith.Tenants.Contracts.Queries.ResolveTenantOwnerAuthority`. It is a plain request record served through the domain-service query dispatcher; the seven read-model `IQueryContract` adapters above remain the canonical REST read inventory.
 
 | Contract | Package | Fields | Intended caller or consumer |
 | --- | --- | --- | --- |
@@ -835,6 +838,7 @@ Tenant query endpoints are protected REST read adapters over in-process domain q
 | `GET /api/tenants/{tenantId}/users` | `GetTenantUsersQuery` | `PaginatedResult<TenantMember>` |
 | `GET /api/users/{userId}/tenants` | `GetUserTenantsQuery` | `PaginatedResult<UserTenantMembership>` |
 | `GET /api/tenants/{tenantId}/audit` | `GetTenantAuditQuery` | `PaginatedResult<TenantAuditEntry>` |
+| `GET /api/global-administrators/audit` | `GetGlobalAdministratorAuditQuery` | `PaginatedResult<TenantAuditEntry>` |
 | `GET /api/global-administrators` | `GetGlobalAdministratorsQuery` | `PaginatedResult<GlobalAdministratorSummary>` |
 
 Paginated responses use the standard shape `{ "items": [...], "cursor": "...", "hasMore": true }`. Standard query endpoints default to page size `20` and clamp at `100`. Audit queries default to page size `100` and clamp at `1000`.
@@ -858,9 +862,9 @@ Generic gateway callers, such as the Hexalith McpCli `tenants` module, send quer
 | `outcome` | Event type outcome |
 | `narrativePayload` | Support-safe key/value summary, not a raw event payload dump |
 
-Global-administrator events are projected under `audit-global-administrators:singleton`; the valid literal tenant `system` uses `audit-tenants:system`. Other tenants retain `audit:{tenantId}`. The old `audit:system` record remains immutable legacy evidence and is read through strict ownership classification. Unknown or conflicting ownership fails closed; existing recognized evidence is preserved.
+Global-administrator events are projected under `audit-global-administrators:singleton`; retained historical tenant `system` evidence uses `audit-tenants:system`. Other tenants retain `audit:{tenantId}`. The old `audit:system` record remains immutable legacy evidence and is read through strict ownership classification. Unknown or conflicting ownership fails closed; existing recognized evidence is preserved. These storage keys do not authorize public use of the reserved tenant `system`.
 
-The query contract's nullable `Stream` member is exposed as optional REST `stream=tenant` to isolate tenant evidence; it is read only from that camelCase REST field. `stream=global-administrators` is allowed only with tenant identifier `system` and isolates global evidence. Omitted `stream` preserves ordinary tenant reads and the combined system-scope feed. Cursors, validators and retained snapshots bind the selected stream. Combined system versions are opaque; only an explicit canonical global stream can provide ordered global audit provenance. See [storage compatibility, rollout and replay](audit-stream-rollout.md) for safe operational prerequisites and remaining limits.
+Public tenant audit reads isolate their canonical tenant. Global-administrator audit reads use the separate `GET /api/global-administrators/audit` route; `GetGlobalAdministratorAuditQuery` accepts `From`, `To`, `Category`, `Cursor`, and `PageSize`, and binds the retained global owner internally. The nullable `Stream` member of `GetTenantAuditQuery` remains an internal compatibility selector and cannot select global evidence through the public tenant route. Cursors, validators and retained snapshots bind the selected owner. Combined historical system versions are opaque; only an explicit canonical global stream can provide ordered global audit provenance. See [storage compatibility, rollout and replay](audit-stream-rollout.md) for safe operational prerequisites and remaining limits.
 
 ---
 
