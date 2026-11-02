@@ -28,8 +28,8 @@ public sealed class MemoriesSecretStoreResourceGraphTests(ITestOutputHelper outp
     [Fact]
     public async Task PackageModeAppHostUsesTheConsumerOwnedMemoriesSecretStore()
     {
-        await using IDistributedApplicationTestingBuilder builder = await DistributedApplicationTestingBuilder
-            .CreateAsync<Projects.Hexalith_Tenants_AppHost>();
+        await using IDistributedApplicationTestingBuilder builder = await AppHostModelBuilder
+            .CreateAsync();
         Assembly appHostAssembly = builder.AppHostAssembly.ShouldNotBeNull();
         output.WriteLine($"AppHost assembly: {appHostAssembly.Location}");
         AssemblyMetadataAttribute[] buildMetadata = appHostAssembly.GetCustomAttributes<AssemblyMetadataAttribute>().ToArray();

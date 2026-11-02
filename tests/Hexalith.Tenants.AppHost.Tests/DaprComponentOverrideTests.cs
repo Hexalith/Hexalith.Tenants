@@ -25,8 +25,8 @@ public sealed class DaprComponentOverrideTests
             string pubsubPath = Path.Combine(directory, "pubsub.yaml");
             await File.WriteAllBytesAsync(statePath, state);
             await File.WriteAllBytesAsync(pubsubPath, pubsub);
-            await using IDistributedApplicationTestingBuilder builder = await DistributedApplicationTestingBuilder
-                .CreateAsync<Projects.Hexalith_Tenants_AppHost>(["--EnableKeycloak=true",
+            await using IDistributedApplicationTestingBuilder builder = await AppHostModelBuilder
+                .CreateAsync(["--EnableKeycloak=true",
                     "--Dapr:StateStoreComponentPath=" + statePath, "--Dapr:PubSubComponentPath=" + pubsubPath]);
             DaprComponentResource[] components = builder.Resources.OfType<DaprComponentResource>().ToArray();
             components.Single(resource => resource.Name == "statestore").Options!.LocalPath.ShouldBe(statePath);
@@ -48,8 +48,8 @@ public sealed class DaprComponentOverrideTests
     {
         var exception = await Should.ThrowAsync<InvalidOperationException>(async () =>
         {
-            await using IDistributedApplicationTestingBuilder builder = await DistributedApplicationTestingBuilder
-                .CreateAsync<Projects.Hexalith_Tenants_AppHost>(["--EnableKeycloak=true",
+            await using IDistributedApplicationTestingBuilder builder = await AppHostModelBuilder
+                .CreateAsync(["--EnableKeycloak=true",
                     "--Dapr:" + component + "ComponentPath=unconfigured.yaml"]);
         });
         exception.Message.ShouldBe("Dapr state-store and pub/sub component path overrides must be supplied together.");

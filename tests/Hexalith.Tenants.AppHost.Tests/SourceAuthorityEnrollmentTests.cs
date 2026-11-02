@@ -18,8 +18,8 @@ public sealed class SourceAuthorityEnrollmentTests
         string privateKey = Convert.ToBase64String(supplied.ExportPkcs8PrivateKey());
         List<string> args = ["--EnableKeycloak=true"];
         if (overridden) args.Add("--Parameters:tenants-source-private-key=" + privateKey);
-        await using IDistributedApplicationTestingBuilder builder = await DistributedApplicationTestingBuilder
-            .CreateAsync<Projects.Hexalith_Tenants_AppHost>([.. args]);
+        await using IDistributedApplicationTestingBuilder builder = await AppHostModelBuilder
+            .CreateAsync([.. args]);
         ParameterResource parameter = builder.Resources.OfType<ParameterResource>()
             .Single(resource => resource.Name == "tenants-source-private-key");
         string effective = (await parameter.GetValueAsync(CancellationToken.None))!;
@@ -38,8 +38,8 @@ public sealed class SourceAuthorityEnrollmentTests
     [Fact]
     public async Task PublishedModelLeavesSourceKeysToExternalEnrollment()
     {
-        await using IDistributedApplicationTestingBuilder builder = await DistributedApplicationTestingBuilder
-            .CreateAsync<Projects.Hexalith_Tenants_AppHost>(["--EnableKeycloak=true", "--publisher", "manifest", "--output-path",
+        await using IDistributedApplicationTestingBuilder builder = await AppHostModelBuilder
+            .CreateAsync(["--EnableKeycloak=true", "--publisher", "manifest", "--output-path",
                 Path.Combine(Path.GetTempPath(), $"tenants-source-model-{Guid.NewGuid():N}.json")]);
         builder.Resources.Any(resource => resource.Name == "tenants-source-private-key").ShouldBeFalse();
         foreach (string name in new[] { "eventstore", "tenants" })
@@ -51,7 +51,7 @@ public sealed class SourceAuthorityEnrollmentTests
         IResource resource = builder.Resources.Single(resource => resource.Name == name);
         var context = new EnvironmentCallbackContext(builder.ExecutionContext, resource, new Dictionary<string, object>());
         foreach (EnvironmentCallbackAnnotation annotation in resource.Annotations.OfType<EnvironmentCallbackAnnotation>())
-            await annotation.Callback(context);
+            await AppHostModelBuilder.ApplyEnvironmentCallbackAsync(annotation, context);
         return context.EnvironmentVariables;
     }
 }
