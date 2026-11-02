@@ -48,8 +48,9 @@ internal sealed class OwnerSourceCaptureHandler(AuthoritativeEventStream? source
             var items = source.Events.Where(item => item.SequenceNumber > read.FromSequence
                 && item.SequenceNumber <= (read.ToSequence ?? source.Head)).Take(read.PageSize).ToArray();
             long last = items.Length == 0 ? read.FromSequence : items[^1].SequenceNumber;
+            // EventStore verifies the public platform scope, then reads the retained system stream.
             return new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(new StreamReadPage(
-                read.Tenant, read.Domain, read.AggregateId, items, new StreamReadMetadata(read.FromSequence,
+                source.Identity.TenantId, read.Domain, read.AggregateId, items, new StreamReadMetadata(read.FromSequence,
                     read.ToSequence, items.Length == 0 ? null : last, source.Head, items.Length,
                     last < (read.ToSequence ?? source.Head), null) { NativeProof = source.NativeProof })) };
         }

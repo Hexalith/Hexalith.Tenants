@@ -5,6 +5,7 @@ using Hexalith.EventStore.ServiceDefaults.Routing;
 #endif
 using Hexalith.EventStore.Client.Streams;
 using Hexalith.Tenants.Contracts.Events;
+using Hexalith.Tenants.Contracts.Identity;
 using Hexalith.Tenants.IntegrationTests.Fixtures;
 using Microsoft.Extensions.Configuration;
 using System.Security.Cryptography;
@@ -116,13 +117,17 @@ public sealed class TenantOwnerSourceGatewayTests
                 if (token is null) terminal.Headers.ContainsKey("dapr-api-token").ShouldBeFalse();
                 else terminal.Headers["dapr-api-token"].ShouldBe([token]);
                 terminal.Headers[EventStoreWorkloadAuthenticationDefaults.AssertionHeaderName].ShouldBe([assertion]);
-                JsonSerializer.Deserialize<StreamReadRequest>(terminal.Body, new JsonSerializerOptions(JsonSerializerDefaults.Web)).ShouldBe(request);
+                string platformScope = domain == TenantIdentity.Domain
+                    ? TenantPlatformScopes.Tenants : TenantPlatformScopes.GlobalAdministrators;
+                JsonSerializer.Deserialize<StreamReadRequest>(terminal.Body, new JsonSerializerOptions(JsonSerializerDefaults.Web))
+                    .ShouldBe(request with { Tenant = platformScope });
+                terminal.Headers["X-Hexalith-Scope"].ShouldBe([platformScope]);
                 string[] proof = terminal.Headers["X-Hexalith-Bound-Stream-Read-Proof"].Single().Split('.');
                 key.VerifyData(Encoding.ASCII.GetBytes(proof[0]), Decode(proof[1]), HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1).ShouldBeTrue();
                 using JsonDocument payload = JsonDocument.Parse(Decode(proof[0]));
                 payload.RootElement.GetProperty("version").GetInt32().ShouldBe(1);
                 payload.RootElement.GetProperty("caller").GetString().ShouldBe("tenants");
-                payload.RootElement.GetProperty("tenant").GetString().ShouldBe("system");
+                payload.RootElement.GetProperty("tenant").GetString().ShouldBe(platformScope);
                 payload.RootElement.GetProperty("domain").GetString().ShouldBe(domain);
                 payload.RootElement.GetProperty("aggregateId").GetString().ShouldBe(aggregate);
                 (payload.RootElement.GetProperty("expiresAt").GetInt64() - payload.RootElement.GetProperty("issuedAt").GetInt64()).ShouldBe(30);
