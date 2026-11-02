@@ -93,6 +93,26 @@ jobs:
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           global-json-file: global.json
+      - name: Check out the pinned McpCli source for the unpublished Abstractions candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: Hexalith/Hexalith.McpCli
+          ref: 06cfdf25a352034b36041e9ed44da514b167ca5a
+          path: .story-2-14-mcpcli
+          submodules: false
+          persist-credentials: false
+      - name: Pack the pinned McpCli Abstractions candidate for the source graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C .story-2-14-mcpcli rev-parse HEAD)" = 06cfdf25a352034b36041e9ed44da514b167ca5a
+          git -C .story-2-14-mcpcli -c submodule.recurse=false submodule update --init -- references/Hexalith.Builds
+          candidate_feed="${RUNNER_TEMP}/story-2-14-candidate-packages"
+          dotnet pack .story-2-14-mcpcli/src/Hexalith.McpCli.Abstractions/Hexalith.McpCli.Abstractions.csproj \
+            --configuration Release --output "$candidate_feed" -p:Version=2.0.0 -p:PackageVersion=2.0.0 \
+            -warnaserror -m:1 -nr:false
+          test -f "$candidate_feed/Hexalith.McpCli.Abstractions.2.0.0.nupkg"
+          printf 'RestoreAdditionalProjectSources=%s\n' "$candidate_feed" >> "$GITHUB_ENV"
       - name: Record the actual selected SDK source and producer version
         shell: bash
         run: |
