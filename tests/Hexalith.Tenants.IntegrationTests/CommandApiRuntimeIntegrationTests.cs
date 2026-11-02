@@ -350,8 +350,10 @@ public partial class CommandApiRuntimeIntegrationTests {
         ICommandStatusStore store = Substitute.For<ICommandStatusStore>();
         _ = store.ReadStatusAsync("system", messageId, Arg.Any<CancellationToken>()).Returns(record);
         await using var factory = new TenantGatewayTestHost(statusStore: store, useLegacyStatusAdapter: false);
-        string scope = domain == "tenants" ? TenantPlatformScopes.Tenants : TenantPlatformScopes.GlobalAdministrators;
-        string permission = domain == "tenants" ? "tenants:read" : "global-administrators:read";
+        string scope = domain == "global-administrators"
+            ? TenantPlatformScopes.GlobalAdministrators : TenantPlatformScopes.Tenants;
+        string permission = domain == "global-administrators"
+            ? "global-administrators:read" : "tenants:read";
         using HttpClient client = CreateClientWithBearer(factory, CreateJwt("status-reader",
             claims: [new Claim("eventstore:permission", permission)]));
         using var statusRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/commands/status/{messageId}");

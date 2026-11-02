@@ -1,4 +1,3 @@
-#if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
 using Hexalith.EventStore.Client.Routing;
 using Hexalith.EventStore.Contracts.Routing;
 using Hexalith.EventStore.ServiceDefaults.Routing;
@@ -38,4 +37,3 @@ internal static class TenantOwnerCatalogTestAuthority
         return authority;
     }
 }
-#endif
