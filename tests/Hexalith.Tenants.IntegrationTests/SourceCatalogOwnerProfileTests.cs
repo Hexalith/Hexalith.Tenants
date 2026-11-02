@@ -2,10 +2,15 @@
 using System.Net;
 using System.Text.Json;
 
+using Dapr.Actors;
+using Dapr.Actors.Client;
+
 using Hexalith.EventStore.Contracts.Routing;
+using Hexalith.EventStore.Server.Actors;
 using Hexalith.EventStore.ServiceDefaults.Routing;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Events;
+using Hexalith.Tenants.Contracts.Identity;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.Contracts.Routing;
 using Hexalith.Tenants.IntegrationTests.Fixtures;
@@ -101,6 +106,28 @@ public sealed class SourceCatalogOwnerProfileTests(AspireTopologyFixture fixture
         (await redis.GetDatabase().KeyExistsAsync("tenants||projection:tenants:" + tenantId).WaitAsync(deadline.Token)).ShouldBeTrue();
         (await redis.GetDatabase().KeyExistsAsync("tenants||audit-tenants:" + tenantId).WaitAsync(deadline.Token)).ShouldBeTrue();
         (await redis.GetDatabase().KeyExistsAsync("tenants||audit-global-administrators:singleton").WaitAsync(deadline.Token)).ShouldBeTrue();
+        // Read the retained native actor histories through the actual Dapr sidecar. The public
+        // request scope is platform:tenants, but neither durable aggregate identity may move.
+        var actorFactory = new ActorProxyFactory(new ActorProxyOptions
+        {
+            HttpEndpoint = fixture.EventStoreDaprClient.BaseAddress!.AbsoluteUri.TrimEnd('/'),
+        });
+        var tenantIdentity = TenantIdentity.ForTenant(tenantId);
+        var globalIdentity = TenantIdentity.ForGlobalAdministrators();
+        var tenantActor = actorFactory.CreateActorProxy<IAggregateActor>(new ActorId(tenantIdentity.ActorId), nameof(AggregateActor));
+        var globalActor = actorFactory.CreateActorProxy<IAggregateActor>(new ActorId(globalIdentity.ActorId), nameof(AggregateActor));
+        var tenantHistory = await tenantActor.GetEventsAsync(0).WaitAsync(deadline.Token);
+        var globalHistory = await globalActor.GetEventsAsync(0).WaitAsync(deadline.Token);
+        tenantHistory.ShouldContain(item => item.EventTypeName == typeof(TenantCreated).FullName
+            && item.TenantId == "system" && item.Domain == "tenants" && item.AggregateId == tenantId);
+        globalHistory.ShouldContain(item => item.EventTypeName == typeof(GlobalAdministratorSet).FullName
+            && item.TenantId == "system" && item.Domain == "global-administrators"
+            && item.AggregateId == TenantIdentity.GlobalAdministratorsAggregateId);
+        // Dapr Redis pub/sub retains topic entries as a Redis stream. The fresh backend has
+        // only this qualification's traffic, so each family must appear on the shared legacy topic.
+        var topic = await redis.GetDatabase().StreamRangeAsync("tenants.events").WaitAsync(deadline.Token);
+        topic.ShouldContain(entry => entry.Values.Any(field => field.Value.ToString().Contains(tenantId, StringComparison.Ordinal)));
+        topic.ShouldContain(entry => entry.Values.Any(field => field.Value.ToString().Contains(nameof(GlobalAdministratorSet), StringComparison.Ordinal)));
         while (true)
         {
             var final = await SourceCatalogBootstrapEvidence.ReadCommittedAsync(deadline.Token);
@@ -115,7 +142,8 @@ public sealed class SourceCatalogOwnerProfileTests(AspireTopologyFixture fixture
             sdkProducerVersion = Environment.GetEnvironmentVariable("TENANTS_SOURCE_SDK_PRODUCER_VERSION"), activation.AttemptId, activation.RootDigest,
             activationBindingDigest = binding, state.Epoch, generation = catalog.Generation, requiredHosts = activation.RequiredHosts,
             operations = operations.Count, ownedBootstrapTerminalAndProjectedMembership = true,
-            realRestReads = 7, conditionalRead = true, distinctAuditOwnerReadback = true, publicSystemDenied = true,
+            realRestReads = 7, conditionalRead = true, distinctAuditOwnerReadback = true, nativeLegacyHistories = true,
+            sharedLegacyTopicReadback = true, publicSystemDenied = true,
             actualAdminUiProxyAndOwnerRead = true, refusedDescendant = true, persistedTenant = true, outstandingLeases = 0,
         });
         var resultStream = new FileStream(output, FileMode.CreateNew, FileAccess.Write, FileShare.None);

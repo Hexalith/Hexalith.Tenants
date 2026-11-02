@@ -11,6 +11,7 @@ using Hexalith.EventStore.Server.Commands;
 using Hexalith.EventStore.ServiceDefaults.Authentication;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Events;
+using Hexalith.Tenants.Contracts.Identity;
 using Hexalith.Tenants.IntegrationTests.Fixtures;
 using Hexalith.Tenants.Server.Aggregates;
 
@@ -43,11 +44,15 @@ public partial class CommandApiRuntimeIntegrationTests
         using var authority = new TenantGatewayBoundWorkloadAuthority(scenario == "untrusted-caller" ? "forged" : "tenants");
         await using var host = new TenantGatewayTestHost(router, status, archive, boundAuthority: authority);
         using HttpClient client = host.CreateClient();
-        SubmitCommandRequest command = CreateBootstrapRequest() with
+        SubmitCommandRequest command = CreateBootstrapRequest(TenantPlatformScopes.GlobalAdministrators) with
         {
             Domain = scenario == "domain" ? "tenants" : "global-administrators",
         };
-        using HttpRequestMessage request = await authority.CreateRequestAsync(host.Services, CreateJwt("admin-1"), command);
+        using HttpRequestMessage request = await authority.CreateRequestAsync(host.Services, CreateJwt("admin-1", claims:
+        [
+            new Claim("global_admin", "true"),
+            new Claim("eventstore:permission", "global-administrators:bootstrap"),
+        ]), command);
         string? header = scenario switch
         {
             "proof" or "missing-proof" => BoundWorkloadCommandProof.HeaderName,
@@ -91,7 +96,7 @@ public partial class CommandApiRuntimeIntegrationTests
             : CreateJwtWithoutSub([new Claim("name", "admin-1")]);
 
         await Should.ThrowAsync<InvalidOperationException>(() => authority.CreateRequestAsync(host.Services, token,
-            CreateBootstrapRequest() with { Domain = "global-administrators" }));
+            CreateBootstrapRequest(TenantPlatformScopes.GlobalAdministrators) with { Domain = "global-administrators" }));
 
         router.ReceivedCalls().ShouldBeEmpty();
     }
@@ -106,17 +111,16 @@ public partial class CommandApiRuntimeIntegrationTests
         await using var host = new TenantGatewayTestHost(router, status, archive);
         string token = CreateJwt("admin-1", claims:
         [
-            new Claim("eventstore:tenant", "system"),
             new Claim("eventstore:domain", "global-administrators"),
-            new Claim("eventstore:permission", nameof(BootstrapGlobalAdmin)),
+            new Claim("eventstore:permission", "global-administrators:bootstrap"),
             new Claim("global_admin", "true"),
         ]);
         using HttpClient client = CreateClientWithBearer(host, token);
-        SubmitCommandRequest command = CreateBootstrapRequest() with { Domain = "global-administrators" };
+        SubmitCommandRequest command = CreateBootstrapRequest(TenantPlatformScopes.GlobalAdministrators) with { Domain = "global-administrators" };
 
         using HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", command);
 
-        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         router.ReceivedCalls().ShouldBeEmpty();
         status.ReceivedCalls().ShouldBeEmpty();
         archive.ReceivedCalls().ShouldBeEmpty();
@@ -154,10 +158,10 @@ public partial class CommandApiRuntimeIntegrationTests
         string token = CreateJwt(actorUserId, claims:
         [
             new Claim("name", "untrusted-display-name"),
-            new Claim("eventstore:tenant", "system"),
             new Claim("global_admin", "true"),
+            new Claim("eventstore:permission", "global-administrators:bootstrap"),
         ]);
-        SubmitCommandRequest command = CreateBootstrapRequest() with { Domain = "global-administrators" };
+        SubmitCommandRequest command = CreateBootstrapRequest(TenantPlatformScopes.GlobalAdministrators) with { Domain = "global-administrators" };
         using HttpRequestMessage request = (await authority.CreateProductionBootstrapRequestAsync(host.Services,
             token, command, actorUserId, TestContext.Current.CancellationToken)).ShouldNotBeNull();
 
@@ -166,7 +170,7 @@ public partial class CommandApiRuntimeIntegrationTests
         response.StatusCode.ShouldBe(HttpStatusCode.Accepted);
         dispatchedCommand.ShouldNotBeNull().UserId.ShouldBe(actorUserId);
         dispatchedCommand.AuthenticatedSubject.ShouldBe(actorUserId);
-        dispatchedCommand.IsGlobalAdmin.ShouldBeFalse();
+        dispatchedCommand.IsGlobalAdmin.ShouldBeTrue();
         dispatchedCommand.Extensions.ShouldNotBeNull()[EventStoreGatewayVerifiedOrigin.ExtensionKey].ShouldBe("tenants");
         dispatchedCommand.Extensions[EventStoreGatewayVerifiedOrigin.ActorExtensionKey].ShouldBe(actorUserId);
         domainResult.ShouldNotBeNull().IsSuccess.ShouldBeTrue();

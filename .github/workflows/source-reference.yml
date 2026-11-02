@@ -157,6 +157,13 @@ jobs:
           dotnet build tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj
           --configuration Debug -p:UseHexalithProjectReferences=true -p:UseNuGetDeps=false
           -warnaserror -m:1 -nr:false --disable-build-servers
+      - name: Require bootstrap bearer validation and bound workload refusals
+        run: >-
+          dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj
+          --configuration Debug --no-build --no-restore
+          -p:UseHexalithProjectReferences=true -p:UseNuGetDeps=false
+          --filter-method '*BoundBootstrap*'
+          --minimum-expected-tests 13 --fail-skips on
       - name: Require actual cohort binding, owned bootstrap, persisted effects and refusal
         run: >-
           dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj

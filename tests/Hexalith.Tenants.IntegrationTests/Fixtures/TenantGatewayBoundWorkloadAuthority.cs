@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using System.Net.Http.Headers;
 using System.Security.Cryptography;
 
 using Dapr.Client;
@@ -64,6 +65,8 @@ internal sealed class TenantGatewayBoundWorkloadAuthority(string workload = "ten
         };
         request.Headers.Add(DaprAppChannelToken.HeaderName, _channelToken);
         request.Headers.Add(EventStoreWorkloadAuthenticationDefaults.DaprCallerHeaderName, workload);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", humanToken);
+        request.Headers.Add("X-Hexalith-Scope", command.Tenant);
         request.Headers.Add(EventStoreWorkloadAuthenticationDefaults.AssertionHeaderName, assertion);
         request.Headers.Add(BoundWorkloadCommandProof.HeaderName, BoundWorkloadCommandProof.Issue(
             bound, workload, Convert.ToBase64String(_proofKey.ExportPkcs8PrivateKey()), DateTimeOffset.UtcNow));
