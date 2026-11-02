@@ -34,26 +34,47 @@ class CatalogArtifactPackTests(unittest.TestCase):
             common = ['-c', 'Release', '-m:1', '-nr:false', '-p:UseHexalithProjectReferences=false', '-p:UseNuGetDeps=true']
             for package in ('Server', 'Client', 'Testing', 'Aspire'):
                 built = subprocess.run(['dotnet', 'build', f'src/Hexalith.Tenants.{package}/Hexalith.Tenants.{package}.csproj',
-                                        *common, '-p:HexalithEventStoreVersion=3.128.4', '-warnaserror'],
+                                        *common, '-p:HexalithEventStoreVersion=4.0.0', '-warnaserror'],
                                        cwd=fixture, env=environment, capture_output=True, text=True, timeout=120)
                 self.assertEqual(built.returncode, 0, built.stdout + built.stderr)
-            for package in ('Contracts', 'Server', 'Client', 'Testing', 'Aspire'):
-                with self.subTest(legacy_package=package):
-                    output = parent / ('legacy-rejected-' + package)
-                    packed = subprocess.run(['dotnet', 'pack', f'src/Hexalith.Tenants.{package}/Hexalith.Tenants.{package}.csproj',
-                                             '--no-build', '--no-restore', *common, '-p:HexalithEventStoreVersion=3.128.4',
-                                             '--output', str(output)], cwd=fixture, env=environment,
-                                            capture_output=True, text=True, timeout=120)
-                    self.assertNotEqual(packed.returncode, 0, packed.stdout + packed.stderr)
-                    self.assertIn('Published Tenants packages require', packed.stdout + packed.stderr)
-                    self.assertFalse(list(output.glob('*.nupkg')))
+            for sdk_version in ('3.128.4', '3.129.0'):
+                for package in ('Contracts', 'Server', 'Client', 'Testing', 'Aspire'):
+                    with self.subTest(sdk_version=sdk_version, package=package):
+                        output = parent / f'unsupported-{sdk_version}-{package}'
+                        packed = subprocess.run(['dotnet', 'pack', f'src/Hexalith.Tenants.{package}/Hexalith.Tenants.{package}.csproj',
+                                                 '--no-build', '--no-restore', *common, f'-p:HexalithEventStoreVersion={sdk_version}',
+                                                 '--output', str(output)], cwd=fixture, env=environment,
+                                                capture_output=True, text=True, timeout=120)
+                        self.assertNotEqual(packed.returncode, 0, packed.stdout + packed.stderr)
+                        self.assertIn('Canonical Tenants packages require EventStore 4.0.0', packed.stdout + packed.stderr)
+                        self.assertFalse(list(output.glob('*.nupkg')))
+
+            # A same-named but unenrolled DLL must fail the actual pack target even when
+            # the selected package versions are valid. Keep this stub outside the fixture
+            # so it cannot inherit the Tenants package graph.
+            stale = parent / 'StaleCatalog'
+            stale.mkdir()
+            (stale / 'StaleCatalog.csproj').write_text(
+                '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework>'
+                '<AssemblyName>Hexalith.Tenants.Contracts</AssemblyName></PropertyGroup></Project>')
+            (stale / 'Marker.cs').write_text('public sealed class StaleCatalogMarker {}')
+            built = subprocess.run(['dotnet', 'build', 'StaleCatalog.csproj', '-c', 'Release', '-nr:false'],
+                                   cwd=stale, env=environment, capture_output=True, text=True, timeout=120)
+            self.assertEqual(built.returncode, 0, built.stdout + built.stderr)
+            stale_bytes = (stale / 'bin/Release/net10.0/Hexalith.Tenants.Contracts.dll').read_bytes()
             for package in ('Contracts', 'Server'):
-                with self.subTest(package=package):
-                    output = parent / ('rejected-' + package)
-                    packed = subprocess.run(['dotnet', 'pack', f'src/Hexalith.Tenants.{package}/Hexalith.Tenants.{package}.csproj',
-                                             '--no-build', '--no-restore', *common, '-p:HexalithEventStoreVersion=3.129.0',
-                                             '--output', str(output)], cwd=fixture, env=environment,
-                                            capture_output=True, text=True, timeout=120)
+                with self.subTest(stale_package=package):
+                    target = fixture / f'src/Hexalith.Tenants.{package}/bin/Release/net10.0/Hexalith.Tenants.Contracts.dll'
+                    original = target.read_bytes()
+                    output = parent / ('stale-rejected-' + package)
+                    try:
+                        target.write_bytes(stale_bytes)
+                        packed = subprocess.run(['dotnet', 'pack', f'src/Hexalith.Tenants.{package}/Hexalith.Tenants.{package}.csproj',
+                                                 '--no-build', '--no-restore', *common, '-p:HexalithEventStoreVersion=4.0.0',
+                                                 '--output', str(output)], cwd=fixture, env=environment,
+                                                capture_output=True, text=True, timeout=120)
+                    finally:
+                        target.write_bytes(original)
                     self.assertNotEqual(packed.returncode, 0, packed.stdout + packed.stderr)
                     self.assertIn('Catalog artifact publication refused', packed.stdout + packed.stderr)
                     self.assertFalse(list(output.glob('*.nupkg')), 'A rejected stale DLL must not produce any archive.')
