@@ -9,6 +9,7 @@ using Hexalith.Tenants.Contracts.Events;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.Contracts.Routing;
 using Hexalith.Tenants.IntegrationTests.Fixtures;
+using Hexalith.Tenants.Server.Projections;
 using Hexalith.Tenants.UI.Services.Gateways;
 
 using Shouldly;
@@ -104,7 +105,7 @@ public sealed class SourceCatalogOwnerProfileTests(AspireTopologyFixture fixture
         denied.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         using var redis = await ConnectionMultiplexer.ConnectAsync("localhost:6379,abortConnect=false,connectTimeout=5000,asyncTimeout=5000").WaitAsync(deadline.Token);
         (await redis.GetDatabase().KeyExistsAsync("tenants||projection:tenants:" + tenantId).WaitAsync(deadline.Token)).ShouldBeTrue();
-        (await redis.GetDatabase().KeyExistsAsync("tenants||audit-tenants:" + tenantId).WaitAsync(deadline.Token)).ShouldBeTrue();
+        (await redis.GetDatabase().KeyExistsAsync("tenants||" + TenantAuditStreams.GetTenantKey(tenantId)).WaitAsync(deadline.Token)).ShouldBeTrue();
         (await redis.GetDatabase().KeyExistsAsync("tenants||audit-global-administrators:singleton").WaitAsync(deadline.Token)).ShouldBeTrue();
         while (true)
         {
