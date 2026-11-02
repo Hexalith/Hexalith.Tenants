@@ -84,6 +84,7 @@ public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith
     {
         string phase = "bootstrap-command";
         string failure = "bootstrap-command-failed";
+        string authorityRefusal = "no-response";
         try
         {
             (long? sequence, string? commandFailure) = await SubmitBootstrapAsync(commandApi, token, requireColdBootstrap, cancellationToken);
@@ -95,11 +96,17 @@ public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith
 
             phase = "bootstrap-authority";
             failure = "bootstrap-authority-unavailable";
-            await WaitForBootstrapAuthorityAsync(read, sequence, requireColdBootstrap, cancellationToken);
+            await WaitForBootstrapAuthorityAsync(read, sequence, requireColdBootstrap, cancellationToken,
+                reason => authorityRefusal = reason);
         }
         catch
         {
-            if (cancellationToken.IsCancellationRequested) failure = phase + "-timeout";
+            if (cancellationToken.IsCancellationRequested)
+            {
+                failure = phase + "-timeout";
+                if (phase == "bootstrap-authority" && IsSourceCatalogProfile)
+                    Console.Error.WriteLine("TENANTS_BOOTSTRAP_AUTHORITY_REFUSAL " + authorityRefusal);
+            }
             try
             {
                 await cleanup();
@@ -136,7 +143,8 @@ public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith
         Func<string?, CancellationToken, Task<TenantsRestQueryResponse<PaginatedResult<GlobalAdministratorSummary>>>> read,
         long? committedSequence,
         bool requireColdBootstrap,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        Action<string>? reportRefusal = null)
     {
         while (true)
         {
@@ -152,6 +160,7 @@ public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith
                 }
                 catch (HttpRequestException exception) when (IsTransientTransport(exception))
                 {
+                    reportRefusal?.Invoke("transient-transport");
                     break;
                 }
                 cancellationToken.ThrowIfCancellationRequested();
@@ -167,10 +176,12 @@ public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith
                     || metadata.ServedAt is not { } servedAt || servedAt < DateTimeOffset.UtcNow.AddMinutes(-5)
                     || servedAt > DateTimeOffset.UtcNow.AddSeconds(5))
                 {
+                    reportRefusal?.Invoke(ClassifyBootstrapAuthorityRefusal(response, committedSequence, requireColdBootstrap));
                     break;
                 }
 
                 if (page.Items?.Any(item => item is not null && item.UserId == AuthenticatedRouteState.CallerId) == true) return;
+                reportRefusal?.Invoke("caller-absent");
                 if (!page.HasMore || string.IsNullOrWhiteSpace(page.Cursor)) break;
                 if (!cursors.Add(page.Cursor)) throw new InvalidOperationException("bootstrap-authority-cursor-cycle");
                 cursor = page.Cursor;
@@ -178,6 +189,26 @@ public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith
 
             await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken);
         }
+    }
+
+    private static string ClassifyBootstrapAuthorityRefusal(
+        TenantsRestQueryResponse<PaginatedResult<GlobalAdministratorSummary>> response,
+        long? committedSequence,
+        bool requireColdBootstrap)
+    {
+        if (response.StatusCode != (int)HttpStatusCode.OK) return "http-status";
+        if (response.FailureKind != TenantsRestQueryFailureKind.None) return "client-failure-" + response.FailureKind;
+        if (response.Payload is null) return "payload-missing";
+        QueryResponseMetadata metadata = response.Metadata;
+        if (metadata.Provenance != QueryResponseProvenance.ProjectionBacked) return "provenance";
+        if (metadata.Lifecycle != ProjectionLifecycleState.Current) return "lifecycle";
+        if (metadata.IsStale is not false || metadata.IsDegraded is true || metadata.IsNotModified is true) return "freshness";
+        if (string.IsNullOrWhiteSpace(metadata.ETag)) return "etag";
+        if (!TenantAuditStreams.TryGetSequence(metadata.ProjectionVersion, out long sequence)) return "version-format";
+        if (sequence < (committedSequence ?? 1) || requireColdBootstrap && sequence != 1) return "version-sequence";
+        if (metadata.ServedAt is not { } servedAt || servedAt < DateTimeOffset.UtcNow.AddMinutes(-5)
+            || servedAt > DateTimeOffset.UtcNow.AddSeconds(5)) return "served-at";
+        return "unclassified";
     }
 
     private static async Task<(long? Sequence, string? Failure)> SubmitBootstrapAsync(
