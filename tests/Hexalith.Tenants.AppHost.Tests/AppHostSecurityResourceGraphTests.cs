@@ -11,6 +11,22 @@ namespace Hexalith.Tenants.AppHost.Tests;
 /// <summary>Checks security and read endpoint wiring in the AppHost model without starting services.</summary>
 public sealed class AppHostSecurityResourceGraphTests
 {
+    [Fact]
+    public async Task SourceCatalogProfileOmitsTheOptionalSampleDomainModule()
+    {
+        await using IDistributedApplicationTestingBuilder builder = await DistributedApplicationTestingBuilder
+            .CreateAsync<Projects.Hexalith_Tenants_AppHost>(
+                ["--publisher", "manifest", "--output-path",
+                    Path.Combine(Path.GetTempPath(), $"tenants-source-model-{Guid.NewGuid():N}.json"),
+                    "--EnableKeycloak=true", "--EnableMemories=false", "--TENANTS_SOURCE_CATALOG_PROFILE=true"]);
+
+        builder.Resources.OfType<ProjectResource>().Select(resource => resource.Name).ShouldContain("eventstore");
+        builder.Resources.OfType<ProjectResource>().Select(resource => resource.Name).ShouldContain("eventstore-admin");
+        builder.Resources.OfType<ProjectResource>().Select(resource => resource.Name).ShouldContain("tenants");
+        builder.Resources.OfType<ProjectResource>().Select(resource => resource.Name).ShouldContain("tenants-api");
+        builder.Resources.OfType<ProjectResource>().Select(resource => resource.Name).ShouldNotContain("sample");
+    }
+
     [Theory]
     [InlineData(null, "30")]
     [InlineData("5", "5")]
