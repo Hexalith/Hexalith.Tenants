@@ -273,6 +273,8 @@ jobs:
           done
       - name: Verify unique app-channel ownership
         if: ${{ !cancelled() && steps.live-build.outcome == 'success' }}
+        env:
+          TENANTS_SOURCE_CATALOG_PROFILE: 'false'
         run: >
           dotnet test tests/Hexalith.Tenants.AppHost.Tests/Hexalith.Tenants.AppHost.Tests.csproj
           --configuration Release --no-build

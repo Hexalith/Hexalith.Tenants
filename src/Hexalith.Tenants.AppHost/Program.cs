@@ -346,6 +346,7 @@ try
 {
 #if HEXALITH_DEVELOPMENT_CATALOG_COHORT
     DevelopmentRouteCatalogComposition? localCatalog = builder.ExecutionContext.IsRunMode
+        && string.Equals(builder.Configuration["TENANTS_SOURCE_CATALOG_PROFILE"], "true", StringComparison.OrdinalIgnoreCase)
         ? TenantsDevelopmentRoutingCatalog.Create(builder, eventStore, tenants, tenantsApi, tenantsUI, adminServer, adminUI, stateStoreComponentPath)
         : null;
 #endif
