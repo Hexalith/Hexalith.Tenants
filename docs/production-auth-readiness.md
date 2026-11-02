@@ -62,6 +62,10 @@ If your IdP cannot emit `eventstore:*` claims directly, EventStore can normalize
 
 The local Aspire Keycloak realm at `src/Hexalith.Tenants.AppHost/KeycloakRealms/hexalith-realm.json` is sample evidence only. It maps local sample attributes to direct `eventstore:tenant`, `eventstore:domain`, and `eventstore:permission` claims. Do not treat the sample users, passwords, realm settings, or `sslRequired` value as production guidance.
 
+## Physical EventStore target
+
+`Tenants:EventStoreAppId` selects the actual Dapr gateway used by hosted bootstrap (direct and bound) and owner source reads. It defaults to `eventstore`; an empty configured value fails closed. Isolated hosts may select another physical AppId while retaining logical workload audience `eventstore`, proof caller `tenants`, exact owner domains and the existing credential/proof guards. This setting confers no authority.
+
 ## Global Administrator Bootstrap Credential
 
 When `Tenants:BootstrapGlobalAdminUserId` is set, the Tenants host submits `BootstrapGlobalAdmin` to EventStore once it is listening. EventStore no longer admits any internal caller by its Dapr application id (EventStore Story 5.5), so the command is authorized only by the configured administrator's own delegated credential:
