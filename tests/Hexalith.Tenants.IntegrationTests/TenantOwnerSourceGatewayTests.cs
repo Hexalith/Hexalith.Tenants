@@ -331,9 +331,20 @@ public sealed class TenantOwnerSourceGatewayTests
         var selected = new CommittedRouteCatalogSnapshot(owner.GetCanonicalBytes(), owner.RootDigest, owner.Epoch,
             [new("eventstore", "api/v1/streams/read/workload", "eventstore:stream-read", "gateway")], localAppId: "tenants");
 #endif
+        IRouteCatalogAuthority authority = TenantOwnerCatalogTestAuthority.Create(selected);
+        // Assert transport headers against the same SDK-owned activation the real authority acquired.
+        RouteCatalogDispatchLease lease = authority.AcquireAsync().GetAwaiter().GetResult();
+        try
+        {
+            selected = lease.Snapshot;
+        }
+        finally
+        {
+            lease.DisposeAsync().AsTask().GetAwaiter().GetResult();
+        }
         services.AddSingleton(selected);
         services.RemoveAll<IRouteCatalogAuthority>();
-        services.AddSingleton(TenantOwnerCatalogTestAuthority.Create(selected));
+        services.AddSingleton(authority);
         services.Configure<RouteCatalogHostOptions>(options =>
         {
 #if HEXALITH_TECHNICAL_HTTP_CATALOG_BINDING
