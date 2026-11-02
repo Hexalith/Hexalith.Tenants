@@ -336,7 +336,17 @@ public sealed class TenantOwnerSourceGatewayTests
         RouteCatalogDispatchLease lease = authority.AcquireAsync().GetAwaiter().GetResult();
         try
         {
-            selected = lease.Snapshot;
+            CommittedRouteCatalogSnapshot acquired = lease.Snapshot;
+            acquired.GetCanonicalBytes().ShouldBe(selected.GetCanonicalBytes());
+            acquired.RootDigest.ShouldBe(selected.RootDigest);
+            acquired.Epoch.ShouldBe(selected.Epoch);
+            acquired.LocalAppId.ShouldBe(selected.LocalAppId);
+            acquired.AuthorityCoordinates.ShouldBe(selected.AuthorityCoordinates);
+            JsonSerializer.Serialize(acquired.TechnicalHttpReceivers).ShouldBe(JsonSerializer.Serialize(selected.TechnicalHttpReceivers));
+            JsonSerializer.Serialize(acquired.ProjectionCapabilities).ShouldBe(JsonSerializer.Serialize(selected.ProjectionCapabilities));
+            JsonSerializer.Serialize(acquired.AuxiliaryOperations).ShouldBe(JsonSerializer.Serialize(selected.AuxiliaryOperations));
+            // Retain the independent expectations above before adopting the SDK-generated binding digest.
+            selected = acquired;
         }
         finally
         {
