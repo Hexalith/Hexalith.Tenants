@@ -90,6 +90,24 @@ public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith
         string authorityRefusal = "no-response";
         try
         {
+            // A later hosted suite uses the same fresh backend after the first suite has
+            // already proved the cold commit. Repeating BootstrapGlobalAdmin can leave a
+            // second status pending; accept only the current projected caller authority.
+            if (IsSourceCatalogProfile && !requireColdBootstrap)
+            {
+                using var existingAuthority = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                existingAuthority.CancelAfter(TimeSpan.FromSeconds(10));
+                try
+                {
+                    await WaitForBootstrapAuthorityAsync(read, null, false, existingAuthority.Token);
+                    return;
+                }
+                catch (OperationCanceledException) when (existingAuthority.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+                {
+                    // No proven authority yet: keep the normal command and projection proof.
+                }
+            }
+
             (long? sequence, string? commandFailure) = await SubmitBootstrapAsync(commandApi, token, requireColdBootstrap, cancellationToken);
             if (commandFailure is not null)
             {

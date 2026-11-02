@@ -132,8 +132,9 @@ public class AspireTopologyTests : IDisposable {
         const string tenantDescription = "Created by the Story 4.7 persisted-route proof";
         using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(5));
 
-        if (!AspireTopologyFixture.IsSourceCatalogProfile)
-        {
+        // In the catalog profile, fixture initialization already proved the owner-bound
+        // bootstrap. A second human command must remain forbidden.
+        if (!AspireTopologyFixture.IsSourceCatalogProfile) {
             CommandStatusResponse bootstrapStatus = await SubmitAndWaitForTerminalStatusAsync(
                 _fixture.CommandApiClient,
                 CreateCommand(
