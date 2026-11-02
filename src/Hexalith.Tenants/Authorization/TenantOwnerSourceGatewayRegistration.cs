@@ -1,4 +1,5 @@
 using Hexalith.EventStore.Client.Registration;
+using Hexalith.Tenants.Configuration;
 #if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
 using Hexalith.EventStore.ServiceDefaults.Routing;
 
@@ -12,12 +13,11 @@ internal static class TenantOwnerSourceGatewayRegistration
 {
     /// <summary>Registers the bound owner read transport using the SDK's effective endpoint selection.</summary>
     /// <param name="services">The owner's services.</param>
-    /// <param name="configuration">The effective runtime configuration.</param>
     /// <returns>The production client builder for transport composition.</returns>
-    internal static IHttpClientBuilder AddTenantOwnerSourceGateway(
-        this IServiceCollection services, IConfiguration configuration)
+    internal static IHttpClientBuilder AddTenantOwnerSourceGateway(this IServiceCollection services)
         => services.AddHttpClient<TenantOwnerSourceGateway>((provider, client) =>
         {
+            IConfiguration configuration = provider.GetRequiredService<IConfiguration>();
 #if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
             client.BaseAddress = new Uri(RouteCatalogStateCoordinates.Capture(
                 configuration, provider.GetRequiredService<IOptions<RouteCatalogHostOptions>>().Value).HttpEndpoint);
@@ -27,7 +27,8 @@ internal static class TenantOwnerSourceGatewayRegistration
 #endif
         })
         .AddEventStoreDaprServiceInvocation(
-            static _ => Environment.GetEnvironmentVariable("DAPR_API_TOKEN"),
-            static _ => "eventstore",
-            static token => token);
+            static provider => (AppId: TenantEventStoreTarget.AppId(provider.GetRequiredService<IConfiguration>()),
+                Token: Environment.GetEnvironmentVariable("DAPR_API_TOKEN")),
+            static state => state.AppId,
+            static state => state.Token);
 }
