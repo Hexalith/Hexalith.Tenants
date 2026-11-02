@@ -14,6 +14,7 @@ using TenantsInboundBearerForwardingHandler = TenantsApi::Hexalith.Tenants.Api.S
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Primitives;
 
 using Shouldly;
 
@@ -131,6 +132,43 @@ public sealed class TenantsApiGatewayHandlerTests
     }
 
     [Fact]
+    public async Task InboundBearerForwardingHandler_EachSendReplacesStaleAuthorityWithExactCurrentRawValues()
+    {
+        var accessor = new HttpContextAccessor();
+        using var accepted = new HttpResponseMessage(HttpStatusCode.Accepted);
+        var terminal = new CaptureHandler(accepted);
+        using var handler = new TenantsInboundBearerForwardingHandler(accessor) { InnerHandler = terminal };
+        using var invoker = new HttpMessageInvoker(handler);
+        using var request = new HttpRequestMessage(HttpMethod.Post, "http://eventstore/api/v1/commands");
+        request.Headers.TryAddWithoutValidation("Authorization", "Bearer stale-token");
+        request.Headers.TryAddWithoutValidation("X-Unrelated", "retained");
+
+        string[]?[] incoming =
+        [
+            ["Bearer tenant-token"],
+            ["Bearer tenant-token"],
+            ["Bearer changed-token"],
+            ["Bearer first-token", "Bearer second-token"],
+            ["Bearer first-token, Bearer second-token"],
+            ["  Bearer raw-token  "],
+            [" "],
+            [],
+            ["Bearer restored-token"],
+            null,
+        ];
+        foreach (string[]? values in incoming)
+        {
+            accessor.HttpContext = values is null ? null : new DefaultHttpContext();
+            if (values is not null) accessor.HttpContext!.Request.Headers.Authorization = new StringValues(values);
+            _ = await invoker.SendAsync(request, TestContext.Current.CancellationToken);
+            string[] actual = request.Headers.NonValidated.TryGetValues("Authorization", out var raw) ? raw.ToArray() : [];
+            actual.ShouldBe(values ?? []);
+            request.Headers.GetValues("X-Unrelated").ShouldBe(["retained"]);
+        }
+        terminal.Sends.ShouldBe(incoming.Length);
+    }
+
+    [Fact]
     public async Task DaprServiceInvocationExtension_ReplacesUntrustedRoutingHeaders()
     {
         var terminal = new CaptureHandler();
@@ -232,9 +270,12 @@ public sealed class TenantsApiGatewayHandlerTests
 
         public HttpRequestMessage? Request { get; private set; }
 
+        public int Sends { get; private set; }
+
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             Request = request;
+            Sends++;
             return Task.FromResult(_response);
         }
     }

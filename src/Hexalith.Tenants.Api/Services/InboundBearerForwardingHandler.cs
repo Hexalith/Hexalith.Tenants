@@ -5,13 +5,14 @@ namespace Hexalith.Tenants.Api.Services;
 /// </summary>
 public sealed class InboundBearerForwardingHandler(IHttpContextAccessor httpContextAccessor) : DelegatingHandler
 {
+    /// <inheritdoc />
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
-        string? authorization = httpContextAccessor.HttpContext?.Request.Headers.Authorization;
-        if (!string.IsNullOrWhiteSpace(authorization))
+        _ = request.Headers.Remove("Authorization");
+        if (httpContextAccessor.HttpContext is { } context)
         {
-            _ = request.Headers.TryAddWithoutValidation("Authorization", authorization);
+            _ = request.Headers.TryAddWithoutValidation("Authorization", context.Request.Headers.Authorization.ToArray());
         }
 
         return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);

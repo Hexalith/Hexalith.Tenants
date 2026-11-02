@@ -247,6 +247,20 @@ Expected evidence: production startup/options validation fails safely for missin
 
 Redaction rule: validation assertions must name configuration keys only. They must not echo signing keys, bearer tokens, decoded payloads, or secret values.
 
+## API gateway caller credentials
+
+The API forwarder replaces outgoing Authorization with the current incoming raw
+header collection on every send, including standard resilience retries. Missing
+input or HTTP context clears stale outgoing credentials. Ambiguous values remain
+ambiguous in that collection; HTTP serialization may combine values, and existing
+receiver authentication remains authoritative. No value is selected or normalized
+into a valid credential.
+
+The existing typed gateway client serves six queries and eleven commands. Its
+standard resilience retains a 30-second attempt/total budget, retries and circuit
+breaker. These are cooperative HTTP budgets; SDK durable lease cleanup can outlive
+cancellation. Other clients, Dapr policies and authorization rules are unchanged.
+
 ## Manual Deployment Smoke Checks
 
 Use these only against an environment approved for release verification.

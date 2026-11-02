@@ -110,17 +110,29 @@ public sealed class TenantsApiGatewayResilienceTests
     }
 
     /// <summary>Preserves standard transient retries and forwarding on the actual production client.</summary>
-    [Fact(Timeout = 15000)]
-    public async Task TransientGatewayFailureRetriesWithOwnedHeadersAndSucceeds()
+    [Theory(Timeout = 15000)]
+    [InlineData("unchanged")]
+    [InlineData("changed")]
+    [InlineData("absent")]
+    public async Task TransientGatewayFailureRetriesWithOwnedHeadersAndSucceeds(string nextCredential)
     {
         int attempts = 0;
+        IHttpContextAccessor accessor = null!;
         ApiGatewayResilienceCapture capture = null!;
         capture = new ApiGatewayResilienceCapture((request, _) =>
         {
             request.RequestUri.ShouldBe(new Uri("http://localhost:4367/api/v1/queries"));
-            request.Headers.Authorization!.Scheme.ShouldBe("Bearer");
-            string.Equals(request.Headers.Authorization.Parameter, capture.BearerToken, StringComparison.Ordinal)
-                .ShouldBeTrue("the production forwarding handler must retain the controlled caller bearer");
+            int attempt = Interlocked.Increment(ref attempts);
+            string[] expected = attempt == 1 || nextCredential == "unchanged" ? ["Bearer " + capture.BearerToken]
+                : nextCredential == "changed" ? ["Bearer " + capture.BearerToken + "-changed"] : [];
+            string[] actual = request.Headers.NonValidated.TryGetValues("Authorization", out var values) ? values.ToArray() : [];
+            actual.ShouldBe(expected);
+            if (expected.Length > 0)
+            {
+                request.Headers.Authorization!.Scheme.ShouldBe("Bearer");
+                string.Equals(request.Headers.Authorization.Parameter, expected[0]["Bearer ".Length..], StringComparison.Ordinal)
+                    .ShouldBeTrue("the production forwarding handler must retain the current controlled caller bearer");
+            }
             request.Headers.GetValues("dapr-app-id").ShouldBe(["eventstore"]);
             request.Headers.GetValues("dapr-api-token").SequenceEqual([capture.SidecarToken], StringComparer.Ordinal)
                 .ShouldBeTrue("the final Dapr handler must own the controlled sidecar credential");
@@ -131,18 +143,76 @@ public sealed class TenantsApiGatewayResilienceTests
             request.Headers.GetValues(RouteCatalogInvocationHandler.BindingHeader).ShouldHaveSingleItem();
 #endif
 #endif
-            return Task.FromResult(Interlocked.Increment(ref attempts) == 1
-                ? new HttpResponseMessage(HttpStatusCode.ServiceUnavailable)
-                : Success());
+            if (attempt == 1)
+            {
+                if (nextCredential == "changed") accessor.HttpContext!.Request.Headers.Authorization = "Bearer " + capture.BearerToken + "-changed";
+                if (nextCredential == "absent") accessor.HttpContext!.Request.Headers.Remove("Authorization");
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.ServiceUnavailable));
+            }
+            return Task.FromResult(Success());
         });
         using var factory = Factory(capture);
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
         deadline.CancelAfter(TimeSpan.FromSeconds(10));
 
-        EventStoreQueryResult result = await Gateway(factory, capture).SubmitQueryAsync(Query(), cancellationToken: deadline.Token);
+        IEventStoreGatewayClient gateway = Gateway(factory, capture);
+        accessor = factory.Services.GetRequiredService<IHttpContextAccessor>();
+        EventStoreQueryResult result = await gateway.SubmitQueryAsync(Query(), cancellationToken: deadline.Token);
 
         result.CorrelationId.ShouldBe("api-budget-result");
         attempts.ShouldBe(2);
+    }
+
+    /// <summary>Pooled forwarding reads each asynchronous caller context without retaining another caller's bearer.</summary>
+    [Fact(Timeout = 15000)]
+    public async Task PooledGatewayKeepsSuccessiveAndOverlappingCallerAuthorityIsolated()
+    {
+        int sends = 0;
+        var bothTransportsEntered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        ApiGatewayResilienceCapture capture = null!;
+        capture = new ApiGatewayResilienceCapture(async (request, token) =>
+        {
+            int sendNumber = Interlocked.Increment(ref sends);
+            if (sendNumber <= 2)
+            {
+                if (sendNumber == 2) bothTransportsEntered.TrySetResult();
+                await bothTransportsEntered.Task.WaitAsync(TimeSpan.FromSeconds(5), token);
+            }
+            using JsonDocument body = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(token));
+            string caller = body.RootElement.GetProperty("aggregateId").GetString()!;
+            string[] expected = caller == "absent" ? [] : ["Bearer " + capture.BearerToken + "-" + caller];
+            string[] actual = request.Headers.NonValidated.TryGetValues("Authorization", out var values) ? values.ToArray() : [];
+            actual.ShouldBe(expected);
+            return Success();
+        });
+        using var factory = Factory(capture);
+        IEventStoreGatewayClient gateway = Gateway(factory, capture);
+        IHttpContextAccessor accessor = factory.Services.GetRequiredService<IHttpContextAccessor>();
+        var bothStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        int started = 0;
+        async Task SendAsAsync(string caller, bool overlap)
+        {
+            accessor.HttpContext = new DefaultHttpContext();
+            if (caller != "absent") accessor.HttpContext.Request.Headers.Authorization = "Bearer " + capture.BearerToken + "-" + caller;
+            try
+            {
+                if (overlap)
+                {
+                    if (Interlocked.Increment(ref started) == 2) bothStarted.TrySetResult();
+                    await bothStarted.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+                }
+                EventStoreQueryResult result = await gateway.SubmitQueryAsync(
+                    Query() with { AggregateId = caller }, cancellationToken: TestContext.Current.CancellationToken);
+                result.CorrelationId.ShouldBe("api-budget-result");
+            }
+            finally { accessor.HttpContext = null; }
+        }
+
+        await Task.WhenAll(SendAsAsync("first", true), SendAsAsync("second", true));
+        await SendAsAsync("first", false);
+        await SendAsAsync("absent", false);
+        await SendAsAsync("second", false);
+        sends.ShouldBe(5);
     }
 
     /// <summary>Caller cancellation reaches the active transport without replaying the canceled request.</summary>
