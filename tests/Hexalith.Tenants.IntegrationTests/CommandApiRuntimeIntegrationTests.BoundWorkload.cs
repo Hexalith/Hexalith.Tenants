@@ -11,6 +11,7 @@ using Hexalith.EventStore.Server.Commands;
 using Hexalith.EventStore.ServiceDefaults.Authentication;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Events;
+using Hexalith.Tenants.Contracts.Identity;
 using Hexalith.Tenants.IntegrationTests.Fixtures;
 using Hexalith.Tenants.Server.Aggregates;
 
@@ -154,10 +155,10 @@ public partial class CommandApiRuntimeIntegrationTests
         string token = CreateJwt(actorUserId, claims:
         [
             new Claim("name", "untrusted-display-name"),
-            new Claim("eventstore:tenant", "system"),
+            new Claim("eventstore:permission", "global-administrators:bootstrap"),
             new Claim("global_admin", "true"),
         ]);
-        SubmitCommandRequest command = CreateBootstrapRequest() with { Domain = "global-administrators" };
+        SubmitCommandRequest command = CreateBootstrapRequest(TenantPlatformScopes.GlobalAdministrators) with { Domain = "global-administrators" };
         using HttpRequestMessage request = (await authority.CreateProductionBootstrapRequestAsync(host.Services,
             token, command, actorUserId, TestContext.Current.CancellationToken)).ShouldNotBeNull();
 
