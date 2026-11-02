@@ -350,9 +350,15 @@ public partial class CommandApiRuntimeIntegrationTests {
         ICommandStatusStore store = Substitute.For<ICommandStatusStore>();
         _ = store.ReadStatusAsync("system", messageId, Arg.Any<CancellationToken>()).Returns(record);
         await using var factory = new TenantGatewayTestHost(statusStore: store, useLegacyStatusAdapter: false);
-        using HttpClient client = CreateClientWithBearer(factory, CreateJwt("status-reader"));
-
-        using HttpResponseMessage response = await client.GetAsync($"/api/v1/commands/status/{messageId}");
+        string scope = domain == "global-administrators"
+            ? TenantPlatformScopes.GlobalAdministrators : TenantPlatformScopes.Tenants;
+        string permission = domain == "global-administrators"
+            ? "global-administrators:read" : "tenants:read";
+        using HttpClient client = CreateClientWithBearer(factory, CreateJwt("status-reader",
+            claims: [new Claim("eventstore:permission", permission)]));
+        using var statusRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/commands/status/{messageId}");
+        statusRequest.Headers.Add("X-Hexalith-Scope", scope);
+        using HttpResponseMessage response = await client.SendAsync(statusRequest);
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         CommandStatusResponse wire = (await response.Content.ReadFromJsonAsync<CommandStatusResponse>()).ShouldNotBeNull();
         wire.MessageId.ShouldBe(messageId);
@@ -476,9 +482,12 @@ public partial class CommandApiRuntimeIntegrationTests {
         _ = store.ReadStatusAsync(authorizedTenant, messageId, Arg.Any<CancellationToken>()).Returns(record);
         await using var factory = new TenantGatewayTestHost(statusStore: store, useLegacyStatusAdapter: false);
         using HttpClient client = CreateClientWithBearer(factory, CreateJwt("status-reader",
-            claims: [new Claim("eventstore:tenant", authorizedTenant)]));
-        using HttpResponseMessage response = await client.GetAsync($"/api/v1/commands/status/{messageId}");
-        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+            claims: [new Claim("eventstore:permission", "tenants:read")]));
+        using var statusRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/commands/status/{messageId}");
+        statusRequest.Headers.Add("X-Hexalith-Scope", TenantPlatformScopes.Tenants);
+        using HttpResponseMessage response = await client.SendAsync(statusRequest);
+        response.StatusCode.ShouldBe(invalidProof is "missing-domain" or "wrong-domain" or "wrong-tenant"
+            ? HttpStatusCode.NotFound : HttpStatusCode.OK);
 
         var gateway = new TenantCommandGateway(Substitute.For<Hexalith.EventStore.Client.Gateway.IEventStoreGatewayClient>(), new UlidFactory(), client);
         TenantCommandStatusResult result = await gateway.GetStatusAsync(
