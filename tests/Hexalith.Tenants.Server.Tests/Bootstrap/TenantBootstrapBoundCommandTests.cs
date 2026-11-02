@@ -44,6 +44,8 @@ public sealed class TenantBootstrapBoundCommandTests
     [Theory]
     [InlineData("valid")]
     [InlineData("web-payload")]
+    [InlineData("selected-target")]
+    [InlineData("selected-caller")]
     [InlineData("infinite-timeout")]
     [InlineData("loopback")]
     [InlineData("loopback-web")]
@@ -55,8 +57,7 @@ public sealed class TenantBootstrapBoundCommandTests
     [InlineData("infinite-catalog-cancel")]
     [InlineData("infinite-catalog-deadline")]
 #endif
-    [InlineData("selected-target")]
-    [InlineData("selected-caller")]
+
     [InlineData("signature")]
     [InlineData("issuer")]
     [InlineData("audience")]
@@ -73,6 +74,7 @@ public sealed class TenantBootstrapBoundCommandTests
     {
         ArgumentNullException.ThrowIfNull(scenario);
         using var callerCancellation = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+
         string key = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
         using RSA proofKey = RSA.Create(2048);
         var settings = new Dictionary<string, string?>
@@ -138,6 +140,7 @@ public sealed class TenantBootstrapBoundCommandTests
             services.AddSingleton(authority);
         }
 #endif
+
         await using var provider = services.BuildServiceProvider();
         await using var scope = provider.CreateAsyncScope();
         using DaprClient dapr = new DaprClientBuilder().UseHttpEndpoint("http://127.0.0.1:3500").Build();
@@ -153,23 +156,23 @@ public sealed class TenantBootstrapBoundCommandTests
         var command = new SubmitCommandRequest("01ARZ3NDEKTSV4RRFFQ69G5FAV", TenantIdentity.DefaultTenantId,
             TenantIdentity.GlobalAdministratorsDomain, TenantIdentity.GlobalAdministratorsAggregateId, nameof(BootstrapGlobalAdmin),
             JsonSerializer.SerializeToElement(new BootstrapGlobalAdmin(scenario == "payload" ? "foreign" : "bootstrap-administrator"), scenario is "web-payload" or "loopback-web" ? JsonSerializerOptions.Web : JsonSerializerOptions.Default), "01ARZ3NDEKTSV4RRFFQ69G5FAW");
-        if (scenario == "buffer-limit")
-            command = command with { Extensions = new Dictionary<string, string> { ["oversized"] = new string('x', 1_048_576) } };
         TimeSpan readinessTimeout = scenario.StartsWith("infinite", StringComparison.Ordinal)
             ? provider.GetRequiredService<IHttpClientFactory>().CreateClient().Timeout
             : TimeSpan.FromSeconds(1);
         if (scenario.StartsWith("infinite", StringComparison.Ordinal)) readinessTimeout.ShouldBe(Timeout.InfiniteTimeSpan);
+        if (scenario == "buffer-limit")
+        {
+            command = command with { Extensions = new Dictionary<string, string> { ["oversized"] = new string('x', 1_048_576) } };
+            await Should.ThrowAsync<HttpRequestException>(() => TenantBootstrapBoundCommand.CreateAsync(scope.ServiceProvider, configuration, dapr, command,
+                "bootstrap-administrator", bearer, clock, TimeSpan.FromSeconds(1), callerCancellation.Token));
+            return;
+        }
         Task<HttpRequestMessage?> creation = TenantBootstrapBoundCommand.CreateAsync(scope.ServiceProvider, configuration, dapr, command,
             "bootstrap-administrator", bearer, clock, readinessTimeout, callerCancellation.Token);
         if (scenario is "cancel-before-buffer" or "buffer-cancellation")
         {
             await Should.ThrowAsync<OperationCanceledException>(() => creation);
             callerCancellation.IsCancellationRequested.ShouldBeTrue();
-            return;
-        }
-        if (scenario == "buffer-limit")
-        {
-            await Should.ThrowAsync<HttpRequestException>(() => creation);
             return;
         }
 #if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
@@ -201,6 +204,7 @@ public sealed class TenantBootstrapBoundCommandTests
 #endif
         using var request = await creation;
         if (scenario is not ("valid" or "web-payload" or "infinite-timeout" or "finite-catalog-ready" or "infinite-catalog-ready" or "loopback" or "loopback-web" or "selected-target" or "selected-caller")) { request.ShouldBeNull(); return; }
+
         request.ShouldNotBeNull(); request.RequestUri!.AbsolutePath.ShouldEndWith("/api/v1/commands/bound/workload");
         request.RequestUri.AbsolutePath.ShouldContain("/invoke/" + (scenario == "selected-target" ? "eventstore-isolated" : "eventstore") + "/method/");
         request.Headers.Authorization.ShouldBeNull();
@@ -226,6 +230,7 @@ public sealed class TenantBootstrapBoundCommandTests
         actualBytes.ShouldBe(expectedBytes);
         (await content.ReadAsByteArrayAsync(TestContext.Current.CancellationToken)).ShouldBe(actualBytes);
         var bound = (await content.ReadFromJsonAsync<BoundWorkloadCommandRequest>(TestContext.Current.CancellationToken)).ShouldNotBeNull();
+
         bound.PrincipalId.ShouldBe("bootstrap-administrator"); bound.Command.MessageId.ShouldBe(command.MessageId);
         string proof = request.Headers.GetValues(BoundWorkloadCommandProof.HeaderName).ShouldHaveSingleItem();
         string publicKey = Convert.ToBase64String(proofKey.ExportSubjectPublicKeyInfo());
