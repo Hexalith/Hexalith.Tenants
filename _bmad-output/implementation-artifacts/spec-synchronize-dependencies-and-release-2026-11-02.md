@@ -167,7 +167,7 @@ Final synchronization also records EventStore `853721d77b9f15fc2963ef0b9a019d4a2
 
 Story 2.14 subsequently advanced the pinned EventStore source to `653124dced81830e932edb7738a78ee61104d55a` for authorized platform-scope retained-history reads. The final EventStore table row records that later pointer without changing the earlier synchronization receipt.
 
-### All-branch merge integration
+**All-branch merge integration**
 
 The user's subsequent instruction to merge all branches authorizes the outstanding branch integrations. McpCli package-vector receipt branch is merged at `dea5ff0a17bd5e2a7211e3b44fb4b8bae118ad74`; its Abstractions test build and all 20 tests passed. Tenants Dapr readback branch is merged at `861060aa9b5b8ec3dae425b669c178cb6526d1dd`, retaining the concurrent bootstrap-scope fix. No root submodule's nested submodules were initialized. EventStore 4.0.0 and McpCli.Abstractions 2.0.0 were downloaded successfully from nuget.org; no candidate packages were published by this task.
 
