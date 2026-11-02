@@ -14,6 +14,7 @@ using Hexalith.Tenants.Contracts.Identity;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.Contracts.Routing;
 using Hexalith.Tenants.IntegrationTests.Fixtures;
+using Hexalith.Tenants.Server.Projections;
 using Hexalith.Tenants.UI.Services.Gateways;
 
 using Shouldly;
@@ -109,8 +110,10 @@ public sealed class SourceCatalogOwnerProfileTests(AspireTopologyFixture fixture
         denied.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         using var redis = await ConnectionMultiplexer.ConnectAsync("localhost:6379,abortConnect=false,connectTimeout=5000,asyncTimeout=5000").WaitAsync(deadline.Token);
         (await redis.GetDatabase().KeyExistsAsync("tenants||projection:tenants:" + tenantId).WaitAsync(deadline.Token)).ShouldBeTrue();
-        (await redis.GetDatabase().KeyExistsAsync("tenants||audit-tenants:" + tenantId).WaitAsync(deadline.Token)).ShouldBeTrue();
-        (await redis.GetDatabase().KeyExistsAsync("tenants||audit-global-administrators:singleton").WaitAsync(deadline.Token)).ShouldBeTrue();
+        string tenantAuditKey = TenantAuditStreams.GetTenantKey(tenantId);
+        tenantAuditKey.ShouldNotBe(TenantAuditStreams.GlobalAdministratorsKey);
+        (await redis.GetDatabase().KeyExistsAsync("tenants||" + tenantAuditKey).WaitAsync(deadline.Token)).ShouldBeTrue();
+        (await redis.GetDatabase().KeyExistsAsync("tenants||" + TenantAuditStreams.GlobalAdministratorsKey).WaitAsync(deadline.Token)).ShouldBeTrue();
         // Read the retained native actor histories through the actual Dapr sidecar. The public
         // request scope is platform:tenants, but neither durable aggregate identity may move.
         var actorFactory = new ActorProxyFactory(new ActorProxyOptions
