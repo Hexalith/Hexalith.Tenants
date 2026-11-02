@@ -1,3 +1,4 @@
+#if HEXALITH_CHECKPOINTED_TENANT_PROJECTION
 using Hexalith.EventStore.Client.Projections.Checkpointed;
 
 namespace Hexalith.Tenants.Client.Projections;
@@ -21,3 +22,4 @@ public sealed class DurableTenantProjectionOptions {
     /// <summary>Gets the checkpointed write, lease, and history options.</summary>
     public CheckpointedProjectionOptions Checkpoint { get; } = new();
 }
+#endif

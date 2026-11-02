@@ -13,9 +13,13 @@ namespace Hexalith.Tenants.Client.Handlers;
 /// tenant event types; the generic subscription/dedup plumbing is provided by the EventStore client SDK.
 /// </summary>
 /// <remarks>
-/// Every event is applied through the pure <see cref="TenantProjectionTransition"/>. When the registered
-/// <see cref="ITenantProjectionStore"/> also implements <see cref="ITenantProjectionSnapshotStore"/>, deliveries
+/// Every event is applied through the pure <see cref="TenantProjectionTransition"/>.
+#if HEXALITH_CHECKPOINTED_TENANT_PROJECTION
+/// When the registered <see cref="ITenantProjectionStore"/> also implements <see cref="ITenantProjectionSnapshotStore"/>, deliveries
 /// route through its checkpointed write; otherwise the local store keeps its historical skip-older behavior.
+#else
+/// The local store keeps its historical skip-older behavior.
+#endif
 /// </remarks>
 public class TenantProjectionEventHandler :
     IEventStoreDomainEventHandler<TenantCreated>,
@@ -82,12 +86,14 @@ public class TenantProjectionEventHandler :
         ArgumentNullException.ThrowIfNull(@event);
         ArgumentNullException.ThrowIfNull(context);
 
+#if HEXALITH_CHECKPOINTED_TENANT_PROJECTION
         if (_store is ITenantProjectionSnapshotStore durable) {
             // The durable projection owns identity, compare-and-swap, gaps, and recovery. A durable outcome
             // returns (and is acknowledged); a retryable one throws so the delivery is not acknowledged.
             _ = await durable.ApplyAsync(@event, context, cancellationToken).ConfigureAwait(false);
             return;
         }
+#endif
 
         SemaphoreSlim tenantLock = _tenantLocks.GetOrAdd(context.AggregateId, static _ => new SemaphoreSlim(1, 1));
         await tenantLock.WaitAsync(cancellationToken).ConfigureAwait(false);

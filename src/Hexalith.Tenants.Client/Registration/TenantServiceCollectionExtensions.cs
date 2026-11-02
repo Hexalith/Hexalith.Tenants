@@ -1,6 +1,8 @@
 using Hexalith.EventStore.Client.Gateway;
 using Hexalith.EventStore.Client.Projections;
+#if HEXALITH_CHECKPOINTED_TENANT_PROJECTION
 using Hexalith.EventStore.Client.Projections.Checkpointed;
+#endif
 using Hexalith.EventStore.Client.Registration;
 using Hexalith.EventStore.Client.Subscriptions;
 using Hexalith.EventStore.Contracts.Events;
@@ -26,7 +28,9 @@ namespace Hexalith.Tenants.Client.Registration;
 public static class TenantServiceCollectionExtensions {
     private sealed class TenantProjectionRegistrationMarker;
 
+#if HEXALITH_CHECKPOINTED_TENANT_PROJECTION
     private sealed class TenantRejectionCheckpointRegistrationMarker;
+#endif
 
     /// <summary>
     /// The DAPR pub/sub topic carrying tenant domain events.
@@ -81,6 +85,7 @@ public static class TenantServiceCollectionExtensions {
         return services;
     }
 
+#if HEXALITH_CHECKPOINTED_TENANT_PROJECTION
     /// <summary>
     /// Opts the tenant projection into the durable, checkpointed EventStore read-model record so every replica
     /// and every restart reads the same persisted state, health, and checkpoint.
@@ -144,6 +149,7 @@ public static class TenantServiceCollectionExtensions {
                 sp => ActivatorUtilities.CreateInstance(sp, handler));
         }
     }
+#endif
 
     private static void EnsureTenantProjectionRegistrations(IServiceCollection services) {
         if (services.Any(static s => s.ServiceType == typeof(TenantProjectionRegistrationMarker))) {

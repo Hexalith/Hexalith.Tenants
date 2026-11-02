@@ -82,14 +82,17 @@ result records are uploaded; raw observations and key material remain private.
 
 ## Published SDK qualification
 
-The default package selection is stable EventStore `3.132.2`. The finite qualified
-binary set is `3.129.0`, `3.129.1`, `3.130.0`, `3.130.1`, `3.130.2`, `3.131.0`, `3.132.0`, `3.132.1` and `3.132.2`;
+The default package selection is stable EventStore `3.133.0`. The finite qualified
+binary set is `3.129.0`, `3.129.1`, `3.130.0`, `3.130.1`, `3.130.2`, `3.131.0`, `3.132.0`, `3.132.1`, `3.132.2` and `3.133.0`;
 zero fourth revisions and build metadata normalize to the same stable cohort.
 Catalog qualification refuses prereleases, nonzero fourth revisions, unknown
 versions and mixed SDK cohorts. The legacy build floor can still accept
 `3.128.x` selections without catalog enrollment. Explicit `3.128.4`
 compatibility builds retain the frozen host harness and cannot publish Tenants
 packages.
+The optional durable Client projection uses the checkpointed EventStore API first
+published in `3.133.0`; older qualified SDK builds retain the in-memory Client
+projection. Source builds enroll the durable API from the linked EventStore source.
 
 The normal `published-catalog-http` CI matrix tests the actual default without a
 version override and the explicit `3.129.0` floor. Both lanes require compiled
@@ -145,7 +148,18 @@ python3 scripts/verify-catalog-package-consumer.py "$catalog_packages" \
   --expected-source-sha "$RepositoryCommit" --output "$catalog_packages/consumer.json"
 ```
 
-The 3.132.2 adoption uses the shared Builds
+The 3.133.0 adoption uses the published EventStore SDK from
+[`v3.133.0`](https://github.com/Hexalith/Hexalith.EventStore/releases/tag/v3.133.0),
+including the checkpointed projection APIs used by Tenants Client. That
+producer release passed exact-source CI, and all fourteen declared SDK packages
+were visible in NuGet's public flat-container index on 2026-11-02. Local
+qualification completed the standalone Release and source-reference Debug builds
+with zero warnings and errors, the 3.129.0 compatibility build, 422 package
+governance cases, 91 Client cases, 66 generated HTTP cases, and an isolated
+consumer of fresh Contracts and Server archives. The consumer discovered 22
+routes, 22 operations and 12 adapters using the 3.133.0 SDK.
+
+The earlier 3.132.2 adoption used the shared Builds
 [`package-version-audit.json`](../references/Hexalith.Builds/Tools/package-version-audit.json)
 for the published package selection. On 2026-11-02, local Release builds of both
 the standalone and source solutions completed with zero warnings and errors.

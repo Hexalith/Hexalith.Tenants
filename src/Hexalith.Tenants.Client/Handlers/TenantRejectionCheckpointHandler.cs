@@ -1,3 +1,4 @@
+#if HEXALITH_CHECKPOINTED_TENANT_PROJECTION
 using Hexalith.EventStore.Client.Subscriptions;
 using Hexalith.EventStore.Contracts.Events;
 using Hexalith.Tenants.Client.Projections;
@@ -27,3 +28,4 @@ internal sealed class TenantRejectionCheckpointHandler<TEvent>(ITenantProjection
         _ = await _store.ApplyAsync(@event, context, cancellationToken).ConfigureAwait(false);
     }
 }
+#endif

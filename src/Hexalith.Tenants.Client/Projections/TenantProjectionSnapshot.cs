@@ -1,3 +1,4 @@
+#if HEXALITH_CHECKPOINTED_TENANT_PROJECTION
 using Hexalith.EventStore.Client.Projections.Checkpointed;
 
 namespace Hexalith.Tenants.Client.Projections;
@@ -22,3 +23,4 @@ public sealed record TenantProjectionSnapshot(
         && State is not null
         && string.Equals(State.TenantId, TenantId, StringComparison.Ordinal);
 }
+#endif

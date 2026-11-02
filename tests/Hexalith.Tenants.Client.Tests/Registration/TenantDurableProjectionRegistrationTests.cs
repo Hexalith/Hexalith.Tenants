@@ -1,3 +1,4 @@
+#if HEXALITH_CHECKPOINTED_TENANT_PROJECTION
 using Hexalith.EventStore.Client.Gateway;
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Client.Projections.Checkpointed;
@@ -169,3 +170,4 @@ public sealed class TenantDurableProjectionRegistrationTests {
             TestContext.Current.CancellationToken));
     }
 }
+#endif

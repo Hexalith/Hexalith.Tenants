@@ -1,6 +1,8 @@
 using System.Text.Json;
 
+#if HEXALITH_CHECKPOINTED_TENANT_PROJECTION
 using Hexalith.EventStore.Client.Projections.Checkpointed;
+#endif
 using Hexalith.EventStore.Client.Subscriptions;
 using Hexalith.EventStore.Contracts.Events;
 using Hexalith.Tenants.Client.Projections;
@@ -74,6 +76,7 @@ public sealed class TenantProjectionTransitionTests {
         next.Status.ShouldBe(TenantStatus.Active);
     }
 
+#if HEXALITH_CHECKPOINTED_TENANT_PROJECTION
     [Fact]
     public void CheckpointTransitionDecodesAuthoritativeHistoryLikeTheLiveDelivery() {
         var created = new TenantCreated(Tenant, "Replayed", "from history", s_at);
@@ -100,6 +103,7 @@ public sealed class TenantProjectionTransitionTests {
         advanced.Name.ShouldBe("Replayed");
         beforeCreation.ShouldBeNull("events before TenantCreated never materialize tenant state");
     }
+#endif
 
     private static TenantLocalState Seed() {
         var state = new TenantLocalState { TenantId = Tenant, Name = "Seed", Status = TenantStatus.Active };

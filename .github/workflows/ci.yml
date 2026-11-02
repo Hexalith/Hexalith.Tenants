@@ -22,7 +22,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - profile: current default 3.132.2
+          - profile: current default 3.133.0
             sdk-argument: ''
             owner-source-minimum: 25
           - profile: explicit floor 3.129.0

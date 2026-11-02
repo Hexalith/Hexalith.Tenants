@@ -47,9 +47,12 @@ Watch reactive cross-service access revocation in action: add a user to a tenant
 | [`Hexalith.Tenants.Testing`](https://www.nuget.org/packages/Hexalith.Tenants.Testing) | In-memory fakes and test helpers with production-parity domain logic |
 | [`Hexalith.Tenants.Aspire`](https://www.nuget.org/packages/Hexalith.Tenants.Aspire) | .NET Aspire hosting extensions for consuming AppHosts |
 
-Normal package builds use EventStore 3.132.2. Explicit stable 3.129.0, 3.129.1,
-3.130.0, 3.130.1, 3.130.2, 3.131.0, 3.132.0 and 3.132.1 selections remain qualified, including zero-revision
+Normal package builds use EventStore 3.133.0. Explicit stable 3.129.0, 3.129.1,
+3.130.0, 3.130.1, 3.130.2, 3.131.0, 3.132.0, 3.132.1 and 3.132.2 selections remain qualified, including zero-revision
 and build-metadata aliases. See the [published SDK qualification commands and evidence](docs/development-route-catalog.md#published-sdk-qualification).
+The optional durable Client projection uses EventStore's checkpointed API and is
+available with the source SDK or published 3.133.0; older qualified SDKs keep the
+in-memory Client projection.
 Contracts includes its compiled
 route and operation declarations; Server includes its existing declared intent
 adapter enrollment. These are offline catalog inputs: the composition owner

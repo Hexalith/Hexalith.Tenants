@@ -1,3 +1,4 @@
+#if HEXALITH_CHECKPOINTED_TENANT_PROJECTION
 using System.Security.Cryptography;
 using System.Text;
 
@@ -174,3 +175,4 @@ public sealed class DurableTenantProjectionStore : ITenantProjectionStore, ITena
     public Task SaveAsync(TenantLocalState state, CancellationToken cancellationToken = default)
         => throw new NotSupportedException("The durable tenant projection is written only through checkpointed deliveries.");
 }
+#endif

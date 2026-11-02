@@ -1,3 +1,4 @@
+#if HEXALITH_CHECKPOINTED_TENANT_PROJECTION
 using System.Text.Json;
 
 using Hexalith.Commons.UniqueIds;
@@ -66,3 +67,4 @@ internal sealed class DurableTenantProjectionHarness {
     public static Task<EventStoreDomainEventProcessingResult> ProcessAsync(ServiceProvider host, EventStoreDomainEventEnvelope envelope)
         => host.GetRequiredService<EventStoreDomainEventProcessor>().ProcessAsync(envelope, TestContext.Current.CancellationToken);
 }
+#endif

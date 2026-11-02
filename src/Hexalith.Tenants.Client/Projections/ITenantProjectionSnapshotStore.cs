@@ -1,3 +1,4 @@
+#if HEXALITH_CHECKPOINTED_TENANT_PROJECTION
 using Hexalith.EventStore.Client.Projections.Checkpointed;
 using Hexalith.EventStore.Client.Subscriptions;
 using Hexalith.EventStore.Contracts.Events;
@@ -38,3 +39,4 @@ public interface ITenantProjectionSnapshotStore {
         EventStoreDomainEventContext context,
         CancellationToken cancellationToken = default);
 }
+#endif

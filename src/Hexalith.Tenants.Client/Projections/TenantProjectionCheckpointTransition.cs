@@ -1,3 +1,4 @@
+#if HEXALITH_CHECKPOINTED_TENANT_PROJECTION
 using System.Text.Json;
 
 using Hexalith.EventStore.Client.Projections.Checkpointed;
@@ -55,3 +56,4 @@ internal sealed class TenantProjectionCheckpointTransition : ICheckpointedProjec
             ?? throw new NotSupportedException($"Authoritative tenant event {type.Name} at sequence {@event.Sequence} decoded to no payload.");
     }
 }
+#endif

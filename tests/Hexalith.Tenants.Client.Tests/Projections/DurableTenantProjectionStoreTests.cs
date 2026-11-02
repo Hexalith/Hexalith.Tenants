@@ -1,3 +1,4 @@
+#if HEXALITH_CHECKPOINTED_TENANT_PROJECTION
 using Hexalith.EventStore.Client.Projections.Checkpointed;
 using Hexalith.EventStore.Client.Subscriptions;
 using Hexalith.Tenants.Client.Projections;
@@ -319,3 +320,4 @@ public sealed class DurableTenantProjectionStoreTests {
         harness.Gateway.Reads.ShouldBe(0, "no history was needed");
     }
 }
+#endif
