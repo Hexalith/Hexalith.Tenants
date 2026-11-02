@@ -70,6 +70,7 @@ class SourceCatalogProfileProvisioningTests(unittest.TestCase):
             with mock.patch.dict(os.environ, settings), mock.patch.object(profile, "command", command), \
                     mock.patch("sys.argv", ["prepare", "--sdk-source-sha", "b" * 40,
                                             *(["--ci-job", "authenticated-routes"] if scenario == "package-job" else []),
+                                            *(["--response-profile", "request-path"] if scenario == "package-job" else []),
                                             "--output", str(output)]), \
                     contextlib.redirect_stdout(io.StringIO()) as diagnostics:
                 if scenario in ("fresh", "package-job"):
@@ -80,7 +81,9 @@ class SourceCatalogProfileProvisioningTests(unittest.TestCase):
                     self.assertEqual(evidence["sdkProducerVersion"], "3.128.4")
                     self.assertNotIn("DigestKeys", output.read_text(encoding="utf-8"))
                     self.assertIn("Tenants__DevelopmentRouteCatalog__CustodyDirectory=", environment.read_text(encoding="utf-8"))
-                    self.assertIn("TENANTS_SOURCE_WORKER_BACKED_RESPONSES_ENABLED=true\n", environment.read_text(encoding="utf-8"))
+                    expected_profile = "false" if scenario == "package-job" else "true"
+                    self.assertIn("TENANTS_SOURCE_WORKER_BACKED_RESPONSES_ENABLED=" + expected_profile + "\n",
+                                  environment.read_text(encoding="utf-8"))
                     self.assertEqual(diagnostics.getvalue().count("::add-mask::"), 2)
                     log_settings = dict(line.split("=", 1) for line in environment.read_text(encoding="utf-8").splitlines()
                                         if line.startswith("Logging__"))

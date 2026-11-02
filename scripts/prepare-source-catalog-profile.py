@@ -23,6 +23,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--sdk-source-sha", required=True)
     parser.add_argument("--ci-job", choices=("development-catalog", "authenticated-routes"), default="development-catalog")
+    parser.add_argument("--response-profile", choices=("worker", "request-path"), default="worker")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     if os.environ.get("GITHUB_ACTIONS") != "true" or os.environ.get("GITHUB_JOB") != args.ci_job:
@@ -69,7 +70,7 @@ def main():
     values = {
         "TENANTS_SOURCE_CATALOG_PROFILE": "true",
         # This separate behavior opt-in is emitted only after the fresh backend checks above.
-        "TENANTS_SOURCE_WORKER_BACKED_RESPONSES_ENABLED": "true",
+        "TENANTS_SOURCE_WORKER_BACKED_RESPONSES_ENABLED": "true" if args.response_profile == "worker" else "false",
         # Exact owning categories only; do not enable HTTP/header or arbitrary transport logging.
         "Logging__LogLevel__Hexalith.EventStore.ServiceDefaults.Routing.TechnicalHttpRouteCatalogReceiver": "Debug",
         "Logging__LogLevel__Hexalith.EventStore.Server.Commands.CommandRouter": "Debug",

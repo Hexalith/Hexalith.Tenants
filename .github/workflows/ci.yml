@@ -246,7 +246,7 @@ jobs:
           source_sha="$(git rev-parse HEAD:references/Hexalith.EventStore)"
           printf 'TENANTS_SOURCE_SDK_PRODUCER_VERSION=4.0.0\n' >> "$GITHUB_ENV"
           python3 scripts/prepare-source-catalog-profile.py \
-            --ci-job authenticated-routes --sdk-source-sha "$source_sha" \
+            --ci-job authenticated-routes --response-profile request-path --sdk-source-sha "$source_sha" \
             --output "${RUNNER_TEMP}/tenants-package-backend.json"
       - name: Install pinned browser qualification tools
         working-directory: tests/performance/tenant-audit

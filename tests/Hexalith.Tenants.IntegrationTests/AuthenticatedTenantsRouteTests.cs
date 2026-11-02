@@ -299,7 +299,8 @@ public sealed class AuthenticatedTenantsRouteTests(AuthenticatedRouteTopologyFix
         request.Headers.Add("dapr-app-id", "tenants-api");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AspireTopologyTests.CreateDemoJwt());
         using HttpResponseMessage response = await fixture.EventStoreDaprClient.SendAsync(request, TestContext.Current.CancellationToken);
-        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        response.StatusCode.ShouldBe(AspireTopologyFixture.IsSourceCatalogProfile
+            ? HttpStatusCode.Unauthorized : HttpStatusCode.Forbidden);
     }
 
     [DaprFact]
@@ -319,9 +320,11 @@ public sealed class AuthenticatedTenantsRouteTests(AuthenticatedRouteTopologyFix
         fixture.SkipIfUnavailable();
         using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(5));
         string token = AspireTopologyTests.CreateDemoJwt();
+        var tenantIds = new List<string>(20);
         for (int index = 0; index < 20; index++)
         {
             string tenantId = $"populated-page-{Guid.NewGuid():N}";
+            tenantIds.Add(tenantId);
             var command = AspireTopologyTests.CreateCommand("tenants", tenantId,
                 nameof(Hexalith.Tenants.Contracts.Commands.CreateTenant),
                 new Hexalith.Tenants.Contracts.Commands.CreateTenant(tenantId, "Populated page control", "Native authority capacity control"));
@@ -333,7 +336,7 @@ public sealed class AuthenticatedTenantsRouteTests(AuthenticatedRouteTopologyFix
         // Start the measured page after the unchanged one-second consumer window used by command preparation.
         await Task.Delay(TimeSpan.FromSeconds(2), timeout.Token);
         TestContext.Current.TestOutputHelper?.WriteLine("Populated page control: starting one production 20-row load.");
-        using ServiceProvider provider = CreateProductionReadServices(token);
+        using ServiceProvider provider = CreateProductionReadServices(AspireTopologyTests.CreateDemoJwt(tenantIds));
         using IServiceScope scope = provider.CreateScope();
         using var gateway = new TenantQueryGateway(
             scope.ServiceProvider.GetRequiredService<ITenantsRestQueryClient>(), new LiveRouteUserContext(),
