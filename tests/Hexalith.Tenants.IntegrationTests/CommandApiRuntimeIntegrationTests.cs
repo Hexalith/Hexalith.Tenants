@@ -33,6 +33,7 @@ using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Events;
 using Hexalith.Tenants.Contracts.Events.Rejections;
+using Hexalith.Tenants.Contracts.Identity;
 using Hexalith.Tenants.IntegrationTests.Fixtures;
 using Hexalith.Tenants.Server.Aggregates;
 using Hexalith.Tenants.Server.Projections;
@@ -910,13 +911,18 @@ public partial class CommandApiRuntimeIntegrationTests {
         JsonElement payload = JsonSerializer.SerializeToElement(new BootstrapGlobalAdmin("test-user"));
         var request = new Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest(
             UniqueIdHelper.GenerateSortableUniqueStringId(),
-            "system",
+            TenantPlatformScopes.GlobalAdministrators,
             "global-administrators",
             "global-administrators",
             nameof(BootstrapGlobalAdmin),
             payload);
 
-        using HttpRequestMessage boundRequest = await authority.CreateRequestAsync(factory.Services, CreateJwt("test-user"), request);
+        string token = CreateJwt("test-user", claims:
+        [
+            new Claim("global_admin", "true"),
+            new Claim("eventstore:permission", "global-administrators:bootstrap"),
+        ]);
+        using HttpRequestMessage boundRequest = await authority.CreateRequestAsync(factory.Services, token, request);
         HttpResponseMessage response = await client.SendAsync(boundRequest);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
@@ -2590,13 +2596,13 @@ public partial class CommandApiRuntimeIntegrationTests {
         string token = CreateJwt(actorUserId, claims:
         [
             new Claim("name", targetUserId),
-            new Claim("eventstore:tenant", "system"),
+            new Claim("global_admin", "true"),
             new Claim("eventstore:domain", "global-administrators"),
-            new Claim("eventstore:permission", nameof(BootstrapGlobalAdmin)),
+            new Claim("eventstore:permission", "global-administrators:bootstrap"),
         ]);
         using HttpClient client = factory.CreateClient();
         var request = new Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest(
-            UniqueIdHelper.GenerateSortableUniqueStringId(), "system", "global-administrators", "global-administrators",
+            UniqueIdHelper.GenerateSortableUniqueStringId(), TenantPlatformScopes.GlobalAdministrators, "global-administrators", "global-administrators",
             nameof(BootstrapGlobalAdmin), JsonSerializer.SerializeToElement(new BootstrapGlobalAdmin(targetUserId)));
 
         using HttpRequestMessage boundRequest = await authority.CreateRequestAsync(factory.Services, token, request);

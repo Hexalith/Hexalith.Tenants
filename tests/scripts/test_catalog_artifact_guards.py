@@ -78,8 +78,8 @@ class CatalogArtifactPackTests(unittest.TestCase):
             self.assertEqual(built.returncode, 0, built.stdout + built.stderr)
             stale = {package: binary(package).read_bytes() for package in ('Contracts', 'Server')}
             for property_name, version, diagnostic in (
-                    ('HexalithEventStoreVersion', '3.128.4', 'Canonical Tenants Contracts require EventStore 4.0.0'),
-                    ('HexalithMcpCliVersion', '1.1.0', 'Canonical Tenants Contracts require McpCli.Abstractions 2.0.0')):
+                    ('HexalithEventStoreVersion', '3.128.4', 'Canonical Tenants packages require EventStore 4.0.0'),
+                    ('HexalithMcpCliVersion', '1.1.0', 'Canonical Tenants packages require McpCli.Abstractions 2.0.0')):
                 with self.subTest(canonical_guard=property_name):
                     rejected = run('build', project('Contracts'), '--no-restore', *common,
                                    f'-p:{property_name}={version}')
@@ -91,9 +91,7 @@ class CatalogArtifactPackTests(unittest.TestCase):
                     packed = run('pack', project(package), '--no-build', '--no-restore', *common,
                                  '-p:HexalithEventStoreVersion=3.128.4', '--output', str(output))
                     self.assertNotEqual(packed.returncode, 0, packed.stdout + packed.stderr)
-                    diagnostic = ('Canonical Tenants Contracts require EventStore 4.0.0' if package == 'Contracts'
-                                  else 'Published Tenants packages require')
-                    self.assertIn(diagnostic, packed.stdout + packed.stderr)
+                    self.assertIn('Canonical Tenants packages require EventStore 4.0.0', packed.stdout + packed.stderr)
                     self.assertFalse(list(output.glob('*.nupkg')))
 
             for package, namespace, attribute, declaration, members in (

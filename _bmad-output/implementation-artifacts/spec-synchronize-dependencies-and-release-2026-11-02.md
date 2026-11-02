@@ -157,10 +157,13 @@ These root dependency pointer changes implement the user's explicit synchronizat
 | `references/Hexalith.FrontComposer` | `d1236f9e5f21c0a000e1081846a2ea6308a35fd3` | `73ff2f87e430d983661c42674c0e433b4b76045f` |
 | `references/Hexalith.Memories` | `9c0fac6ec0227b318662dcb9bb3217c5de995c66` | `66822bc5bc4858c824f17b7d093f5f0f676b03ea` |
 | `references/Hexalith.Platform` | `52e361d4a41b681b06f5e885f9f9857d8b08f5b2` | `c635a2dc22f404d97c9fe7e27f7e7f4c9017943b` |
+| `references/Hexalith.EventStore` | `853721d77b9f15fc2963ef0b9a019d4a2cf22f1e` | `653124dced81830e932edb7738a78ee61104d55a` |
 
 The first exact push-range gitlink check exposed missing declarations in this new spec. These declarations and exact targets repair that evidence omission; the baseline and production guard remain unchanged.
 
 Final synchronization also records EventStore `853721d77b9f15fc2963ef0b9a019d4a2cf22f1e`, already pushed by concurrent upstream work. It adds canonical platform scope acceptance to the four API request validators and their focused regressions. This inspected upstream commit changes no library source edge used by the final Tenants unit suites. EventStore run41488610131 passed on its preceding main; the new commit has its own pending CI. FrontComposer retry remains green. No unfinished upstream edits were staged by this task.
+
+Story 2.14 subsequently advanced the pinned EventStore source to `653124dced81830e932edb7738a78ee61104d55a` for authorized platform-scope retained-history reads. The final EventStore table row records that later pointer without changing the earlier synchronization receipt.
 
 ## Verification
 

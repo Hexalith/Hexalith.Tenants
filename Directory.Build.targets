@@ -35,13 +35,14 @@
            Text="Published Tenants packages require the qualified EventStore catalog SDK through 3.133.0, the coordinated 4.0.0 candidate, or an enrolled source build. The 3.128.4 compatibility profile is not publishable." />
   </Target>
 
-  <!-- The current public Contracts decorations require both major-version producers. -->
-  <Target Name="ValidateCanonicalBoundaryPackageCohort" BeforeTargets="CollectPackageReferences;PrepareForBuild"
-          Condition="'$(MSBuildProjectName)' == 'Hexalith.Tenants.Contracts'">
+  <!-- Every current Tenants archive must retain the coordinated major-version cohort,
+       including packing without a build against a DLL produced with different global properties. -->
+  <Target Name="ValidateCanonicalBoundaryPackageCohort" BeforeTargets="CollectPackageReferences;PrepareForBuild;GenerateNuspec"
+          Condition="'$(MSBuildProjectName)' == 'Hexalith.Tenants.Contracts' or '$(MSBuildProjectName)' == 'Hexalith.Tenants.Server' or '$(MSBuildProjectName)' == 'Hexalith.Tenants.Client' or '$(MSBuildProjectName)' == 'Hexalith.Tenants.Testing' or '$(MSBuildProjectName)' == 'Hexalith.Tenants.Aspire'">
     <Error Condition="'$(HexalithEventStoreFromSource)' != 'true' and '$(HexalithEventStoreVersion)' != '4.0.0'"
-           Text="Canonical Tenants Contracts require EventStore 4.0.0 in package mode." />
+           Text="Canonical Tenants packages require EventStore 4.0.0 in package mode." />
     <Error Condition="'$(HexalithMcpCliFromSource)' != 'true' and '$(HexalithMcpCliVersion)' != '2.0.0'"
-           Text="Canonical Tenants Contracts require McpCli.Abstractions 2.0.0 in package mode." />
+           Text="Canonical Tenants packages require McpCli.Abstractions 2.0.0 in package mode." />
   </Target>
 
   <!-- Foreign repositories can inherit this targets file while generating their own packages. -->
