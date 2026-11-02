@@ -343,7 +343,13 @@ public sealed class AuthenticatedTenantsRouteTests(AuthenticatedRouteTopologyFix
             scope.ServiceProvider.GetRequiredService<ITenantSearchCursorCodec>());
         var elapsed = System.Diagnostics.Stopwatch.StartNew();
         TenantListSnapshot result = await gateway.ListTenantsAsync(new TenantListRequest(PageSize: 20), null, timeout.Token);
-        TestContext.Current.TestOutputHelper?.WriteLine($"Populated page outcome: Kind={result.Kind}, Rows={result.Rows.Count}, Degraded={result.IsDegraded}, KnownCounts={result.Rows.Count(row => row.MemberCount.IsKnown && row.OwnerCount.IsKnown)}, ElapsedMilliseconds={elapsed.Elapsed.TotalMilliseconds:F2}, Cancelled={timeout.IsCancellationRequested}.");
+        TestContext.Current.TestOutputHelper?.WriteLine($"Populated page outcome: {result}, KnownCounts={result.Rows.Count(row => row.MemberCount.IsKnown && row.OwnerCount.IsKnown)}, ElapsedMilliseconds={elapsed.Elapsed.TotalMilliseconds:F2}, Cancelled={timeout.IsCancellationRequested}.");
+        if (result.Rows.Count != 20)
+        {
+            var raw = await scope.ServiceProvider.GetRequiredService<ITenantsRestQueryClient>()
+                .ListTenantsAsync(new ListTenantsQuery { PageSize = 20 }, null, timeout.Token);
+            TestContext.Current.TestOutputHelper?.WriteLine($"Populated page transport: HTTP={raw.StatusCode}, Failure={raw.FailureKind}, Provenance={raw.Metadata.Provenance}, Lifecycle={raw.Metadata.Lifecycle}.");
+        }
         result.Rows.Count.ShouldBe(20);
         result.IsDegraded.ShouldBeFalse();
         result.Rows.All(row => row.MemberCount.IsKnown && row.OwnerCount.IsKnown).ShouldBeTrue();
@@ -379,11 +385,15 @@ public sealed class AuthenticatedTenantsRouteTests(AuthenticatedRouteTopologyFix
         DateTimeOffset deadline = DateTimeOffset.UtcNow.AddSeconds(30);
         while ((first.Payload is null || (projected is not null && !projected(first.Payload))) && DateTimeOffset.UtcNow < deadline)
         {
+            if (first.FailureKind != TenantsRestQueryFailureKind.None)
+                TestContext.Current.TestOutputHelper?.WriteLine($"Live production read: HTTP={first.StatusCode}, Failure={first.FailureKind}, Provenance={first.Metadata.Provenance}, Lifecycle={first.Metadata.Lifecycle}.");
             first.FailureKind.ShouldBe(TenantsRestQueryFailureKind.None);
             await Task.Delay(TimeSpan.FromMilliseconds(250));
             first = await read(null);
         }
 
+        if (first.FailureKind != TenantsRestQueryFailureKind.None)
+            TestContext.Current.TestOutputHelper?.WriteLine($"Live production read: HTTP={first.StatusCode}, Failure={first.FailureKind}, Provenance={first.Metadata.Provenance}, Lifecycle={first.Metadata.Lifecycle}.");
         first.FailureKind.ShouldBe(TenantsRestQueryFailureKind.None);
         first.StatusCode.ShouldBe((int)HttpStatusCode.OK);
         T payload = first.Payload.ShouldNotBeNull();
