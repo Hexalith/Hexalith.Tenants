@@ -1,0 +1,254 @@
+{
+  "date": "2026-11-02",
+  "scope": "Mechanical public3.132.1 package adoption after the reviewed3.132.0 unit; local dirty-tree package/HTTP checks only. No production runtime C# or authorization/transport changes.",
+  "source_base": "a6df80f8a9b2426f55a691bc1b25722a1051d75e",
+  "reviewed_predecessor": "5da5670e",
+  "sdk_default": "3.132.1",
+  "public_cohort": {
+    "producer": "0ace1545c433bf234f54cef3a57ac77d62b4175f",
+    "receipt": "/home/administrator/projects/hexalith/works/.artifacts/upgrade-release-orchestration-20261101/sdk-3.132.1-public/verification.json",
+    "receipt_sha256": "de97ff0379b0b3b346ed5134eb3fb9eb20a24ce727e5d480c3b49b4db58ee4a1",
+    "version": "3.132.1",
+    "package_count": 14,
+    "manifest": "tools/release-packages.json",
+    "manifest_sha256": "6b0b70b856839d4117bcd969f6a2de0093c477c109cb79f3f2882b1f05effcae",
+    "signature_verification_exit_code": 0,
+    "independent_checks": "All14 HTTP200 archives matched exactSHA256, ID, stable version, official repository URL, producer commit and signature presence. Prior strict public signature gate is authoritative.",
+    "archive_sha256": {
+      "Hexalith.EventStore.Contracts": "68dba06dd92add6679e9c20af46c167db710193923abc235e8d270acc98a7705",
+      "Hexalith.EventStore.Client": "4aac4411c91a544247ed30419064eb9681f7764ff0cefedc9f8b75051b1824d4",
+      "Hexalith.EventStore.Server": "01cf01739e6d3695f4de951a4dc773b2cf1339ef7717cb2fe47480d44c1e7423",
+      "Hexalith.EventStore.SignalR": "f52a3ba8a6db951ac5a75ebdce62ce72d577b20e56be83a668a4176de5516ca9",
+      "Hexalith.EventStore.Testing": "0b34281bc127c8c7c716ec1b831e2088534fdc877192e20117018ceda2606c8e",
+      "Hexalith.EventStore.Testing.Integration": "2a15e42c507ad0700fe67c517dce989510be0e4c6139b4ca144c4b8b754ae85e",
+      "Hexalith.EventStore.Aspire": "a0759c4a3b246962badd396cd9ee554b0c766f9d7eeec02209e6150bee808266",
+      "Hexalith.EventStore.ServiceDefaults": "9b520f737f380b6e65f32394e678d49fdfa3c18363e84238c74419d8dab5278e",
+      "Hexalith.EventStore.DomainService": "90c7dab70ca9cf9b4f4a7778119ccc96f4f37f68157b0b5523a7d41bc1cb3b66",
+      "Hexalith.EventStore.RestApi.Generators": "bd0fca54122ac0be6506a904412b2b59720ca5a6a8f74ff838d063ac26d753fa",
+      "Hexalith.EventStore.Gateway": "044c78b3ba2ec4d28c0edc54cdafa8f6fbb2c411762b63683d33bc5f77d2483c",
+      "Hexalith.EventStore.Admin.Abstractions": "17cebac7ca1345886e6d1432f1c82180f7b369171390b02a1a87fbf7fb7cca1d",
+      "Hexalith.EventStore.Admin.Cli": "a93ce9fe3e75dfc436670ec624e39f7524ae9854edb06fc3f0127674f20b9eaa",
+      "Hexalith.EventStore.Admin.Server": "9a268bdb2ed22511b4b1f5ee027efc28e1b095ccb7611faf1608b97cd3e2ec3b"
+    },
+    "signature_command_per_archive": [
+      "dotnet",
+      "nuget",
+      "verify",
+      "--all",
+      "{archive}"
+    ]
+  },
+  "qualification_builds_input": {
+    "explicit_root": "/tmp/works-builds-repository-provenance-20261101",
+    "catalog_commit": "a175b0fe3d25986c422e4b01549738dccca3251f",
+    "audit_commit": "2dd1a0893d4a456d44440fbc4b692f7bbb68f4e7",
+    "observed_head_after_parallel_fixture_work": "d173b7045524d975a90e2caa3c5677baeb133601",
+    "input_sha256": {
+      "Props/Directory.Packages.props": {
+        "working_sha256": "9ebcd93e8e4e9a46277531aee80be3848cd43e65a07e9a827ab94cb99ddbb2ec",
+        "normalized_lf_sha256": "ede61f995341310e8fbc4763c8f01cc36a805cd3768db64c056223ae81961cfe",
+        "committed_blob_sha256": "ede61f995341310e8fbc4763c8f01cc36a805cd3768db64c056223ae81961cfe"
+      },
+      "Tools/package-version-audit.json": {
+        "working_sha256": "1c647c89de4df533796d2538c38615c6a2c565b55fa4c7a93e8719473c6250ab",
+        "normalized_lf_sha256": "1c647c89de4df533796d2538c38615c6a2c565b55fa4c7a93e8719473c6250ab",
+        "committed_blob_sha256": "1c647c89de4df533796d2538c38615c6a2c565b55fa4c7a93e8719473c6250ab"
+      }
+    },
+    "catalog_audit_and_tooling_unchanged_since_audit_commit": true,
+    "outputs": "/home/administrator/projects/hexalith/works/references/Hexalith.Tenants/artifacts/sdk1321-qualification",
+    "note": "Private qualification input only; parent owns final official Builds dependency recording. Parallel fixture-only work did not change these catalog/audit/tooling inputs."
+  },
+  "results": {
+    "runtime": {
+      "total": 178,
+      "passed": 178,
+      "failed": 0,
+      "skipped": 0,
+      "errors": 0
+    },
+    "controllers": {
+      "total": 66,
+      "passed": 66,
+      "failed": 0,
+      "skipped": 0,
+      "errors": 0
+    },
+    "gateway": {
+      "total": 46,
+      "passed": 46,
+      "failed": 0,
+      "skipped": 0,
+      "errors": 0
+    },
+    "governance": {
+      "total": 399,
+      "passed": 399,
+      "failed": 0,
+      "skipped": 0,
+      "errors": 0
+    },
+    "bootstrap": {
+      "total": 288,
+      "passed": 288,
+      "failed": 0,
+      "skipped": 0,
+      "errors": 0
+    }
+  },
+  "additional_checks": {
+    "python_metadata": {
+      "methods": 6,
+      "passed": 6,
+      "positive_alias_subcases": 32,
+      "invalid_version_subcases": 22,
+      "mixed_sdk_subcases": 7,
+      "includes_bidirectional_3.132.0_3.132.1_refusal": true
+    },
+    "python_pack_guards": {
+      "methods": 2,
+      "passed": 2
+    },
+    "normal_mtp_current_ci": {
+      "bound": 13,
+      "actor": 2,
+      "conflict": 1,
+      "failed": 0,
+      "skipped": 0,
+      "minimum_counts_and_fail_skips": "Preserved normal CI method selectors, minimum13/2/1 and fail-skips on."
+    },
+    "builds": "Integration/Contracts/Server Release m:1 public-package builds passed, zero warnings/errors; all source flags false.",
+    "actionlint": "passed with -shellcheck=",
+    "diff_check": "passed"
+  },
+  "sdk_runtime_dlls": {
+    "Hexalith.EventStore.Admin.Abstractions": {
+      "version": "3.132.1",
+      "producer": "0ace1545c433bf234f54cef3a57ac77d62b4175f",
+      "sha256": "bdede33c10d665cc937fc111c5ca9eefacf03788cb57e2d94ea8050bb5217be3"
+    },
+    "Hexalith.EventStore.Aspire": {
+      "version": "3.132.1",
+      "producer": "0ace1545c433bf234f54cef3a57ac77d62b4175f",
+      "sha256": "c09134091682c20d4ea46ee5076fa081b701451ed45f9451f248e3e82a61daa9"
+    },
+    "Hexalith.EventStore.Client": {
+      "version": "3.132.1",
+      "producer": "0ace1545c433bf234f54cef3a57ac77d62b4175f",
+      "sha256": "9273adbfcefc8245100fce00436c7a571d7bc1583d5b41f1777ff9ebdda14380"
+    },
+    "Hexalith.EventStore.Contracts": {
+      "version": "3.132.1",
+      "producer": "0ace1545c433bf234f54cef3a57ac77d62b4175f",
+      "sha256": "1373140e96e1a8b68d39199a2db2020c204b087b8ee5ae622bcfe2aac2189f4b"
+    },
+    "Hexalith.EventStore.DomainService": {
+      "version": "3.132.1",
+      "producer": "0ace1545c433bf234f54cef3a57ac77d62b4175f",
+      "sha256": "26cde0ade80df9b4805470f10ba7ac190b8df0a391b7b3b35822f6e1798531fb"
+    },
+    "Hexalith.EventStore.Gateway": {
+      "version": "3.132.1",
+      "producer": "0ace1545c433bf234f54cef3a57ac77d62b4175f",
+      "sha256": "a13abb17298d984147a1cb1224cfc89754ff8ebe2402e00cc318873f0118ad09"
+    },
+    "Hexalith.EventStore.Server": {
+      "version": "3.132.1",
+      "producer": "0ace1545c433bf234f54cef3a57ac77d62b4175f",
+      "sha256": "97fcf5731e58872e1ec345d005997291bae28303aae667b25ade93e070c08f37"
+    },
+    "Hexalith.EventStore.ServiceDefaults": {
+      "version": "3.132.1",
+      "producer": "0ace1545c433bf234f54cef3a57ac77d62b4175f",
+      "sha256": "f053d1a492b2bfc4b4cc50223f9ce9cdce52fc08cd9a55470c79d9f7c8c67f37"
+    },
+    "Hexalith.EventStore.Testing": {
+      "version": "3.132.1",
+      "producer": "0ace1545c433bf234f54cef3a57ac77d62b4175f",
+      "sha256": "603cd234cf7827eba1c3be951027d47fd56a7c1ad34b374bcdcc7fce3e6250cf"
+    }
+  },
+  "sdk_asset_cohort": {
+    "Hexalith.EventStore.Admin.Abstractions/3.132.1": "package",
+    "Hexalith.EventStore.Aspire/3.132.1": "package",
+    "Hexalith.EventStore.Client/3.132.1": "package",
+    "Hexalith.EventStore.Contracts/3.132.1": "package",
+    "Hexalith.EventStore.DomainService/3.132.1": "package",
+    "Hexalith.EventStore.Gateway/3.132.1": "package",
+    "Hexalith.EventStore.Server/3.132.1": "package",
+    "Hexalith.EventStore.ServiceDefaults/3.132.1": "package",
+    "Hexalith.EventStore.Testing/3.132.1": "package",
+    "Hexalith.EventStore.Testing.Integration/3.128.4": "package"
+  },
+  "candidate": {
+    "version": "0.0.0-sdk1321.20261102",
+    "sdk": "3.132.1",
+    "metadata_source_base": "a6df80f8a9b2426f55a691bc1b25722a1051d75e",
+    "packages": {
+      "Hexalith.Tenants.Contracts": {
+        "sha256": "5a78ff4dad9edf9e2eef0a23b34ca0a2f452ce5b790cf0052db31324d7b4fc51",
+        "dll_sha256": "b52e6783b2969fc0dd26e270489eea88b5cf455fb03757e95873bc0df673e79d",
+        "source": "a6df80f8a9b2426f55a691bc1b25722a1051d75e"
+      },
+      "Hexalith.Tenants.Server": {
+        "sha256": "a29ee64737c0a2952a93c5ae507dde0118252f6cebabb9f8e8d758d57ff3d7d1",
+        "dll_sha256": "644c77564d0d18c7c667f92046553fc21b9521c1a5016ba242e21c45eaa2b6b8",
+        "source": "a6df80f8a9b2426f55a691bc1b25722a1051d75e"
+      }
+    },
+    "discovery": {
+      "routes": 22,
+      "operations": 22,
+      "adapters": 12
+    },
+    "limits": "Actual private archives restore/discovery verified with exact archive/DLL hashes. Metadata names the merged source base plus this dirty mechanical implementation, not a final committed source or published release."
+  },
+  "commands_and_attempts": {
+    "directory": "/tmp/tenants-sdk1321-qualification-20261102",
+    "builds": "build-results.json",
+    "test_commands_and_xml": "test-results.json",
+    "normal_mtp_commands": "ci-results.json",
+    "pack_and_consumer_commands": "pack-results.json",
+    "retained_attempts": [
+      "Initial archive recheck interpreted a receipt-relative path from Tenants; resolving it from Works passed.",
+      "An evidence-authoring byte assertion compared checked-out CRLF catalog text with its Git-normalized LF blob; normalized text equality passed and both hashes are recorded.",
+      "Initial three successful builds used an outside-repository ArtifactsPath. Before tests, rebuilt under the ignored repository artifacts directory because governance intentionally discovers its repository from assembly ancestors. Those attempts remain in initial-outside-build-results.json."
+    ],
+    "source_flags": "UseHexalithProjectReferences=false; UseNuGetDeps=true; HexalithEventStoreFromSource=false; HexalithFrontComposerFromSource=false; HexalithMemoriesFromSource=false."
+  },
+  "historical_records_unchanged": {
+    "docs/eventstore-3.131.0-qualification.json": "581b1824f229057cb5ade98c33b3552a4cfd7ada8584aea58d180a8859272464",
+    "docs/eventstore-3.132.0-qualification.json": "7bdbc28e8bcbe67fdb8a7db833c41c669c45272e77fc83fbede30c965f70ccfc"
+  },
+  "working_tree_patch": {
+    "base": "a6df80f8a9b2426f55a691bc1b25722a1051d75e",
+    "implementation_sha256": "3ed900138be7248c85cbf6a31352d6df6ef9e154aac6322b04b4fd2203a0291a",
+    "implementation_command": [
+      "git",
+      "diff",
+      "--full-index",
+      "HEAD",
+      "--",
+      ".",
+      ":(exclude)docs/eventstore-3.132.1-qualification.json"
+    ],
+    "hash_protocol": "SHA256 of exact git diff --full-index HEAD stdout excluding this self-record; no byte/newline/index-width transformation.",
+    "full_owned_protocol": "Concatenate git diff --full-index HEAD stdout with git diff --no-index --full-index -- /dev/null docs/eventstore-3.132.1-qualification.json stdout (the new record remains untracked). Full-patch hash and all owned file hashes are in private verification.json.",
+    "file_sha256": {
+      ".github/workflows/ci.yml": "30413621176933f9bd5859a0bc7469c4b5bbe0aa8e4ea323a84ada9bcf03c675",
+      "Directory.Build.props": "b07ab416a882560c85274ed1f3c21b4158802b137953e11f8a801152dfda0876",
+      "Directory.Build.targets": "d63a340936ba688b0c64ca64f4deccaa66a6397a902ddd1d29b4f48d421a0c5f",
+      "README.md": "805aed854b493af52ccc567a3df16c321e939f897d61a509c9897267cc1f4f30",
+      "docs/development-route-catalog.md": "21887c57db40c4dcb3467d7314dd19a2de9a7f62c203fe24b8eaee845b751766",
+      "scripts/verify-catalog-package-consumer.py": "f26dc92a883e3449d9c1994e117c4106f1b7522ded809ae41484815ffe62b563",
+      "tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs": "9b8d875943ff219272c24ba119fe000b6e672fc7280ee3056a4574a0927259ad",
+      "tests/scripts/test_catalog_package_consumer.py": "035063fed2ddc4b6cade0e44e6f601689e2dc664dd66e2a0521fef97ba6ed779"
+    }
+  },
+  "limits": [
+    "No native Dapr/container resources started; in-process/loopback transports do not qualify native runtime or current deployed authority.",
+    "Frozen Testing.Integration3.128.4 exception, source-only runtime cohort flag and all older qualified finite aliases/refusals remain.",
+    "No Git staging/commit/push/rebase, peer gitlinks or official Builds dependency edits. Dated3.131/3.132 qualification records remain unchanged.",
+    "Parent owns final exact committed-source CI/native qualification and official dependency recording."
+  ]
+}

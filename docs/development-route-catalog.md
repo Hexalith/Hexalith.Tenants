@@ -82,8 +82,8 @@ result records are uploaded; raw observations and key material remain private.
 
 ## Published SDK qualification
 
-The default package selection is stable EventStore `3.132.0`. The finite qualified
-binary set is `3.129.0`, `3.129.1`, `3.130.0`, `3.130.1`, `3.130.2`, `3.131.0` and `3.132.0`;
+The default package selection is stable EventStore `3.132.1`. The finite qualified
+binary set is `3.129.0`, `3.129.1`, `3.130.0`, `3.130.1`, `3.130.2`, `3.131.0`, `3.132.0` and `3.132.1`;
 zero fourth revisions and build metadata normalize to the same stable cohort.
 Catalog qualification refuses prereleases, nonzero fourth revisions, unknown
 versions and mixed SDK cohorts. The legacy build floor can still accept
@@ -145,11 +145,11 @@ python3 scripts/verify-catalog-package-consumer.py "$catalog_packages" \
   --expected-source-sha "$RepositoryCommit" --output "$catalog_packages/consumer.json"
 ```
 
-The [3.132.0 qualification record](eventstore-3.132.0-qualification.json) records
+The [3.132.1 qualification record](eventstore-3.132.1-qualification.json) records
 all fourteen verified public SDK archives from producer
-`bb1e93c57180c7aeb6093564608738ddd1a7c28e`, focused local results and their limits.
-The dated [3.131.0 qualification record](eventstore-3.131.0-qualification.json)
-remains historical evidence. Public JWT positives exercise the declared
+`0ace1545c433bf234f54cef3a57ac77d62b4175f`, focused local results and their limits.
+The dated [3.132.0 qualification record](eventstore-3.132.0-qualification.json) and
+[3.131.0 qualification record](eventstore-3.131.0-qualification.json) remain historical evidence. Public JWT positives exercise the declared
 `UpdateTenant` operation. Bootstrap conflict and wrong-target controls use the
 existing internal bound-workload endpoint with a cryptographically validated
 human subject, a separately issued workload assertion, RSA command proof and
