@@ -62,7 +62,7 @@ public class EventPublicationConfigurationTests {
         // AddHexalithEventStorePlatformProjects + AddHexalithEventStore wire the shared EventStore topology;
         // AddHexalithTenantsServer (Hexalith.Tenants.Aspire) adds the Tenants service runtime (server + sidecar);
         // and AddHexalithMemoriesSearchIndexServer (Hexalith.Memories.Aspire) embeds the search-index server.
-        // Gateway-side domain-service registrations stay in the AppHost (composition); the sample stays inline.
+        // Gateway-side domain-service registrations stay in the AppHost (composition).
         string program = File.ReadAllText(RepositoryPath("src", "Hexalith.Tenants.AppHost", "Program.cs"));
         string normalizedProgram = program.Replace("\r\n", "\n", StringComparison.Ordinal);
 
@@ -79,10 +79,11 @@ public class EventPublicationConfigurationTests {
         tenantsAspire.ShouldContain("AddProject<TenantsServerProjectMetadata>(appId)");
         tenantsAspire.ShouldContain(".AddEventStoreDomainModule(");
 
-        // The sample subscriber stays composed inline and shares the platform domain-module sidecar.
-        program.ShouldContain("IResourceBuilder<ProjectResource> sample = builder.AddProject<HexalithTenantsSample>(\"sample\")");
+        // The optional sample subscriber stays composed inline for ordinary AppHost runs.
+        program.ShouldContain("IResourceBuilder<ProjectResource>? sample = null;");
+        program.ShouldContain("sample = builder.AddProject<HexalithTenantsSample>(\"sample\")");
         program.ShouldContain(".AddEventStoreDomainModule(eventStoreResources, \"sample\"");
-        normalizedProgram.ShouldContain("    _ = sample.WithSecurityDependency(security);");
+        normalizedProgram.ShouldContain("if (sample is not null) _ = sample.WithSecurityDependency(security);");
         normalizedProgram.ShouldContain("    _ = eventStore.WithJwtBearerSecurity(security);");
         normalizedProgram.ShouldContain(".WithOpenIdConnectSecurity(");
 
