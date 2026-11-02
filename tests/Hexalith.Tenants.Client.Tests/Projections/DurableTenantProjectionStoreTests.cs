@@ -105,6 +105,8 @@ public sealed class DurableTenantProjectionStoreTests {
 
     [Theory]
     [InlineData("json", 2)]
+    [InlineData("json", 0)]
+    [InlineData("json", -1)]
     [InlineData("binary", 1)]
     public async Task UnsupportedTenantHistoryMetadataKeepsTheRecordGapped(string format, int version) {
         var harness = new DurableTenantProjectionHarness();

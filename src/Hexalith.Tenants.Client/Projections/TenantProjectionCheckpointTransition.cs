@@ -48,7 +48,7 @@ internal sealed class TenantProjectionCheckpointTransition : ICheckpointedProjec
 
         if (@event.Payload is null
             || !string.Equals(@event.SerializationFormat ?? "json", "json", StringComparison.OrdinalIgnoreCase)
-            || @event.PayloadVersion is > 1) {
+            || @event.PayloadVersion is < 1 or > 1) {
             throw new NotSupportedException($"Authoritative tenant event {type.Name} at sequence {@event.Sequence} cannot be decoded by this consumer.");
         }
 
