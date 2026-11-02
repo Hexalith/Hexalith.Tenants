@@ -82,8 +82,8 @@ result records are uploaded; raw observations and key material remain private.
 
 ## Published SDK qualification
 
-The default package selection is stable EventStore `3.132.1`. The finite qualified
-binary set is `3.129.0`, `3.129.1`, `3.130.0`, `3.130.1`, `3.130.2`, `3.131.0`, `3.132.0` and `3.132.1`;
+The default package selection is stable EventStore `3.132.2`. The finite qualified
+binary set is `3.129.0`, `3.129.1`, `3.130.0`, `3.130.1`, `3.130.2`, `3.131.0`, `3.132.0`, `3.132.1` and `3.132.2`;
 zero fourth revisions and build metadata normalize to the same stable cohort.
 Catalog qualification refuses prereleases, nonzero fourth revisions, unknown
 versions and mixed SDK cohorts. The legacy build floor can still accept
@@ -144,6 +144,15 @@ done
 python3 scripts/verify-catalog-package-consumer.py "$catalog_packages" \
   --expected-source-sha "$RepositoryCommit" --output "$catalog_packages/consumer.json"
 ```
+
+The 3.132.2 adoption uses the shared Builds
+[`package-version-audit.json`](../references/Hexalith.Builds/Tools/package-version-audit.json)
+for the published package selection. On 2026-11-02, local Release builds of both
+the standalone and source solutions completed with zero warnings and errors.
+The package governance suite passed 409 cases, the generated HTTP suite passed
+66 cases, and an isolated consumer restored fresh Contracts and Server archives
+and discovered 22 routes, 22 operations and 12 adapters. Exact-source CI and
+release admission still run on the pushed commit.
 
 The [3.132.1 qualification record](eventstore-3.132.1-qualification.json) records
 all fourteen verified public SDK archives from producer
