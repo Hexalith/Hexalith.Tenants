@@ -10,6 +10,7 @@ using Hexalith.Commons.UniqueIds;
 using Hexalith.EventStore.ErrorHandling;
 using Hexalith.Tenants.Bootstrap;
 using Hexalith.Tenants.Configuration;
+using Hexalith.Tenants.Contracts.Identity;
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -146,7 +147,7 @@ public class TenantBootstrapHostedServiceTests
         capturedBody.ShouldNotBeNull();
         using JsonDocument doc = JsonDocument.Parse(capturedBody);
         JsonElement root = doc.RootElement;
-        root.GetProperty("tenant").GetString().ShouldBe("system");
+        root.GetProperty("tenant").GetString().ShouldBe(TenantPlatformScopes.GlobalAdministrators);
         // Bootstrap targets the global-administrators aggregate via its dedicated domain so
         // the resulting projection request arrives at /project with
         // ProjectionRequest.Domain == "global-administrators" and routes to
@@ -777,7 +778,8 @@ public class TenantBootstrapHostedServiceTests
         var jwt = (JsonWebToken)validation.SecurityToken;
         jwt.Subject.ShouldBe("admin-user-1");
         jwt.GetClaim("global_admin").Value.ShouldBe("true");
-        jwt.GetClaim("eventstore:tenant").Value.ShouldBe("system");
+        jwt.GetClaim("eventstore:permission").Value.ShouldBe("global-administrators:bootstrap");
+        jwt.Claims.ShouldNotContain(claim => claim.Type == "eventstore:tenant");
         (jwt.ValidTo - jwt.IssuedAt).ShouldBeLessThanOrEqualTo(TimeSpan.FromSeconds(TenantBootstrapCredentialProvider.DevelopmentTokenLifetimeSeconds));
     }
 

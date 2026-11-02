@@ -121,12 +121,12 @@ public sealed class TenantBootstrapReadinessBudgetTests
         using HttpClient client = services.GetRequiredService<IHttpClientFactory>().CreateClient();
         TimeSpan budget = TenantBootstrapReadinessBudget.Resolve(client, scope.ServiceProvider);
         budget.ShouldBe(TimeSpan.FromSeconds(1));
-        var jwt = new JwtSecurityToken("bootstrap-budget-origin", "bootstrap-budget-reader", [new Claim("sub", "administrator"), new Claim("global_admin", "true"),
-            new Claim("eventstore:permission", "global-administrators:bootstrap")],
+        var jwt = new JwtSecurityToken("bootstrap-budget-origin", "bootstrap-budget-reader", [new Claim("sub", "administrator"), new Claim("global_admin", "true"), new Claim("eventstore:permission", "global-administrators:bootstrap")],
             notBefore: DateTime.UtcNow.AddMinutes(-1), expires: DateTime.UtcNow.AddMinutes(2),
             signingCredentials: new(new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)), SecurityAlgorithms.HmacSha256));
         string credential = new JwtSecurityTokenHandler().WriteToken(jwt);
-        var command = new SubmitCommandRequest("01ARZ3NDEKTSV4RRFFQ69G5FAV", TenantPlatformScopes.GlobalAdministrators, "global-administrators", "global-administrators", nameof(BootstrapGlobalAdmin),
+        var command = new SubmitCommandRequest("01ARZ3NDEKTSV4RRFFQ69G5FAV", TenantPlatformScopes.GlobalAdministrators,
+            TenantIdentity.GlobalAdministratorsDomain, TenantIdentity.GlobalAdministratorsAggregateId, nameof(BootstrapGlobalAdmin),
             JsonSerializer.SerializeToElement(new BootstrapGlobalAdmin("administrator")));
         using DaprClient dapr = new DaprClientBuilder().UseHttpEndpoint("http://127.0.0.1:3500").Build();
         using CancellationTokenSource caller = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);

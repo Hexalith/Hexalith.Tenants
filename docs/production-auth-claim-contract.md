@@ -2,9 +2,60 @@
 
 # Production Auth Claim Contract
 
-Hexalith.Tenants uses EventStore authentication and authorization infrastructure for protected command and query requests. Production identity providers must emit claims that authorize the platform tenant context used by tenant-management operations.
+Hexalith.Tenants uses EventStore authentication and authorization infrastructure for protected command and query requests.
 
-## Required Downstream Claims
+## Current 7.x canonical scope contract
+
+Tenants 7.0.0 requires the coordinated EventStore 4.0.0 and McpCli.Abstractions 2.0.0 producers. Upgrade those packages first, then upgrade the Tenants cohort together. This section governs current deployments; the retained 6.x compatibility reference below describes the previous public `system` contract. See the [canonical scope upgrade](guides/canonical-scope-upgrade.md) and the [owner route declarations](../src/Hexalith.Tenants.Contracts/Routing/TenantCatalogDeclarations.cs).
+
+| Operation | Public request scope | Catalog permission |
+| --- | --- | --- |
+| Tenant-management commands | `platform:tenants` | Exact declared permission, such as `tenants:create` or `tenants:add-user` |
+| Tenant list, user-tenant list, and global-administrator audit | `platform:tenants` | `tenants:read` |
+| Global-administrator list | `platform:global-administrators` | `global-administrators:read` |
+| Global-administrator set/remove | `platform:global-administrators` | `global-administrators:set` or `global-administrators:remove` |
+| Single-tenant detail, users, and audit reads | Explicit canonical tenant | Tenant membership and the operation's authorization policy |
+
+The public tenant `system` is reserved. Existing `system` event-stream identities and audit keys remain internal storage details behind authenticated workload routes. A `global_admin` or role hint does not bypass canonical tenant membership or establish persisted global-administrator authority. Keep the trusted `sub` and all operation-specific permissions required by the catalog.
+
+When upgrading, remove `eventstore:tenant=system` and its case variants from IdP user attributes and claim mappings, then obtain fresh tokens. Adding a canonical grant alongside a retained `system` grant still invalidates the entire grant collection, including platform-scoped admission. Emit only valid, distinct canonical tenant grants.
+
+Public tenant identifiers contain 1–64 ASCII letters, digits, or hyphens, begin and end with a letter or digit, and canonicalize to lowercase without trimming malformed input. Invalid grants and duplicate grants after canonicalization, including case aliases, fail closed. A missing tenant grant for an ordinary tenant is `principal_not_member`; malformed or duplicate grants are `tenant_ambiguous`; the reserved public `system` tenant is rejected as `tenant_mismatch` even with a matching grant or administrator hint.
+
+Bootstrap remains an internal bound-workload operation using `platform:global-administrators`. Its delegated human token must carry the configured administrator's validated `sub`, a recognized global-administrator hint, and `eventstore:permission=global-administrators:bootstrap`. The development token supplies that permission without an `eventstore:tenant` claim. The request also requires the separate workload assertion, exact signed command proof, and Dapr application-channel token; a human permission alone does not expose bootstrap publicly.
+
+### Current IdP and read example
+
+For a tenant-list reader, configure the IdP to emit these downstream claims in a normally signed, unexpired token whose issuer and audience match the API configuration:
+
+```json
+{
+    "sub": "operator-1",
+    "eventstore:tenant": "tenant-a",
+    "eventstore:domain": "tenants",
+    "eventstore:permission": "tenants:read"
+}
+```
+
+Emit the exact catalog permission once for the selected platform operation; legacy wildcard permissions do not replace it. These claims do not establish persisted tenant membership or global-administrator authority. The server still applies each operation's membership, authority and visibility rules.
+
+The [current REST client](../src/Hexalith.Tenants.UI/Services/Gateways/TenantsRestQueryClient.cs) sends the following GET for `ListTenantsQuery` (replace the host and token with the configured API and issued credential):
+
+```http
+GET /api/tenants?pageSize=20 HTTP/1.1
+Host: tenants-api.example.test
+Authorization: Bearer <access-token>
+X-Hexalith-Scope: platform:tenants
+```
+
+The scope header selects the declared tenant-list operation; it grants no authority by itself. Single-tenant detail reads instead use `GET /api/tenants/tenant-a`, with the tenant in the route and no platform-scope header, as implemented by `GetTenantQuery` and the same REST client.
+
+## Legacy 6.x compatibility reference
+
+The following sections describe the earlier public `system` profile, including its legacy claim mappings, validation behavior, and local realm examples. Retain them only when diagnosing that older cohort. Apply the current 7.x contract above when upgrading or configuring new deployments.
+
+
+### Required Downstream Claims
 
 Tenant-management commands and queries run against the EventStore tenant `system` and domain `tenants`. The request tenant must be `system`; managed tenant IDs belong in the aggregate ID, route, query payload, or command payload depending on the operation. After EventStore claims transformation, the effective authenticated principal must include:
 
@@ -24,7 +75,7 @@ The internal request retains the cryptographically validated human subject and
 requires its separate workload assertion, exact signed command proof and Dapr
 application-channel token.
 
-### Global Administrators
+#### Global Administrators
 
 `GlobalAdministratorHelper` recognizes a principal as a global administrator when the token contains any of:
 
@@ -40,7 +91,7 @@ Tenant membership is a collection: exact `eventstore:tenant=system` among valid 
 
 A role or `global_admin=true` is only an identity hint. The Tenants server requires persisted global-administrator membership after bootstrap or `SetGlobalAdministrator` projection. See the [configured-administrator verification and human grant](quickstart.md#get-an-access-token) and [one-attempt bootstrap endpoint/recovery contract](production-auth-readiness.md#global-administrator-bootstrap-credential). Do not use a bootstrap write to verify that authority exists.
 
-## Identifier Casing Contract
+### Identifier Casing Contract
 
 `sub` (the authenticated user identifier) and the managed `tenantId` are compared **case-sensitively** (`StringComparer.Ordinal`) throughout Hexalith.Tenants — membership keys (`TenantLocalState.Members`, `TenantState.Users`), projection lookups, and event deduplication.
 
@@ -49,7 +100,7 @@ A role or `global_admin=true` is only an identity hint. The Tenants server requi
 - **Mismatch is fail-closed by design:** a casing difference surfaces as an unknown tenant or a missing member. Resolve it by aligning the IdP/operator casing at the source — **not** by relaxing the comparer to `OrdinalIgnoreCase`.
 - **Consumer guidance:** consuming services (for example Parties) should rely on this published contract rather than compensating with claims case-folding.
 
-## Supported Source Claims
+### Supported Source Claims
 
 An identity provider may emit the downstream `eventstore:tenant` claim directly (recommended for production — see [Keycloak Mapping](#keycloak-mapping-direct-claim-shape) below). EventStore can also normalize these source claim shapes into `eventstore:tenant`:
 
@@ -60,7 +111,7 @@ An identity provider may emit the downstream `eventstore:tenant` claim directly 
 | `tenant_id` | Single tenant ID | One `eventstore:tenant` claim |
 | `tid` | Single tenant ID, fallback when `tenant_id` is absent | One `eventstore:tenant` claim |
 
-### Mixed Source-Claim Precedence
+#### Mixed Source-Claim Precedence
 
 `EventStoreClaimsTransformation` is idempotent: when the token already carries any `eventstore:*` claim (including a blank or whitespace-only value), source claims are NOT merged afterward. For mixed-source tokens, the documented effective principal is:
 
@@ -72,7 +123,7 @@ An identity provider may emit the downstream `eventstore:tenant` claim directly 
 
 Duplicate tenant values from a single source claim are retained on the principal but do not grant additional permissions. Whitespace-only tenant claims survive normalization (they are not filtered out) and remain on the principal until `ClaimsTenantValidator` rejects them at authorization (fail-closed). Operators inspecting the effective principal in diagnostics or audit logs will see the literal whitespace claim until validation runs.
 
-## Keycloak Mapping (Direct-Claim Shape)
+### Keycloak Mapping (Direct-Claim Shape)
 
 The local Aspire Keycloak realm is the authoritative local sample. It uses Keycloak attribute mappers to emit `eventstore:*` claims directly into the access token — no source-claim normalization happens at runtime.
 
@@ -84,11 +135,11 @@ The local Aspire Keycloak realm is the authoritative local sample. It uses Keycl
 
 For a production realm, configure equivalent direct-claim mappers and verify that the access token includes `eventstore:tenant=system` for tenant-management operators. The sample realm under `src/Hexalith.Tenants.AppHost/KeycloakRealms/hexalith-realm.json` is local implementation evidence only; do not copy sample users, passwords, or environment details into production.
 
-### Alternative: Source-Claim Shape
+#### Alternative: Source-Claim Shape
 
 IdPs that cannot emit `eventstore:*` claims directly may emit the source claims listed in [Supported Source Claims](#supported-source-claims). `EventStoreClaimsTransformation` normalizes them into the downstream `eventstore:tenant` claim at request time. Choose one shape per IdP; do not mix direct and source mappings on the same token.
 
-## Verification Steps
+### Verification Steps
 
 1. Decode an access token without sending it to external services. Confirm `iss`, `aud`, `sub`, and either the direct downstream `eventstore:tenant` claim or exactly one supported source tenant mapping.
 2. Confirm the effective principal after EventStore claims transformation contains `eventstore:tenant=system`.
@@ -102,7 +153,7 @@ dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.Integration
 
 5. Verify negative cases. Tokens with missing, blank, wrong-cased, or wrong tenant claims, including global-administrator-shaped tokens, must return `403 Forbidden` and must not reach command/query dispatch. Requests using a non-`system` request tenant must also fail before dispatch. The ProblemDetails `reasonCode` extension distinguishes the failure mode: `principal_not_member` for missing/blank tenant claims, `tenant_mismatch` for wrong or wrong-cased tenant claims and non-`system` request tenants.
 
-## Rate-Limit Boundary
+### Rate-Limit Boundary
 
 **The Tenants host does NOT register the EventStore rate limiter today.** The Tenants host registers EventStore domain/client services directly and intentionally avoids the full EventStore server extension. The partitioning behavior described below applies to the EventStore host boundary only — it is included here for operators routing through both services.
 

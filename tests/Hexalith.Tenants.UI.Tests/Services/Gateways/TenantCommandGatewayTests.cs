@@ -11,6 +11,7 @@ using Hexalith.EventStore.Contracts.Streams;
 using Hexalith.FrontComposer.Contracts.Lifecycle;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
+using Hexalith.Tenants.Contracts.Identity;
 using Hexalith.Tenants.UI.Resources;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.GlobalAdministrators;
@@ -41,7 +42,7 @@ public sealed partial class TenantCommandGatewayTests
             : await gateway.DisableTenantAsync(request);
         SubmitCommandRequest submitted = client.SubmittedCommands.ShouldHaveSingleItem();
         submitted.MessageId.ShouldBe(messageId);
-        submitted.Tenant.ShouldBe("system");
+        submitted.Tenant.ShouldBe(TenantPlatformScopes.Tenants);
         submitted.Domain.ShouldBe("tenants");
         submitted.AggregateId.ShouldBe(request.TenantId);
         submitted.CommandType.ShouldBe(operation.ToString());
@@ -212,7 +213,7 @@ public sealed partial class TenantCommandGatewayTests
         result.SafeMessage.ShouldNotBeNull().ShouldNotContain("unsafe create transport payload");
         SubmitCommandRequest original = failedClient.SubmittedCommands.ShouldHaveSingleItem();
         original.MessageId.ShouldBe(mintedId);
-        original.Tenant.ShouldBe("system");
+        original.Tenant.ShouldBe(TenantPlatformScopes.Tenants);
         original.Domain.ShouldBe("tenants");
         original.AggregateId.ShouldBe(request.TenantId);
         original.CommandType.ShouldBe(nameof(CreateTenant));
@@ -267,7 +268,7 @@ public sealed partial class TenantCommandGatewayTests
 
         SubmitCommandRequest submitted = client.SubmittedCommands.ShouldHaveSingleItem();
         submitted.MessageId.ShouldBe(messageId);
-        submitted.Tenant.ShouldBe("system");
+        submitted.Tenant.ShouldBe(TenantPlatformScopes.GlobalAdministrators);
         submitted.Domain.ShouldBe("global-administrators");
         submitted.AggregateId.ShouldBe("global-administrators");
         submitted.Payload.GetProperty("UserId").GetString().ShouldBe(target);
@@ -373,7 +374,7 @@ public sealed partial class TenantCommandGatewayTests
         JsonSerializer.Serialize(result).ShouldNotContain("backend-secret-Canary");
         SubmitCommandRequest original = dispatched.ShouldHaveSingleItem();
         original.MessageId.ShouldBe(messageId);
-        original.Tenant.ShouldBe("system");
+        original.Tenant.ShouldBe(operation is "grant-tracked" or "remove-global-tracked" ? TenantPlatformScopes.GlobalAdministrators : TenantPlatformScopes.Tenants);
         original.Domain.ShouldBe(operation is "grant-tracked" or "remove-global-tracked" ? "global-administrators" : "tenants");
         original.AggregateId.ShouldBe(operation is "grant-tracked" or "remove-global-tracked" ? "global-administrators" : "tenant.alpha");
 
@@ -796,7 +797,7 @@ public sealed partial class TenantCommandGatewayTests
 
         SubmitCommandRequest submitted = client.SubmittedCommands.ShouldHaveSingleItem();
         submitted.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
-        submitted.Tenant.ShouldBe("system");
+        submitted.Tenant.ShouldBe(TenantPlatformScopes.GlobalAdministrators);
         submitted.Domain.ShouldBe("global-administrators");
         submitted.AggregateId.ShouldBe("global-administrators");
         submitted.CommandType.ShouldBe(nameof(SetGlobalAdministrator));
@@ -825,7 +826,7 @@ public sealed partial class TenantCommandGatewayTests
 
         SubmitCommandRequest submitted = client.SubmittedCommands.ShouldHaveSingleItem();
         submitted.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
-        submitted.Tenant.ShouldBe("system");
+        submitted.Tenant.ShouldBe(TenantPlatformScopes.GlobalAdministrators);
         submitted.Domain.ShouldBe("global-administrators");
         submitted.AggregateId.ShouldBe("global-administrators");
         submitted.CommandType.ShouldBe(nameof(RemoveGlobalAdministrator));
@@ -1119,7 +1120,7 @@ public sealed partial class TenantCommandGatewayTests
 
         SubmitCommandRequest submitted = client.SubmittedCommands.ShouldHaveSingleItem();
         submitted.MessageId.ShouldBe(stableMessageId);
-        submitted.Tenant.ShouldBe("system");
+        submitted.Tenant.ShouldBe(TenantPlatformScopes.Tenants);
         submitted.Domain.ShouldBe("tenants");
         submitted.AggregateId.ShouldBe("Tenant.Mixed-01");
         submitted.CommandType.ShouldBe(expectedCommandType);
@@ -1269,7 +1270,7 @@ public sealed partial class TenantCommandGatewayTests
 
         SubmitCommandRequest submitted = client.SubmittedCommands.ShouldHaveSingleItem();
         submitted.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
-        submitted.Tenant.ShouldBe("system");
+        submitted.Tenant.ShouldBe(TenantPlatformScopes.Tenants);
         submitted.Domain.ShouldBe("tenants");
         submitted.AggregateId.ShouldBe("Tenant.Mixed-01");
         submitted.CommandType.ShouldBe(nameof(UpdateTenant));
@@ -1393,7 +1394,7 @@ public sealed partial class TenantCommandGatewayTests
 
         SubmitCommandRequest submitted = client.SubmittedCommands.ShouldHaveSingleItem();
         submitted.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
-        submitted.Tenant.ShouldBe("system");
+        submitted.Tenant.ShouldBe(TenantPlatformScopes.Tenants);
         submitted.Domain.ShouldBe("tenants");
         submitted.AggregateId.ShouldBe("Tenant.Mixed-01");
         submitted.CommandType.ShouldBe(nameof(SetTenantConfiguration));
@@ -1558,7 +1559,7 @@ public sealed partial class TenantCommandGatewayTests
 
         SubmitCommandRequest submitted = client.SubmittedCommands.ShouldHaveSingleItem();
         submitted.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
-        submitted.Tenant.ShouldBe("system");
+        submitted.Tenant.ShouldBe(TenantPlatformScopes.Tenants);
         submitted.Domain.ShouldBe("tenants");
         submitted.AggregateId.ShouldBe("Tenant.Mixed-01");
         submitted.CommandType.ShouldBe(nameof(RemoveTenantConfiguration));
@@ -1761,7 +1762,7 @@ public sealed partial class TenantCommandGatewayTests
 
         SubmitCommandRequest submitted = client.SubmittedCommands.ShouldHaveSingleItem();
         submitted.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
-        submitted.Tenant.ShouldBe("system");
+        submitted.Tenant.ShouldBe(TenantPlatformScopes.Tenants);
         submitted.Domain.ShouldBe("tenants");
         submitted.AggregateId.ShouldBe("Tenant.Mixed-01");
         submitted.CommandType.ShouldBe(nameof(RemoveUserFromTenant));
@@ -1840,7 +1841,7 @@ public sealed partial class TenantCommandGatewayTests
 
         SubmitCommandRequest submitted = client.SubmittedCommands.ShouldHaveSingleItem();
         submitted.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
-        submitted.Tenant.ShouldBe("system");
+        submitted.Tenant.ShouldBe(TenantPlatformScopes.Tenants);
         submitted.Domain.ShouldBe("tenants");
         submitted.AggregateId.ShouldBe("Tenant.Mixed-01");
         submitted.CommandType.ShouldBe(nameof(ChangeUserRole));
@@ -2061,7 +2062,7 @@ public sealed partial class TenantCommandGatewayTests
 
         SubmitCommandRequest submitted = client.SubmittedCommands.ShouldHaveSingleItem();
         submitted.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
-        submitted.Tenant.ShouldBe("system");
+        submitted.Tenant.ShouldBe(TenantPlatformScopes.Tenants);
         submitted.Domain.ShouldBe("tenants");
         submitted.AggregateId.ShouldBe("Tenant.Mixed-01");
         submitted.CommandType.ShouldBe(nameof(AddUserToTenant));
@@ -2519,7 +2520,7 @@ public sealed partial class TenantCommandGatewayTests
 
         SubmitCommandRequest submitted = client.SubmittedCommands.ShouldHaveSingleItem();
         submitted.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
-        submitted.Tenant.ShouldBe("system");
+        submitted.Tenant.ShouldBe(TenantPlatformScopes.Tenants);
         submitted.Domain.ShouldBe("tenants");
         submitted.AggregateId.ShouldBe("Tenant.Mixed-01");
         submitted.CommandType.ShouldBe(nameof(CreateTenant));
