@@ -6,6 +6,7 @@ using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Client.Projections.Checkpointed;
 using Hexalith.EventStore.Client.Subscriptions;
 using Hexalith.EventStore.Contracts.Events;
+using Hexalith.Tenants.Contracts.Identity;
 
 using Microsoft.Extensions.Logging;
 
@@ -140,14 +141,24 @@ public sealed class DurableTenantProjectionStore : ITenantProjectionStore, ITena
     }
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// A delivery from any domain other than <see cref="TenantIdentity.Domain"/>, such as a <c>global-administrators</c>
+    /// rejection, never addresses a tenant record: it is acknowledged as <see cref="CheckpointedProjectionOutcome.Duplicate"/>
+    /// without reading or writing.
+    /// </remarks>
     public async Task<CheckpointedProjectionOutcome> ApplyAsync(
         IEventPayload @event,
         EventStoreDomainEventContext context,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(@event);
         ArgumentNullException.ThrowIfNull(context);
+        CheckpointedProjectionEvent delivery = CheckpointedProjectionEvent.FromDelivery(@event, context);
+        if (!string.Equals(context.Domain, TenantIdentity.Domain, StringComparison.Ordinal)) {
+            return CheckpointedProjectionOutcome.Duplicate;
+        }
+
         CheckpointedProjectionResult<TenantLocalState> result = await _writer
-            .ApplyAsync(_storeName, KeyFor(context.AggregateId), CheckpointedProjectionEvent.FromDelivery(@event, context), cancellationToken)
+            .ApplyAsync(_storeName, KeyFor(context.AggregateId), delivery, cancellationToken)
             .ConfigureAwait(false);
         return result.Outcome;
     }

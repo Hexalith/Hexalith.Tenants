@@ -29,13 +29,18 @@ public static class TenantProjectionTransition {
     ];
 
     /// <summary>
-    /// Gets the persisted tenant rejection event types, which only advance the checkpoint.
+    /// Gets the persisted tenant-domain rejection event types, which only advance the checkpoint.
     /// </summary>
+    /// <remarks>
+    /// Rejections that only the <c>global-administrators</c> aggregate emits are excluded, so they never address the
+    /// record of a tenant whose identifier is <c>global-administrators</c>.
+    /// </remarks>
     public static IReadOnlyList<Type> RejectionEventTypes { get; } = [
         .. typeof(TenantDisabledRejection).Assembly.GetTypes()
             .Where(static type => type is { IsClass: true, IsAbstract: false }
                 && typeof(IRejectionEvent).IsAssignableFrom(type)
-                && string.Equals(type.Namespace, typeof(TenantDisabledRejection).Namespace, StringComparison.Ordinal))
+                && string.Equals(type.Namespace, typeof(TenantDisabledRejection).Namespace, StringComparison.Ordinal)
+                && !IsGlobalAdministratorRejection(type))
             .OrderBy(static type => type.FullName, StringComparer.Ordinal),
     ];
 
@@ -94,4 +99,10 @@ public static class TenantProjectionTransition {
         next.LastEvent = metadata;
         return next;
     }
+
+    private static bool IsGlobalAdministratorRejection(Type type)
+        => type == typeof(GlobalAdminAlreadyBootstrappedRejection)
+            || type == typeof(GlobalAdministratorAlreadyExistsRejection)
+            || type == typeof(GlobalAdministratorNotFoundRejection)
+            || type == typeof(LastGlobalAdministratorRejection);
 }

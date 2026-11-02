@@ -64,12 +64,24 @@ public sealed class TenantDurableProjectionRegistrationTests {
         _ = services.AddHexalithTenants();
         using ServiceProvider provider = services.BuildServiceProvider();
 
-        TenantProjectionTransition.RejectionEventTypes.Count.ShouldBe(14);
+        TenantProjectionTransition.RejectionEventTypes.Count.ShouldBe(10);
         TenantProjectionTransition.RejectionEventTypes.ShouldContain(typeof(TenantDisabledRejection));
+        TenantProjectionTransition.RejectionEventTypes.ShouldContain(typeof(InsufficientPermissionsRejection));
         foreach (Type rejection in TenantProjectionTransition.RejectionEventTypes) {
             Type service = typeof(IEventStoreDomainEventHandler<>).MakeGenericType(rejection);
             services.Count(d => d.ServiceType == service).ShouldBe(1, rejection.Name);
             provider.GetServices(service).ShouldHaveSingleItem().ShouldNotBeNull();
+        }
+
+        // Rejections only the global-administrators aggregate emits never get a tenant checkpoint handler.
+        foreach (Type rejection in new[] {
+            typeof(GlobalAdminAlreadyBootstrappedRejection),
+            typeof(GlobalAdministratorAlreadyExistsRejection),
+            typeof(GlobalAdministratorNotFoundRejection),
+            typeof(LastGlobalAdministratorRejection),
+        }) {
+            TenantProjectionTransition.RejectionEventTypes.ShouldNotContain(rejection);
+            services.ShouldNotContain(d => d.ServiceType == typeof(IEventStoreDomainEventHandler<>).MakeGenericType(rejection), rejection.Name);
         }
     }
 

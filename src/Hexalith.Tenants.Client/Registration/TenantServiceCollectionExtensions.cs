@@ -90,7 +90,7 @@ public static class TenantServiceCollectionExtensions {
     /// Registers <see cref="DurableTenantProjectionStore"/> as both <see cref="ITenantProjectionStore"/> and
     /// <see cref="ITenantProjectionSnapshotStore"/>, replacing any earlier projection store registration. Call it
     /// before or after <see cref="AddHexalithTenants(IServiceCollection)"/>; without this opt-in the default
-    /// in-memory store is unchanged. Every tenant rejection event is also handled, as a checkpoint-only transition.
+    /// in-memory store is unchanged. Every tenant-domain rejection event is also handled, as a checkpoint-only transition.
     /// </para>
     /// <para>
     /// Persistence uses the platform <see cref="IReadModelStore"/> (registered when absent). Older-delivery
@@ -129,7 +129,7 @@ public static class TenantServiceCollectionExtensions {
         return services;
     }
 
-    // In durable mode every persisted tenant rejection advances the checkpoint without changing state, so it never
+    // In durable mode every persisted tenant-domain rejection advances the checkpoint without changing state, so it never
     // leaves a gap in front of the next projected event.
     private static void RegisterRejectionCheckpointHandlers(IServiceCollection services) {
         if (services.Any(static s => s.ServiceType == typeof(TenantRejectionCheckpointRegistrationMarker))) {

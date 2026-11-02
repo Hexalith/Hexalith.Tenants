@@ -193,6 +193,39 @@ public sealed class DurableTenantProjectionStoreTests {
     }
 
     [Fact]
+    public async Task GlobalAdministratorsDomainDeliveriesNeverTouchATenantNamedGlobalAdministrators() {
+        var harness = new DurableTenantProjectionHarness();
+        using ServiceProvider host = harness.CreateHost(withHistory: false);
+        const string colliding = "global-administrators";
+        (await DurableTenantProjectionHarness.ProcessAsync(host, harness.Persist(new TenantCreated(colliding, "Colliding", null, s_at), colliding, 1)))
+            .ShouldBe(EventStoreDomainEventProcessingResult.Processed);
+        CheckpointedProjectionRecord<TenantLocalState> before = harness.Record(colliding).ShouldNotBeNull();
+
+        // Same aggregate identifier and sequence, but the global-administrators domain: a shared rejection type is
+        // acknowledged without writing, and a global-administrator-only rejection has no tenant handler at all.
+        EventStoreDomainEventEnvelope shared = DurableTenantProjectionHarness.Envelope(
+            new InsufficientPermissionsRejection(colliding, "admin-1", null, "BootstrapGlobalAdmin"), colliding, 1) with { Domain = "global-administrators" };
+        EventStoreDomainEventEnvelope globalOnly = DurableTenantProjectionHarness.Envelope(
+            new GlobalAdministratorNotFoundRejection(colliding, "admin-1"), colliding, 2) with { Domain = "global-administrators" };
+        (await DurableTenantProjectionHarness.ProcessAsync(host, shared)).ShouldBe(EventStoreDomainEventProcessingResult.Processed);
+        (await DurableTenantProjectionHarness.ProcessAsync(host, globalOnly)).ShouldBe(EventStoreDomainEventProcessingResult.SkippedNoHandlers);
+        (await host.GetRequiredService<ITenantProjectionSnapshotStore>().ApplyAsync(
+            new InsufficientPermissionsRejection(colliding, "admin-1", null, "BootstrapGlobalAdmin"),
+            new EventStoreDomainEventContext("system", colliding, "message-global", 3, s_at, "correlation-global") {
+                Domain = "global-administrators",
+                EventType = typeof(InsufficientPermissionsRejection).FullName,
+                PayloadFingerprint = new string('a', 64),
+            },
+            TestContext.Current.CancellationToken)).ShouldBe(CheckpointedProjectionOutcome.Duplicate);
+
+        CheckpointedProjectionRecord<TenantLocalState> after = harness.Record(colliding).ShouldNotBeNull();
+        after.Version.ShouldBe(before.Version);
+        after.Health.ShouldBe(CheckpointedProjectionHealth.Healthy);
+        after.LastContiguousSequence.ShouldBe(1);
+        after.State.ShouldNotBeNull().Name.ShouldBe("Colliding");
+    }
+
+    [Fact]
     public async Task NonCreatingEventsBeforeCreationKeepNoStateUntilTenantCreated() {
         var harness = new DurableTenantProjectionHarness();
         using ServiceProvider host = harness.CreateHost(withHistory: false);
