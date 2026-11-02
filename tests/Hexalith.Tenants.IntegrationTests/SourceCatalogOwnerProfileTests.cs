@@ -5,6 +5,7 @@ using System.Text.Json;
 using Hexalith.EventStore.Contracts.Routing;
 using Hexalith.EventStore.ServiceDefaults.Routing;
 using Hexalith.Tenants.Contracts.Commands;
+using Hexalith.Tenants.Contracts.Events;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.Contracts.Routing;
 using Hexalith.Tenants.IntegrationTests.Fixtures;
@@ -63,8 +64,22 @@ public sealed class SourceCatalogOwnerProfileTests(AspireTopologyFixture fixture
         var detail = await rest.GetTenantAsync(new GetTenantQuery { TenantId = tenantId }, null, deadline.Token); detail.IsSuccess.ShouldBeTrue();
         (await rest.GetTenantUsersAsync(new GetTenantUsersQuery { TenantId = tenantId, PageSize = 100 }, null, deadline.Token)).IsSuccess.ShouldBeTrue();
         (await rest.GetUserTenantsAsync(new GetUserTenantsQuery { UserId = AuthenticatedRouteState.CallerId, PageSize = 100 }, null, deadline.Token)).IsSuccess.ShouldBeTrue();
-        (await rest.GetTenantAuditAsync(new GetTenantAuditQuery { TenantId = tenantId, PageSize = 100 }, null, deadline.Token)).IsSuccess.ShouldBeTrue();
+        var tenantAudit = await rest.GetTenantAuditAsync(new GetTenantAuditQuery { TenantId = tenantId, PageSize = 100 }, null, deadline.Token);
+        tenantAudit.IsSuccess.ShouldBeTrue(tenantAudit.ToString());
+        tenantAudit.Payload.ShouldNotBeNull().Items.ShouldContain(item => item.EventType == nameof(TenantCreated) && item.TenantId == tenantId);
         (await rest.GetGlobalAdministratorsAsync(new GetGlobalAdministratorsQuery { PageSize = 100 }, null, deadline.Token)).IsSuccess.ShouldBeTrue();
+        // The public platform route must still read the retained global owner without exposing system as a request scope.
+        var globalAudit = await rest.GetTenantAuditAsync(new GetTenantAuditQuery
+        {
+            TenantId = "system", Stream = "global-administrators", PageSize = 100,
+        }, null, deadline.Token);
+        globalAudit.IsSuccess.ShouldBeTrue(globalAudit.ToString());
+        globalAudit.Payload.ShouldNotBeNull().Items.ShouldContain(item => item.EventType == nameof(GlobalAdministratorSet) && item.TenantId == "system");
+        using var publicSystem = new HttpRequestMessage(HttpMethod.Get, "/api/tenants/system/audit");
+        publicSystem.Headers.Add("dapr-app-id", "tenants-api");
+        publicSystem.Headers.Authorization = new("Bearer", token);
+        using var deniedSystem = await fixture.TenantsUiDaprClient.SendAsync(publicSystem, deadline.Token);
+        deniedSystem.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         detail.Metadata.ETag.ShouldNotBeNullOrWhiteSpace();
         (await rest.GetTenantAsync(new GetTenantQuery { TenantId = tenantId }, detail.Metadata.ETag, deadline.Token)).IsNotModified.ShouldBeTrue();
         // This SSR page calls the actual Admin UI issuer and named Dapr client, then
@@ -84,6 +99,8 @@ public sealed class SourceCatalogOwnerProfileTests(AspireTopologyFixture fixture
         denied.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         using var redis = await ConnectionMultiplexer.ConnectAsync("localhost:6379,abortConnect=false,connectTimeout=5000,asyncTimeout=5000").WaitAsync(deadline.Token);
         (await redis.GetDatabase().KeyExistsAsync("tenants||projection:tenants:" + tenantId).WaitAsync(deadline.Token)).ShouldBeTrue();
+        (await redis.GetDatabase().KeyExistsAsync("tenants||audit-tenants:" + tenantId).WaitAsync(deadline.Token)).ShouldBeTrue();
+        (await redis.GetDatabase().KeyExistsAsync("tenants||audit-global-administrators:singleton").WaitAsync(deadline.Token)).ShouldBeTrue();
         while (true)
         {
             var final = await SourceCatalogBootstrapEvidence.ReadCommittedAsync(deadline.Token);
@@ -98,7 +115,8 @@ public sealed class SourceCatalogOwnerProfileTests(AspireTopologyFixture fixture
             sdkProducerVersion = Environment.GetEnvironmentVariable("TENANTS_SOURCE_SDK_PRODUCER_VERSION"), activation.AttemptId, activation.RootDigest,
             activationBindingDigest = binding, state.Epoch, generation = catalog.Generation, requiredHosts = activation.RequiredHosts,
             operations = operations.Count, ownedBootstrapTerminalAndProjectedMembership = true,
-            realRestReads = 6, conditionalRead = true, actualAdminUiProxyAndOwnerRead = true, refusedDescendant = true, persistedTenant = true, outstandingLeases = 0,
+            realRestReads = 7, conditionalRead = true, distinctAuditOwnerReadback = true, publicSystemDenied = true,
+            actualAdminUiProxyAndOwnerRead = true, refusedDescendant = true, persistedTenant = true, outstandingLeases = 0,
         });
         var resultStream = new FileStream(output, FileMode.CreateNew, FileAccess.Write, FileShare.None);
         await using (resultStream.ConfigureAwait(false)) await resultStream.WriteAsync(result, deadline.Token);

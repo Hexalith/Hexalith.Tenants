@@ -81,7 +81,7 @@ public static class TenantCatalogDeclarations
         Command<SetGlobalAdministrator>("set", true, [new("user-id", "string"), new("acting-subject", "string")]),
         Command<RemoveGlobalAdministrator>("remove", true, [new("user-id", "string"), new("acting-subject", "string")])];
 
-    /// <summary>Gets all six public queries and both internal computed owner-authority queries.</summary>
+    /// <summary>Gets all seven public queries and both internal computed owner-authority queries.</summary>
     public static IReadOnlyList<RouteContractDeclaration> Queries { get; } = [
         Query<GetTenantQuery>(), Query<GetTenantUsersQuery>(), Query<GetTenantAuditQuery>(), Query<GetGlobalAdministratorAuditQuery>(),
         Query<ListTenantsQuery>(), Query<GetUserTenantsQuery>(), Query<GetGlobalAdministratorsQuery>(),

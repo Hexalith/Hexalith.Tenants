@@ -18,7 +18,7 @@ def evaluate(profile, source, publishing=False):
         environment.pop(key, None)
     command = ['dotnet', 'msbuild', str(PROJECT), '-nologo', '-getProperty:IsPackable',
                '-getItem:ProjectReference,PackageReference,PackageVersion', '-p:Configuration=Release',
-               '-p:HexalithTenantsVersion=6.0.0', '-p:HexalithEventStoreVersion=3.129.0',
+               '-p:HexalithTenantsVersion=7.0.0', '-p:HexalithEventStoreVersion=4.0.0',
                '-p:UseHexalithProjectReferences=' + ('true' if source else 'false'),
                '-p:HexalithUsePublishedSdkForHostedTests=' + profile]
     if publishing:
@@ -55,7 +55,7 @@ class HostedPackageProfileTests(unittest.TestCase):
                 self.assertEqual(projects, baseline_projects - OWN)
                 self.assertEqual(set(packages) - OWN, set(baseline_packages))
                 for package in OWN:
-                    self.assertEqual(versions[package], '6.0.0')
+                    self.assertEqual(versions[package], '7.0.0')
                     self.assertFalse(packages[package].get('Version'), 'CPM owns the selected public artifact version.')
 
 

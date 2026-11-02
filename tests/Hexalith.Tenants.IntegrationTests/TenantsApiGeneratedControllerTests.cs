@@ -1716,7 +1716,11 @@ public sealed class TenantsApiGeneratedControllerTests
             {
                 await process.WaitForExitAsync(TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromSeconds(10));
                 string failure = (await output) + (await error);
+#if HEXALITH_DEVELOPMENT_CATALOG_COHORT
                 failure.ShouldContain("RouteCatalogUnavailableException");
+#else
+                failure.ShouldContain("Private catalog bootstrap requires EventStore:DomainService:AppId");
+#endif
                 File.Exists(Path.Combine(directory, "tenants-api.observation.json")).ShouldBeFalse();
             }
             finally
@@ -1973,7 +1977,11 @@ public sealed class TenantsApiGeneratedControllerTests
         {
             start.ArgumentList.Add(argument);
         }
-        if (appId is not null) start.ArgumentList.Add("--EventStore:RouteCatalog:DevelopmentBootstrap:AppId=" + appId);
+        if (appId is not null)
+        {
+            start.ArgumentList.Add("--EventStore:DomainService:AppId=" + appId);
+            start.ArgumentList.Add("--EventStore:RouteCatalog:DevelopmentBootstrap:AppId=" + appId);
+        }
         Process process = Process.Start(start) ?? throw new InvalidOperationException("The API observation host did not start.");
         output = process.StandardOutput.ReadToEndAsync();
         error = process.StandardError.ReadToEndAsync();
