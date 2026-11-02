@@ -59,20 +59,24 @@ public sealed class SourceCatalogOwnerProfileTests(AspireTopologyFixture fixture
         persisted.ShouldNotBeNull();
         using var scoped = AspireTopologyTests.CreateIsolatedTenantsApiClient(fixture.TenantsApiClient, AspireTopologyTests.CreateDemoJwt(tenantId), _ => { });
         var rest = new TenantsRestQueryClient(scoped);
-        var list = await rest.ListTenantsAsync(new ListTenantsQuery { PageSize = 100 }, null, deadline.Token);
+        var list = await ReadWithTransientRetryAsync(ct => rest.ListTenantsAsync(new ListTenantsQuery { PageSize = 100 }, null, ct), deadline.Token);
         list.IsSuccess.ShouldBeTrue(list.ToString());
-        var detail = await rest.GetTenantAsync(new GetTenantQuery { TenantId = tenantId }, null, deadline.Token); detail.IsSuccess.ShouldBeTrue();
-        (await rest.GetTenantUsersAsync(new GetTenantUsersQuery { TenantId = tenantId, PageSize = 100 }, null, deadline.Token)).IsSuccess.ShouldBeTrue();
-        (await rest.GetUserTenantsAsync(new GetUserTenantsQuery { UserId = AuthenticatedRouteState.CallerId, PageSize = 100 }, null, deadline.Token)).IsSuccess.ShouldBeTrue();
-        var tenantAudit = await rest.GetTenantAuditAsync(new GetTenantAuditQuery { TenantId = tenantId, PageSize = 100 }, null, deadline.Token);
+        var detail = await ReadWithTransientRetryAsync(ct => rest.GetTenantAsync(new GetTenantQuery { TenantId = tenantId }, null, ct), deadline.Token);
+        detail.IsSuccess.ShouldBeTrue(detail.ToString());
+        var tenantUsers = await ReadWithTransientRetryAsync(ct => rest.GetTenantUsersAsync(new GetTenantUsersQuery { TenantId = tenantId, PageSize = 100 }, null, ct), deadline.Token);
+        tenantUsers.IsSuccess.ShouldBeTrue(tenantUsers.ToString());
+        var userTenants = await ReadWithTransientRetryAsync(ct => rest.GetUserTenantsAsync(new GetUserTenantsQuery { UserId = AuthenticatedRouteState.CallerId, PageSize = 100 }, null, ct), deadline.Token);
+        userTenants.IsSuccess.ShouldBeTrue(userTenants.ToString());
+        var tenantAudit = await ReadWithTransientRetryAsync(ct => rest.GetTenantAuditAsync(new GetTenantAuditQuery { TenantId = tenantId, PageSize = 100 }, null, ct), deadline.Token);
         tenantAudit.IsSuccess.ShouldBeTrue(tenantAudit.ToString());
         tenantAudit.Payload.ShouldNotBeNull().Items.ShouldContain(item => item.EventType == nameof(TenantCreated) && item.TenantId == tenantId);
-        (await rest.GetGlobalAdministratorsAsync(new GetGlobalAdministratorsQuery { PageSize = 100 }, null, deadline.Token)).IsSuccess.ShouldBeTrue();
+        var globalAdministrators = await ReadWithTransientRetryAsync(ct => rest.GetGlobalAdministratorsAsync(new GetGlobalAdministratorsQuery { PageSize = 100 }, null, ct), deadline.Token);
+        globalAdministrators.IsSuccess.ShouldBeTrue(globalAdministrators.ToString());
         // The public platform route must still read the retained global owner without exposing system as a request scope.
-        var globalAudit = await rest.GetTenantAuditAsync(new GetTenantAuditQuery
+        var globalAudit = await ReadWithTransientRetryAsync(ct => rest.GetTenantAuditAsync(new GetTenantAuditQuery
         {
             TenantId = "system", Stream = "global-administrators", PageSize = 100,
-        }, null, deadline.Token);
+        }, null, ct), deadline.Token);
         globalAudit.IsSuccess.ShouldBeTrue(globalAudit.ToString());
         globalAudit.Payload.ShouldNotBeNull().Items.ShouldContain(item => item.EventType == nameof(GlobalAdministratorSet) && item.TenantId == "system");
         using var publicSystem = new HttpRequestMessage(HttpMethod.Get, "/api/tenants/system/audit");
@@ -81,7 +85,8 @@ public sealed class SourceCatalogOwnerProfileTests(AspireTopologyFixture fixture
         using var deniedSystem = await fixture.TenantsUiDaprClient.SendAsync(publicSystem, deadline.Token);
         deniedSystem.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         detail.Metadata.ETag.ShouldNotBeNullOrWhiteSpace();
-        (await rest.GetTenantAsync(new GetTenantQuery { TenantId = tenantId }, detail.Metadata.ETag, deadline.Token)).IsNotModified.ShouldBeTrue();
+        var conditionalRead = await ReadWithTransientRetryAsync(ct => rest.GetTenantAsync(new GetTenantQuery { TenantId = tenantId }, detail.Metadata.ETag, ct), deadline.Token);
+        conditionalRead.IsNotModified.ShouldBeTrue(conditionalRead.ToString());
         // This SSR page calls the actual Admin UI issuer and named Dapr client, then
         // the marked Admin receiver and its independently bound Gateway owner reader.
         using var adminPage = await fixture.AdminUiClient.GetAsync("/dapr", deadline.Token);
@@ -120,6 +125,22 @@ public sealed class SourceCatalogOwnerProfileTests(AspireTopologyFixture fixture
         });
         var resultStream = new FileStream(output, FileMode.CreateNew, FileAccess.Write, FileShare.None);
         await using (resultStream.ConfigureAwait(false)) await resultStream.WriteAsync(result, deadline.Token);
+    }
+
+    private static async Task<TenantsRestQueryResponse<TPayload>> ReadWithTransientRetryAsync<TPayload>(
+        Func<CancellationToken, Task<TenantsRestQueryResponse<TPayload>>> read,
+        CancellationToken cancellationToken)
+    {
+        for (int attempt = 0; ; attempt++)
+        {
+            TenantsRestQueryResponse<TPayload> response = await read(cancellationToken);
+            if (response.IsSuccess || response.StatusCode is not (500 or 502 or 503 or 504) || attempt == 3)
+            {
+                return response;
+            }
+
+            await Task.Delay(TimeSpan.FromMilliseconds(200 * (attempt + 1)), cancellationToken);
+        }
     }
 }
 #endif
