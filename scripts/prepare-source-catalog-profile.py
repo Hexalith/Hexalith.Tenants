@@ -22,10 +22,11 @@ def instant(value):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--sdk-source-sha", required=True)
+    parser.add_argument("--ci-job", choices=("development-catalog", "authenticated-routes"), default="development-catalog")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
-    if os.environ.get("GITHUB_ACTIONS") != "true" or os.environ.get("GITHUB_JOB") != "development-catalog":
-        raise ValueError("The source profile requires its declared disposable CI job.")
+    if os.environ.get("GITHUB_ACTIONS") != "true" or os.environ.get("GITHUB_JOB") != args.ci_job:
+        raise ValueError("The catalog profile requires its declared disposable CI job.")
     root = Path(command("git", "rev-parse", "--show-toplevel"))
     for module in ("Hexalith.EventStore", "Hexalith.Builds"):
         relative = f"references/{module}"

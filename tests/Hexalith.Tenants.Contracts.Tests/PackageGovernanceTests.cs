@@ -1123,7 +1123,9 @@ public class PackageGovernanceTests {
                 properties.GetProperty("HexalithTenantsCatalogArtifactsAvailable").GetString().ShouldBe(catalogAvailable ? "true" : "false");
                 string[] constants = properties.GetProperty("DefineConstants").GetString()!.Split(';', StringSplitOptions.RemoveEmptyEntries);
                 constants.Contains("HEXALITH_DEVELOPMENT_CATALOG_SOURCE").ShouldBe(catalogAvailable);
-                constants.Contains("HEXALITH_DEVELOPMENT_CATALOG_COHORT").ShouldBe(useSource);
+                constants.Contains("HEXALITH_DEVELOPMENT_CATALOG_COHORT").ShouldBe(useSource
+                    || expectedVersion.StartsWith("4.0.0", StringComparison.Ordinal));
+                constants.Contains("HEXALITH_DEVELOPMENT_CATALOG_SOURCE_REFERENCE").ShouldBe(useSource);
                 constants.Contains("HEXALITH_CHECKPOINTED_TENANT_PROJECTION").ShouldBe(useSource
                     || expectedVersion.StartsWith("3.133.0", StringComparison.Ordinal)
                     || expectedVersion.StartsWith("4.0.0", StringComparison.Ordinal));
