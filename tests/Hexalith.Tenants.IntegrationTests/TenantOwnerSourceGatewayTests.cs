@@ -304,7 +304,7 @@ public sealed class TenantOwnerSourceGatewayTests
         services.AddEventStoreRouteCatalog(configuration);
         ConfigureCatalogAuthorityControl(services, authorityConfiguration, terminal);
 #endif
-        services.AddTenantOwnerSourceGateway(configuration)
+        services.AddTenantOwnerSourceGateway()
             .ConfigurePrimaryHttpMessageHandler(() => terminal);
         return services.BuildServiceProvider();
     }
