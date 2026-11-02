@@ -88,7 +88,7 @@ elif arguments == ['rev-parse', 'HEAD']:
                 self.assertEqual(self.response.read_text(), '-p:HexalithEventStoreVersion=3.128.4\n')
                 self.assertIn('checkout', self.log.read_text())
 
-    def run_live_build(self, version):
+    def run_live_build(self):
         log = self.root / 'dotnet-calls.jsonl'
         dotnet = self.bin / 'dotnet'
         dotnet.write_text("""#!/usr/bin/env python3
@@ -99,33 +99,38 @@ with open(os.environ['MOCK_DOTNET_LOG'], 'a') as output:
 """)
         dotnet.chmod(0o755)
         workflow = (ROOT / '.github/workflows/ci.yml').read_text()
-        step = workflow.split('      - name: Build live hosts and focused suites against published packages\n', 1)[1]
+        step = workflow.split('      - name: Build live hosts and focused suites against canonical-scope packages\n', 1)[1]
         block = step.split('        run: |\n', 1)[1].split('\n      - name:', 1)[0]
         environment = self.environment | {'MOCK_DOTNET_LOG': str(log)}
-        environment['HexalithEventStoreVersion'] = 'must-not-leak'
-        if version is None:
-            environment.pop('TENANTS_BOOTSTRAP_COMPAT_SDK_VERSION', None)
-        else:
-            environment['TENANTS_BOOTSTRAP_COMPAT_SDK_VERSION'] = version
+        environment.pop('HexalithEventStoreVersion', None)
+        environment.pop('TENANTS_BOOTSTRAP_COMPAT_SDK_VERSION', None)
         result = subprocess.run(['bash', '-c', textwrap.dedent(block)], env=environment,
                                 capture_output=True, text=True, timeout=20)
         calls = [json.loads(line) for line in log.read_text().splitlines()] if log.exists() else []
         return result, calls
 
-    def test_live_build_retains_legacy_selection_without_leaking_environment_to_tooling(self):
-        result, calls = self.run_live_build('3.128.4')
+    def test_live_build_pins_the_major_package_cohort(self):
+        result, calls = self.run_live_build()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(len(calls), 6)
         for call in calls:
             self.assertIsNone(call['versionEnvironment'])
-            self.assertIn('-p:HexalithEventStoreVersion=3.128.4', call['arguments'])
+            self.assertIn('-p:HexalithEventStoreVersion=4.0.0', call['arguments'])
+            self.assertIn('-p:HexalithMcpCliVersion=2.0.0', call['arguments'])
             self.assertIn('-p:UseHexalithProjectReferences=false', call['arguments'])
-        self.assertEqual(len({call['arguments'][1] for call in calls}), 6)
+            self.assertIn('-p:UseNuGetDeps=true', call['arguments'])
 
-    def test_live_build_refuses_a_missing_compatibility_selection(self):
-        result, calls = self.run_live_build(None)
-        self.assertNotEqual(result.returncode, 0)
-        self.assertEqual(calls, [])
+    def test_live_build_names_each_host_and_focused_test_project(self):
+        result, calls = self.run_live_build()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual({call['arguments'][1] for call in calls}, {
+            'references/Hexalith.EventStore/src/Hexalith.EventStore/Hexalith.EventStore.csproj',
+            'references/Hexalith.EventStore/src/Hexalith.EventStore.Admin.Server.Host/Hexalith.EventStore.Admin.Server.Host.csproj',
+            'references/Hexalith.EventStore/src/Hexalith.EventStore.Admin.UI/Hexalith.EventStore.Admin.UI.csproj',
+            'samples/Hexalith.Tenants.Sample/Hexalith.Tenants.Sample.csproj',
+            'tests/Hexalith.Tenants.AppHost.Tests/Hexalith.Tenants.AppHost.Tests.csproj',
+            'tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj',
+        })
 
     def test_response_file_selects_the_sdk_for_nested_msbuild_invocations(self):
         result = self.run_script()

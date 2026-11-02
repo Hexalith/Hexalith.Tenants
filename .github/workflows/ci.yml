@@ -220,11 +220,34 @@ jobs:
               live_cert_index=$((live_cert_index + 1))
             done
           done
+      - name: Record backend inventory before disposable Dapr initialization
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import datetime, json, os, pathlib, subprocess
+          before = pathlib.Path(os.environ["RUNNER_TEMP"]) / "tenants-package-before-volumes.json"
+          volumes = subprocess.check_output(["docker", "volume", "ls", "-q"], text=True, timeout=30).splitlines()
+          with before.open("x", encoding="utf-8") as output:
+              json.dump(volumes, output)
+          with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as output:
+              output.write("TENANTS_SOURCE_BACKEND_BEFORE_PATH=" + str(before) + "\n")
+              output.write("TENANTS_SOURCE_BACKEND_STARTED_AT=" + datetime.datetime.now(datetime.timezone.utc).isoformat() + "\n")
+          PY
       - name: Install and initialize Dapr
         uses: Hexalith/Hexalith.Builds/Github/dapr-init@fff4a212180d8cd1c5c0759655a9bc4fb6963c45
         with:
-          version: '1.18.0'
-          runtime-version: '1.18.2'
+          version: '1.18.2'
+          runtime-version: '1.18.7'
+      - name: Provision the canonical package catalog on the fresh backend
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_sha="$(git rev-parse HEAD:references/Hexalith.EventStore)"
+          printf 'TENANTS_SOURCE_SDK_PRODUCER_VERSION=4.0.0\n' >> "$GITHUB_ENV"
+          python3 scripts/prepare-source-catalog-profile.py \
+            --ci-job authenticated-routes --sdk-source-sha "$source_sha" \
+            --output "${RUNNER_TEMP}/tenants-package-backend.json"
       - name: Install pinned browser qualification tools
         working-directory: tests/performance/tenant-audit
         run: |
