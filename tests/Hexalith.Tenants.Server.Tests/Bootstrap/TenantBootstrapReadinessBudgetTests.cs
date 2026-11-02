@@ -5,10 +5,14 @@ using System.Text;
 using System.Text.Json;
 using Dapr.Client;
 using Hexalith.EventStore.Contracts.Commands;
+#if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
 using Hexalith.EventStore.Contracts.Routing;
+#endif
 using Hexalith.EventStore.ServiceDefaults;
 using Hexalith.EventStore.ServiceDefaults.Authentication;
+#if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
 using Hexalith.EventStore.ServiceDefaults.Routing;
+#endif
 using Hexalith.Tenants.Bootstrap;
 using Hexalith.Tenants.Contracts.Commands;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -78,6 +82,7 @@ public sealed class TenantBootstrapReadinessBudgetTests
         else Should.Throw<ArgumentOutOfRangeException>(() => TenantBootstrapReadinessBudget.Resolve(client, services));
     }
 
+#if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
     /// <summary>Real bearer validation reaches a stalled catalog; configured expiry or caller cancellation stops it before assertion or proof issuance.</summary>
     [Theory]
     [InlineData(false)]
@@ -136,6 +141,8 @@ public sealed class TenantBootstrapReadinessBudgetTests
         caller.IsCancellationRequested.ShouldBe(cancelCaller);
         await issuer.DidNotReceive().IssueAsync(Arg.Any<WorkloadAssertionRequest>(), Arg.Any<CancellationToken>());
     }
+
+#endif
 
     private static HostApplicationBuilder ProductionDefaults(TimeSpan total, TimeSpan attempt)
     {

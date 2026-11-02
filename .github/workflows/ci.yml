@@ -16,6 +16,65 @@ permissions:
   contents: read
 
 jobs:
+  server-profile-boundaries:
+    name: Server profile boundary (${{ matrix.profile }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - profile: frozen compatibility 3.128.4
+            sdk-argument: '-p:HexalithEventStoreVersion=3.128.4'
+            budget-minimum: 6
+            runtime-minimum: 0
+          - profile: catalog floor 3.129.0
+            sdk-argument: '-p:HexalithEventStoreVersion=3.129.0'
+            budget-minimum: 8
+            runtime-minimum: 0
+          - profile: current shared catalog
+            sdk-argument: ''
+            budget-minimum: 8
+            runtime-minimum: 7
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: false
+          persist-credentials: false
+      - name: Initialize declared build and linked host inputs
+        run: >-
+          git -c submodule.recurse=false submodule update --init --
+          references/Hexalith.Builds references/Hexalith.Platform
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - name: Compile the actual server test profile
+        run: >-
+          dotnet build tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj
+          --configuration Release -warnaserror -m:1 -nr:false
+          -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true
+          -p:HexalithEventStoreFromSource=false ${{ matrix.sdk-argument }}
+          -p:HexalithFrontComposerFromSource=false -p:HexalithMemoriesFromSource=false
+      - name: Require existing owner transport assertions
+        run: >-
+          dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj
+          --configuration Release --no-build --no-restore ${{ matrix.sdk-argument }}
+          --filter-class Hexalith.Tenants.Server.Tests.Authorization.TenantOwnerSourceTargetTests
+          --minimum-expected-tests 4 --fail-skips on
+      - name: Require every available readiness budget assertion
+        run: >-
+          dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj
+          --configuration Release --no-build --no-restore ${{ matrix.sdk-argument }}
+          --filter-class Hexalith.Tenants.Server.Tests.Bootstrap.TenantBootstrapReadinessBudgetTests
+          --minimum-expected-tests ${{ matrix.budget-minimum }} --fail-skips on
+      - name: Require the current v2 owner-source runtime assertions
+        if: matrix.runtime-minimum > 0
+        run: >-
+          dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj
+          --configuration Release --no-build --no-restore ${{ matrix.sdk-argument }}
+          --filter-class Hexalith.Tenants.Server.Tests.Authorization.TenantOwnerSourceRuntimeTests
+          --minimum-expected-tests ${{ matrix.runtime-minimum }} --fail-skips on
+
   published-catalog-http:
     name: Published catalog HTTP (${{ matrix.profile }})
     strategy:

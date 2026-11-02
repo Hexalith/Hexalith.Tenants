@@ -1,3 +1,4 @@
+#if HEXALITH_TECHNICAL_HTTP_CATALOG_BINDING
 using System.Security.Cryptography;
 using System.Text.Json;
 
@@ -113,3 +114,4 @@ public sealed class TenantOwnerSourceRuntimeTests
         return new(activation, 1, "tenants-isolated", coordinates);
     }
 }
+#endif
