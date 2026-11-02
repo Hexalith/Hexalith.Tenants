@@ -89,14 +89,16 @@ public sealed class TenantProjectionTransitionTests {
             s_at,
             null) { Payload = [] };
 
-        TenantLocalState replayed = TenantProjectionCheckpointTransition.Instance.Apply(null, history);
-        TenantLocalState delivered = TenantProjectionCheckpointTransition.Instance.Apply(null, live);
-        TenantLocalState advanced = TenantProjectionCheckpointTransition.Instance.Apply(replayed, rejection);
+        TenantLocalState replayed = TenantProjectionCheckpointTransition.Instance.Apply(null, history).ShouldNotBeNull();
+        TenantLocalState delivered = TenantProjectionCheckpointTransition.Instance.Apply(null, live).ShouldNotBeNull();
+        TenantLocalState advanced = TenantProjectionCheckpointTransition.Instance.Apply(replayed, rejection).ShouldNotBeNull();
+        TenantLocalState? beforeCreation = TenantProjectionCheckpointTransition.Instance.Apply(null, rejection);
 
         JsonSerializer.Serialize(replayed).ShouldBe(JsonSerializer.Serialize(delivered));
         replayed.Name.ShouldBe("Replayed");
         advanced.LastEvent.ShouldNotBeNull().LastSequenceNumber.ShouldBe(2);
         advanced.Name.ShouldBe("Replayed");
+        beforeCreation.ShouldBeNull("events before TenantCreated never materialize tenant state");
     }
 
     private static TenantLocalState Seed() {

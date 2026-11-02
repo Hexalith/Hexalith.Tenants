@@ -1,3 +1,4 @@
+using Hexalith.EventStore.Client.Gateway;
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Client.Projections.Checkpointed;
 using Hexalith.EventStore.Client.Subscriptions;
@@ -5,6 +6,8 @@ using Hexalith.EventStore.Testing.Fakes;
 using Hexalith.Tenants.Client.Handlers;
 using Hexalith.Tenants.Client.Projections;
 using Hexalith.Tenants.Client.Registration;
+using Hexalith.Tenants.Client.Tests.Projections;
+using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Events;
 using Hexalith.Tenants.Contracts.Events.Rejections;
 
@@ -76,6 +79,42 @@ public sealed class TenantDurableProjectionRegistrationTests {
         _ = services.AddHexalithTenants();
 
         services.ShouldNotContain(d => d.ServiceType == typeof(IEventStoreDomainEventHandler<TenantDisabledRejection>));
+    }
+
+    [Fact]
+    public async Task RegisteredDurableStoreResolvesAGatewayClientPerHistoryRead() {
+        int created = 0;
+        var history = new TenantHistoryGateway();
+        var services = new ServiceCollection();
+        _ = services.AddLogging();
+        _ = services.AddSingleton<IReadModelStore>(new InMemoryReadModelStore());
+        _ = services.AddScoped<IEventStoreGatewayClient>(_ => {
+            Interlocked.Increment(ref created);
+            return history;
+        });
+        _ = services.AddHexalithTenantsDurableProjection("tenant-state");
+        _ = services.AddHexalithTenants();
+        using ServiceProvider provider = services.BuildServiceProvider();
+        EventStoreDomainEventProcessor processor = provider.GetRequiredService<EventStoreDomainEventProcessor>();
+        EventStoreDomainEventEnvelope first = DurableTenantProjectionHarness.Envelope(
+            new TenantCreated("tenant-per-read", "Per read", null, DateTimeOffset.UnixEpoch), "tenant-per-read", 1);
+        EventStoreDomainEventEnvelope late = DurableTenantProjectionHarness.Envelope(
+            new TenantUpdated("tenant-per-read", "Renamed", null, DateTimeOffset.UnixEpoch), "tenant-per-read", 3);
+        history.Append(first);
+        history.Append(DurableTenantProjectionHarness.Envelope(
+            new UserAddedToTenant("tenant-per-read", "user-1", TenantRole.TenantOwner), "tenant-per-read", 2));
+        history.Append(late);
+
+        created.ShouldBe(0, "constructing the singleton store resolves no gateway client");
+        _ = provider.GetRequiredService<ITenantProjectionStore>();
+        created.ShouldBe(0);
+        (await processor.ProcessAsync(late, TestContext.Current.CancellationToken)).ShouldBe(EventStoreDomainEventProcessingResult.Processed);
+        int afterRecovery = created;
+        (await processor.ProcessAsync(first, TestContext.Current.CancellationToken)).ShouldBe(EventStoreDomainEventProcessingResult.Processed);
+
+        afterRecovery.ShouldBe(1, "one gap recovery resolved one client");
+        created.ShouldBe(2, "the older delivery's verification resolved a fresh client");
+        history.Reads.ShouldBe(2);
     }
 
     [Fact]

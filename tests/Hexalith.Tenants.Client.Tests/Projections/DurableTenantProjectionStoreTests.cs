@@ -172,6 +172,63 @@ public sealed class DurableTenantProjectionStoreTests {
         harness.Record(Tenant).ShouldBeNull();
     }
 
+    [Fact]
+    public async Task RejectionOnlyStreamOfANeverCreatedTenantAdvancesTheCheckpointWithoutTenantState() {
+        var harness = new DurableTenantProjectionHarness();
+        using ServiceProvider host = harness.CreateHost(withHistory: false);
+        string never = "tenant-never-created";
+
+        (await DurableTenantProjectionHarness.ProcessAsync(host, harness.Persist(new TenantNotFoundRejection(never), never, 1)))
+            .ShouldBe(EventStoreDomainEventProcessingResult.Processed);
+        (await DurableTenantProjectionHarness.ProcessAsync(host, harness.Persist(new TenantDisabledRejection(never), never, 2)))
+            .ShouldBe(EventStoreDomainEventProcessingResult.Processed);
+
+        CheckpointedProjectionRecord<TenantLocalState> record = harness.Record(never).ShouldNotBeNull();
+        record.Health.ShouldBe(CheckpointedProjectionHealth.Healthy);
+        record.LastContiguousSequence.ShouldBe(2);
+        record.State.ShouldBeNull("rejections never materialize tenant state");
+        (await host.GetRequiredService<ITenantProjectionSnapshotStore>().GetSnapshotAsync(never, TestContext.Current.CancellationToken)).ShouldBeNull();
+        (await host.GetRequiredService<ITenantProjectionStore>().GetAsync(never, TestContext.Current.CancellationToken)).ShouldBeNull();
+        harness.Gateway.Reads.ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task NonCreatingEventsBeforeCreationKeepNoStateUntilTenantCreated() {
+        var harness = new DurableTenantProjectionHarness();
+        using ServiceProvider host = harness.CreateHost(withHistory: false);
+
+        (await DurableTenantProjectionHarness.ProcessAsync(host, harness.Persist(new TenantNotFoundRejection(Tenant), Tenant, 1)))
+            .ShouldBe(EventStoreDomainEventProcessingResult.Processed);
+        (await DurableTenantProjectionHarness.ProcessAsync(host, harness.Persist(new TenantConfigurationSet(Tenant, "k", "v"), Tenant, 2)))
+            .ShouldBe(EventStoreDomainEventProcessingResult.Processed);
+        harness.Record(Tenant).ShouldNotBeNull().State.ShouldBeNull();
+        (await DurableTenantProjectionHarness.ProcessAsync(host, harness.Persist(new TenantCreated(Tenant, "Created late", null, s_at), Tenant, 3)))
+            .ShouldBe(EventStoreDomainEventProcessingResult.Processed);
+
+        TenantProjectionSnapshot snapshot = (await host.GetRequiredService<ITenantProjectionSnapshotStore>().GetSnapshotAsync(Tenant, TestContext.Current.CancellationToken)).ShouldNotBeNull();
+        snapshot.IsHealthy.ShouldBeTrue();
+        snapshot.Checkpoint.ShouldBe(3);
+        snapshot.State.ShouldNotBeNull().Name.ShouldBe("Created late");
+        snapshot.State.Status.ShouldBe(TenantStatus.Active);
+        snapshot.State.Configuration.ShouldBeEmpty("events before creation never materialize");
+    }
+
+    [Fact]
+    public async Task RecoveryAcrossPreCreationRejectionsMaterializesOnlyFromTenantCreated() {
+        var harness = new DurableTenantProjectionHarness();
+        using ServiceProvider host = harness.CreateHost();
+        _ = harness.Persist(new TenantNotFoundRejection(Tenant), Tenant, 1);
+        _ = harness.Persist(new TenantCreated(Tenant, "Recovered", null, s_at), Tenant, 2);
+        EventStoreDomainEventEnvelope member = harness.Persist(new UserAddedToTenant(Tenant, "user-1", TenantRole.TenantOwner), Tenant, 3);
+
+        (await DurableTenantProjectionHarness.ProcessAsync(host, member)).ShouldBe(EventStoreDomainEventProcessingResult.Processed);
+
+        TenantProjectionSnapshot snapshot = (await host.GetRequiredService<ITenantProjectionSnapshotStore>().GetSnapshotAsync(Tenant, TestContext.Current.CancellationToken)).ShouldNotBeNull();
+        snapshot.IsHealthy.ShouldBeTrue();
+        snapshot.Checkpoint.ShouldBe(3);
+        snapshot.State.ShouldNotBeNull().Members["user-1"].ShouldBe(TenantRole.TenantOwner);
+    }
+
     [Theory]
     [InlineData("tenant-a", "tenants-projection:v1:tenant-a")]
     [InlineData("Tenant_1.v2", "tenants-projection:v1:Tenant_1.v2")]

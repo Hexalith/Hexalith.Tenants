@@ -3,6 +3,7 @@ using System.Text.Json;
 using Hexalith.EventStore.Client.Projections.Checkpointed;
 using Hexalith.EventStore.Contracts.Events;
 using Hexalith.EventStore.Contracts.Serialization;
+using Hexalith.Tenants.Contracts.Events;
 
 namespace Hexalith.Tenants.Client.Projections;
 
@@ -10,6 +11,11 @@ namespace Hexalith.Tenants.Client.Projections;
 /// Adapts <see cref="TenantProjectionTransition"/> to the EventStore checkpointed projection substrate,
 /// decoding authoritative history payloads that recovery replays.
 /// </summary>
+/// <remarks>
+/// Until <see cref="TenantCreated"/> is applied, no tenant state is materialized: a rejection or any other
+/// non-creating event only advances the checkpoint, so a never-created tenant keeps no durable state and reads as
+/// unknown.
+/// </remarks>
 internal sealed class TenantProjectionCheckpointTransition : ICheckpointedProjectionTransition<TenantLocalState> {
     private static readonly IReadOnlyDictionary<string, Type> s_projectedTypes = TenantProjectionTransition.ProjectedEventTypes
         .ToDictionary(static type => type.FullName!, StringComparer.Ordinal);
@@ -18,9 +24,13 @@ internal sealed class TenantProjectionCheckpointTransition : ICheckpointedProjec
     public static TenantProjectionCheckpointTransition Instance { get; } = new();
 
     /// <inheritdoc/>
-    public TenantLocalState Apply(TenantLocalState? current, CheckpointedProjectionEvent @event) {
+    public TenantLocalState? Apply(TenantLocalState? current, CheckpointedProjectionEvent @event) {
         ArgumentNullException.ThrowIfNull(@event);
         IEventPayload? payload = @event.DecodedEvent as IEventPayload ?? Decode(@event);
+        if (current is null && payload is not TenantCreated) {
+            return null;
+        }
+
         var metadata = new TenantProjectionEventMetadata(
             @event.Evidence.MessageId,
             @event.Sequence,

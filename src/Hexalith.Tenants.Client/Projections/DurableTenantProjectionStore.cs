@@ -120,6 +120,11 @@ public sealed class DurableTenantProjectionStore : ITenantProjectionStore, ITena
             return null;
         }
 
+        if (record.IsHealthy && record.State is null) {
+            // The checkpoint advanced only through events that precede creation: the tenant was never created.
+            return null;
+        }
+
         bool trustedState = record.State is { } state && string.Equals(state.TenantId, tenantId, StringComparison.Ordinal);
         if (record.IsHealthy && !trustedState) {
             return new TenantProjectionSnapshot(tenantId, CheckpointedProjectionHealth.Unavailable, null, record.LastContiguousSequence, record.Version);

@@ -19,7 +19,10 @@ public interface ITenantProjectionSnapshotStore {
     /// </summary>
     /// <param name="tenantId">The managed tenant identifier.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The snapshot, or <see langword="null"/> when no delivery was ever committed for the tenant.</returns>
+    /// <returns>
+    /// The snapshot, or <see langword="null"/> when the tenant was never created (no delivery committed, or only
+    /// events that precede its creation, such as rejections).
+    /// </returns>
     Task<TenantProjectionSnapshot?> GetSnapshotAsync(string tenantId, CancellationToken cancellationToken = default);
 
     /// <summary>
