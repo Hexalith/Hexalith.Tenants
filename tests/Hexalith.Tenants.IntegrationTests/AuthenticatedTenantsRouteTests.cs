@@ -319,35 +319,38 @@ public sealed class AuthenticatedTenantsRouteTests(AuthenticatedRouteTopologyFix
     public async Task PopulatedTwentyRowPageHydratesWithoutActorQuotaFailure()
     {
         fixture.SkipIfUnavailable();
-        using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+        using var seedTimeout = new CancellationTokenSource(TimeSpan.FromMinutes(7));
         string token = AspireTopologyTests.CreateDemoJwt();
+        var tenantIds = new List<string>(20);
         for (int index = 0; index < 20; index++)
         {
             string tenantId = $"populated-page-{Guid.NewGuid():N}";
+            tenantIds.Add(tenantId);
             var command = AspireTopologyTests.CreateCommand("tenants", tenantId,
                 nameof(Hexalith.Tenants.Contracts.Commands.CreateTenant),
                 new Hexalith.Tenants.Contracts.Commands.CreateTenant(tenantId, "Populated page control", "Native authority capacity control"));
-            var status = await AspireTopologyTests.SubmitAndWaitForTerminalStatusAsync(fixture.CommandApiClient, command, token, timeout.Token);
+            var status = await AspireTopologyTests.SubmitAndWaitForTerminalStatusAsync(fixture.CommandApiClient, command, token, seedTimeout.Token);
             status.Status.ShouldBe("Completed");
-            await AspireTopologyTests.WaitForPersistedTenantAsync(tenantId, Hexalith.Tenants.Contracts.Projections.TenantProjectionVersionFormat.SequencePrefix + "1", timeout.Token);
+            await AspireTopologyTests.WaitForPersistedTenantAsync(tenantId, Hexalith.Tenants.Contracts.Projections.TenantProjectionVersionFormat.SequencePrefix + "1", seedTimeout.Token);
         }
 
         // Start the measured page after the unchanged one-second consumer window used by command preparation.
-        await Task.Delay(TimeSpan.FromSeconds(2), timeout.Token);
+        await Task.Delay(TimeSpan.FromSeconds(2), seedTimeout.Token);
         TestContext.Current.TestOutputHelper?.WriteLine("Populated page control: starting one production 20-row load.");
-        using ServiceProvider provider = CreateProductionReadServices(token);
+        using var readTimeout = new CancellationTokenSource(TimeSpan.FromMinutes(2));
+        using ServiceProvider provider = CreateProductionReadServices(AspireTopologyTests.CreateDemoJwt(tenantIds));
         using IServiceScope scope = provider.CreateScope();
         using var gateway = new TenantQueryGateway(
             scope.ServiceProvider.GetRequiredService<ITenantsRestQueryClient>(), new LiveRouteUserContext(),
             scope.ServiceProvider.GetRequiredService<MemoriesClient>(),
             scope.ServiceProvider.GetRequiredService<ITenantSearchCursorCodec>());
         var elapsed = System.Diagnostics.Stopwatch.StartNew();
-        TenantListSnapshot result = await gateway.ListTenantsAsync(new TenantListRequest(PageSize: 20), null, timeout.Token);
-        TestContext.Current.TestOutputHelper?.WriteLine($"Populated page outcome: {result}, KnownCounts={result.Rows.Count(row => row.MemberCount.IsKnown && row.OwnerCount.IsKnown)}, ElapsedMilliseconds={elapsed.Elapsed.TotalMilliseconds:F2}, Cancelled={timeout.IsCancellationRequested}.");
+        TenantListSnapshot result = await gateway.ListTenantsAsync(new TenantListRequest(PageSize: 20), null, readTimeout.Token);
+        TestContext.Current.TestOutputHelper?.WriteLine($"Populated page outcome: {result}, KnownCounts={result.Rows.Count(row => row.MemberCount.IsKnown && row.OwnerCount.IsKnown)}, ElapsedMilliseconds={elapsed.Elapsed.TotalMilliseconds:F2}, Cancelled={readTimeout.IsCancellationRequested}.");
         if (result.Rows.Count != 20)
         {
             var raw = await scope.ServiceProvider.GetRequiredService<ITenantsRestQueryClient>()
-                .ListTenantsAsync(new ListTenantsQuery { PageSize = 20 }, null, timeout.Token);
+                .ListTenantsAsync(new ListTenantsQuery { PageSize = 20 }, null, readTimeout.Token);
             TestContext.Current.TestOutputHelper?.WriteLine($"Populated page transport: HTTP={raw.StatusCode}, Failure={raw.FailureKind}, Provenance={raw.Metadata.Provenance}, Lifecycle={raw.Metadata.Lifecycle}.");
         }
         result.Rows.Count.ShouldBe(20);

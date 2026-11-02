@@ -393,6 +393,30 @@ public sealed class AspireTopologyBootstrapTests
     }
 
     [Fact]
+    public async Task ExistingCatalogBootstrapRequiresProjectedAuthorityWithoutRepeatingTheCommand()
+    {
+        string? previous = Environment.GetEnvironmentVariable("TENANTS_SOURCE_CATALOG_PROFILE");
+        try
+        {
+            Environment.SetEnvironmentVariable("TENANTS_SOURCE_CATALOG_PROFILE", "true");
+            using HttpClient client = Client((_, _) => throw new InvalidOperationException("Bootstrap command repeated."));
+            int reads = 0;
+            await AspireTopologyFixture.CompleteBootstrapAsync(client, "credential-sentinel", (cursor, cancellationToken) =>
+            {
+                cursor.ShouldBeNull();
+                cancellationToken.ThrowIfCancellationRequested();
+                reads++;
+                return Task.FromResult(Ready());
+            }, UnexpectedCleanupAsync, false, TestContext.Current.CancellationToken);
+            reads.ShouldBe(1);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("TENANTS_SOURCE_CATALOG_PROFILE", previous);
+        }
+    }
+
+    [Fact]
     public async Task ColdModeRejectsReusedProjectedAuthorityEvenAfterAFirstSequenceCommit()
     {
         using HttpClient client = CommandClient(messageId => Terminal(messageId, "Completed", 1));

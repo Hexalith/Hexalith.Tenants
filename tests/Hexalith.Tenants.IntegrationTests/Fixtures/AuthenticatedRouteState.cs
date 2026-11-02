@@ -31,6 +31,8 @@ internal sealed record AuthenticatedRouteState(string TenantId, string TargetUse
         // Sort after the populated-page control so retained route cursors are exercised with a full corpus.
         string tenantId = $"zz-live-routes-{Guid.NewGuid():N}";
         string token = AspireTopologyTests.CreateDemoJwt(tenantId);
+        string commandToken = AspireTopologyFixture.IsSourceCatalogProfile
+            ? AspireTopologyTests.CreateDemoJwt() : token;
         string target = $"live-member-{Guid.NewGuid():N}";
         // The source catalog fixture already verified its owner-bound bootstrap.
         // A human-scoped repeat is forbidden by the current catalog authority.
@@ -39,7 +41,7 @@ internal sealed record AuthenticatedRouteState(string TenantId, string TargetUse
             var bootstrap = await AspireTopologyTests.SubmitAndWaitForTerminalStatusAsync(
                 commandApi,
                 AspireTopologyTests.CreateCommand("global-administrators", "global-administrators", nameof(BootstrapGlobalAdmin), new BootstrapGlobalAdmin(CallerId)),
-                token, cancellationToken, allowAlreadyBootstrappedConflict: true);
+                commandToken, cancellationToken, allowAlreadyBootstrappedConflict: true);
             (bootstrap.Status == "Completed" || bootstrap.RejectionEventType == "GlobalAdminAlreadyBootstrappedRejection").ShouldBeTrue();
         }
         TestContext.Current.TestOutputHelper?.WriteLine("Live route seed: bootstrap checked.");
@@ -48,7 +50,7 @@ internal sealed record AuthenticatedRouteState(string TenantId, string TargetUse
         var created = await AspireTopologyTests.SubmitAndWaitForTerminalStatusAsync(
             commandApi,
             createRequest,
-            token, cancellationToken);
+            commandToken, cancellationToken);
         created.Status.ShouldBe("Completed");
         TestContext.Current.TestOutputHelper?.WriteLine("Live route seed: tenant creation completed.");
         created.CommittedEventSequence.ShouldNotBeNull();
@@ -64,7 +66,7 @@ internal sealed record AuthenticatedRouteState(string TenantId, string TargetUse
             var added = await AspireTopologyTests.SubmitAndWaitForTerminalStatusAsync(
                 commandApi,
                 addRequest,
-                token, cancellationToken);
+                commandToken, cancellationToken);
             added.Status.ShouldBe("Completed");
             TestContext.Current.TestOutputHelper?.WriteLine("Live route seed: member command completed.");
             finalSequence = added.CommittedEventSequence;
