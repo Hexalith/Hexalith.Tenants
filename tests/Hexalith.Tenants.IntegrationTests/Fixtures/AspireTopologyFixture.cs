@@ -6,6 +6,7 @@ using System.Text.Json;
 using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.Tenants.Contracts.Commands;
+using Hexalith.Tenants.Contracts.Identity;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.Server.Projections;
 using Hexalith.Tenants.UI.Services.Gateways;
@@ -65,7 +66,8 @@ public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith
                 await base.DisposeAsync();
             },
             string.Equals(Environment.GetEnvironmentVariable("TENANTS_LIVE_REQUIRE_COLD_BOOTSTRAP"), "true", StringComparison.OrdinalIgnoreCase),
-            timeout.Token);
+            timeout.Token,
+            diagnosticToken => ProbeBootstrapAuthorityFailureAsync(scoped, CommandApiClient, token, diagnosticToken));
     }
 
     internal static bool IsSourceCatalogProfile => string.Equals(Environment.GetEnvironmentVariable("TENANTS_SOURCE_CATALOG_PROFILE"), "true", StringComparison.Ordinal);
@@ -80,7 +82,8 @@ public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith
         Func<string?, CancellationToken, Task<TenantsRestQueryResponse<PaginatedResult<GlobalAdministratorSummary>>>> read,
         Func<ValueTask> cleanup,
         bool requireColdBootstrap,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        Func<CancellationToken, Task<string>>? probeFailure = null)
     {
         string phase = "bootstrap-command";
         string failure = "bootstrap-command-failed";
@@ -105,7 +108,21 @@ public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith
             {
                 failure = phase + "-timeout";
                 if (phase == "bootstrap-authority" && IsSourceCatalogProfile)
+                {
                     Console.Error.WriteLine("TENANTS_BOOTSTRAP_AUTHORITY_REFUSAL " + authorityRefusal);
+                    if (probeFailure is not null)
+                    {
+                        try
+                        {
+                            using var diagnosticTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+                            Console.Error.WriteLine("TENANTS_BOOTSTRAP_AUTHORITY_PROBE " + await probeFailure(diagnosticTimeout.Token));
+                        }
+                        catch
+                        {
+                            Console.Error.WriteLine("TENANTS_BOOTSTRAP_AUTHORITY_PROBE unavailable");
+                        }
+                    }
+                }
             }
             try
             {
@@ -196,7 +213,7 @@ public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith
         long? committedSequence,
         bool requireColdBootstrap)
     {
-        if (response.StatusCode != (int)HttpStatusCode.OK) return "http-status";
+        if (response.StatusCode != (int)HttpStatusCode.OK) return "http-" + response.StatusCode;
         if (response.FailureKind != TenantsRestQueryFailureKind.None) return "client-failure-" + response.FailureKind;
         if (response.Payload is null) return "payload-missing";
         QueryResponseMetadata metadata = response.Metadata;
@@ -209,6 +226,63 @@ public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith
         if (metadata.ServedAt is not { } servedAt || servedAt < DateTimeOffset.UtcNow.AddMinutes(-5)
             || servedAt > DateTimeOffset.UtcNow.AddSeconds(5)) return "served-at";
         return "unclassified";
+    }
+
+    private static async Task<string> ProbeBootstrapAuthorityFailureAsync(
+        HttpClient tenantsApi, HttpClient eventStore, string token, CancellationToken cancellationToken)
+    {
+        using var tenantRequest = new HttpRequestMessage(HttpMethod.Get, "/api/global-administrators?pageSize=100");
+        tenantRequest.Headers.Add("X-Hexalith-Scope", TenantPlatformScopes.GlobalAdministrators);
+        using HttpResponseMessage tenantResponse = await tenantsApi.SendAsync(
+            tenantRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        string tenantResult = await ClassifyProblemAsync(tenantResponse, cancellationToken);
+
+        var query = new SubmitQueryRequest(
+            TenantPlatformScopes.GlobalAdministrators,
+            GetGlobalAdministratorsQuery.Domain,
+            TenantIdentity.GlobalAdministratorsAggregateId,
+            GetGlobalAdministratorsQuery.QueryType,
+            GetGlobalAdministratorsQuery.ProjectionType,
+            JsonSerializer.SerializeToElement(new GetGlobalAdministratorsQuery { PageSize = 100 }),
+            TenantIdentity.GlobalAdministratorsAggregateId);
+        using var eventStoreRequest = new HttpRequestMessage(HttpMethod.Post, "/api/v1/queries")
+        {
+            Content = JsonContent.Create(query),
+        };
+        eventStoreRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        eventStoreRequest.Headers.Add("X-Hexalith-Scope", TenantPlatformScopes.GlobalAdministrators);
+        using HttpResponseMessage eventStoreResponse = await eventStore.SendAsync(
+            eventStoreRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        return "tenants=" + tenantResult + ";eventstore=" + await ClassifyProblemAsync(eventStoreResponse, cancellationToken);
+    }
+
+    private static async Task<string> ClassifyProblemAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+    {
+        string status = "http-" + (int)response.StatusCode;
+        if (response.Content.Headers.ContentType?.MediaType != "application/problem+json") return status + ":non-problem";
+        try
+        {
+            byte[]? body = await ReadBoundedBootstrapBodyAsync(response.Content, cancellationToken);
+            if (body is null) return status + ":oversized-problem";
+            using JsonDocument problem = JsonDocument.Parse(body, new JsonDocumentOptions { MaxDepth = 8 });
+            if (!problem.RootElement.TryGetProperty("reasonCode", out JsonElement reason)
+                || reason.ValueKind != JsonValueKind.String) return status + ":no-reason-code";
+            string category = reason.GetString() switch
+            {
+                QueryProblemReasonCodes.InternalError => "query-internal-error",
+                QueryProblemReasonCodes.ProjectionMissing => "projection-missing",
+                QueryProblemReasonCodes.ProjectionStale => "projection-stale",
+                QueryProblemReasonCodes.ProjectionTimeout => "projection-timeout",
+                QueryProblemReasonCodes.MalformedProjectionResponse => "malformed-projection",
+                QueryProblemReasonCodes.NotImplemented => "query-not-implemented",
+                _ => "other-reason-code",
+            };
+            return status + ":" + category;
+        }
+        catch (Exception exception) when (exception is JsonException or HttpRequestException or IOException)
+        {
+            return status + ":unreadable-problem";
+        }
     }
 
     private static async Task<(long? Sequence, string? Failure)> SubmitBootstrapAsync(
