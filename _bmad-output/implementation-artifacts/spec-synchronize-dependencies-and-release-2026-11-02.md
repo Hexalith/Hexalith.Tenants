@@ -139,6 +139,8 @@ Edge-case reviewer returned no findings. Verification-gap reviewer returned no f
 
 ## File List
 
+- `references/Hexalith.McpCli`
+
 - `references/Hexalith.EventStore`
 
 - `references/Hexalith.Builds`
@@ -164,6 +166,21 @@ The first exact push-range gitlink check exposed missing declarations in this ne
 Final synchronization also records EventStore `853721d77b9f15fc2963ef0b9a019d4a2cf22f1e`, already pushed by concurrent upstream work. It adds canonical platform scope acceptance to the four API request validators and their focused regressions. This inspected upstream commit changes no library source edge used by the final Tenants unit suites. EventStore run41488610131 passed on its preceding main; the new commit has its own pending CI. FrontComposer retry remains green. No unfinished upstream edits were staged by this task.
 
 Story 2.14 subsequently advanced the pinned EventStore source to `653124dced81830e932edb7738a78ee61104d55a` for authorized platform-scope retained-history reads. The final EventStore table row records that later pointer without changing the earlier synchronization receipt.
+
+### All-branch merge integration
+
+The user's subsequent instruction to merge all branches authorizes the outstanding branch integrations. McpCli package-vector receipt branch is merged at `dea5ff0a17bd5e2a7211e3b44fb4b8bae118ad74`; its Abstractions test build and all 20 tests passed. Tenants Dapr readback branch is merged at `861060aa9b5b8ec3dae425b669c178cb6526d1dd`, retaining the concurrent bootstrap-scope fix. No root submodule's nested submodules were initialized. EventStore 4.0.0 and McpCli.Abstractions 2.0.0 were downloaded successfully from nuget.org; no candidate packages were published by this task.
+
+This final integration snapshot supersedes earlier binding target rows above. Historical synchronization receipts retain their original identities.
+
+| Path | Baseline | Target |
+| --- | --- | --- |
+| `references/Hexalith.Builds` | `728945314c3b7adf300df1964d5668047cfc338a` | `3b192bafd3093e83d789e533dffc39d24e3524a7` |
+| `references/Hexalith.EventStore` | `ff5a38f5b80d66bafbac9ddc2388510534fb0ddd` | `653124dced81830e932edb7738a78ee61104d55a` |
+| `references/Hexalith.FrontComposer` | `d1236f9e5f21c0a000e1081846a2ea6308a35fd3` | `b547cd80df1dbdb73f6e3538812db38e156f304e` |
+| `references/Hexalith.Memories` | `9c0fac6ec0227b318662dcb9bb3217c5de995c66` | `d9d61d8a95c7dc8827acf68ae723859711703729` |
+| `references/Hexalith.McpCli` | `06cfdf25a352034b36041e9ed44da514b167ca5a` | `dea5ff0a17bd5e2a7211e3b44fb4b8bae118ad74` |
+| `references/Hexalith.Platform` | `52e361d4a41b681b06f5e885f9f9857d8b08f5b2` | `c869f1c7b6b86bd693911ad10e328235ea697da8` |
 
 ## Verification
 
