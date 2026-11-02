@@ -105,6 +105,8 @@ public sealed class DurableTenantProjectionStoreTests {
 
     [Theory]
     [InlineData("json", 2)]
+    [InlineData("json", 0)]
+    [InlineData("json", -1)]
     [InlineData("binary", 1)]
     public async Task UnsupportedTenantHistoryMetadataKeepsTheRecordGapped(string format, int version) {
         var harness = new DurableTenantProjectionHarness();
@@ -151,7 +153,7 @@ public sealed class DurableTenantProjectionStoreTests {
         harness.Store.SeedRaw(
             DurableTenantProjectionHarness.StoreName,
             DurableTenantProjectionStore.KeyFor(Tenant),
-            new CheckpointedProjectionRecord<TenantLocalState> { Health = CheckpointedProjectionHealth.Gapped, LastContiguousSequence = 2 });
+            new CheckpointedProjectionRecord<TenantLocalState> { SchemaVersion = 1, Health = CheckpointedProjectionHealth.Gapped, LastContiguousSequence = 2 });
         using ServiceProvider host = harness.CreateHost();
 
         TenantProjectionSnapshot snapshot = (await host.GetRequiredService<ITenantProjectionSnapshotStore>().GetSnapshotAsync(Tenant, TestContext.Current.CancellationToken)).ShouldNotBeNull();
@@ -175,6 +177,51 @@ public sealed class DurableTenantProjectionStoreTests {
 
         snapshot.Health.ShouldBe(CheckpointedProjectionHealth.Unavailable);
         snapshot.State.ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task HealthyRecordWithNullStateCollectionReadsAsUnavailable(bool nullMembers) {
+        var harness = new DurableTenantProjectionHarness();
+        using ServiceProvider host = harness.CreateHost();
+        _ = await DurableTenantProjectionHarness.ProcessAsync(host, harness.Persist(new TenantCreated(Tenant, "Created", null, s_at), Tenant, 1));
+        CheckpointedProjectionRecord<TenantLocalState> valid = harness.Record(Tenant).ShouldNotBeNull();
+        TenantLocalState state = valid.State.ShouldNotBeNull();
+        harness.Store.SeedRaw(
+            DurableTenantProjectionHarness.StoreName,
+            DurableTenantProjectionStore.KeyFor(Tenant),
+            valid with { State = new TenantLocalState {
+                TenantId = state.TenantId,
+                LastEvent = state.LastEvent,
+                Members = nullMembers ? null! : state.Members,
+                Configuration = nullMembers ? state.Configuration : null!,
+            } });
+
+        TenantProjectionSnapshot snapshot = (await host.GetRequiredService<ITenantProjectionSnapshotStore>()
+            .GetSnapshotAsync(Tenant, TestContext.Current.CancellationToken)).ShouldNotBeNull();
+
+        snapshot.Health.ShouldBe(CheckpointedProjectionHealth.Unavailable);
+        snapshot.State.ShouldBeNull();
+        (await host.GetRequiredService<ITenantProjectionStore>().GetAsync(Tenant, TestContext.Current.CancellationToken)).ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task HealthyRecordWithMismatchedStateSequenceReadsAsUnavailable() {
+        var harness = new DurableTenantProjectionHarness();
+        using ServiceProvider host = harness.CreateHost();
+        _ = await DurableTenantProjectionHarness.ProcessAsync(host, harness.Persist(new TenantCreated(Tenant, "Created", null, s_at), Tenant, 1));
+        CheckpointedProjectionRecord<TenantLocalState> valid = harness.Record(Tenant).ShouldNotBeNull();
+        TenantLocalState state = valid.State.ShouldNotBeNull().Clone();
+        state.LastEvent = state.LastEvent.ShouldNotBeNull() with { LastSequenceNumber = 2 };
+        harness.Store.SeedRaw(DurableTenantProjectionHarness.StoreName, DurableTenantProjectionStore.KeyFor(Tenant), valid with { State = state });
+
+        TenantProjectionSnapshot snapshot = (await host.GetRequiredService<ITenantProjectionSnapshotStore>()
+            .GetSnapshotAsync(Tenant, TestContext.Current.CancellationToken)).ShouldNotBeNull();
+
+        snapshot.Health.ShouldBe(CheckpointedProjectionHealth.Unavailable);
+        snapshot.State.ShouldBeNull();
+        (await host.GetRequiredService<ITenantProjectionStore>().GetAsync(Tenant, TestContext.Current.CancellationToken)).ShouldBeNull();
     }
 
     [Fact]
