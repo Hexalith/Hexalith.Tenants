@@ -1,6 +1,14 @@
 # Audit stream storage and rollout
 
-B6 separates the tenant aggregate named `system` from the global-administrator singleton. `system` remains a valid literal tenant identifier. The durable EventStore histories remain the source of truth; these keys hold disposable read models, not replacement event histories.
+B6 separated the historical tenant aggregate named `system` from the global-administrator singleton. AD-27 now reserves `system` at every public tenant boundary. Historical evidence remains readable through an authorized cataloged platform scope; any active managed tenant literally named `system` requires owner reconciliation before rollout. The durable EventStore histories remain the source of truth; these keys hold disposable read models, not replacement event histories.
+
+## Canonical scope transition and NFR12
+
+This source transition is SemVer-major: public `system`, generated fixed-system requests, implicit claim-selected tenants, and grant-enumerated status reads are no longer accepted. Single-tenant requests identify one canonical route tenant. Cross-tenant and global reads identify an explicit cataloged platform scope and require their exact human read permission. Cataloged platform commands retain their declared namespace and operation permission. A trusted adapter maps an authorized scope to existing writable `system` storage after validation; it does not rename actors, event keys, topics, projection keys, or audit owners.
+
+The 2026-11-02 inventory of one `jpiquot@local` EventStore/Tenants installation found two tenant histories, no `system:tenants:system` state key, no `projection:tenants:system` or `audit-tenants:system` read model, and no `system` tenant-index entry. This says nothing about other destinations. Inventory each destination and reconcile any active managed `system` with its owner before deploying. This source change does not authorize deployment, replay, or data mutation.
+
+The B6 compatibility descriptions below document historical storage and reader behavior. Any public examples using `system` describe the pre-AD-27 API and must not be used as a current request scope.
 
 | Owner | Audit key after B6 | Legacy read source |
 | --- | --- | --- |
@@ -32,7 +40,7 @@ The current EventStore query failure taxonomy maps this domain refusal to saniti
 ## Rollout prerequisites
 
 1. Inventory every replica, projection subscriber and operator replay route. Stop old projection writers and pause replay while deploying B6 readers and writers together. Drain in-flight old writes before allowing B6 projections. Mixed old/new writers can still damage `audit:system`; the compatibility reader cannot make that deployment safe.
-2. Retain a verified backup of the durable histories and existing read-model records, including raw `audit:system` contents and metadata. Record each source identity and high-water mark. Keep legacy evidence immutable throughout the transition. Do not rename tenants or reserve `system`.
+2. Retain a verified backup of the durable histories and existing read-model records, including raw `audit:system` contents and metadata. Record each source identity and high-water mark. Keep legacy evidence immutable throughout the transition. Do not rename historical storage identities; reserve `system` at the public request boundary.
 3. Inspect legacy ownership against the exact event-type allowlists in source. If evidence is ambiguous or conflicting, keep affected audit/correction reads unavailable. An operator must establish ownership from the authoritative histories under a separately approved reconciliation plan. No automatic inference or migration is provided here.
 4. Inventory each supported replay path, including replicas and operator-triggered requests. The singleton authority now uses the shared optimistic-concurrency reload/selection policy: a persisted newer or equal ordered version wins over an older, equal or unversioned replay, including a competing commit. Populated unversioned or invalid-version legacy authority is refused before audit/authority writes pending a coordinated rebuild; a merely contiguous prefix cannot establish its freshness. Deploy guarded writers together and retain writer fencing for schema changes and old-writer retirement. This guard does not establish production provider guarantees or revocation freshness.
 5. Confirm complete authoritative histories for both `system:tenants:system` and the global singleton, independently. A singleton replay alone cannot rebuild tenant evidence lost under the old shared key. Include stable event identifiers, actors and aggregate-local sequences; never substitute wall time or cross-aggregate ordering.

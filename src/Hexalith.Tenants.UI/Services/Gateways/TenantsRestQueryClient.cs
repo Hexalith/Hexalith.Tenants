@@ -7,6 +7,8 @@ using System.Text.Json.Serialization;
 
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Queries;
+using Hexalith.EventStore.Contracts.Identity;
+using Hexalith.Tenants.Contracts.Identity;
 using Hexalith.Tenants.Contracts.Queries;
 
 namespace Hexalith.Tenants.UI.Services.Gateways;
@@ -52,7 +54,8 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
             BuildUri("/api/tenants", ("cursor", query.Cursor), ("pageSize", query.PageSize)),
             eTag,
             cancellationToken,
-            maximumSummaryCount: TenantQueryPagePolicy.NormalizePageSize(query.PageSize));
+            maximumSummaryCount: TenantQueryPagePolicy.NormalizePageSize(query.PageSize),
+            platformScope: TenantPlatformScopes.Tenants);
     }
 
     /// <inheritdoc />
@@ -63,7 +66,8 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
     {
         ArgumentNullException.ThrowIfNull(query);
         ArgumentException.ThrowIfNullOrWhiteSpace(query.TenantId);
-        if (!TryEscapeRouteValue(query.TenantId, out string? tenantId))
+        if (!TenantCanonicalizer.TryCanonicalize(query.TenantId, out string canonicalTenant)
+            || !TryEscapeRouteValue(canonicalTenant, out string? tenantId))
         {
             return UnsupportedRouteIdentifier<TenantDetail>();
         }
@@ -82,7 +86,8 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
     {
         ArgumentNullException.ThrowIfNull(query);
         ArgumentException.ThrowIfNullOrWhiteSpace(query.TenantId);
-        if (!TryEscapeRouteValue(query.TenantId, out string? tenantId))
+        if (!TenantCanonicalizer.TryCanonicalize(query.TenantId, out string canonicalTenant)
+            || !TryEscapeRouteValue(canonicalTenant, out string? tenantId))
         {
             return UnsupportedRouteIdentifier<PaginatedResult<TenantMember>>();
         }
@@ -115,7 +120,8 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
                 ("cursor", query.Cursor),
                 ("pageSize", query.PageSize)),
             eTag,
-            cancellationToken);
+            cancellationToken,
+            platformScope: TenantPlatformScopes.Tenants);
     }
 
     /// <inheritdoc />
@@ -126,7 +132,22 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
     {
         ArgumentNullException.ThrowIfNull(query);
         ArgumentException.ThrowIfNullOrWhiteSpace(query.TenantId);
-        if (!TryEscapeRouteValue(query.TenantId, out string? tenantId))
+        if (query.TenantId == "system" && query.Stream == "global-administrators")
+        {
+            return await SendAsync<PaginatedResult<TenantAuditEntry>>(
+                BuildUri(
+                    "/api/global-administrators/audit",
+                    ("from", query.From?.ToString("O", CultureInfo.InvariantCulture)),
+                    ("to", query.To?.ToString("O", CultureInfo.InvariantCulture)),
+                    ("category", query.Category?.ToString()),
+                    ("cursor", query.Cursor),
+                    ("pageSize", query.PageSize)),
+                eTag,
+                cancellationToken,
+                platformScope: TenantPlatformScopes.Tenants).ConfigureAwait(false);
+        }
+        if (!TenantCanonicalizer.TryCanonicalize(query.TenantId, out string canonicalTenant)
+            || !TryEscapeRouteValue(canonicalTenant, out string? tenantId))
         {
             return await UnsupportedRouteIdentifier<PaginatedResult<TenantAuditEntry>>().ConfigureAwait(false);
         }
@@ -147,7 +168,7 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
             && !response.IsNotModified
             && response.Payload?.Items.Any(entry => !string.Equals(
                 entry.TenantId,
-                query.TenantId,
+                canonicalTenant,
                 StringComparison.Ordinal)) == true)
         {
             return Failure<PaginatedResult<TenantAuditEntry>>(
@@ -168,14 +189,16 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
         return SendAsync<PaginatedResult<GlobalAdministratorSummary>>(
             BuildUri("/api/global-administrators", ("cursor", query.Cursor), ("pageSize", query.PageSize)),
             eTag,
-            cancellationToken);
+            cancellationToken,
+            platformScope: TenantPlatformScopes.GlobalAdministrators);
     }
 
     private async Task<TenantsRestQueryResponse<TPayload>> SendAsync<TPayload>(
         string path,
         string? eTag,
         CancellationToken cancellationToken,
-        int? maximumSummaryCount = null)
+        int? maximumSummaryCount = null,
+        string? platformScope = null)
     {
         using CancellationTokenSource transportDeadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         if (httpClient.Timeout != Timeout.InfiniteTimeSpan)
@@ -185,6 +208,10 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
 
         CancellationToken transportToken = transportDeadline.Token;
         using var request = new HttpRequestMessage(HttpMethod.Get, CreateRequestUri(path));
+        if (platformScope is not null)
+        {
+            request.Headers.Add("X-Hexalith-Scope", platformScope);
+        }
         EntityTagHeaderValue? validator = NormalizeValidator(eTag);
         if (validator is not null)
         {

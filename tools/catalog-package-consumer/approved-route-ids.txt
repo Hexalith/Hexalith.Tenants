@@ -9,6 +9,7 @@ tenants-create-tenant
 tenants-disable-tenant
 tenants-enable-tenant
 tenants-get-tenant
+tenants-get-global-administrator-audit
 tenants-get-tenant-audit
 tenants-get-tenant-users
 tenants-get-user-tenants

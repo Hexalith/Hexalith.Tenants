@@ -232,13 +232,18 @@ if (memoriesService is not null) {
         .WithEnvironment("Memories__BaseAddress", memoriesService.GetEndpoint("http"));
 }
 
-// Add the Sample consuming service (a pub/sub subscriber) via the platform domain-module extension.
-// It subscribes tenants.events, so it shares the pub/sub component (no isolated resources path).
-IResourceBuilder<ProjectResource> sample = builder.AddProject<HexalithTenantsSample>("sample")
-    .AddEventStoreDomainModule(eventStoreResources, "sample", accessControlConfigPath,
-        daprPlacementHostAddress: daprPlacementHostAddress,
-        daprSchedulerHostAddress: daprSchedulerHostAddress)
-    .WithGeneratedEventStoreAppChannelToken();
+// The private source catalog profile binds only its four required owners.
+// Keep the optional demo consumer out of that qualification topology.
+IResourceBuilder<ProjectResource>? sample = null;
+if (!string.Equals(builder.Configuration["TENANTS_SOURCE_CATALOG_PROFILE"], "true", StringComparison.OrdinalIgnoreCase))
+{
+    // Sample subscribes to tenants.events and shares the pub/sub component.
+    sample = builder.AddProject<HexalithTenantsSample>("sample")
+        .AddEventStoreDomainModule(eventStoreResources, "sample", accessControlConfigPath,
+            daprPlacementHostAddress: daprPlacementHostAddress,
+            daprSchedulerHostAddress: daprSchedulerHostAddress)
+        .WithGeneratedEventStoreAppChannelToken();
+}
 
 // Wire local security to EventStore, Tenants, Admin.Server, Admin.UI, Tenants.UI, and Sample if enabled.
 if (security is not null) {
@@ -299,7 +304,7 @@ if (security is not null) {
     // to EventStore; this mirrors the Sample external API host.
     _ = tenantsApi.WithEventStoreClientCredentials(security);
 
-    _ = sample.WithSecurityDependency(security);
+    if (sample is not null) _ = sample.WithSecurityDependency(security);
 }
 else {
     _ = adminUI.WithEnvironment("EventStore__AdminServer__SwaggerUrl", ReferenceExpression.Create($"{adminServerHttps}/swagger/index.html"));
@@ -326,7 +331,7 @@ else {
         .WithEnvironment("EventStore__Authentication__Issuer", "hexalith-dev")
         .WithEnvironment("EventStore__Authentication__Audience", HexalithEventStoreSecurityOptions.DefaultAudience)
         .WithEnvironment("EventStore__Authentication__SigningKey", signingKey);
-    ConfigureLocalSymmetricValidation(sample, signingKey);
+    if (sample is not null) ConfigureLocalSymmetricValidation(sample, signingKey);
 }
 
 // The connected sidecars share authenticated peer identity and the actor control plane locally.

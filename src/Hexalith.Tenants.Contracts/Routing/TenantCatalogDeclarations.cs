@@ -45,7 +45,7 @@ public static class TenantCatalogDeclarations
             {
                 "get-tenant" => typeof(TenantDetail),
                 "get-tenant-users" => typeof(PaginatedResult<TenantMember>),
-                "get-tenant-audit" => typeof(PaginatedResult<TenantAuditEntry>),
+                "get-tenant-audit" or "get-global-administrator-audit" => typeof(PaginatedResult<TenantAuditEntry>),
                 "list-tenants" => typeof(PaginatedResult<TenantSummary>),
                 "get-user-tenants" => typeof(PaginatedResult<UserTenantMembership>),
                 "get-global-administrators" => typeof(PaginatedResult<GlobalAdministratorSummary>),
@@ -81,9 +81,9 @@ public static class TenantCatalogDeclarations
         Command<SetGlobalAdministrator>("set", true, [new("user-id", "string"), new("acting-subject", "string")]),
         Command<RemoveGlobalAdministrator>("remove", true, [new("user-id", "string"), new("acting-subject", "string")])];
 
-    /// <summary>Gets all six public queries and both internal computed owner-authority queries.</summary>
+    /// <summary>Gets all seven public queries and both internal computed owner-authority queries.</summary>
     public static IReadOnlyList<RouteContractDeclaration> Queries { get; } = [
-        Query<GetTenantQuery>(), Query<GetTenantUsersQuery>(), Query<GetTenantAuditQuery>(),
+        Query<GetTenantQuery>(), Query<GetTenantUsersQuery>(), Query<GetTenantAuditQuery>(), Query<GetGlobalAdministratorAuditQuery>(),
         Query<ListTenantsQuery>(), Query<GetUserTenantsQuery>(), Query<GetGlobalAdministratorsQuery>(),
         Computed<ResolveTenantOwnerAuthority>("resolve-tenant-owner-authority", ResolveTenantOwnerAuthority.QueryType),
         Computed<ResolveTenantReadAuthority>("resolve-tenant-read-authority", ResolveTenantReadAuthority.QueryType)];
@@ -108,7 +108,8 @@ public static class TenantCatalogDeclarations
     }
 
     private static RouteContractDeclaration Query<T>() where T : IQueryContract => new(T.Domain + "-" + T.QueryType, "query", T.Domain,
-        T.QueryType, T.ProjectionType, "v1", null, "workload", EventStoreOperationIdentifiers.DomainServiceQuery, null, [],
+        T.QueryType, T.ProjectionType, "v1", null, "workload", EventStoreOperationIdentifiers.DomainServiceQuery,
+        T.QueryType is "get-tenant" or "get-tenant-users" or "get-tenant-audit" ? null : new("platform:" + T.Domain, T.Domain + ":read"), [],
         new(typeof(T).FullName!, "exact", [T.QueryType], "domain-service", "projection", []));
 
     private static RouteContractDeclaration Computed<T>(string id, string wire) => new("tenants-" + id, "query", "tenants",

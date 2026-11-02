@@ -44,12 +44,12 @@ public sealed class TenantBootstrapBoundCommandTests
     [Theory]
     [InlineData("valid")]
     [InlineData("web-payload")]
-    [InlineData("selected-target")]
-    [InlineData("selected-caller")]
     [InlineData("infinite-timeout")]
     [InlineData("loopback")]
     [InlineData("loopback-web")]
     [InlineData("cancel-before-buffer")]
+    [InlineData("selected-target")]
+    [InlineData("selected-caller")]
 #if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
     [InlineData("finite-catalog-ready")]
     [InlineData("infinite-catalog-ready")]
@@ -57,13 +57,13 @@ public sealed class TenantBootstrapBoundCommandTests
     [InlineData("infinite-catalog-cancel")]
     [InlineData("infinite-catalog-deadline")]
 #endif
-
     [InlineData("signature")]
     [InlineData("issuer")]
     [InlineData("audience")]
     [InlineData("expired")]
     [InlineData("subject")]
     [InlineData("not-admin")]
+    [InlineData("missing-permission")]
     [InlineData("workload")]
     [InlineData("payload")]
     [InlineData("missing-key")]
@@ -74,7 +74,6 @@ public sealed class TenantBootstrapBoundCommandTests
     {
         ArgumentNullException.ThrowIfNull(scenario);
         using var callerCancellation = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
-
         string key = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
         using RSA proofKey = RSA.Create(2048);
         var settings = new Dictionary<string, string?>
@@ -140,20 +139,20 @@ public sealed class TenantBootstrapBoundCommandTests
             services.AddSingleton(authority);
         }
 #endif
-
         await using var provider = services.BuildServiceProvider();
         await using var scope = provider.CreateAsyncScope();
         using DaprClient dapr = new DaprClientBuilder().UseHttpEndpoint("http://127.0.0.1:3500").Build();
         string subject = scenario == "subject" ? "foreign-administrator" : "bootstrap-administrator";
         List<Claim> claims = [new("sub", subject)];
         if (scenario != "not-admin") claims.Add(new("global_admin", "true"));
+        if (scenario != "missing-permission") claims.Add(new("eventstore:permission", "global-administrators:bootstrap"));
         if (scenario == "workload") claims.Add(new(EventStoreWorkloadAuthenticationDefaults.WorkloadClaimType, "tenants"));
         var jwt = new JwtSecurityToken(scenario == "issuer" ? "foreign" : "bootstrap-origin",
             scenario == "audience" ? "foreign" : "bootstrap-reader", claims,
             notBefore: DateTime.UtcNow.AddMinutes(-10), expires: scenario == "expired" ? DateTime.UtcNow.AddMinutes(-5) : DateTime.UtcNow.AddMinutes(2),
             signingCredentials: new(new SymmetricSecurityKey(Encoding.UTF8.GetBytes(scenario == "signature" ? Convert.ToHexString(RandomNumberGenerator.GetBytes(32)) : key)), SecurityAlgorithms.HmacSha256));
         string bearer = new JwtSecurityTokenHandler().WriteToken(jwt);
-        var command = new SubmitCommandRequest("01ARZ3NDEKTSV4RRFFQ69G5FAV", TenantIdentity.DefaultTenantId,
+        var command = new SubmitCommandRequest("01ARZ3NDEKTSV4RRFFQ69G5FAV", TenantPlatformScopes.GlobalAdministrators,
             TenantIdentity.GlobalAdministratorsDomain, TenantIdentity.GlobalAdministratorsAggregateId, nameof(BootstrapGlobalAdmin),
             JsonSerializer.SerializeToElement(new BootstrapGlobalAdmin(scenario == "payload" ? "foreign" : "bootstrap-administrator"), scenario is "web-payload" or "loopback-web" ? JsonSerializerOptions.Web : JsonSerializerOptions.Default), "01ARZ3NDEKTSV4RRFFQ69G5FAW");
         TimeSpan readinessTimeout = scenario.StartsWith("infinite", StringComparison.Ordinal)
@@ -204,10 +203,11 @@ public sealed class TenantBootstrapBoundCommandTests
 #endif
         using var request = await creation;
         if (scenario is not ("valid" or "web-payload" or "infinite-timeout" or "finite-catalog-ready" or "infinite-catalog-ready" or "loopback" or "loopback-web" or "selected-target" or "selected-caller")) { request.ShouldBeNull(); return; }
-
         request.ShouldNotBeNull(); request.RequestUri!.AbsolutePath.ShouldEndWith("/api/v1/commands/bound/workload");
         request.RequestUri.AbsolutePath.ShouldContain("/invoke/" + (scenario == "selected-target" ? "eventstore-isolated" : "eventstore") + "/method/");
-        request.Headers.Authorization.ShouldBeNull();
+        request.Headers.Authorization!.Scheme.ShouldBe("Bearer");
+        request.Headers.Authorization.Parameter.ShouldBe(bearer);
+        request.Headers.GetValues("X-Hexalith-Scope").ShouldHaveSingleItem().ShouldBe(TenantPlatformScopes.GlobalAdministrators);
         HttpContent content = request.Content.ShouldNotBeNull();
         // Read length before ANY target-content read: a read can itself buffer JsonContent
         // and would hide the non-replayable request stream this regression guards.
@@ -230,7 +230,6 @@ public sealed class TenantBootstrapBoundCommandTests
         actualBytes.ShouldBe(expectedBytes);
         (await content.ReadAsByteArrayAsync(TestContext.Current.CancellationToken)).ShouldBe(actualBytes);
         var bound = (await content.ReadFromJsonAsync<BoundWorkloadCommandRequest>(TestContext.Current.CancellationToken)).ShouldNotBeNull();
-
         bound.PrincipalId.ShouldBe("bootstrap-administrator"); bound.Command.MessageId.ShouldBe(command.MessageId);
         string proof = request.Headers.GetValues(BoundWorkloadCommandProof.HeaderName).ShouldHaveSingleItem();
         string publicKey = Convert.ToBase64String(proofKey.ExportSubjectPublicKeyInfo());

@@ -10,6 +10,7 @@ namespace Hexalith.Tenants.Contracts.Commands;
 [RestRoute(RestVerb.Put, "{tenantId}", ApiScope = "tenants")]
 [HexalithCommand(
     "Replace the display name and description of an existing active tenant. Allowed for a global administrator or a tenant member with the TenantOwner or TenantContributor role. Unknown or disabled tenants are rejected.",
+    PlatformScope = TenantPlatformScopes.Tenants,
     Example = """{"TenantId":"acme","Name":"Acme Corporation EMEA","Description":"European production workspace"}""")]
 public record UpdateTenant(
     [property: HexalithIdentifier]

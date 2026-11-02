@@ -3,7 +3,9 @@ using System.Net.Http.Json;
 using Hexalith.EventStore.Contracts.Streams;
 using Hexalith.EventStore.Client.Gateway;
 using Hexalith.EventStore.ServiceDefaults.Authentication;
+#if HEXALITH_TECHNICAL_HTTP_CATALOG_BINDING
 using Hexalith.EventStore.ServiceDefaults.Routing;
+#endif
 using Shouldly;
 
 namespace Hexalith.Tenants.Server.Tests.Authorization;
@@ -18,12 +20,17 @@ internal sealed class OwnerSourceTargetHttpHandler(string? expected, string call
         Calls++;
         if (runtimeAddress is not null)
             request.RequestUri.ShouldBe(new Uri(runtimeAddress, "api/v1/streams/read/workload"));
+#if HEXALITH_TECHNICAL_HTTP_CATALOG_BINDING
         if (rootDigest is not null)
         {
             request.Headers.GetValues(RouteCatalogInvocationHandler.RootHeader).ShouldHaveSingleItem().ShouldBe(rootDigest);
             request.Headers.GetValues(RouteCatalogInvocationHandler.BindingHeader).ShouldHaveSingleItem().ShouldBe(bindingDigest);
             request.Headers.GetValues(RouteCatalogInvocationHandler.EpochHeader).ShouldHaveSingleItem().ShouldBe("1");
         }
+#else
+        rootDigest.ShouldBeNull("This fixture requires v2 catalog support before accepting expected routing headers.");
+        bindingDigest.ShouldBeNull("This fixture requires v2 catalog support before accepting expected routing headers.");
+#endif
         request.Headers.GetValues("dapr-app-id").ShouldHaveSingleItem().ShouldBe(expected);
         request.Headers.GetValues(EventStoreWorkloadAuthenticationDefaults.AssertionHeaderName).ShouldHaveSingleItem().ShouldBe("owner-assertion");
         string proof = request.Headers.GetValues("X-Hexalith-Bound-Stream-Read-Proof").ShouldHaveSingleItem();

@@ -13,8 +13,9 @@ using Hexalith.Tenants.UI.Services.Gateways;
 namespace Hexalith.Tenants.IntegrationTests.Fixtures;
 
 /// <summary>
-/// Shared xUnit fixture that boots the full Tenants Aspire AppHost topology
-/// (CommandApi + Sample with DAPR sidecars) and creates HTTP clients for smoke tests.
+/// Shared xUnit fixture that boots the Tenants Aspire AppHost topology
+/// and creates HTTP clients for smoke tests. The private source catalog profile
+/// omits the optional Sample service.
 /// </summary>
 /// <remarks>
 /// All DAPR/Aspire plumbing — placement/scheduler endpoint resolution, prerequisite probing, build/
@@ -194,6 +195,7 @@ public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith
             cancellationToken.ThrowIfCancellationRequested();
             using var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/commands") { Content = JsonContent.Create(command) };
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            request.Headers.Add("X-Hexalith-Scope", command.Tenant);
             HttpResponseMessage response;
             try
             {
@@ -227,7 +229,7 @@ public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith
                         return (null, "bootstrap-command-acceptance-invalid");
 
                     Hexalith.EventStore.Models.CommandStatusResponse status = await AspireTopologyTests.WaitForTerminalStatusAsync(
-                        commandApi, accepted.CorrelationId, token, cancellationToken);
+                        commandApi, accepted.CorrelationId, token, "platform:global-administrators", cancellationToken);
                     if (status.CorrelationId != accepted.CorrelationId
                         || status.MessageId is not null && status.MessageId != command.MessageId
                         || status.AggregateId != command.AggregateId
@@ -348,7 +350,9 @@ public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith
         new("eventstore-dapr-cli", "http", TenantsApiClientTimeout, TenantsApiHealthTimeout, WaitForAliveness: false, TenantsApiHealthTimeout),
         new("tenants-dapr-cli", "http", TenantsApiClientTimeout, TenantsApiHealthTimeout, WaitForAliveness: false, TenantsApiHealthTimeout),
         new("tenants-ui-dapr-cli", "http", TenantsApiClientTimeout, TenantsApiHealthTimeout, WaitForAliveness: false, TenantsApiHealthTimeout),
-        new("sample", "http", SampleClientTimeout, SampleHealthTimeout, WaitForAliveness: true, SampleHealthTimeout),
+        .. IsSourceCatalogProfile
+            ? []
+            : new AspireResource[] { new("sample", "http", SampleClientTimeout, SampleHealthTimeout, WaitForAliveness: true, SampleHealthTimeout) },
 #if HEXALITH_DEVELOPMENT_CATALOG_COHORT
         // The source qualification also drives the real Admin UI's existing SSR/client transport.
         .. IsSourceCatalogProfile

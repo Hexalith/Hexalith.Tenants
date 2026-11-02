@@ -14,9 +14,10 @@ Gateway sidecar coordinates and owner credential.
 
 Tenants.UI and Admin.UI retain their authenticated proxy transports outside the
 authority cohort. The six Tenants REST reads use Dapr; Tenants.UI command and
-status calls retain direct Gateway HTTPS. The Tenants `sample` remains its
-existing pub/sub consumer and supplies no SDK Counter operations. Optional
-Memories REST traffic is not qualified by this focused profile; an undeclared
+status calls retain direct Gateway HTTPS. The optional `sample` pub/sub consumer
+is omitted from this source qualification topology; ordinary AppHost runs still
+include it. Optional Memories REST traffic is not qualified by this focused
+profile; an undeclared
 workload path remains refused rather than receiving an inferred grant.
 
 ## Retained backend and key custody

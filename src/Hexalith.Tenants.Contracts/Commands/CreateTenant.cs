@@ -10,6 +10,7 @@ namespace Hexalith.Tenants.Contracts.Commands;
 [RestRoute(RestVerb.Post, "{tenantId}", ApiScope = "tenants")]
 [HexalithCommand(
     "Create a new tenant with an identifier, a display name and a description (null for none). Only a global administrator can create tenants. The tenant starts active with no members and no configuration; an identifier that already exists is rejected.",
+    PlatformScope = TenantPlatformScopes.Tenants,
     Example = """{"TenantId":"acme","Name":"Acme Corporation","Description":"Production workspace for Acme"}""")]
 public record CreateTenant(
     [property: HexalithIdentifier]

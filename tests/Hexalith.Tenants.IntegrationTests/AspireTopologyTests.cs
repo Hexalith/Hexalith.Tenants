@@ -125,8 +125,8 @@ public class AspireTopologyTests : IDisposable {
         _fixture.SkipIfUnavailable();
         await WaitForTenantsApiAliveAsync();
 
-        string token = CreateDemoJwt();
         string tenantId = $"provenance-{Guid.NewGuid():N}";
+        string token = CreateDemoJwt(tenantId);
         string tenantName = $"Provenance {Guid.NewGuid():N}";
         const string tenantDescription = "Created by the Story 4.7 persisted-route proof";
         using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(5));
@@ -174,7 +174,7 @@ public class AspireTopologyTests : IDisposable {
             + createStatus.CommittedEventSequence.Value.ToString(CultureInfo.InvariantCulture));
 
         var eventStoreQuery = new SubmitQueryRequest(
-            "system",
+            tenantId,
             GetTenantQuery.Domain,
             tenantId,
             GetTenantQuery.QueryType,
@@ -323,8 +323,8 @@ public class AspireTopologyTests : IDisposable {
         _fixture.SkipIfUnavailable();
         _fixture.ProjectionWorkersEnabledAtStartup.ShouldBeTrue("background event delivery must remain qualified with workers enabled");
 
-        string token = CreateDemoJwt();
         string tenantId = $"aha-{Guid.NewGuid():N}";
+        string token = CreateDemoJwt(tenantId);
         string userId = $"jane-{Guid.NewGuid():N}";
         using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(3));
         using var statusClient = new HttpClient {
@@ -482,7 +482,7 @@ public class AspireTopologyTests : IDisposable {
 
         return new Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest(
             UniqueIdHelper.GenerateSortableUniqueStringId(),
-            "system",
+            "platform:" + domain,
             domain,
             aggregateId,
             commandType,
@@ -500,6 +500,7 @@ public class AspireTopologyTests : IDisposable {
             Content = JsonContent.Create(request, options: WebJsonOptions),
         };
         message.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        message.Headers.Add("X-Hexalith-Scope", request.Tenant);
 
         using HttpResponseMessage response = await client.SendAsync(message, cancellationToken);
         if (allowAlreadyBootstrappedConflict && response.StatusCode == HttpStatusCode.Conflict) {
@@ -525,7 +526,7 @@ public class AspireTopologyTests : IDisposable {
         _ = accepted.ShouldNotBeNull();
         accepted.CorrelationId.ShouldNotBeNullOrWhiteSpace();
 
-        CommandStatusResponse status = await WaitForTerminalStatusAsync(client, accepted.CorrelationId, token, cancellationToken);
+        CommandStatusResponse status = await WaitForTerminalStatusAsync(client, accepted.CorrelationId, token, request.Tenant, cancellationToken);
         status.CorrelationId.ShouldBe(accepted.CorrelationId);
         return status;
     }
@@ -617,6 +618,7 @@ public class AspireTopologyTests : IDisposable {
         HttpClient client,
         string correlationId,
         string token,
+        string scope,
         CancellationToken cancellationToken) {
         DateTimeOffset deadline = DateTimeOffset.UtcNow.Add(CommandStatusTimeout);
         CommandStatusResponse? lastStatus = null;
@@ -624,6 +626,7 @@ public class AspireTopologyTests : IDisposable {
         while (DateTimeOffset.UtcNow <= deadline) {
             using var message = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/commands/status/{correlationId}");
             message.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            message.Headers.Add("X-Hexalith-Scope", scope);
 
             using HttpResponseMessage response = await client.SendAsync(message, cancellationToken);
             if (response.StatusCode == HttpStatusCode.OK) {
@@ -693,7 +696,7 @@ public class AspireTopologyTests : IDisposable {
             eventStoreHttpClient,
             Options.Create(new EventStoreGatewayClientOptions()));
         var auditQuery = new SubmitQueryRequest(
-            "system",
+            tenantId,
             GetTenantAuditQuery.Domain,
             tenantId,
             GetTenantAuditQuery.QueryType,
@@ -738,7 +741,7 @@ public class AspireTopologyTests : IDisposable {
             NullLogger<MemoriesClient>.Instance);
         var gateway = new TenantQueryGateway(
             new AuditRestQueryClientAdapter(gatewayClient),
-            new FixedUserContextAccessor("system", BootstrapGlobalAdminUserId),
+            new FixedUserContextAccessor(tenantId, BootstrapGlobalAdminUserId),
             memoriesClient,
             new TenantSearchCursorCodec(new EphemeralDataProtectionProvider()));
         return await gateway.GetTenantAuditAsync(
@@ -758,7 +761,7 @@ public class AspireTopologyTests : IDisposable {
     }
 
     /// <summary>Creates the development caller's short-lived signed test token.</summary>
-    internal static string CreateDemoJwt() {
+    internal static string CreateDemoJwt(string? tenantId = null) {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(AspireTopologyFixture.DemoSigningKey));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
         Claim[] claims =
@@ -769,7 +772,22 @@ public class AspireTopologyTests : IDisposable {
             new("domains", "[\"global-administrators\",\"tenants\"]"),
             new("permissions", "[\"command:submit\",\"query:read\"]"),
             new("roles", "[\"GlobalAdministrator\"]"),
+            new("eventstore:permission", "tenants:read"),
+            new("eventstore:permission", "global-administrators:read"),
+            new("eventstore:permission", "global-administrators:bootstrap"),
+            new("eventstore:permission", "global-administrators:set"),
+            new("eventstore:permission", "global-administrators:remove"),
+            new("eventstore:permission", "tenants:create"),
+            new("eventstore:permission", "tenants:update"),
+            new("eventstore:permission", "tenants:disable"),
+            new("eventstore:permission", "tenants:enable"),
+            new("eventstore:permission", "tenants:add-user"),
+            new("eventstore:permission", "tenants:remove-user"),
+            new("eventstore:permission", "tenants:change-user-role"),
+            new("eventstore:permission", "tenants:set-configuration"),
+            new("eventstore:permission", "tenants:remove-configuration"),
         ];
+        if (tenantId is not null) claims = [.. claims, new("eventstore:tenant", tenantId)];
 
         var token = new JwtSecurityToken(
             issuer: JwtIssuer,
@@ -803,7 +821,7 @@ public class AspireTopologyTests : IDisposable {
             CancellationToken cancellationToken = default)
             => ConvertAsync(client.SubmitQueryAsync<PaginatedResult<TenantAuditEntry>>(
                 new SubmitQueryRequest(
-                    "system",
+                    query.TenantId,
                     GetTenantAuditQuery.Domain,
                     query.TenantId,
                     GetTenantAuditQuery.QueryType,

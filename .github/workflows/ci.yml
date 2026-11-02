@@ -16,18 +16,66 @@ permissions:
   contents: read
 
 jobs:
+  server-profile-boundaries:
+    name: Server profile boundary (${{ matrix.profile }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - profile: canonical scope 4.0.0
+            sdk-argument: ''
+            budget-minimum: 8
+            runtime-minimum: 7
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: false
+          persist-credentials: false
+      - name: Initialize declared build and linked host inputs
+        run: >-
+          git -c submodule.recurse=false submodule update --init --
+          references/Hexalith.Builds references/Hexalith.Platform
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - name: Compile the actual server test profile
+        run: >-
+          dotnet build tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj
+          --configuration Release -warnaserror -m:1 -nr:false
+          -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true
+          -p:HexalithEventStoreFromSource=false ${{ matrix.sdk-argument }}
+          -p:HexalithFrontComposerFromSource=false -p:HexalithMemoriesFromSource=false
+      - name: Require existing owner transport assertions
+        run: >-
+          dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj
+          --configuration Release --no-build --no-restore ${{ matrix.sdk-argument }}
+          --filter-class Hexalith.Tenants.Server.Tests.Authorization.TenantOwnerSourceTargetTests
+          --minimum-expected-tests 4 --fail-skips on
+      - name: Require every available readiness budget assertion
+        run: >-
+          dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj
+          --configuration Release --no-build --no-restore ${{ matrix.sdk-argument }}
+          --filter-class Hexalith.Tenants.Server.Tests.Bootstrap.TenantBootstrapReadinessBudgetTests
+          --minimum-expected-tests ${{ matrix.budget-minimum }} --fail-skips on
+      - name: Require the current v2 owner-source runtime assertions
+        if: matrix.runtime-minimum > 0
+        run: >-
+          dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj
+          --configuration Release --no-build --no-restore ${{ matrix.sdk-argument }}
+          --filter-class Hexalith.Tenants.Server.Tests.Authorization.TenantOwnerSourceRuntimeTests
+          --minimum-expected-tests ${{ matrix.runtime-minimum }} --fail-skips on
+
   published-catalog-http:
     name: Published catalog HTTP (${{ matrix.profile }})
     strategy:
       fail-fast: false
       matrix:
         include:
-          - profile: current default 3.133.0
+          - profile: canonical scope 4.0.0
             sdk-argument: ''
             owner-source-minimum: 25
-          - profile: explicit floor 3.129.0
-            sdk-argument: '-p:HexalithEventStoreVersion=3.129.0'
-            owner-source-minimum: 21
     env:
       RepositoryCommit: ${{ github.sha }}
     runs-on: ubuntu-latest
@@ -146,8 +194,6 @@ jobs:
           persist-credentials: false
       - name: Initialize root-declared submodules
         run: git -c submodule.recurse=false submodule update --init
-      - name: Select published bootstrap compatibility hosts
-        run: bash scripts/prepare-bootstrap-compatibility.sh
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           global-json-file: global.json
@@ -184,7 +230,7 @@ jobs:
         run: |
           npm ci
           npx --no-install playwright install --with-deps chromium
-      - name: Build live hosts and focused suites against published packages
+      - name: Build live hosts and focused suites against canonical-scope packages
         id: live-build
         shell: bash
         run: |
@@ -196,8 +242,8 @@ jobs:
             samples/Hexalith.Tenants.Sample/Hexalith.Tenants.Sample.csproj \
             tests/Hexalith.Tenants.AppHost.Tests/Hexalith.Tenants.AppHost.Tests.csproj \
             tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj; do
-            env -u HexalithEventStoreVersion dotnet build "$project" --configuration Release \
-              -p:HexalithEventStoreVersion="${TENANTS_BOOTSTRAP_COMPAT_SDK_VERSION:?}" \
+            dotnet build "$project" --configuration Release \
+              -p:HexalithEventStoreVersion=4.0.0 -p:HexalithMcpCliVersion=2.0.0 \
               -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true \
               -p:HexalithFrontComposerFromSource=false -p:HexalithMemoriesFromSource=false \
               -warnaserror -m:1 -nr:false
@@ -244,7 +290,7 @@ jobs:
           name: tenants-dapr-read-retry-evidence
           path: ${{ runner.temp }}/tenants-dapr-*.json
           if-no-files-found: warn
-      - name: Verify cold bootstrap, six REST reads, conditional responses and cursor recovery
+      - name: Verify cold bootstrap, six REST reads, global-owner audit, public system denial and cursor recovery
         if: ${{ !cancelled() && steps.live-build.outcome == 'success' }}
         env:
           # This is the first live fixture on a fresh runner: require a newly committed bootstrap.
@@ -361,9 +407,7 @@ jobs:
       solution: Hexalith.Tenants.slnx
       test-platform: microsoft-testing-platform
       run-consumer-validation: true
-      # The hook selects published 3.128.4 host source in topology jobs only;
-      # build-and-test and source-reference.yml retain the current source gitlink.
-      package-prepare-script: scripts/prepare-bootstrap-compatibility.sh
+      # Canonical-scope hosts use the current root-declared EventStore source.
       run-coverage-gate: true
       # Restore/build/package consumers plus the bounded recovery controls exceed the shared 15-minute default.
       build-timeout-minutes: 25

@@ -823,6 +823,33 @@ public sealed class GetTenantAuditQueryHandlerTests
             userId,
             "tenant-1"));
 
+    [Fact]
+    public async Task PlatformGlobalAuditRouteReadsOnlyRetainedGlobalOwner()
+    {
+        IReadModelStore store = CreateStore();
+        DateTimeOffset timestamp = new(2026, 5, 14, 10, 0, 0, TimeSpan.Zero);
+        var global = new TenantAuditEntry("global-event", "GlobalAdministratorSet", AuditEventCategory.Access,
+            "admin-1", timestamp, "system", new Dictionary<string, string>());
+        var tenant = new TenantAuditEntry("tenant-event", "TenantUpdated", AuditEventCategory.Administrative,
+            "admin-1", timestamp, "system", new Dictionary<string, string>());
+        store.GetAsync<TenantAuditReadModel>(TenantQueryHandlerBase.StateStoreName,
+            TenantAuditStreams.GlobalAdministratorsKey, Arg.Any<CancellationToken>())
+            .Returns(new ReadModelEntry<TenantAuditReadModel>(new TenantAuditReadModel { Entries = [global] }, "global-etag"));
+        store.GetAsync<TenantAuditReadModel>(TenantQueryHandlerBase.StateStoreName,
+            TenantAuditStreams.SystemTenantKey, Arg.Any<CancellationToken>())
+            .Returns(new ReadModelEntry<TenantAuditReadModel>(new TenantAuditReadModel { Entries = [tenant] }, "tenant-etag"));
+
+        QueryResult result = await TenantQueryTestHarness.ExecuteAsync(store, CreateCursorCodec(), new QueryEnvelope(
+            "system", GetGlobalAdministratorAuditQuery.Domain, "system", GetGlobalAdministratorAuditQuery.QueryType,
+            "{}"u8.ToArray(), "global-audit", "admin-1", "system"));
+
+        ReadEventIds(result).ShouldBe(["global-event"]);
+        _ = await store.Received(1).GetAsync<TenantAuditReadModel>(TenantQueryHandlerBase.StateStoreName,
+            TenantAuditStreams.GlobalAdministratorsKey, Arg.Any<CancellationToken>());
+        _ = await store.DidNotReceive().GetAsync<TenantAuditReadModel>(TenantQueryHandlerBase.StateStoreName,
+            TenantAuditStreams.SystemTenantKey, Arg.Any<CancellationToken>());
+    }
+
     private static async Task AssertOnlyAuthorityWasReadAsync(IReadModelStore store)
     {
         _ = await store.Received(1).GetAsync<GlobalAdministratorReadModel>(

@@ -10,6 +10,7 @@ namespace Hexalith.Tenants.Contracts.Commands;
 [RestRoute(RestVerb.Post, "{tenantId}/configuration/{key}/remove", ApiScope = "tenants")]
 [HexalithCommand(
     "Delete one configuration setting from an active tenant. Allowed for a global administrator or a TenantOwner of the tenant; removing a key the tenant does not have is rejected.",
+    PlatformScope = TenantPlatformScopes.Tenants,
     Example = """{"TenantId":"acme","Key":"billing.plan"}""")]
 public record RemoveTenantConfiguration(
     [property: HexalithIdentifier]

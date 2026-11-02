@@ -18,7 +18,8 @@ internal sealed class TenantCommandGateway(
     IEventStoreGatewayClient gatewayClient,
     IUlidFactory ulidFactory,
     HttpClient statusClient) : ITenantCommandGateway {
-    private const string SystemTenant = "system";
+    private const string TenantPlatformScope = TenantPlatformScopes.Tenants;
+    private const string GlobalAdministratorPlatformScope = TenantPlatformScopes.GlobalAdministrators;
     private const string TenantsDomain = "tenants";
     private const string GlobalAdministratorsDomain = "global-administrators";
     private const string GlobalAdministratorsAggregateId = "global-administrators";
@@ -54,7 +55,7 @@ internal sealed class TenantCommandGateway(
         }
         var submit = new SubmitCommandRequest(
             resolvedMessageId,
-            SystemTenant,
+            TenantPlatformScope,
             TenantsDomain,
             request.TenantId,
             nameof(CreateTenant),
@@ -92,7 +93,7 @@ internal sealed class TenantCommandGateway(
         }
         var submit = new SubmitCommandRequest(
             resolvedMessageId,
-            SystemTenant,
+            TenantPlatformScope,
             TenantsDomain,
             request.TenantId,
             nameof(AddUserToTenant),
@@ -130,7 +131,7 @@ internal sealed class TenantCommandGateway(
         }
         var submit = new SubmitCommandRequest(
             resolvedMessageId,
-            SystemTenant,
+            TenantPlatformScope,
             TenantsDomain,
             request.TenantId,
             nameof(ChangeUserRole),
@@ -166,7 +167,7 @@ internal sealed class TenantCommandGateway(
         }
         var submit = new SubmitCommandRequest(
             resolvedMessageId,
-            SystemTenant,
+            TenantPlatformScope,
             TenantsDomain,
             request.TenantId,
             nameof(RemoveUserFromTenant),
@@ -199,7 +200,7 @@ internal sealed class TenantCommandGateway(
         }
         var submit = new SubmitCommandRequest(
             resolvedMessageId,
-            SystemTenant,
+            TenantPlatformScope,
             TenantsDomain,
             request.TenantId,
             nameof(UpdateTenant),
@@ -241,7 +242,7 @@ internal sealed class TenantCommandGateway(
 
         var submit = new SubmitCommandRequest(
             resolvedMessageId,
-            SystemTenant,
+            TenantPlatformScope,
             TenantsDomain,
             request.TenantId,
             nameof(SetTenantConfiguration),
@@ -292,7 +293,7 @@ internal sealed class TenantCommandGateway(
 
         var submit = new SubmitCommandRequest(
             resolvedMessageId,
-            SystemTenant,
+            TenantPlatformScope,
             TenantsDomain,
             request.TenantId,
             nameof(RemoveTenantConfiguration),
@@ -338,7 +339,7 @@ internal sealed class TenantCommandGateway(
 
         var submit = new SubmitCommandRequest(
             messageId,
-            SystemTenant,
+            GlobalAdministratorPlatformScope,
             GlobalAdministratorsDomain,
             GlobalAdministratorsAggregateId,
             nameof(SetGlobalAdministrator),
@@ -384,7 +385,7 @@ internal sealed class TenantCommandGateway(
 
         var submit = new SubmitCommandRequest(
             messageId,
-            SystemTenant,
+            GlobalAdministratorPlatformScope,
             GlobalAdministratorsDomain,
             GlobalAdministratorsAggregateId,
             nameof(RemoveGlobalAdministrator),
@@ -434,7 +435,7 @@ internal sealed class TenantCommandGateway(
         var command = new EnableTenant(request.TenantId);
         var submit = new SubmitCommandRequest(
             resolvedMessageId,
-            SystemTenant,
+            TenantPlatformScope,
             TenantsDomain,
             request.TenantId,
             nameof(EnableTenant),
@@ -487,7 +488,7 @@ internal sealed class TenantCommandGateway(
         var command = new DisableTenant(request.TenantId);
         var submit = new SubmitCommandRequest(
             resolvedMessageId,
-            SystemTenant,
+            TenantPlatformScope,
             TenantsDomain,
             request.TenantId,
             nameof(DisableTenant),
@@ -543,8 +544,12 @@ internal sealed class TenantCommandGateway(
 
         try
         {
+            using var statusRequest = new HttpRequestMessage(HttpMethod.Get,
+                $"api/v1/commands/status/{Uri.EscapeDataString(handle.MessageId)}");
+            statusRequest.Headers.Add("X-Hexalith-Scope",
+                globalAdministratorStatus ? GlobalAdministratorPlatformScope : TenantPlatformScope);
             using HttpResponseMessage response = await statusClient
-                .GetAsync($"api/v1/commands/status/{Uri.EscapeDataString(handle.MessageId)}", cancellationToken)
+                .SendAsync(statusRequest, cancellationToken)
                 .ConfigureAwait(false);
 
             if (response.StatusCode == HttpStatusCode.NotFound)
@@ -588,7 +593,7 @@ internal sealed class TenantCommandGateway(
             if (string.IsNullOrWhiteSpace(status.CorrelationId)
                 || (!recoverCorrelation && !string.Equals(status.CorrelationId, handle.CorrelationId, StringComparison.Ordinal))
                 || recoverCorrelation && (!string.Equals(status.MessageId, handle.MessageId, StringComparison.Ordinal)
-                    || !string.Equals(status.TenantId, SystemTenant, StringComparison.Ordinal)
+                    || !string.Equals(status.TenantId, TenantIdentity.DefaultTenantId, StringComparison.Ordinal)
                     || !string.Equals(status.Domain, GlobalAdministratorsDomain, StringComparison.Ordinal)
                     || !string.Equals(status.AggregateId, GlobalAdministratorsAggregateId, StringComparison.Ordinal)))
             {
@@ -623,7 +628,7 @@ internal sealed class TenantCommandGateway(
             }
 
             if (status.StatusCode is { } statusCode && statusCode != (int)parsedStatus
-                || status.TenantId is not null && !string.Equals(status.TenantId, SystemTenant, StringComparison.Ordinal)
+                || status.TenantId is not null && !string.Equals(status.TenantId, TenantIdentity.DefaultTenantId, StringComparison.Ordinal)
                 || status.Domain is not null && !string.Equals(status.Domain, expectedDomain, StringComparison.Ordinal))
             {
                 return TenantCommandStatusResult.Unknown("Command status response did not match the tracked command.") with
@@ -675,7 +680,7 @@ internal sealed class TenantCommandGateway(
                             && status.EventCount is > 0 && status.CommittedEventSequence is > 0
                             && status.EventCount <= status.CommittedEventSequence
                             && !string.IsNullOrWhiteSpace(handle.AggregateId)
-                            && string.Equals(status.TenantId, SystemTenant, StringComparison.Ordinal)
+                            && string.Equals(status.TenantId, TenantIdentity.DefaultTenantId, StringComparison.Ordinal)
                             && string.Equals(status.Domain, expectedDomain, StringComparison.Ordinal)
                             && string.Equals(status.AggregateId, handle.AggregateId, StringComparison.Ordinal)
                                 ? status.CommittedEventSequence : null,

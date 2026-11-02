@@ -44,10 +44,14 @@ def verify(directory, expected_source=None, output=None):
             required = "Hexalith.EventStore.Contracts" if package_id == IDS[0] else "Hexalith.EventStore.Server"
             if required not in dependency_ids:
                 raise ValueError("Catalog package is missing its required SDK dependency.")
+            mcp_dependencies = [dependency.get('version', '') for dependency in metadata.findall('.//{*}dependency')
+                                if dependency.get('id') == 'Hexalith.McpCli.Abstractions']
+            if len(mcp_dependencies) != 1 or mcp_dependencies[0].lstrip('[(').split(',')[0].strip().rstrip('])') != '2.0.0':
+                raise ValueError('Catalog package is missing its coordinated McpCli 2.0.0 dependency.')
             for dependency in metadata.findall('.//{*}dependency'):
                 if dependency.get('id', '').startswith('Hexalith.EventStore.'):
                     selected = dependency.get('version', '').lstrip('[(').split(',')[0].strip().rstrip('])')
-                    normalized = re.fullmatch(r'(3\.129\.[01]|3\.130\.[012]|3\.131\.0|3\.132\.[012]|3\.133\.0)(?:\.0)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?', selected)
+                    normalized = re.fullmatch(r'(3\.129\.[01]|3\.130\.[012]|3\.131\.0|3\.132\.[012]|3\.133\.0|4\.0\.0)(?:\.0)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?', selected)
                     if not normalized or sdk is not None and normalized[1] != sdk:
                         raise ValueError('Catalog SDK dependency is not one qualified stable cohort.')
                     sdk = normalized[1]
@@ -56,6 +60,30 @@ def verify(directory, expected_source=None, output=None):
                                     'dll_sha256': hashlib.sha256(dll).hexdigest(), 'source': source}
     if set(archives) != set(IDS) or sdk is None:
         raise ValueError('Both actual Contracts and Server archives and their SDK dependencies are required.')
+    # A coordinated local candidate feed may contain the unpublished SDK and McpCli
+    # packages. Bind every restored package from either producer to those exact bytes.
+    candidate_archives = {}
+    candidate_prefixes = set()
+    for path in sorted(directory.glob('*.nupkg')):
+        with zipfile.ZipFile(path) as archive:
+            names = [name for name in archive.namelist() if name.endswith('.nuspec')]
+            if len(names) != 1:
+                raise ValueError('A single package specification is required.')
+            metadata = ET.fromstring(archive.read(names[0])).find('{*}metadata')
+            package_id = metadata.findtext('{*}id')
+            package_version = metadata.findtext('{*}version')
+            if not package_id or not package_version:
+                raise ValueError('Local dependency candidate has no package identity or version.')
+            prefix = next((value for value in ('Hexalith.EventStore.', 'Hexalith.McpCli.') if package_id.startswith(value)), None)
+            if prefix is None:
+                continue
+            if prefix == 'Hexalith.EventStore.' and package_version != sdk:
+                raise ValueError('Local SDK candidate differs from the catalog dependency cohort.')
+            key = package_id + '/' + package_version
+            if key in candidate_archives:
+                raise ValueError('Duplicate local dependency candidate: ' + key)
+            candidate_archives[key] = path
+            candidate_prefixes.add(prefix)
     with tempfile.TemporaryDirectory(prefix='tenants-packed-catalog-consumer-') as temporary:
         root = Path(temporary)
         packages = root / 'packages'
@@ -79,6 +107,8 @@ def verify(directory, expected_source=None, output=None):
         local = ET.SubElement(mappings, 'packageSource', key='packed')
         for package_id in IDS:
             ET.SubElement(local, 'package', pattern=package_id)
+        for prefix in sorted(candidate_prefixes):
+            ET.SubElement(local, 'package', pattern=prefix + '*')
         ET.SubElement(ET.SubElement(mappings, 'packageSource', key='nuget'), 'package', pattern='*')
         ET.ElementTree(configuration).write(root / 'NuGet.Config', encoding='unicode')
         for name in ('Program.cs', 'approved-route-ids.txt'):
@@ -97,6 +127,16 @@ def verify(directory, expected_source=None, output=None):
             restored = packages / package_id.lower() / version.lower() / (package_id.lower() + '.' + version.lower() + '.nupkg')
             if hashlib.sha256(restored.read_bytes()).hexdigest() != record['sha256']:
                 raise ValueError('Restored catalog archive differs from the actual candidate bytes.')
+        for key, library in assets['libraries'].items():
+            if not any(key.startswith(prefix) for prefix in candidate_prefixes):
+                continue
+            path = candidate_archives.get(key)
+            if path is None or library['type'] != 'package':
+                raise ValueError('A local dependency candidate was missing from the package-only restore.')
+            package_id, package_version = key.split('/', 1)
+            restored = packages / package_id.lower() / package_version.lower() / (package_id.lower() + '.' + package_version.lower() + '.nupkg')
+            if hashlib.sha256(restored.read_bytes()).digest() != hashlib.sha256(path.read_bytes()).digest():
+                raise ValueError('Restored dependency differs from the local candidate bytes.')
         subprocess.run(['dotnet', 'build', str(root / 'Consumer.csproj'), '--no-restore', '-c', 'Release',
                         '-m:1', '-nr:false', '-warnaserror'], cwd=root, env=environment, check=True, timeout=120)
         for package_id, record in archives.items():
