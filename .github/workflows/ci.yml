@@ -22,7 +22,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - profile: canonical scope 4.0.0
+          - profile: canonical scope 4.0.2
             sdk-argument: ''
             budget-minimum: 8
             runtime-minimum: 7
@@ -73,7 +73,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - profile: canonical scope 4.0.0
+          - profile: canonical scope 4.0.2
             sdk-argument: ''
             owner-source-minimum: 25
     env:
@@ -244,7 +244,7 @@ jobs:
         run: |
           set -euo pipefail
           source_sha="$(git rev-parse HEAD:references/Hexalith.EventStore)"
-          printf 'TENANTS_SOURCE_SDK_PRODUCER_VERSION=4.0.0\n' >> "$GITHUB_ENV"
+          printf 'TENANTS_SOURCE_SDK_PRODUCER_VERSION=4.0.2\n' >> "$GITHUB_ENV"
           python3 scripts/prepare-source-catalog-profile.py \
             --ci-job authenticated-routes --sdk-source-sha "$source_sha" \
             --output "${RUNNER_TEMP}/tenants-package-backend.json"
@@ -266,7 +266,7 @@ jobs:
             tests/Hexalith.Tenants.AppHost.Tests/Hexalith.Tenants.AppHost.Tests.csproj \
             tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj; do
             dotnet build "$project" --configuration Release \
-              -p:HexalithEventStoreVersion=4.0.0 -p:HexalithMcpCliVersion=2.0.0 \
+              -p:HexalithEventStoreVersion=4.0.2 -p:HexalithMcpCliVersion=2.0.0 \
               -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true \
               -p:HexalithFrontComposerFromSource=false -p:HexalithMemoriesFromSource=false \
               -warnaserror -m:1 -nr:false

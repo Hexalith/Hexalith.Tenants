@@ -6,7 +6,7 @@ Hexalith.Tenants uses EventStore authentication and authorization infrastructure
 
 ## Current 7.x canonical scope contract
 
-Tenants 7.0.0 requires the coordinated EventStore 4.0.0 and McpCli.Abstractions 2.0.0 producers. Upgrade those packages first, then upgrade the Tenants cohort together. This section governs current deployments; the retained 6.x compatibility reference below describes the previous public `system` contract. See the [canonical scope upgrade](guides/canonical-scope-upgrade.md) and the [owner route declarations](../src/Hexalith.Tenants.Contracts/Routing/TenantCatalogDeclarations.cs).
+Tenants 7.0.0 requires the coordinated EventStore 4.0.2 and McpCli.Abstractions 2.0.0 producers. Upgrade those packages first, then upgrade the Tenants cohort together. This section governs current deployments; the retained 6.x compatibility reference below describes the previous public `system` contract. See the [canonical scope upgrade](guides/canonical-scope-upgrade.md) and the [owner route declarations](../src/Hexalith.Tenants.Contracts/Routing/TenantCatalogDeclarations.cs).
 
 | Operation | Public request scope | Catalog permission |
 | --- | --- | --- |
