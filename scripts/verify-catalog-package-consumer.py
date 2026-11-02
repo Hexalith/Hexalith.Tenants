@@ -47,7 +47,7 @@ def verify(directory, expected_source=None, output=None):
             for dependency in metadata.findall('.//{*}dependency'):
                 if dependency.get('id', '').startswith('Hexalith.EventStore.'):
                     selected = dependency.get('version', '').lstrip('[(').split(',')[0].strip().rstrip('])')
-                    normalized = re.fullmatch(r'(3\.129\.[01]|3\.130\.[012]|3\.131\.0)(?:\.0)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?', selected)
+                    normalized = re.fullmatch(r'(3\.129\.[01]|3\.130\.[012]|3\.13[12]\.0)(?:\.0)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?', selected)
                     if not normalized or sdk is not None and normalized[1] != sdk:
                         raise ValueError('Catalog SDK dependency is not one qualified stable cohort.')
                     sdk = normalized[1]

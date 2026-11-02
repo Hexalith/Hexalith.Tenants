@@ -37,14 +37,16 @@ class CatalogPackageMetadataTests(unittest.TestCase):
         self.reject(server={'version': '6.0.1'}, message='versions disagree')
 
     def test_unknown_or_prerelease_sdk_refuses_before_restore(self):
-        for sdk in ('3.128.4', '3.129.0-preview.1', '3.129.2', '3.130.3', '3.131.1', '3.132.0',
+        for sdk in ('3.128.4', '3.129.0-preview.1', '3.129.2', '3.130.3', '3.131.1', '3.132.1', '3.133.0',
+                    '3.132.0-preview.1', '3.132.0-preview.1+metadata', '3.132.0.1', '3.132.0+',
+                    '3.132.0+invalid..metadata',
                     '3.131.0-preview.1', '3.131.0-preview.1+metadata', '3.131.0.1', '3.131.0+',
                     '3.131.0+invalid..metadata'):
             with self.subTest(sdk=sdk):
                 self.reject(server={'sdk': sdk}, message='qualified stable cohort')
 
     def test_every_qualified_sdk_and_alias_reaches_only_its_normalized_restore(self):
-        for sdk in ('3.129.0', '3.129.1', '3.130.0', '3.130.1', '3.130.2', '3.131.0'):
+        for sdk in ('3.129.0', '3.129.1', '3.130.0', '3.130.1', '3.130.2', '3.131.0', '3.132.0'):
             for alias in (sdk, sdk + '.0', sdk + '+metadata-with-dash', sdk + '.0+metadata.1'):
                 with self.subTest(sdk=sdk, alias=alias), tempfile.TemporaryDirectory(prefix='tenants-catalog-metadata-') as temporary:
                     root = Path(temporary)
@@ -70,7 +72,7 @@ class CatalogPackageMetadataTests(unittest.TestCase):
         self.reject(server={'include_dependency': False}, message='required SDK dependency')
 
     def test_mixed_sdk_cohort_refuses_before_restore(self):
-        for sdk in ('3.129.1', '3.130.2', '3.131.0'):
+        for sdk in ('3.129.1', '3.130.2', '3.131.0', '3.132.0'):
             with self.subTest(sdk=sdk):
                 self.reject(server={'sdk': sdk}, message='qualified stable cohort')
 
