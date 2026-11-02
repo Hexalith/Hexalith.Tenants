@@ -155,6 +155,10 @@ public sealed class TenantBootstrapBoundCommandTests
         var command = new SubmitCommandRequest("01ARZ3NDEKTSV4RRFFQ69G5FAV", TenantPlatformScopes.GlobalAdministrators,
             TenantIdentity.GlobalAdministratorsDomain, TenantIdentity.GlobalAdministratorsAggregateId, nameof(BootstrapGlobalAdmin),
             JsonSerializer.SerializeToElement(new BootstrapGlobalAdmin(scenario == "payload" ? "foreign" : "bootstrap-administrator"), scenario is "web-payload" or "loopback-web" ? JsonSerializerOptions.Web : JsonSerializerOptions.Default), "01ARZ3NDEKTSV4RRFFQ69G5FAW");
+        TimeSpan readinessTimeout = scenario.StartsWith("infinite", StringComparison.Ordinal)
+            ? provider.GetRequiredService<IHttpClientFactory>().CreateClient().Timeout
+            : TimeSpan.FromSeconds(1);
+        if (scenario.StartsWith("infinite", StringComparison.Ordinal)) readinessTimeout.ShouldBe(Timeout.InfiniteTimeSpan);
         if (scenario == "buffer-limit")
         {
             command = command with { Extensions = new Dictionary<string, string> { ["oversized"] = new string('x', 1_048_576) } };
@@ -162,15 +166,12 @@ public sealed class TenantBootstrapBoundCommandTests
                 "bootstrap-administrator", bearer, clock, TimeSpan.FromSeconds(1), callerCancellation.Token));
             return;
         }
-        TimeSpan readinessTimeout = scenario.StartsWith("infinite", StringComparison.Ordinal)
-            ? provider.GetRequiredService<IHttpClientFactory>().CreateClient().Timeout
-            : TimeSpan.FromSeconds(1);
-        if (scenario.StartsWith("infinite", StringComparison.Ordinal)) readinessTimeout.ShouldBe(Timeout.InfiniteTimeSpan);
         Task<HttpRequestMessage?> creation = TenantBootstrapBoundCommand.CreateAsync(scope.ServiceProvider, configuration, dapr, command,
             "bootstrap-administrator", bearer, clock, readinessTimeout, callerCancellation.Token);
         if (scenario is "cancel-before-buffer" or "buffer-cancellation")
         {
             await Should.ThrowAsync<OperationCanceledException>(() => creation);
+            callerCancellation.IsCancellationRequested.ShouldBeTrue();
             return;
         }
 #if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
@@ -216,8 +217,15 @@ public sealed class TenantBootstrapBoundCommandTests
         using var expectedContent = JsonContent.Create(new BoundWorkloadCommandRequest(command, "bootstrap-administrator"));
         byte[] expectedBytes = await expectedContent.ReadAsByteArrayAsync(TestContext.Current.CancellationToken);
         declaredLength.ShouldBe(expectedBytes.LongLength);
+        request.Headers.TransferEncodingChunked.ShouldNotBe(true);
         if (scenario.StartsWith("loopback", StringComparison.Ordinal))
             await AssertKnownLengthReplayOverLoopbackAsync(request, expectedBytes, TestContext.Current.CancellationToken);
+        using var firstWrite = new MemoryStream();
+        using var repeatedWrite = new MemoryStream();
+        await content.CopyToAsync(firstWrite, callerCancellation.Token);
+        await content.CopyToAsync(repeatedWrite, callerCancellation.Token);
+        firstWrite.ToArray().ShouldBe(expectedBytes);
+        repeatedWrite.ToArray().ShouldBe(expectedBytes);
         byte[] actualBytes = await content.ReadAsByteArrayAsync(TestContext.Current.CancellationToken);
         actualBytes.ShouldBe(expectedBytes);
         (await content.ReadAsByteArrayAsync(TestContext.Current.CancellationToken)).ShouldBe(actualBytes);

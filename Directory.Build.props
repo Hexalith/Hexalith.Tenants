@@ -1,7 +1,8 @@
 <Project>
     <PropertyGroup>
         <!-- Published catalog enrollment is available in this SDK; explicit frozen compatibility selections remain authoritative. -->
-        <HexalithEventStoreVersion Condition="'$(HexalithEventStoreVersion)' == ''">3.132.1</HexalithEventStoreVersion>
+        <HexalithEventStoreVersion Condition="'$(HexalithEventStoreVersion)' == ''">3.133.0</HexalithEventStoreVersion>
+        <HexalithMemoriesVersion Condition="'$(HexalithMemoriesVersion)' == ''">3.0.17</HexalithMemoriesVersion>
         <HexalithBuildPackageVersions1>$(MSBuildThisFileDirectory)references/Hexalith.Builds/Props/Directory.Packages.props</HexalithBuildPackageVersions1>
         <HexalithBuildPackageVersions2>$(MSBuildThisFileDirectory)../Hexalith.Builds/Props/Directory.Packages.props</HexalithBuildPackageVersions2>
         <HexalithBuildPackageVersions3>$(MSBuildThisFileDirectory)../../Hexalith.Builds/Props/Directory.Packages.props</HexalithBuildPackageVersions3>
