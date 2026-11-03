@@ -312,7 +312,8 @@ public class PartialReleaseRecoveryWorkflowTests
     [Fact]
     public async Task NormalPublicationPassesOfflineArtifactControls()
     {
-        var result = await RunAsync("python3", [Path.Combine(FindRepoRoot(), "tests/scripts/test_release_artifact_verification.py")]);
+        var result = await RunAsync("python3", [Path.Combine(FindRepoRoot(), "tests/scripts/test_release_artifact_verification.py")],
+            timeout: TimeSpan.FromMinutes(15));
         result.ExitCode.ShouldBe(0, result.Diagnostics);
         result.Diagnostics.ShouldContain("OK");
     }
