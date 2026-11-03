@@ -123,7 +123,7 @@ internal sealed class TenantQueryGateway(
     internal const int MaximumHydrationConcurrency = 8;
 
     /// <summary>Bounds supplementary list reads below search fanout to protect native authority under populated pages.</summary>
-    internal const int MaximumListEnrichmentConcurrency = 4;
+    internal const int MaximumListEnrichmentConcurrency = 5;
 
     /// <summary>Maximum raw index positions examined per search load, including replay and lookahead.</summary>
     internal const int MaximumSearchScanPositions = 1_000;

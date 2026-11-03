@@ -8630,7 +8630,7 @@ public sealed partial class TenantQueryGatewayTests
     [Fact]
     public async Task List_row_enrichment_runs_concurrently_up_to_its_bound()
     {
-        const int expectedBound = 4;
+        const int expectedBound = 5;
         const int rows = expectedBound * 2;
         ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
         client.ListTenantsAsync(Arg.Any<ListTenantsQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())

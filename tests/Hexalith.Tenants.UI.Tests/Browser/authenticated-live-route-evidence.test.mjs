@@ -72,3 +72,32 @@ test('atomic progress retains completed cases and the current phase before pendi
         await rm(directory, { recursive: true, force: true });
     }
 });
+
+test('audit Back restores the detail launcher when its Fluent host delegates focus', async () => {
+    const source = await readFile(new URL('../../../src/Hexalith.Tenants.UI/wwwroot/js/tenantsFocus.js', import.meta.url), 'utf8');
+    const browser = await chromium.launch({ headless: true });
+    try {
+        const page = await browser.newPage();
+        await page.setContent(`<div data-testid="tenants-detail-audit-origin" data-audit-focus-terminal="true">
+            <header data-testid="tenants-detail-identity"><h1 id="tenants-detail-identity" tabindex="-1">Tenant</h1></header>
+            <fluent-anchor-button style="display:inline-block" href="/audit"
+                data-testid="tenants-audit-entrypoint" data-audit-source="tenant-detail"></fluent-anchor-button>
+            </div>`);
+        const result = await page.evaluate(async script => {
+            customElements.define('fluent-anchor-button', class extends HTMLElement {
+                constructor() {
+                    super();
+                    this.attachShadow({ mode: 'open' }).innerHTML = '<a href="/audit">Audit</a>';
+                }
+                focus() { /* This host delegates focus to its shadow anchor. */ }
+            });
+            const module = await import(`data:text/javascript;charset=utf-8,${encodeURIComponent(script)}`);
+            const outcome = await module.restoreAuditFocus('tenants-detail-identity',
+                'tenants-detail-audit-origin', 'tenants-detail-identity');
+            return { outcome, focused: document.activeElement === document.querySelector('fluent-anchor-button') };
+        }, source);
+        assert.deepEqual(result, { outcome: 'found', focused: true });
+    } finally {
+        await browser.close();
+    }
+});
