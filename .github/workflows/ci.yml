@@ -482,7 +482,10 @@ jobs:
         tests/Hexalith.Tenants.AppHost.Tests
         tests/Hexalith.Tenants.Server.Tests
       aspire-test-project: tests/Hexalith.Tenants.IntegrationTests
-      aspire-timeout-minutes: 35
+      # The retained browser proof can consume 22 minutes inside the Aspire tier;
+      # allow its other live cases and setup to finish within finite bounds.
+      aspire-timeout-minutes: 45
+      aspire-runner-timeout-minutes: 40
       aspire-continue-on-error: false
       aspire-runner-script: scripts/run-aspire-integration-tier.sh
       aspire-browser-project: tests/performance/tenant-audit

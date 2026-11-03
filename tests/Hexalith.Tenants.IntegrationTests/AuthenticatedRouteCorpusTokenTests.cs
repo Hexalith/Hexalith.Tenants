@@ -49,7 +49,7 @@ public sealed class AuthenticatedRouteCorpusTokenTests
         grants.Any(static grant => grant is "*" or "system").ShouldBeFalse();
         var parsed = new JwtSecurityTokenHandler().ReadJwtToken(corpusToken);
         DateTime completedUtc = DateTime.UtcNow;
-        parsed.ValidTo.ShouldBeInRange(startedUtc.AddMinutes(20).AddSeconds(-1), completedUtc.AddMinutes(20));
+        parsed.ValidTo.ShouldBeInRange(startedUtc.AddMinutes(30).AddSeconds(-1), completedUtc.AddMinutes(30));
         parsed.Claims.Where(static claim => claim.Type == "eventstore:permission").Select(static claim => claim.Value)
             .Order(StringComparer.Ordinal).ShouldBe(["global-administrators:read", "tenants:read"]);
         JsonSerializer.Deserialize<string[]>(parsed.Claims.Single(static claim => claim.Type == "permissions").Value)

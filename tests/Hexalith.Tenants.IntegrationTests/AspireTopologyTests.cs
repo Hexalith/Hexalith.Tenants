@@ -830,7 +830,7 @@ public class AspireTopologyTests : IDisposable {
             issuer: JwtIssuer,
             audience: JwtAudience,
             claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(readOnly ? 20 : 10),
+            expires: DateTime.UtcNow.AddMinutes(readOnly ? 30 : 10),
             signingCredentials: credentials);
 
         return new JwtSecurityTokenHandler().WriteToken(token);
