@@ -225,6 +225,11 @@ jobs:
               live_cert_index=$((live_cert_index + 1))
             done
           done
+      - name: Install pinned browser qualification tools
+        working-directory: tests/performance/tenant-audit
+        run: |
+          npm ci
+          npx --no-install playwright install --with-deps chromium
       - name: Record backend inventory before disposable Dapr initialization
         shell: bash
         run: |
@@ -253,11 +258,6 @@ jobs:
           python3 scripts/prepare-source-catalog-profile.py \
             --ci-job authenticated-routes --sdk-source-sha "$source_sha" \
             --output "${RUNNER_TEMP}/tenants-package-backend.json"
-      - name: Install pinned browser qualification tools
-        working-directory: tests/performance/tenant-audit
-        run: |
-          npm ci
-          npx --no-install playwright install --with-deps chromium
       - name: Verify bounded functional browser navigation and readiness
         if: ${{ matrix.suite == 'rest' }}
         run: node --test tests/Hexalith.Tenants.UI.Tests/Browser/authenticated-live-route-waits.test.mjs tests/Hexalith.Tenants.UI.Tests/Browser/authenticated-live-route-evidence.test.mjs
