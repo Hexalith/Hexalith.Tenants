@@ -2,7 +2,7 @@
 title: 'Qualify McpCli against authentic published Tenants7 enrollment'
 type: 'bugfix'
 created: '2026-11-03'
-status: 'ready-for-dev'
+status: 'in-review'
 route: 'dispatch'
 baseline_commit: 'f5f65fc0bb755fb4af31427e4f62727d44f578e9'
 owning_repository_baseline_commit: 'edaecb04b1a8edf78f6ad28e5bf253db594003f4'
@@ -46,6 +46,8 @@ Do not weaken validators, skip cases or modules, read operator profiles/credenti
 
 ## File List
 
+- references/Hexalith.FrontComposer
+- references/Hexalith.Memories
 - references/Hexalith.McpCli
 - references/Hexalith.Builds
 - references/Hexalith.EventStore
@@ -53,9 +55,28 @@ Do not weaken validators, skip cases or modules, read operator profiles/credenti
 
 ## Provenance
 
+The user's repository-wide synchronization also includes the latest clean FrontComposer, EventStore and Memories main commits. Their root gitlink updates are declared here so the eventual synchronization commit remains auditable; the enrollment approval remains bound to the original authenticated public Tenants7.0.0 archive and unchanged vectors.
+
 This active specification supersedes the operational draft spec-complete-mcpcli-published-cohort-ci.md. That earlier document retains its historical correction/audit endpoint and original4.0.2/4.0.3 coordination notes. It is not modified or used to assert current gitlink targets.
 
 
 ## Prerequisite Investigation
 
 Read-only agent inspection at owning baseline confirmed the14 vector hashes and inventory digest match the pending receipt. Existing CI includes all six ordinary projects, strict artifact/enrollment replay and benchmark, and21 live vectors plus smoke. Its live source build intentionally forces the separately reviewed3.128.4 runtime/fixture and Parties frozen dependency overrides; no source compatibility failure has yet been established. Nested inputs remain uninitialized and untouched. No approval/restores or public7.0.0 claim was made. Root will supply actual public artifacts before continuation.
+
+
+## Authenticated Public Release Handoff
+
+Root's exact source1b2c71b0e3cc5b16745f87aa7f1bc2c0ac8ffc27 passed all required CI, including25 actual browser cases and671 generic cases. GitHub releasev7.0.0 exists. Actual NuGet accepted all five uploads, and the official NuGet v2 endpoint redirects to globalcdn.nuget.org and serves the repository-signed archives. All five identities/versions/ZIP contents/hash/source commits match, and `dotnet nuget verify --all` succeeded for all five. Read both /tmp/tenants-release-20261103-07JciR/tenants7-authentic-public-proof.json and /tmp/tenants-release-20261103-07JciR/tenants-7.0.0-root-agent-v2/verification.json, and the referenced signature log. These are actual public NuGet bytes, distinct from unsigned GitHub assets and the old local candidate.
+
+The official v3 flatcontainer endpoint returned404 during the first release destination check, causing that run to time out. It began serving all five archives at08:44 UTC; their raw hashes match the independently verified signed v2 archives. Use the two official public NuGet sources for genuine restore as needed: https://api.nuget.org/v3/index.json and https://www.nuget.org/api/v2. A successful normal restore and exact restored archive hash match remain mandatory; do not manufacture assets, inject extracted packages, bypass validators, or use GitHub/local candidate feeds.
+
+The earlier qualification used NUGET_PACKAGES=/tmp/tenants-release-20261103-07JciR/mcpcli-published7-packages-lznp07r_, created empty by root and retained in the handoff. The native runtime now binds authentic public package hashes in tools/live-topology/native-runtime.json. Its current handoff is /tmp/tenants-release-20261103-07JciR/mcpcli-native-runtime-handoff.json.
+
+Root has already applied the build workflow; this is its implementation handoff. Root owns all Git writes, review dispatch, remote CI and release recovery. Keep Root main at the released source during verification recovery; do not commit or push. Existing synthetic rejecting-loopback package gateway boundary tests are permitted; no actual local business AppHost/private backend may be launched. No actual operator-client acceptance is claimed.
+
+Coordination clarification: the supplied shared cache governs ordinary .NET commands. Preserve verify_artifact.py unchanged: its existing newly created scratch/packages and retained feed of the exact authenticated public archive are stricter isolated verification, not the old local candidate feed. Record those subprocess/cache paths and hashes. This exception must not weaken artifact byte checks.
+
+## Coordinated Local Qualification
+
+Published enrollment and native source preparation are complete locally. Exact hash-bound handoffs are /tmp/tenants-release-20261103-07JciR/mcpcli-enrollment-handoff.json and mcpcli-native-runtime-handoff.json in that directory. All original21 vectors/42 vector-plan inputs are preserved. Local strict replay and package/build/source guards pass; physical activation, all21 persisted effects, smoke and cleanup remain mandatory Root remote CI acceptance. No local evidence grants that acceptance. Shared owner HEAD advanced through the independent authorized session and is preserved; review covers the complete owning-repository delta from edaecb04b1a8edf78f6ad28e5bf253db594003f4.
