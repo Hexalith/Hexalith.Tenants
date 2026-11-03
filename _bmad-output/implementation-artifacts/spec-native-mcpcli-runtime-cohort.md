@@ -47,6 +47,7 @@ No production src module-specific logic, vector rewrites, reduced modules/cases,
 
 ## File List
 
+- tests/Hexalith.Tenants.Server.Tests/Authorization/TenantsGlobalAdministratorVerifierTests.cs
 - references/Hexalith.Builds
 - references/Hexalith.FrontComposer
 - references/Hexalith.McpCli
@@ -128,5 +129,11 @@ The local qualification used a fresh verified NUGET_PACKAGES=/tmp/tenants-releas
 Update /tmp/tenants-release-20261103-07JciR/mcpcli-native-runtime-handoff.json with final source hashes/actual source selection and limitations. Remote physical native catalog activation, persisted authority, all21 effects plus smoke and cleanup remain required; local artifacts do not grant that acceptance. Root has already rendered the build workflow; do not rerender or dispatch it. Root alone owns reviews, Git writes and remote runs.
 
 ## Coordinated Local Qualification
+
+### Native request compatibility follow-up
+
+Hosted run41628872425 reached genuine catalog activation:16 retained catalog receipts contain all3 serving participants, matching roots and the authenticated public SDK source. All22 cases proved owned infrastructure shutdown. Business acceptance remains incomplete:7 Parties persisted reads refused a historical projection actor selector,9 Tenants commands lacked the assertion context that invokes the owner's persisted administrator verifier, and6 reader preparations attempted advisory-feed access from the isolated network.
+
+The follow-up must repair the actual generic transport rather than rewriting requests inside a test gateway. Preserve original contract descriptors, approved artifacts, vectors and semantic request fields; the committed native catalog remains the dispatch authority. A signed administrator assertion may request independent owner verification, but cannot establish membership or bootstrap authority. Cover nonmember and unavailable-authority rejection. The isolated reader may omit a repeated advisory refresh only when the identical dependency graph has a retained successful online vulnerability audit. No validator, permission, source or artifact check is weakened.
 
 Published enrollment and native source preparation are complete locally. Exact hash-bound handoffs are /tmp/tenants-release-20261103-07JciR/mcpcli-enrollment-handoff.json and mcpcli-native-runtime-handoff.json in that directory. All original21 vectors/42 vector-plan inputs are preserved. Local strict replay and package/build/source guards pass; physical activation, all21 persisted effects, smoke and cleanup remain mandatory Root remote CI acceptance. No local evidence grants that acceptance. Shared owner HEAD advanced through the independent authorized session and is preserved; review covers the complete owning-repository delta from edaecb04b1a8edf78f6ad28e5bf253db594003f4.
