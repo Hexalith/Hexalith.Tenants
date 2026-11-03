@@ -6,6 +6,9 @@ status: 'in-review'
 route: 'oneshot'
 baseline_commit: 'be43b928ce700ae7433b1d078eec356ccd6079f8'
 owning_repository_baseline_commit: '10163c3e4ffd84ddb9b2831dea767a04da04f2ef'
+gitlink_original_baseline: '10163c3e4ffd84ddb9b2831dea767a04da04f2ef'
+gitlink_creation_ref: '35ddf94679ea92fb937b59f4202c4352bf7edf49'
+gitlink_audit_ref: '35ddf94679ea92fb937b59f4202c4352bf7edf49'
 context:
   - '/home/administrator/projects/hexalith/tenants/AGENTS.md'
   - '/home/administrator/projects/hexalith/tenants/references/Hexalith.AI.Tools/hexalith-llm-instructions.md'
@@ -28,6 +31,8 @@ Update current synthetic Builds schema/manifest/readiness fixtures to the newly 
 
 - The root release sync moved `references/Hexalith.Builds` to the verified fixture repair revision after the EventStore 4.0.2 catalog update.
 - That same root sync moved `references/Hexalith.FrontComposer` to its already verified Firefox CI repair revision; its implementation is recorded in the companion spec.
+- `references/Hexalith.Builds` 10163c3e4ffd84ddb9b2831dea767a04da04f2ef -> 70850b18e0d0b80facd2df0809974020dd935732
+- `references/Hexalith.FrontComposer` e4df7256be0e89b48c830c0792033ecfeabec9ad -> f842711d67004200e3248b3c42b7d9bcb2146907
 
 ## Implementation Notes
 
