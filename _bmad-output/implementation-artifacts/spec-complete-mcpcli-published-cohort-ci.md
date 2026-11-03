@@ -4,7 +4,8 @@ type: 'bugfix'
 created: '2026-11-03'
 status: 'draft'
 route: 'dispatch'
-baseline_commit: 'edaecb04b1a8edf78f6ad28e5bf253db594003f4'
+baseline_commit: 'be43b928ce700ae7433b1d078eec356ccd6079f8'
+owning_repository_baseline_commit: 'edaecb04b1a8edf78f6ad28e5bf253db594003f4'
 context:
   - '/home/administrator/projects/hexalith/tenants/references/Hexalith.McpCli/AGENTS.md'
   - '/home/administrator/projects/hexalith/tenants/references/Hexalith.AI.Tools/hexalith-llm-instructions.md'
@@ -21,6 +22,16 @@ Finish the root-declared McpCli submodule's CI after Tenants 7.0.0 publication. 
 Wait for the root agent to verify authentic published Tenants 7.0.0 before implementing artifact approval. Preserve Parties.Contracts 1.5.1 and other deliberately approved artifact cohorts. Preserve the legacy EventStore.Testing.Integration 3.128.4 fixture. Do not read operator profiles/credentials, initialize nested submodules, weaken validators, or claim actual client-session validation. Root owns commits/pushes and remote CI.
 
 </frozen-after-approval>
+
+## File List
+
+- `references/Hexalith.Builds`
+- `references/Hexalith.FrontComposer`
+
+## Completion Notes List
+
+- The root release sync moved `references/Hexalith.Builds` to its SDK cohort fixture repair before the Tenants package release needed by McpCli.
+- That same root sync moved `references/Hexalith.FrontComposer` to its verified Firefox CI revision; both pointers are recorded here because this spec was added in the same root sync commit.
 
 ## Code Map
 

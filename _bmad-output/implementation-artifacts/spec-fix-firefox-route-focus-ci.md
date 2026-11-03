@@ -4,7 +4,8 @@ type: 'bugfix'
 created: '2026-11-03'
 status: 'in-review'
 route: 'oneshot'
-baseline_commit: 'e4df7256be0e89b48c830c0792033ecfeabec9ad'
+baseline_commit: 'be43b928ce700ae7433b1d078eec356ccd6079f8'
+owning_repository_baseline_commit: 'e4df7256be0e89b48c830c0792033ecfeabec9ad'
 context:
   - '/home/administrator/projects/hexalith/tenants/AGENTS.md'
   - '/home/administrator/projects/hexalith/tenants/references/Hexalith.AI.Tools/hexalith-llm-instructions.md'
@@ -18,6 +19,16 @@ context:
 Fix the FrontComposer Firefox Quality failure exposed while synchronizing Tenants dependencies. Its route-contract palette activation test focuses the Counter heading, but an eager CompactInline form starts smooth scrolling before route focus and subsequently scrolls that heading above the banner. Preserve the existing heading geometry assertion and all automated gates. Suppress eager expand-in-row scrolling when the document has no operator focus (no active element or the body), retaining the existing heading guard and later user-triggered expansion. Preserve reduced-motion behavior and existing scroll correction semantics.
 
 </frozen-after-approval>
+
+## File List
+
+- `references/Hexalith.Builds`
+- `references/Hexalith.FrontComposer`
+
+## Completion Notes List
+
+- The root release sync moved `references/Hexalith.FrontComposer` to the verified Firefox route focus and generator snapshot revision.
+- That same root sync moved `references/Hexalith.Builds` to its already verified SDK fixture revision; its implementation is recorded in the companion spec.
 
 ## Implementation Notes
 
