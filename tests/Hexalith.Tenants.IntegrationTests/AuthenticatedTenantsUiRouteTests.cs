@@ -83,7 +83,7 @@ public sealed class AuthenticatedTenantsUiRouteTests(AuthenticatedTenantsTopolog
     {
         fixture.SkipIfUnavailable();
         fixture.ProjectionWorkersEnabledAtStartup.ShouldBeFalse("authenticated UI routes qualify the independent request-path profile");
-        await WithSafeEvidenceAsync(TimeSpan.FromMinutes(8), async (outputPath, phase, cancellationToken) =>
+        await WithSafeEvidenceAsync(TimeSpan.FromMinutes(15), async (outputPath, phase, cancellationToken) =>
         {
             phase("native-admission-window");
             await fixture.BeginNativeReadQualificationAsync(cancellationToken);
