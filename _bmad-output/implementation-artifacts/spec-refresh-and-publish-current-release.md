@@ -73,6 +73,23 @@ baseline_commit: '2aa3f04014d9188fc59114113e3a6b0a2eb3964b'
 - Shared catalog commit `10163c3e4ffd84ddb9b2831dea767a04da04f2ef` was created only after its exact full message passed the owning locked commitlint. The parent gitlink now identifies this immutable commit; push is held until EventStore 4.0.2 is published.
 - EventStore source CI `41551160064` completed successfully for `f06abada8dc3aab4a5fd240847fd680d515c98a5`. An already-active release run `41554938023` is publishing that exact source; cancelled only this task's redundant queued run `41555034254`.
 
+- Producer publication completed: EventStore release run `41554938023` succeeded for `f06abada8dc3aab4a5fd240847fd680d515c98a5`, tag `v4.0.2`. Independently downloaded all 14 signed NuGet archives after indexing propagated; archive IDs, versions, ZIP integrity, signature presence and every nuspec repository commit matched. Detailed local report: `/tmp/tenants-release-20261103-07JciR/eventstore-4.0.2/verification.json`. Its separate Integration workflow `41551159672` also succeeded.
+- Pushed shared catalog commit `10163c3e4ffd84ddb9b2831dea767a04da04f2ef` only after package availability. Local stale NuGet indexes required focused `dotnet restore --no-http-cache --force-evaluate`, preserving all dependency gates. Tenants Server.Tests then built Release with zero warnings/errors and all 1,810 tests passed with zero skips. Platform Composition.Tests built Release with zero warnings/errors; 29 focused catalog/transport tests passed with zero skips.
+- Builds CI exposed additional coupled fixture drift: the stored package audit, SDK schema/manifests, and synthetic readiness artifact hashes retained the prior 4.0.0 cohort. Incremental audit refresh updated only 13 EventStore rows, preserving the other 301; validation passed for all 314 entries, audit generator passed 115 scenarios, audit validator passed 103 scenarios. The separate fixture repair is tracked in `spec-fix-builds-sdk-cohort-fixtures.md`.
+- Wider CI audit found and fixed the actual Firefox eager-form scroll race in FrontComposer. Explicit caller scoping preserves ordinary pointer row expansion. Local checks: 20 JavaScript regressions, 8 generated-component tests, actual Firefox route contract and 35 generator snapshot tests passed. Commits `a1a9280b28e291ee5cfaf9b7b6e3b5e4500ae805` and `f842711d67004200e3248b3c42b7d9bcb2146907` were prevalidated with owning commitlint and pushed; full CI/Quality is running. See `spec-fix-firefox-route-focus-ci.md`.
+
+## File List
+
+- `references/Hexalith.Builds`
+- `references/Hexalith.FrontComposer`
+- `references/Hexalith.Platform`
+
+## Completion Notes List
+
+- `references/Hexalith.Builds` moved to the committed shared catalog revision required for this release, including its fixture follow-up.
+- `references/Hexalith.FrontComposer` moved to the source revision that fixes the Firefox route focus CI failure.
+- `references/Hexalith.Platform` moved to the exact-cohort guard revision needed to compose EventStore 4.0.2.
+
 ## Spec Change Log
 
 ## Review Triage Log
