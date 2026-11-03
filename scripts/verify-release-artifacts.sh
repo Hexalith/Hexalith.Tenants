@@ -76,7 +76,7 @@ print(json.dumps(sorted(path.name for path in Path("nupkgs").glob("*.nupkg"))))
 PY
 )"
 [ "$(printf '%s' "$actual_names" | jq -c .)" = "$(printf '%s' "$expected_names" | jq -c .)" ] || recovery_fail 'Reviewed package file inventory differs from the release manifest.'
-wait_seconds="${HEXALITH_RELEASE_NUGET_WAIT_SECONDS:-600}"
+wait_seconds="${HEXALITH_RELEASE_NUGET_WAIT_SECONDS:-1800}"
 wait_interval="${HEXALITH_RELEASE_NUGET_WAIT_INTERVAL:-10}"
 [[ "$wait_seconds" =~ ^[0-9]+$ && "$wait_interval" =~ ^[0-9]+$ ]] || recovery_fail 'NuGet readiness wait must use nonnegative seconds.'
 [ "$wait_seconds" -le 1800 ] && [ "$wait_interval" -le 60 ] || recovery_fail 'NuGet readiness wait exceeds its bounded limits.'

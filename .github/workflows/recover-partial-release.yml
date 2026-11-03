@@ -143,8 +143,14 @@ jobs:
         with:
           global-json-file: global.json
       - uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8
-      - name: Initialize root-declared build submodule
-        run: git submodule update --init references/Hexalith.Builds
+      - name: Initialize root-declared solution dependencies
+        run: >-
+          git submodule update --init --
+          references/Hexalith.Builds
+          references/Hexalith.Commons
+          references/Hexalith.EventStore
+          references/Hexalith.FrontComposer
+          references/Hexalith.Memories
       - name: Validate partial release state
         id: recovery
         env:
