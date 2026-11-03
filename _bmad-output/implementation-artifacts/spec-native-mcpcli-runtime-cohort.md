@@ -100,6 +100,12 @@ Parent verification of the Development correction passed all 6 focused cases and
 
 Hosted c689 CI41622937952 advanced to the next public SDK guard: the Tenants Aspire helper selects the real cross-repository project with `SuppressBuild=true`, while child metadata preparation requires its ordinary unsuppressed launch. The owning AppHost now selects the same validated Tenants `.csproj` with standard `AddProject` and applies the same `AddEventStoreDomainModule` Dapr wiring in pushed commit 700752f. Its AppHost build passes with zero warnings/errors; full hosted live acceptance remains pending. Retained diagnostics: /tmp/mcpcli-c689-aspire-evidence.zip and /tmp/mcpcli-c689-aspire.log.
 
+### Hosted source launch correction
+
+Hosted run 41622937952 passed the Development guard, then all 22 cases refused the SDK's suppressed-build/overridden-launch check. The actual Tenants7 convenience helper deliberately supplies SuppressBuild=true. Owning fix 700752fc85f205cf7644a42b6f1d7ed60db1d9e1 instead registers the exact validated selected source project with ordinary AddProject metadata and retains the same SDK AddEventStoreDomainModule wiring. SDK checks and owner source remain unchanged.
+
+Commit 1a94e783c78dab1d589658deb0c5014ddfe3cafa adds only safe primitive launch facts to the existing non-launching composition inspector, and strengthens both existing composition cases. They assert exact source/launch-path agreement, an existing .csproj, both suppression flags false, no unsupported argument override, Development/run mode, and every existing token, ACL, component and authentication invariant. The focused 2 cases and clean Release build passed; parent verification passed all 294 Manifest tests in 122.552 seconds with zero failures/skips. Pinned commitlint validated the exact message before commit. No business resources were started. Proof: /tmp/tenants-release-20261103-07JciR/mcpcli-c689-native-evidence.zip, mcpcli-native-launch-shape-handoff.json, mcpcli-parent-launch-shape-verification.json and mcpcli-parent-launch-shape-manifest.log. Full hosted native acceptance remains pending on the committed source.
+
 ## Coordinated Source Inputs
 
 The user's repository-wide synchronization also includes the latest clean FrontComposer, EventStore and Memories main commits. Their root gitlink updates are declared here so the eventual synchronization commit remains auditable; they do not replace the immutable public package sources selected by the native runtime.
