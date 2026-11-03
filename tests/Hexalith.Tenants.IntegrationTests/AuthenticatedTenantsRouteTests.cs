@@ -353,6 +353,15 @@ public sealed class AuthenticatedTenantsRouteTests(AuthenticatedRouteTopologyFix
                 .ListTenantsAsync(new ListTenantsQuery { PageSize = 20 }, null, readTimeout.Token);
             TestContext.Current.TestOutputHelper?.WriteLine($"Populated page transport: HTTP={raw.StatusCode}, Failure={raw.FailureKind}, Provenance={raw.Metadata.Provenance}, Lifecycle={raw.Metadata.Lifecycle}.");
         }
+        if (result.IsDegraded)
+        {
+            ITenantsRestQueryClient reads = scope.ServiceProvider.GetRequiredService<ITenantsRestQueryClient>();
+            foreach (string tenantId in result.Rows.Take(3).Select(static row => row.TenantId))
+            {
+                var detail = await reads.GetTenantAsync(new GetTenantQuery { TenantId = tenantId }, null, readTimeout.Token);
+                TestContext.Current.TestOutputHelper?.WriteLine($"Populated page detail: TenantId={tenantId}, HTTP={detail.StatusCode}, Failure={detail.FailureKind}, PayloadPresent={detail.Payload is not null}, Provenance={detail.Metadata.Provenance}, Lifecycle={detail.Metadata.Lifecycle}.");
+            }
+        }
         result.Rows.Count.ShouldBe(20);
         result.IsDegraded.ShouldBeFalse();
         result.Rows.All(row => row.MemberCount.IsKnown && row.OwnerCount.IsKnown).ShouldBeTrue();
