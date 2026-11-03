@@ -47,6 +47,7 @@ No production src module-specific logic, vector rewrites, reduced modules/cases,
 
 ## File List
 
+- references/Hexalith.Builds
 - references/Hexalith.FrontComposer
 - references/Hexalith.McpCli
 - references/Hexalith.EventStore
@@ -97,9 +98,13 @@ The a6 hosted run41618316226 passed preparation and every non-live gate, but eac
 
 Parent verification of the Development correction passed all 6 focused cases and the complete 294-test Manifest suite in 123.238 seconds, with zero failures/skips. Actual compiled fixture arguments override inherited Production/Staging in the pinned factory's builder-only seam, while preserving run mode. No AppHost entry point, resources, BuildAsync or StartAsync is invoked. The CI runner, SDK/native runtime and source-selection bytes remained unchanged. Exact commit-message validation passed the owning pinned commitlint CLI. Evidence: /tmp/tenants-release-20261103-07JciR/mcpcli-native-development-handoff.json, mcpcli-parent-development-verification.json and mcpcli-parent-development-manifest.log. All 22 earlier guard failures proved owned infrastructure shutdown in mcpcli-a6-live-failure-proof.json. Full hosted native acceptance remains pending on c68993cb7419fa23ba636dec700b92670fdb9b6f.
 
+Hosted c689 CI41622937952 advanced to the next public SDK guard: the Tenants Aspire helper selects the real cross-repository project with `SuppressBuild=true`, while child metadata preparation requires its ordinary unsuppressed launch. The owning AppHost now selects the same validated Tenants `.csproj` with standard `AddProject` and applies the same `AddEventStoreDomainModule` Dapr wiring in pushed commit 700752f. Its AppHost build passes with zero warnings/errors; full hosted live acceptance remains pending. Retained diagnostics: /tmp/mcpcli-c689-aspire-evidence.zip and /tmp/mcpcli-c689-aspire.log.
+
 ## Coordinated Source Inputs
 
 The user's repository-wide synchronization also includes the latest clean FrontComposer, EventStore and Memories main commits. Their root gitlink updates are declared here so the eventual synchronization commit remains auditable; they do not replace the immutable public package sources selected by the native runtime.
+
+The later root-declared Builds synchronization qualifies the released Tenants7 package authorities and advances its default Tenants family to7.0.0. That root pointer is also declared above. McpCli keeps its own recorded Builds source and explicit authenticated SDK/Contracts pins; advancing the umbrella catalog does not substitute for native public-archive proof.
 
 The concurrent root dependency synchronization131966a5546efa8f5495ba73fcb409dab3d2eb74 moved EventStore/Memories/Platform gitlinks; these incidental paths are declared above without asserting that moving source is public-package proof. The native runtime continues to require exact public archive provenance. Qualified Parties source13a4f913f2f0177a30291091cbc8893202e4622d is committed/pushed; receipt: /tmp/tenants-release-20261103-07JciR/parties404-committed-source.json. Actual public Tenants7 remains pending.
 
