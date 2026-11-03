@@ -55,7 +55,40 @@ No production src module-specific logic, vector rewrites, reduced modules/cases,
 
 ## Verification
 
-Implementation pending; actual public Tenants7/source receipt and complete remote live acceptance remain external prerequisites.
+Implementation is pushed at McpCli source a6cdb6e84894e3ab455cce8d0c5c6539ac8769fa. Authentic public Tenants7.0.0 archives and the qualified source receipt are verified; complete hosted live acceptance remains pending.
+
+Parent verification of the exact published-cohort tree at owning commit08b0829809b137a57c36a1974ed13158529a7263 passed all77 offline CI preparation/acceptance controls in408.619seconds. Log: /tmp/tenants-release-20261103-07JciR/mcpcli-parent-final-ci77.log. Full hosted live acceptance remains pending.
+
+Hosted CI41612523079 then passed ordinary builds/tests, strict published-artifact enrollment and release automation. Native job125843452622 failed before live execution: the real Parties adapter class-library build succeeded but omitted Hexalith.EventStore.Client.dll from its output; strict restored_cohort rejected that missing deployed runtime byte. The retained actual build log proves the class-library output behavior. Repair uses the ordinary CopyLocalLockFileAssemblies build property to materialize its genuine package closure; provenance checks, owner source, native activation and vector bytes remain unchanged. Evidence: /tmp/tenants-release-20261103-07JciR/mcpcli-08b-native-ci.log and mcpcli-08b-native-evidence.zip.
+
+## Review Triage Log
+
+Three context-free review layers inspected /tmp/tenants-release-20261103-07JciR/mcpcli-published-final-review.diff. Each finding is classified independently before grouping.
+
+| Finding | Verdict | Evidence and route |
+| --- | --- | --- |
+| Blind1: later source builds can choose an initialized nested catalog | medium | Initial CLI builds pin the overlay as a global property; subsequent SDK/Aspire builds inherit only the Redis target, while the owner's first existing nested catalog has precedence. Patch: reject that competing input before source selection and before either live runner; preserve all nested checkouts. |
+| Blind2: temporary reader escapes global.json | medium | NativeCatalogTool builds from its private temporary working directory outside the repository SDK-policy ancestry. Patch: copy the exact root global.json before invoking dotnet and test the actual policy bytes. |
+| Blind3: catalog errors reference deleted logs | medium | RunAsync writes build/generation logs beneath the reader directory, then RunOwnedPreparationAsync deletes it on failure. Patch: propagate a bounded sanitized diagnostic before deleting private inputs. |
+| Blind4: output accumulation is unbounded | low | ReadToEndAsync accumulates output, but the immutable qualified build is already bounded to four minutes; a memory-exhausting noisy tool is an unusual developer-only case. Reject: introducing a new streaming/overflow subsystem adds complexity disproportionate to this unlikely failure. |
+| Blind5: failed process termination can lose custody | medium | Kill can throw before exit is confirmed and before the still-running marker is applied, allowing the caller to delete a directory still in use. Patch: mark unconfirmed termination and preserve the owned directory on that path. |
+| Blind6: one disposal error skips later cleanup | medium | SDK composition disposal can reject incomplete retained activation; sequential cleanup then skips the tenant reader/custody operations. Patch: attempt every owned cleanup, preserving the original failure and unconfirmed-process custody. |
+| Blind7: preparation hashes outlive their source receipts | medium | native-catalog.json retains receipt hashes, but SDK/helper disposal deletes those receipt files; the explicit diagnostic upload allowlist cannot retain them. Patch: retain the existing credential-free preparation inventories and project/template identities in sanitized native evidence. |
+| Blind8: matching readbacks could contain foreign peer identities | false | The only producer is the actual SDK DevelopmentRouteCatalogBootstrap: it captures each host independently, constructs the activation from those observations, and runs authority Prepare/Ready/Commit before writing committed readbacks. Foreign matching peers cannot pass that producer's actual identity checks; this reader is an additional barrier, not the activation authority. |
+| Blind9: new C# ownership and rejection boundaries lack focused tests | medium | Existing Python controls substitute dotnet, and repository searches find no direct NativeCatalogTool ownership/cleanup tests or NativeCatalogEvidence rejection tests. Patch: exercise the actual offline helper boundaries and readback validator without starting services. |
+| Blind10: current operator setup has no current invocation example | low | Current scope rules are documented, but the only adjacent complete cross-module invocation is explicitly historical5.10.0 guidance. Patch: add a current7.0.0 read invocation and expected tenant result without claiming a new operator session. |
+| Edge1: inherited recursive checkout can touch nested dependencies | medium | select_sources disables recursion for fetch but invokes checkout without its explicit no-recursion option. Patch: add --no-recurse-submodules and assert it in source-selection controls. |
+| Edge2: preparation cleanup deletes compiler/catalog diagnostics | medium | Independently confirmed the same deleted-log failure as Blind3. Patch with that shared root cause. |
+| Verification1: invalid committed readbacks are never exercised | medium | Pre-verified regression gap: healthy hosted cases and stubbed Python runners do not remove-test the NativeCatalogEvidence rejection conditional. Patch: test wrong roots, non-serving peers, incomplete inventories and disagreeing readbacks, with no successful evidence emitted. |
+| Verification-other1: failure diagnostics disappear during cleanup | medium | Independently confirmed the same deleted-log failure as Blind3 and Edge2. Patch with that shared root cause. |
+
+Surviving entries route to trivial patches with no public API additions: nested source/catalog selection (Blind1,Edge1), reader SDK policy (Blind2), retained diagnostics (Blind3,Edge2,Verification-other1), process and disposal custody (Blind5,Blind6), durable sanitized preparation inventories (Blind7), focused offline controls (Blind9,Verification1), and the current operator example (Blind10). No intent/spec loopback or deferred entry is required.
+
+### Review patch verification
+
+All surviving patches are implemented and pushed in owning commita6cdb6e84894e3ab455cce8d0c5c6539ac8769fa, adopting the concurrent source-selection and adapter commits without rewriting them. Parent verification passed all81 CI controls in447.561seconds and the full290-test Manifest suite in121.362seconds with zero failures/skips; source hashes stayed unchanged across both runs. The same implementer also passed33 focused controls and a clean Release/warnings-as-errors build. A real ordinary adapter build materialized all four SDK runtime DLLs and matched their authenticated public archives. Actual adapter acceptance remains strict; an optional archive-only utility is exercised separately and cannot excuse a missing deployed adapter DLL. Bounded diagnostic capture also removes the memory-growth concern filed as Blind4, as part of the retained-diagnostic patch. A follow-up clipped-quote redaction edge is covered for direct and escaped secret fields. No deferred findings remain.
+
+Evidence: /tmp/tenants-release-20261103-07JciR/mcpcli-native-review-handoff.json, mcpcli-parent-final-verification.json, mcpcli-parent-final-patched-ci.log and mcpcli-parent-final-manifest.log. Exact commit-message validation passed the owning pinned commitlint CLI; evidence is mcpcli-native-final-commitlint.log. Full hosted native21-plus-smoke acceptance remains the final external prerequisite; no local business runtime was started and no new actual operator-client session is claimed.
 
 
 ## Coordinated Source Inputs
