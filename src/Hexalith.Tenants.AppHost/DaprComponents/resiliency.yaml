@@ -27,6 +27,8 @@ spec:
     timeouts:
       # Each timeout is a named duration string (DAPR rejects nested objects here).
       daprSidecar: 5s
+      # A generated read can include a native authority read and final observation.
+      tenantsApiInvocation: 30s
       # App-wide EventStore invocation limit, including commands, reads and readiness.
       eventStoreInvocation: 30s
       # Pub/sub outbound: prevent hung sidecar->broker calls
@@ -49,7 +51,7 @@ spec:
     apps:
       tenants-api:
         retry: noReadRetry
-        timeout: daprSidecar
+        timeout: tenantsApiInvocation
       eventstore:
         retry: defaultRetry
         timeout: eventStoreInvocation

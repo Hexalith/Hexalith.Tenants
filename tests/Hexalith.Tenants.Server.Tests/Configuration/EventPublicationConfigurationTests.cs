@@ -383,10 +383,12 @@ public class EventPublicationConfigurationTests {
         Scalar(resiliency, "spec", "targets", "apps", "eventstore", "circuitBreaker").ShouldBe("defaultBreaker");
         foreach (var app in ((YamlMappingNode)Node(resiliency, "spec", "targets", "apps")).Children) {
             string name = ((YamlScalarNode)app.Key).Value.ShouldNotBeNull();
-            if (name == "eventstore" || (production && name == "tenants")) continue;
+            if (name == "eventstore" || name == "tenants-api" || (production && name == "tenants")) continue;
             Scalar(resiliency, "spec", "targets", "apps", name, "timeout").ShouldBe("daprSidecar");
         }
         Scalar(resiliency, "spec", "policies", "timeouts", "daprSidecar").ShouldBe("5s");
+        string readTimeout = Scalar(resiliency, "spec", "targets", "apps", "tenants-api", "timeout").ShouldNotBeNull();
+        Scalar(resiliency, "spec", "policies", "timeouts", readTimeout).ShouldBe("30s");
         Scalar(resiliency, "spec", "targets", "apps", "tenants-api", "retry").ShouldBe("noReadRetry");
         Scalar(resiliency, "spec", "policies", "retries", "noReadRetry", "policy").ShouldBe("constant");
         Scalar(resiliency, "spec", "policies", "retries", "noReadRetry", "duration").ShouldBe("1ms");
