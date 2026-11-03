@@ -30,12 +30,13 @@ public sealed class AuthenticatedTenantsUiRouteTests(AuthenticatedTenantsTopolog
             phase("native-admission-window");
             await fixture.BeginNativeReadQualificationAsync(cancellationToken);
             phase("sign-in");
-            string cookie = await fixture.SignInAsync(cancellationToken);
+            string cookie = await fixture.SignInAsync(AspireTopologyTests.CreateDemoJwt(), cancellationToken);
             string scopeMarkup = await GetMarkupAsync("/tenants", cookie, cancellationToken);
             scopeMarkup.ShouldNotContain("data-testid=\"fc-scope-blocked\"");
             scopeMarkup.ShouldContain("data-testid=\"tenants-workspace\"");
             phase("command-seed");
             AuthenticatedRouteState state = await AuthenticatedRouteState.CreateAsync(fixture.CommandApiClient, cancellationToken);
+            cookie = await fixture.SignInAsync(state.Token, cancellationToken);
             phase("projection-pages");
             string? listCursor = await state.WaitForListPageAsync(fixture.TenantsApiClient, 20, cancellationToken);
             string? membershipCursor = await state.WaitForCallerMembershipPageAsync(fixture.TenantsApiClient, 20, cancellationToken);
@@ -83,10 +84,10 @@ public sealed class AuthenticatedTenantsUiRouteTests(AuthenticatedTenantsTopolog
         {
             phase("native-admission-window");
             await fixture.BeginNativeReadQualificationAsync(cancellationToken);
-            phase("sign-in");
-            string cookie = await fixture.SignInAsync(cancellationToken);
             phase("command-seed");
             AuthenticatedRouteState state = await AuthenticatedRouteState.CreateAsync(fixture.CommandApiClient, cancellationToken);
+            phase("sign-in");
+            string cookie = await fixture.SignInAsync(state.Token, cancellationToken);
             phase("projection-pages");
             string? listCursor = await state.WaitForListPageAsync(fixture.TenantsApiClient, 20, cancellationToken);
             string? membershipCursor = await state.WaitForCallerMembershipPageAsync(fixture.TenantsApiClient, 20, cancellationToken);

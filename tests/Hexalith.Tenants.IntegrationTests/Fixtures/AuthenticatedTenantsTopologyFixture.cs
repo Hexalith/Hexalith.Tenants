@@ -108,11 +108,12 @@ public sealed class AuthenticatedTenantsTopologyFixture : AspireTopologyFixture,
         _nativeReadQualificationStarted = true;
     }
 
-    /// <summary>Signs in through the production code exchange and retains only the encrypted cookie header.</summary>
-    internal async Task<string> SignInAsync(CancellationToken cancellationToken)
+    /// <summary>Signs in with the caller's scoped backend token through the production code exchange and retains only the encrypted cookie header.</summary>
+    internal async Task<string> SignInAsync(string accessToken, CancellationToken cancellationToken)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(accessToken);
         Process provider = _identityProvider ?? throw new InvalidOperationException("The identity provider is not running.");
-        await provider.StandardInput.WriteLineAsync(JsonSerializer.Serialize(AspireTopologyTests.CreateDemoJwt()).AsMemory(), cancellationToken);
+        await provider.StandardInput.WriteLineAsync(JsonSerializer.Serialize(accessToken).AsMemory(), cancellationToken);
         string? ready = await provider.StandardOutput.ReadLineAsync(cancellationToken);
         if (ready != "ready")
         {

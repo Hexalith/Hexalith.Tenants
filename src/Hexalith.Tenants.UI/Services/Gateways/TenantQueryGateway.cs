@@ -122,6 +122,9 @@ internal sealed class TenantQueryGateway(
     /// <summary>The maximum number of concurrent authoritative hydration reads for one raw search page.</summary>
     internal const int MaximumHydrationConcurrency = 8;
 
+    /// <summary>Bounds supplementary list reads below search fanout to protect native authority under populated pages.</summary>
+    internal const int MaximumListEnrichmentConcurrency = 4;
+
     /// <summary>Maximum raw index positions examined per search load, including replay and lookahead.</summary>
     internal const int MaximumSearchScanPositions = 1_000;
 
@@ -2557,7 +2560,7 @@ internal sealed class TenantQueryGateway(
         using ITimer enrichmentTimer = (timeProvider ?? TimeProvider.System).CreateTimer(
             _ => ObserveCancellation(pageDeadline), null, enrichmentDeadline ?? MaximumEnrichmentDuration, Timeout.InfiniteTimeSpan);
 
-        using var concurrency = new SemaphoreSlim(MaximumHydrationConcurrency, MaximumHydrationConcurrency);
+        using var concurrency = new SemaphoreSlim(MaximumListEnrichmentConcurrency, MaximumListEnrichmentConcurrency);
 
         await Task.WhenAll(summaries.Select(async (summary, index) => {
             TenantListRow row = TenantListRow.FromSummary(summary) with {

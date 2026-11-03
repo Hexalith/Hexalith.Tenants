@@ -77,7 +77,11 @@ try:
  def sidecar(app,config,ap=None):
   hp=port();args=[str(daprd),'--app-id',app,'--log-level','debug','--dapr-http-port',str(hp),'--dapr-grpc-port',str(port()),'--dapr-internal-grpc-port',str(port()),'--metrics-port',str(port()),'--enable-mtls','--sentry-address','127.0.0.1:'+str(sentryport),'--control-plane-trust-domain','hexalith.io','--control-plane-namespace',namespace,'--config',str(config),'--resources-path',str(resources),'--scheduler-host-address','','--placement-host-address','']
   if ap:args += ['--app-port',str(ap),'--app-protocol','https']
-  start(app,args,env);wait_for(lambda:healthy(hp));return hp
+  start(app,args,env);wait_for(lambda:healthy(hp))
+  # Health can precede local resource loading on a busy runner. The 503 control
+  # is meaningful only after both peers have loaded the exact retry policy.
+  wait_for(lambda:'Loading Resiliency configuration: resiliency' in (ROOT/(app+'.log')).read_text(errors='replace'))
+  return hp
  receiverport=sidecar(receiver_alias,receiver,backend.server_port)
  caller_cfg=ROOT/'caller.yaml';caller_cfg.write_text((REPO/'deploy/dapr/accesscontrol.tenants-ui.yaml').read_text().replace('{env:DAPR_TRUST_DOMAIN|hexalith.io}','public'));caller=sidecar('tenants-ui',caller_cfg);denied=sidecar('dw144-denied',caller_cfg)
  time.sleep(2)
