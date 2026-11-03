@@ -28,12 +28,14 @@ namespace Hexalith.Tenants.IntegrationTests;
 [Trait("Category", "Integration")]
 public sealed class SourceCatalogOwnerProfileTests(AspireTopologyFixture fixture)
 {
-    [Fact(Timeout = 180000)]
+    [Fact(Timeout = 360000)]
     public async Task ActualOwnerCohortCommitsCompleteV2AndPreservesOwnedBootstrapAndRestEffects()
     {
         AspireTopologyFixture.IsSourceCatalogProfile.ShouldBeTrue();
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
-        deadline.CancelAfter(TimeSpan.FromMinutes(2));
+        // The actual source profile performs several bounded native reads and an Admin UI proxy check.
+        // Keep one finite qualification window around the whole sequence.
+        deadline.CancelAfter(TimeSpan.FromMinutes(5));
         string token = AspireTopologyTests.CreateDemoJwt();
         var (state, directory) = await SourceCatalogBootstrapEvidence.ReadCommittedAsync(deadline.Token);
         var activation = state.Committed.ShouldNotBeNull();

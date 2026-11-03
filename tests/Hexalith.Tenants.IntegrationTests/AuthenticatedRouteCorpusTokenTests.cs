@@ -19,6 +19,7 @@ public sealed class AuthenticatedRouteCorpusTokenTests
     [Fact]
     public async Task CompletePaginationGrantsOnlyDistinctObservedTenantsAndPreservesTheNarrowToken()
     {
+        DateTime startedUtc = DateTime.UtcNow;
         AuthenticatedRouteState state = CreateState();
         string originalToken = state.Token;
         var requests = new List<string?>();
@@ -47,11 +48,17 @@ public sealed class AuthenticatedRouteCorpusTokenTests
         grants.Distinct(StringComparer.Ordinal).Count().ShouldBe(3);
         grants.Any(static grant => grant is "*" or "system").ShouldBeFalse();
         var parsed = new JwtSecurityTokenHandler().ReadJwtToken(corpusToken);
+        DateTime completedUtc = DateTime.UtcNow;
+        parsed.ValidTo.ShouldBeInRange(startedUtc.AddMinutes(20).AddSeconds(-1), completedUtc.AddMinutes(20));
         parsed.Claims.Where(static claim => claim.Type == "eventstore:permission").Select(static claim => claim.Value)
             .Order(StringComparer.Ordinal).ShouldBe(["global-administrators:read", "tenants:read"]);
         JsonSerializer.Deserialize<string[]>(parsed.Claims.Single(static claim => claim.Type == "permissions").Value)
             .ShouldBe(["query:read"]);
         var original = new JwtSecurityTokenHandler().ReadJwtToken(state.Token);
+        original.ValidTo.ShouldBeInRange(startedUtc.AddMinutes(10).AddSeconds(-1), completedUtc.AddMinutes(10));
+        DateTime commandIssuedUtc = DateTime.UtcNow;
+        var command = new JwtSecurityTokenHandler().ReadJwtToken(AspireTopologyTests.CreateDemoJwt());
+        command.ValidTo.ShouldBeInRange(commandIssuedUtc.AddMinutes(10).AddSeconds(-1), DateTime.UtcNow.AddMinutes(10));
         parsed.Claims.Single(static claim => claim.Type == "sub").Value
             .ShouldBe(original.Claims.Single(static claim => claim.Type == "sub").Value);
         original.Claims.ShouldContain(static claim => claim.Type == "eventstore:permission" && claim.Value == "tenants:create");

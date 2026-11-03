@@ -11,8 +11,10 @@ namespace Hexalith.Tenants.UI.Tests.Services.Gateways;
 
 public sealed partial class TenantQueryGatewayTests
 {
-    [Fact]
-    public async Task DefaultEnrichmentDeadlineAcceptsAuthoritativeDetailAfterThirtyOneSeconds()
+    [Theory]
+    [InlineData(31)]
+    [InlineData(75)]
+    public async Task DefaultEnrichmentDeadlineAcceptsAuthoritativeDetailAtSupportedElapsedTimes(int seconds)
     {
         var clock = new ManualTimeProvider();
         var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -29,7 +31,7 @@ public sealed partial class TenantQueryGatewayTests
         });
         var load = CreateGateway(client, searchClock: clock).ListTenantsAsync(new(), null);
         await started.Task.WaitAsync(TimeSpan.FromSeconds(5));
-        clock.Advance(TimeSpan.FromSeconds(31));
+        clock.Advance(TimeSpan.FromSeconds(seconds));
         detailCancellation.IsCancellationRequested.ShouldBeFalse();
         load.IsCompleted.ShouldBeFalse();
         held.SetResult(DirectResponse(Detail("a")));

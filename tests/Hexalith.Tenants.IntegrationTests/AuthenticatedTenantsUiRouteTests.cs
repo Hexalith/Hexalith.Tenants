@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Net;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 using Hexalith.Tenants.IntegrationTests.Fixtures;
 using Hexalith.Tenants.UI.State.TenantList;
@@ -189,7 +190,28 @@ public sealed class AuthenticatedTenantsUiRouteTests(AuthenticatedTenantsTopolog
             if (readiness.TryGetProperty("pageSize", out JsonElement pageSize) && pageSize.ValueKind == JsonValueKind.Number && pageSize.TryGetInt32(out int size) && size is 20 or 50 or 100)
                 flags["pageSize"] = size;
         }
-        return $"Live browser failure: Phase={Category(failure, "phase")}, Label={Category(failure, "label")}, Readiness={JsonSerializer.Serialize(flags)}.";
+        var progressFlags = new Dictionary<string, int>();
+        if (evidence.TryGetProperty("progress", out JsonElement progress))
+        {
+            foreach (string name in new[] { "completedCases", "elapsedMilliseconds" })
+                if (progress.TryGetProperty(name, out JsonElement value) && value.ValueKind == JsonValueKind.Number
+                    && value.TryGetInt32(out int bounded) && bounded >= 0
+                    && (name == "elapsedMilliseconds" || bounded <= 100))
+                    progressFlags[name] = bounded;
+        }
+        var focusFlags = new Dictionary<string, object?>();
+        if (evidence.TryGetProperty("focus", out JsonElement focus) && focus.ValueKind == JsonValueKind.Object)
+        {
+            foreach (string name in new[] { "available", "launcherAttached", "launcherVisible", "expectedFocus", "detailSurfacePresent", "detailCurrentState" })
+                if (focus.TryGetProperty(name, out JsonElement value) && value.ValueKind is JsonValueKind.True or JsonValueKind.False)
+                    focusFlags[name] = value.GetBoolean();
+            if (focus.TryGetProperty("launcherCount", out JsonElement count) && count.TryGetInt32(out int bounded) && bounded is >= 0 and <= 100)
+                focusFlags["launcherCount"] = bounded;
+            if (focus.TryGetProperty("activeElementCategory", out JsonElement active) && active.ValueKind == JsonValueKind.String
+                && active.GetString() is "body" or "heading" or "button" or "input" or "link" or "other")
+                focusFlags["activeElementCategory"] = active.GetString();
+        }
+        return $"Live browser failure: Phase={Category(failure, "phase")}, Label={Category(failure, "label")}, Readiness={JsonSerializer.Serialize(flags)}, Progress={JsonSerializer.Serialize(progressFlags)}, Focus={JsonSerializer.Serialize(focusFlags)}.";
     }
 
     private static IEnumerable<(string Route, string Marker)> Routes(AuthenticatedRouteState state, string? listCursor, string? membershipCursor)
@@ -231,17 +253,47 @@ public sealed class AuthenticatedTenantsUiRouteTests(AuthenticatedTenantsTopolog
         catch (Exception exception)
         {
             TestContext.Current.TestOutputHelper?.WriteLine($"Live qualification exception category: {exception.GetType().Name}.");
-            if (!await HasBrowserEvidenceAsync(outputPath))
+            string label = exception is OperationCanceledException or TimeoutException ? "qualification-timeout" : "qualification-failed";
+            if (!await RetainBrowserProgressAsync(outputPath, phase, label) && !await HasBrowserEvidenceAsync(outputPath))
             {
-                await WriteWrapperEvidenceAsync(outputPath, phase,
-                    exception is OperationCanceledException or TimeoutException ? "qualification-timeout" : "qualification-failed", passed: false);
+                await WriteWrapperEvidenceAsync(outputPath, phase, label, passed: false);
             }
 
+            using JsonDocument failureEvidence = JsonDocument.Parse(await File.ReadAllTextAsync(outputPath));
+            TestContext.Current.TestOutputHelper?.WriteLine(DescribeBrowserFailure(failureEvidence.RootElement));
             throw new InvalidOperationException($"Live qualification failed during {phase}. Safe evidence: {outputPath}");
         }
         finally
         {
             TestContext.Current.TestOutputHelper?.WriteLine($"Safe live qualification evidence: {outputPath}");
+        }
+    }
+
+    private static async Task<bool> RetainBrowserProgressAsync(string outputPath, string wrapperPhase, string label)
+    {
+        try
+        {
+            if (JsonNode.Parse(await File.ReadAllTextAsync(outputPath)) is not JsonObject snapshot
+                || snapshot["mode"] is not JsonValue mode || !mode.TryGetValue(out string? _)
+                || snapshot["cases"] is not JsonArray
+                || snapshot["progress"] is not JsonObject progress
+                || progress["phase"] is not JsonValue phaseValue || !phaseValue.TryGetValue(out string? phase)
+                || phase is not { Length: > 0 and <= 96 }
+                || !phase.All(character => character is >= 'a' and <= 'z' or >= '0' and <= '9' or '-'))
+            {
+                return false;
+            }
+
+            snapshot["passed"] = false;
+            snapshot["failure"] ??= JsonSerializer.SerializeToNode(new { phase, label });
+            snapshot["wrapperFailure"] = JsonSerializer.SerializeToNode(new { phase = wrapperPhase, label });
+            snapshot["finishedUtc"] = JsonSerializer.SerializeToNode(DateTimeOffset.UtcNow);
+            await File.WriteAllTextAsync(outputPath, snapshot.ToJsonString() + "\n");
+            return true;
+        }
+        catch (Exception exception) when (exception is IOException or JsonException)
+        {
+            return false;
         }
     }
 
