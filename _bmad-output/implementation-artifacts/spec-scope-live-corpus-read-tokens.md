@@ -41,6 +41,7 @@ Test-only change. Preserve all production authorization, current-tenant selectio
 
 ## File List
 
+- references/Hexalith.Memories
 - references/Hexalith.EventStore
 - references/Hexalith.Builds
 - references/Hexalith.Platform
@@ -78,3 +79,14 @@ These are trivial changes to internal/test-only seams or their assertions; no pu
 - EventStore4.0.4 Release41580970775 succeeded at326bfef884543cdbcaf96de7f4c4ad378dbad6d7; all14 actual public archives verified at2026-11-03T05:12:16.427447+00:00. Identity/version, ZIP integrity, repository-signature presence, hashes and nuspec source all match. Signature presence is not independent cryptographic signature validation. Proof: /tmp/tenants-release-20261103-07JciR/eventstore-4.0.4-root-agent/verification.json.
 - Root fresh public-package restore succeeded. All five changed individual Release graphs built with -warnaserror and zero warnings/errors. Public-package governance184, offline AppHost50 and UI deadlines19 cases pass, zero skips. Commands/logs: tenants404-builds.json and tenants404-focused-public-tests.json in that same evidence directory. Ten restored SDK archives were independently identical to the downloaded public archives.
 - Direct complete generic discovery now contains669 cases (609 prior cases plus changed fixture/token controls). Its blocking minimum is updated669. Complete generic execution and final exact-source live CI remain pending; neither discovery nor offline model evidence establishes business runtime acceptance.
+
+
+## Latest Hosted Qualification and Budget Correction
+
+At source131966a5546efa8f5495ba73fcb409dab3d2eb74, the authenticated UI job125765855342 passed all25 maintained browser cases. At later source475debead3ecb6ebce2f72297758fb956b7f6d63, REST8, persisted7, anonymous6, HTTP/profile/catalog, shared build/unit tests, CodeQL, all story/release guards and source-reference integration passed. The authenticated browser job125772258439 passed22 cases (including detail/member/mobile Back focus) before the15-minute whole-qualification wrapper canceled during its required60-second admission window. Its browser had run770118ms; earlier native admission/command seed/projection work consumed the balance. There was no failed product assertion. Exact retained artifact: /tmp/tenants-release-20261103-07JciR/tenants-475-browser-22.json; full log: tenants-475-ui-job.log.
+
+The internal test envelope is corrected to25 minutes, its read-only exact-corpus fixture token to30 minutes, and only the enclosing live-route matrix job to45 minutes. The command/narrow token remains10 minutes; protected HTTP qualification remains5 minutes; functional operation bounds remain150 seconds; every required60-second admission window, all25 browser cases, original performance assertions and production authorization remain unchanged. This is test infrastructure timing, not a production latency acceptance claim. The current generic discovery is671; its actual complete execution and the corrected exact-source live run remain required. Memories is declared above for the independently coordinated root gitlink drift since this spec baseline.
+
+All14 downloaded EventStore4.0.4 archives additionally passed actual `dotnet nuget verify --all` on2026-11-03. The cryptographic verification and unchanged archive hash proof are retained in /tmp/tenants-release-20261103-07JciR/eventstore-4.0.4-signature-verification.json; the earlier signature-presence-only record remains historical.
+
+Focused correction verification: unchanged case discovery,59 corpus/evidence controls passed with zero skips, and the individual changed graph built with zero warnings/errors. Semantic YAML comparison against475debea proves only the actual authenticated-routes matrix timeout changed; shared Aspire remains35 minutes. Exact commands/input hashes and source-scope rationale: /tmp/tenants-release-20261103-07JciR/corpus-token-envelope-handoff.json. Hosted qualification remains pending.

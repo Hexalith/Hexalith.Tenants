@@ -84,9 +84,9 @@ public sealed class AuthenticatedTenantsUiRouteTests(AuthenticatedTenantsTopolog
     {
         fixture.SkipIfUnavailable();
         fixture.ProjectionWorkersEnabledAtStartup.ShouldBeFalse("authenticated UI routes qualify the independent request-path profile");
-        // The responsive and contextual groups include three real native admission windows.
+        // The responsive and contextual groups include four real native admission windows.
         // Keep one finite envelope for all cases, including their bounded read work.
-        await WithSafeEvidenceAsync(TimeSpan.FromMinutes(22), async (outputPath, phase, cancellationToken) =>
+        await WithSafeEvidenceAsync(TimeSpan.FromMinutes(25), async (outputPath, phase, cancellationToken) =>
         {
             phase("native-admission-window");
             await fixture.BeginNativeReadQualificationAsync(cancellationToken);
