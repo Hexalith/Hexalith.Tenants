@@ -118,8 +118,8 @@ string? daprApiToken = builder.Configuration["DAPR_API_TOKEN"];
 builder.Services.AddTransient<InboundBearerForwardingHandler>();
 IHttpClientBuilder gatewayClient = builder.Services.AddEventStoreGatewayClient(
     options => options.BaseAddress = new Uri(daprHttpEndpoint));
-// One query can require a bounded 10-second native read and a separate 2-second
-// final observation. Keep the total bound and standard resilience on this client only.
+// Enclose the 45-second domain query invocation, including its bounded 30-second
+// native read and separate 8-second final observation, on this client only.
 // Earlier transient failures can retry within that total; an attempt timeout consumes it.
 gatewayClient.ConfigureAdditionalHttpMessageHandlers(static (handlers, _) =>
 {
@@ -130,9 +130,9 @@ gatewayClient.ConfigureAdditionalHttpMessageHandlers(static (handlers, _) =>
 });
 gatewayClient.AddStandardResilienceHandler(static options =>
 {
-    options.AttemptTimeout.Timeout = TimeSpan.FromSeconds(30);
-    options.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(30);
-    options.CircuitBreaker.SamplingDuration = TimeSpan.FromSeconds(60);
+    options.AttemptTimeout.Timeout = TimeSpan.FromSeconds(50);
+    options.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(50);
+    options.CircuitBreaker.SamplingDuration = TimeSpan.FromSeconds(100);
 });
 gatewayClient.ConfigureAdditionalHttpMessageHandlers(static (handlers, _) =>
 {

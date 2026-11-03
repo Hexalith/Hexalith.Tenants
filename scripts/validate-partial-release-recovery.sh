@@ -108,20 +108,24 @@ mapfile -t package_ids < <(jq -r '.packages[] | .id' "$manifest")
 : > "$state_directory/missing-packages"
 : > "$state_directory/existing-packages"
 : > "$state_directory/existing-package-sha256"
+: > "$state_directory/nuget-readiness"
 existing=0
+now="$(recovery_monotonic_microseconds)" || fail 'Monotonic NuGet readiness clock failed.'
+deadline=$((now + 30000000))
 for package_id in "${package_ids[@]}"; do
-  lower_id="$(printf '%s' "$package_id" | tr '[:upper:]' '[:lower:]')"
-  status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
-    "https://api.nuget.org/v3-flatcontainer/${lower_id}/${version}/${lower_id}.${version}.nupkg")"
+  package_file="$state_directory/${package_id}.${version}.nupkg"
+  recovery_download_nuget "$package_id" "$version" "$package_file" "$state_directory/nuget-readiness" "$deadline"
+  status="$recovery_nuget_status"
   case "$status" in
     200)
       existing=$((existing + 1))
       printf '%s\n' "$package_id" >> "$state_directory/existing-packages"
-      package_file="$state_directory/${package_id}.${version}.nupkg"
-      curl --fail --silent --show-error "https://api.nuget.org/v3-flatcontainer/${lower_id}/${version}/${lower_id}.${version}.nupkg" --output "$package_file"
       printf '%s %s\n' "$(sha256sum "$package_file" | awk '{ print $1 }')" "$package_id" >> "$state_directory/existing-package-sha256"
       ;;
-    404) printf '%s\n' "$package_id" >> "$state_directory/missing-packages" ;;
+    404)
+      rm -f "$package_file"
+      printf '%s\n' "$package_id" >> "$state_directory/missing-packages"
+      ;;
     *) fail "NuGet destination status for a package could not be proved." ;;
   esac
 done

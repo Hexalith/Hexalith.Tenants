@@ -12,9 +12,24 @@ namespace Hexalith.Tenants.IntegrationTests;
 internal sealed class OwnerSourceCaptureHandler(AuthoritativeEventStream? source = null, RSA? scopeKey = null) : HttpMessageHandler
 {
     private OwnerSourceCaptureHandler? _observer;
+    private int _startedAttempts;
+    private readonly TaskCompletionSource _started = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly TaskCompletionSource _canceled = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    /// <summary>Gets the number of actual terminal sends, including canceled sends.</summary>
+    internal int StartedAttempts => Volatile.Read(ref _startedAttempts);
+
+    /// <summary>Gets the first actual terminal send notification.</summary>
+    internal Task Started => _started.Task;
+
+    /// <summary>Gets the terminal's observation of transport cancellation.</summary>
+    internal Task Canceled => _canceled.Task;
 
     /// <summary>Creates a separately owned nonredirecting SDK test transport sharing only recorded observations.</summary>
-    internal OwnerSourceCaptureHandler CreateIndependentTransport() => new(source, scopeKey) { _observer = this };
+    internal OwnerSourceCaptureHandler CreateIndependentTransport() => new(source, scopeKey) { _observer = this, Delay = Delay };
+
+    /// <summary>Gets the terminal delay used to qualify the real inherited production policy.</summary>
+    internal TimeSpan Delay { get; init; }
 
     internal int ReadCount { get; private set; }
     internal HttpMethod? Method { get; private set; }
@@ -24,6 +39,15 @@ internal sealed class OwnerSourceCaptureHandler(AuthoritativeEventStream? source
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
+        OwnerSourceCaptureHandler terminal = _observer ?? this;
+        Interlocked.Increment(ref terminal._startedAttempts);
+        terminal._started.TrySetResult();
+        try { await Task.Delay(Delay, cancellationToken); }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            terminal._canceled.TrySetResult();
+            throw;
+        }
         Method = request.Method;
         Uri = request.RequestUri;
         Headers = request.Headers.ToDictionary(static header => header.Key, static header => header.Value.ToArray(), StringComparer.OrdinalIgnoreCase);

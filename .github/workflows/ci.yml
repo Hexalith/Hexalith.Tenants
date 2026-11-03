@@ -22,7 +22,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - profile: canonical scope 4.0.0
+          - profile: canonical scope 4.0.4
             sdk-argument: ''
             budget-minimum: 8
             runtime-minimum: 7
@@ -73,7 +73,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - profile: canonical scope 4.0.0
+          - profile: canonical scope 4.0.4
             sdk-argument: ''
             owner-source-minimum: 25
     env:
@@ -179,13 +179,18 @@ jobs:
             --expected-source-sha "$GITHUB_SHA" --output "${RUNNER_TEMP}/catalog-package-consumer.json"
 
   authenticated-routes:
-    name: Blocking authenticated live routes
+    name: Blocking authenticated live routes (${{ matrix.suite }})
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [rest, persisted, anonymous-ui, authenticated-ui]
     env:
       SSL_CERT_DIR: /home/runner/.aspnet/dev-certs/trust:/usr/lib/ssl/certs
       # Qualify request-path projection delivery independently of the pinned background-worker race.
       EventStore__Projections__WorkersEnabled: 'false'
+      TENANTS_LIVE_REQUIRE_COLD_BOOTSTRAP: 'true'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -193,7 +198,7 @@ jobs:
           submodules: false
           persist-credentials: false
       - name: Initialize root-declared submodules
-        run: git -c submodule.recurse=false submodule update --init
+        run: git -c submodule.recurse=false submodule update --init --depth 1
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           global-json-file: global.json
@@ -220,16 +225,42 @@ jobs:
               live_cert_index=$((live_cert_index + 1))
             done
           done
-      - name: Install and initialize Dapr
-        uses: Hexalith/Hexalith.Builds/Github/dapr-init@fff4a212180d8cd1c5c0759655a9bc4fb6963c45
-        with:
-          version: '1.18.0'
-          runtime-version: '1.18.2'
       - name: Install pinned browser qualification tools
         working-directory: tests/performance/tenant-audit
         run: |
           npm ci
           npx --no-install playwright install --with-deps chromium
+      - name: Record backend inventory before disposable Dapr initialization
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import datetime, json, os, pathlib, subprocess
+          before = pathlib.Path(os.environ["RUNNER_TEMP"]) / "tenants-package-before-volumes.json"
+          volumes = subprocess.check_output(["docker", "volume", "ls", "-q"], text=True, timeout=30).splitlines()
+          with before.open("x", encoding="utf-8") as output:
+              json.dump(volumes, output)
+          with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as output:
+              output.write("TENANTS_SOURCE_BACKEND_BEFORE_PATH=" + str(before) + "\n")
+              output.write("TENANTS_SOURCE_BACKEND_STARTED_AT=" + datetime.datetime.now(datetime.timezone.utc).isoformat() + "\n")
+          PY
+      - name: Install and initialize Dapr
+        uses: Hexalith/Hexalith.Builds/Github/dapr-init@fff4a212180d8cd1c5c0759655a9bc4fb6963c45
+        with:
+          version: '1.18.2'
+          runtime-version: '1.18.7'
+      - name: Provision the canonical package catalog on the fresh backend
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_sha="$(git rev-parse HEAD:references/Hexalith.EventStore)"
+          printf 'TENANTS_SOURCE_SDK_PRODUCER_VERSION=4.0.4\n' >> "$GITHUB_ENV"
+          python3 scripts/prepare-source-catalog-profile.py \
+            --ci-job authenticated-routes --sdk-source-sha "$source_sha" \
+            --output "${RUNNER_TEMP}/tenants-package-backend.json"
+      - name: Verify bounded functional browser navigation and readiness
+        if: ${{ matrix.suite == 'rest' }}
+        run: node --test tests/Hexalith.Tenants.UI.Tests/Browser/authenticated-live-route-waits.test.mjs tests/Hexalith.Tenants.UI.Tests/Browser/authenticated-live-route-evidence.test.mjs
       - name: Build live hosts and focused suites against canonical-scope packages
         id: live-build
         shell: bash
@@ -243,18 +274,22 @@ jobs:
             tests/Hexalith.Tenants.AppHost.Tests/Hexalith.Tenants.AppHost.Tests.csproj \
             tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj; do
             dotnet build "$project" --configuration Release \
-              -p:HexalithEventStoreVersion=4.0.0 -p:HexalithMcpCliVersion=2.0.0 \
+              -p:HexalithEventStoreVersion=4.0.4 -p:HexalithMcpCliVersion=2.0.0 \
               -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true \
               -p:HexalithFrontComposerFromSource=false -p:HexalithMemoriesFromSource=false \
               -warnaserror -m:1 -nr:false
           done
       - name: Verify unique app-channel ownership
         if: ${{ !cancelled() && steps.live-build.outcome == 'success' }}
+        env:
+          TENANTS_SOURCE_CATALOG_PROFILE: 'false'
         run: >
           dotnet test tests/Hexalith.Tenants.AppHost.Tests/Hexalith.Tenants.AppHost.Tests.csproj
           --configuration Release --no-build
           --filter-class Hexalith.Tenants.AppHost.Tests.AppHostSecurityResourceGraphTests
-          --minimum-expected-tests 12 --fail-skips on
+          --minimum-expected-tests 36 --fail-skips on
+          --results-directory TestResults/authenticated-routes/${{ matrix.suite }}
+          --report-xunit-trx --report-xunit-trx-filename security-resource-graph-${{ matrix.suite }}.trx
       - name: Verify bounded TLS failure diagnostics
         if: ${{ !cancelled() && steps.live-build.outcome == 'success' }}
         run: >
@@ -262,14 +297,22 @@ jobs:
           --configuration Release --no-build
           --filter-class Hexalith.Tenants.IntegrationTests.AspireTopologyTlsDiagnosticsTests
           --minimum-expected-tests 5 --fail-skips on
+          --results-directory TestResults/authenticated-routes/${{ matrix.suite }}
+          --report-xunit-trx --report-xunit-trx-filename tls-diagnostics-${{ matrix.suite }}.trx
       - name: Verify bootstrap lifecycle and authority guards
         if: ${{ !cancelled() && steps.live-build.outcome == 'success' }}
+        # This fake-HTTP suite checks default bootstrap behavior; the live catalog profile belongs to later socket checks.
+        env:
+          TENANTS_SOURCE_CATALOG_PROFILE: 'false'
         run: >
           dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj
           --configuration Release --no-build
           --filter-class Hexalith.Tenants.IntegrationTests.AspireTopologyBootstrapTests
           --minimum-expected-tests 72 --fail-skips on
+          --results-directory TestResults/authenticated-routes/${{ matrix.suite }}
+          --report-xunit-trx --report-xunit-trx-filename bootstrap-guards-${{ matrix.suite }}.trx
       - name: Verify real Dapr HTTPS reads never retry a 503
+        if: ${{ matrix.suite == 'rest' }}
         run: |
           python3 tests/integration/qualify-dapr-read-retries.py --output "${{ runner.temp }}/tenants-dapr-no-retry.json"
           if python3 tests/integration/qualify-dapr-read-retries.py --mutate-retries --output "${{ runner.temp }}/tenants-dapr-retry-mutation.json"; then
@@ -284,69 +327,87 @@ jobs:
           assert len(report['results']) == 13 and all(row['pass'] for row in report['results'] if row is not retry), report
           PY
       - name: Retain the real Dapr retry qualification
-        if: always()
+        if: ${{ always() && matrix.suite == 'rest' }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: tenants-dapr-read-retry-evidence
           path: ${{ runner.temp }}/tenants-dapr-*.json
           if-no-files-found: warn
       - name: Verify cold bootstrap, six REST reads, global-owner audit, public system denial and cursor recovery
-        if: ${{ !cancelled() && steps.live-build.outcome == 'success' }}
-        env:
-          # This is the first live fixture on a fresh runner: require a newly committed bootstrap.
-          TENANTS_LIVE_REQUIRE_COLD_BOOTSTRAP: 'true'
+        if: ${{ !cancelled() && steps.live-build.outcome == 'success' && matrix.suite == 'rest' }}
         run: >
           dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj
           --configuration Release --no-build
           --filter-class Hexalith.Tenants.IntegrationTests.AuthenticatedTenantsRouteTests
-          --minimum-expected-tests 6 --fail-skips on
+          --minimum-expected-tests 8 --fail-skips on
+          --results-directory TestResults/authenticated-routes/${{ matrix.suite }}
+          --report-xunit-trx --report-xunit-trx-filename authenticated-rest-${{ matrix.suite }}.trx
       - name: Verify private failure evidence
-        if: ${{ !cancelled() && steps.live-build.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.live-build.outcome == 'success' && matrix.suite == 'rest' }}
         run: >
           dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj
           --configuration Release --no-build
           --filter-class Hexalith.Tenants.IntegrationTests.AuthenticatedRouteEvidenceTests
-          --minimum-expected-tests 3 --fail-skips on
-      - name: Verify the hosted persisted-state regression without skips
-        if: ${{ !cancelled() && steps.live-build.outcome == 'success' }}
+          --minimum-expected-tests 6 --fail-skips on
+          --results-directory TestResults/authenticated-routes/${{ matrix.suite }}
+          --report-xunit-trx --report-xunit-trx-filename private-evidence-${{ matrix.suite }}.trx
+      - name: Verify all hosted topology, background delivery, and persisted-state regressions without skips
+        if: ${{ !cancelled() && steps.live-build.outcome == 'success' && matrix.suite == 'persisted' }}
+        env:
+          TENANTS_SOURCE_CATALOG_INCLUDE_SAMPLE: 'true'
+          EventStore__Projections__WorkersEnabled: 'true'
+          TENANTS_SOURCE_WORKER_BACKED_RESPONSES_ENABLED: 'true'
         run: >
           dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj
           --configuration Release --no-build
-          --filter-method Hexalith.Tenants.IntegrationTests.AspireTopologyTests.Generated_tenants_api_get_tenant_reads_verified_redis_state_with_projection_authority
-          --minimum-expected-tests 1 --fail-skips on
+          --filter-class Hexalith.Tenants.IntegrationTests.AspireTopologyTests
+          --minimum-expected-tests 7 --fail-skips on
+          --results-directory TestResults/authenticated-routes/${{ matrix.suite }}
+          --report-xunit-trx --report-xunit-trx-filename persisted-topology-${{ matrix.suite }}.trx
       - name: Preserve anonymous UI denial coverage
-        if: ${{ !cancelled() && steps.live-build.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.live-build.outcome == 'success' && matrix.suite == 'anonymous-ui' }}
         run: >
           dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj
           --configuration Release --no-build
           --filter-class Hexalith.Tenants.IntegrationTests.TenantsUiRouteSmokeTests
           --minimum-expected-tests 6 --fail-skips on
+          --results-directory TestResults/authenticated-routes/${{ matrix.suite }}
+          --report-xunit-trx --report-xunit-trx-filename anonymous-ui-${{ matrix.suite }}.trx
       - name: Verify authenticated UI, measured responsive modes and contextual audit Back
-        if: ${{ !cancelled() && steps.live-build.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.live-build.outcome == 'success' && matrix.suite == 'authenticated-ui' }}
         run: >
           dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj
           --configuration Release --no-build
           --filter-class Hexalith.Tenants.IntegrationTests.AuthenticatedTenantsUiRouteTests
           --minimum-expected-tests 3 --fail-skips on
+          --results-directory TestResults/authenticated-routes/${{ matrix.suite }}
+          --report-xunit-trx --report-xunit-trx-filename authenticated-ui-${{ matrix.suite }}.trx
+      - name: Retain test results for every live-route matrix suite
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: authenticated-route-test-results-${{ matrix.suite }}
+          path: TestResults/authenticated-routes/${{ matrix.suite }}/*.trx
+          if-no-files-found: warn
       - name: Retain support-safe live browser evidence
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: authenticated-live-route-evidence
+          name: authenticated-live-route-evidence-${{ matrix.suite }}
           path: /tmp/tenants-live-routes-*/result.json
           if-no-files-found: warn
       - name: Retain bounded bootstrap failure categories
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: tenants-bootstrap-failure-categories
+          name: tenants-bootstrap-failure-categories-${{ matrix.suite }}
           path: ${{ runner.temp }}/tenants-bootstrap-diagnostics/*.json
           if-no-files-found: ignore
 
   http-contracts:
     name: Blocking HTTP contracts
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -409,8 +470,8 @@ jobs:
       run-consumer-validation: true
       # Canonical-scope hosts use the current root-declared EventStore source.
       run-coverage-gate: true
-      # Restore/build/package consumers plus the bounded recovery controls exceed the shared 15-minute default.
-      build-timeout-minutes: 25
+      # Root object acquisition, restore, build, tests and package consumers exceeded 25 minutes on hosted CI.
+      build-timeout-minutes: 60
       unit-test-projects: |
         tests/Hexalith.Tenants.Contracts.Tests
         tests/Hexalith.Tenants.Client.Tests
@@ -423,9 +484,8 @@ jobs:
       aspire-test-project: tests/Hexalith.Tenants.IntegrationTests
       aspire-timeout-minutes: 35
       aspire-continue-on-error: false
+      aspire-runner-script: scripts/run-aspire-integration-tier.sh
       aspire-browser-project: tests/performance/tenant-audit
-      # Complete non-Performance tier, workers enabled by the generic fixture default.
-      # The focused authenticated-route worker override above does not apply to this reusable job.
       aspire-fail-skips: true
       coverage-minimum-line: 80
       coverage-required-branch: 100

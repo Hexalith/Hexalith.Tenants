@@ -122,7 +122,7 @@ jobs:
           submodules: false
           persist-credentials: false
       - name: Initialize root-declared submodules
-        run: git -c submodule.recurse=false submodule update --init
+        run: git -c submodule.recurse=false submodule update --init --depth 1
       - name: Initialize .NET
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:

@@ -50,6 +50,7 @@ class SourceCatalogProfileProvisioningTests(unittest.TestCase):
                 "TENANTS_SOURCE_BACKEND_BEFORE_PATH": str(before), "TENANTS_SOURCE_SDK_PRODUCER_VERSION": "3.128.4",
             }
             if scenario == "wrong-job": settings["GITHUB_JOB"] = "unowned"
+            if scenario == "package-job": settings["GITHUB_JOB"] = "authenticated-routes"
             calls = []
 
             def command(*arguments):
@@ -67,9 +68,11 @@ class SourceCatalogProfileProvisioningTests(unittest.TestCase):
                 raise AssertionError("Unexpected boundary command: " + repr(arguments))
 
             with mock.patch.dict(os.environ, settings), mock.patch.object(profile, "command", command), \
-                    mock.patch("sys.argv", ["prepare", "--sdk-source-sha", "b" * 40, "--output", str(output)]), \
+                    mock.patch("sys.argv", ["prepare", "--sdk-source-sha", "b" * 40,
+                                            *(["--ci-job", "authenticated-routes"] if scenario == "package-job" else []),
+                                            "--output", str(output)]), \
                     contextlib.redirect_stdout(io.StringIO()) as diagnostics:
-                if scenario == "fresh":
+                if scenario in ("fresh", "package-job"):
                     profile.main()
                     evidence = json.loads(output.read_text(encoding="utf-8"))
                     self.assertTrue(evidence["materialProvisionedWithFreshBackend"])
@@ -77,7 +80,9 @@ class SourceCatalogProfileProvisioningTests(unittest.TestCase):
                     self.assertEqual(evidence["sdkProducerVersion"], "3.128.4")
                     self.assertNotIn("DigestKeys", output.read_text(encoding="utf-8"))
                     self.assertIn("Tenants__DevelopmentRouteCatalog__CustodyDirectory=", environment.read_text(encoding="utf-8"))
-                    self.assertIn("TENANTS_SOURCE_WORKER_BACKED_RESPONSES_ENABLED=true\n", environment.read_text(encoding="utf-8"))
+                    expected_worker_responses = "false" if scenario == "package-job" else "true"
+                    self.assertIn(f"TENANTS_SOURCE_WORKER_BACKED_RESPONSES_ENABLED={expected_worker_responses}\n",
+                                  environment.read_text(encoding="utf-8"))
                     self.assertEqual(diagnostics.getvalue().count("::add-mask::"), 2)
                     log_settings = dict(line.split("=", 1) for line in environment.read_text(encoding="utf-8").splitlines()
                                         if line.startswith("Logging__"))
@@ -97,6 +102,9 @@ class SourceCatalogProfileProvisioningTests(unittest.TestCase):
 
     def test_fresh_owned_backend_provisions_private_material_and_public_receipt(self):
         self.exercise("fresh")
+
+    def test_package_job_uses_the_same_fresh_backend_guard(self):
+        self.exercise("package-job")
 
     def test_refusals_preserve_existing_evidence_and_do_not_mint_owner_material(self):
         for scenario in ("old-container", "stopped", "retained-volume", "old-volume", "bind-mount", "wrong-port",

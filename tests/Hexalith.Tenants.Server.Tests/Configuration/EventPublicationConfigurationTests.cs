@@ -155,6 +155,7 @@ public class EventPublicationConfigurationTests {
         IDomainQueryHandler[] handlers = [.. scope.ServiceProvider.GetServices<IDomainQueryHandler>()];
         handlers.Select(handler => handler.QueryType).ShouldBe(
             [
+                GetGlobalAdministratorAuditQuery.QueryType,
                 GetGlobalAdministratorsQuery.QueryType,
                 GetTenantAuditQuery.QueryType,
                 GetTenantQuery.QueryType,
@@ -176,6 +177,7 @@ public class EventPublicationConfigurationTests {
             .Single(domain => domain.Domain == GetTenantQuery.Domain);
         tenants.QueryTypes.ShouldBe(
             [
+                GetGlobalAdministratorAuditQuery.QueryType,
                 GetTenantAuditQuery.QueryType,
                 GetTenantQuery.QueryType,
                 GetTenantUsersQuery.QueryType,
@@ -376,15 +378,17 @@ public class EventPublicationConfigurationTests {
             ? RepositoryPath("deploy", "dapr", "resiliency.yaml")
             : RepositoryPath("src", "Hexalith.Tenants.AppHost", "DaprComponents", "resiliency.yaml"));
         string commandTimeout = Scalar(resiliency, "spec", "targets", "apps", "eventstore", "timeout").ShouldNotBeNull();
-        Scalar(resiliency, "spec", "policies", "timeouts", commandTimeout).ShouldBe("30s");
+        Scalar(resiliency, "spec", "policies", "timeouts", commandTimeout).ShouldBe("55s");
         Scalar(resiliency, "spec", "targets", "apps", "eventstore", "retry").ShouldBe("defaultRetry");
         Scalar(resiliency, "spec", "targets", "apps", "eventstore", "circuitBreaker").ShouldBe("defaultBreaker");
         foreach (var app in ((YamlMappingNode)Node(resiliency, "spec", "targets", "apps")).Children) {
             string name = ((YamlScalarNode)app.Key).Value.ShouldNotBeNull();
-            if (name == "eventstore" || (production && name == "tenants")) continue;
+            if (name == "eventstore" || name == "tenants-api" || (production && name == "tenants")) continue;
             Scalar(resiliency, "spec", "targets", "apps", name, "timeout").ShouldBe("daprSidecar");
         }
         Scalar(resiliency, "spec", "policies", "timeouts", "daprSidecar").ShouldBe("5s");
+        string readTimeout = Scalar(resiliency, "spec", "targets", "apps", "tenants-api", "timeout").ShouldNotBeNull();
+        Scalar(resiliency, "spec", "policies", "timeouts", readTimeout).ShouldBe("60s");
         Scalar(resiliency, "spec", "targets", "apps", "tenants-api", "retry").ShouldBe("noReadRetry");
         Scalar(resiliency, "spec", "policies", "retries", "noReadRetry", "policy").ShouldBe("constant");
         Scalar(resiliency, "spec", "policies", "retries", "noReadRetry", "duration").ShouldBe("1ms");
@@ -400,8 +404,12 @@ public class EventPublicationConfigurationTests {
         Scalar(resiliency, "spec", "policies", "circuitBreakers", "defaultBreaker", "timeout").ShouldBe("30s");
         Scalar(resiliency, "spec", "policies", "circuitBreakers", "defaultBreaker", "trip").ShouldBe("consecutiveFailures > 3");
         if (production) {
-            Scalar(resiliency, "spec", "targets", "apps", "tenants", "timeout").ShouldBe("tenantsInvocation");
-            Scalar(resiliency, "spec", "policies", "timeouts", "tenantsInvocation").ShouldBe("30s");
+            string tenantsTimeout = Scalar(resiliency, "spec", "targets", "apps", "tenants", "timeout").ShouldNotBeNull();
+            tenantsTimeout.ShouldBe("tenantsInvocation");
+            string tenantsDuration = Scalar(resiliency, "spec", "policies", "timeouts", tenantsTimeout).ShouldNotBeNull();
+            tenantsDuration.ShouldBe("50s");
+            int.Parse(tenantsDuration[..^1], System.Globalization.CultureInfo.InvariantCulture).ShouldBeGreaterThan(30 + 8,
+                "the active deployed Tenants target must enclose native verification and its final observation");
             Scalar(resiliency, "spec", "targets", "apps", "tenants", "retry").ShouldBe("defaultRetry");
             Scalar(resiliency, "spec", "targets", "apps", "tenants", "circuitBreaker").ShouldBe("defaultBreaker");
         }

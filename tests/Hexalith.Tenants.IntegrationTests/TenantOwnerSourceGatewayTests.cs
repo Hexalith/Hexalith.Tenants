@@ -25,6 +25,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using NSubstitute;
 
 using Shouldly;
+using Polly.Timeout;
 
 namespace Hexalith.Tenants.IntegrationTests;
 
@@ -32,13 +33,13 @@ namespace Hexalith.Tenants.IntegrationTests;
 [Collection("BootstrapReadiness")]
 public sealed class TenantOwnerSourceGatewayTests
 {
-    [Fact]
+    [Fact(Timeout = 25000)]
     public async Task ActualProgramRegistersTheOwnerSourceClientWithTheSelectedEndpoint()
     {
         const string endpoint = "http://localhost:3579";
         using RSA key = RSA.Create(2048);
         var issuer = CreateIssuer();
-        var terminal = new OwnerSourceCaptureHandler();
+        var terminal = new OwnerSourceCaptureHandler { Delay = TimeSpan.FromSeconds(11) };
         string? previousEndpoint = Environment.GetEnvironmentVariable("DAPR_HTTP_ENDPOINT");
         try
         {
@@ -68,6 +69,62 @@ public sealed class TenantOwnerSourceGatewayTests
 #if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
             AssertCatalogHeaders(factory.Services, terminal);
 #endif
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("DAPR_HTTP_ENDPOINT", previousEndpoint);
+        }
+    }
+
+    /// <summary>Exercises actual Program policy cancellation without changing its thirty-second bound or retries.</summary>
+    [Theory(Timeout = 40000)]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ActualProgramOwnerPolicyCancelsOneTerminalAttemptWithoutReplay(bool callerCancellation)
+    {
+        const string endpoint = "http://localhost:3579";
+        using RSA key = RSA.Create(2048);
+        var issuer = CreateIssuer();
+        var terminal = new OwnerSourceCaptureHandler { Delay = Timeout.InfiniteTimeSpan };
+        string? previousEndpoint = Environment.GetEnvironmentVariable("DAPR_HTTP_ENDPOINT");
+        try
+        {
+            Environment.SetEnvironmentVariable("DAPR_HTTP_ENDPOINT", endpoint);
+            using var factory = new WebApplicationFactory<TenantOwnerSourceGateway>()
+                .WithWebHostBuilder(builder =>
+                {
+                    builder.UseEnvironment("Development");
+                    builder.UseSetting("Tenants:BootstrapGlobalAdminEnabled", "false");
+                    builder.UseSetting("Authentication:BoundStreamRead:PrivateKey", Convert.ToBase64String(key.ExportPkcs8PrivateKey()));
+                    builder.ConfigureTestServices(services =>
+                    {
+                        services.RemoveAll<IWorkloadAssertionIssuer>();
+                        services.AddSingleton(issuer);
+#if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
+                        ConfigureCatalogAuthorityControl(services, CreateConfiguration(endpoint), terminal);
+#endif
+                        services.AddHttpClient<TenantOwnerSourceGateway>().ConfigurePrimaryHttpMessageHandler(() => terminal);
+                    });
+                });
+            using var caller = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+            caller.CancelAfter(TimeSpan.FromSeconds(35));
+            var gateway = factory.Services.GetRequiredService<TenantOwnerSourceGateway>();
+            long startedAt = Stopwatch.GetTimestamp();
+            Task<StreamReadPage> pending = gateway.ReadStreamAsync(new("system", "tenants", "owner-source"), caller.Token);
+            await terminal.Started.WaitAsync(TimeSpan.FromSeconds(5), caller.Token);
+            if (callerCancellation)
+            {
+                await caller.CancelAsync();
+                await Should.ThrowAsync<OperationCanceledException>(() => pending);
+            }
+            else
+            {
+                await Should.ThrowAsync<TimeoutRejectedException>(() => pending);
+                Stopwatch.GetElapsedTime(startedAt).ShouldBeGreaterThanOrEqualTo(TimeSpan.FromSeconds(29));
+            }
+            await terminal.Canceled.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+            terminal.StartedAttempts.ShouldBe(1, "neither exhausted nor caller-canceled sends may replay");
+            terminal.ReadCount.ShouldBe(0);
         }
         finally
         {
@@ -331,9 +388,30 @@ public sealed class TenantOwnerSourceGatewayTests
         var selected = new CommittedRouteCatalogSnapshot(owner.GetCanonicalBytes(), owner.RootDigest, owner.Epoch,
             [new("eventstore", "api/v1/streams/read/workload", "eventstore:stream-read", "gateway")], localAppId: "tenants");
 #endif
+        IRouteCatalogAuthority authority = TenantOwnerCatalogTestAuthority.Create(selected);
+        // Assert transport headers against the same SDK-owned activation the real authority acquired.
+        RouteCatalogDispatchLease lease = authority.AcquireAsync().GetAwaiter().GetResult();
+        try
+        {
+            CommittedRouteCatalogSnapshot acquired = lease.Snapshot;
+            acquired.GetCanonicalBytes().ShouldBe(selected.GetCanonicalBytes());
+            acquired.RootDigest.ShouldBe(selected.RootDigest);
+            acquired.Epoch.ShouldBe(selected.Epoch);
+            acquired.LocalAppId.ShouldBe(selected.LocalAppId);
+            acquired.AuthorityCoordinates.ShouldBe(selected.AuthorityCoordinates);
+            JsonSerializer.Serialize(acquired.TechnicalHttpReceivers).ShouldBe(JsonSerializer.Serialize(selected.TechnicalHttpReceivers));
+            JsonSerializer.Serialize(acquired.ProjectionCapabilities).ShouldBe(JsonSerializer.Serialize(selected.ProjectionCapabilities));
+            JsonSerializer.Serialize(acquired.AuxiliaryOperations).ShouldBe(JsonSerializer.Serialize(selected.AuxiliaryOperations));
+            // Retain the independent expectations above before adopting the SDK-generated binding digest.
+            selected = acquired;
+        }
+        finally
+        {
+            lease.DisposeAsync().AsTask().GetAwaiter().GetResult();
+        }
         services.AddSingleton(selected);
         services.RemoveAll<IRouteCatalogAuthority>();
-        services.AddSingleton(TenantOwnerCatalogTestAuthority.Create(selected));
+        services.AddSingleton(authority);
         services.Configure<RouteCatalogHostOptions>(options =>
         {
 #if HEXALITH_TECHNICAL_HTTP_CATALOG_BINDING

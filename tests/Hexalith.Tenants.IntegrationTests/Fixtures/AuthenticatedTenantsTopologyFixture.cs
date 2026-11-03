@@ -108,11 +108,12 @@ public sealed class AuthenticatedTenantsTopologyFixture : AspireTopologyFixture,
         _nativeReadQualificationStarted = true;
     }
 
-    /// <summary>Signs in through the production code exchange and retains only the encrypted cookie header.</summary>
-    internal async Task<string> SignInAsync(CancellationToken cancellationToken)
+    /// <summary>Signs in with the caller's scoped backend token through the production code exchange and retains only the encrypted cookie header.</summary>
+    internal async Task<string> SignInAsync(string accessToken, CancellationToken cancellationToken)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(accessToken);
         Process provider = _identityProvider ?? throw new InvalidOperationException("The identity provider is not running.");
-        await provider.StandardInput.WriteLineAsync(JsonSerializer.Serialize(AspireTopologyTests.CreateDemoJwt()).AsMemory(), cancellationToken);
+        await provider.StandardInput.WriteLineAsync(JsonSerializer.Serialize(accessToken).AsMemory(), cancellationToken);
         string? ready = await provider.StandardOutput.ReadLineAsync(cancellationToken);
         if (ready != "ready")
         {
@@ -122,23 +123,29 @@ public sealed class AuthenticatedTenantsTopologyFixture : AspireTopologyFixture,
         var cookies = new CookieContainer();
         using var handler = new HttpClientHandler { CookieContainer = cookies, AllowAutoRedirect = false };
         using var client = new HttpClient(handler) { BaseAddress = TenantsUiClient.BaseAddress, Timeout = TimeSpan.FromSeconds(30) };
-        Uri destination = new(client.BaseAddress!, "/authentication/challenge?returnUrl=%2Ftenants");
+        return await FollowSignInRedirectsAsync(client.BaseAddress!, _issuer!, cookies, client.GetAsync, cancellationToken);
+    }
+
+    /// <summary>Follows only the declared local authentication exchange and stops at its cookie-issuing callback.</summary>
+    /// <param name="baseAddress">The actual HTTPS UI origin.</param>
+    /// <param name="issuer">The already declared loopback identity provider.</param>
+    /// <param name="cookies">The transport-owned cookie container.</param>
+    /// <param name="send">The bounded authentication HTTP transport.</param>
+    /// <param name="cancellationToken">The caller cancellation token.</param>
+    /// <returns>The opaque production authentication cookie header.</returns>
+    internal static async Task<string> FollowSignInRedirectsAsync(Uri baseAddress, Uri issuer, CookieContainer cookies,
+        Func<Uri, CancellationToken, Task<HttpResponseMessage>> send, CancellationToken cancellationToken)
+    {
+        Uri destination = new(baseAddress, "/authentication/challenge?returnUrl=%2Ftenants");
         bool signedIn = false;
         for (int hop = 0; hop < 8; hop++)
         {
-            using HttpResponseMessage response = await client.GetAsync(destination, cancellationToken);
-            if (response.StatusCode == HttpStatusCode.OK && destination.Authority == client.BaseAddress!.Authority
-                && hop >= 2)
-            {
-                signedIn = true;
-                break;
-            }
-
+            using HttpResponseMessage response = await send(destination, cancellationToken);
             if ((int)response.StatusCode is < 300 or >= 400 || response.Headers.Location is not { } location)
             {
                 string endpoint = destination.AbsolutePath == "/signin-oidc" ? "callback"
                     : destination.AbsolutePath == "/authentication/challenge" ? "challenge"
-                    : destination.Authority == _issuer!.Authority ? "provider"
+                    : destination.Authority == issuer.Authority ? "provider"
                     : "return";
                 throw new InvalidOperationException($"The production OIDC sign-in failed at {endpoint}, hop {hop}, HTTP {(int)response.StatusCode}.");
             }
@@ -146,11 +153,22 @@ public sealed class AuthenticatedTenantsTopologyFixture : AspireTopologyFixture,
             Uri next = location.IsAbsoluteUri ? location : new Uri(destination, location);
             // HttpClient deliberately does not auto-follow HTTPS-to-HTTP redirects. The only
             // HTTP destination allowed here is our already-declared loopback test provider.
-            bool ui = next.Scheme == "https" && next.Authority == client.BaseAddress!.Authority;
-            bool identity = next.Scheme == "http" && next.IsLoopback && next.Authority == _issuer!.Authority;
+            bool ui = next.Scheme == "https" && next.Authority == baseAddress.Authority;
+            bool identity = next.Scheme == "http" && next.IsLoopback && next.Authority == issuer.Authority;
             if (!ui && !identity)
             {
                 throw new InvalidOperationException("The OIDC fixture attempted to leave its declared local endpoints.");
+            }
+
+            if (destination.Scheme == "https" && destination.Authority == baseAddress.Authority
+                && destination.AbsolutePath == "/signin-oidc" && hop >= 2)
+            {
+                if (response.StatusCode != HttpStatusCode.Redirect || !ui || next.PathAndQuery != "/tenants")
+                    throw new InvalidOperationException("The production OIDC callback did not return to its declared workspace.");
+                // The validated callback has already issued the encrypted cookie. Loading the
+                // protected workspace belongs to the separate functional readiness checks.
+                signedIn = true;
+                break;
             }
 
             destination = next;
@@ -161,7 +179,7 @@ public sealed class AuthenticatedTenantsTopologyFixture : AspireTopologyFixture,
             throw new InvalidOperationException("The production OIDC sign-in exceeded its redirect bound.");
         }
 
-        string header = string.Join("; ", cookies.GetCookies(client.BaseAddress!)
+        string header = string.Join("; ", cookies.GetCookies(baseAddress)
             .Cast<Cookie>()
             .Where(static cookie => cookie.Name.StartsWith(".AspNetCore." + Scheme, StringComparison.Ordinal))
             .Select(static cookie => cookie.Name + "=" + cookie.Value));

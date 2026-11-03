@@ -819,8 +819,12 @@ public class PackageGovernanceTests {
     }
 
     [Theory]
-    [InlineData("", false, "4.0.0")]
+    [InlineData("", false, "4.0.4")]
     [InlineData("4.0.0", false, "4.0.0")]
+    [InlineData("4.0.1", false, "4.0.1")]
+    [InlineData("4.0.2", false, "4.0.2")]
+    [InlineData("4.0.3", false, "4.0.3")]
+    [InlineData("4.0.4", false, "4.0.4")]
     [InlineData("3.129.0", false, "3.129.0")]
     [InlineData("3.131.0", false, "3.131.0")]
     [InlineData("3.132.0", false, "3.132.0")]
@@ -938,7 +942,15 @@ public class PackageGovernanceTests {
     [InlineData("4.0.0", false, true)]
     [InlineData("4.0.0+metadata-with-dash", false, true)]
     [InlineData("4.0.0-preview.1", false, false)]
-    [InlineData("4.0.1", false, false)]
+    [InlineData("4.0.1", false, true)]
+    [InlineData("4.0.2", false, true)]
+    [InlineData("4.0.3", false, true)]
+    [InlineData("4.0.4", false, true)]
+    [InlineData("4.0.4.0", false, true)]
+    [InlineData("4.0.4+metadata-with-dash", false, true)]
+    [InlineData("4.0.4-preview.1", false, false)]
+    [InlineData("4.0.4.1", false, false)]
+    [InlineData("4.0.5", false, false)]
     [InlineData("test-source-version", true, true)]
     public Task Published_packages_require_qualified_catalog_artifactsAsync(
         string selectedVersion,
@@ -1017,7 +1029,15 @@ public class PackageGovernanceTests {
     [InlineData("4.0.0", false, true)]
     [InlineData("4.0.0+metadata-with-dash", false, true)]
     [InlineData("4.0.0-preview.1", false, false)]
-    [InlineData("4.0.1", false, false)]
+    [InlineData("4.0.1", false, true)]
+    [InlineData("4.0.2", false, true)]
+    [InlineData("4.0.3", false, true)]
+    [InlineData("4.0.4", false, true)]
+    [InlineData("4.0.4.0", false, true)]
+    [InlineData("4.0.4+metadata-with-dash", false, true)]
+    [InlineData("4.0.4-preview.1", false, false)]
+    [InlineData("4.0.4.1", false, false)]
+    [InlineData("4.0.5", false, false)]
     [InlineData("test-source-version", true, true)]
     public Task Native_hosts_refuse_unqualified_catalog_sdk_selectionsAsync(string selectedVersion, bool useSource, bool accepted)
         => EvaluateEventStoreVersionSelectionAsync(selectedVersion, useSource, selectedVersion,
@@ -1123,17 +1143,19 @@ public class PackageGovernanceTests {
                 properties.GetProperty("HexalithTenantsCatalogArtifactsAvailable").GetString().ShouldBe(catalogAvailable ? "true" : "false");
                 string[] constants = properties.GetProperty("DefineConstants").GetString()!.Split(';', StringSplitOptions.RemoveEmptyEntries);
                 constants.Contains("HEXALITH_DEVELOPMENT_CATALOG_SOURCE").ShouldBe(catalogAvailable);
-                constants.Contains("HEXALITH_DEVELOPMENT_CATALOG_COHORT").ShouldBe(useSource);
+                constants.Contains("HEXALITH_DEVELOPMENT_CATALOG_COHORT").ShouldBe(useSource
+                    || expectedVersion.StartsWith("4.0.", StringComparison.Ordinal));
+                constants.Contains("HEXALITH_DEVELOPMENT_CATALOG_SOURCE_REFERENCE").ShouldBe(useSource);
                 constants.Contains("HEXALITH_CHECKPOINTED_TENANT_PROJECTION").ShouldBe(useSource
                     || expectedVersion.StartsWith("3.133.0", StringComparison.Ordinal)
-                    || expectedVersion.StartsWith("4.0.0", StringComparison.Ordinal));
+                    || expectedVersion.StartsWith("4.0.", StringComparison.Ordinal));
                 constants.Contains("HEXALITH_TECHNICAL_HTTP_CATALOG_BINDING").ShouldBe(useSource
                     || expectedVersion.StartsWith("3.131.0", StringComparison.Ordinal)
                     || expectedVersion.StartsWith("3.132.0", StringComparison.Ordinal)
                     || expectedVersion.StartsWith("3.132.1", StringComparison.Ordinal)
                     || expectedVersion.StartsWith("3.132.2", StringComparison.Ordinal)
                     || expectedVersion.StartsWith("3.133.0", StringComparison.Ordinal)
-                    || expectedVersion.StartsWith("4.0.0", StringComparison.Ordinal));
+                    || expectedVersion.StartsWith("4.0.", StringComparison.Ordinal));
                 if (catalogAvailable && !useSource) {
                     properties.GetProperty("HexalithTenantsCatalogSdkVersion").GetString()
                         .ShouldBe(string.Join(".", expectedVersion.Split('+')[0].Split('.').Take(3)));
@@ -1741,7 +1763,8 @@ public class PackageGovernanceTests {
         workflow.ShouldContain("environment: production");
         workflow.ShouldContain("source_sha:");
         workflow.ShouldContain("HEXALITH_BUILDS_EXECUTION_SHA");
-        workflow.ShouldContain("git submodule update --init references/Hexalith.Builds");
+        workflow.ShouldContain("git submodule update --init --");
+        workflow.ShouldContain("references/Hexalith.Builds");
         validator.ShouldContain("recovery_require_source_gates");
         validator.ShouldContain("The package manifest must contain exactly five packages");
         validator.ShouldContain("missing-packages");

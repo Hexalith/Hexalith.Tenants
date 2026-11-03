@@ -8,6 +8,7 @@ using Hexalith.EventStore.Client.Gateway;
 using Hexalith.EventStore.Client.Queries;
 using Hexalith.EventStore.Client.Streams;
 using Hexalith.EventStore.Contracts.Identity;
+using Hexalith.EventStore.Contracts.Streams;
 using Hexalith.EventStore.DomainService;
 using Hexalith.EventStore.ServiceDefaults.Authentication;
 using Hexalith.EventStore.Testing.Fakes;
@@ -83,34 +84,23 @@ public sealed class AuthenticatedTenantsRouteTests(AuthenticatedRouteTopologyFix
         var retained = new InMemoryReadModelStore();
         await retained.SaveAsync("statestore", "projection:global-administrators:singleton", granting, timeout.Token);
 
-        // Only test credentials are supplied here. Both source readers and the source itself are production
-        // implementations over the running EventStore/Dapr topology; no native reader or metadata fake is registered.
-        string assertion = new JwtSecurityTokenHandler().WriteToken(new JwtSecurityToken("hexalith-dev", "eventstore",
-            [new("azp", "tenants"), new("iat", DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(System.Globalization.CultureInfo.InvariantCulture), ClaimValueTypes.Integer64),
-                new(EventStoreWorkloadAuthenticationDefaults.OperationClaimType, "eventstore:stream-read"),
-                new(EventStoreWorkloadAuthenticationDefaults.TenantBindingClaimType, "system"),
-                new(EventStoreWorkloadAuthenticationDefaults.DomainBindingClaimType, "global-administrators")],
-            expires: DateTime.UtcNow.AddSeconds(60), signingCredentials: new SigningCredentials(
-                new SymmetricSecurityKey(Encoding.UTF8.GetBytes(AspireTopologyFixture.DemoSigningKey)), SecurityAlgorithms.HmacSha256)));
-        var credentials = Substitute.For<IEventStoreGatewayWorkloadAssertionSource>();
-        credentials.IssueAsync("eventstore:stream-read", "system", "global-administrators", Arg.Any<CancellationToken>())
-            .Returns(ValueTask.FromResult<string?>(assertion));
-        using var http = new HttpClient { BaseAddress = fixture.TenantsDaprClient.BaseAddress };
-        http.DefaultRequestHeaders.Add("dapr-app-id", "eventstore");
-        var gateway = new EventStoreGatewayClient(http, Options.Create(new EventStoreGatewayClientOptions { UseWorkloadTransport = true }), credentials);
-        var stream = new AuthoritativeEventStreamReader(gateway, TimeProvider.System, TimeSpan.FromSeconds(10), requireNativeProof: true);
-        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
-        { ["DAPR_HTTP_ENDPOINT"] = fixture.TenantsDaprClient.BaseAddress!.AbsoluteUri }).Build();
-        using var metadataHttp = new HttpClient();
-        var metadata = new DaprNativeSourceMetadataReader(metadataHttp, configuration, TimeProvider.System);
+        // Use the same bound proof, genuine workload issuer, owner gateway and durable admission as production.
+        using ServiceProvider nativeReads = await fixture.CreateNativeOwnerReadServicesAsync(timeout.Token);
+        using IServiceScope nativeScope = nativeReads.CreateScope();
+        var stream = nativeScope.ServiceProvider.GetRequiredService<IAuthoritativeEventStreamReader>();
+        var metadata = nativeScope.ServiceProvider.GetRequiredService<INativeSourceMetadataReader>();
+        var invocation = nativeScope.ServiceProvider.GetRequiredService<Hexalith.EventStore.ServiceDefaults.Routing.RouteCatalogInvocationScope>();
+        var configuration = nativeScope.ServiceProvider.GetRequiredService<IConfiguration>();
+        Task<AuthoritativeStreamReadResult> ReadSourceAsync() => invocation.ExecuteNativeSourceReadAsync("eventstore",
+            () => stream.ReadAsync(new AggregateIdentity("system", "global-administrators", "global-administrators"), timeout.Token), timeout.Token);
         var cursor = new QueryCursorCodec(new EphemeralDataProtectionProvider(), "live-native-revocation");
         var telemetry = new TenantTelemetry(new EventStoreDomainDiagnostics("tenants"));
         var envelope = new QueryEnvelope("system", "global-administrators", "global-administrators",
             GetGlobalAdministratorsQuery.QueryType, [], "live-native-revocation", administrator, isGlobalAdmin: true);
         GetGlobalAdministratorsQueryHandler Handler() => new(retained,
-            new TenantsGlobalAdministratorAuthority(stream, metadata, TimeProvider.System), cursor, telemetry,
+            new TenantsGlobalAdministratorAuthority(stream, metadata, TimeProvider.System, invocation, configuration), cursor, telemetry,
             NullLogger<GetGlobalAdministratorsQueryHandler>.Instance);
-        var beforeSource = await stream.ReadAsync(new AggregateIdentity("system", "global-administrators", "global-administrators"), timeout.Token);
+        var beforeSource = await ReadSourceAsync();
         beforeSource.IsAuthoritative.ShouldBeTrue(beforeSource.FailureReason);
         (await Handler().ExecuteAsync(envelope, timeout.Token)).Success.ShouldBeTrue();
 
@@ -118,7 +108,7 @@ public sealed class AuthenticatedTenantsRouteTests(AuthenticatedRouteTopologyFix
             AspireTopologyTests.CreateCommand("global-administrators", "global-administrators", nameof(RemoveGlobalAdministrator),
                 new RemoveGlobalAdministrator(administrator)), token, timeout.Token);
         removal.Status.ShouldBe("Completed"); removal.CommittedEventSequence.ShouldNotBeNull().ShouldBeGreaterThan(grant.CommittedEventSequence!.Value);
-        var source = (await stream.ReadAsync(new AggregateIdentity("system", "global-administrators", "global-administrators"), timeout.Token))
+        var source = (await ReadSourceAsync())
             .Stream.ShouldNotBeNull();
         var committed = source.Events.Single(item => item.SequenceNumber == removal.CommittedEventSequence);
         committed.EventTypeName.ShouldContain(nameof(GlobalAdministratorRemoved));
@@ -233,10 +223,11 @@ public sealed class AuthenticatedTenantsRouteTests(AuthenticatedRouteTopologyFix
         fixture.SkipIfUnavailable();
         using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(5));
         AuthenticatedRouteState state = await AuthenticatedRouteState.CreateAsync(fixture.CommandApiClient, timeout.Token);
-        using ServiceProvider provider = CreateProductionReadServices(state.Token);
+        await state.WaitForListPageAsync(fixture.TenantsApiClient, 100, timeout.Token);
+        string corpusToken = await state.CreateCorpusReadTokenAsync(fixture.TenantsApiClient, timeout.Token);
+        using ServiceProvider provider = CreateProductionReadServices(corpusToken);
         using IServiceScope scope = provider.CreateScope();
         ITenantsRestQueryClient client = scope.ServiceProvider.GetRequiredService<ITenantsRestQueryClient>();
-        await state.WaitForListPageAsync(fixture.TenantsApiClient, 100, timeout.Token);
         var invalid = await client.GetTenantUsersAsync(new GetTenantUsersQuery { TenantId = state.TenantId, Cursor = "foreign-protected-cursor", PageSize = 1 }, null, timeout.Token);
         invalid.StatusCode.ShouldBe((int)HttpStatusCode.BadRequest);
         invalid.FailureKind.ShouldBe(TenantsRestQueryFailureKind.InvalidCursor);
@@ -299,7 +290,9 @@ public sealed class AuthenticatedTenantsRouteTests(AuthenticatedRouteTopologyFix
         request.Headers.Add("dapr-app-id", "tenants-api");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AspireTopologyTests.CreateDemoJwt());
         using HttpResponseMessage response = await fixture.EventStoreDaprClient.SendAsync(request, TestContext.Current.CancellationToken);
-        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        // The gateway may reject this UI-surface token during authentication or
+        // after authenticating it; either boundary must refuse the wrong peer.
+        new[] { HttpStatusCode.Unauthorized, HttpStatusCode.Forbidden }.ShouldContain(response.StatusCode);
     }
 
     [DaprFact]
@@ -317,31 +310,49 @@ public sealed class AuthenticatedTenantsRouteTests(AuthenticatedRouteTopologyFix
     public async Task PopulatedTwentyRowPageHydratesWithoutActorQuotaFailure()
     {
         fixture.SkipIfUnavailable();
-        using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+        using var seedTimeout = new CancellationTokenSource(TimeSpan.FromMinutes(7));
         string token = AspireTopologyTests.CreateDemoJwt();
+        var tenantIds = new List<string>(20);
         for (int index = 0; index < 20; index++)
         {
             string tenantId = $"populated-page-{Guid.NewGuid():N}";
+            tenantIds.Add(tenantId);
             var command = AspireTopologyTests.CreateCommand("tenants", tenantId,
                 nameof(Hexalith.Tenants.Contracts.Commands.CreateTenant),
                 new Hexalith.Tenants.Contracts.Commands.CreateTenant(tenantId, "Populated page control", "Native authority capacity control"));
-            var status = await AspireTopologyTests.SubmitAndWaitForTerminalStatusAsync(fixture.CommandApiClient, command, token, timeout.Token);
+            var status = await AspireTopologyTests.SubmitAndWaitForTerminalStatusAsync(fixture.CommandApiClient, command, token, seedTimeout.Token);
             status.Status.ShouldBe("Completed");
-            await AspireTopologyTests.WaitForPersistedTenantAsync(tenantId, Hexalith.Tenants.Contracts.Projections.TenantProjectionVersionFormat.SequencePrefix + "1", timeout.Token);
+            await AspireTopologyTests.WaitForPersistedTenantAsync(tenantId, Hexalith.Tenants.Contracts.Projections.TenantProjectionVersionFormat.SequencePrefix + "1", seedTimeout.Token);
         }
 
         // Start the measured page after the unchanged one-second consumer window used by command preparation.
-        await Task.Delay(TimeSpan.FromSeconds(2), timeout.Token);
+        await Task.Delay(TimeSpan.FromSeconds(2), seedTimeout.Token);
         TestContext.Current.TestOutputHelper?.WriteLine("Populated page control: starting one production 20-row load.");
-        using ServiceProvider provider = CreateProductionReadServices(token);
+        using var readTimeout = new CancellationTokenSource(TimeSpan.FromMinutes(2));
+        using ServiceProvider provider = CreateProductionReadServices(AspireTopologyTests.CreateDemoJwt(tenantIds));
         using IServiceScope scope = provider.CreateScope();
         using var gateway = new TenantQueryGateway(
             scope.ServiceProvider.GetRequiredService<ITenantsRestQueryClient>(), new LiveRouteUserContext(),
             scope.ServiceProvider.GetRequiredService<MemoriesClient>(),
             scope.ServiceProvider.GetRequiredService<ITenantSearchCursorCodec>());
         var elapsed = System.Diagnostics.Stopwatch.StartNew();
-        TenantListSnapshot result = await gateway.ListTenantsAsync(new TenantListRequest(PageSize: 20), null, timeout.Token);
-        TestContext.Current.TestOutputHelper?.WriteLine($"Populated page outcome: Kind={result.Kind}, Rows={result.Rows.Count}, Degraded={result.IsDegraded}, KnownCounts={result.Rows.Count(row => row.MemberCount.IsKnown && row.OwnerCount.IsKnown)}, ElapsedMilliseconds={elapsed.Elapsed.TotalMilliseconds:F2}, Cancelled={timeout.IsCancellationRequested}.");
+        TenantListSnapshot result = await gateway.ListTenantsAsync(new TenantListRequest(PageSize: 20), null, readTimeout.Token);
+        TestContext.Current.TestOutputHelper?.WriteLine($"Populated page outcome: {result}, KnownCounts={result.Rows.Count(row => row.MemberCount.IsKnown && row.OwnerCount.IsKnown)}, ElapsedMilliseconds={elapsed.Elapsed.TotalMilliseconds:F2}, Cancelled={readTimeout.IsCancellationRequested}.");
+        if (result.Rows.Count != 20)
+        {
+            var raw = await scope.ServiceProvider.GetRequiredService<ITenantsRestQueryClient>()
+                .ListTenantsAsync(new ListTenantsQuery { PageSize = 20 }, null, readTimeout.Token);
+            TestContext.Current.TestOutputHelper?.WriteLine($"Populated page transport: HTTP={raw.StatusCode}, Failure={raw.FailureKind}, Provenance={raw.Metadata.Provenance}, Lifecycle={raw.Metadata.Lifecycle}.");
+        }
+        if (result.IsDegraded)
+        {
+            ITenantsRestQueryClient reads = scope.ServiceProvider.GetRequiredService<ITenantsRestQueryClient>();
+            foreach (string tenantId in result.Rows.Take(3).Select(static row => row.TenantId))
+            {
+                var detail = await reads.GetTenantAsync(new GetTenantQuery { TenantId = tenantId }, null, readTimeout.Token);
+                TestContext.Current.TestOutputHelper?.WriteLine($"Populated page detail: TenantId={tenantId}, HTTP={detail.StatusCode}, Failure={detail.FailureKind}, PayloadPresent={detail.Payload is not null}, Provenance={detail.Metadata.Provenance}, Lifecycle={detail.Metadata.Lifecycle}.");
+            }
+        }
         result.Rows.Count.ShouldBe(20);
         result.IsDegraded.ShouldBeFalse();
         result.Rows.All(row => row.MemberCount.IsKnown && row.OwnerCount.IsKnown).ShouldBeTrue();
@@ -377,11 +388,15 @@ public sealed class AuthenticatedTenantsRouteTests(AuthenticatedRouteTopologyFix
         DateTimeOffset deadline = DateTimeOffset.UtcNow.AddSeconds(30);
         while ((first.Payload is null || (projected is not null && !projected(first.Payload))) && DateTimeOffset.UtcNow < deadline)
         {
+            if (first.FailureKind != TenantsRestQueryFailureKind.None)
+                TestContext.Current.TestOutputHelper?.WriteLine($"Live production read: HTTP={first.StatusCode}, Failure={first.FailureKind}, Provenance={first.Metadata.Provenance}, Lifecycle={first.Metadata.Lifecycle}.");
             first.FailureKind.ShouldBe(TenantsRestQueryFailureKind.None);
             await Task.Delay(TimeSpan.FromMilliseconds(250));
             first = await read(null);
         }
 
+        if (first.FailureKind != TenantsRestQueryFailureKind.None)
+            TestContext.Current.TestOutputHelper?.WriteLine($"Live production read: HTTP={first.StatusCode}, Failure={first.FailureKind}, Provenance={first.Metadata.Provenance}, Lifecycle={first.Metadata.Lifecycle}.");
         first.FailureKind.ShouldBe(TenantsRestQueryFailureKind.None);
         first.StatusCode.ShouldBe((int)HttpStatusCode.OK);
         T payload = first.Payload.ShouldNotBeNull();

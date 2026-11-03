@@ -8622,15 +8622,15 @@ public sealed partial class TenantQueryGatewayTests
     /// </summary>
     /// <remarks>
     /// Three mutations survived the suite: deleting <c>CancelAfter</c> (the whole-page deadline), dropping
-    /// <c>MaximumHydrationConcurrency</c> to 1 (restoring the serialized behaviour the rewrite exists to
+    /// <c>MaximumListEnrichmentConcurrency</c> to 1 (restoring the serialized behaviour the rewrite exists to
     /// fix), and neutering the identity comparison that stops tenant B's member and owner counts being
-    /// written onto tenant A's row. <c>MaximumHydrationConcurrency</c> was asserted only as a constant value
+    /// written onto tenant A's row. <c>MaximumListEnrichmentConcurrency</c> was asserted only as a constant value
     /// and the deadline was referenced by no test at all.
     /// </remarks>
     [Fact]
     public async Task List_row_enrichment_runs_concurrently_up_to_its_bound()
     {
-        const int expectedBound = 8;
+        const int expectedBound = 5;
         const int rows = expectedBound * 2;
         ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
         client.ListTenantsAsync(Arg.Any<ListTenantsQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
@@ -8646,7 +8646,7 @@ public sealed partial class TenantQueryGatewayTests
 
         // A rendezvous rather than a fixed delay. The delay made both directions non-deterministic: under
         // scheduler starvation `maximum` could legitimately fall to 1 and fail a healthy build, while a
-        // bound reduced from 8 to 2 still satisfied `> 1` and passed. Here the first `expectedBound` calls
+        // bound reduced from 4 to 2 still satisfied `> 1` and passed. Here the first `expectedBound` calls
         // block until all of them are simultaneously inside, so a correct implementation observes exactly
         // the bound and a serialized one never releases -- and is reported as a timeout, not a flake.
         TaskCompletionSource boundReached = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -8683,8 +8683,8 @@ public sealed partial class TenantQueryGatewayTests
         snapshot.IsDegraded.ShouldBeFalse();
 
         // Exact, both directions: the rendezvous cannot release below the bound, and the gate must not let
-        // more than the bound run at once. `ShouldBeGreaterThan(1)` passed with the bound cut from 8 to 2.
-        TenantQueryGateway.MaximumHydrationConcurrency.ShouldBe(expectedBound);
+        // more than the bound run at once. `ShouldBeGreaterThan(1)` passed with the bound cut from 4 to 2.
+        TenantQueryGateway.MaximumListEnrichmentConcurrency.ShouldBe(expectedBound);
         maximum.ShouldBe(expectedBound);
     }
 
@@ -8723,7 +8723,7 @@ public sealed partial class TenantQueryGatewayTests
         // to Timeout.InfiniteTimeSpan reinstated the unbounded page hang this test claims to prevent and
         // everything still passed. Pin the shipped default to a bound a user could tolerate waiting.
         TenantQueryGateway.MaximumEnrichmentDuration.ShouldBeGreaterThan(TimeSpan.Zero);
-        TenantQueryGateway.MaximumEnrichmentDuration.ShouldBeLessThanOrEqualTo(TimeSpan.FromSeconds(30));
+        TenantQueryGateway.MaximumEnrichmentDuration.ShouldBe(TimeSpan.FromSeconds(90));
     }
 
     [Fact]

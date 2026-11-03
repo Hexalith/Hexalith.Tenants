@@ -11,8 +11,8 @@ public sealed class SourceAuthorityInvocationBudgetTests
 {
     /// <summary>Applies the EventStore-only default and respects environment input and command-line precedence.</summary>
     [Theory]
-    [InlineData(false, null, null, "30")]
-    [InlineData(true, null, null, "30")]
+    [InlineData(false, null, null, "45")]
+    [InlineData(true, null, null, "45")]
     [InlineData(false, null, "5", "5")]
     [InlineData(true, null, "5", "5")]
     [InlineData(false, null, "60", "60")]
@@ -43,8 +43,8 @@ public sealed class SourceAuthorityInvocationBudgetTests
                 args.Add("--EventStore:DomainServices:InvocationTimeoutSeconds=" + configured);
             }
 
-            await using IDistributedApplicationTestingBuilder builder = await DistributedApplicationTestingBuilder
-                .CreateAsync<Projects.Hexalith_Tenants_AppHost>([.. args]);
+            await using IDistributedApplicationTestingBuilder builder = await AppHostModelBuilder
+                .CreateAsync([.. args]);
             builder.ExecutionContext.IsPublishMode.ShouldBe(publish);
             builder.Resources.OfType<ProjectResource>().Count(resource => resource.Name == "eventstore").ShouldBe(1);
             foreach (ProjectResource resource in builder.Resources.OfType<ProjectResource>())
@@ -52,7 +52,7 @@ public sealed class SourceAuthorityInvocationBudgetTests
                 var context = new EnvironmentCallbackContext(builder.ExecutionContext, resource, new Dictionary<string, object>());
                 foreach (EnvironmentCallbackAnnotation annotation in resource.Annotations.OfType<EnvironmentCallbackAnnotation>())
                 {
-                    await annotation.Callback(context);
+                    await AppHostModelBuilder.ApplyEnvironmentCallbackAsync(annotation, context);
                 }
 
                 if (resource.Name == "eventstore")

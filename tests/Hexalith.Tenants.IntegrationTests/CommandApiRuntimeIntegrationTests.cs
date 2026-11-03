@@ -1,9 +1,7 @@
 using Hexalith.EventStore.Client.Streams;
 using Hexalith.EventStore.Client.Security;
-#if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
 using Hexalith.EventStore.Contracts.Routing;
 using Hexalith.EventStore.ServiceDefaults.Routing;
-#endif
 #pragma warning disable CA2007
 
 using System.IdentityModel.Tokens.Jwt;
@@ -33,6 +31,7 @@ using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Events;
 using Hexalith.Tenants.Contracts.Events.Rejections;
+using Hexalith.Tenants.Contracts.Identity;
 using Hexalith.Tenants.IntegrationTests.Fixtures;
 using Hexalith.Tenants.Server.Aggregates;
 using Hexalith.Tenants.Server.Projections;
@@ -45,6 +44,7 @@ using SubmitPipelineCommand = Hexalith.EventStore.Server.Pipeline.Commands.Submi
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
@@ -349,9 +349,15 @@ public partial class CommandApiRuntimeIntegrationTests {
         ICommandStatusStore store = Substitute.For<ICommandStatusStore>();
         _ = store.ReadStatusAsync("system", messageId, Arg.Any<CancellationToken>()).Returns(record);
         await using var factory = new TenantGatewayTestHost(statusStore: store, useLegacyStatusAdapter: false);
-        using HttpClient client = CreateClientWithBearer(factory, CreateJwt("status-reader"));
-
-        using HttpResponseMessage response = await client.GetAsync($"/api/v1/commands/status/{messageId}");
+        string scope = domain == "global-administrators"
+            ? TenantPlatformScopes.GlobalAdministrators : TenantPlatformScopes.Tenants;
+        string permission = domain == "global-administrators"
+            ? "global-administrators:read" : "tenants:read";
+        using HttpClient client = CreateClientWithBearer(factory, CreateJwt("status-reader",
+            claims: [new Claim("eventstore:permission", permission)]));
+        using var statusRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/commands/status/{messageId}");
+        statusRequest.Headers.Add("X-Hexalith-Scope", scope);
+        using HttpResponseMessage response = await client.SendAsync(statusRequest);
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         CommandStatusResponse wire = (await response.Content.ReadFromJsonAsync<CommandStatusResponse>()).ShouldNotBeNull();
         wire.MessageId.ShouldBe(messageId);
@@ -475,9 +481,12 @@ public partial class CommandApiRuntimeIntegrationTests {
         _ = store.ReadStatusAsync(authorizedTenant, messageId, Arg.Any<CancellationToken>()).Returns(record);
         await using var factory = new TenantGatewayTestHost(statusStore: store, useLegacyStatusAdapter: false);
         using HttpClient client = CreateClientWithBearer(factory, CreateJwt("status-reader",
-            claims: [new Claim("eventstore:tenant", authorizedTenant)]));
-        using HttpResponseMessage response = await client.GetAsync($"/api/v1/commands/status/{messageId}");
-        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+            claims: [new Claim("eventstore:permission", "tenants:read")]));
+        using var statusRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/commands/status/{messageId}");
+        statusRequest.Headers.Add("X-Hexalith-Scope", TenantPlatformScopes.Tenants);
+        using HttpResponseMessage response = await client.SendAsync(statusRequest);
+        response.StatusCode.ShouldBe(invalidProof is "missing-domain" or "wrong-domain" or "wrong-tenant"
+            ? HttpStatusCode.NotFound : HttpStatusCode.OK);
 
         var gateway = new TenantCommandGateway(Substitute.For<Hexalith.EventStore.Client.Gateway.IEventStoreGatewayClient>(), new UlidFactory(), client);
         TenantCommandStatusResult result = await gateway.GetStatusAsync(
@@ -910,13 +919,18 @@ public partial class CommandApiRuntimeIntegrationTests {
         JsonElement payload = JsonSerializer.SerializeToElement(new BootstrapGlobalAdmin("test-user"));
         var request = new Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest(
             UniqueIdHelper.GenerateSortableUniqueStringId(),
-            "system",
+            TenantPlatformScopes.GlobalAdministrators,
             "global-administrators",
             "global-administrators",
             nameof(BootstrapGlobalAdmin),
             payload);
 
-        using HttpRequestMessage boundRequest = await authority.CreateRequestAsync(factory.Services, CreateJwt("test-user"), request);
+        string token = CreateJwt("test-user", claims:
+        [
+            new Claim("global_admin", "true"),
+            new Claim("eventstore:permission", "global-administrators:bootstrap"),
+        ]);
+        using HttpRequestMessage boundRequest = await authority.CreateRequestAsync(factory.Services, token, request);
         HttpResponseMessage response = await client.SendAsync(boundRequest);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
@@ -1023,7 +1037,8 @@ public partial class CommandApiRuntimeIntegrationTests {
             "global-admin",
             claims:
             [
-                new Claim("eventstore:tenant", "system"),
+                new Claim("eventstore:tenant", "tenant-a"),
+                new Claim("eventstore:permission", "tenants:create"),
                 new Claim("global_admin", "true"),
             ]);
         using HttpClient client = CreateClientWithBearer(factory, token);
@@ -1070,7 +1085,8 @@ public partial class CommandApiRuntimeIntegrationTests {
             "platform-admin",
             claims:
             [
-                new Claim("eventstore:tenant", "system"),
+                new Claim("eventstore:tenant", "tenant-a"),
+                new Claim("eventstore:permission", "global-administrators:set"),
                 new Claim("global_admin", "true"),
             ]);
         using HttpClient client = CreateClientWithBearer(factory, token);
@@ -1116,7 +1132,8 @@ public partial class CommandApiRuntimeIntegrationTests {
             "platform-admin",
             claims:
             [
-                new Claim("eventstore:tenant", "system"),
+                new Claim("eventstore:tenant", "tenant-a"),
+                new Claim("eventstore:permission", "global-administrators:remove"),
                 new Claim("global_admin", "true"),
             ]);
         using HttpClient client = CreateClientWithBearer(factory, token);
@@ -1162,7 +1179,8 @@ public partial class CommandApiRuntimeIntegrationTests {
             "global-admin",
             claims:
             [
-                new Claim("eventstore:tenant", "system"),
+                new Claim("eventstore:tenant", "tenant-a"),
+                new Claim("eventstore:permission", "tenants:add-user"),
                 new Claim("global_admin", "true"),
             ]);
         using HttpClient client = CreateClientWithBearer(factory, token);
@@ -1207,7 +1225,8 @@ public partial class CommandApiRuntimeIntegrationTests {
             "global-admin",
             claims:
             [
-                new Claim("eventstore:tenant", "system"),
+                new Claim("eventstore:tenant", "tenant-a"),
+                new Claim("eventstore:permission", "tenants:remove-user"),
                 new Claim("global_admin", "true"),
             ]);
         using HttpClient client = CreateClientWithBearer(factory, token);
@@ -1251,7 +1270,8 @@ public partial class CommandApiRuntimeIntegrationTests {
             "global-admin",
             claims:
             [
-                new Claim("eventstore:tenant", "system"),
+                new Claim("eventstore:tenant", "tenant-a"),
+                new Claim("eventstore:permission", "tenants:change-user-role"),
                 new Claim("global_admin", "true"),
             ]);
         using HttpClient client = CreateClientWithBearer(factory, token);
@@ -1296,7 +1316,8 @@ public partial class CommandApiRuntimeIntegrationTests {
             "global-admin",
             claims:
             [
-                new Claim("eventstore:tenant", "system"),
+                new Claim("eventstore:tenant", "tenant-a"),
+                new Claim("eventstore:permission", "tenants:set-configuration"),
                 new Claim("global_admin", "true"),
             ]);
         using HttpClient client = CreateClientWithBearer(factory, token);
@@ -1342,7 +1363,8 @@ public partial class CommandApiRuntimeIntegrationTests {
             "global-admin",
             claims:
             [
-                new Claim("eventstore:tenant", "system"),
+                new Claim("eventstore:tenant", "tenant-a"),
+                new Claim("eventstore:permission", "tenants:set-configuration"),
                 new Claim("global_admin", "true"),
             ]);
         using HttpClient client = CreateClientWithBearer(factory, token);
@@ -1385,7 +1407,7 @@ public partial class CommandApiRuntimeIntegrationTests {
             router,
             statusStore,
             Substitute.For<ICommandArchiveStore>());
-        using HttpClient client = CreateJwtClient(factory);
+        using HttpClient client = CreateJwtClient(factory, "tenants:add-user");
         Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateAddUserToTenantRequest();
 
         HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
@@ -1424,7 +1446,7 @@ public partial class CommandApiRuntimeIntegrationTests {
             router,
             statusStore,
             Substitute.For<ICommandArchiveStore>());
-        using HttpClient client = CreateJwtClient(factory);
+        using HttpClient client = CreateJwtClient(factory, "tenants:change-user-role");
         Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateChangeUserRoleRequest();
 
         HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
@@ -1461,7 +1483,8 @@ public partial class CommandApiRuntimeIntegrationTests {
             "global-admin",
             claims:
             [
-                new Claim("eventstore:tenant", "system"),
+                new Claim("eventstore:tenant", "tenant-a"),
+                new Claim("eventstore:permission", "tenants:update"),
                 new Claim("global_admin", "true"),
             ]);
         using HttpClient client = CreateClientWithBearer(factory, token);
@@ -1506,7 +1529,8 @@ public partial class CommandApiRuntimeIntegrationTests {
             "global-admin",
             claims:
             [
-                new Claim("eventstore:tenant", "system"),
+                new Claim("eventstore:tenant", "tenant-a"),
+                new Claim("eventstore:permission", "tenants:disable"),
                 new Claim("global_admin", "true"),
             ]);
         using HttpClient client = CreateClientWithBearer(factory, token);
@@ -1549,7 +1573,8 @@ public partial class CommandApiRuntimeIntegrationTests {
             "global-admin",
             claims:
             [
-                new Claim("eventstore:tenant", "system"),
+                new Claim("eventstore:tenant", "tenant-a"),
+                new Claim("eventstore:permission", "tenants:enable"),
                 new Claim("global_admin", "true"),
             ]);
         using HttpClient client = CreateClientWithBearer(factory, token);
@@ -1594,7 +1619,7 @@ public partial class CommandApiRuntimeIntegrationTests {
             router,
             statusStore,
             Substitute.For<ICommandArchiveStore>());
-        using HttpClient client = CreateJwtClient(factory);
+        using HttpClient client = CreateJwtClient(factory, "tenants:create");
         Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateCreateTenantRequest();
 
         HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
@@ -1641,7 +1666,8 @@ public partial class CommandApiRuntimeIntegrationTests {
             "platform-admin",
             claims:
             [
-                new Claim("eventstore:tenant", "system"),
+                new Claim("eventstore:tenant", "tenant-a"),
+                new Claim("eventstore:permission", "global-administrators:set"),
                 new Claim("global_admin", "true"),
             ]);
         using HttpClient client = CreateClientWithBearer(factory, token);
@@ -1705,7 +1731,8 @@ public partial class CommandApiRuntimeIntegrationTests {
             "platform-admin",
             claims:
             [
-                new Claim("eventstore:tenant", "system"),
+                new Claim("eventstore:tenant", "tenant-a"),
+                new Claim("eventstore:permission", "global-administrators:remove"),
                 new Claim("global_admin", "true"),
             ]);
         using HttpClient client = CreateClientWithBearer(factory, token);
@@ -1751,7 +1778,7 @@ public partial class CommandApiRuntimeIntegrationTests {
             router,
             statusStore,
             Substitute.For<ICommandArchiveStore>());
-        using HttpClient client = CreateJwtClient(factory);
+        using HttpClient client = CreateJwtClient(factory, "tenants:add-user");
         Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateAddUserToTenantRequest();
 
         HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
@@ -1791,7 +1818,7 @@ public partial class CommandApiRuntimeIntegrationTests {
             router,
             statusStore,
             Substitute.For<ICommandArchiveStore>());
-        using HttpClient client = CreateJwtClient(factory);
+        using HttpClient client = CreateJwtClient(factory, "tenants:remove-user");
         Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateRemoveUserFromTenantRequest();
 
         HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
@@ -1830,7 +1857,7 @@ public partial class CommandApiRuntimeIntegrationTests {
             router,
             statusStore,
             Substitute.For<ICommandArchiveStore>());
-        using HttpClient client = CreateJwtClient(factory);
+        using HttpClient client = CreateJwtClient(factory, "tenants:disable");
         Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateDisableTenantRequest();
 
         HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
@@ -1870,7 +1897,7 @@ public partial class CommandApiRuntimeIntegrationTests {
             router,
             statusStore,
             Substitute.For<ICommandArchiveStore>());
-        using HttpClient client = CreateJwtClient(factory);
+        using HttpClient client = CreateJwtClient(factory, "tenants:update");
         Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateUpdateTenantRequest();
 
         HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
@@ -1910,7 +1937,7 @@ public partial class CommandApiRuntimeIntegrationTests {
             router,
             statusStore,
             Substitute.For<ICommandArchiveStore>());
-        using HttpClient client = CreateJwtClient(factory);
+        using HttpClient client = CreateJwtClient(factory, "tenants:update");
         Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateUpdateTenantRequest();
 
         HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
@@ -1976,7 +2003,7 @@ public partial class CommandApiRuntimeIntegrationTests {
             router,
             statusStore,
             Substitute.For<ICommandArchiveStore>());
-        using HttpClient client = CreateJwtClient(factory);
+        using HttpClient client = CreateJwtClient(factory, "tenants:update");
         Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateUpdateTenantRequest();
 
         HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
@@ -2021,8 +2048,8 @@ public partial class CommandApiRuntimeIntegrationTests {
             "tenant-operator",
             claims:
             [
-                new Claim("eventstore:tenant", "system"),
-                new Claim("eventstore:permission", "commands:*"),
+                new Claim("eventstore:tenant", "tenant-a"),
+                new Claim("eventstore:permission", "tenants:create"),
             ]);
         using HttpClient client = CreateClientWithBearer(factory, token);
         Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateCreateTenantRequest(
@@ -2059,7 +2086,8 @@ public partial class CommandApiRuntimeIntegrationTests {
             "global-admin",
             claims:
             [
-                new Claim("eventstore:tenant", "system"),
+                new Claim("eventstore:tenant", "tenant-a"),
+                new Claim("eventstore:permission", "tenants:create"),
                 new Claim("global_admin", "true"),
             ]);
         using HttpClient client = CreateClientWithBearer(factory, token);
@@ -2080,8 +2108,6 @@ public partial class CommandApiRuntimeIntegrationTests {
     [Fact]
     public async Task Commands_endpoint_returns_202_when_jwt_uses_tenants_source_claim() {
         ICommandRouter router = Substitute.For<ICommandRouter>();
-        _ = router.RouteCommandAsync(Arg.Any<SubmitPipelineCommand>(), Arg.Any<CancellationToken>())
-            .Returns(new CommandProcessingResult(true, null, "test-correlation"));
 
         ICommandStatusStore statusStore = Substitute.For<ICommandStatusStore>();
         _ = statusStore.ReadStatusAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
@@ -2091,20 +2117,31 @@ public partial class CommandApiRuntimeIntegrationTests {
             router,
             statusStore,
             Substitute.For<ICommandArchiveStore>());
-        string token = CreateJwt("admin-user", claims: [new Claim("tenants", JsonSerializer.Serialize(new[] { "system" }))]);
+        IHttpContextAccessor contextAccessor = factory.Services.GetRequiredService<IHttpContextAccessor>();
+        string[]? transformedTenants = null;
+        _ = router.RouteCommandAsync(Arg.Any<SubmitPipelineCommand>(), Arg.Any<CancellationToken>())
+            .Returns(_ =>
+            {
+                ClaimsPrincipal principal = contextAccessor.HttpContext.ShouldNotBeNull().User;
+                principal.Identity.ShouldNotBeNull().IsAuthenticated.ShouldBeTrue();
+                transformedTenants = principal.FindAll("eventstore:tenant").Select(claim => claim.Value).ToArray();
+                return new CommandProcessingResult(true, null, "test-correlation");
+            });
+        string token = CreateJwt("admin-user", claims: [new Claim("tenants", JsonSerializer.Serialize(new[] { "tenant-a" })), new Claim("permissions", "tenants:update")]);
         using HttpClient client = CreateClientWithBearer(factory, token);
         Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateUpdateTenantRequest();
 
         HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Accepted);
+        transformedTenants.ShouldNotBeNull().ShouldBe(["tenant-a"], ignoreOrder: true);
         _ = await router.Received(1).RouteCommandAsync(
             Arg.Is<SubmitPipelineCommand>(c => c != null && c.Tenant == "system"),
             Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task Commands_endpoint_returns_403_when_jwt_tenant_claim_is_missing() {
+    public async Task Commands_endpoint_returns_403_when_exact_permission_is_missing() {
         ICommandRouter router = Substitute.For<ICommandRouter>();
 
         await using var factory = new TenantGatewayTestHost(
@@ -2113,22 +2150,17 @@ public partial class CommandApiRuntimeIntegrationTests {
             Substitute.For<ICommandArchiveStore>());
         string token = CreateJwt("admin-user", claims: Array.Empty<Claim>());
         using HttpClient client = CreateClientWithBearer(factory, token);
-        Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateBootstrapRequest();
+        Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateUpdateTenantRequest();
 
         HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
-        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
-        ProblemDetails? details = await response.Content.ReadFromJsonAsync<ProblemDetails>();
-        _ = details.ShouldNotBeNull();
-        details.Status.ShouldBe(403);
-        details.Extensions.ShouldContainKey("reasonCode");
-        details.Extensions["reasonCode"]?.ToString().ShouldBe("principal_not_member");
+        (await response.Content.ReadAsStringAsync()).ShouldBeEmpty();
         await router.DidNotReceiveWithAnyArgs().RouteCommandAsync(default!, default);
     }
 
     [Fact]
-    public async Task Commands_endpoint_returns_403_when_global_admin_jwt_tenant_claim_is_missing() {
+    public async Task Commands_endpoint_returns_403_when_global_admin_exact_permission_is_missing() {
         ICommandRouter router = Substitute.For<ICommandRouter>();
 
         await using var factory = new TenantGatewayTestHost(
@@ -2137,15 +2169,12 @@ public partial class CommandApiRuntimeIntegrationTests {
             Substitute.For<ICommandArchiveStore>());
         string token = CreateJwt("admin-user", claims: [new Claim("global_admin", "true")]);
         using HttpClient client = CreateClientWithBearer(factory, token);
-        Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateBootstrapRequest();
+        Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateUpdateTenantRequest();
 
         HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
-        ProblemDetails? details = await response.Content.ReadFromJsonAsync<ProblemDetails>();
-        _ = details.ShouldNotBeNull();
-        details.Extensions.ShouldContainKey("reasonCode");
-        details.Extensions["reasonCode"]?.ToString().ShouldBe("principal_not_member");
+        (await response.Content.ReadAsStringAsync()).ShouldBeEmpty();
         await router.DidNotReceiveWithAnyArgs().RouteCommandAsync(default!, default);
     }
 
@@ -2162,52 +2191,56 @@ public partial class CommandApiRuntimeIntegrationTests {
             claims:
             [
                 new Claim("eventstore:tenant", " "),
-                new Claim("tenants", JsonSerializer.Serialize(new[] { "system" })),
+                new Claim("eventstore:permission", "tenants:update"),
+                new Claim("tenants", JsonSerializer.Serialize(new[] { "tenant-a" })),
             ]);
         using HttpClient client = CreateClientWithBearer(factory, token);
-        Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateBootstrapRequest();
+        Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateUpdateTenantRequest();
 
         HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
-        ProblemDetails? details = await response.Content.ReadFromJsonAsync<ProblemDetails>();
-        _ = details.ShouldNotBeNull();
-        details.Extensions.ShouldContainKey("reasonCode");
-        details.Extensions["reasonCode"]?.ToString().ShouldBe("principal_not_member");
+        (await response.Content.ReadAsStringAsync()).ShouldBeEmpty();
         await router.DidNotReceiveWithAnyArgs().RouteCommandAsync(default!, default);
     }
 
-    // Story 7.3: protected Tenants command requests require the platform tenant claim
-    // eventstore:tenant=system before routing. A request for another tenant fails even when the
-    // token and request tenant match each other.
+    // Public management requests use the declared platform scope and validate every tenant grant.
+    // Reserved grants and request scopes outside the declared owner cannot authorize the operation.
     [Theory]
     [InlineData("tenant-a", "system")]
     [InlineData("system", "tenant-a")]
     [InlineData("System", "system")]
     [InlineData("tenant-a", "tenant-a")]
-    public async Task Commands_endpoint_returns_403_when_jwt_tenant_claim_does_not_satisfy_system_contract(string claimTenant, string requestTenant) {
+    [InlineData("tenant-a", TenantPlatformScopes.GlobalAdministrators)]
+    public async Task Commands_endpoint_returns_403_when_grants_or_request_scope_are_noncanonical(string claimTenant, string requestTenant) {
         ICommandRouter router = Substitute.For<ICommandRouter>();
 
         await using var factory = new TenantGatewayTestHost(
             router,
             Substitute.For<ICommandStatusStore>(),
             Substitute.For<ICommandArchiveStore>());
-        string token = CreateJwt("admin-user", claims: [new Claim("eventstore:tenant", claimTenant)]);
+        string token = CreateJwt("admin-user", claims: [new Claim("eventstore:tenant", claimTenant), new Claim("eventstore:permission", "tenants:update")]);
         using HttpClient client = CreateClientWithBearer(factory, token);
-        Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateBootstrapRequest(tenant: requestTenant);
+        Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateUpdateTenantRequest() with { Tenant = requestTenant };
 
         HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
-        ProblemDetails? details = await response.Content.ReadFromJsonAsync<ProblemDetails>();
-        _ = details.ShouldNotBeNull();
-        details.Extensions.ShouldContainKey("reasonCode");
-        details.Extensions["reasonCode"]?.ToString().ShouldBe("tenant_mismatch");
+        if (claimTenant == "tenant-a" && requestTenant == "tenant-a")
+        {
+            // Valid ordinary tenant admission still reaches the Tenants management-scope guard.
+            ProblemDetails details = (await response.Content.ReadFromJsonAsync<ProblemDetails>()).ShouldNotBeNull();
+            GetProblemExtension(details, "reasonCode").ShouldBe("tenant_mismatch");
+        }
+        else
+        {
+            (await response.Content.ReadAsStringAsync()).ShouldBeEmpty();
+        }
         await router.DidNotReceiveWithAnyArgs().RouteCommandAsync(default!, default);
     }
 
     [Fact]
-    public async Task Commands_endpoint_returns_403_when_global_admin_jwt_uses_system_claim_with_non_system_request_tenant() {
+    public async Task Commands_endpoint_returns_403_when_global_admin_uses_reserved_grant_with_ordinary_request_scope() {
         ICommandRouter router = Substitute.For<ICommandRouter>();
 
         await using var factory = new TenantGatewayTestHost(
@@ -2220,22 +2253,20 @@ public partial class CommandApiRuntimeIntegrationTests {
             [
                 new Claim("global_admin", "true"),
                 new Claim("eventstore:tenant", "system"),
+                new Claim("eventstore:permission", "tenants:update"),
             ]);
         using HttpClient client = CreateClientWithBearer(factory, token);
-        Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateBootstrapRequest(tenant: "tenant-a");
+        Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateUpdateTenantRequest() with { Tenant = "tenant-a" };
 
         HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
-        ProblemDetails? details = await response.Content.ReadFromJsonAsync<ProblemDetails>();
-        _ = details.ShouldNotBeNull();
-        details.Extensions.ShouldContainKey("reasonCode");
-        details.Extensions["reasonCode"]?.ToString().ShouldBe("tenant_mismatch");
+        (await response.Content.ReadAsStringAsync()).ShouldBeEmpty();
         await router.DidNotReceiveWithAnyArgs().RouteCommandAsync(default!, default);
     }
 
     [Fact]
-    public async Task Commands_endpoint_returns_202_when_jwt_tenant_claim_satisfies_system_contract() {
+    public async Task Commands_endpoint_returns_202_when_jwt_has_canonical_grant_and_exact_permission() {
         ICommandRouter router = Substitute.For<ICommandRouter>();
         _ = router.RouteCommandAsync(Arg.Any<Hexalith.EventStore.Server.Pipeline.Commands.SubmitCommand>(), Arg.Any<CancellationToken>())
             .Returns(new CommandProcessingResult(true, null, "test-correlation"));
@@ -2247,7 +2278,7 @@ public partial class CommandApiRuntimeIntegrationTests {
             router,
             statusStore,
             Substitute.For<ICommandArchiveStore>());
-        string token = CreateJwt("admin-user", claims: [new Claim("eventstore:tenant", "system")]);
+        string token = CreateJwt("admin-user", claims: [new Claim("eventstore:tenant", "tenant-a"), new Claim("eventstore:permission", "tenants:update")]);
         using HttpClient client = CreateClientWithBearer(factory, token);
         Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateUpdateTenantRequest();
 
@@ -2335,7 +2366,8 @@ public partial class CommandApiRuntimeIntegrationTests {
             "admin-user",
             claims:
             [
-                new Claim("eventstore:tenant", "system"),
+                new Claim("eventstore:tenant", "tenant-a"),
+                new Claim("eventstore:permission", "tenants:update"),
                 new Claim("name", "different-display-name"),
             ]);
         using HttpClient client = CreateClientWithBearer(factory, token);
@@ -2424,9 +2456,9 @@ public partial class CommandApiRuntimeIntegrationTests {
             router,
             Substitute.For<ICommandStatusStore>(),
             Substitute.For<ICommandArchiveStore>());
-        string token = CreateJwtWithoutSub(claims: [new Claim("name", "display-only-user")]);
+        string token = CreateJwtWithoutSub(claims: [new Claim("name", "display-only-user"), new Claim("eventstore:permission", "tenants:update")]);
         using HttpClient client = CreateClientWithBearer(factory, token);
-        Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateBootstrapRequest();
+        Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateUpdateTenantRequest();
 
         HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
 
@@ -2442,15 +2474,14 @@ public partial class CommandApiRuntimeIntegrationTests {
     // TenantClaimContractTests.cs covers all shapes at unit tier; this Theory pins the live
     // middleware behavior. Source: 11-2 review deferred-work.
     [Theory]
-    [InlineData("tenants", "system tenant-a", null, null)]
-    [InlineData("tenant_id", "system", null, null)]
-    [InlineData("tid", "system", null, null)]
-    [InlineData("tenant_id", "system", "tid", "tenant-a")]
+    [InlineData("tenants", "tenant-a tenant-b", null, null, "tenant-a tenant-b")]
+    [InlineData("tenant_id", "tenant-a", null, null, "tenant-a")]
+    [InlineData("tid", "tenant-a", null, null, "tenant-a")]
+    [InlineData("tenant_id", "tenant-a", "tid", "tenant-b", "tenant-a")]
     public async Task Commands_endpoint_returns_202_when_jwt_uses_supported_source_claim_shape(
-        string claim1Type, string claim1Value, string? claim2Type, string? claim2Value) {
+        string claim1Type, string claim1Value, string? claim2Type, string? claim2Value, string expectedTenants) {
+        ArgumentException.ThrowIfNullOrWhiteSpace(expectedTenants);
         ICommandRouter router = Substitute.For<ICommandRouter>();
-        _ = router.RouteCommandAsync(Arg.Any<Hexalith.EventStore.Server.Pipeline.Commands.SubmitCommand>(), Arg.Any<CancellationToken>())
-            .Returns(new CommandProcessingResult(true, null, "test-correlation"));
         ICommandStatusStore statusStore = Substitute.For<ICommandStatusStore>();
         _ = statusStore.ReadStatusAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(new CommandStatusRecord(CommandStatus.Completed, DateTimeOffset.UtcNow, "acme", 1, null, null, null));
@@ -2459,7 +2490,17 @@ public partial class CommandApiRuntimeIntegrationTests {
             router,
             statusStore,
             Substitute.For<ICommandArchiveStore>());
-        var claims = new List<Claim> { new(claim1Type, claim1Value) };
+        IHttpContextAccessor contextAccessor = factory.Services.GetRequiredService<IHttpContextAccessor>();
+        string[]? transformedTenants = null;
+        _ = router.RouteCommandAsync(Arg.Any<SubmitPipelineCommand>(), Arg.Any<CancellationToken>())
+            .Returns(_ =>
+            {
+                ClaimsPrincipal principal = contextAccessor.HttpContext.ShouldNotBeNull().User;
+                principal.Identity.ShouldNotBeNull().IsAuthenticated.ShouldBeTrue();
+                transformedTenants = principal.FindAll("eventstore:tenant").Select(claim => claim.Value).ToArray();
+                return new CommandProcessingResult(true, null, "test-correlation");
+            });
+        var claims = new List<Claim> { new(claim1Type, claim1Value), new("permissions", "tenants:update") };
         if (claim2Type is not null) {
             claims.Add(new Claim(claim2Type, claim2Value!));
         }
@@ -2471,19 +2512,21 @@ public partial class CommandApiRuntimeIntegrationTests {
         HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Accepted);
+        transformedTenants.ShouldNotBeNull().ShouldBe(expectedTenants.Split(' '), ignoreOrder: true);
         _ = await router.Received(1).RouteCommandAsync(
             Arg.Is<Hexalith.EventStore.Server.Pipeline.Commands.SubmitCommand>(c => c != null && c.Tenant == "system"),
             Arg.Any<CancellationToken>());
     }
 
-    // AUTH-INT-004 — Pins ClaimsRbacValidator.cs permission semantics through the live pipeline:
-    // commands:* (wildcard), command:submit (category), and exact command-type token. Source:
-    // 11-2 review deferred-work — wildcard handling untested in Tenants.
+    // The catalog requires the exact operation permission, including casing and whitespace.
     [Theory]
     [InlineData("commands:*")]
     [InlineData("command:submit")]
     [InlineData(nameof(UpdateTenant))]
-    public async Task Commands_endpoint_returns_202_when_jwt_carries_authorizing_permission_claim(string permission) {
+    [InlineData("Tenants:Update")]
+    [InlineData(" tenants:update")]
+    [InlineData("tenants:update ")]
+    public async Task Commands_endpoint_returns_403_when_jwt_carries_legacy_permission_claim(string permission) {
         ICommandRouter router = Substitute.For<ICommandRouter>();
         _ = router.RouteCommandAsync(Arg.Any<Hexalith.EventStore.Server.Pipeline.Commands.SubmitCommand>(), Arg.Any<CancellationToken>())
             .Returns(new CommandProcessingResult(true, null, "test-correlation"));
@@ -2499,7 +2542,7 @@ public partial class CommandApiRuntimeIntegrationTests {
             "admin-user",
             claims:
             [
-                new Claim("eventstore:tenant", "system"),
+                new Claim("eventstore:tenant", "tenant-a"),
                 new Claim("eventstore:permission", permission),
             ]);
         using HttpClient client = CreateClientWithBearer(factory, token);
@@ -2507,18 +2550,12 @@ public partial class CommandApiRuntimeIntegrationTests {
 
         HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
 
-        response.StatusCode.ShouldBe(HttpStatusCode.Accepted);
-        _ = await router.Received(1).RouteCommandAsync(
-            Arg.Any<Hexalith.EventStore.Server.Pipeline.Commands.SubmitCommand>(),
-            Arg.Any<CancellationToken>());
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        (await response.Content.ReadAsStringAsync()).ShouldBeEmpty();
+        await router.DidNotReceiveWithAnyArgs().RouteCommandAsync(default!, default);
     }
 
-    // AUTH-INT-005 — Pins ClaimsRbacValidator.cs deny shape: an unrelated permission must not
-    // authorize a different command type, and duplicate non-matching claims cannot accumulate
-    // elevation (the validator uses boolean OR over case-insensitive equality). reasonCode
-    // string is the canonical AuthorizationFailureReasonExtensions.InsufficientPermission
-    // mapping ("insufficient_permission"), verified 2026-05-20 first run. Source: 11-2 review
-    // deferred-work — "duplicate eventstore:permission do not accumulate elevation".
+    // Unrelated exact permissions remain insufficient even when repeated.
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -2530,26 +2567,97 @@ public partial class CommandApiRuntimeIntegrationTests {
             Substitute.For<ICommandStatusStore>(),
             Substitute.For<ICommandArchiveStore>());
         var claims = new List<Claim> {
-            new("eventstore:tenant", "system"),
-            new("eventstore:permission", nameof(CreateTenant)),
+            new("eventstore:tenant", "tenant-a"),
+            new("eventstore:permission", "tenants:create"),
         };
         if (duplicate) {
-            claims.Add(new Claim("eventstore:permission", nameof(CreateTenant)));
+            claims.Add(new Claim("eventstore:permission", "tenants:create"));
         }
 
         string token = CreateJwt("admin-user", claims: claims);
         using HttpClient client = CreateClientWithBearer(factory, token);
-        // Submit BootstrapGlobalAdmin while only the unrelated CreateTenant permission is granted.
-        Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateBootstrapRequest();
+        // An unrelated exact permission cannot authorize an update.
+        Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateUpdateTenantRequest();
 
         HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
-        ProblemDetails? details = await response.Content.ReadFromJsonAsync<ProblemDetails>();
-        _ = details.ShouldNotBeNull();
-        details.Status.ShouldBe(403);
-        details.Extensions.ShouldContainKey("reasonCode");
-        details.Extensions["reasonCode"]?.ToString().ShouldBe("insufficient_permission");
+        (await response.Content.ReadAsStringAsync()).ShouldBeEmpty();
+        await router.DidNotReceiveWithAnyArgs().RouteCommandAsync(default!, default);
+    }
+
+    /// <summary>Platform updates accept one exact permission with empty or canonical grants and refuse duplicates.</summary>
+    [Theory]
+    [InlineData(false, false, false)]
+    [InlineData(false, true, false)]
+    [InlineData(true, false, false)]
+    [InlineData(true, true, false)]
+    [InlineData(true, false, true)]
+    public async Task CommandsEndpointRequiresOneExactPermissionWithValidOrEmptyGrants(bool hasGrant, bool duplicatePermission, bool additionalClaims)
+    {
+        ICommandRouter router = Substitute.For<ICommandRouter>();
+        router.RouteCommandAsync(Arg.Any<SubmitPipelineCommand>(), Arg.Any<CancellationToken>())
+            .Returns(new CommandProcessingResult(true, null, "exact-permission"));
+        ICommandStatusStore status = Substitute.For<ICommandStatusStore>();
+        status.ReadStatusAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new CommandStatusRecord(CommandStatus.Completed, DateTimeOffset.UtcNow, "acme", 1, null, null, null));
+        await using var host = new TenantGatewayTestHost(router, status);
+        var claims = new List<Claim> { new("eventstore:permission", "tenants:update") };
+        if (hasGrant)
+        {
+            claims.Add(new Claim("eventstore:tenant", "tenant-a"));
+        }
+        if (duplicatePermission)
+        {
+            claims.Add(new Claim("eventstore:permission", "tenants:update"));
+        }
+        if (additionalClaims)
+        {
+            claims.Add(new Claim("eventstore:tenant", "TENANT-B"));
+            claims.Add(new Claim("eventstore:permission", "tenants:create"));
+        }
+        using HttpClient client = CreateClientWithBearer(host, CreateJwt("admin-user", claims: claims));
+
+        Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateUpdateTenantRequest();
+        request.Tenant.ShouldBe(TenantPlatformScopes.Tenants);
+        using HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
+
+        response.StatusCode.ShouldBe(duplicatePermission ? HttpStatusCode.Forbidden : HttpStatusCode.Accepted);
+        if (duplicatePermission)
+        {
+            (await response.Content.ReadAsStringAsync()).ShouldBeEmpty();
+            await router.DidNotReceiveWithAnyArgs().RouteCommandAsync(default!, default);
+        }
+        else
+        {
+            await router.Received(1).RouteCommandAsync(Arg.Is<SubmitPipelineCommand>(command => command.Tenant == "system"), Arg.Any<CancellationToken>());
+        }
+    }
+
+    /// <summary>One reserved, duplicate or malformed grant invalidates the whole collection before dispatch.</summary>
+    [Theory]
+    [InlineData("system")]
+    [InlineData("System")]
+    [InlineData("tenant-a")]
+    [InlineData("TENANT-A")]
+    [InlineData(" tenant-b")]
+    [InlineData("tenant_b")]
+    public async Task CommandsEndpointRefusesInvalidGrantCollectionsDespiteExactPermission(string invalidGrant)
+    {
+        ICommandRouter router = Substitute.For<ICommandRouter>();
+        await using var host = new TenantGatewayTestHost(router);
+        using HttpClient client = CreateClientWithBearer(host, CreateJwt("admin-user", claims:
+        [
+            new Claim("eventstore:tenant", "tenant-a"),
+            new Claim("eventstore:tenant", invalidGrant),
+            new Claim("eventstore:permission", "tenants:update"),
+            new Claim("global_admin", "true"),
+        ]));
+
+        using HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", CreateUpdateTenantRequest());
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        (await response.Content.ReadAsStringAsync()).ShouldBeEmpty();
         await router.DidNotReceiveWithAnyArgs().RouteCommandAsync(default!, default);
     }
 
@@ -2590,13 +2698,13 @@ public partial class CommandApiRuntimeIntegrationTests {
         string token = CreateJwt(actorUserId, claims:
         [
             new Claim("name", targetUserId),
-            new Claim("eventstore:tenant", "system"),
+            new Claim("global_admin", "true"),
             new Claim("eventstore:domain", "global-administrators"),
-            new Claim("eventstore:permission", nameof(BootstrapGlobalAdmin)),
+            new Claim("eventstore:permission", "global-administrators:bootstrap"),
         ]);
         using HttpClient client = factory.CreateClient();
         var request = new Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest(
-            UniqueIdHelper.GenerateSortableUniqueStringId(), "system", "global-administrators", "global-administrators",
+            UniqueIdHelper.GenerateSortableUniqueStringId(), TenantPlatformScopes.GlobalAdministrators, "global-administrators", "global-administrators",
             nameof(BootstrapGlobalAdmin), JsonSerializer.SerializeToElement(new BootstrapGlobalAdmin(targetUserId)));
 
         using HttpRequestMessage boundRequest = await authority.CreateRequestAsync(factory.Services, token, request);
@@ -2629,8 +2737,12 @@ public partial class CommandApiRuntimeIntegrationTests {
         domainResult.Events.ShouldNotContain(static e => e.GetType() == typeof(GlobalAdministratorSet));
     }
 
-    private static HttpClient CreateJwtClient(TenantGatewayTestHost factory)
-        => CreateClientWithBearer(factory, CreateJwt("admin-user"));
+    private static HttpClient CreateJwtClient(TenantGatewayTestHost factory, string permission = "tenants:update")
+        => CreateClientWithBearer(factory, CreateJwt("admin-user", claims:
+        [
+            new Claim("eventstore:tenant", "tenant-a"),
+            new Claim("eventstore:permission", permission),
+        ]));
 
     private static TenantState CreateRoleBehaviorState() {
         var state = new TenantState();
@@ -2726,7 +2838,8 @@ public partial class CommandApiRuntimeIntegrationTests {
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
         var tokenClaims = new List<Claim> { new("sub", userId), new("eventstore:surface", "ui") };
         if (claims is null) {
-            tokenClaims.Add(new Claim("eventstore:tenant", "system"));
+            tokenClaims.Add(new Claim("eventstore:tenant", "tenant-a"));
+            tokenClaims.Add(new Claim("eventstore:permission", "tenants:update"));
         }
         else {
             tokenClaims.AddRange(claims);
@@ -2763,12 +2876,12 @@ public partial class CommandApiRuntimeIntegrationTests {
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
-    private static Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest CreateBootstrapRequest(string tenant = "system") {
+    private static Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest CreateBootstrapRequest(string tenant = TenantPlatformScopes.GlobalAdministrators) {
         JsonElement payload = JsonSerializer.SerializeToElement(new BootstrapGlobalAdmin("admin-1"));
         return new Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest(
             UniqueIdHelper.GenerateSortableUniqueStringId(),
             tenant,
-            "tenants",
+            "global-administrators",
             "global-administrators",
             nameof(BootstrapGlobalAdmin),
             payload);
@@ -2779,7 +2892,7 @@ public partial class CommandApiRuntimeIntegrationTests {
         JsonElement payload = JsonSerializer.SerializeToElement(new CreateTenant("acme", "Acme Corp", "Tenant from command API"));
         return new Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest(
             UniqueIdHelper.GenerateSortableUniqueStringId(),
-            "system",
+            TenantPlatformScopes.Tenants,
             "tenants",
             "acme",
             nameof(CreateTenant),
@@ -2793,7 +2906,7 @@ public partial class CommandApiRuntimeIntegrationTests {
             ?? JsonSerializer.SerializeToElement(new AddUserToTenant("acme", "alice", TenantRole.TenantContributor));
         return new Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest(
             UniqueIdHelper.GenerateSortableUniqueStringId(),
-            "system",
+            TenantPlatformScopes.Tenants,
             "tenants",
             "acme",
             nameof(AddUserToTenant),
@@ -2806,7 +2919,7 @@ public partial class CommandApiRuntimeIntegrationTests {
             ?? JsonSerializer.SerializeToElement(new SetGlobalAdministrator("target-user.literal-01"));
         return new Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest(
             UniqueIdHelper.GenerateSortableUniqueStringId(),
-            "system",
+            TenantPlatformScopes.GlobalAdministrators,
             "global-administrators",
             "global-administrators",
             nameof(SetGlobalAdministrator),
@@ -2819,7 +2932,7 @@ public partial class CommandApiRuntimeIntegrationTests {
             ?? JsonSerializer.SerializeToElement(new RemoveGlobalAdministrator("target-user.literal-01"));
         return new Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest(
             UniqueIdHelper.GenerateSortableUniqueStringId(),
-            "system",
+            TenantPlatformScopes.GlobalAdministrators,
             "global-administrators",
             "global-administrators",
             nameof(RemoveGlobalAdministrator),
@@ -2830,7 +2943,7 @@ public partial class CommandApiRuntimeIntegrationTests {
         JsonElement payload = JsonSerializer.SerializeToElement(new RemoveUserFromTenant("acme", "alice"));
         return new Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest(
             UniqueIdHelper.GenerateSortableUniqueStringId(),
-            "system",
+            TenantPlatformScopes.Tenants,
             "tenants",
             "acme",
             nameof(RemoveUserFromTenant),
@@ -2841,7 +2954,7 @@ public partial class CommandApiRuntimeIntegrationTests {
         JsonElement payload = JsonSerializer.SerializeToElement(new ChangeUserRole("acme", "alice", TenantRole.TenantOwner));
         return new Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest(
             UniqueIdHelper.GenerateSortableUniqueStringId(),
-            "system",
+            TenantPlatformScopes.Tenants,
             "tenants",
             "acme",
             nameof(ChangeUserRole),
@@ -2854,7 +2967,7 @@ public partial class CommandApiRuntimeIntegrationTests {
             ?? JsonSerializer.SerializeToElement(new SetTenantConfiguration("acme", "billing.plan", "enterprise"));
         return new Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest(
             UniqueIdHelper.GenerateSortableUniqueStringId(),
-            "system",
+            TenantPlatformScopes.Tenants,
             "tenants",
             "acme",
             nameof(SetTenantConfiguration),
@@ -2866,7 +2979,7 @@ public partial class CommandApiRuntimeIntegrationTests {
         JsonElement payload = JsonSerializer.SerializeToElement(new UpdateTenant("acme", "Acme Updated", "Updated tenant metadata"));
         return new Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest(
             UniqueIdHelper.GenerateSortableUniqueStringId(),
-            "system",
+            TenantPlatformScopes.Tenants,
             "tenants",
             "acme",
             nameof(UpdateTenant),
@@ -2878,7 +2991,7 @@ public partial class CommandApiRuntimeIntegrationTests {
         JsonElement payload = JsonSerializer.SerializeToElement(new DisableTenant("acme"));
         return new Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest(
             UniqueIdHelper.GenerateSortableUniqueStringId(),
-            "system",
+            TenantPlatformScopes.Tenants,
             "tenants",
             "acme",
             nameof(DisableTenant),
@@ -2889,7 +3002,7 @@ public partial class CommandApiRuntimeIntegrationTests {
         JsonElement payload = JsonSerializer.SerializeToElement(new EnableTenant("acme"));
         return new Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest(
             UniqueIdHelper.GenerateSortableUniqueStringId(),
-            "system",
+            TenantPlatformScopes.Tenants,
             "tenants",
             "acme",
             nameof(EnableTenant),
@@ -2952,9 +3065,7 @@ public partial class CommandApiRuntimeIntegrationTests {
         bool useLegacyStatusAdapter = true,
         IReadModelStore? projectionStore = null,
         MutableGlobalAdministratorSource? administratorSource = null) : WebApplicationFactory<TenantBootstrapOptions> {
-#if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
         private readonly CommittedRouteCatalogSnapshot _catalog = TenantOwnerCatalogTestAuthority.CreateSnapshot(WorkloadAudience);
-#endif
         /// <summary>Gets the isolated store so read-only projection contracts can verify its persisted end state.</summary>
         public InMemoryReadModelStore ReadModelStore { get; } = new();
 
@@ -2981,11 +3092,11 @@ public partial class CommandApiRuntimeIntegrationTests {
             .UseSetting("EventStore:DomainService:AppId", WorkloadAudience)
             .UseSetting(DaprAppChannelToken.ConfigurationKey, WorkloadChannelToken)
             .ConfigureServices(services => {
-#if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
             services.RemoveAll<IRouteCatalogAuthority>();
             services.AddSingleton(TenantOwnerCatalogTestAuthority.Create(_catalog));
+#if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
             // This isolated receiver has the same explicit target as the compiled owner bindings.
-            // Distributed activation and attestation are exercised by the normal package profile.
+            // Activation and attestation are supplied by the isolated SDK authority above.
             services.Configure<RouteCatalogHostOptions>(options => options.Identity = new RouteCatalogHostIdentity(
                 WorkloadAudience, WorkloadAudience, _catalog.RootDigest, _catalog.RootDigest, _catalog.RootDigest));
 #endif

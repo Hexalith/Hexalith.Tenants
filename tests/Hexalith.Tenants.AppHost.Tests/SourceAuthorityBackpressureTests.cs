@@ -20,12 +20,12 @@ public sealed class SourceAuthorityBackpressureTests
         List<string> args = ["--EnableKeycloak=true"];
         if (publish) args.AddRange(["--publisher", "manifest", "--output-path", Path.Combine(Path.GetTempPath(), $"tenants-queue-model-{Guid.NewGuid():N}.json")]);
         if (configured is not null) args.Add("--EventStore:RateLimiting:QueueLimit=" + configured);
-        await using IDistributedApplicationTestingBuilder builder = await DistributedApplicationTestingBuilder
-            .CreateAsync<Projects.Hexalith_Tenants_AppHost>([.. args]);
+        await using IDistributedApplicationTestingBuilder builder = await AppHostModelBuilder
+            .CreateAsync([.. args]);
         IResource eventStore = builder.Resources.Single(resource => resource.Name == "eventstore");
         var context = new EnvironmentCallbackContext(builder.ExecutionContext, eventStore, new Dictionary<string, object>());
         foreach (EnvironmentCallbackAnnotation annotation in eventStore.Annotations.OfType<EnvironmentCallbackAnnotation>())
-            await annotation.Callback(context);
+            await AppHostModelBuilder.ApplyEnvironmentCallbackAsync(annotation, context);
         context.EnvironmentVariables["EventStore__RateLimiting__QueueLimit"].ShouldBe(expected);
         foreach (string key in new[] { "PermitLimit", "WindowSeconds", "ConsumerPermitLimit", "ConsumerWindowSeconds" })
             context.EnvironmentVariables.ContainsKey("EventStore__RateLimiting__" + key).ShouldBeFalse();

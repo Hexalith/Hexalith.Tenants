@@ -313,14 +313,21 @@ export function restoreAuditFocus(focusId, originTestId, headingId, expectedUser
         const row = anchor.closest('fluent-data-grid-row, [role="row"], tr');
         const header = anchor.closest('[data-testid="tenants-detail-identity"]');
         const container = row || header || anchor;
+        // The detail header's metadata can be rendered outside the heading's immediate
+        // container. Its source marker identifies the one launcher to restore.
+        const launchers = !row && originTestId === 'tenants-detail-audit-origin'
+          ? [...origin.querySelectorAll('[data-testid="tenants-audit-entrypoint"][data-audit-source="tenant-detail"]'),
+              ...container.querySelectorAll('[data-testid="tenants-audit-entrypoint"]')]
+          : container.querySelectorAll('[data-testid="tenants-audit-entrypoint"]');
         // Responsive copies share the source row/header. Try its visible enabled launcher
         // instead of stopping at the first (possibly CSS-hidden) copy.
-        for (const launcher of container.querySelectorAll('[data-testid="tenants-audit-entrypoint"]')) {
+        for (const launcher of launchers) {
           if (launcher.tagName.toLowerCase() !== 'fluent-anchor-button' || !launcher.getAttribute('href')
               || launcher.matches(':disabled, [disabled], [aria-disabled="true"]')
               || launcher.closest('[hidden], [aria-hidden="true"], [inert]')
               || !launcher.getClientRects().length || getComputedStyle(launcher).visibility !== 'visible') continue;
           launcher.focus({ preventScroll: false });
+          if (!ownsActiveElement(launcher)) launcher.shadowRoot?.querySelector('a[href]')?.focus({ preventScroll: false });
           if (ownsActiveElement(launcher)) {
             finish('found');
             return;

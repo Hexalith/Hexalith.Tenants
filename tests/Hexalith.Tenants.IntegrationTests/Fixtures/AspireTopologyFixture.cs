@@ -6,6 +6,7 @@ using System.Text.Json;
 using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.Tenants.Contracts.Commands;
+using Hexalith.Tenants.Contracts.Identity;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.Server.Projections;
 using Hexalith.Tenants.UI.Services.Gateways;
@@ -24,6 +25,8 @@ namespace Hexalith.Tenants.IntegrationTests.Fixtures;
 /// and requires projected caller authority after its explicit post-startup bootstrap.
 /// </remarks>
 public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith_Tenants_AppHost>, IAsyncLifetime {
+    private readonly string _nativeOwnerPrivateKey = NativeOwnerReadServiceComposition.CreatePrivateKey();
+
     internal static string DemoSigningKey => Environment.GetEnvironmentVariable("TENANTS_SOURCE_CATALOG_SIGNING_KEY")
         ?? "DevOnlySigningKey-AtLeast32Chars!";
     private static readonly TimeSpan CommandApiHealthTimeout = TimeSpan.FromMinutes(4);
@@ -45,7 +48,8 @@ public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith
     {
         ProjectionWorkersEnabledAtStartup = !bool.TryParse(
             Environment.GetEnvironmentVariable("EventStore__Projections__WorkersEnabled"), out bool enabled) || enabled;
-        await WithBootstrapStartupSettingsAsync(() => base.InitializeAsync());
+        await WithNativeOwnerStartupSettingsAsync(_nativeOwnerPrivateKey,
+            () => WithBootstrapStartupSettingsAsync(() => base.InitializeAsync()));
         if (!PrerequisitesAvailable)
         {
             return;
@@ -65,10 +69,14 @@ public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith
                 await base.DisposeAsync();
             },
             string.Equals(Environment.GetEnvironmentVariable("TENANTS_LIVE_REQUIRE_COLD_BOOTSTRAP"), "true", StringComparison.OrdinalIgnoreCase),
-            timeout.Token);
+            timeout.Token,
+            diagnosticToken => ProbeBootstrapAuthorityFailureAsync(scoped, CommandApiClient, token, diagnosticToken));
     }
 
     internal static bool IsSourceCatalogProfile => string.Equals(Environment.GetEnvironmentVariable("TENANTS_SOURCE_CATALOG_PROFILE"), "true", StringComparison.Ordinal);
+
+    internal static bool IncludeSample => !IsSourceCatalogProfile
+        || string.Equals(Environment.GetEnvironmentVariable("TENANTS_SOURCE_CATALOG_INCLUDE_SAMPLE"), "true", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>Gets the inherited worker profile captured before the AppHost child processes start.</summary>
     internal bool ProjectionWorkersEnabledAtStartup { get; private set; }
@@ -80,12 +88,32 @@ public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith
         Func<string?, CancellationToken, Task<TenantsRestQueryResponse<PaginatedResult<GlobalAdministratorSummary>>>> read,
         Func<ValueTask> cleanup,
         bool requireColdBootstrap,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        Func<CancellationToken, Task<string>>? probeFailure = null)
     {
         string phase = "bootstrap-command";
         string failure = "bootstrap-command-failed";
+        string authorityRefusal = "no-response";
         try
         {
+            // A later hosted suite uses the same fresh backend after the first suite has
+            // already proved the cold commit. Repeating BootstrapGlobalAdmin can leave a
+            // second status pending; accept only the current projected caller authority.
+            if (IsSourceCatalogProfile && !requireColdBootstrap)
+            {
+                using var existingAuthority = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                existingAuthority.CancelAfter(TimeSpan.FromSeconds(10));
+                try
+                {
+                    await WaitForBootstrapAuthorityAsync(read, null, false, existingAuthority.Token);
+                    return;
+                }
+                catch (OperationCanceledException) when (existingAuthority.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+                {
+                    // No proven authority yet: keep the normal command and projection proof.
+                }
+            }
+
             (long? sequence, string? commandFailure) = await SubmitBootstrapAsync(commandApi, token, requireColdBootstrap, cancellationToken);
             if (commandFailure is not null)
             {
@@ -95,11 +123,31 @@ public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith
 
             phase = "bootstrap-authority";
             failure = "bootstrap-authority-unavailable";
-            await WaitForBootstrapAuthorityAsync(read, sequence, requireColdBootstrap, cancellationToken);
+            await WaitForBootstrapAuthorityAsync(read, sequence, requireColdBootstrap, cancellationToken,
+                reason => authorityRefusal = reason);
         }
         catch
         {
-            if (cancellationToken.IsCancellationRequested) failure = phase + "-timeout";
+            if (cancellationToken.IsCancellationRequested)
+            {
+                failure = phase + "-timeout";
+                if (phase == "bootstrap-authority" && IsSourceCatalogProfile)
+                {
+                    Console.Error.WriteLine("TENANTS_BOOTSTRAP_AUTHORITY_REFUSAL " + authorityRefusal);
+                    if (probeFailure is not null)
+                    {
+                        try
+                        {
+                            using var diagnosticTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+                            Console.Error.WriteLine("TENANTS_BOOTSTRAP_AUTHORITY_PROBE " + await probeFailure(diagnosticTimeout.Token));
+                        }
+                        catch
+                        {
+                            Console.Error.WriteLine("TENANTS_BOOTSTRAP_AUTHORITY_PROBE unavailable");
+                        }
+                    }
+                }
+            }
             try
             {
                 await cleanup();
@@ -131,12 +179,34 @@ public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith
         }
     }
 
+    /// <summary>Supplies the fixture's private enrollment key only during AppHost initialization and always restores inheritance.</summary>
+    internal static async ValueTask WithNativeOwnerStartupSettingsAsync(string privateKey, Func<ValueTask> initialize)
+    {
+        const string key = "Parameters__tenants-source-private-key";
+        string? previous = Environment.GetEnvironmentVariable(key);
+        try
+        {
+            Environment.SetEnvironmentVariable(key, privateKey);
+            await initialize();
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(key, previous);
+        }
+    }
+
+    /// <summary>Composes the actual owner transport and independently committed catalog for a native read qualification.</summary>
+    internal Task<Microsoft.Extensions.DependencyInjection.ServiceProvider> CreateNativeOwnerReadServicesAsync(CancellationToken cancellationToken)
+        => NativeOwnerReadServiceComposition.CreateAsync(TenantsDaprClient.BaseAddress
+            ?? throw new InvalidOperationException("native-owner-sidecar-unavailable"), _nativeOwnerPrivateKey, cancellationToken);
+
     /// <summary>Traverses opaque production cursors until the caller has current authority at the actual committed prefix.</summary>
     internal static async Task WaitForBootstrapAuthorityAsync(
         Func<string?, CancellationToken, Task<TenantsRestQueryResponse<PaginatedResult<GlobalAdministratorSummary>>>> read,
         long? committedSequence,
         bool requireColdBootstrap,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        Action<string>? reportRefusal = null)
     {
         while (true)
         {
@@ -152,6 +222,7 @@ public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith
                 }
                 catch (HttpRequestException exception) when (IsTransientTransport(exception))
                 {
+                    reportRefusal?.Invoke("transient-transport");
                     break;
                 }
                 cancellationToken.ThrowIfCancellationRequested();
@@ -167,16 +238,95 @@ public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith
                     || metadata.ServedAt is not { } servedAt || servedAt < DateTimeOffset.UtcNow.AddMinutes(-5)
                     || servedAt > DateTimeOffset.UtcNow.AddSeconds(5))
                 {
+                    reportRefusal?.Invoke(ClassifyBootstrapAuthorityRefusal(response, committedSequence, requireColdBootstrap));
                     break;
                 }
 
                 if (page.Items?.Any(item => item is not null && item.UserId == AuthenticatedRouteState.CallerId) == true) return;
+                reportRefusal?.Invoke("caller-absent");
                 if (!page.HasMore || string.IsNullOrWhiteSpace(page.Cursor)) break;
                 if (!cursors.Add(page.Cursor)) throw new InvalidOperationException("bootstrap-authority-cursor-cycle");
                 cursor = page.Cursor;
             }
 
             await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken);
+        }
+    }
+
+    private static string ClassifyBootstrapAuthorityRefusal(
+        TenantsRestQueryResponse<PaginatedResult<GlobalAdministratorSummary>> response,
+        long? committedSequence,
+        bool requireColdBootstrap)
+    {
+        if (response.StatusCode != (int)HttpStatusCode.OK) return "http-" + response.StatusCode;
+        if (response.FailureKind != TenantsRestQueryFailureKind.None) return "client-failure-" + response.FailureKind;
+        if (response.Payload is null) return "payload-missing";
+        QueryResponseMetadata metadata = response.Metadata;
+        if (metadata.Provenance != QueryResponseProvenance.ProjectionBacked) return "provenance";
+        if (metadata.Lifecycle != ProjectionLifecycleState.Current) return "lifecycle";
+        if (metadata.IsStale is not false || metadata.IsDegraded is true || metadata.IsNotModified is true) return "freshness";
+        if (string.IsNullOrWhiteSpace(metadata.ETag)) return "etag";
+        if (!TenantAuditStreams.TryGetSequence(metadata.ProjectionVersion, out long sequence)) return "version-format";
+        if (sequence < (committedSequence ?? 1) || requireColdBootstrap && sequence != 1) return "version-sequence";
+        if (metadata.ServedAt is not { } servedAt || servedAt < DateTimeOffset.UtcNow.AddMinutes(-5)
+            || servedAt > DateTimeOffset.UtcNow.AddSeconds(5)) return "served-at";
+        return "unclassified";
+    }
+
+    private static async Task<string> ProbeBootstrapAuthorityFailureAsync(
+        HttpClient tenantsApi, HttpClient eventStore, string token, CancellationToken cancellationToken)
+    {
+        using var tenantRequest = new HttpRequestMessage(HttpMethod.Get, "/api/global-administrators?pageSize=100");
+        tenantRequest.Headers.Add("X-Hexalith-Scope", TenantPlatformScopes.GlobalAdministrators);
+        using HttpResponseMessage tenantResponse = await tenantsApi.SendAsync(
+            tenantRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        string tenantResult = await ClassifyProblemAsync(tenantResponse, cancellationToken);
+
+        var query = new SubmitQueryRequest(
+            TenantPlatformScopes.GlobalAdministrators,
+            GetGlobalAdministratorsQuery.Domain,
+            TenantIdentity.GlobalAdministratorsAggregateId,
+            GetGlobalAdministratorsQuery.QueryType,
+            GetGlobalAdministratorsQuery.ProjectionType,
+            JsonSerializer.SerializeToElement(new GetGlobalAdministratorsQuery { PageSize = 100 }),
+            TenantIdentity.GlobalAdministratorsAggregateId);
+        using var eventStoreRequest = new HttpRequestMessage(HttpMethod.Post, "/api/v1/queries")
+        {
+            Content = JsonContent.Create(query),
+        };
+        eventStoreRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        eventStoreRequest.Headers.Add("X-Hexalith-Scope", TenantPlatformScopes.GlobalAdministrators);
+        using HttpResponseMessage eventStoreResponse = await eventStore.SendAsync(
+            eventStoreRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        return "tenants=" + tenantResult + ";eventstore=" + await ClassifyProblemAsync(eventStoreResponse, cancellationToken);
+    }
+
+    private static async Task<string> ClassifyProblemAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+    {
+        string status = "http-" + (int)response.StatusCode;
+        if (response.Content.Headers.ContentType?.MediaType != "application/problem+json") return status + ":non-problem";
+        try
+        {
+            byte[]? body = await ReadBoundedBootstrapBodyAsync(response.Content, cancellationToken);
+            if (body is null) return status + ":oversized-problem";
+            using JsonDocument problem = JsonDocument.Parse(body, new JsonDocumentOptions { MaxDepth = 8 });
+            if (!problem.RootElement.TryGetProperty("reasonCode", out JsonElement reason)
+                || reason.ValueKind != JsonValueKind.String) return status + ":no-reason-code";
+            string category = reason.GetString() switch
+            {
+                QueryProblemReasonCodes.InternalError => "query-internal-error",
+                QueryProblemReasonCodes.ProjectionMissing => "projection-missing",
+                QueryProblemReasonCodes.ProjectionStale => "projection-stale",
+                QueryProblemReasonCodes.ProjectionTimeout => "projection-timeout",
+                QueryProblemReasonCodes.MalformedProjectionResponse => "malformed-projection",
+                QueryProblemReasonCodes.NotImplemented => "query-not-implemented",
+                _ => "other-reason-code",
+            };
+            return status + ":" + category;
+        }
+        catch (Exception exception) when (exception is JsonException or HttpRequestException or IOException)
+        {
+            return status + ":unreadable-problem";
         }
     }
 
@@ -350,9 +500,9 @@ public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith
         new("eventstore-dapr-cli", "http", TenantsApiClientTimeout, TenantsApiHealthTimeout, WaitForAliveness: false, TenantsApiHealthTimeout),
         new("tenants-dapr-cli", "http", TenantsApiClientTimeout, TenantsApiHealthTimeout, WaitForAliveness: false, TenantsApiHealthTimeout),
         new("tenants-ui-dapr-cli", "http", TenantsApiClientTimeout, TenantsApiHealthTimeout, WaitForAliveness: false, TenantsApiHealthTimeout),
-        .. IsSourceCatalogProfile
-            ? []
-            : new AspireResource[] { new("sample", "http", SampleClientTimeout, SampleHealthTimeout, WaitForAliveness: true, SampleHealthTimeout) },
+        .. IncludeSample
+            ? new AspireResource[] { new("sample", "http", SampleClientTimeout, SampleHealthTimeout, WaitForAliveness: true, SampleHealthTimeout) }
+            : [],
 #if HEXALITH_DEVELOPMENT_CATALOG_COHORT
         // The source qualification also drives the real Admin UI's existing SSR/client transport.
         .. IsSourceCatalogProfile

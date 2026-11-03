@@ -22,10 +22,11 @@ def instant(value):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--sdk-source-sha", required=True)
+    parser.add_argument("--ci-job", choices=("development-catalog", "authenticated-routes"), default="development-catalog")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
-    if os.environ.get("GITHUB_ACTIONS") != "true" or os.environ.get("GITHUB_JOB") != "development-catalog":
-        raise ValueError("The source profile requires its declared disposable CI job.")
+    if os.environ.get("GITHUB_ACTIONS") != "true" or os.environ.get("GITHUB_JOB") != args.ci_job:
+        raise ValueError("The catalog profile requires its declared disposable CI job.")
     root = Path(command("git", "rev-parse", "--show-toplevel"))
     for module in ("Hexalith.EventStore", "Hexalith.Builds"):
         relative = f"references/{module}"
@@ -67,8 +68,9 @@ def main():
         print("::add-mask::" + secret, flush=True)
     values = {
         "TENANTS_SOURCE_CATALOG_PROFILE": "true",
-        # This separate behavior opt-in is emitted only after the fresh backend checks above.
-        "TENANTS_SOURCE_WORKER_BACKED_RESPONSES_ENABLED": "true",
+        # The authenticated-routes job deliberately disables projection workers and
+        # qualifies request-path delivery; only the source-catalog job opts in.
+        "TENANTS_SOURCE_WORKER_BACKED_RESPONSES_ENABLED": "true" if args.ci_job == "development-catalog" else "false",
         # Exact owning categories only; do not enable HTTP/header or arbitrary transport logging.
         "Logging__LogLevel__Hexalith.EventStore.ServiceDefaults.Routing.TechnicalHttpRouteCatalogReceiver": "Debug",
         "Logging__LogLevel__Hexalith.EventStore.Server.Commands.CommandRouter": "Debug",

@@ -3,8 +3,9 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Hexalith.Tenants.Client\Hexalith.Tenants.Client.csproj" />
     <ProjectReference Include="..\..\src\Hexalith.Tenants.Testing\Hexalith.Tenants.Testing.csproj" />
-    <!-- The EventStore ETag-faithful InMemoryReadModelStore backs the durable projection tests. Debug source when
-         available; Release uses the published EventStore Testing package. -->
+    <!-- The EventStore ETag-faithful InMemoryReadModelStore backs the durable projection tests. Source when
+         HexalithEventStoreFromSource is true (UseHexalithProjectReferences=true and an EventStore checkout is
+         found); otherwise the published EventStore Testing package, in every configuration. -->
     <ProjectReference Include="$(HexalithEventStoreRoot)\src\Hexalith.EventStore.Testing\Hexalith.EventStore.Testing.csproj" Condition="'$(HexalithEventStoreFromSource)' == 'true'" />
     <PackageReference Include="Hexalith.EventStore.Testing" Condition="'$(HexalithEventStoreFromSource)' != 'true'" />
   </ItemGroup>

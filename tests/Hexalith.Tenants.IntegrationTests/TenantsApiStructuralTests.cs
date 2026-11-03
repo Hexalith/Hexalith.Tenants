@@ -90,7 +90,7 @@ public sealed class TenantsApiStructuralTests
 
         attribute.RoutePrefix.ShouldBe("api/tenants");
         attribute.Tag.ShouldBe("tenants");
-        attribute.TenantSource.ShouldBe(RestTenantSource.System);
+        attribute.TenantSource.ShouldBe(RestTenantSource.Platform);
     }
 
     [Fact]
@@ -242,6 +242,7 @@ public sealed class TenantsApiStructuralTests
         AssertAction(controller, "GetUserTenantsQueryQueryAsync", typeof(HttpGetAttribute), "~/api/users/{userId}/tenants");
         AssertAction(controller, "GetTenantAuditQueryQueryAsync", typeof(HttpGetAttribute), "{tenantId}/audit");
         AssertAction(controller, "GetGlobalAdministratorsQueryQueryAsync", typeof(HttpGetAttribute), "~/api/global-administrators");
+        AssertAction(controller, "GetGlobalAdministratorAuditQueryQueryAsync", typeof(HttpGetAttribute), "~/api/global-administrators/audit");
 
         AssertAction(controller, "CreateTenantCommandAsync", typeof(HttpPostAttribute), "{tenantId}");
         AssertAction(controller, "UpdateTenantCommandAsync", typeof(HttpPutAttribute), "{tenantId}");
@@ -266,6 +267,7 @@ public sealed class TenantsApiStructuralTests
                     "DisableTenantCommandAsync",
                     "EnableTenantCommandAsync",
                     "GetGlobalAdministratorsQueryQueryAsync",
+                    "GetGlobalAdministratorAuditQueryQueryAsync",
                     "GetTenantAuditQueryQueryAsync",
                     "GetTenantQueryQueryAsync",
                     "GetTenantUsersQueryQueryAsync",

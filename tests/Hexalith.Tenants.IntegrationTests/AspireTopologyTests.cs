@@ -127,23 +127,28 @@ public class AspireTopologyTests : IDisposable {
 
         string tenantId = $"provenance-{Guid.NewGuid():N}";
         string token = CreateDemoJwt(tenantId);
+        string commandToken = AspireTopologyFixture.IsSourceCatalogProfile ? CreateDemoJwt() : token;
         string tenantName = $"Provenance {Guid.NewGuid():N}";
         const string tenantDescription = "Created by the Story 4.7 persisted-route proof";
         using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(5));
 
-        CommandStatusResponse bootstrapStatus = await SubmitAndWaitForTerminalStatusAsync(
-            _fixture.CommandApiClient,
-            CreateCommand(
-                "global-administrators",
-                "global-administrators",
-                nameof(BootstrapGlobalAdmin),
-                new BootstrapGlobalAdmin(BootstrapGlobalAdminUserId)),
-            token,
-            timeout.Token,
-            allowAlreadyBootstrappedConflict: true);
-        (bootstrapStatus.Status == "Completed"
-            || (bootstrapStatus.Status == "Rejected" && bootstrapStatus.RejectionEventType == "GlobalAdminAlreadyBootstrappedRejection"))
-            .ShouldBeTrue($"Bootstrap status was {bootstrapStatus.Status}:{bootstrapStatus.RejectionEventType}.");
+        // In the catalog profile, fixture initialization already proved the owner-bound
+        // bootstrap. A second human command must remain forbidden.
+        if (!AspireTopologyFixture.IsSourceCatalogProfile) {
+            CommandStatusResponse bootstrapStatus = await SubmitAndWaitForTerminalStatusAsync(
+                _fixture.CommandApiClient,
+                CreateCommand(
+                    "global-administrators",
+                    "global-administrators",
+                    nameof(BootstrapGlobalAdmin),
+                    new BootstrapGlobalAdmin(BootstrapGlobalAdminUserId)),
+                commandToken,
+                timeout.Token,
+                allowAlreadyBootstrappedConflict: true);
+            (bootstrapStatus.Status == "Completed"
+                || (bootstrapStatus.Status == "Rejected" && bootstrapStatus.RejectionEventType == "GlobalAdminAlreadyBootstrappedRejection"))
+                .ShouldBeTrue($"Bootstrap status was {bootstrapStatus.Status}:{bootstrapStatus.RejectionEventType}.");
+        }
 
         CommandStatusResponse createStatus = await SubmitAndWaitForTerminalStatusAsync(
             _fixture.CommandApiClient,
@@ -152,7 +157,7 @@ public class AspireTopologyTests : IDisposable {
                 tenantId,
                 nameof(CreateTenant),
                 new CreateTenant(tenantId, tenantName, tenantDescription)),
-            token,
+            commandToken,
             timeout.Token);
         createStatus.Status.ShouldBe("Completed");
         createStatus.TenantId.ShouldBe("system");
@@ -325,32 +330,56 @@ public class AspireTopologyTests : IDisposable {
 
         string tenantId = $"aha-{Guid.NewGuid():N}";
         string token = CreateDemoJwt(tenantId);
+        string commandToken = AspireTopologyFixture.IsSourceCatalogProfile ? CreateDemoJwt() : token;
         string userId = $"jane-{Guid.NewGuid():N}";
         using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(3));
         using var statusClient = new HttpClient {
             BaseAddress = _fixture.CommandApiClient.BaseAddress,
             Timeout = TimeSpan.FromSeconds(60),
         };
-        statusClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        statusClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", commandToken);
         var gatewayClient = new EventStoreGatewayClient(
             statusClient,
             Options.Create(new EventStoreGatewayClientOptions()));
         var commandGateway = new TenantCommandGateway(gatewayClient, new UlidFactory(), statusClient);
 
-        CommandStatusResponse bootstrapStatus = await SubmitAndWaitForTerminalStatusAsync(
-            _fixture.CommandApiClient,
-            CreateCommand(
-                "global-administrators",
-                "global-administrators",
-                nameof(BootstrapGlobalAdmin),
-                new BootstrapGlobalAdmin(BootstrapGlobalAdminUserId)),
-            token,
-            timeout.Token,
-            allowAlreadyBootstrappedConflict: true);
+        if (AspireTopologyFixture.IsSourceCatalogProfile)
+        {
+#if HEXALITH_DEVELOPMENT_CATALOG_COHORT
+            var (state, _) = await SourceCatalogBootstrapEvidence.ReadCommittedAsync(timeout.Token);
+            var activation = state.Committed.ShouldNotBeNull();
+            activation.RequiredHosts.Select(static owner => (owner.HostId, owner.AppId))
+                .OrderBy(static owner => owner.HostId, StringComparer.Ordinal)
+                .ShouldBe([("eventstore", "eventstore"), ("eventstore-admin", "eventstore-admin"),
+                    ("tenants", "tenants"), ("tenants-api", "tenants-api")]);
+            // The fixture admitted this caller through the owner-bound startup path. Recheck
+            // the actual retained receipt and terminal sequence; a human bootstrap submission
+            // through the catalog route must remain forbidden.
+            (long? sequence, string? failure) = await SourceCatalogBootstrapEvidence.WaitForOwnedBootstrapAsync(
+                _fixture.CommandApiClient, commandToken, requireColdBootstrap: true, timeout.Token);
+            failure.ShouldBeNull();
+            sequence.ShouldBe(1);
+#else
+            throw new InvalidOperationException("The source catalog profile requires the published catalog SDK cohort.");
+#endif
+        }
+        else
+        {
+            CommandStatusResponse bootstrapStatus = await SubmitAndWaitForTerminalStatusAsync(
+                _fixture.CommandApiClient,
+                CreateCommand(
+                    "global-administrators",
+                    "global-administrators",
+                    nameof(BootstrapGlobalAdmin),
+                    new BootstrapGlobalAdmin(BootstrapGlobalAdminUserId)),
+                commandToken,
+                timeout.Token,
+                allowAlreadyBootstrappedConflict: true);
 
-        (bootstrapStatus.Status == "Completed"
-            || (bootstrapStatus.Status == "Rejected" && bootstrapStatus.RejectionEventType == "GlobalAdminAlreadyBootstrappedRejection"))
-            .ShouldBeTrue($"Bootstrap status was {bootstrapStatus.Status}:{bootstrapStatus.RejectionEventType}.");
+            (bootstrapStatus.Status == "Completed"
+                || (bootstrapStatus.Status == "Rejected" && bootstrapStatus.RejectionEventType == "GlobalAdminAlreadyBootstrappedRejection"))
+                .ShouldBeTrue($"Bootstrap status was {bootstrapStatus.Status}:{bootstrapStatus.RejectionEventType}.");
+        }
 
         SubmitCommandRequest createCommand = CreateCommand(
             "tenants",
@@ -360,7 +389,7 @@ public class AspireTopologyTests : IDisposable {
         CommandStatusResponse createStatus = await SubmitAndWaitForTerminalStatusAsync(
             _fixture.CommandApiClient,
             createCommand,
-            token,
+            commandToken,
             timeout.Token);
         if (createStatus.Status == "PublishFailed") {
             Assert.Skip($"Aspire pub/sub publication is unavailable: {createStatus.FailureReason ?? "unknown reason"}");
@@ -389,7 +418,7 @@ public class AspireTopologyTests : IDisposable {
         CommandStatusResponse addStatus = await SubmitAndWaitForTerminalStatusAsync(
             _fixture.CommandApiClient,
             addCommand,
-            token,
+            commandToken,
             timeout.Token);
         addStatus.Status.ShouldBe("Completed");
         addStatus.TenantId.ShouldBe("system");
@@ -421,7 +450,7 @@ public class AspireTopologyTests : IDisposable {
         CommandStatusResponse removeStatus = await SubmitAndWaitForTerminalStatusAsync(
             _fixture.CommandApiClient,
             removeCommand,
-            token,
+            commandToken,
             timeout.Token);
         removeStatus.Status.ShouldBe("Completed");
         removeStatus.CommittedEventSequence.ShouldNotBeNull().ShouldBeGreaterThan(addStatus.CommittedEventSequence!.Value);
@@ -761,7 +790,13 @@ public class AspireTopologyTests : IDisposable {
     }
 
     /// <summary>Creates the development caller's short-lived signed test token.</summary>
-    internal static string CreateDemoJwt(string? tenantId = null) {
+    internal static string CreateDemoJwt(string? tenantId = null)
+        => CreateDemoJwt(tenantId is null ? [] : [tenantId]);
+
+    /// <summary>Grants exact tenant scope, optionally restricting the caller to read permissions.</summary>
+    /// <param name="tenantIds">The exact permitted tenants.</param>
+    /// <param name="readOnly">Whether command and administrator writes are omitted.</param>
+    internal static string CreateDemoJwt(IEnumerable<string> tenantIds, bool readOnly = false) {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(AspireTopologyFixture.DemoSigningKey));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
         Claim[] claims =
@@ -770,7 +805,7 @@ public class AspireTopologyTests : IDisposable {
             new("eventstore:surface", "ui"),
             new("tenants", "[\"system\"]"),
             new("domains", "[\"global-administrators\",\"tenants\"]"),
-            new("permissions", "[\"command:submit\",\"query:read\"]"),
+            new("permissions", readOnly ? "[\"query:read\"]" : "[\"command:submit\",\"query:read\"]"),
             new("roles", "[\"GlobalAdministrator\"]"),
             new("eventstore:permission", "tenants:read"),
             new("eventstore:permission", "global-administrators:read"),
@@ -787,13 +822,15 @@ public class AspireTopologyTests : IDisposable {
             new("eventstore:permission", "tenants:set-configuration"),
             new("eventstore:permission", "tenants:remove-configuration"),
         ];
-        if (tenantId is not null) claims = [.. claims, new("eventstore:tenant", tenantId)];
+        claims = [.. claims.Where(claim => !readOnly || claim.Type != "eventstore:permission"
+            || claim.Value is "tenants:read" or "global-administrators:read"),
+            .. tenantIds.Select(tenantId => new Claim("eventstore:tenant", tenantId))];
 
         var token = new JwtSecurityToken(
             issuer: JwtIssuer,
             audience: JwtAudience,
             claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(10),
+            expires: DateTime.UtcNow.AddMinutes(readOnly ? 30 : 10),
             signingCredentials: credentials);
 
         return new JwtSecurityTokenHandler().WriteToken(token);

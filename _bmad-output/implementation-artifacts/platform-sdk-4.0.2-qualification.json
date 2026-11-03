@@ -1,0 +1,201 @@
+{
+  "sourceCommit": "1f5958e24d1b414d8956d079270f89556e23415d",
+  "status": "passed",
+  "runtimeAcceptance": false,
+  "caseCount": 168,
+  "failedCaseCount": 0,
+  "rawEvidenceSha256": "98975c62e34eb8e0e814477f5e4c55548f36de5aedc388aa5806b8f86d7bed3e",
+  "rawEvidencePath": "/tmp/platform-sdk-4-0-2-00ohe86o/sdk-gates.json",
+  "newCohort": [
+    {
+      "project": "src/Hexalith.Platform.EventStoreHost/Hexalith.Platform.EventStoreHost.csproj",
+      "version": "4.0.2",
+      "source": false,
+      "catalogDefault": false,
+      "status": "passed",
+      "command": [
+        "dotnet",
+        "msbuild",
+        "/home/administrator/projects/hexalith/tenants/references/Hexalith.Platform/src/Hexalith.Platform.EventStoreHost/Hexalith.Platform.EventStoreHost.csproj",
+        "-nologo",
+        "-p:Configuration=Release",
+        "-p:UseHexalithProjectReferences=false",
+        "-getProperty:DefineConstants,HexalithEventStoreVersion",
+        "-p:HexalithEventStoreVersion=4.0.2",
+        "-p:ImportDirectoryPackagesProps=false",
+        "-p:HexalithBuildsRoot=/home/administrator/projects/hexalith/tenants/references/Hexalith.Builds"
+      ],
+      "exitCode": 0,
+      "actual": [
+        "HEXALITH_PLATFORM_CATALOG_SDK",
+        "HEXALITH_PLATFORM_TECHNICAL_CATALOG_SDK"
+      ],
+      "actualVersion": "4.0.2"
+    },
+    {
+      "project": "src/Hexalith.Platform.EventStoreHost/Hexalith.Platform.EventStoreHost.csproj",
+      "version": null,
+      "source": false,
+      "catalogDefault": true,
+      "status": "passed",
+      "command": [
+        "dotnet",
+        "msbuild",
+        "/home/administrator/projects/hexalith/tenants/references/Hexalith.Platform/src/Hexalith.Platform.EventStoreHost/Hexalith.Platform.EventStoreHost.csproj",
+        "-nologo",
+        "-p:Configuration=Release",
+        "-p:UseHexalithProjectReferences=false",
+        "-getProperty:DefineConstants,HexalithEventStoreVersion",
+        "-p:HexalithBuildsRoot=/home/administrator/projects/hexalith/tenants/references/Hexalith.Builds"
+      ],
+      "exitCode": 0,
+      "actual": [
+        "HEXALITH_PLATFORM_CATALOG_SDK",
+        "HEXALITH_PLATFORM_TECHNICAL_CATALOG_SDK"
+      ],
+      "actualVersion": "4.0.2"
+    },
+    {
+      "project": "src/Hexalith.Platform.Composition/Hexalith.Platform.Composition.csproj",
+      "version": "4.0.2",
+      "source": false,
+      "catalogDefault": false,
+      "status": "passed",
+      "command": [
+        "dotnet",
+        "msbuild",
+        "/home/administrator/projects/hexalith/tenants/references/Hexalith.Platform/src/Hexalith.Platform.Composition/Hexalith.Platform.Composition.csproj",
+        "-nologo",
+        "-p:Configuration=Release",
+        "-p:UseHexalithProjectReferences=false",
+        "-getProperty:DefineConstants,HexalithEventStoreVersion",
+        "-p:HexalithEventStoreVersion=4.0.2",
+        "-p:ImportDirectoryPackagesProps=false",
+        "-p:HexalithBuildsRoot=/home/administrator/projects/hexalith/tenants/references/Hexalith.Builds"
+      ],
+      "exitCode": 0,
+      "actual": [
+        "HEXALITH_PLATFORM_CATALOG_SDK",
+        "HEXALITH_PLATFORM_V2_CATALOG"
+      ],
+      "actualVersion": "4.0.2"
+    },
+    {
+      "project": "src/Hexalith.Platform.Composition/Hexalith.Platform.Composition.csproj",
+      "version": null,
+      "source": false,
+      "catalogDefault": true,
+      "status": "passed",
+      "command": [
+        "dotnet",
+        "msbuild",
+        "/home/administrator/projects/hexalith/tenants/references/Hexalith.Platform/src/Hexalith.Platform.Composition/Hexalith.Platform.Composition.csproj",
+        "-nologo",
+        "-p:Configuration=Release",
+        "-p:UseHexalithProjectReferences=false",
+        "-getProperty:DefineConstants,HexalithEventStoreVersion",
+        "-p:HexalithBuildsRoot=/home/administrator/projects/hexalith/tenants/references/Hexalith.Builds"
+      ],
+      "exitCode": 0,
+      "actual": [
+        "HEXALITH_PLATFORM_CATALOG_SDK",
+        "HEXALITH_PLATFORM_V2_CATALOG"
+      ],
+      "actualVersion": "4.0.2"
+    },
+    {
+      "project": "tests/Hexalith.Platform.Composition.Tests/Hexalith.Platform.Composition.Tests.csproj",
+      "version": "4.0.2",
+      "source": false,
+      "catalogDefault": false,
+      "status": "passed",
+      "command": [
+        "dotnet",
+        "msbuild",
+        "/home/administrator/projects/hexalith/tenants/references/Hexalith.Platform/tests/Hexalith.Platform.Composition.Tests/Hexalith.Platform.Composition.Tests.csproj",
+        "-nologo",
+        "-p:Configuration=Release",
+        "-p:UseHexalithProjectReferences=false",
+        "-getProperty:DefineConstants,HexalithEventStoreVersion",
+        "-p:HexalithEventStoreVersion=4.0.2",
+        "-p:ImportDirectoryPackagesProps=false",
+        "-p:HexalithBuildsRoot=/home/administrator/projects/hexalith/tenants/references/Hexalith.Builds"
+      ],
+      "exitCode": 0,
+      "actual": [
+        "HEXALITH_PLATFORM_CATALOG_SDK",
+        "HEXALITH_PLATFORM_V2_CATALOG"
+      ],
+      "actualVersion": "4.0.2"
+    },
+    {
+      "project": "tests/Hexalith.Platform.Composition.Tests/Hexalith.Platform.Composition.Tests.csproj",
+      "version": null,
+      "source": false,
+      "catalogDefault": true,
+      "status": "passed",
+      "command": [
+        "dotnet",
+        "msbuild",
+        "/home/administrator/projects/hexalith/tenants/references/Hexalith.Platform/tests/Hexalith.Platform.Composition.Tests/Hexalith.Platform.Composition.Tests.csproj",
+        "-nologo",
+        "-p:Configuration=Release",
+        "-p:UseHexalithProjectReferences=false",
+        "-getProperty:DefineConstants,HexalithEventStoreVersion",
+        "-p:HexalithBuildsRoot=/home/administrator/projects/hexalith/tenants/references/Hexalith.Builds"
+      ],
+      "exitCode": 0,
+      "actual": [
+        "HEXALITH_PLATFORM_CATALOG_SDK",
+        "HEXALITH_PLATFORM_V2_CATALOG"
+      ],
+      "actualVersion": "4.0.2"
+    },
+    {
+      "project": "src/Hexalith.Platform.CatalogBuilder/Hexalith.Platform.CatalogBuilder.csproj",
+      "version": "4.0.2",
+      "source": false,
+      "catalogDefault": false,
+      "status": "passed",
+      "command": [
+        "dotnet",
+        "msbuild",
+        "/home/administrator/projects/hexalith/tenants/references/Hexalith.Platform/src/Hexalith.Platform.CatalogBuilder/Hexalith.Platform.CatalogBuilder.csproj",
+        "-nologo",
+        "-p:Configuration=Release",
+        "-p:UseHexalithProjectReferences=false",
+        "-getProperty:DefineConstants,HexalithEventStoreVersion",
+        "-p:HexalithEventStoreVersion=4.0.2",
+        "-p:ImportDirectoryPackagesProps=false",
+        "-p:HexalithBuildsRoot=/home/administrator/projects/hexalith/tenants/references/Hexalith.Builds"
+      ],
+      "exitCode": 0,
+      "actual": [
+        "HEXALITH_SCOPED_CONSUMER_BINDING"
+      ],
+      "actualVersion": "4.0.2"
+    },
+    {
+      "project": "src/Hexalith.Platform.CatalogBuilder/Hexalith.Platform.CatalogBuilder.csproj",
+      "version": null,
+      "source": false,
+      "catalogDefault": true,
+      "status": "passed",
+      "command": [
+        "dotnet",
+        "msbuild",
+        "/home/administrator/projects/hexalith/tenants/references/Hexalith.Platform/src/Hexalith.Platform.CatalogBuilder/Hexalith.Platform.CatalogBuilder.csproj",
+        "-nologo",
+        "-p:Configuration=Release",
+        "-p:UseHexalithProjectReferences=false",
+        "-getProperty:DefineConstants,HexalithEventStoreVersion",
+        "-p:HexalithBuildsRoot=/home/administrator/projects/hexalith/tenants/references/Hexalith.Builds"
+      ],
+      "exitCode": 0,
+      "actual": [
+        "HEXALITH_SCOPED_CONSUMER_BINDING"
+      ],
+      "actualVersion": "4.0.2"
+    }
+  ]
+}

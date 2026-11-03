@@ -2,10 +2,12 @@
 // Every projection is command-seeded; no upstream response or browser request is substituted.
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createFunctionalNavigation } from './authenticated-live-route-waits.mjs';
+import { captureLauncherFocusState, createLiveRouteCheckpoint } from './authenticated-live-route-evidence.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const require = createRequire(new URL('../../performance/tenant-audit/package.json', import.meta.url));
@@ -18,10 +20,17 @@ const evidence = { startedUtc: new Date().toISOString(), mode: 'Authenticated li
     cases: [], passed: false };
 let browser;
 let captureReadiness;
+let captureFocus;
 let phase = 'session';
+const persist = createLiveRouteCheckpoint(output, evidence);
+const checkpoint = async next => { phase = next; await persist(phase); };
+const completeCase = async result => { evidence.cases.push(result); await checkpoint(phase); };
 // Geometry and focus groups perform fresh native reads. Give their shared partition
 // (1,000 permits per 60 seconds) a complete window; the separate 20-row control qualifies burst capacity.
-const nextNativeAdmissionGroup = () => new Promise(resolve => setTimeout(resolve, 60_000));
+const nextNativeAdmissionGroup = async () => {
+    await checkpoint(`${phase}-admission-window`);
+    await new Promise(resolve => setTimeout(resolve, 60_000));
+};
 const check = (condition, label) => { if (!condition) throw Object.assign(new Error(), { safeLabel: label }); };
 const hash = value => createHash('sha256').update(value).digest('hex');
 const git = (...args) => execFileSync('git', args, { cwd: root, encoding: 'utf8' }).trim();
@@ -46,15 +55,19 @@ const capture = async configuration => ({
 });
 try {
     check(Boolean(output), 'result-path-required');
+    await checkpoint('session');
     const session = JSON.parse(await readFile(process.argv[2], 'utf8'));
     const base = new URL(session.baseUrl);
     check(['localhost', '127.0.0.1'].includes(base.hostname), 'live-loopback-endpoint-required');
     const { chromium } = require(moduleName);
     evidence.playwrightVersion = require(`${moduleName}/package.json`).version;
     const configuration = session.configuration || 'Debug';
+    await checkpoint('source-capture');
     const before = await capture(configuration);
     Object.assign(evidence, before);
+    await checkpoint('browser-launch');
     browser = await chromium.launch({ headless: true });
+    await checkpoint('browser-session');
     const context = await browser.newContext();
     await context.addCookies(session.cookie.split(';').map(value => {
         const cookie = value.trim();
@@ -64,14 +77,7 @@ try {
             httpOnly: true, secure: base.protocol === 'https:', sameSite: 'Lax' };
     }));
     const page = await context.newPage();
-    page.setDefaultTimeout(25_000);
-    const open = async destination => {
-        const response = await page.goto(destination);
-        // Prerendered rows can arrive before the interactive circuit and Fluent modules.
-        // Let their startup requests settle before sending input or measuring replacement DOM.
-        await page.waitForLoadState('networkidle');
-        return response;
-    };
+    const { open, waitUntil } = createFunctionalNavigation(page, check);
     const errors = [];
     const recordError = label => { if (errors.length < 8) errors.push(label); };
     page.on('pageerror', () => recordError('browser-page-error'));
@@ -119,11 +125,6 @@ try {
         for (let current = active; current; current = current.parentElement || current.getRootNode()?.host) if (current === element) return true;
         return false;
     });
-    const waitUntil = async (condition, label) => {
-        const deadline = Date.now() + 25_000;
-        while (Date.now() < deadline) { if (await condition()) return; await page.waitForTimeout(100); }
-        check(false, label);
-    };
     const intersectsAndReceivesPointer = locator => locator.evaluate(element => {
         let bounds = element.getBoundingClientRect();
         let left = Math.max(0, bounds.left), right = Math.min(innerWidth, bounds.right);
@@ -174,35 +175,35 @@ try {
         ['/global-administrators', 'tenants-global-admins-area'],
     ];
     for (let index = 0; index < routes.length; index++) {
-        phase = `protected-route-${index + 1}`;
+        await checkpoint(`protected-route-${index + 1}`);
         const [path, marker] = routes[index];
         const response = await open(new URL(path, base).href);
         check(response?.status() === 200, 'protected-route-http-200');
         await testId(marker).waitFor({ state: 'visible' });
         check(await testId('fc-scope-blocked').count() === 0, 'validated-scope-required');
         await requireReady(marker);
-        evidence.cases.push({ name: phase, passed: true });
+        await completeCase({ name: phase, passed: true });
     }
 
-    phase = 'interactive-circuit';
+    await checkpoint('interactive-circuit');
     await open(new URL(auditPath, base).href);
     await requireReady('tenants-audit-surface');
-    phase = 'interactive-filter-input';
+    await checkpoint('interactive-filter-input');
     const fromInput = page.locator('input[data-testid="tenants-audit-filter-from"], [data-testid="tenants-audit-filter-from"] input');
     await fromInput.fill('2020-01-01T00:00');
     await fromInput.press('Tab');
-    phase = 'interactive-filter-change';
+    await checkpoint('interactive-filter-change');
     await testId('tenants-audit-filter-pending').waitFor({ state: 'visible' });
-    phase = 'interactive-filter-reset';
+    await checkpoint('interactive-filter-reset');
     await testId('tenants-audit-reset').click();
     await testId('tenants-audit-filter-pending').waitFor({ state: 'hidden' });
     check(await fromInput.inputValue() === '', 'server-rendered-filter-reset');
-    evidence.cases.push({ name: 'interactive-circuit', passed: true });
+    await completeCase({ name: 'interactive-circuit', passed: true });
     await nextNativeAdmissionGroup();
 
     for (const width of [390, 768, 1440]) {
         for (const forcedColors of ['none', 'active']) {
-            phase = `audit-layout-${width}-${forcedColors}`;
+            await checkpoint(`audit-layout-${width}-${forcedColors}`);
             await page.setViewportSize({ width, height: 1000 });
             await page.emulateMedia({ forcedColors });
             await open(new URL(auditPath, base).href);
@@ -219,18 +220,18 @@ try {
                 await testId(id).scrollIntoViewIfNeeded();
                 check(await intersectsAndReceivesPointer(testId(id)), 'audit-recovery-control-hit-testable');
             }
-            evidence.cases.push({ name: phase, ...measured, passed: true });
+            await completeCase({ name: phase, ...measured, passed: true });
 
-            phase = `tenant-list-layout-${width}-${forcedColors}`;
+            await checkpoint(`tenant-list-layout-${width}-${forcedColors}`);
             const layoutPhase = phase;
-            phase = `${layoutPhase}-open`;
+            await checkpoint(`${layoutPhase}-open`);
             await open(new URL(listPath, base).href);
-            phase = `${layoutPhase}-ready`;
+            await checkpoint(`${layoutPhase}-ready`);
             await requireReady('tenants-workspace');
             const grid = testId('tenants-list-grid');
             const row = seededListRow();
             const pinned = ['tenants-list-tenant-id', 'tenants-list-status', 'tenants-list-truth-state'];
-            phase = `${layoutPhase}-scroll`;
+            await checkpoint(`${layoutPhase}-scroll`);
             await row.getByTestId('tenants-list-tenant-id').scrollIntoViewIfNeeded();
             await grid.evaluate(element => { element.scrollLeft = 0; });
             const leftBefore = await Promise.all(pinned.map(id => row.getByTestId(id).evaluate(element => element.getBoundingClientRect().left)));
@@ -258,7 +259,7 @@ try {
             const remainPinned = leftBefore.every((left, index) => Math.abs(leftAfter[index] - left) <= 2);
             if (!remainPinned) await page.screenshot({ path: output.replace(/\.json$/, '.png') });
             check(remainPinned, 'identity-status-freshness-remain-pinned');
-            phase = `${layoutPhase}-hit-content`;
+            await checkpoint(`${layoutPhase}-hit-content`);
             evidence.lastListContentHits = [];
             for (const id of pinned) {
                 const content = row.getByTestId(id);
@@ -272,7 +273,7 @@ try {
                 check(hit, `pinned-content-hit-${id}`);
             }
             check((await row.getByTestId('tenants-list-status').getAttribute('class') || '').includes('--active'), 'seeded-status-active');
-            phase = `${layoutPhase}-focus`;
+            await checkpoint(`${layoutPhase}-focus`);
             const detailLink = row.getByTestId('tenants-list-detail-link');
             await detailLink.focus();
             await page.keyboard.press('Tab');
@@ -280,7 +281,7 @@ try {
             check(await focused(detailLink), 'list-detail-keyboard-focus');
             const outline = await detailLink.evaluate(element => ({ width: parseFloat(getComputedStyle(element).outlineWidth), style: getComputedStyle(element).outlineStyle }));
             check(outline.width > 0 && outline.style !== 'none', 'list-detail-visible-focus-outline');
-            phase = `${layoutPhase}-copy-action`;
+            await checkpoint(`${layoutPhase}-copy-action`);
             const copy = row.locator('[data-surface-testid="tenants-list-copy-reference"]');
             check(await copy.count() === 1, 'actual-list-copy-control-required');
             await page.keyboard.press('Tab');
@@ -299,7 +300,7 @@ try {
             check(await intersectsAndReceivesPointer(copy), 'list-copy-control-hit-testable');
             check(copyMeasurement.outlineWidth > 0 && copyMeasurement.outlineStyle !== 'none', 'list-copy-visible-focus-outline');
             const overflowAction = row.locator('[data-testid="tenants-audit-entrypoint"][data-audit-source="tenant-list"]:visible');
-            phase = `${layoutPhase}-audit-action`;
+            await checkpoint(`${layoutPhase}-audit-action`);
             await waitUntil(async () => Boolean(await overflowAction.getAttribute('href')), 'list-overflow-action-ready');
             for (let step = 0; step < 16 && !(await focused(overflowAction)); step++) await page.keyboard.press('Tab');
             check(await focused(overflowAction), 'list-overflow-action-keyboard-access');
@@ -316,7 +317,7 @@ try {
             if (!actionMeasurement.visible) await page.screenshot({ path: output.replace(/\.json$/, '.png') });
             check(actionMeasurement.visible, 'list-overflow-action-in-scrollport');
             check(await intersectsAndReceivesPointer(overflowAction), 'list-overflow-action-hit-testable');
-            evidence.cases.push({ name: layoutPhase, ...dimensions, pinned: true, keyboardFocus: true, copyAccessible: true, overflowAccessible: true, passed: true });
+            await completeCase({ name: layoutPhase, ...dimensions, pinned: true, keyboardFocus: true, copyAccessible: true, overflowAccessible: true, passed: true });
         }
     }
 
@@ -330,7 +331,7 @@ try {
         return url.pathname + url.search + url.hash;
     };
     for (const source of ['tenant-detail', 'member-row']) {
-        phase = `contextual-audit-back-${source}`;
+        await checkpoint(`contextual-audit-back-${source}`);
         const contextPhase = phase;
         await open(new URL(detailPath, base).href);
         await requireReady('tenants-detail');
@@ -344,7 +345,7 @@ try {
         const launcher = source === 'tenant-detail'
             ? page.locator('[data-testid="tenants-audit-entrypoint"]').filter({ has: testId('tenants-detail-audit-entrypoint') })
             : page.locator('[role="row"], tr').filter({ has: page.locator(`[id="${focusId}"]`) }).locator('[data-testid="tenants-audit-entrypoint"]').filter({ has: testId('tenants-member-audit-entrypoint') });
-        phase = `${contextPhase}-launcher`;
+        await checkpoint(`${contextPhase}-launcher`);
         await launcher.waitFor({ state: 'visible' });
         try {
             await waitUntil(async () => Boolean(await launcher.getAttribute('href')), 'contextual-audit-launcher-authorized');
@@ -353,7 +354,7 @@ try {
             throw error;
         }
         await launcher.click();
-        phase = `${contextPhase}-audit-ready`;
+        await checkpoint(`${contextPhase}-audit-ready`);
         await requireReady('tenants-audit-surface');
         const displayedContext = await testId('tenants-audit-context').textContent();
         check(displayedContext.includes(source === 'member-row' ? session.targetUserId : 'tenant detail'), 'displayed-audit-source-or-member-context');
@@ -367,15 +368,44 @@ try {
         const back = new URL(await testId('tenants-audit-back').getAttribute('href'), base);
         check(back.origin === base.origin && back.pathname === `/tenants/${session.tenantId}`, 'safe-local-audit-return');
         check(completeContext(back) === completeContext(detailPath), 'back-href-retains-complete-context');
-        phase = `${contextPhase}-back`;
+        await checkpoint(`${contextPhase}-back`);
         await testId('tenants-audit-back').click();
         await testId('tenants-detail').waitFor({ state: 'visible' });
         await page.waitForFunction(() => !document.querySelector('[data-testid="tenants-audit-surface"]'));
-        phase = `${contextPhase}-focus`;
-        await waitUntil(() => focused(launcher), 'audit-back-restores-source-launcher-focus');
+        await checkpoint(`${contextPhase}-focus`);
+        captureFocus = () => captureLauncherFocusState(launcher);
+        try {
+            await waitUntil(() => focused(launcher), 'audit-back-restores-source-launcher-focus');
+        } catch (error) {
+            evidence.auditReturnFocusState = await page.evaluate(() => {
+                const origin = document.querySelector('[data-testid="tenants-detail-audit-origin"]');
+                const launcher = origin?.querySelector('[data-testid="tenants-audit-entrypoint"]');
+                const heading = document.getElementById('tenants-detail-identity');
+                let active = document.activeElement;
+                while (active?.shadowRoot?.activeElement) active = active.shadowRoot.activeElement;
+                const owns = target => {
+                    for (let node = active; node; node = node.parentElement || node.getRootNode()?.host)
+                        if (node === target) return true;
+                    return false;
+                };
+                return {
+                    terminal: origin?.getAttribute('data-audit-focus-terminal')?.toLowerCase() === 'true',
+                    launcherIsLink: launcher?.tagName.toLowerCase() === 'fluent-anchor-button',
+                    launcherHasHref: Boolean(launcher?.getAttribute('href')),
+                    launcherVisible: Boolean(launcher?.getClientRects().length),
+                    activeIsLauncher: Boolean(launcher && owns(launcher)),
+                    activeIsHeading: Boolean(heading && owns(heading)),
+                    missingNotice: Boolean(document.querySelector('[data-testid="tenants-audit-return-notice"]')),
+                    stalledNotice: Boolean(document.querySelector('[data-testid="tenants-audit-stalled-return"]')),
+                };
+            });
+            await checkpoint(`${contextPhase}-focus-diagnostic`);
+            throw error;
+        }
+        captureFocus = undefined;
         check(await launcher.getAttribute('data-audit-source') === source, 'restored-source-specific-launcher');
         check(completeContext(page.url()) === completeContext(detailPath), 'back-retains-complete-nested-context');
-        evidence.cases.push({ name: contextPhase, targetPreserved: true, safeReturn: true, focusRestored: true, passed: true });
+        await completeCase({ name: contextPhase, targetPreserved: true, safeReturn: true, focusRestored: true, passed: true });
     }
 
     const canonicalListContext = value => {
@@ -388,7 +418,7 @@ try {
     for (const width of [390, 768, 1440]) {
         const contextPhase = `contextual-audit-back-tenant-list-${width}`;
         if (width !== 390) await nextNativeAdmissionGroup();
-        phase = `${contextPhase}-source`;
+        await checkpoint(`${contextPhase}-source`);
         await page.setViewportSize({ width, height: 1000 });
         await page.emulateMedia({ forcedColors: 'none' });
         // A cursorless origin keeps this focus control independent of intentional cursor recovery.
@@ -416,7 +446,7 @@ try {
         await launcher.scrollIntoViewIfNeeded();
         check(await intersectsAndReceivesPointer(launcher), 'list-back-visible-launcher-hit-testable');
         await launcher.click();
-        phase = `${contextPhase}-audit-ready`;
+        await checkpoint(`${contextPhase}-audit-ready`);
         await requireReady('tenants-audit-surface');
         await testId('tenants-audit-row-scope').first().waitFor({ state: 'visible' });
         check((await testId('tenants-audit-row-scope').allTextContents()).every(scope => scope.trim() === tenantId), 'list-back-ready-audit-rows-match-origin-tenant');
@@ -428,24 +458,27 @@ try {
         check(canonicalListContext(current.searchParams.get('returnUrl')) === canonicalListContext(expectedReturn), 'list-back-destination-keeps-complete-context');
         const back = new URL(await testId('tenants-audit-back').getAttribute('href'), base);
         check(canonicalListContext(back) === canonicalListContext(expectedReturn), 'list-back-href-keeps-complete-context');
-        phase = `${contextPhase}-back-focus`;
+        await checkpoint(`${contextPhase}-back-focus`);
         await testId('tenants-audit-back').click();
         await page.locator(`[id="${focusId}"]`).waitFor({ state: 'visible' });
         const restored = page.locator('fluent-data-grid-row, [role="row"], tr').filter({ has: page.locator(`[id="${focusId}"]`) })
             .locator('[data-testid="tenants-audit-entrypoint"][data-audit-source="tenant-list"]:visible');
+        captureFocus = () => captureLauncherFocusState(restored);
         await waitUntil(() => focused(restored), 'list-back-restores-visible-source-launcher-focus');
+        captureFocus = undefined;
         check(await restored.locator('[data-testid="tenants-list-mobile-audit-entrypoint"]').count() === (width < 768 ? 1 : 0), 'list-back-restores-correct-responsive-copy');
         check(canonicalListContext(page.url()) === canonicalListContext(expectedReturn), 'list-back-retains-complete-canonical-context');
-        evidence.cases.push({ name: contextPhase, width, readyScopedRows: true, safeReturn: true, focusRestored: true, passed: true });
+        await completeCase({ name: contextPhase, width, readyScopedRows: true, safeReturn: true, focusRestored: true, passed: true });
     }
 
-    phase = 'external-audit-return';
+    await checkpoint('external-audit-return');
     await open(new URL(`${auditPath}?source=member-row&targetUserId=${encodeURIComponent(session.targetUserId)}&returnUrl=${encodeURIComponent('https://external.invalid/collect')}&returnFocus=tenants-detail-identity`, base).href);
     await testId('tenants-audit-back').waitFor({ state: 'visible' });
     const rejected = new URL(await testId('tenants-audit-back').getAttribute('href'), base);
     check(rejected.origin === base.origin, 'external-return-rejected');
-    evidence.cases.push({ name: phase, passed: true });
+    await completeCase({ name: phase, passed: true });
     check(errors.length === 0, 'browser-page-errors-absent');
+    await checkpoint('final-source-capture');
     const after = await capture(configuration);
     for (const key of Object.keys(before)) check(after[key] === before[key], `stable-capture-${key}`);
     evidence.passed = true;
@@ -460,13 +493,19 @@ try {
         : error.name === 'TypeError' ? 'browser-type-error'
         : 'live-browser-assertion-failed';
     evidence.failure = { phase, label: error.safeLabel || category };
+    await checkpoint(phase);
+    if (captureFocus) {
+        try { evidence.focus = await captureFocus(); }
+        catch { evidence.focus = { available: false }; }
+        await checkpoint(phase);
+    }
     if (captureReadiness) {
         try { evidence.readiness = await captureReadiness(); }
         catch { evidence.readiness = { available: false }; }
     }
     process.exitCode = 1;
 } finally {
-    await browser?.close();
     evidence.finishedUtc = new Date().toISOString();
-    if (output) await writeFile(output, JSON.stringify(evidence, null, 2) + '\n');
+    await checkpoint(phase);
+    await browser?.close();
 }

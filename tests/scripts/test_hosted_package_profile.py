@@ -18,7 +18,7 @@ def evaluate(profile, source, publishing=False):
         environment.pop(key, None)
     command = ['dotnet', 'msbuild', str(PROJECT), '-nologo', '-getProperty:IsPackable',
                '-getItem:ProjectReference,PackageReference,PackageVersion', '-p:Configuration=Release',
-               '-p:HexalithTenantsVersion=7.0.0', '-p:HexalithEventStoreVersion=4.0.0',
+               '-p:HexalithTenantsVersion=7.0.0', '-p:HexalithEventStoreVersion=4.0.4',
                '-p:UseHexalithProjectReferences=' + ('true' if source else 'false'),
                '-p:HexalithUsePublishedSdkForHostedTests=' + profile]
     if publishing:

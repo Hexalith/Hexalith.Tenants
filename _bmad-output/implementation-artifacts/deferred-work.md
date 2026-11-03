@@ -5590,3 +5590,11 @@ archived: 2026-10-22
   next-action: Register a controlled IRouteCatalogAuthority and expected root in focused tests; prove no bound command is issued while a different root is serving, progress after the matching root becomes serving, and cancellation interrupts waiting without issuing a command. Retain all existing identity, administrator and workload proof checks.
   scope: Deferred from this bounded CI compatibility repair; excluded from numbered totals. Production and test behavior remain unchanged by this record.
   evidence-review: Independent review of spec-ci-repair-2026-11-01.md; verification-gap finding explicitly triaged as defer.
+
+- source_spec: `spec-synchronize-dependencies-and-release-2026-11-02.md`
+  summary: Verify no-build publication cohort enforcement for non-Contracts packages against formerly qualified EventStore and McpCli selections.
+  evidence: Medium severity, unverified consumer impact. Synthetic guard fixtures can pack Server/Client/Testing/Aspire with EventStore 3.133.0 or McpCli 1.1.0 because the pre-existing canonical API guard belongs to Contracts. Reproduce using real released producer packages and inspect actual nuspec dependency closure plus publication preflight before deciding whether additional owner-package guards are needed; the current cohort producers are unpublished.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-fix-builds-sdk-cohort-fixtures.md`
+  summary: Hexalith.Builds should reconcile pre-existing synthetic Source readiness Dapr metadata with its manifest and assess that profile's explicit pin-binding contract.
+  evidence: The unchanged baseline positive release-passed.json reports Dapr runtime 1.18.0 while its bound manifest selects 1.18.7; full G4 acceptance separately checks all supported pins. This is not a regression or a failed CI assertion from the EventStore 4.0.2 refresh.

@@ -1279,7 +1279,7 @@ public sealed class TenantsUiCompositionTests
             .ShouldBeFalse();
         string apiAssemblyInfo = File.ReadAllText(
             Path.Combine(ProjectRoot(), "src", "Hexalith.Tenants.Api", "RestApiAssemblyInfo.cs"));
-        apiAssemblyInfo.ShouldContain("RestApi(\"api/tenants\", \"tenants\", RestTenantSource.System)");
+        apiAssemblyInfo.ShouldContain("RestApi(\"api/tenants\", \"tenants\", RestTenantSource.Platform)");
         string globalAdministratorsQuery = File.ReadAllText(
             Path.Combine(contractsQueryRoot, "GetGlobalAdministratorsQuery.cs"));
         globalAdministratorsQuery.ShouldContain("[RestRoute(RestVerb.Get, \"~/api/global-administrators\", ApiScope = \"tenants\")]");

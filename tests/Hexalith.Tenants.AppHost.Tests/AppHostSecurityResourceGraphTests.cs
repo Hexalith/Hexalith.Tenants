@@ -6,6 +6,8 @@ using CommunityToolkit.Aspire.Hosting.Dapr;
 
 using Shouldly;
 
+using YamlDotNet.RepresentationModel;
+
 namespace Hexalith.Tenants.AppHost.Tests;
 
 /// <summary>Checks security and read endpoint wiring in the AppHost model without starting services.</summary>
@@ -14,8 +16,8 @@ public sealed class AppHostSecurityResourceGraphTests
     [Fact]
     public async Task SourceCatalogProfileOmitsTheOptionalSampleDomainModule()
     {
-        await using IDistributedApplicationTestingBuilder builder = await DistributedApplicationTestingBuilder
-            .CreateAsync<Projects.Hexalith_Tenants_AppHost>(
+        await using IDistributedApplicationTestingBuilder builder = await AppHostModelBuilder
+            .CreateAsync(
                 ["--publisher", "manifest", "--output-path",
                     Path.Combine(Path.GetTempPath(), $"tenants-source-model-{Guid.NewGuid():N}.json"),
                     "--EnableKeycloak=true", "--EnableMemories=false", "--TENANTS_SOURCE_CATALOG_PROFILE=true"]);
@@ -27,8 +29,43 @@ public sealed class AppHostSecurityResourceGraphTests
         builder.Resources.OfType<ProjectResource>().Select(resource => resource.Name).ShouldNotContain("sample");
     }
 
+    [Fact]
+    public async Task SourceCatalogProfileCanIncludeTheRealSampleConsumerForBackgroundDelivery()
+    {
+        await using IDistributedApplicationTestingBuilder builder = await AppHostModelBuilder
+            .CreateAsync(
+                ["--publisher", "manifest", "--output-path",
+                    Path.Combine(Path.GetTempPath(), $"tenants-sample-model-{Guid.NewGuid():N}.json"),
+                    "--EnableKeycloak=true", "--EnableMemories=false", "--TENANTS_SOURCE_CATALOG_PROFILE=true",
+                    "--TENANTS_SOURCE_CATALOG_INCLUDE_SAMPLE=true"]);
+
+        ProjectResource sample = builder.Resources.OfType<ProjectResource>()
+            .Single(static resource => resource.Name == "sample");
+        IDaprSidecarResource sampleSidecar = sample.Annotations.OfType<DaprSidecarAnnotation>()
+            .ShouldHaveSingleItem().Sidecar;
+        DaprSidecarOptions sidecar = sampleSidecar.Annotations.OfType<DaprSidecarOptionsAnnotation>()
+            .ShouldHaveSingleItem().Options;
+        sidecar.AppId.ShouldBe("sample");
+        sampleSidecar.Annotations.OfType<DaprComponentReferenceAnnotation>()
+            .Select(static reference => reference.Component.Name).Order(StringComparer.Ordinal)
+            .ShouldBe(["pubsub", "statestore"]);
+        await AssertAppChannelTokensAsync(builder);
+    }
+
+    [Fact]
+    public async Task DefaultRunProfileDoesNotRequireDevelopmentCatalogCustody()
+    {
+        await using IDistributedApplicationTestingBuilder builder = await DistributedApplicationTestingBuilder
+            .CreateAsync<Projects.Hexalith_Tenants_AppHost>(
+                ["--EnableKeycloak=true", "--EnableMemories=false", "--TENANTS_SOURCE_CATALOG_PROFILE=false"]);
+
+        builder.ExecutionContext.IsRunMode.ShouldBeTrue();
+        builder.Resources.ShouldNotContain(resource => resource.Name == "routing-tenants-owner");
+        await AssertAppChannelTokensAsync(builder);
+    }
+
     [Theory]
-    [InlineData(null, "30")]
+    [InlineData(null, "45")]
     [InlineData("5", "5")]
     [InlineData("45", "45")]
     public async Task GatewayDomainInvocationBudgetAccommodatesNativeAuthorityAndPreservesOperatorOverride(
@@ -40,8 +77,8 @@ public sealed class AppHostSecurityResourceGraphTests
             "--EnableKeycloak=true", "--EnableMemories=false"];
         if (configuredSeconds is not null)
             args.Add($"--EventStore:DomainServices:InvocationTimeoutSeconds={configuredSeconds}");
-        await using IDistributedApplicationTestingBuilder builder = await DistributedApplicationTestingBuilder
-            .CreateAsync<Projects.Hexalith_Tenants_AppHost>([.. args]);
+        await using IDistributedApplicationTestingBuilder builder = await AppHostModelBuilder
+            .CreateAsync([.. args]);
         builder.ExecutionContext.IsPublishMode.ShouldBeTrue();
         ProjectResource gateway = builder.Resources.OfType<ProjectResource>()
             .Single(static resource => resource.Name == "eventstore");
@@ -51,7 +88,7 @@ public sealed class AppHostSecurityResourceGraphTests
         seconds.ShouldBe(expectedSeconds);
         if (configuredSeconds is null)
         {
-            int.Parse(seconds, System.Globalization.CultureInfo.InvariantCulture).ShouldBeGreaterThan(10 + 2,
+            int.Parse(seconds, System.Globalization.CultureInfo.InvariantCulture).ShouldBeGreaterThan(30 + 8,
                 "the gateway must leave room for the bounded native read and independent final observation");
         }
     }
@@ -61,8 +98,8 @@ public sealed class AppHostSecurityResourceGraphTests
     [InlineData(false)]
     public async Task PublishModeRetainsOneSharedAppChannelTokenPerService(bool enableKeycloak)
     {
-        await using IDistributedApplicationTestingBuilder builder = await DistributedApplicationTestingBuilder
-            .CreateAsync<Projects.Hexalith_Tenants_AppHost>(
+        await using IDistributedApplicationTestingBuilder builder = await AppHostModelBuilder
+            .CreateAsync(
                 ["--publisher", "manifest", "--output-path", Path.Combine(Path.GetTempPath(), $"tenants-model-{Guid.NewGuid():N}.json"),
                     $"--EnableKeycloak={enableKeycloak}", "--Authentication:JwtBearer:SigningKey=RunModelSigningKey-AtLeast32Chars!"]);
         builder.ExecutionContext.IsPublishMode.ShouldBeTrue();
@@ -75,8 +112,8 @@ public sealed class AppHostSecurityResourceGraphTests
     public async Task MemoriesIsIncludedByDefaultAndCanBeExplicitlyExcluded(bool includeMemories)
     {
         string[] args = includeMemories ? ["--EnableKeycloak=true"] : ["--EnableKeycloak=true", "--EnableMemories=false"];
-        await using IDistributedApplicationTestingBuilder builder = await DistributedApplicationTestingBuilder
-            .CreateAsync<Projects.Hexalith_Tenants_AppHost>(args);
+        await using IDistributedApplicationTestingBuilder builder = await AppHostModelBuilder
+            .CreateAsync(args);
         foreach (string name in new[] { "memories", "memories-vectors", "memories-graphs", "memories-secretstore" })
         {
             builder.Resources.Any(resource => resource.Name == name).ShouldBe(includeMemories);
@@ -90,13 +127,17 @@ public sealed class AppHostSecurityResourceGraphTests
     }
 
     [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task UiReadsUseOwnDaprSidecarAndHttpsApiReceiverInBothAuthenticationModes(bool enableKeycloak)
+    [InlineData(true, false)]
+    [InlineData(false, false)]
+    [InlineData(true, true)]
+    [InlineData(false, true)]
+    public async Task UiReadsUseOwnDaprSidecarAndHttpsApiReceiverInBothAuthenticationModes(
+        bool enableKeycloak, bool sourceCatalogProfile)
     {
-        await using IDistributedApplicationTestingBuilder builder = await DistributedApplicationTestingBuilder
-            .CreateAsync<Projects.Hexalith_Tenants_AppHost>(
-                [$"--EnableKeycloak={enableKeycloak}", "--Authentication:JwtBearer:SigningKey=RunModelSigningKey-AtLeast32Chars!"]);
+        await using IDistributedApplicationTestingBuilder builder = await AppHostModelBuilder
+            .CreateAsync(
+                [$"--EnableKeycloak={enableKeycloak}", "--Authentication:JwtBearer:SigningKey=RunModelSigningKey-AtLeast32Chars!",
+                    $"--TENANTS_SOURCE_CATALOG_PROFILE={sourceCatalogProfile}"]);
         IResource tenantsUi = builder.Resources.Single(static resource => resource.Name == "tenants-ui");
         ProjectResource tenantsApi = builder.Resources.OfType<ProjectResource>()
             .Single(static resource => resource.Name == "tenants-api");
@@ -106,7 +147,9 @@ public sealed class AppHostSecurityResourceGraphTests
             .ShouldHaveSingleItem().Options;
         apiSidecar.AppId.ShouldBe("tenants-api");
         apiSidecar.AppProtocol.ShouldBe("https");
-        Path.GetFileName(apiSidecar.Config).ShouldBe("accesscontrol.tenants-api.yaml");
+        Path.GetFileName(apiSidecar.Config).ShouldBe(sourceCatalogProfile
+            ? "tenants-api.configuration.json" : "accesscontrol.tenants-api.yaml");
+        await AssertReadReceiverPolicyAsync(apiSidecar);
         DaprSidecarOptions uiSidecar = tenantsUi.Annotations.OfType<DaprSidecarAnnotation>()
             .ShouldHaveSingleItem().Sidecar.Annotations.OfType<DaprSidecarOptionsAnnotation>()
             .ShouldHaveSingleItem().Options;
@@ -131,8 +174,8 @@ public sealed class AppHostSecurityResourceGraphTests
     {
         InvalidOperationException failure = await Should.ThrowAsync<InvalidOperationException>(async () =>
         {
-            await using IDistributedApplicationTestingBuilder builder = await DistributedApplicationTestingBuilder
-                .CreateAsync<Projects.Hexalith_Tenants_AppHost>(["--EnableKeycloak=true", $"--{key}={endpoint}"]);
+            await using IDistributedApplicationTestingBuilder builder = await AppHostModelBuilder
+                .CreateAsync(["--EnableKeycloak=true", $"--{key}={endpoint}"]);
         });
         failure.Message.ShouldContain(key);
         failure.Message.ShouldContain("private local Dapr mTLS control plane");
@@ -146,8 +189,8 @@ public sealed class AppHostSecurityResourceGraphTests
     public async Task PublishedHarnessLoopbackHintsRetainThePrivateAllocatedControlPlane(string host, int placementPort, int schedulerPort)
     {
         // The unchanged published harness appends its standard prerequisite hints after these empties.
-        await using IDistributedApplicationTestingBuilder builder = await DistributedApplicationTestingBuilder
-            .CreateAsync<Projects.Hexalith_Tenants_AppHost>(
+        await using IDistributedApplicationTestingBuilder builder = await AppHostModelBuilder
+            .CreateAsync(
                 ["--EnableKeycloak=true", "--EnableMemories=false",
                     "--Dapr:PlacementHostAddress=", "--Dapr:SchedulerHostAddress=",
                     $"--Dapr:PlacementHostAddress={host}:{placementPort}",
@@ -175,8 +218,8 @@ public sealed class AppHostSecurityResourceGraphTests
     [InlineData("secretstore.memories.yaml")]
     public async Task MemoriesCapabilitiesAreScopedAwayFromBothReadSidecars(string file)
     {
-        await using IDistributedApplicationTestingBuilder builder = await DistributedApplicationTestingBuilder
-            .CreateAsync<Projects.Hexalith_Tenants_AppHost>(["--EnableKeycloak=true"]);
+        await using IDistributedApplicationTestingBuilder builder = await AppHostModelBuilder
+            .CreateAsync(["--EnableKeycloak=true"]);
         string yaml = await File.ReadAllTextAsync(Path.Combine(builder.AppHostDirectory, "DaprComponents", file));
         string[] sections = yaml.Split("scopes:", StringSplitOptions.None);
         sections.Length.ShouldBe(2);
@@ -205,19 +248,21 @@ public sealed class AppHostSecurityResourceGraphTests
 
         InvalidOperationException exception = await Should.ThrowAsync<InvalidOperationException>(async () =>
         {
-            await using IDistributedApplicationTestingBuilder builder = await DistributedApplicationTestingBuilder
-                .CreateAsync<Projects.Hexalith_Tenants_AppHost>(args);
+            await using IDistributedApplicationTestingBuilder builder = await AppHostModelBuilder
+                .CreateAsync(args);
         });
 
         exception.Message.ShouldBe(
             "Authentication:JwtBearer:SigningKey must be configured with at least 32 UTF-8 bytes when EnableKeycloak=false.");
     }
 
-    [Fact]
-    public async Task KeycloakModeSharesWorkloadSecretAndProtectsDomainServiceSidecarChannels()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task KeycloakModeSharesWorkloadSecretAndProtectsDomainServiceSidecarChannels(bool sourceCatalogProfile)
     {
-        await using IDistributedApplicationTestingBuilder builder = await DistributedApplicationTestingBuilder
-            .CreateAsync<Projects.Hexalith_Tenants_AppHost>(["--EnableKeycloak=true"]);
+        await using IDistributedApplicationTestingBuilder builder = await AppHostModelBuilder
+            .CreateAsync(["--EnableKeycloak=true", $"--TENANTS_SOURCE_CATALOG_PROFILE={sourceCatalogProfile}"]);
         ParameterResource secret = builder.Resources.OfType<ParameterResource>()
             .Single(static resource => resource.Name == "eventstore-workload-client-secret");
         IResource keycloak = builder.Resources.Single(static resource => resource.Name == "security");
@@ -228,19 +273,25 @@ public sealed class AppHostSecurityResourceGraphTests
         keycloakEnvironment["HEXALITH_EVENTSTORE_WORKLOAD_CLIENT_SECRET"].ShouldBeSameAs(secret);
         eventStoreEnvironment["Authentication__WorkloadIssuer__ClientSecret"].ShouldBeSameAs(secret);
 
-        await AssertAppChannelTokensAsync(builder);
+        await AssertAppChannelTokensAsync(builder, sourceCatalogProfile);
     }
 
-    [Fact]
-    public async Task SymmetricModeSharesOneSigningKeyAndProtectsDomainServiceSidecarChannels()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task SymmetricModeSharesOneSigningKeyAndProtectsDomainServiceSidecarChannels(bool sourceCatalogProfile)
     {
-        await using IDistributedApplicationTestingBuilder builder = await DistributedApplicationTestingBuilder
-            .CreateAsync<Projects.Hexalith_Tenants_AppHost>(
-                ["--EnableKeycloak=false", "--Authentication:JwtBearer:SigningKey=RunModelSigningKey-AtLeast32Chars!"]);
+        await using IDistributedApplicationTestingBuilder builder = await AppHostModelBuilder
+            .CreateAsync(
+                ["--EnableKeycloak=false", "--Authentication:JwtBearer:SigningKey=RunModelSigningKey-AtLeast32Chars!",
+                    $"--TENANTS_SOURCE_CATALOG_PROFILE={sourceCatalogProfile}"]);
         ParameterResource key = builder.Resources.OfType<ParameterResource>()
             .Single(static resource => resource.Name == "tenants-local-jwt-signing-key");
 
-        foreach (string name in new[] { "eventstore", "eventstore-admin", "tenants", "tenants-api", "sample" })
+        string[] services = sourceCatalogProfile
+            ? ["eventstore", "eventstore-admin", "tenants", "tenants-api"]
+            : ["eventstore", "eventstore-admin", "tenants", "tenants-api", "sample"];
+        foreach (string name in services)
         {
             IResource resource = builder.Resources.Single(candidate => candidate.Name == name);
             IReadOnlyDictionary<string, object> environment = await GetEnvironmentAsync(resource, builder.ExecutionContext);
@@ -258,10 +309,45 @@ public sealed class AppHostSecurityResourceGraphTests
         apiEnvironment["EventStore__Authentication__Audience"].ShouldBe("hexalith-eventstore");
         apiEnvironment["EventStore__Authentication__SigningKey"].ShouldBeSameAs(key);
 
-        await AssertAppChannelTokensAsync(builder);
+        await AssertAppChannelTokensAsync(builder, sourceCatalogProfile);
     }
 
-    private static async Task AssertAppChannelTokensAsync(IDistributedApplicationTestingBuilder builder)
+    private static async Task AssertReadReceiverPolicyAsync(DaprSidecarOptions sidecar)
+    {
+        using StringReader reader = new(await File.ReadAllTextAsync(sidecar.Config!));
+        YamlStream yaml = new();
+        yaml.Load(reader);
+        YamlNode configuration = yaml.Documents.ShouldHaveSingleItem().RootNode;
+        YamlNode accessControl = MappingValue(MappingValue(configuration, "spec"), "accessControl");
+        MappingValue(accessControl, "defaultAction").ToString().ShouldBe("deny");
+        MappingValue(accessControl, "trustDomain").ToString().ShouldBe("public");
+        YamlNode policy = MappingValue(accessControl, "policies").ShouldBeOfType<YamlSequenceNode>()
+            .Children.ShouldHaveSingleItem();
+        MappingValue(policy, "appId").ToString().ShouldBe("tenants-ui");
+        MappingValue(policy, "defaultAction").ToString().ShouldBe("deny");
+        MappingValue(policy, "trustDomain").ToString().ShouldBe("public");
+        MappingValue(policy, "namespace").ToString().ShouldBe("default");
+        YamlNode[] operations = [.. MappingValue(policy, "operations").ShouldBeOfType<YamlSequenceNode>().Children];
+        string[] expectedRoutes =
+        [
+            "/api/tenants", "/api/tenants/*", "/api/tenants/**/users", "/api/tenants/**/audit",
+            "/api/users/**/tenants", "/api/global-administrators",
+        ];
+        operations.Select(operation => MappingValue(operation, "name").ToString()).Order(StringComparer.Ordinal)
+            .ShouldBe(expectedRoutes.Order(StringComparer.Ordinal));
+        foreach (YamlNode operation in operations)
+        {
+            MappingValue(operation, "action").ToString().ShouldBe("allow");
+            MappingValue(operation, "httpVerb").ShouldBeOfType<YamlSequenceNode>()
+                .Children.ShouldHaveSingleItem().ToString().ShouldBe("GET");
+        }
+    }
+
+    private static YamlNode MappingValue(YamlNode node, string key)
+        => node.ShouldBeOfType<YamlMappingNode>().Children[new YamlScalarNode(key)];
+
+    private static async Task AssertAppChannelTokensAsync(
+        IDistributedApplicationTestingBuilder builder, bool sourceCatalogProfile = false)
     {
         // These tests evaluate the model without starting its Sentry container. Its private mount
         // receives synthetic nonempty material solely so environment callbacks can be inspected.
@@ -274,40 +360,37 @@ public sealed class AppHostSecurityResourceGraphTests
                 await File.WriteAllTextAsync(Path.Combine(directory, name), "model-only-" + name);
         }
 
-        ProjectResource eventStore = builder.Resources.OfType<ProjectResource>()
-            .Single(static resource => resource.Name == "eventstore");
-        ProjectResource tenants = builder.Resources.OfType<ProjectResource>()
-            .Single(static resource => resource.Name == "tenants");
-        ProjectResource sample = builder.Resources.OfType<ProjectResource>()
-            .Single(static resource => resource.Name == "sample");
-
-        ParameterResource eventStoreToken = await GetAppChannelTokenAsync(eventStore, builder.ExecutionContext);
-        ParameterResource tenantsToken = await GetAppChannelTokenAsync(tenants, builder.ExecutionContext);
-        ParameterResource sampleToken = await GetAppChannelTokenAsync(sample, builder.ExecutionContext);
-        builder.Resources.OfType<ParameterResource>()
-            .Where(static resource => resource.Name == "eventstore-app-api-token")
-            .ShouldHaveSingleItem().ShouldBeSameAs(eventStoreToken);
+        // The private catalog protects its four technical receivers; the ordinary and published
+        // topologies retain their three domain app channels and the optional sample.
+        string[] services = sourceCatalogProfile
+            ? ["eventstore", "eventstore-admin", "tenants", "tenants-api"]
+            : ["eventstore", "tenants", "sample"];
+        builder.Resources.Any(resource => resource.Name == "sample").ShouldBe(!sourceCatalogProfile);
+        string[] expectedParameters = services.Select(name => name + "-app-api-token").ToArray();
         builder.Resources.OfType<ParameterResource>()
             .Where(static resource => resource.Name.EndsWith("-app-api-token", StringComparison.Ordinal))
-            .Select(static resource => resource.Name).Distinct(StringComparer.Ordinal)
-            .Count().ShouldBe(3);
-        eventStoreToken.ShouldNotBeSameAs(tenantsToken);
-        eventStoreToken.ShouldNotBeSameAs(sampleToken);
-        tenantsToken.ShouldNotBeSameAs(sampleToken);
-        eventStoreToken.Secret.ShouldBeTrue();
-        tenantsToken.Secret.ShouldBeTrue();
-        sampleToken.Secret.ShouldBeTrue();
+            .Select(static resource => resource.Name).Order(StringComparer.Ordinal)
+            .ShouldBe(expectedParameters.Order(StringComparer.Ordinal));
 
+        List<ParameterResource> tokens = [];
+        List<string> values = [];
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-        string? eventStoreValue = await eventStoreToken.GetValueAsync(timeout.Token);
-        string? tenantsValue = await tenantsToken.GetValueAsync(timeout.Token);
-        string? sampleValue = await sampleToken.GetValueAsync(timeout.Token);
-        eventStoreValue.ShouldNotBeNullOrWhiteSpace();
-        tenantsValue.ShouldNotBeNullOrWhiteSpace();
-        sampleValue.ShouldNotBeNullOrWhiteSpace();
-        string.Equals(tenantsValue, sampleValue, StringComparison.Ordinal).ShouldBeFalse();
-        string.Equals(eventStoreValue, tenantsValue, StringComparison.Ordinal).ShouldBeFalse();
-        string.Equals(eventStoreValue, sampleValue, StringComparison.Ordinal).ShouldBeFalse();
+        foreach (string name in services)
+        {
+            ProjectResource project = builder.Resources.OfType<ProjectResource>()
+                .Single(resource => resource.Name == name);
+            ParameterResource token = await GetAppChannelTokenAsync(project, builder.ExecutionContext);
+            token.Name.ShouldBe(name + "-app-api-token");
+            builder.Resources.OfType<ParameterResource>().Where(resource => resource.Name == token.Name)
+                .ShouldHaveSingleItem().ShouldBeSameAs(token);
+            token.Secret.ShouldBeTrue();
+            tokens.ShouldNotContain(token);
+            tokens.Add(token);
+            string? value = await token.GetValueAsync(timeout.Token);
+            value.ShouldNotBeNullOrWhiteSpace();
+            values.Add(value);
+        }
+        values.Distinct(StringComparer.Ordinal).Count().ShouldBe(services.Length);
     }
 
     private static async Task<ParameterResource> GetAppChannelTokenAsync(
@@ -335,7 +418,7 @@ public sealed class AppHostSecurityResourceGraphTests
             cancellationToken);
         foreach (EnvironmentCallbackAnnotation annotation in resource.Annotations.OfType<EnvironmentCallbackAnnotation>())
         {
-            await annotation.Callback(context).WaitAsync(cancellationToken);
+            await AppHostModelBuilder.ApplyEnvironmentCallbackAsync(annotation, context).WaitAsync(cancellationToken);
         }
 
         return context.EnvironmentVariables;

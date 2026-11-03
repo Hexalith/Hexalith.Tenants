@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 using Shouldly;
 
@@ -12,6 +13,31 @@ namespace Hexalith.Tenants.Contracts.Tests;
 /// </summary>
 public class PartialReleaseRecoveryWorkflowTests
 {
+    /// <summary>
+    /// Recovery builds the full solution, so every referenced direct submodule must be present first.
+    /// </summary>
+    [Fact]
+    public void RecoveryInitializesEverySolutionSubmodule()
+    {
+        string root = FindRepoRoot();
+        string solution = File.ReadAllText(Path.Combine(root, "Hexalith.Tenants.slnx"));
+        string modules = File.ReadAllText(Path.Combine(root, ".gitmodules"));
+        YamlMappingNode initialize = GetSteps().Single(step => Value(step, "name") == "Initialize root-declared solution dependencies");
+        string command = Value(initialize, "run");
+        string[] required = [.. Regex.Matches(solution, @"references/Hexalith\.[A-Za-z]+")
+            .Select(match => match.Value).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal)];
+        string[] initialized = [.. Regex.Matches(command, @"references/Hexalith\.[A-Za-z]+")
+            .Select(match => match.Value).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal)];
+        required.ShouldBe(initialized);
+        command.ShouldContain("git submodule update --init --");
+        command.ShouldNotContain("--recursive");
+        command.ShouldNotContain("--remote");
+        foreach (string path in required)
+        {
+            modules.ShouldContain($"path = {path}");
+        }
+    }
+
     /// <summary>
     /// The production scripts repair isolated destinations and reject conflicting evidence.
     /// </summary>
@@ -286,7 +312,8 @@ public class PartialReleaseRecoveryWorkflowTests
     [Fact]
     public async Task NormalPublicationPassesOfflineArtifactControls()
     {
-        var result = await RunAsync("python3", [Path.Combine(FindRepoRoot(), "tests/scripts/test_release_artifact_verification.py")]);
+        var result = await RunAsync("python3", [Path.Combine(FindRepoRoot(), "tests/scripts/test_release_artifact_verification.py")],
+            timeout: TimeSpan.FromMinutes(15));
         result.ExitCode.ShouldBe(0, result.Diagnostics);
         result.Diagnostics.ShouldContain("OK");
     }

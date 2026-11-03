@@ -76,40 +76,50 @@ print(json.dumps(sorted(path.name for path in Path("nupkgs").glob("*.nupkg"))))
 PY
 )"
 [ "$(printf '%s' "$actual_names" | jq -c .)" = "$(printf '%s' "$expected_names" | jq -c .)" ] || recovery_fail 'Reviewed package file inventory differs from the release manifest.'
-wait_seconds="${HEXALITH_RELEASE_NUGET_WAIT_SECONDS:-600}"
+wait_seconds="${HEXALITH_RELEASE_NUGET_WAIT_SECONDS:-1800}"
 wait_interval="${HEXALITH_RELEASE_NUGET_WAIT_INTERVAL:-10}"
 [[ "$wait_seconds" =~ ^[0-9]+$ && "$wait_interval" =~ ^[0-9]+$ ]] || recovery_fail 'NuGet readiness wait must use nonnegative seconds.'
 [ "$wait_seconds" -le 1800 ] && [ "$wait_interval" -le 60 ] || recovery_fail 'NuGet readiness wait exceeds its bounded limits.'
+wait_seconds=$((10#$wait_seconds))
+wait_interval=$((10#$wait_interval))
 : > "$evidence_directory/nuget-sha256"
 : > "$evidence_directory/nuget-readiness"
+now="$(recovery_monotonic_microseconds)" || recovery_fail 'Monotonic NuGet readiness clock failed.'
+# One cohort budget covers all five packages, their retries and both endpoints.
+# Zero disables polling and retains a one-second immediate probe per package.
+cohort_deadline=$((now + (wait_seconds > 0 ? wait_seconds : 5) * 1000000))
+verified_package_count=0
 while IFS= read -r package_id; do
-  lower_id="$(printf '%s' "$package_id" | tr '[:upper:]' '[:lower:]')"
   downloaded="$evidence_directory/nuget/${package_id}.${version}.nupkg"
-  deadline=$((SECONDS + wait_seconds))
+  deadline="$cohort_deadline"
+  if [ "$wait_seconds" -eq 0 ]; then
+    now="$(recovery_monotonic_microseconds)" || recovery_fail 'Monotonic NuGet readiness clock failed.'
+    immediate_deadline=$((now + 1000000))
+    [ "$deadline" -le "$immediate_deadline" ] || deadline="$immediate_deadline"
+  fi
   while true; do
-    request_timeout=$((deadline - SECONDS))
-    [ "$request_timeout" -gt 0 ] || request_timeout=1
-    [ "$request_timeout" -le 30 ] || request_timeout=30
-    status="$(curl --silent --show-error --location --max-time "$request_timeout" \
-      --output "$downloaded" --write-out '%{http_code}' \
-      "https://api.nuget.org/v3-flatcontainer/${lower_id}/${version}/${lower_id}.${version}.nupkg")" || status=transport-failure
-    printf '%s %s\n' "$status" "$package_id" >> "$evidence_directory/nuget-readiness"
+    recovery_download_nuget "$package_id" "$version" "$downloaded" "$evidence_directory/nuget-readiness" "$deadline"
+    status="$recovery_nuget_status"
     [ "$status" != 200 ] || break
     case "$status" in
-      404|409|425|429|5??|transport-failure) ;;
+      404|409|425|429|5??|transport-failure|deadline-exhausted) ;;
       *) recovery_fail "NuGet package $package_id returned unexpected status $status." ;;
     esac
-    [ "$SECONDS" -lt "$deadline" ] || recovery_fail "NuGet package $package_id was not ready within ${wait_seconds} seconds."
-    remaining=$((deadline - SECONDS))
-    pause="$wait_interval"
+    now="$(recovery_monotonic_microseconds)" || recovery_fail 'Monotonic NuGet readiness clock failed.'
+    remaining=$((deadline - now))
+    [ "$wait_seconds" -gt 0 ] && [ "$remaining" -ge 1000 ] || recovery_fail "NuGet package $package_id was not ready within ${wait_seconds} seconds."
+    pause=$((wait_interval * 1000000))
     [ "$pause" -le "$remaining" ] || pause="$remaining"
+    printf -v pause '%d.%06d' "$((pause / 1000000))" "$((pause % 1000000))"
     sleep "$pause"
   done
   actual_hash="$(sha256sum "$downloaded" | awk '{ print $1 }')"
   printf '%s %s\n' "$actual_hash" "$package_id" >> "$evidence_directory/nuget-sha256"
   python3 "$package_content_helper" compare "$evidence_directory/reviewed/${package_id}.${version}.nupkg" "$downloaded" ||
     recovery_fail "NuGet package $package_id does not match the reviewed package."
+  verified_package_count=$((verified_package_count + 1))
 done < <(jq -r '.packages[].id' "$manifest")
+[ "$verified_package_count" -eq 5 ] || recovery_fail 'Required NuGet package inventory was not completely verified.'
 recovery_verify_container "$evidence_directory/oci" "$receipt"
 tag_json="$(gh api "repos/${repository}/git/ref/tags/v${version}")"
 tag_sha="$(printf '%s' "$tag_json" | jq -er '.object.sha')"

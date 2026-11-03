@@ -1,5 +1,6 @@
 using Hexalith.EventStore.Client.Registration;
 using Hexalith.Tenants.Configuration;
+using Hexalith.EventStore.ServiceDefaults;
 #if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
 using Hexalith.EventStore.ServiceDefaults.Routing;
 
@@ -26,6 +27,7 @@ internal static class TenantOwnerSourceGatewayRegistration
                 ?? $"http://127.0.0.1:{configuration["DAPR_HTTP_PORT"] ?? "3500"}");
 #endif
         })
+        .AddEventStoreBoundedInvocationResilience()
         .AddEventStoreDaprServiceInvocation(
             static provider => (AppId: TenantEventStoreTarget.AppId(provider.GetRequiredService<IConfiguration>()),
                 Token: Environment.GetEnvironmentVariable("DAPR_API_TOKEN")),

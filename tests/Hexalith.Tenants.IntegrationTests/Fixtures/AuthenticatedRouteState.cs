@@ -1,6 +1,9 @@
 using System.Globalization;
+using System.Net;
 using System.Net.Http.Headers;
 
+using Hexalith.EventStore.Contracts.Identity;
+using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Server.Projections;
@@ -31,19 +34,26 @@ internal sealed record AuthenticatedRouteState(string TenantId, string TargetUse
         // Sort after the populated-page control so retained route cursors are exercised with a full corpus.
         string tenantId = $"zz-live-routes-{Guid.NewGuid():N}";
         string token = AspireTopologyTests.CreateDemoJwt(tenantId);
+        string commandToken = AspireTopologyFixture.IsSourceCatalogProfile
+            ? AspireTopologyTests.CreateDemoJwt() : token;
         string target = $"live-member-{Guid.NewGuid():N}";
-        var bootstrap = await AspireTopologyTests.SubmitAndWaitForTerminalStatusAsync(
-            commandApi,
-            AspireTopologyTests.CreateCommand("global-administrators", "global-administrators", nameof(BootstrapGlobalAdmin), new BootstrapGlobalAdmin(CallerId)),
-            token, cancellationToken, allowAlreadyBootstrappedConflict: true);
-        (bootstrap.Status == "Completed" || bootstrap.RejectionEventType == "GlobalAdminAlreadyBootstrappedRejection").ShouldBeTrue();
+        // The source catalog fixture already verified its owner-bound bootstrap.
+        // A human-scoped repeat is forbidden by the current catalog authority.
+        if (!AspireTopologyFixture.IsSourceCatalogProfile)
+        {
+            var bootstrap = await AspireTopologyTests.SubmitAndWaitForTerminalStatusAsync(
+                commandApi,
+                AspireTopologyTests.CreateCommand("global-administrators", "global-administrators", nameof(BootstrapGlobalAdmin), new BootstrapGlobalAdmin(CallerId)),
+                commandToken, cancellationToken, allowAlreadyBootstrappedConflict: true);
+            (bootstrap.Status == "Completed" || bootstrap.RejectionEventType == "GlobalAdminAlreadyBootstrappedRejection").ShouldBeTrue();
+        }
         TestContext.Current.TestOutputHelper?.WriteLine("Live route seed: bootstrap checked.");
 
         var createRequest = AspireTopologyTests.CreateCommand("tenants", tenantId, nameof(CreateTenant), new CreateTenant(tenantId, "Live authenticated routes", "Command-seeded route qualification"));
         var created = await AspireTopologyTests.SubmitAndWaitForTerminalStatusAsync(
             commandApi,
             createRequest,
-            token, cancellationToken);
+            commandToken, cancellationToken);
         created.Status.ShouldBe("Completed");
         TestContext.Current.TestOutputHelper?.WriteLine("Live route seed: tenant creation completed.");
         created.CommittedEventSequence.ShouldNotBeNull();
@@ -59,7 +69,7 @@ internal sealed record AuthenticatedRouteState(string TenantId, string TargetUse
             var added = await AspireTopologyTests.SubmitAndWaitForTerminalStatusAsync(
                 commandApi,
                 addRequest,
-                token, cancellationToken);
+                commandToken, cancellationToken);
             added.Status.ShouldBe("Completed");
             TestContext.Current.TestOutputHelper?.WriteLine("Live route seed: member command completed.");
             finalSequence = added.CommittedEventSequence;
@@ -87,6 +97,99 @@ internal sealed record AuthenticatedRouteState(string TenantId, string TargetUse
     /// <summary>Creates a production-client transport without mutating the fixture's shared headers.</summary>
     internal HttpClient CreateClient(HttpClient shared, Action<EntityTagHeaderValue?>? observeETag = null)
         => AspireTopologyTests.CreateIsolatedTenantsApiClient(shared, Token, observeETag ?? (_ => { }));
+
+    /// <summary>Grants detail reads for exactly the complete, already-qualified isolated list corpus.</summary>
+    internal async Task<string> CreateCorpusReadTokenAsync(HttpClient shared, CancellationToken cancellationToken)
+    {
+        using HttpClient http = AspireTopologyTests.CreateIsolatedTenantsApiClient(shared,
+            AspireTopologyTests.CreateDemoJwt(), _ => { });
+        var client = new TenantsRestQueryClient(http);
+        return await CreateCorpusReadTokenAsync((query, token) => client.ListTenantsAsync(query, null, token), cancellationToken);
+    }
+
+    /// <summary>Validates every typed index page before issuing any exact corpus grants.</summary>
+    internal async Task<string> CreateCorpusReadTokenAsync(
+        Func<ListTenantsQuery, CancellationToken, Task<TenantsRestQueryResponse<PaginatedResult<TenantSummary>>>> readPage,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(readPage);
+        const string refusal = "Live corpus read credentials require a complete valid index containing the current seed.";
+        var exactIds = new HashSet<string>(StringComparer.Ordinal);
+        var cursors = new HashSet<string>(StringComparer.Ordinal);
+        bool currentSeedFound = false;
+        string? cursor = null;
+        do
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var response = await readPage(new ListTenantsQuery { Cursor = cursor, PageSize = 100 }, cancellationToken)
+                .WaitAsync(cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (response is null || response.FailureKind != TenantsRestQueryFailureKind.None
+                || response.StatusCode != (int)HttpStatusCode.OK || response.Payload is not { } page
+                || page.Items is null || page.Items.Count > 100 || (page.HasMore && page.Items.Count == 0))
+            {
+                throw new InvalidOperationException(refusal);
+            }
+
+            DateTimeOffset now = DateTimeOffset.UtcNow;
+            if (response.Metadata is not { } metadata
+                || metadata.Provenance != QueryResponseProvenance.ProjectionBacked
+                || metadata.Lifecycle != ProjectionLifecycleState.Current
+                || string.IsNullOrWhiteSpace(metadata.ETag) || metadata.IsStale != false || metadata.IsDegraded == true
+                || metadata.ServedAt is not { } servedAt || servedAt < now.AddMinutes(-5) || servedAt > now.AddSeconds(5))
+            {
+                throw new InvalidOperationException(refusal);
+            }
+
+            foreach (TenantSummary item in page.Items)
+            {
+                if (item is null || !TenantCanonicalizer.TryCanonicalize(item.TenantId, out string canonical)
+                    || !string.Equals(item.TenantId, canonical, StringComparison.Ordinal))
+                {
+                    throw new InvalidOperationException(refusal);
+                }
+
+                exactIds.Add(item.TenantId);
+                if (string.Equals(item.TenantId, TenantId, StringComparison.Ordinal))
+                {
+                    if (!string.Equals(item.Name, Persisted.Name, StringComparison.Ordinal) || item.Status != Persisted.Status)
+                    {
+                        throw new InvalidOperationException(refusal);
+                    }
+
+                    currentSeedFound = true;
+                }
+            }
+
+            if (page.HasMore)
+            {
+                if (string.IsNullOrWhiteSpace(page.Cursor) || !cursors.Add(page.Cursor))
+                {
+                    throw new InvalidOperationException(refusal);
+                }
+
+                cursor = page.Cursor;
+            }
+            else
+            {
+                if (page.Cursor is not null)
+                {
+                    throw new InvalidOperationException(refusal);
+                }
+
+                cursor = null;
+            }
+        }
+        while (cursor is not null);
+
+        cancellationToken.ThrowIfCancellationRequested();
+        if (exactIds.Count == 0 || !currentSeedFound)
+        {
+            throw new InvalidOperationException(refusal);
+        }
+
+        return AspireTopologyTests.CreateDemoJwt(exactIds, readOnly: true);
+    }
 
     /// <summary>Waits for the real list index and returns the page cursor containing the seeded tenant.</summary>
     internal async Task<string?> WaitForListPageAsync(HttpClient shared, int pageSize, CancellationToken cancellationToken)

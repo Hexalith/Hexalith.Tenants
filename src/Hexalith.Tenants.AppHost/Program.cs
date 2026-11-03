@@ -72,10 +72,10 @@ IResourceBuilder<ProjectResource> adminUI = eventStorePlatform.AdminUI;
 _ = eventStore.WithEnvironment("EventStore__RateLimiting__QueueLimit",
     builder.Configuration["EventStore:RateLimiting:QueueLimit"] ?? "64");
 
-// Tenant commands verify native administrator authority within a 10-second read and a
-// separate 2-second final observation. Allow transport headroom; operator values take precedence.
+// Tenant commands can verify native administrator authority through a 30-second stream read and
+// a separate 8-second final observation. Allow transport headroom; operator values take precedence.
 _ = eventStore.WithEnvironment("EventStore__DomainServices__InvocationTimeoutSeconds",
-    builder.Configuration["EventStore:DomainServices:InvocationTimeoutSeconds"] ?? "30");
+    builder.Configuration["EventStore:DomainServices:InvocationTimeoutSeconds"] ?? "45");
 
 // Register the Tenants domain service's two domains with the EventStore command gateway so it routes
 // tenants/global-administrators commands to the "tenants" app, and publish global-administrators events on the
@@ -233,9 +233,10 @@ if (memoriesService is not null) {
 }
 
 // The private source catalog profile binds only its four required owners.
-// Keep the optional demo consumer out of that qualification topology.
+// A dedicated background-delivery suite may also include the optional demo consumer.
 IResourceBuilder<ProjectResource>? sample = null;
-if (!string.Equals(builder.Configuration["TENANTS_SOURCE_CATALOG_PROFILE"], "true", StringComparison.OrdinalIgnoreCase))
+if (!string.Equals(builder.Configuration["TENANTS_SOURCE_CATALOG_PROFILE"], "true", StringComparison.OrdinalIgnoreCase)
+    || string.Equals(builder.Configuration["TENANTS_SOURCE_CATALOG_INCLUDE_SAMPLE"], "true", StringComparison.OrdinalIgnoreCase))
 {
     // Sample subscribes to tenants.events and shares the pub/sub component.
     sample = builder.AddProject<HexalithTenantsSample>("sample")
@@ -346,6 +347,7 @@ try
 {
 #if HEXALITH_DEVELOPMENT_CATALOG_COHORT
     DevelopmentRouteCatalogComposition? localCatalog = builder.ExecutionContext.IsRunMode
+        && string.Equals(builder.Configuration["TENANTS_SOURCE_CATALOG_PROFILE"], "true", StringComparison.OrdinalIgnoreCase)
         ? TenantsDevelopmentRoutingCatalog.Create(builder, eventStore, tenants, tenantsApi, tenantsUI, adminServer, adminUI, stateStoreComponentPath)
         : null;
 #endif
