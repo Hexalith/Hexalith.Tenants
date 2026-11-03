@@ -316,7 +316,8 @@ export function restoreAuditFocus(focusId, originTestId, headingId, expectedUser
         // The detail header's metadata can be rendered outside the heading's immediate
         // container. Its source marker identifies the one launcher to restore.
         const launchers = !row && originTestId === 'tenants-detail-audit-origin'
-          ? origin.querySelectorAll('[data-testid="tenants-audit-entrypoint"][data-audit-source="tenant-detail"]')
+          ? [...origin.querySelectorAll('[data-testid="tenants-audit-entrypoint"][data-audit-source="tenant-detail"]'),
+              ...container.querySelectorAll('[data-testid="tenants-audit-entrypoint"]')]
           : container.querySelectorAll('[data-testid="tenants-audit-entrypoint"]');
         // Responsive copies share the source row/header. Try its visible enabled launcher
         // instead of stopping at the first (possibly CSS-hidden) copy.

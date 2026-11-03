@@ -407,7 +407,7 @@ jobs:
   http-contracts:
     name: Blocking HTTP contracts
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -470,8 +470,8 @@ jobs:
       run-consumer-validation: true
       # Canonical-scope hosts use the current root-declared EventStore source.
       run-coverage-gate: true
-      # Restore/build/package consumers plus the bounded recovery controls exceed the shared 15-minute default.
-      build-timeout-minutes: 25
+      # Root object acquisition, restore, build, tests and package consumers exceeded 25 minutes on hosted CI.
+      build-timeout-minutes: 60
       unit-test-projects: |
         tests/Hexalith.Tenants.Contracts.Tests
         tests/Hexalith.Tenants.Client.Tests
