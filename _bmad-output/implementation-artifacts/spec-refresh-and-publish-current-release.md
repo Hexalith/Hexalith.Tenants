@@ -90,6 +90,9 @@ baseline_commit: '2aa3f04014d9188fc59114113e3a6b0a2eb3964b'
 - `references/Hexalith.FrontComposer` moved to the source revision that fixes the Firefox route focus CI failure.
 - `references/Hexalith.Platform` moved to the exact-cohort guard revision needed to compose EventStore 4.0.2.
 
+- Builds fixture/audit repair committed as `70850b18e0d0b80facd2df0809974020dd935732` after locked commitlint validation. Independent root comparison read all 106 schema/fixture files and proved byte changes were only the selected SDK literal and SHA-256 replacements; unrelated audit package rows remained intact. Full Module.Tests: 2733 total, zero failures/errors, 3 existing environment skips. G4 package contracts with required controls passed; the separate source-fixture spec records detailed evidence and review triage. One pre-existing synthetic Source readiness metadata/binding follow-up is recorded in deferred-work.md; no current CI failure is deferred.
+- Parallel work advanced root main through `f2995d98`, `daa1a601`, and `be43b928ce700ae7433b1d078eec356ccd6079f8` while this task ran. These commits and their native-read timeout/diagnostic fixes are preserved; final source gates and publication must use the resulting current main, not the earlier local dependency-refresh SHA.
+
 ## Spec Change Log
 
 ## Review Triage Log
