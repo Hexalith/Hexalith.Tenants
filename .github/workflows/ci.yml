@@ -260,7 +260,7 @@ jobs:
           npx --no-install playwright install --with-deps chromium
       - name: Verify bounded functional browser navigation and readiness
         if: ${{ matrix.suite == 'rest' }}
-        run: node --test tests/Hexalith.Tenants.UI.Tests/Browser/authenticated-live-route-waits.test.mjs
+        run: node --test tests/Hexalith.Tenants.UI.Tests/Browser/authenticated-live-route-waits.test.mjs tests/Hexalith.Tenants.UI.Tests/Browser/authenticated-live-route-evidence.test.mjs
       - name: Build live hosts and focused suites against canonical-scope packages
         id: live-build
         shell: bash
@@ -348,7 +348,7 @@ jobs:
           dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj
           --configuration Release --no-build
           --filter-class Hexalith.Tenants.IntegrationTests.AuthenticatedRouteEvidenceTests
-          --minimum-expected-tests 3 --fail-skips on
+          --minimum-expected-tests 6 --fail-skips on
           --results-directory TestResults/authenticated-routes/${{ matrix.suite }}
           --report-xunit-trx --report-xunit-trx-filename private-evidence-${{ matrix.suite }}.trx
       - name: Verify all hosted topology, background delivery, and persisted-state regressions without skips

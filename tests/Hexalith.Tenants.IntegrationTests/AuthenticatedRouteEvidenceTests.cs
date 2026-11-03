@@ -17,7 +17,7 @@ public sealed class AuthenticatedRouteEvidenceTests
                 "workspace":true,"grid":true,"loading":false,"error":false,"unauthorized":false,"degraded":false,
                 "pagingRecovered":false,"pageSize":20,"cursorPresent":true,"searchCursorPresent":false,
                 "private":"raw-cookie-token-cursor-sentinel"},
-             "focus":{"available":true,"launcherAttached":true,"launcherVisible":true,"expectedFocus":false,
+             "focus":{"available":true,"launcherAttached":true,"launcherVisible":true,"launcherEnabled":false,"launcherHasDestination":false,"expectedFocus":false,
                 "detailSurfacePresent":true,"detailCurrentState":true,"launcherCount":1,"activeElementCategory":"heading",
                 "selector":"private-selector-sentinel","href":"https://private.invalid/?token=private-href-sentinel",
                 "text":"private-dom-text-sentinel","id":"private-tenant-id-sentinel"}}
@@ -29,6 +29,8 @@ public sealed class AuthenticatedRouteEvidenceTests
         summary.ShouldContain("\"pageSize\":20");
         summary.ShouldNotContain("raw-cookie-token-cursor-sentinel");
         summary.ShouldContain("\"launcherAttached\":true");
+        summary.ShouldContain("\"launcherEnabled\":false");
+        summary.ShouldContain("\"launcherHasDestination\":false");
         summary.ShouldContain("\"expectedFocus\":false");
         summary.ShouldContain("\"detailCurrentState\":true");
         summary.ShouldContain("\"launcherCount\":1");
@@ -38,6 +40,7 @@ public sealed class AuthenticatedRouteEvidenceTests
         {
             "{\"launcherCount\":101,\"launcherAttached\":\"private-sentinel\",\"activeElementCategory\":\"private-sentinel\"}",
             "{\"launcherCount\":-1,\"expectedFocus\":\"true\",\"activeElementCategory\":\"custom-private-element\"}",
+            "{\"launcherCount\":\"private-count\",\"activeElementCategory\":\"PRIVATE\"}",
         })
         {
             using var invalid = JsonDocument.Parse("{\"failure\":{\"phase\":\"focus\",\"label\":\"focus-required\"},\"focus\":" + malformed + "}");

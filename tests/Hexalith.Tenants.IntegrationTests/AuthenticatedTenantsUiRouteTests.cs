@@ -202,10 +202,11 @@ public sealed class AuthenticatedTenantsUiRouteTests(AuthenticatedTenantsTopolog
         var focusFlags = new Dictionary<string, object?>();
         if (evidence.TryGetProperty("focus", out JsonElement focus) && focus.ValueKind == JsonValueKind.Object)
         {
-            foreach (string name in new[] { "available", "launcherAttached", "launcherVisible", "expectedFocus", "detailSurfacePresent", "detailCurrentState" })
+            foreach (string name in new[] { "available", "launcherAttached", "launcherVisible", "launcherEnabled", "launcherHasDestination", "expectedFocus", "detailSurfacePresent", "detailCurrentState" })
                 if (focus.TryGetProperty(name, out JsonElement value) && value.ValueKind is JsonValueKind.True or JsonValueKind.False)
                     focusFlags[name] = value.GetBoolean();
-            if (focus.TryGetProperty("launcherCount", out JsonElement count) && count.TryGetInt32(out int bounded) && bounded is >= 0 and <= 100)
+            if (focus.TryGetProperty("launcherCount", out JsonElement count) && count.ValueKind == JsonValueKind.Number
+                && count.TryGetInt32(out int bounded) && bounded is >= 0 and <= 100)
                 focusFlags["launcherCount"] = bounded;
             if (focus.TryGetProperty("activeElementCategory", out JsonElement active) && active.ValueKind == JsonValueKind.String
                 && active.GetString() is "body" or "heading" or "button" or "input" or "link" or "other")

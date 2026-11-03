@@ -25,6 +25,9 @@ export function captureLauncherFocusState(launcher) {
         return {
             available: true, launcherCount: Math.min(elements.length, 100),
             launcherAttached: elements.length > 0, launcherVisible: Boolean(visible),
+            launcherEnabled: Boolean(expected && !expected.matches(':disabled') && !expected.hasAttribute('disabled')
+                && expected.getAttribute('aria-disabled') !== 'true'),
+            launcherHasDestination: Boolean(expected?.getAttribute('href')),
             expectedFocus: Boolean(expected && ownsFocus(expected)),
             detailSurfacePresent: Boolean(document.querySelector('[data-testid="tenants-detail"]')),
             detailCurrentState: Boolean(document.querySelector('[data-testid="tenants-detail-truth-state"].truth-state-badge--current')),
