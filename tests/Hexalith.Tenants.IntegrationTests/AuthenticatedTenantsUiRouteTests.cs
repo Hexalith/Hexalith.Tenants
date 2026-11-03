@@ -36,10 +36,12 @@ public sealed class AuthenticatedTenantsUiRouteTests(AuthenticatedTenantsTopolog
             scopeMarkup.ShouldContain("data-testid=\"tenants-workspace\"");
             phase("command-seed");
             AuthenticatedRouteState state = await AuthenticatedRouteState.CreateAsync(fixture.CommandApiClient, cancellationToken);
-            cookie = await fixture.SignInAsync(state.Token, cancellationToken);
             phase("projection-pages");
             string? listCursor = await state.WaitForListPageAsync(fixture.TenantsApiClient, 20, cancellationToken);
             string? membershipCursor = await state.WaitForCallerMembershipPageAsync(fixture.TenantsApiClient, 20, cancellationToken);
+            string corpusToken = await state.CreateCorpusReadTokenAsync(fixture.TenantsApiClient, cancellationToken);
+            phase("sign-in");
+            cookie = await fixture.SignInAsync(corpusToken, cancellationToken);
             phase("http-routes");
             foreach ((string route, string marker) in Routes(state, listCursor, membershipCursor))
             {
@@ -63,6 +65,7 @@ public sealed class AuthenticatedTenantsUiRouteTests(AuthenticatedTenantsTopolog
             detail.ShouldContain(state.Persisted.Name);
             detail.ShouldContain(state.TargetUserId);
             detail.Contains(state.Token, StringComparison.Ordinal).ShouldBeFalse("Rendered content must not contain the fixture access token.");
+            detail.Contains(corpusToken, StringComparison.Ordinal).ShouldBeFalse("Rendered content must not contain the corpus access token.");
         });
     }
 
@@ -86,11 +89,12 @@ public sealed class AuthenticatedTenantsUiRouteTests(AuthenticatedTenantsTopolog
             await fixture.BeginNativeReadQualificationAsync(cancellationToken);
             phase("command-seed");
             AuthenticatedRouteState state = await AuthenticatedRouteState.CreateAsync(fixture.CommandApiClient, cancellationToken);
-            phase("sign-in");
-            string cookie = await fixture.SignInAsync(state.Token, cancellationToken);
             phase("projection-pages");
             string? listCursor = await state.WaitForListPageAsync(fixture.TenantsApiClient, 20, cancellationToken);
             string? membershipCursor = await state.WaitForCallerMembershipPageAsync(fixture.TenantsApiClient, 20, cancellationToken);
+            string corpusToken = await state.CreateCorpusReadTokenAsync(fixture.TenantsApiClient, cancellationToken);
+            phase("sign-in");
+            string cookie = await fixture.SignInAsync(corpusToken, cancellationToken);
             string directory = Path.GetDirectoryName(outputPath)!;
             string inputPath = Path.Combine(directory, "session.private.json");
             try

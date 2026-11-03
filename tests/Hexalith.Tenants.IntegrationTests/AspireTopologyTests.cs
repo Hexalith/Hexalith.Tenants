@@ -346,6 +346,12 @@ public class AspireTopologyTests : IDisposable {
         if (AspireTopologyFixture.IsSourceCatalogProfile)
         {
 #if HEXALITH_DEVELOPMENT_CATALOG_COHORT
+            var (state, _) = await SourceCatalogBootstrapEvidence.ReadCommittedAsync(timeout.Token);
+            var activation = state.Committed.ShouldNotBeNull();
+            activation.RequiredHosts.Select(static owner => (owner.HostId, owner.AppId))
+                .OrderBy(static owner => owner.HostId, StringComparer.Ordinal)
+                .ShouldBe([("eventstore", "eventstore"), ("eventstore-admin", "eventstore-admin"),
+                    ("tenants", "tenants"), ("tenants-api", "tenants-api")]);
             // The fixture admitted this caller through the owner-bound startup path. Recheck
             // the actual retained receipt and terminal sequence; a human bootstrap submission
             // through the catalog route must remain forbidden.
@@ -787,8 +793,10 @@ public class AspireTopologyTests : IDisposable {
     internal static string CreateDemoJwt(string? tenantId = null)
         => CreateDemoJwt(tenantId is null ? [] : [tenantId]);
 
-    /// <summary>Grants the real read caller only the tenants selected by a populated-page proof.</summary>
-    internal static string CreateDemoJwt(IEnumerable<string> tenantIds) {
+    /// <summary>Grants exact tenant scope, optionally restricting the caller to read permissions.</summary>
+    /// <param name="tenantIds">The exact permitted tenants.</param>
+    /// <param name="readOnly">Whether command and administrator writes are omitted.</param>
+    internal static string CreateDemoJwt(IEnumerable<string> tenantIds, bool readOnly = false) {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(AspireTopologyFixture.DemoSigningKey));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
         Claim[] claims =
@@ -797,7 +805,7 @@ public class AspireTopologyTests : IDisposable {
             new("eventstore:surface", "ui"),
             new("tenants", "[\"system\"]"),
             new("domains", "[\"global-administrators\",\"tenants\"]"),
-            new("permissions", "[\"command:submit\",\"query:read\"]"),
+            new("permissions", readOnly ? "[\"query:read\"]" : "[\"command:submit\",\"query:read\"]"),
             new("roles", "[\"GlobalAdministrator\"]"),
             new("eventstore:permission", "tenants:read"),
             new("eventstore:permission", "global-administrators:read"),
@@ -814,7 +822,9 @@ public class AspireTopologyTests : IDisposable {
             new("eventstore:permission", "tenants:set-configuration"),
             new("eventstore:permission", "tenants:remove-configuration"),
         ];
-        claims = [.. claims, .. tenantIds.Select(tenantId => new Claim("eventstore:tenant", tenantId))];
+        claims = [.. claims.Where(claim => !readOnly || claim.Type != "eventstore:permission"
+            || claim.Value is "tenants:read" or "global-administrators:read"),
+            .. tenantIds.Select(tenantId => new Claim("eventstore:tenant", tenantId))];
 
         var token = new JwtSecurityToken(
             issuer: JwtIssuer,

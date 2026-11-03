@@ -3,6 +3,8 @@
 Requires the existing CI Dapr runtime, Docker and openssl. A temporary Sentry executable is
 copied from the matching runtime image; credentials, listeners and sidecars are isolated.
 --mutate-retries must fail with four backend calls and proves the retry guard is effective.
+Normal qualification retains the original 13 controls plus 31-second success and configured
+finite deadline exhaustion. Mutation qualification retains exactly the original 13 controls.
 """
 from pathlib import Path
 import os,subprocess,socket,time,ssl,threading,json,urllib.request,urllib.error,hashlib,signal,shutil,tempfile,argparse,re,uuid
@@ -21,6 +23,7 @@ namespace='tenants-retries-'+uuid.uuid4().hex[:12]
 receiver_alias='tenants-api-'+uuid.uuid4().hex[:12]
 backend=None
 processes=[]; files=[]; results=[]; counts={}
+stop_backend=threading.Event()
 def port():
  with socket.socket() as s:s.bind(('127.0.0.1',0));return s.getsockname()[1]
 def start(name,args,env=None):
@@ -32,10 +35,10 @@ def wait_for(predicate,timeout=35):
   if predicate():return
   time.sleep(.1)
  raise RuntimeError('readiness deadline')
-def request(url,method='GET',headers=None):
+def request(url,method='GET',headers=None,timeout=12):
  req=urllib.request.Request(url,data=b'',method=method,headers=headers or {})
  try:
-  with urllib.request.urlopen(req,timeout=12) as r:return r.status,{k.lower():v for k,v in r.headers.items()},r.read()
+  with urllib.request.urlopen(req,timeout=timeout) as r:return r.status,{k.lower():v for k,v in r.headers.items()},r.read()
  except urllib.error.HTTPError as e:return e.code,{k.lower():v for k,v in e.headers.items()},e.read()
 def healthy(p):
  try:return request('http://127.0.0.1:'+str(p)+'/v1.0/healthz/outbound')[0]==204
@@ -43,11 +46,15 @@ def healthy(p):
 class Backend(BaseHTTPRequestHandler):
  def do_GET(self):
   key=(self.command,self.path);counts[key]=counts.get(key,0)+1
+  delay=31 if self.path=='/api/tenants/slow-success' else read_timeout_seconds+5 if self.path=='/api/tenants/deadline-exhaustion' else 0
+  if delay and stop_backend.wait(delay):return
   if self.path=='/api/tenants/failure': self.send_response(503);self.end_headers();self.wfile.write(b'controlled failure');return
   if self.headers.get('If-None-Match')=='"dw144"':self.send_response(304)
   else:self.send_response(200)
   self.send_header('ETag','"dw144"');self.send_header('X-Hexalith-Projection-Version','17');self.send_header('X-Hexalith-Is-Stale','false');self.send_header('X-Hexalith-Served-At','2026-10-26T17:00:00Z');self.end_headers()
-  if self.headers.get('If-None-Match')!='"dw144"':self.wfile.write(json.dumps({'path':self.path,'authorizationForwarded':self.headers.get('Authorization')=='Bearer dw144-sentinel','encoding':self.headers.get('X-Hexalith-Route-Encoding')}).encode())
+  if self.headers.get('If-None-Match')!='"dw144"':
+   try:self.wfile.write(json.dumps({'path':self.path,'authorizationForwarded':self.headers.get('Authorization')=='Bearer dw144-sentinel','encoding':self.headers.get('X-Hexalith-Route-Encoding')}).encode())
+   except (BrokenPipeError,ConnectionResetError):pass
  def do_POST(self):self.send_response(200);self.end_headers()
  def log_message(self,*args):pass
 try:
@@ -66,6 +73,7 @@ try:
  env=baseenv|{'DAPR_TRUST_ANCHORS':(certs/'ca.crt').read_text(),'DAPR_CERT_CHAIN':(certs/'issuer.crt').read_text(),'DAPR_CERT_KEY':(certs/'issuer.key').read_text(),'DAPR_HOST_IP':'127.0.0.1'}
  original=(REPO/'deploy/dapr/accesscontrol.tenants-api.yaml').read_text()
  receiver=ROOT/'receiver.yaml';receiver.write_text(original.replace('{env:DAPR_TRUST_DOMAIN|hexalith.io}','public').replace('{env:DAPR_NAMESPACE|hexalith}',namespace))
+ read_timeout_seconds=int(re.search(r'^      tenantsApiInvocation: (\d+)s$',(REPO/'deploy/dapr/resiliency.yaml').read_text(),re.M).group(1))
  resources=ROOT/'resources';resources.mkdir(exist_ok=True);resiliency=(REPO/'deploy/dapr/resiliency.yaml').read_text().replace('      tenants-api:', '      '+receiver_alias+':');resiliency=resiliency.replace('maxRetries: 0','maxRetries: 3',1) if args.mutate_retries else resiliency;(resources/'resiliency.yaml').write_text(resiliency)
  # Both new readers scan the AppHost directory; Memories-only capabilities must stay invisible.
  (ROOT/'secrets.json').write_text('{}')
@@ -89,8 +97,8 @@ try:
   code,_,body=request('http://127.0.0.1:'+str(hp)+'/v1.0/metadata')
   components={component['name'] for component in json.loads(body).get('components',[])}
   results.append({'case':reader+' cannot load Memories capabilities','status':code,'expected':200,'pass':code==200 and not components.intersection({'llm','secretstore'})})
- def invoke(hp,path,method='GET',extra=None):
-  return request('http://127.0.0.1:'+str(hp)+path,method,{'dapr-app-id':receiver_alias,'Authorization':'Bearer dw144-sentinel',**(extra or {})})
+ def invoke(hp,path,method='GET',extra=None,timeout=12):
+  return request('http://127.0.0.1:'+str(hp)+path,method,{'dapr-app-id':receiver_alias,'Authorization':'Bearer dw144-sentinel',**(extra or {})},timeout)
  paths=['/api/tenants','/api/tenants/tenant.alpha','/api/tenants/tenant.alpha/users','/api/tenants/tenant.alpha/audit','/api/users/user.alpha/tenants','/api/global-administrators']
  for path in paths:
   code,headers,body=invoke(caller,path);results.append({'case':'authorized '+path,'status':code,'expected':200,'diagnostic':body[:300].decode(errors='replace') if code!=200 else '', 'pass':code==200 and json.loads(body).get('authorizationForwarded') is True and json.loads(body).get('encoding') is None and headers.get('etag')=='"dw144"' and headers.get('x-hexalith-projection-version')=='17'})
@@ -99,9 +107,39 @@ try:
   code,_,_=invoke(hp,paths[0],method);results.append({'case':label,'status':code,'expected':403,'pass':code==403})
  code,_,_=invoke(caller,'/api/tenants/failure');observed=counts.get(('GET','/api/tenants/failure'),0);results.append({'case':'no retry on 503','status':code,'backendCalls':observed,'expected':503,'pass':code==503 and observed==1})
  code,_,_=invoke(caller,'/private/secret');results.append({'case':'denied unrelated path','status':code,'expected':403,'pass':code==403})
- report={'runtime':version,'mutation':args.mutate_retries,'namespace':namespace,'productionAclSha256':hashlib.sha256(original.encode()).hexdigest(),'results':results,'backendCounts':{str(k):v for k,v in counts.items()}}
- args.output.parent.mkdir(parents=True,exist_ok=True);args.output.write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2));assert len(results)==13 and all(r['pass'] for r in results), 'Read transport contract failed; see the required 503 backend-call count.'
+ original_results=len(results)
+ assert original_results==13
+ if not args.mutate_retries:
+  started=time.monotonic()
+  result={'case':'31-second HTTPS read survives former timeout','expected':200,'pass':False}
+  failure_category='long-success-invoke-failed'
+  try:
+   code,headers,body=invoke(caller,'/api/tenants/slow-success',timeout=45)
+   result['status']=code;failure_category='long-success-payload-invalid'
+   payload=json.loads(body)
+   elapsed=time.monotonic()-started;observed=counts.get(('GET','/api/tenants/slow-success'),0)
+   expected={'path':'/api/tenants/slow-success','authorizationForwarded':True,'encoding':None}
+   result['pass']=read_timeout_seconds==60 and code==200 and payload==expected and observed==1 and 30<=elapsed<45 and headers.get('etag')=='"dw144"' and headers.get('x-hexalith-projection-version')=='17' and headers.get('x-hexalith-is-stale')=='false' and headers.get('x-hexalith-served-at')=='2026-10-26T17:00:00Z'
+  except Exception:
+   result['failureCategory']=failure_category
+  result.update(elapsedSeconds=time.monotonic()-started,backendCalls=counts.get(('GET','/api/tenants/slow-success'),0));results.append(result)
+  started=time.monotonic()
+  result={'case':'configured Dapr deadline rejects one HTTPS read','expected':500,'configuredTimeoutSeconds':read_timeout_seconds,'pass':False}
+  failure_category='long-deadline-invoke-failed'
+  try:
+   code,_,body=invoke(caller,'/api/tenants/deadline-exhaustion',timeout=read_timeout_seconds+15)
+   result['status']=code;failure_category='long-deadline-payload-invalid'
+   failure=json.loads(body)
+   result['errorCode']=failure.get('errorCode')
+   elapsed=time.monotonic()-started;observed=counts.get(('GET','/api/tenants/deadline-exhaustion'),0)
+   result['pass']=code==500 and failure.get('errorCode')=='ERR_DIRECT_INVOKE' and 'context deadline exceeded' in failure.get('message','').lower() and observed==1 and read_timeout_seconds-1<=elapsed<read_timeout_seconds+15
+  except Exception:
+   result['failureCategory']=failure_category
+  result.update(elapsedSeconds=time.monotonic()-started,backendCalls=counts.get(('GET','/api/tenants/deadline-exhaustion'),0));results.append(result)
+ report={'runtime':version,'mutation':args.mutate_retries,'deadlineControls':'normal-only: skipped in retry mutation' if args.mutate_retries else 'normal-only: 31-second success and configured finite exhaustion','originalControlCount':original_results,'namespace':namespace,'productionAclSha256':hashlib.sha256(original.encode()).hexdigest(),'results':results,'backendCounts':{str(k):v for k,v in counts.items()}}
+ args.output.parent.mkdir(parents=True,exist_ok=True);args.output.write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2));assert len(results)==(13 if args.mutate_retries else 15) and all(r['pass'] for r in results), 'Read transport contract failed; see the required 503 backend-call count.'
 finally:
+ stop_backend.set()
  for p in reversed(processes):
   p.terminate()
  for p in reversed(processes):

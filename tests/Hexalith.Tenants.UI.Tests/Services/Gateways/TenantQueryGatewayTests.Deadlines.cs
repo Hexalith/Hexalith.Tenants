@@ -12,6 +12,37 @@ namespace Hexalith.Tenants.UI.Tests.Services.Gateways;
 public sealed partial class TenantQueryGatewayTests
 {
     [Fact]
+    public async Task DefaultEnrichmentDeadlineAcceptsAuthoritativeDetailAfterThirtyOneSeconds()
+    {
+        var clock = new ManualTimeProvider();
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var held = new TaskCompletionSource<TenantsRestQueryResponse<TenantDetail>>(TaskCreationOptions.RunContinuationsAsynchronously);
+        CancellationToken detailCancellation = default;
+        var client = ReadSafetyDetails();
+        client.ListTenantsAsync(Arg.Any<ListTenantsQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(DirectResponse(new PaginatedResult<TenantSummary>([new("a", "A", Hexalith.Tenants.Contracts.Enums.TenantStatus.Active)], null, false)));
+        client.GetTenantAsync(Arg.Any<GetTenantQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>()).Returns(call =>
+        {
+            detailCancellation = call.ArgAt<CancellationToken>(2);
+            started.SetResult();
+            return held.Task;
+        });
+        var load = CreateGateway(client, searchClock: clock).ListTenantsAsync(new(), null);
+        await started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        clock.Advance(TimeSpan.FromSeconds(31));
+        detailCancellation.IsCancellationRequested.ShouldBeFalse();
+        load.IsCompleted.ShouldBeFalse();
+        held.SetResult(DirectResponse(Detail("a")));
+        var result = await load.WaitAsync(TimeSpan.FromSeconds(5));
+        result.Kind.ShouldBe(TenantListSurfaceKind.Ready);
+        result.IsDegraded.ShouldBeFalse();
+        var row = result.Rows.ShouldHaveSingleItem();
+        row.MemberCount.ShouldBe(TenantCountValue.Known(2));
+        row.OwnerCount.ShouldBe(TenantCountValue.Known(1));
+        row.Lifecycle.ShouldBe(Hexalith.EventStore.Contracts.Queries.ProjectionLifecycleState.Current);
+    }
+
+    [Fact]
     public async Task EnrichmentTimerObservesThrowingProviderCancellationCallbacks()
     {
         var clock = new ManualTimeProvider();

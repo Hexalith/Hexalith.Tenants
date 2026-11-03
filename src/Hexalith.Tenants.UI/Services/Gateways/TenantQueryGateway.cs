@@ -136,9 +136,9 @@ internal sealed class TenantQueryGateway(
     /// The Tenants read client configures only BaseAddress, so HttpClient.Timeout is the 100 s default. This
     /// keeps one list render's supplementary reads inside an operator-tolerable window regardless. The
     /// <c>enrichmentDeadline</c> constructor parameter overrides it; production never passes one, and it
-    /// exists so the deadline is provable without a thirty-second test.
+    /// exists so the deadline is provable without a sixty-second test.
     /// </remarks>
-    internal static readonly TimeSpan MaximumEnrichmentDuration = TimeSpan.FromSeconds(30);
+    internal static readonly TimeSpan MaximumEnrichmentDuration = TimeSpan.FromSeconds(60);
 
     /// <summary>
     /// Maximum accepted canonical search length. This is the workspace URL-state bound itself, not a copy of

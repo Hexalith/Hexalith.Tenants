@@ -15,10 +15,13 @@ Gateway sidecar coordinates and owner credential.
 Tenants.UI and Admin.UI retain their authenticated proxy transports outside the
 authority cohort. The six Tenants REST reads use Dapr; Tenants.UI command and
 status calls retain direct Gateway HTTPS. The optional `sample` pub/sub consumer
-is omitted from this source qualification topology; ordinary AppHost runs still
-include it. Optional Memories REST traffic is not qualified by this focused
-profile; an undeclared
-workload path remains refused rather than receiving an inferred grant.
+is omitted by default in this source profile. Set `TENANTS_SOURCE_CATALOG_INCLUDE_SAMPLE=true`
+to retain it for background-delivery qualification, with projection workers enabled;
+ordinary AppHost runs also include it. Sample remains a pub/sub consumer outside the
+four-host owner cohort. The Sample-enabled Aha test checks the real committed owner
+identities before proving persisted access revocation from delivered tenant events.
+Optional Memories REST traffic is not qualified by this focused profile; an
+undeclared workload path remains refused rather than receiving an inferred grant.
 
 ## Retained backend and key custody
 
@@ -83,8 +86,10 @@ result records are uploaded; raw observations and key material remain private.
 
 ## Published SDK qualification
 
-The default package selection is stable EventStore `3.133.0`. The finite qualified
-binary set is `3.129.0`, `3.129.1`, `3.130.0`, `3.130.1`, `3.130.2`, `3.131.0`, `3.132.0`, `3.132.1`, `3.132.2` and `3.133.0`;
+The current default package selection is public stable EventStore `4.0.4`. The
+current canonical-scope catalog cohort is `4.0.0`, `4.0.1`, `4.0.2`, `4.0.3` and `4.0.4`.
+The retained finite compatibility set is `3.129.0`, `3.129.1`, `3.130.0`, `3.130.1`,
+`3.130.2`, `3.131.0`, `3.132.0`, `3.132.1`, `3.132.2` and `3.133.0`;
 zero fourth revisions and build metadata normalize to the same stable cohort.
 Catalog qualification refuses prereleases, nonzero fourth revisions, unknown
 versions and mixed SDK cohorts. The legacy build floor can still accept
@@ -96,7 +101,7 @@ published in `3.133.0`; older qualified SDK builds retain the in-memory Client
 projection. Source builds enroll the durable API from the linked EventStore source.
 
 The normal `published-catalog-http` CI matrix tests the actual default without a
-version override and the explicit `3.129.0` floor. Both lanes require compiled
+version override. Its lane requires compiled
 enrollment, the complete owner catalog, all generated HTTP cases, ordinary stale
 artifact refusals, and a fresh packed Contracts/Server consumer. The consumer
 checks source metadata and candidate archive/DLL hashes before discovering all
@@ -113,7 +118,7 @@ export RepositoryCommit="$(git rev-parse HEAD)"
 catalog_args=(-p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true
   -p:HexalithEventStoreFromSource=false -p:HexalithFrontComposerFromSource=false
   -p:HexalithMemoriesFromSource=false)
-# Append -p:HexalithEventStoreVersion=3.129.0 to repeat the explicit floor lane.
+# The default uses the selected public canonical-scope SDK; retained 3.x evidence is historical.
 for catalog_suite in IntegrationTests Contracts.Tests; do
   dotnet build "tests/Hexalith.Tenants.${catalog_suite}/Hexalith.Tenants.${catalog_suite}.csproj" \
     -c Release -warnaserror -m:1 -nr:false "${catalog_args[@]}"

@@ -2,7 +2,7 @@
 title: 'Preserve sample background delivery in the canonical CI topology'
 type: 'bugfix'
 created: '2026-11-03'
-status: 'in-progress'
+status: 'in-review'
 route: 'dispatch'
 baseline_commit: 'bcd923781e97cf7ea6391f73eb0b3d5469c254c4'
 context:
@@ -35,10 +35,10 @@ Keep the default focused catalog profile's Sample omission, existing four requir
 
 ## Tasks & Acceptance
 
-- [ ] Implement explicit Sample inclusion while preserving ordinary and focused defaults. Given canonical profile alone, Sample stays absent; with explicit inclusion, the real Sample module and authenticated sidecar exist without entering required catalog owner receivers.
-- [ ] Keep full7-case CI coverage and enable actual background workers/responses only for that prepared test step. Preserve all other gate/minimum/skip settings.
-- [ ] Adapt only the Aha test's bootstrap and command-token setup to its actual canonical runtime. Require the fixture's proven committed cold bootstrap; keep every existing grant/revoke/status/audit assertion and real pubsub flow.
-- [ ] Run narrow offline resource-model and fixture setup tests plus compilation against independently verified public EventStore4.0.3. Report exact commands/counts/logs and any incomplete live checks. Do not claim runtime acceptance from offline model assertions; root must verify all seven cases on the actual fresh CI backend.
+- [x] Implement explicit Sample inclusion while preserving ordinary and focused defaults. Given canonical profile alone, Sample stays absent; with explicit inclusion, the real Sample module and authenticated sidecar exist without entering required catalog owner receivers.
+- [x] Keep full7-case CI coverage and enable actual background workers/responses only for that prepared test step. Preserve all other gate/minimum/skip settings.
+- [x] Adapt only the Aha test's bootstrap and command-token setup to its actual canonical runtime. Require the fixture's proven committed cold bootstrap; keep every existing grant/revoke/status/audit assertion and real pubsub flow.
+- [x] Run narrow offline resource-model and fixture setup tests plus compilation against independently verified public EventStore4.0.3. Report exact commands/counts/logs and any incomplete live checks. Do not claim runtime acceptance from offline model assertions; root must verify all seven cases on the actual fresh CI backend.
 
 ## Implementation Notes
 
@@ -50,3 +50,10 @@ Keep the default focused catalog profile's Sample omission, existing four requir
 - `references/Hexalith.Builds`
 - `references/Hexalith.EventStore`
 - `references/Hexalith.Platform`
+
+## Verification
+
+- Concurrent implementation retained in cea24f9a2cc513beef36d42805634e21ffe217a4: actual Sample opt-in, matching fixture resources, step-scoped workers/background response settings, and owner-bound bootstrap/command-token setup. No required catalog owner was added.
+- Package-mode Release AppHost.Tests build: zero warnings/errors (3.44s; `/tmp/tenants-sample-403-apphost-build3.log`). IntegrationTests build: zero warnings/errors (4.63s; `/tmp/tenants-sample-403-integration-build.log`). Both use independently verified public EventStore4.0.3.
+- Root independently ran `dotnet test tests/Hexalith.Tenants.AppHost.Tests/Hexalith.Tenants.AppHost.Tests.csproj --configuration Release --no-build --no-restore --filter-method '*SourceCatalogProfile*' --minimum-expected-tests 2 --fail-skips on`: both actual offline profile-model tests passed, zero skips. These tests establish focused omission and explicit Sample inclusion/channel wiring, not runtime acceptance.
+- Full non-topology integration runner passed609 cases with zero failures/skips in185s (`/tmp/tenants-package-403-aspire-tier.log`). The complete24 existing live topology cases remain scheduled in their prepared matrix; all seven AspireTopologyTests must still pass on the actual fresh backend. Latest exact-source main CI41570880671 at cea24f9a2cc513beef36d42805634e21ffe217a4 is running.

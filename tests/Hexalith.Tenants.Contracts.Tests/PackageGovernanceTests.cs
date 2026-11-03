@@ -819,11 +819,12 @@ public class PackageGovernanceTests {
     }
 
     [Theory]
-    [InlineData("", false, "4.0.3")]
+    [InlineData("", false, "4.0.4")]
     [InlineData("4.0.0", false, "4.0.0")]
     [InlineData("4.0.1", false, "4.0.1")]
     [InlineData("4.0.2", false, "4.0.2")]
     [InlineData("4.0.3", false, "4.0.3")]
+    [InlineData("4.0.4", false, "4.0.4")]
     [InlineData("3.129.0", false, "3.129.0")]
     [InlineData("3.131.0", false, "3.131.0")]
     [InlineData("3.132.0", false, "3.132.0")]
@@ -944,7 +945,12 @@ public class PackageGovernanceTests {
     [InlineData("4.0.1", false, true)]
     [InlineData("4.0.2", false, true)]
     [InlineData("4.0.3", false, true)]
-    [InlineData("4.0.4", false, false)]
+    [InlineData("4.0.4", false, true)]
+    [InlineData("4.0.4.0", false, true)]
+    [InlineData("4.0.4+metadata-with-dash", false, true)]
+    [InlineData("4.0.4-preview.1", false, false)]
+    [InlineData("4.0.4.1", false, false)]
+    [InlineData("4.0.5", false, false)]
     [InlineData("test-source-version", true, true)]
     public Task Published_packages_require_qualified_catalog_artifactsAsync(
         string selectedVersion,
@@ -1026,7 +1032,12 @@ public class PackageGovernanceTests {
     [InlineData("4.0.1", false, true)]
     [InlineData("4.0.2", false, true)]
     [InlineData("4.0.3", false, true)]
-    [InlineData("4.0.4", false, false)]
+    [InlineData("4.0.4", false, true)]
+    [InlineData("4.0.4.0", false, true)]
+    [InlineData("4.0.4+metadata-with-dash", false, true)]
+    [InlineData("4.0.4-preview.1", false, false)]
+    [InlineData("4.0.4.1", false, false)]
+    [InlineData("4.0.5", false, false)]
     [InlineData("test-source-version", true, true)]
     public Task Native_hosts_refuse_unqualified_catalog_sdk_selectionsAsync(string selectedVersion, bool useSource, bool accepted)
         => EvaluateEventStoreVersionSelectionAsync(selectedVersion, useSource, selectedVersion,

@@ -8723,7 +8723,7 @@ public sealed partial class TenantQueryGatewayTests
         // to Timeout.InfiniteTimeSpan reinstated the unbounded page hang this test claims to prevent and
         // everything still passed. Pin the shipped default to a bound a user could tolerate waiting.
         TenantQueryGateway.MaximumEnrichmentDuration.ShouldBeGreaterThan(TimeSpan.Zero);
-        TenantQueryGateway.MaximumEnrichmentDuration.ShouldBeLessThanOrEqualTo(TimeSpan.FromSeconds(30));
+        TenantQueryGateway.MaximumEnrichmentDuration.ShouldBe(TimeSpan.FromSeconds(60));
     }
 
     [Fact]

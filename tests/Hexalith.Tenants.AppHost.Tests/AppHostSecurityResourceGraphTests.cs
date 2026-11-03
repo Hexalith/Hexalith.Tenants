@@ -65,7 +65,7 @@ public sealed class AppHostSecurityResourceGraphTests
     }
 
     [Theory]
-    [InlineData(null, "30")]
+    [InlineData(null, "45")]
     [InlineData("5", "5")]
     [InlineData("45", "45")]
     public async Task GatewayDomainInvocationBudgetAccommodatesNativeAuthorityAndPreservesOperatorOverride(
@@ -88,7 +88,7 @@ public sealed class AppHostSecurityResourceGraphTests
         seconds.ShouldBe(expectedSeconds);
         if (configuredSeconds is null)
         {
-            int.Parse(seconds, System.Globalization.CultureInfo.InvariantCulture).ShouldBeGreaterThan(10 + 2,
+            int.Parse(seconds, System.Globalization.CultureInfo.InvariantCulture).ShouldBeGreaterThan(30 + 8,
                 "the gateway must leave room for the bounded native read and independent final observation");
         }
     }

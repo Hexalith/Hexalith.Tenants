@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IdentityModel.Tokens.Jwt;
+using System.Net;
 using System.Security.Cryptography;
 using System.Text.Json;
 
@@ -14,6 +15,8 @@ using Hexalith.Tenants.Authorization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Http.Resilience;
+using Microsoft.Extensions.Options;
 
 using Hexalith.Tenants.IntegrationTests.Fixtures;
 
@@ -25,6 +28,48 @@ namespace Hexalith.Tenants.IntegrationTests;
 [Collection("BootstrapReadiness")]
 public sealed class AuthenticatedRouteFixtureIsolationTests
 {
+    /// <summary>Authentication finishes at the cookie-issuing callback before any workspace data read.</summary>
+    [Theory]
+    [InlineData("valid")]
+    [InlineData("foreign-return")]
+    [InlineData("wrong-return")]
+    [InlineData("missing-cookie")]
+    [InlineData("foreign-callback")]
+    public async Task OidcRedirectControlRetainsLocalOriginsAndCookieWithoutLoadingTheWorkspace(string scenario)
+    {
+        var ui = new Uri("https://localhost:44521");
+        var issuer = new Uri("http://localhost:44522");
+        var cookies = new CookieContainer();
+        int sends = 0;
+        const string cookieName = ".AspNetCore.Hexalith.FrontComposer.Cookie";
+        Task<HttpResponseMessage> Send(Uri destination, CancellationToken token)
+        {
+            token.ThrowIfCancellationRequested();
+            sends++;
+            Uri next;
+            if (sends == 1) next = new(issuer, "/authorize");
+            else if (sends == 2) next = scenario == "foreign-callback"
+                ? new Uri("https://localhost:44523/signin-oidc") : new Uri(ui, "/signin-oidc");
+            else if (sends == 3 && destination == new Uri(ui, "/signin-oidc"))
+            {
+                if (scenario != "missing-cookie")
+                    cookies.Add(ui, new Cookie(cookieName, "synthetic-opaque-ticket", "/") { Secure = true, HttpOnly = true });
+                next = scenario == "foreign-return" ? new Uri("https://localhost:44523/tenants")
+                    : new Uri(ui, scenario == "wrong-return" ? "/unexpected" : "/tenants");
+            }
+            else throw new InvalidOperationException("Authentication must finish before loading workspace data.");
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.Redirect) { Headers = { Location = next } });
+        }
+        Task<string> pending = AuthenticatedTenantsTopologyFixture.FollowSignInRedirectsAsync(ui, issuer, cookies,
+            Send, TestContext.Current.CancellationToken);
+        if (scenario == "valid")
+        {
+            (await pending).ShouldBe(cookieName + "=synthetic-opaque-ticket");
+            sends.ShouldBe(3);
+        }
+        else await Should.ThrowAsync<InvalidOperationException>(() => pending);
+    }
+
     [Theory]
     [InlineData(false, "true")]
     [InlineData(true, "true")]
@@ -125,6 +170,14 @@ public sealed class AuthenticatedRouteFixtureIsolationTests
         provider.GetRequiredService<IRouteCatalogStateStore>().ShouldBeOfType<DaprRouteCatalogStateStore>();
         provider.GetRequiredService<IRouteCatalogAuthority>().ShouldBeOfType<RouteCatalogAuthority>();
         provider.GetRequiredService<TenantOwnerSourceGateway>().ShouldNotBeNull();
+        var policies = provider.GetRequiredService<IOptionsMonitor<HttpStandardResilienceOptions>>();
+        var ownedPolicy = policies.Get(nameof(TenantOwnerSourceGateway) + "-standard");
+        ownedPolicy.AttemptTimeout.Timeout.ShouldBe(TimeSpan.FromSeconds(30));
+        ownedPolicy.TotalRequestTimeout.Timeout.ShouldBe(TimeSpan.FromSeconds(30));
+        ownedPolicy.CircuitBreaker.SamplingDuration.ShouldBe(TimeSpan.FromSeconds(60));
+        var inheritedPolicy = policies.Get("-standard");
+        inheritedPolicy.AttemptTimeout.Timeout.ShouldBe(TimeSpan.FromSeconds(10));
+        inheritedPolicy.TotalRequestTimeout.Timeout.ShouldBe(TimeSpan.FromSeconds(30));
         provider.GetRequiredService<IAuthoritativeEventStreamReader>().ShouldBeOfType<AuthoritativeEventStreamReader>();
         provider.GetRequiredService<INativeSourceMetadataReader>().ShouldBeOfType<GatewayNativeSourceMetadataReader>();
         var issuer = provider.GetRequiredService<IWorkloadAssertionIssuer>();

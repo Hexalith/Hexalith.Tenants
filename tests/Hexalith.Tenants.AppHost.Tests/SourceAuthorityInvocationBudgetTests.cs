@@ -11,8 +11,8 @@ public sealed class SourceAuthorityInvocationBudgetTests
 {
     /// <summary>Applies the EventStore-only default and respects environment input and command-line precedence.</summary>
     [Theory]
-    [InlineData(false, null, null, "30")]
-    [InlineData(true, null, null, "30")]
+    [InlineData(false, null, null, "45")]
+    [InlineData(true, null, null, "45")]
     [InlineData(false, null, "5", "5")]
     [InlineData(true, null, "5", "5")]
     [InlineData(false, null, "60", "60")]

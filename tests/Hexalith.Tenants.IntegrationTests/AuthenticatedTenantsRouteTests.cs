@@ -223,10 +223,11 @@ public sealed class AuthenticatedTenantsRouteTests(AuthenticatedRouteTopologyFix
         fixture.SkipIfUnavailable();
         using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(5));
         AuthenticatedRouteState state = await AuthenticatedRouteState.CreateAsync(fixture.CommandApiClient, timeout.Token);
-        using ServiceProvider provider = CreateProductionReadServices(state.Token);
+        await state.WaitForListPageAsync(fixture.TenantsApiClient, 100, timeout.Token);
+        string corpusToken = await state.CreateCorpusReadTokenAsync(fixture.TenantsApiClient, timeout.Token);
+        using ServiceProvider provider = CreateProductionReadServices(corpusToken);
         using IServiceScope scope = provider.CreateScope();
         ITenantsRestQueryClient client = scope.ServiceProvider.GetRequiredService<ITenantsRestQueryClient>();
-        await state.WaitForListPageAsync(fixture.TenantsApiClient, 100, timeout.Token);
         var invalid = await client.GetTenantUsersAsync(new GetTenantUsersQuery { TenantId = state.TenantId, Cursor = "foreign-protected-cursor", PageSize = 1 }, null, timeout.Token);
         invalid.StatusCode.ShouldBe((int)HttpStatusCode.BadRequest);
         invalid.FailureKind.ShouldBe(TenantsRestQueryFailureKind.InvalidCursor);

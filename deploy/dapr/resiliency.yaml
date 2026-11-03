@@ -25,11 +25,11 @@ spec:
     timeouts:
       daprSidecar: 5s
       # A generated read can include a native authority read and final observation.
-      tenantsApiInvocation: 30s
+      tenantsApiInvocation: 60s
       # App-wide EventStore invocation limit, including commands, reads and readiness.
-      eventStoreInvocation: 30s
+      eventStoreInvocation: 55s
       # Tenants processing includes the complete native authority check.
-      tenantsInvocation: 30s
+      tenantsInvocation: 50s
       pubsubTimeout: 10s
       subscriberTimeout: 30s
     circuitBreakers:

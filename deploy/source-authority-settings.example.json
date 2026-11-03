@@ -14,7 +14,7 @@
   "EventStoreHost": {
     "EventStore": {
       "RateLimiting": { "QueueLimit": 64 },
-      "DomainServices": { "InvocationTimeoutSeconds": 30 }
+      "DomainServices": { "InvocationTimeoutSeconds": 45 }
     },
     "Authentication": {
       "DaprInternal": {

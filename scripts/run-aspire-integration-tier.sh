@@ -15,6 +15,6 @@ dotnet test "$ASPIRE_TEST_PROJECT" \
         Hexalith.Tenants.IntegrationTests.AuthenticatedTenantsRouteTests \
         Hexalith.Tenants.IntegrationTests.AuthenticatedTenantsUiRouteTests \
         Hexalith.Tenants.IntegrationTests.SourceCatalogOwnerProfileTests \
-    --minimum-expected-tests 1 --fail-skips on \
+    --minimum-expected-tests 609 --fail-skips on \
     --results-directory TestResults/aspire \
     --report-xunit-trx --report-xunit-trx-filename aspire-results.trx

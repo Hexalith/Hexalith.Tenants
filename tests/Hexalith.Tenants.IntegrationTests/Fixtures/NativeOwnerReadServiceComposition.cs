@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text.Json;
 
 using Hexalith.EventStore.Client.Streams;
+using Hexalith.EventStore.ServiceDefaults;
 using Hexalith.EventStore.Contracts.Routing;
 using Hexalith.EventStore.ServiceDefaults.Authentication;
 using Hexalith.EventStore.ServiceDefaults.Routing;
@@ -51,8 +52,9 @@ internal static class NativeOwnerReadServiceComposition
             EnvironmentName = Environments.Development,
             DisableDefaults = true,
         });
+        builder.Configuration.AddConfiguration(configuration);
+        builder.AddServiceDefaults();
         IServiceCollection services = builder.Services;
-        services.AddLogging();
         services.AddSingleton(configuration);
         services.AddSingleton(TimeProvider.System);
         services.AddEventStoreWorkloadAssertionIssuer(configuration);

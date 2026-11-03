@@ -71,9 +71,9 @@ public sealed class TenantsApiGatewayResilienceTests
         HttpStandardResilienceOptions gateway = options.Get(capture.GatewayClientName + "-standard");
         HttpStandardResilienceOptions inherited = options.Get("-standard");
         var defaults = new HttpStandardResilienceOptions();
-        gateway.AttemptTimeout.Timeout.ShouldBe(TimeSpan.FromSeconds(30));
-        gateway.TotalRequestTimeout.Timeout.ShouldBe(TimeSpan.FromSeconds(30));
-        gateway.CircuitBreaker.SamplingDuration.ShouldBe(TimeSpan.FromSeconds(60));
+        gateway.AttemptTimeout.Timeout.ShouldBe(TimeSpan.FromSeconds(50));
+        gateway.TotalRequestTimeout.Timeout.ShouldBe(TimeSpan.FromSeconds(50));
+        gateway.CircuitBreaker.SamplingDuration.ShouldBe(TimeSpan.FromSeconds(100));
         gateway.Retry.MaxRetryAttempts.ShouldBe(defaults.Retry.MaxRetryAttempts);
         gateway.Retry.Delay.ShouldBe(defaults.Retry.Delay);
         gateway.Retry.BackoffType.ShouldBe(defaults.Retry.BackoffType);
@@ -88,20 +88,21 @@ public sealed class TenantsApiGatewayResilienceTests
         inherited.CircuitBreaker.SamplingDuration.ShouldBe(defaults.CircuitBreaker.SamplingDuration);
     }
 
-    /// <summary>Proves the real policy permits an actual send beyond the former ten-second attempt.</summary>
-    [Fact(Timeout = 25000)]
-    public async Task HeldGatewayQuerySurvivesTheOriginalAttemptBoundary()
+    /// <summary>Proves a 29-second stream and 2-second final observation survive the former total bound.</summary>
+    [Fact(Timeout = 45000)]
+    public async Task HeldGatewayQuerySurvivesTheOriginalThirtySecondBoundary()
     {
         int attempts = 0;
         var capture = new ApiGatewayResilienceCapture(async (_, token) =>
         {
             Interlocked.Increment(ref attempts);
-            await Task.Delay(TimeSpan.FromSeconds(11), token);
+            await Task.Delay(TimeSpan.FromSeconds(29), token);
+            await Task.Delay(TimeSpan.FromSeconds(2), token);
             return Success();
         });
         using var factory = Factory(capture);
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
-        deadline.CancelAfter(TimeSpan.FromSeconds(20));
+        deadline.CancelAfter(TimeSpan.FromSeconds(40));
 
         EventStoreQueryResult result = await Gateway(factory, capture).SubmitQueryAsync(Query(), cancellationToken: deadline.Token);
 
@@ -245,8 +246,8 @@ public sealed class TenantsApiGatewayResilienceTests
         finally { await caller.CancelAsync(); }
     }
 
-    /// <summary>The unchanged thirty-second total bound still cancels the actual transport.</summary>
-    [Fact(Timeout = 40000)]
+    /// <summary>The fifty-second total bound still cancels the actual transport in one attempt.</summary>
+    [Fact(Timeout = 65000)]
     public async Task TotalRequestBudgetCancelsTheActualTransport()
     {
         var canceled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -261,13 +262,13 @@ public sealed class TenantsApiGatewayResilienceTests
         using var factory = Factory(capture);
         IEventStoreGatewayClient gateway = Gateway(factory, capture);
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
-        deadline.CancelAfter(TimeSpan.FromSeconds(35));
+        deadline.CancelAfter(TimeSpan.FromSeconds(60));
 
         long startedAt = Stopwatch.GetTimestamp();
         Task<EventStoreQueryResult> request = gateway.SubmitQueryAsync(Query(), cancellationToken: deadline.Token);
         await Should.ThrowAsync<TimeoutRejectedException>(() => request);
-        Stopwatch.GetElapsedTime(startedAt).ShouldBeGreaterThanOrEqualTo(TimeSpan.FromSeconds(29),
-            "the actual transport must survive near the configured thirty-second boundary");
+        Stopwatch.GetElapsedTime(startedAt).ShouldBeGreaterThanOrEqualTo(TimeSpan.FromSeconds(49),
+            "the actual transport must survive near the configured fifty-second boundary");
 
         await canceled.Task.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
         attempts.ShouldBe(1);

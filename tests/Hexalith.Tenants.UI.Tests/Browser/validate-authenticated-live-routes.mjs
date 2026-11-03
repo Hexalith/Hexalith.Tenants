@@ -6,6 +6,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createFunctionalNavigation } from './authenticated-live-route-waits.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const require = createRequire(new URL('../../performance/tenant-audit/package.json', import.meta.url));
@@ -64,14 +65,7 @@ try {
             httpOnly: true, secure: base.protocol === 'https:', sameSite: 'Lax' };
     }));
     const page = await context.newPage();
-    page.setDefaultTimeout(25_000);
-    const open = async destination => {
-        const response = await page.goto(destination);
-        // Prerendered rows can arrive before the interactive circuit and Fluent modules.
-        // Let their startup requests settle before sending input or measuring replacement DOM.
-        await page.waitForLoadState('networkidle');
-        return response;
-    };
+    const { open, waitUntil } = createFunctionalNavigation(page, check);
     const errors = [];
     const recordError = label => { if (errors.length < 8) errors.push(label); };
     page.on('pageerror', () => recordError('browser-page-error'));
@@ -119,11 +113,6 @@ try {
         for (let current = active; current; current = current.parentElement || current.getRootNode()?.host) if (current === element) return true;
         return false;
     });
-    const waitUntil = async (condition, label) => {
-        const deadline = Date.now() + 25_000;
-        while (Date.now() < deadline) { if (await condition()) return; await page.waitForTimeout(100); }
-        check(false, label);
-    };
     const intersectsAndReceivesPointer = locator => locator.evaluate(element => {
         let bounds = element.getBoundingClientRect();
         let left = Math.max(0, bounds.left), right = Math.min(innerWidth, bounds.right);
