@@ -35,7 +35,7 @@ Do not change production trust or validators, fake native readers/metadata/autho
 ## Tasks & Acceptance
 
 - [x] Add fixture-owned key/startup composition and a CreateNativeOwnerReadServicesAsync helper. Use Development host environment, existing demo JWT issuer/signing key, workload tenants, exact Tenants sidecar, genuine AddEventStoreWorkloadAssertionIssuer, AddTenantOwnerSourceGateway and actual catalog authority where the active profile requires it. Keep fixture key private and restore inherited environment on success and exception.
-- [x] Construct authoritative stream reader with a bounded 30-second deadline and native proof required; use GatewayNativeSourceMetadataReader with bounded 30-second observation deadline once the supporting SDK API is selected. Package-mode compilation must wait for the root-approved published SDK; source-mode compilation against the actual pending SDK may be reported separately.
+- [x] Construct authoritative stream reader with a bounded 30-second deadline and native proof required; use GatewayNativeSourceMetadataReader with the production 8-second observation deadline once the supporting SDK API is selected. Package-mode compilation must wait for the root-approved published SDK; source-mode compilation against the actual pending SDK may be reported separately.
 - [x] Pass actual invocation scope/configuration to a fresh TenantsGlobalAdministratorAuthority for each handler execution. Wrap standalone stream reads in ExecuteNativeSourceReadAsync so the same durable admission protocol applies. No raw metadata fallback in any lane.
 - [x] Add or extend narrow existing fixture composition/environment tests to protect key privacy/restoration and canonical production registration. Build the focused graph and run applicable non-live tests; identify any package-availability blocker precisely. Do not launch overlapping AppHosts/private runtimes while other work is active; root will run the actual isolated live qualification.
 
@@ -67,3 +67,12 @@ Do not change production trust or validators, fake native readers/metadata/autho
 
 - Preserve all actual custody checks and their live source. Expose only an internal registration seam if needed to exercise the existing real observer callback with explicitly synthetic, private temporary test evidence. Add focused rejection/freshness cases and keep all cryptographic/runtime admission unchanged.
 - Match production metadata observation bound: 8 seconds, while authoritative stream reads retain 30 seconds. These are test configuration corrections, not changes to production trust or deadlines.
+
+## File List
+
+- `references/Hexalith.Builds`
+- `references/Hexalith.EventStore`
+- `references/Hexalith.Platform`
+
+- Review fixes verified against public EventStore4.0.3: package-mode Release build succeeded with zero warnings/errors (71.25s), and all20 AuthenticatedRouteFixtureIsolationTests passed with zero skips. The ten new synthetic observation controls exercise the real registered observer's initial refusal and changed/removed-evidence revalidation without activating any fake authority. Source/live custody and transport are unchanged.
+- Exact final checks: `dotnet build tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Release -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true -p:HexalithEventStoreFromSource=false -p:HexalithFrontComposerFromSource=false -p:HexalithMemoriesFromSource=false -m:1 -nr:false`; `dotnet tests/Hexalith.Tenants.IntegrationTests/bin/Release/net10.0/Hexalith.Tenants.IntegrationTests.dll -class Hexalith.Tenants.IntegrationTests.AuthenticatedRouteFixtureIsolationTests`. Logs: `/tmp/tenants-release-20261103-07JciR/native-review-fixes-package-build.log` and `native-review-fixes-tests.log`. Required actual current-source authenticated native-removal qualification remains pending.

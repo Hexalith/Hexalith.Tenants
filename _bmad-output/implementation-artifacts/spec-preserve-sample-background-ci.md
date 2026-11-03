@@ -44,3 +44,9 @@ Keep the default focused catalog profile's Sample omission, existing four requir
 
 - This repair follows a read-only failure audit, not a weakened gate. The previous generic lane's24 topology initialization failures prevented these bodies from running. Their coverage must be retained in a coherent prepared topology.
 - Existing metadata/native helper changes in AspireTopologyFixture and AuthenticatedRouteFixtureIsolationTests belong to another completed handoff; inspect and preserve them before editing. Root handles final reviews, source gates and release publication.
+
+## File List
+
+- `references/Hexalith.Builds`
+- `references/Hexalith.EventStore`
+- `references/Hexalith.Platform`

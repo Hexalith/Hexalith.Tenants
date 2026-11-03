@@ -338,13 +338,17 @@ jobs:
           --configuration Release --no-build
           --filter-class Hexalith.Tenants.IntegrationTests.AuthenticatedRouteEvidenceTests
           --minimum-expected-tests 3 --fail-skips on
-      - name: Verify the hosted persisted-state regression without skips
+      - name: Verify all hosted topology, background delivery, and persisted-state regressions without skips
         if: ${{ !cancelled() && steps.live-build.outcome == 'success' && matrix.suite == 'persisted' }}
+        env:
+          TENANTS_SOURCE_CATALOG_INCLUDE_SAMPLE: 'true'
+          EventStore__Projections__WorkersEnabled: 'true'
+          TENANTS_SOURCE_WORKER_BACKED_RESPONSES_ENABLED: 'true'
         run: >
           dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj
           --configuration Release --no-build
-          --filter-method Hexalith.Tenants.IntegrationTests.AspireTopologyTests.Generated_tenants_api_get_tenant_reads_verified_redis_state_with_projection_authority
-          --minimum-expected-tests 1 --fail-skips on
+          --filter-class Hexalith.Tenants.IntegrationTests.AspireTopologyTests
+          --minimum-expected-tests 7 --fail-skips on
       - name: Preserve anonymous UI denial coverage
         if: ${{ !cancelled() && steps.live-build.outcome == 'success' && matrix.suite == 'anonymous-ui' }}
         run: >

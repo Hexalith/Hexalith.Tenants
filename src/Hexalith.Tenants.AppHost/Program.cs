@@ -233,9 +233,10 @@ if (memoriesService is not null) {
 }
 
 // The private source catalog profile binds only its four required owners.
-// Keep the optional demo consumer out of that qualification topology.
+// A dedicated background-delivery suite may also include the optional demo consumer.
 IResourceBuilder<ProjectResource>? sample = null;
-if (!string.Equals(builder.Configuration["TENANTS_SOURCE_CATALOG_PROFILE"], "true", StringComparison.OrdinalIgnoreCase))
+if (!string.Equals(builder.Configuration["TENANTS_SOURCE_CATALOG_PROFILE"], "true", StringComparison.OrdinalIgnoreCase)
+    || string.Equals(builder.Configuration["TENANTS_SOURCE_CATALOG_INCLUDE_SAMPLE"], "true", StringComparison.OrdinalIgnoreCase))
 {
     // Sample subscribes to tenants.events and shares the pub/sub component.
     sample = builder.AddProject<HexalithTenantsSample>("sample")

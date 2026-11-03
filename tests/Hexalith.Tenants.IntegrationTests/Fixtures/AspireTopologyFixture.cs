@@ -75,6 +75,9 @@ public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith
 
     internal static bool IsSourceCatalogProfile => string.Equals(Environment.GetEnvironmentVariable("TENANTS_SOURCE_CATALOG_PROFILE"), "true", StringComparison.Ordinal);
 
+    internal static bool IncludeSample => !IsSourceCatalogProfile
+        || string.Equals(Environment.GetEnvironmentVariable("TENANTS_SOURCE_CATALOG_INCLUDE_SAMPLE"), "true", StringComparison.OrdinalIgnoreCase);
+
     /// <summary>Gets the inherited worker profile captured before the AppHost child processes start.</summary>
     internal bool ProjectionWorkersEnabledAtStartup { get; private set; }
 
@@ -497,9 +500,9 @@ public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith
         new("eventstore-dapr-cli", "http", TenantsApiClientTimeout, TenantsApiHealthTimeout, WaitForAliveness: false, TenantsApiHealthTimeout),
         new("tenants-dapr-cli", "http", TenantsApiClientTimeout, TenantsApiHealthTimeout, WaitForAliveness: false, TenantsApiHealthTimeout),
         new("tenants-ui-dapr-cli", "http", TenantsApiClientTimeout, TenantsApiHealthTimeout, WaitForAliveness: false, TenantsApiHealthTimeout),
-        .. IsSourceCatalogProfile
-            ? []
-            : new AspireResource[] { new("sample", "http", SampleClientTimeout, SampleHealthTimeout, WaitForAliveness: true, SampleHealthTimeout) },
+        .. IncludeSample
+            ? new AspireResource[] { new("sample", "http", SampleClientTimeout, SampleHealthTimeout, WaitForAliveness: true, SampleHealthTimeout) }
+            : [],
 #if HEXALITH_DEVELOPMENT_CATALOG_COHORT
         // The source qualification also drives the real Admin UI's existing SSR/client transport.
         .. IsSourceCatalogProfile

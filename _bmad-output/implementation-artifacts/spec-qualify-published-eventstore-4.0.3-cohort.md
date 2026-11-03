@@ -2,7 +2,8 @@
 title: 'Qualify the published EventStore 4.0.3 consumer cohort'
 type: 'bugfix'
 created: '2026-11-03'
-status: 'draft'
+status: 'in-review'
+baseline_commit: 'bcd923781e97cf7ea6391f73eb0b3d5469c254c4'
 route: 'dispatch'
 context:
   - '/home/administrator/projects/hexalith/tenants/AGENTS.md'
@@ -41,3 +42,16 @@ Preserve concurrent work, every compatibility exception, source-mode behavior, a
 ## Implementation Notes
 
 - Prerequisite release 41567697064 is running; no publication claim is made until independent archive verification succeeds. The root agent owns that dependency and will provide evidence before publication-dependent edits/checks.
+
+## Adopted Concurrent Implementation and Verification
+
+- A separate authorized session completed the prepared work while native-transport review ran. Preserve that implementation: Builds catalog aa00d4f3b8eedb119990470fd86c52a46d2a7c74, audit/fixtures66a1b2f9b8087b45431b681c0b9907019aada142; Platform5d74c40b82940e1ba1788963dbb60cae41eab9dc. Both repositories are clean on main and synchronized with their fetched origin/main.
+- Independent root byte comparison against Builds70850b18e0d0b80facd2df0809974020dd935732 verified all106 schema/fixture changes contain only4.0.2→4.0.3 literals and SHA256 replacements, with BOM/line endings preserved. All301 unrelated audit rows remain exactly equal; only13 EventStore rows changed. Local proof: `/tmp/tenants-release-20261103-07JciR/builds-403-fixture-byte-proof.json`.
+- Existing real-project finite matrix passed188 cases with runtimeAcceptance=false (`/tmp/platform-sdk-gates-403.json`). Focused existing Builds fixture tests passed238/238 with zero skips (`/tmp/builds-403-module-fixtures.log`). These are configuration/fixture proofs, not live acceptance.
+- Producer prerequisite actually verified: all14 public EventStore4.0.3 archives match source9aa4e5d690db3cce734ae38942b05c23c8380bac (`/tmp/tenants-release-20261103-07JciR/eventstore-4.0.3/verification.json`). Final package-mode root compilation and exact-source CI still required.
+
+## File List
+
+- `references/Hexalith.Builds`
+- `references/Hexalith.EventStore`
+- `references/Hexalith.Platform`

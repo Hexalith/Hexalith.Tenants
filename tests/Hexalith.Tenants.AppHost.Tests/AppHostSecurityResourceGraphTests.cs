@@ -30,6 +30,29 @@ public sealed class AppHostSecurityResourceGraphTests
     }
 
     [Fact]
+    public async Task SourceCatalogProfileCanIncludeTheRealSampleConsumerForBackgroundDelivery()
+    {
+        await using IDistributedApplicationTestingBuilder builder = await AppHostModelBuilder
+            .CreateAsync(
+                ["--publisher", "manifest", "--output-path",
+                    Path.Combine(Path.GetTempPath(), $"tenants-sample-model-{Guid.NewGuid():N}.json"),
+                    "--EnableKeycloak=true", "--EnableMemories=false", "--TENANTS_SOURCE_CATALOG_PROFILE=true",
+                    "--TENANTS_SOURCE_CATALOG_INCLUDE_SAMPLE=true"]);
+
+        ProjectResource sample = builder.Resources.OfType<ProjectResource>()
+            .Single(static resource => resource.Name == "sample");
+        IDaprSidecarResource sampleSidecar = sample.Annotations.OfType<DaprSidecarAnnotation>()
+            .ShouldHaveSingleItem().Sidecar;
+        DaprSidecarOptions sidecar = sampleSidecar.Annotations.OfType<DaprSidecarOptionsAnnotation>()
+            .ShouldHaveSingleItem().Options;
+        sidecar.AppId.ShouldBe("sample");
+        sampleSidecar.Annotations.OfType<DaprComponentReferenceAnnotation>()
+            .Select(static reference => reference.Component.Name).Order(StringComparer.Ordinal)
+            .ShouldBe(["pubsub", "statestore"]);
+        await AssertAppChannelTokensAsync(builder);
+    }
+
+    [Fact]
     public async Task DefaultRunProfileDoesNotRequireDevelopmentCatalogCustody()
     {
         await using IDistributedApplicationTestingBuilder builder = await DistributedApplicationTestingBuilder

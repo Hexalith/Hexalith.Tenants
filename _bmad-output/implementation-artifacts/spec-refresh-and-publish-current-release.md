@@ -80,6 +80,7 @@ baseline_commit: '2aa3f04014d9188fc59114113e3a6b0a2eb3964b'
 
 ## File List
 
+- `references/Hexalith.EventStore`
 - `references/Hexalith.Builds`
 - `references/Hexalith.FrontComposer`
 - `references/Hexalith.Platform`

@@ -330,32 +330,50 @@ public class AspireTopologyTests : IDisposable {
 
         string tenantId = $"aha-{Guid.NewGuid():N}";
         string token = CreateDemoJwt(tenantId);
+        string commandToken = AspireTopologyFixture.IsSourceCatalogProfile ? CreateDemoJwt() : token;
         string userId = $"jane-{Guid.NewGuid():N}";
         using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(3));
         using var statusClient = new HttpClient {
             BaseAddress = _fixture.CommandApiClient.BaseAddress,
             Timeout = TimeSpan.FromSeconds(60),
         };
-        statusClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        statusClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", commandToken);
         var gatewayClient = new EventStoreGatewayClient(
             statusClient,
             Options.Create(new EventStoreGatewayClientOptions()));
         var commandGateway = new TenantCommandGateway(gatewayClient, new UlidFactory(), statusClient);
 
-        CommandStatusResponse bootstrapStatus = await SubmitAndWaitForTerminalStatusAsync(
-            _fixture.CommandApiClient,
-            CreateCommand(
-                "global-administrators",
-                "global-administrators",
-                nameof(BootstrapGlobalAdmin),
-                new BootstrapGlobalAdmin(BootstrapGlobalAdminUserId)),
-            token,
-            timeout.Token,
-            allowAlreadyBootstrappedConflict: true);
+        if (AspireTopologyFixture.IsSourceCatalogProfile)
+        {
+#if HEXALITH_DEVELOPMENT_CATALOG_COHORT
+            // The fixture admitted this caller through the owner-bound startup path. Recheck
+            // the actual retained receipt and terminal sequence; a human bootstrap submission
+            // through the catalog route must remain forbidden.
+            (long? sequence, string? failure) = await SourceCatalogBootstrapEvidence.WaitForOwnedBootstrapAsync(
+                _fixture.CommandApiClient, commandToken, requireColdBootstrap: true, timeout.Token);
+            failure.ShouldBeNull();
+            sequence.ShouldBe(1);
+#else
+            throw new InvalidOperationException("The source catalog profile requires the published catalog SDK cohort.");
+#endif
+        }
+        else
+        {
+            CommandStatusResponse bootstrapStatus = await SubmitAndWaitForTerminalStatusAsync(
+                _fixture.CommandApiClient,
+                CreateCommand(
+                    "global-administrators",
+                    "global-administrators",
+                    nameof(BootstrapGlobalAdmin),
+                    new BootstrapGlobalAdmin(BootstrapGlobalAdminUserId)),
+                commandToken,
+                timeout.Token,
+                allowAlreadyBootstrappedConflict: true);
 
-        (bootstrapStatus.Status == "Completed"
-            || (bootstrapStatus.Status == "Rejected" && bootstrapStatus.RejectionEventType == "GlobalAdminAlreadyBootstrappedRejection"))
-            .ShouldBeTrue($"Bootstrap status was {bootstrapStatus.Status}:{bootstrapStatus.RejectionEventType}.");
+            (bootstrapStatus.Status == "Completed"
+                || (bootstrapStatus.Status == "Rejected" && bootstrapStatus.RejectionEventType == "GlobalAdminAlreadyBootstrappedRejection"))
+                .ShouldBeTrue($"Bootstrap status was {bootstrapStatus.Status}:{bootstrapStatus.RejectionEventType}.");
+        }
 
         SubmitCommandRequest createCommand = CreateCommand(
             "tenants",
@@ -365,7 +383,7 @@ public class AspireTopologyTests : IDisposable {
         CommandStatusResponse createStatus = await SubmitAndWaitForTerminalStatusAsync(
             _fixture.CommandApiClient,
             createCommand,
-            token,
+            commandToken,
             timeout.Token);
         if (createStatus.Status == "PublishFailed") {
             Assert.Skip($"Aspire pub/sub publication is unavailable: {createStatus.FailureReason ?? "unknown reason"}");
@@ -394,7 +412,7 @@ public class AspireTopologyTests : IDisposable {
         CommandStatusResponse addStatus = await SubmitAndWaitForTerminalStatusAsync(
             _fixture.CommandApiClient,
             addCommand,
-            token,
+            commandToken,
             timeout.Token);
         addStatus.Status.ShouldBe("Completed");
         addStatus.TenantId.ShouldBe("system");
@@ -426,7 +444,7 @@ public class AspireTopologyTests : IDisposable {
         CommandStatusResponse removeStatus = await SubmitAndWaitForTerminalStatusAsync(
             _fixture.CommandApiClient,
             removeCommand,
-            token,
+            commandToken,
             timeout.Token);
         removeStatus.Status.ShouldBe("Completed");
         removeStatus.CommittedEventSequence.ShouldNotBeNull().ShouldBeGreaterThan(addStatus.CommittedEventSequence!.Value);
