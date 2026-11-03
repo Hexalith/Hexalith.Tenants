@@ -1763,7 +1763,8 @@ public class PackageGovernanceTests {
         workflow.ShouldContain("environment: production");
         workflow.ShouldContain("source_sha:");
         workflow.ShouldContain("HEXALITH_BUILDS_EXECUTION_SHA");
-        workflow.ShouldContain("git submodule update --init references/Hexalith.Builds");
+        workflow.ShouldContain("git submodule update --init --");
+        workflow.ShouldContain("references/Hexalith.Builds");
         validator.ShouldContain("recovery_require_source_gates");
         validator.ShouldContain("The package manifest must contain exactly five packages");
         validator.ShouldContain("missing-packages");
