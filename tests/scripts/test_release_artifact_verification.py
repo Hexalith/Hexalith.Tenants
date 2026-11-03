@@ -7,6 +7,7 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 import zipfile
 
@@ -19,7 +20,7 @@ class ReleaseArtifactVerificationTests(unittest.TestCase):
         self.fixture.setUp()
         self.addCleanup(self.fixture.doCleanups)
         fixture = self.fixture
-        fixture.destinations.update(packages=fixture.ids, container=True)
+        fixture.destinations.update(packages=list(fixture.ids), container=True)
         fixture.release()
         directory = fixture.root / "nupkgs"
         directory.mkdir()
@@ -51,6 +52,23 @@ class ReleaseArtifactVerificationTests(unittest.TestCase):
         self.fixture.assert_no_publication()
         return result
 
+    def run_acquisition(self, budget=1_000_000, fixed_clock=""):
+        shell = '''
+          set -euo pipefail
+          source "$1"
+          fixture_clock="$4"
+          if [ -n "$fixture_clock" ]; then
+            recovery_monotonic_microseconds() { printf '%s\\n' "$fixture_clock"; }
+          fi
+          started="$(recovery_monotonic_microseconds)"
+          recovery_download_nuget "$2" 1.2.3 acquisition.nupkg acquisition-readiness "$((started + $3))"
+          printf '%s\\n' "$recovery_nuget_status"
+        '''
+        return subprocess.run(["bash", "-c", shell, "fixture",
+                               str(recovery.ROOT / "scripts/partial-release-recovery-common.sh"),
+                               self.fixture.ids[0], str(budget), fixed_clock], cwd=self.fixture.root,
+                              env=self.fixture.environment, capture_output=True, text=True, timeout=5)
+
     def test_actual_prepared_version_and_all_destination_bytes_are_verified(self):
         self.run_verifier()
         evidence = self.fixture.root / ".hexalith/release-evidence/1.2.3/destinations"
@@ -59,6 +77,12 @@ class ReleaseArtifactVerificationTests(unittest.TestCase):
         self.assertEqual(document["source_sha"], self.fixture.environment["GITHUB_SHA"])
         self.assertEqual(len((evidence / "nuget-sha256").read_text().splitlines()), 5)
         self.assertEqual(len((evidence / "github-sha256").read_text().splitlines()), 5)
+        observations = (evidence / "nuget-readiness").read_text().splitlines()
+        self.assertEqual(len(observations), 5)
+        self.assertTrue(all(line.startswith("200 ") and "https://api.nuget.org/v3-flatcontainer/" in line
+                            for line in observations))
+        self.assertFalse(any("https://www.nuget.org/api/v2/package/" in argument
+                             for call in self.fixture.calls() for argument in call))
 
     def test_changed_nuget_bytes_reject_and_revoke_old_success(self):
         self.run_verifier()
@@ -238,15 +262,169 @@ class ReleaseArtifactVerificationTests(unittest.TestCase):
         self.fixture.save()
         self.run_verifier()
         observations = (self.fixture.root / ".hexalith/release-evidence/1.2.3/destinations/nuget-readiness").read_text()
-        self.assertEqual([line.split()[0] for line in observations.splitlines()[:3]], ["404", "404", "200"])
+        package_observations = [line.split() for line in observations.splitlines() if line.split()[1] == self.fixture.ids[0]]
+        self.assertEqual([line[0] for line in package_observations], ["404", "404", "404", "404", "200"])
+        self.assertEqual(["v3-flatcontainer" in line[2] for line in package_observations], [True, False, True, False, True])
 
     def test_nuget_readiness_exhaustion_is_bounded_and_retained(self):
+        self.run_verifier()
         self.fixture.destinations["nuget_statuses"] = {self.fixture.ids[0]: [404]}
+        self.fixture.destinations["packages"].remove(self.fixture.ids[0])
         self.fixture.save()
         result = self.run_verifier(False)
         self.assertIn("not ready within 0 seconds", result.stderr)
         evidence = self.fixture.root / ".hexalith/release-evidence/1.2.3/destinations"
-        self.assertIn("404", (evidence / "nuget-readiness").read_text())
+        observations = (evidence / "nuget-readiness").read_text().splitlines()
+        self.assertEqual([line.split()[0] for line in observations], ["404", "404"])
+        self.assertIn("https://www.nuget.org/api/v2/package/", observations[1])
+        self.assertFalse((evidence / "verified.json").exists())
+
+    def test_v3_absence_falls_back_to_exact_signed_official_v2_bytes(self):
+        package_id = self.fixture.ids[0]
+        observed = self.nuget_archive(package_id)
+        self.fixture.destinations["packages"].remove(package_id)
+        self.fixture.destinations["nuget_v2_packages"] = [package_id]
+        self.fixture.save()
+        self.run_verifier()
+        evidence = self.fixture.root / ".hexalith/release-evidence/1.2.3/destinations"
+        self.assertEqual((evidence / "nuget" / (package_id + ".1.2.3.nupkg")).read_bytes(), observed)
+        self.assertEqual((evidence / "nuget-readiness").read_text().splitlines()[:2], [
+            f"404 {package_id} https://api.nuget.org/v3-flatcontainer/{package_id.lower()}/1.2.3/{package_id.lower()}.1.2.3.nupkg",
+            f"200 {package_id} https://www.nuget.org/api/v2/package/{package_id}/1.2.3"])
+        archive = evidence / "nuget" / (package_id + ".1.2.3.nupkg")
+        self.assertIn(["dotnet", "nuget", "verify", "--all", str(archive)], self.fixture.calls())
+        self.assertTrue((evidence / "verified.json").is_file())
+
+    def test_wrong_v2_content_refuses_without_retry_or_old_success(self):
+        self.run_verifier()
+        package_id = self.fixture.ids[0]
+        self.fixture.destinations["packages"].remove(package_id)
+        self.fixture.destinations["nuget_v2_packages"] = [package_id]
+        self.fixture.destinations["nuget_v2_content"] = {package_id: "wrong archive"}
+        self.fixture.save()
+        (self.fixture.root / "calls.jsonl").write_text("")
+        result = self.run_verifier(False)
+        self.assertIn("does not match the reviewed package", result.stderr)
+        calls = [call for call in self.fixture.calls() if call[0] == "curl"]
+        self.assertEqual(len(calls), 2)
+        evidence = self.fixture.root / ".hexalith/release-evidence/1.2.3/destinations"
+        self.assertEqual((evidence / "nuget" / (package_id + ".1.2.3.nupkg")).read_bytes(), b"wrong archive")
+        self.assertFalse((evidence / "verified.json").exists())
+
+    def test_v3_authentication_error_or_wrong_success_never_uses_v2(self):
+        package_id = self.fixture.ids[0]
+        self.fixture.destinations["nuget_v2_packages"] = [package_id]
+        for status in (401, 200):
+            with self.subTest(status=status):
+                self.fixture.destinations["nuget_statuses"] = {package_id: [status]}
+                self.fixture.destinations["nuget_content"] = {package_id: "wrong v3 content"}
+                self.fixture.save()
+                (self.fixture.root / "calls.jsonl").write_text("")
+                result = self.run_verifier(False)
+                expected = "unexpected status 401" if status == 401 else "does not match the reviewed package"
+                self.assertIn(expected, result.stderr)
+                calls = [call for call in self.fixture.calls() if call[0] == "curl"]
+                self.assertEqual(len(calls), 1)
+                self.assertIn("https://api.nuget.org/v3-flatcontainer/", calls[0][-1])
+                self.assertFalse((self.fixture.root / ".hexalith/release-evidence/1.2.3/destinations/verified.json").exists())
+
+    def test_fallback_requests_share_one_deadline_and_remaining_timeout(self):
+        package_id = self.fixture.ids[0]
+        self.fixture.environment["HEXALITH_RELEASE_NUGET_WAIT_SECONDS"] = "1"
+        self.fixture.destinations["packages"].remove(package_id)
+        self.fixture.destinations["nuget_v2_packages"] = [package_id]
+        self.fixture.destinations["nuget_delays"] = {"v3": 0.35, "v2": 1}
+        self.fixture.save()
+        # Time only the controlled acquisition, excluding frozen-input admission
+        # and the other destination checks performed by the full verifier.
+        started = time.monotonic()
+        acquisition = self.run_acquisition()
+        self.assertEqual(acquisition.returncode, 0, acquisition.stderr)
+        self.assertEqual(acquisition.stdout.strip(), "transport-failure")
+        self.assertLess(time.monotonic() - started, 3)
+        (self.fixture.root / "calls.jsonl").write_text("")
+        result = self.run_verifier(False)
+        self.assertIn("not ready within 1 seconds", result.stderr)
+        calls = [call for call in self.fixture.calls() if call[0] == "curl"]
+        self.assertEqual(len(calls), 2)
+        timeouts = [float(call[call.index("--max-time") + 1]) for call in calls]
+        self.assertGreater(timeouts[0], 0)
+        self.assertLessEqual(timeouts[0], 1)
+        self.assertGreater(timeouts[1], 0)
+        self.assertLess(timeouts[1], timeouts[0] - 0.3)
+        evidence = self.fixture.root / ".hexalith/release-evidence/1.2.3/destinations"
+        self.assertEqual([line.split()[0] for line in (evidence / "nuget-readiness").read_text().splitlines()],
+                         ["404", "transport-failure"])
+        self.assertFalse((evidence / "verified.json").exists())
+
+    def test_submillisecond_remaining_budget_never_starts_unlimited_curl(self):
+        for remaining in (0, 1, 999, 1000):
+            with self.subTest(remaining_microseconds=remaining):
+                (self.fixture.root / "calls.jsonl").write_text("")
+                result = self.run_acquisition(remaining, fixed_clock="0")
+                self.assertEqual(result.returncode, 0, result.stderr)
+                calls = [call for call in self.fixture.calls() if call[0] == "curl"]
+                if remaining < 1000:
+                    self.assertEqual(result.stdout.strip(), "deadline-exhausted")
+                    self.assertEqual(calls, [])
+                else:
+                    self.assertEqual(result.stdout.strip(), "200")
+                    self.assertEqual(len(calls), 1)
+                    self.assertEqual(calls[0][calls[0].index("--max-time") + 1], "0.001000")
+
+    def test_leading_zero_decimal_waits_still_verify_every_required_package(self):
+        self.fixture.environment.update(HEXALITH_RELEASE_NUGET_WAIT_SECONDS="0010",
+                                        HEXALITH_RELEASE_NUGET_WAIT_INTERVAL="08")
+        self.fixture.destinations["nuget_statuses"] = {self.fixture.ids[0]: [404, 200]}
+        self.fixture.save()
+        # Record the parsed interval without spending eight seconds asleep.
+        sleep = self.fixture.root / "bin/sleep"
+        sleep.write_text(f"#!{sys.executable}\nfrom pathlib import Path\nimport sys\n"
+                         "Path('sleep-interval').write_text(sys.argv[1])\n")
+        sleep.chmod(0o755)
+        self.run_verifier()
+        self.assertEqual((self.fixture.root / "sleep-interval").read_text(), "8.000000")
+        evidence = self.fixture.root / ".hexalith/release-evidence/1.2.3/destinations"
+        self.assertEqual([line.split()[1] for line in (evidence / "nuget-sha256").read_text().splitlines()],
+                         self.fixture.ids)
+        calls = [call for call in self.fixture.calls() if call[0] == "curl"]
+        first_timeout = float(calls[0][calls[0].index("--max-time") + 1])
+        self.assertGreater(first_timeout, 8)
+        self.assertLessEqual(first_timeout, 10)
+        self.assertTrue((evidence / "verified.json").is_file())
+
+    def test_leading_zero_interval_cannot_hide_failed_acquisition(self):
+        self.run_verifier()
+        self.fixture.environment.update(HEXALITH_RELEASE_NUGET_WAIT_SECONDS="0001",
+                                        HEXALITH_RELEASE_NUGET_WAIT_INTERVAL="08")
+        self.fixture.destinations["packages"].remove(self.fixture.ids[0])
+        self.fixture.save()
+        result = self.run_verifier(False)
+        self.assertIn("not ready within 1 seconds", result.stderr)
+        evidence = self.fixture.root / ".hexalith/release-evidence/1.2.3/destinations"
+        self.assertEqual((evidence / "nuget-sha256").read_text(), "")
+        self.assertFalse((evidence / "verified.json").exists())
+
+    def test_leading_zero_waits_preserve_the_existing_public_maxima(self):
+        for seconds, interval in (("01801", "00"), ("00", "061")):
+            with self.subTest(seconds=seconds, interval=interval):
+                self.fixture.environment.update(HEXALITH_RELEASE_NUGET_WAIT_SECONDS=seconds,
+                                                HEXALITH_RELEASE_NUGET_WAIT_INTERVAL=interval)
+                result = self.run_verifier(False)
+                self.assertIn("exceeds its bounded limits", result.stderr)
+                self.assertFalse(any(call[0] == "curl" for call in self.fixture.calls()))
+                self.assertFalse((self.fixture.root / ".hexalith/release-evidence/1.2.3/destinations/verified.json").exists())
+
+    def test_wait_budget_is_shared_across_the_entire_package_cohort(self):
+        self.fixture.environment["HEXALITH_RELEASE_NUGET_WAIT_SECONDS"] = "1"
+        clock = self.fixture.set_monotonic_clock([0, 0, 1_000_000, 1_000_000])
+        result = self.run_verifier(False)
+        self.assertIn(f"NuGet package {self.fixture.ids[1]} was not ready", result.stderr)
+        self.assertEqual(json.loads(clock.read_text()), [])
+        self.assertEqual(len([call for call in self.fixture.calls() if call[0] == "curl"]), 1)
+        evidence = self.fixture.root / ".hexalith/release-evidence/1.2.3/destinations"
+        self.assertEqual([line.split()[1] for line in (evidence / "nuget-sha256").read_text().splitlines()],
+                         self.fixture.ids[:1])
         self.assertFalse((evidence / "verified.json").exists())
 
     def test_live_oci_digest_provenance_and_platform_drift_are_rejected(self):

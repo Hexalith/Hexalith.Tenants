@@ -31,22 +31,42 @@ with (root / "calls.jsonl").open("a") as log:
     log.write(json.dumps([kind, *args]) + "\n")
 def save(): state_path.write_text(json.dumps(state))
 def content(package_id): return "reviewed fixture package " + package_id + "\n"
-def binary_content(package_id):
+def binary_content(package_id, endpoint="v3"):
+    if endpoint == "v2":
+        if package_id in state.get("nuget_v2_content", {}): return state["nuget_v2_content"][package_id].encode()
+        encoded = state.get("nuget_v2_package_content_base64", {}).get(package_id)
+        if encoded: return base64.b64decode(encoded)
     if package_id in state.get("nuget_content", {}): return state["nuget_content"][package_id].encode()
     encoded = state.get("package_content_base64", {}).get(package_id)
     return base64.b64decode(encoded) if encoded else content(package_id).encode()
 def fail(): sys.exit("Unexpected fixture request: " + kind + " " + repr(args))
 if kind == "curl":
     url = next((a for a in args if a.startswith("https://")), "")
-    if "v3-flatcontainer/" in url:
-        package_id = next((p["id"] for p in manifest["packages"] if "/" + p["id"].lower() + "/" in url), None)
+    if url.startswith(("https://api.nuget.org/v3-flatcontainer/", "https://www.nuget.org/api/v2/package/")):
+        endpoint = "v3" if "v3-flatcontainer/" in url else "v2"
+        package_id = next((p["id"] for p in manifest["packages"] if url == (
+            "https://api.nuget.org/v3-flatcontainer/" + p["id"].lower() + "/1.2.3/" + p["id"].lower() + ".1.2.3.nupkg"
+            if endpoint == "v3" else "https://www.nuget.org/api/v2/package/" + p["id"] + "/1.2.3")), None)
         if package_id is None: fail()
-        statuses = state.get("nuget_statuses", {}).get(package_id, [])
-        status = statuses.pop(0) if statuses else (200 if package_id in state["packages"] else 404)
-        if statuses or package_id in state.get("nuget_statuses", {}): save()
+        status_key = "nuget_statuses" if endpoint == "v3" else "nuget_v2_statuses"
+        statuses = state.get(status_key, {}).get(package_id, [])
+        packages = state["packages"] if endpoint == "v3" else state.get("nuget_v2_packages", [])
+        status = statuses.pop(0) if statuses else (200 if package_id in packages else 404)
+        # Official v2 download fulfillment requires following its CDN redirect.
+        if endpoint == "v2" and status == 200 and "--location" not in args:
+            status = 302
+        if statuses or package_id in state.get(status_key, {}): save()
+        delay = state.get("nuget_delays", {}).get(endpoint, 0)
+        if delay:
+            import time
+            timeout = float(args[args.index("--max-time") + 1])
+            time.sleep(min(delay, timeout))
+            if delay >= timeout:
+                print("000")
+                sys.exit(28)
         if "--output" in args and args[args.index("--output") + 1] != "/dev/null":
             output = pathlib.Path(args[args.index("--output") + 1])
-            output.write_bytes(binary_content(package_id) if status == 200 else b"not ready")
+            output.write_bytes(binary_content(package_id, endpoint) if status == 200 else b"not ready")
             if state.get("mutate_package_on_nuget"):
                 pathlib.Path("nupkgs/" + package_id + ".1.2.3.nupkg").write_bytes(binary_content(package_id))
             if state.get("mutate_manifest_on_nuget"):
@@ -198,6 +218,22 @@ class PartialReleaseRecoveryTests(unittest.TestCase):
 
     def save(self):
         self.destination_path.write_text(json.dumps(self.destinations))
+
+    def set_monotonic_clock(self, values):
+        """Control only the private monotonic-nanosecond seam in child Python."""
+        clock = self.root / "monotonic-clock.json"
+        clock.write_text(json.dumps(values))
+        with (self.root / "sitecustomize.py").open("a") as setup:
+            setup.write(
+                "import json, time\nfrom pathlib import Path\n"
+                f"_clock = Path({str(clock)!r})\n"
+                "def _monotonic_ns():\n"
+                "    values = json.loads(_clock.read_text())\n"
+                "    value = values.pop(0)\n"
+                "    _clock.write_text(json.dumps(values))\n"
+                "    return value * 1000\n"
+                "time.monotonic_ns = _monotonic_ns\n")
+        return clock
 
     def calls(self):
         path = self.root / "calls.jsonl"
@@ -490,6 +526,65 @@ class PartialReleaseRecoveryTests(unittest.TestCase):
         self.run_script("verify-partial-release.sh")
         self.assertFalse(any(c[:3] == ["dotnet", "nuget", "push"] for c in self.calls()))
 
+    def test_official_v2_packages_are_existing_and_never_pushed_again(self):
+        import base64
+        import io
+        import zipfile
+        observed, prepared = {}, {}
+        for package_id in self.ids:
+            unsigned, signed = io.BytesIO(), io.BytesIO()
+            with zipfile.ZipFile(unsigned, "w") as archive:
+                archive.writestr("payload.dll", package_id.encode())
+            with zipfile.ZipFile(signed, "w") as archive:
+                archive.writestr("payload.dll", package_id.encode())
+                archive.writestr(".signature.p7s", b"repository signing fixture")
+            prepared[package_id] = base64.b64encode(unsigned.getvalue()).decode()
+            observed[package_id] = base64.b64encode(signed.getvalue()).decode()
+        self.destinations.update(nuget_v2_packages=self.ids, container=True,
+                                 prepared_package_base64=prepared, nuget_v2_package_content_base64=observed)
+        self.release()
+        for asset, package_id in zip(self.destinations["release"]["assets"], self.ids):
+            asset["base64"] = prepared[package_id]
+        self.save()
+        self.prepare()
+        self.assertEqual((self.root / "outputs").read_text(), "needs-nuget=false\n")
+        self.assertEqual((self.root / "state/missing-packages").read_text(), "")
+        self.assertEqual((self.root / "state/existing-packages").read_text().splitlines(), self.ids)
+        observations = (self.root / "state/nuget-readiness").read_text().splitlines()
+        self.assertEqual([line.split()[0] for line in observations], ["404", "200"] * 5)
+        self.assertTrue(all("https://www.nuget.org/api/v2/package/" in line for line in observations[1::2]))
+        for package_id in self.ids:
+            archive = self.root / "state" / (package_id + ".1.2.3.nupkg")
+            self.assertEqual(archive.read_bytes(), base64.b64decode(observed[package_id]))
+            self.assertIn(["dotnet", "nuget", "verify", "--all", str(archive)], self.calls())
+        self.run_script("publish-partial-release.sh")
+        self.run_script("verify-partial-release.sh")
+        self.assert_no_publication()
+
+    def test_recovery_v2_uncertainty_cannot_become_missing_package_authority(self):
+        self.destinations["nuget_v2_statuses"] = {self.ids[0]: [401]}
+        self.save()
+        result = self.run_script("validate-partial-release-recovery.sh", False)
+        self.assertIn("NuGet destination status", result.stderr)
+        self.assertFalse((self.root / "state/missing-packages").exists())
+        self.assertFalse((self.root / "outputs").exists())
+        self.assert_no_publication()
+
+    def test_recovery_v3_absence_without_time_for_v2_cannot_authorize_missing_packages(self):
+        # Control the private Python monotonic seam: v3 returns 404 just as the
+        # shared recovery budget expires. No actual thirty-second sleep is needed.
+        clock = self.set_monotonic_clock([0, 0, 30_000_000])
+        result = self.run_script("validate-partial-release-recovery.sh", False)
+        self.assertIn("NuGet destination status", result.stderr)
+        self.assertEqual(json.loads(clock.read_text()), [])
+        self.assertEqual(len([call for call in self.calls() if call[0] == "curl"]), 1)
+        self.assertFalse((self.root / "state/missing-packages").exists())
+        self.assertFalse((self.root / "outputs").exists())
+        failure = next((self.root / "state/failures").iterdir())
+        self.assertEqual((failure / "nuget-readiness").read_text().splitlines(), [
+            f"404 {self.ids[0]} https://api.nuget.org/v3-flatcontainer/{self.ids[0].lower()}/1.2.3/{self.ids[0].lower()}.1.2.3.nupkg"])
+        self.assert_no_publication()
+
     def test_override_inventory_drives_full_pipeline(self):
         self.prepare()
         self.publish()
@@ -685,6 +780,17 @@ class PartialReleaseRecoveryTests(unittest.TestCase):
         observed.write_bytes(b"changed observed archive")
         result = self.run_script("prepare-partial-release.sh", accepted=False)
         self.assertIn("destination archive changed", result.stderr)
+
+    def test_v2_existing_bytes_still_require_reviewed_content_during_preparation(self):
+        self.destinations.update(nuget_v2_packages=[self.ids[0]],
+                                 nuget_v2_content={self.ids[0]: "unreviewed v2 archive"})
+        self.save()
+        self.run_script("validate-partial-release-recovery.sh")
+        self.assertEqual((self.root / "state/existing-packages").read_text(), self.ids[0] + "\n")
+        result = self.run_script("prepare-partial-release.sh", False)
+        self.assertIn("does not match the reviewed source", result.stderr)
+        self.assertFalse((self.root / "state/prepared-state-sha256").exists())
+        self.assert_no_publication()
 
     def test_rejected_oci_observations_are_retained_without_replacing_accepted_state(self):
         self.destinations.update(packages=[self.ids[0]], container=True)

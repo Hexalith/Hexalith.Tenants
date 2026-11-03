@@ -193,9 +193,11 @@ public class PartialReleaseRecoveryTests
                   case "$url" in
                     "https://api.nuget.org/v3-flatcontainer/$FIXTURE_EXISTING_ID/1.2.3/$FIXTURE_EXISTING_ID.1.2.3.nupkg")
                       if [ "$FIXTURE_SCENARIO" = existing-artifacts ]; then
-                        if [ "$output_file" = /dev/null ]; then printf 200; else printf 'existing fixture package\n' > "$output_file"; fi
+                        if [ "$output_file" != /dev/null ]; then printf 'existing fixture package\n' > "$output_file"; fi
+                        printf 200
                       else printf 404; fi ;;
                     https://api.nuget.org/v3-flatcontainer/*/1.2.3/*.1.2.3.nupkg) printf 404 ;;
+                    https://www.nuget.org/api/v2/package/*/1.2.3) printf 404 ;;
                     https://fixture.invalid/v2/tenants/manifests/1.2.3)
                       if [ "$FIXTURE_SCENARIO" = existing-artifacts ] || [ "$FIXTURE_SCENARIO" = both-absent ]; then printf 200; else printf 404; fi ;;
                     *) printf 'curl %s\n' "$url" >> "$FIXTURE_UNEXPECTED_LOG"; echo "Unexpected curl request: $url" >&2; return 97 ;;
@@ -290,9 +292,9 @@ public class PartialReleaseRecoveryTests
                 {
                     string read = $"curl https://api.nuget.org/v3-flatcontainer/{id.ToLowerInvariant()}/1.2.3/{id.ToLowerInvariant()}.1.2.3.nupkg";
                     expectedReads.Add(read);
-                    if (hasExistingArtifacts && id == ids[0])
+                    if (!hasExistingArtifacts || id != ids[0])
                     {
-                        expectedReads.Add(read);
+                        expectedReads.Add($"curl https://www.nuget.org/api/v2/package/{id}/1.2.3");
                     }
                 }
 

@@ -3,6 +3,39 @@
 
 recovery_fail() { echo "[partial-release-recovery] $1" >&2; exit 1; }
 
+# Python is already required by every caller; its monotonic clock survives wall-clock changes.
+recovery_monotonic_microseconds() {
+  python3 -c 'import time; print(time.monotonic_ns() // 1000)'
+}
+
+# Acquire actual public bytes, falling back only after demonstrated v3 absence.
+# The caller owns one microsecond deadline across both endpoints and all retries.
+# Expose the acquisition outcome separately from curl's transport exit status.
+recovery_download_nuget() {
+  local package_id="$1" package_version="$2" downloaded="$3" readiness="$4" deadline="$5"
+  local lower_id endpoint remaining request_timeout status now
+  lower_id="$(printf '%s' "$package_id" | tr '[:upper:]' '[:lower:]')"
+  recovery_nuget_status=deadline-exhausted
+  for endpoint in \
+    "https://api.nuget.org/v3-flatcontainer/${lower_id}/${package_version}/${lower_id}.${package_version}.nupkg" \
+    "https://www.nuget.org/api/v2/package/${package_id}/${package_version}"; do
+    now="$(recovery_monotonic_microseconds)" || recovery_fail 'Monotonic NuGet readiness clock failed.'
+    remaining=$((deadline - now))
+    # curl truncates sub-millisecond timeouts to zero, which means unlimited.
+    [ "$remaining" -ge 1000 ] || return 0
+    [ "$remaining" -le 30000000 ] || remaining=30000000
+    printf -v request_timeout '%d.%06d' "$((remaining / 1000000))" "$((remaining % 1000000))"
+    status="$(curl --silent --show-error --location --max-time "$request_timeout" \
+      --output "$downloaded" --write-out '%{http_code}' "$endpoint")" || status=transport-failure
+    printf '%s %s %s\n' "$status" "$package_id" "$endpoint" >> "$readiness"
+    recovery_nuget_status="$status"
+    [ "$status" = 404 ] || break
+    # A v3 404 alone cannot authorize a missing-package decision in recovery.
+    recovery_nuget_status=deadline-exhausted
+  done
+  if [ "$status" = 404 ]; then recovery_nuget_status=404; fi
+}
+
 # Resolve existing symlinks before accepting any retained evidence destination.
 recovery_confine_directory() {
   local directory
