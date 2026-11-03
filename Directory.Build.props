@@ -1,7 +1,7 @@
 <Project>
     <PropertyGroup>
         <!-- Canonical public scope requires the coordinated SemVer-major EventStore and McpCli packages. -->
-        <HexalithEventStoreVersion Condition="'$(HexalithEventStoreVersion)' == ''">4.0.2</HexalithEventStoreVersion>
+        <HexalithEventStoreVersion Condition="'$(HexalithEventStoreVersion)' == ''">4.0.3</HexalithEventStoreVersion>
         <HexalithMcpCliVersion Condition="'$(HexalithMcpCliVersion)' == ''">2.0.0</HexalithMcpCliVersion>
         <HexalithTenantsVersion Condition="'$(HexalithTenantsVersion)' == ''">7.0.0</HexalithTenantsVersion>
         <HexalithMemoriesVersion Condition="'$(HexalithMemoriesVersion)' == ''">3.0.18</HexalithMemoriesVersion>

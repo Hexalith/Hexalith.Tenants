@@ -5,6 +5,8 @@ using Hexalith.EventStore.DomainService;
 using Hexalith.EventStore.Server.Commands;
 using Hexalith.EventStore.Server.Configuration;
 using Hexalith.EventStore.Server.Events;
+using Hexalith.EventStore.ServiceDefaults.Routing;
+using Hexalith.EventStore.Contracts.Routing;
 using Hexalith.EventStore.Testing.Fakes;
 using Hexalith.Tenants.Authorization;
 using Hexalith.Tenants.Contracts.Identity;
@@ -110,6 +112,17 @@ public sealed class TenantsDaprTestFixture : DaprDomainServiceTestFixtureBase {
         // Register DAPR client and EventStore server infrastructure (actors, command routing, REAL domain service invoker)
         builder.Services.AddDaprClient();
         _ = builder.Services.AddEventStoreServer(builder.Configuration);
+        // The slim actor fixture has no catalog bootstrap host. Commit its compiled
+        // test catalog before commands enter the real actor/domain pipeline.
+        builder.Services.RemoveAll<IRouteCatalogAuthority>();
+        IRouteCatalogAuthority authority = TenantOwnerCatalogTestAuthority.Create(
+            TenantOwnerCatalogTestAuthority.CreateSnapshot(AppId), out RouteCatalogHostIdentity identity);
+        builder.Services.AddSingleton(authority);
+        builder.Services.Configure<RouteCatalogHostOptions>(options => {
+            options.Identity = identity;
+            options.Profile = "Development";
+            options.DevelopmentFixture = true;
+        });
         _ = builder.Services.RemoveAll<ICommandStatusStore>();
         _ = builder.Services.AddSingleton<ICommandStatusStore>(CommandStatusStore);
 

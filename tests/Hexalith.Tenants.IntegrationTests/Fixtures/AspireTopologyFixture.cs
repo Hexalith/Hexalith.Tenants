@@ -25,6 +25,8 @@ namespace Hexalith.Tenants.IntegrationTests.Fixtures;
 /// and requires projected caller authority after its explicit post-startup bootstrap.
 /// </remarks>
 public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith_Tenants_AppHost>, IAsyncLifetime {
+    private readonly string _nativeOwnerPrivateKey = NativeOwnerReadServiceComposition.CreatePrivateKey();
+
     internal static string DemoSigningKey => Environment.GetEnvironmentVariable("TENANTS_SOURCE_CATALOG_SIGNING_KEY")
         ?? "DevOnlySigningKey-AtLeast32Chars!";
     private static readonly TimeSpan CommandApiHealthTimeout = TimeSpan.FromMinutes(4);
@@ -46,7 +48,8 @@ public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith
     {
         ProjectionWorkersEnabledAtStartup = !bool.TryParse(
             Environment.GetEnvironmentVariable("EventStore__Projections__WorkersEnabled"), out bool enabled) || enabled;
-        await WithBootstrapStartupSettingsAsync(() => base.InitializeAsync());
+        await WithNativeOwnerStartupSettingsAsync(_nativeOwnerPrivateKey,
+            () => WithBootstrapStartupSettingsAsync(() => base.InitializeAsync()));
         if (!PrerequisitesAvailable)
         {
             return;
@@ -172,6 +175,27 @@ public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith
             for (int index = 0; index < keys.Length; index++) Environment.SetEnvironmentVariable(keys[index], previous[index]);
         }
     }
+
+    /// <summary>Supplies the fixture's private enrollment key only during AppHost initialization and always restores inheritance.</summary>
+    internal static async ValueTask WithNativeOwnerStartupSettingsAsync(string privateKey, Func<ValueTask> initialize)
+    {
+        const string key = "Parameters__tenants-source-private-key";
+        string? previous = Environment.GetEnvironmentVariable(key);
+        try
+        {
+            Environment.SetEnvironmentVariable(key, privateKey);
+            await initialize();
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(key, previous);
+        }
+    }
+
+    /// <summary>Composes the actual owner transport and independently committed catalog for a native read qualification.</summary>
+    internal Task<Microsoft.Extensions.DependencyInjection.ServiceProvider> CreateNativeOwnerReadServicesAsync(CancellationToken cancellationToken)
+        => NativeOwnerReadServiceComposition.CreateAsync(TenantsDaprClient.BaseAddress
+            ?? throw new InvalidOperationException("native-owner-sidecar-unavailable"), _nativeOwnerPrivateKey, cancellationToken);
 
     /// <summary>Traverses opaque production cursors until the caller has current authority at the actual committed prefix.</summary>
     internal static async Task WaitForBootstrapAuthorityAsync(

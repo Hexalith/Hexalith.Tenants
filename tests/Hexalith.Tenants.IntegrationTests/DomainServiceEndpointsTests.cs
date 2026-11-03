@@ -15,6 +15,7 @@ using Hexalith.Tenants.Server.Routing;
 using Hexalith.Tenants.Queries.Handlers;
 using Hexalith.EventStore.DomainService;
 using Hexalith.EventStore.ServiceDefaults.Authentication;
+using Hexalith.EventStore.ServiceDefaults.Routing;
 using Hexalith.EventStore.Testing.Fakes;
 using Hexalith.Tenants.Configuration;
 using Hexalith.Tenants.Contracts.Events;
@@ -54,6 +55,7 @@ public sealed class DomainServiceEndpointsTests {
                 .UseSetting("EventStore:DomainService:AppId", AppId)
                 .UseSetting(DaprAppChannelToken.ConfigurationKey, ChannelToken)
                 .ConfigureServices(services => {
+                    AddIsolatedCatalog(services);
                     _ = services.RemoveAll<IReadModelStore>();
                     _ = services.AddSingleton<IReadModelStore>(store);
                     services.RemoveAllKeyed<IAuthoritativeEventStreamReader>("native-tenant-source");
@@ -96,6 +98,7 @@ public sealed class DomainServiceEndpointsTests {
             ]);
 
         using HttpResponseMessage projectionResponse = await SendInternalAsync(
+            factory.Services,
             client,
             "/project",
             projectionRequest,
@@ -123,6 +126,7 @@ public sealed class DomainServiceEndpointsTests {
             "global-admin-http",
             isGlobalAdmin: true);
         using HttpResponseMessage queryResponse = await SendInternalAsync(
+            factory.Services,
             client,
             "/query",
             query,
@@ -139,6 +143,7 @@ public sealed class DomainServiceEndpointsTests {
         var metadataRequest = new AdminOperationalIndexMetadata.Request(
             [GetTenantQuery.Domain, GetGlobalAdministratorsQuery.Domain]);
         using HttpResponseMessage metadataResponse = await SendInternalAsync(
+            factory.Services,
             client,
             "/admin/operational-index-metadata",
             metadataRequest,
@@ -152,7 +157,7 @@ public sealed class DomainServiceEndpointsTests {
         AssertProjectionMetadata(metadata.ShouldNotBeNull());
         // Metadata requests intentionally select a domain subset; unrelated enrolled routes must
         // neither fail the request nor leak into its response.
-        using HttpResponseMessage subsetResponse = await SendInternalAsync(client,
+        using HttpResponseMessage subsetResponse = await SendInternalAsync(factory.Services, client,
             "/admin/operational-index-metadata", new AdminOperationalIndexMetadata.Request([GetTenantQuery.Domain]),
             Assertion(configuration, EventStoreWorkloadOperations.DomainServiceMetadata)).ConfigureAwait(true);
         subsetResponse.EnsureSuccessStatusCode();
@@ -214,7 +219,7 @@ public sealed class DomainServiceEndpointsTests {
         Should.Throw<ShouldAssertException>(() => AssertSdkProjectionInventory([.. hosted.Projections, hosted.Projections[0]]));
         Should.Throw<ShouldAssertException>(() => AssertSdkProjectionInventory([hosted.Projections[0] with { DomainName = "wrong-domain" }, .. hosted.Projections.Skip(1)]));
         IDomainQueryHandler[] others = handlers.Where(handler => handler is not GetTenantQueryHandler).ToArray();
-        others.Length.ShouldBe(7);
+        others.Length.ShouldBe(8);
         Should.Throw<ShouldAssertException>(() => AssertRegisteredQueries(others));
         Should.Throw<ShouldAssertException>(() => AssertRegisteredQueries([.. others, new CatalogQueryHandlerProbe("wrong-domain", GetTenantQuery.QueryType)]));
         Should.Throw<ShouldAssertException>(() => AssertRegisteredQueries([.. others, new CatalogQueryHandlerProbe(GetTenantQuery.Domain, "Wrong.QueryType")]));
@@ -237,7 +242,7 @@ public sealed class DomainServiceEndpointsTests {
         using HttpClient client = factory.CreateClient();
         using IServiceScope scope = factory.Services.CreateScope();
         IDomainQueryHandler[] handlers = scope.ServiceProvider.GetServices<IDomainQueryHandler>().ToArray();
-        handlers.Length.ShouldBe(7);
+        handlers.Length.ShouldBe(8);
         Should.Throw<ShouldAssertException>(() => AssertRegisteredQueries(handlers));
     }
 
@@ -248,11 +253,14 @@ public sealed class DomainServiceEndpointsTests {
         await using WebApplicationFactory<TenantBootstrapOptions> factory = baseFactory.WithWebHostBuilder(builder => builder
             .UseSetting("EventStore:DomainService:AppId", AppId)
             .UseSetting(DaprAppChannelToken.ConfigurationKey, ChannelToken)
-            .ConfigureServices(services => services.RemoveAll<LegacyProjectionCatalogRegistration>()));
+            .ConfigureServices(services => {
+                AddIsolatedCatalog(services);
+                services.RemoveAll<LegacyProjectionCatalogRegistration>();
+            }));
         using HttpClient client = factory.CreateClient();
         client.DefaultRequestHeaders.Add(DaprAppChannelToken.HeaderName, ChannelToken);
         IConfiguration configuration = factory.Services.GetRequiredService<IConfiguration>();
-        using HttpResponseMessage response = await SendInternalAsync(client, "/admin/operational-index-metadata",
+        using HttpResponseMessage response = await SendInternalAsync(factory.Services, client, "/admin/operational-index-metadata",
             new AdminOperationalIndexMetadata.Request([GetTenantQuery.Domain, GetGlobalAdministratorsQuery.Domain]),
             Assertion(configuration, EventStoreWorkloadOperations.DomainServiceMetadata)).ConfigureAwait(true);
         response.EnsureSuccessStatusCode();
@@ -277,7 +285,7 @@ public sealed class DomainServiceEndpointsTests {
 
     private static void AssertRegisteredQueries(IReadOnlyList<IDomainQueryHandler> handlers)
     {
-        handlers.Count.ShouldBe(8);
+        handlers.Count.ShouldBe(9);
         var actual = new List<string>();
         foreach (IDomainQueryHandler handler in handlers)
         {
@@ -289,7 +297,7 @@ public sealed class DomainServiceEndpointsTests {
             actual.Add(RouteCatalogCodec.ComputeDeclarationDigest(declaration));
         }
         actual.Order().ShouldBe(TenantCatalogCapabilities.HandlerQueries.Select(RouteCatalogCodec.ComputeDeclarationDigest).Order());
-        handlers.Select(handler => (handler.Domain, handler.QueryType)).Distinct().Count().ShouldBe(8);
+        handlers.Select(handler => (handler.Domain, handler.QueryType)).Distinct().Count().ShouldBe(9);
     }
 
     private static void AssertProjectionMetadata(AdminOperationalIndexMetadata.Response metadata)
@@ -334,6 +342,7 @@ public sealed class DomainServiceEndpointsTests {
                 .UseSetting("EventStore:DomainService:AppId", AppId)
                 .UseSetting(DaprAppChannelToken.ConfigurationKey, ChannelToken)
                 .ConfigureServices(services => {
+                    AddIsolatedCatalog(services);
                     _ = services.RemoveAll<IReadModelStore>();
                     _ = services.AddSingleton<IReadModelStore>(store);
                     services.RemoveAllKeyed<IAuthoritativeEventStreamReader>("native-tenant-source");
@@ -369,6 +378,7 @@ public sealed class DomainServiceEndpointsTests {
                     "bootstrap-admin"),
             ]);
         using HttpResponseMessage projected = await SendInternalAsync(
+            factory.Services,
             client,
             "/project",
             projectionRequest,
@@ -385,6 +395,23 @@ public sealed class DomainServiceEndpointsTests {
 
     }
 
+    private static void AddIsolatedCatalog(IServiceCollection services) {
+        services.RemoveAll<IRouteCatalogAuthority>();
+        CommittedRouteCatalogSnapshot catalog = TenantOwnerCatalogTestAuthority.CreateSnapshot(AppId);
+        var local = new CommittedRouteCatalogSnapshot(catalog.GetCanonicalBytes(), catalog.RootDigest, catalog.Epoch,
+            auxiliaryOperations: [
+                new(AppId, "admin/operational-index-metadata", EventStoreWorkloadOperations.DomainServiceMetadata, "tenants"),
+                new(AppId, "admin/operational-index-metadata", EventStoreWorkloadOperations.DomainServiceMetadata, "global-administrators"),
+            ], localAppId: AppId);
+        IRouteCatalogAuthority authority = TenantOwnerCatalogTestAuthority.Create(local, out RouteCatalogHostIdentity identity);
+        services.AddSingleton(authority);
+        services.Configure<RouteCatalogHostOptions>(options => {
+            options.Identity = identity;
+            options.Profile = "Development";
+            options.DevelopmentFixture = true;
+        });
+    }
+
     private static async Task<bool> VerifyAsync(IServiceProvider services, DomainServiceAdministratorClaim claim) {
         AsyncServiceScope scope = services.CreateAsyncScope();
         await using (scope.ConfigureAwait(false)) {
@@ -394,6 +421,7 @@ public sealed class DomainServiceEndpointsTests {
     }
 
     private static async Task<HttpResponseMessage> SendInternalAsync<TBody>(
+        IServiceProvider services,
         HttpClient client,
         string route,
         TBody body,
@@ -401,6 +429,13 @@ public sealed class DomainServiceEndpointsTests {
         using var request = new HttpRequestMessage(HttpMethod.Post, route) {
             Content = JsonContent.Create(body),
         };
+        await using RouteCatalogDispatchLease lease = await services.GetRequiredService<IRouteCatalogAuthority>()
+            .AcquireAsync().ConfigureAwait(false);
+        request.Headers.TryAddWithoutValidation(RouteCatalogInvocationHandler.RootHeader, lease.Snapshot.RootDigest);
+        request.Headers.TryAddWithoutValidation(RouteCatalogInvocationHandler.EpochHeader,
+            lease.Snapshot.Epoch.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        if (lease.Snapshot.ActivationBindingDigest is { } binding)
+            request.Headers.TryAddWithoutValidation(RouteCatalogInvocationHandler.BindingHeader, binding);
         request.Headers.Add(EventStoreWorkloadAuthenticationDefaults.AssertionHeaderName, assertion);
         return await client.SendAsync(request).ConfigureAwait(false);
     }
@@ -416,6 +451,7 @@ public sealed class DomainServiceEndpointsTests {
             Claims = new Dictionary<string, object>(StringComparer.Ordinal) {
                 [EventStoreWorkloadAuthenticationDefaults.CallerClaimType] = "eventstore",
                 [EventStoreWorkloadAuthenticationDefaults.OperationClaimType] = operation,
+                [RouteCatalogSurfacePolicy.ClaimType] = "service",
             },
             SigningCredentials = new SigningCredentials(
                 new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Authentication:JwtBearer:SigningKey"]!)),

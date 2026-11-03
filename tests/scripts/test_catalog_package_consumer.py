@@ -53,7 +53,7 @@ class CatalogPackageMetadataTests(unittest.TestCase):
                 self.reject(server={'sdk': sdk}, message='qualified stable cohort')
 
     def test_every_qualified_sdk_and_alias_reaches_only_its_normalized_restore(self):
-        for sdk in ('3.129.0', '3.129.1', '3.130.0', '3.130.1', '3.130.2', '3.131.0', '3.132.0', '3.132.1', '3.132.2', '3.133.0', '4.0.0', '4.0.1', '4.0.2'):
+        for sdk in ('3.129.0', '3.129.1', '3.130.0', '3.130.1', '3.130.2', '3.131.0', '3.132.0', '3.132.1', '3.132.2', '3.133.0', '4.0.0', '4.0.1', '4.0.2', '4.0.3'):
             for alias in (sdk, sdk + '.0', sdk + '+metadata-with-dash', sdk + '.0+metadata.1'):
                 with self.subTest(sdk=sdk, alias=alias), tempfile.TemporaryDirectory(prefix='tenants-catalog-metadata-') as temporary:
                     root = Path(temporary)

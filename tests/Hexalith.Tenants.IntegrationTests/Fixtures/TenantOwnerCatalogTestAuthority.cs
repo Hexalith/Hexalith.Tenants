@@ -27,7 +27,7 @@ internal static class TenantOwnerCatalogTestAuthority
             1, "Development", declarations,
             CompiledRouteCatalogDeclarations.ReadOperations([typeof(TenantCatalogDeclarations).Assembly]),
             declarations.Select(declaration => new RouteCompositionBinding(
-                declaration.RouteId, "tenants", TenantCatalogDeclarations.ReceiverMethods[declaration.RouteId],
+                declaration.RouteId, localAppId == "commandapi" ? localAppId : "tenants", TenantCatalogDeclarations.ReceiverMethods[declaration.RouteId],
                 declaration.ContractVersion, false, "*")).ToArray(),
             TenantCatalogDeclarations.Commands.Select(command => DevelopmentIdempotencyBindings.Bind(command, 1)).ToArray()));
         return new CommittedRouteCatalogSnapshot(
@@ -38,6 +38,10 @@ internal static class TenantOwnerCatalogTestAuthority
     /// <summary>Commits an isolated catalog and returns the SDK authority that owns each durable lease.</summary>
     /// <param name="snapshot">The catalog and local application selected by the test composition.</param>
     internal static IRouteCatalogAuthority Create(CommittedRouteCatalogSnapshot snapshot)
+        => Create(snapshot, out _);
+
+    /// <summary>Returns the independently observed local identity used for the committed test host.</summary>
+    internal static IRouteCatalogAuthority Create(CommittedRouteCatalogSnapshot snapshot, out RouteCatalogHostIdentity localIdentity)
     {
         var store = new TenantOwnerCatalogTestStateStore(snapshot.AuthorityCoordinates);
         RouteCatalogEnvelope envelope = snapshot.Envelope;
@@ -101,6 +105,8 @@ internal static class TenantOwnerCatalogTestAuthority
             authority.ReadyAsync(activation.AttemptId).GetAwaiter().GetResult();
         }
         authorities[0].CommitAsync(activation.AttemptId).GetAwaiter().GetResult();
-        return authorities[Array.FindIndex(observations, observation => observation.AppId == localAppId)];
+        int localIndex = Array.FindIndex(observations, observation => observation.AppId == localAppId);
+        localIdentity = hosts[localIndex];
+        return authorities[localIndex];
     }
 }

@@ -67,15 +67,15 @@ builder.Services.TryAddSingleton(TimeProvider.System);
 builder.Services.AddTenantOwnerSourceGateway();
 builder.Services.AddScoped<IAuthoritativeEventStreamReader>(provider =>
     new AuthoritativeEventStreamReader(provider.GetRequiredService<TenantOwnerSourceGateway>(),
-        provider.GetRequiredService<TimeProvider>(), TimeSpan.FromSeconds(10)));
+        provider.GetRequiredService<TimeProvider>(), TimeSpan.FromSeconds(30)));
 builder.Services.AddKeyedScoped<IAuthoritativeEventStreamReader>("native-tenant-source", (provider, _) =>
     new AuthoritativeEventStreamReader(provider.GetRequiredService<TenantOwnerSourceGateway>(),
-        provider.GetRequiredService<TimeProvider>(), TimeSpan.FromSeconds(10), requireNativeProof: true));
+        provider.GetRequiredService<TimeProvider>(), TimeSpan.FromSeconds(30), requireNativeProof: true));
 // The final native observation uses the same enrolled bound workload transport. Raw actor
 // HTTP has no typed catalog scope and is deliberately refused by the shared invocation guard.
 builder.Services.AddScoped<INativeSourceMetadataReader>(provider =>
     new GatewayNativeSourceMetadataReader(provider.GetRequiredService<TenantOwnerSourceGateway>(),
-        provider.GetRequiredService<TimeProvider>()));
+        provider.GetRequiredService<TimeProvider>(), TimeSpan.FromSeconds(8)));
 builder.Services.AddValidatorsFromAssembly(typeof(TenantSubmitCommandValidator).Assembly);
 builder.Services.AddValidatorsFromAssembly(typeof(TenantAggregate).Assembly);
 builder.Services.AddTenantBootstrap();

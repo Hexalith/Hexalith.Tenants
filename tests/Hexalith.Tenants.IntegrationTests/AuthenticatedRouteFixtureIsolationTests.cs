@@ -1,4 +1,19 @@
 using System.Diagnostics;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Cryptography;
+using System.Text.Json;
+
+using Hexalith.EventStore.Client.Streams;
+using Hexalith.EventStore.Client.Routing;
+using Hexalith.EventStore.Contracts.Routing;
+using Hexalith.Tenants.Contracts.Routing;
+using Hexalith.EventStore.ServiceDefaults.Authentication;
+using Hexalith.EventStore.ServiceDefaults.Routing;
+using Hexalith.Tenants.Authorization;
+
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 using Hexalith.Tenants.IntegrationTests.Fixtures;
 
@@ -49,6 +64,204 @@ public sealed class AuthenticatedRouteFixtureIsolationTests
             Environment.SetEnvironmentVariable(key, original);
         }
     }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task NativeOwnerKeyIsInheritedOnlyDuringStartupAndRestoredOnFailure(bool fail, bool inherited)
+    {
+        const string parameter = "Parameters__tenants-source-private-key";
+        string? original = Environment.GetEnvironmentVariable(parameter);
+        string? previous = inherited ? "previous-owner-key-control" : null;
+        string privateKey = NativeOwnerReadServiceComposition.CreatePrivateKey();
+        try
+        {
+            Environment.SetEnvironmentVariable(parameter, previous);
+            async ValueTask Initialize()
+            {
+                string.Equals(Environment.GetEnvironmentVariable(parameter), privateKey, StringComparison.Ordinal)
+                    .ShouldBeTrue("only the scoped child-startup environment receives the fixture key");
+                var child = new ProcessStartInfo("dotnet");
+                string.Equals(child.Environment[parameter], privateKey, StringComparison.Ordinal).ShouldBeTrue();
+                using RSA rsa = RSA.Create();
+                rsa.ImportPkcs8PrivateKey(Convert.FromBase64String(child.Environment[parameter]!), out _);
+                rsa.KeySize.ShouldBe(2048);
+                await Task.Yield();
+                if (fail) throw new InvalidOperationException("startup-control");
+            }
+
+            if (fail)
+                await Should.ThrowAsync<InvalidOperationException>(async () =>
+                    await AspireTopologyFixture.WithNativeOwnerStartupSettingsAsync(privateKey, Initialize));
+            else
+                await AspireTopologyFixture.WithNativeOwnerStartupSettingsAsync(privateKey, Initialize);
+            string.Equals(Environment.GetEnvironmentVariable(parameter), previous, StringComparison.Ordinal).ShouldBeTrue();
+            var next = new ProcessStartInfo("dotnet");
+            next.Environment.TryGetValue(parameter, out string? nextKey).ShouldBe(inherited);
+            string.Equals(nextKey, previous, StringComparison.Ordinal).ShouldBeTrue();
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(parameter, original);
+        }
+    }
+
+    [Fact]
+    public async Task NativeOwnerCompositionUsesTheCanonicalProductionIssuerReadersAndDurableAuthority()
+    {
+        string privateKey = NativeOwnerReadServiceComposition.CreatePrivateKey();
+        string.Equals(privateKey, NativeOwnerReadServiceComposition.CreatePrivateKey(), StringComparison.Ordinal).ShouldBeFalse();
+        var sidecar = new Uri("http://127.0.0.1:54321");
+        var configuration = NativeOwnerReadServiceComposition.CreateConfiguration(sidecar, privateKey);
+        string.Equals(configuration["Authentication:BoundStreamRead:PrivateKey"], privateKey, StringComparison.Ordinal).ShouldBeTrue();
+        configuration["DAPR_HTTP_ENDPOINT"].ShouldBe(sidecar.AbsoluteUri);
+        configuration["Authentication:WorkloadIssuer:Workload"].ShouldBe("tenants");
+        configuration["Tenants:EventStoreAppId"].ShouldBe("eventstore");
+        IServiceCollection services = NativeOwnerReadServiceComposition.CreateServices(configuration);
+        await using ServiceProvider provider = services.BuildServiceProvider();
+        provider.GetRequiredService<IHostEnvironment>().EnvironmentName.ShouldBe(Environments.Development);
+        provider.GetRequiredService<IRouteCatalogStateStore>().ShouldBeOfType<DaprRouteCatalogStateStore>();
+        provider.GetRequiredService<IRouteCatalogAuthority>().ShouldBeOfType<RouteCatalogAuthority>();
+        provider.GetRequiredService<TenantOwnerSourceGateway>().ShouldNotBeNull();
+        provider.GetRequiredService<IAuthoritativeEventStreamReader>().ShouldBeOfType<AuthoritativeEventStreamReader>();
+        provider.GetRequiredService<INativeSourceMetadataReader>().ShouldBeOfType<GatewayNativeSourceMetadataReader>();
+        var issuer = provider.GetRequiredService<IWorkloadAssertionIssuer>();
+        issuer.ShouldBeOfType<JwtWorkloadAssertionIssuer>();
+        string? assertion = await issuer.IssueAsync(new WorkloadAssertionRequest("eventstore", "eventstore:stream-read"),
+            TestContext.Current.CancellationToken);
+        string.IsNullOrWhiteSpace(assertion).ShouldBeFalse();
+        var token = new JwtSecurityTokenHandler().ReadJwtToken(assertion);
+        token.Issuer.ShouldBe("hexalith-dev");
+        token.Audiences.ShouldContain("eventstore");
+        token.Claims.Single(claim => claim.Type == "azp").Value.ShouldBe("tenants");
+        token.Claims.Single(claim => claim.Type == EventStoreWorkloadAuthenticationDefaults.OperationClaimType)
+            .Value.ShouldBe("eventstore:stream-read");
+        token.Claims.Any(claim => claim.Type == EventStoreWorkloadAuthenticationDefaults.TenantBindingClaimType
+            && claim.Value == "system").ShouldBeFalse("the production owner proof supplies canonical resource binding");
+    }
+
+#if HEXALITH_DEVELOPMENT_CATALOG_COHORT
+    [Theory]
+    [InlineData("foreign-host")]
+    [InlineData("foreign-app")]
+    [InlineData("wrong-component")]
+    [InlineData("wrong-state-key")]
+    [InlineData("wrong-sidecar")]
+    [InlineData("missing-membership")]
+    [InlineData("wrong-membership")]
+    [InlineData("changed-evidence")]
+    [InlineData("removed-evidence")]
+    public async Task RegisteredNativeOwnerObserverRereadsAndRefusesChangedSyntheticCustody(string change)
+    {
+        var (configuration, observation, activation, hosts) = CreateSyntheticOwnerObservation();
+        string directory = Directory.CreateTempSubdirectory("tenants-synthetic-owner-observer-").FullName;
+        if (!OperatingSystem.IsWindows())
+            File.SetUnixFileMode(directory, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        string path = Path.Combine(directory, "tenants.observation.json");
+        try
+        {
+            WriteSyntheticOwnerObservation(path, observation);
+            IServiceCollection services = NativeOwnerReadServiceComposition.CreateServices(configuration);
+            NativeOwnerReadServiceComposition.RegisterCommittedObservation(services, configuration, activation, directory,
+                TestContext.Current.CancellationToken);
+            await using ServiceProvider provider = services.BuildServiceProvider();
+            var observer = provider.GetRequiredService<IRouteCatalogHostObserver>();
+            observer.ShouldBeOfType<ObservedRouteCatalogHost>();
+            var coordinates = provider.GetRequiredService<IRouteCatalogStateStore>().Coordinates.ShouldNotBeNull();
+            var observed = await observer.ObserveAsync(activation, coordinates, TestContext.Current.CancellationToken);
+            observed.ShouldBe(ObservedRouteCatalogHost.Identity(observation),
+                "synthetic unit data exercises the real registered observer; it establishes no runtime acceptance");
+
+            switch (change)
+            {
+                case "foreign-host": observation = observation with
+                {
+                    HostId = "synthetic-foreign-host", RequiredHostIds = ["synthetic-foreign-host"],
+                }; break;
+                case "foreign-app": observation = observation with { AppId = "synthetic-foreign-app" }; break;
+                case "wrong-component": observation = observation with { AuthorityCoordinates = coordinates with { StateStore = "synthetic-other-component" } }; break;
+                case "wrong-state-key": observation = observation with { AuthorityCoordinates = coordinates with { StateKey = "synthetic-other-key" } }; break;
+                case "wrong-sidecar": observation = observation with { AuthorityCoordinates = coordinates with { HttpEndpoint = "http://127.0.0.1:54322/" } }; break;
+                case "missing-membership": hosts.Clear(); break;
+                case "wrong-membership": hosts[0] = hosts[0] with { InventoryDigest = new string('0', 64) }; break;
+                case "changed-evidence": observation = observation with { AuthenticationProfile = "synthetic-changed-authentication"u8.ToArray() }; break;
+                case "removed-evidence": File.Delete(path); break;
+                default: throw new InvalidOperationException("Unknown synthetic custody control.");
+            }
+            // Matching synthetic membership must not hide an explicit role or coordinate violation.
+            if (change is "foreign-host" or "foreign-app" or "wrong-component" or "wrong-state-key" or "wrong-sidecar")
+                hosts[0] = ObservedRouteCatalogHost.Identity(observation);
+            if (change is not ("removed-evidence" or "missing-membership" or "wrong-membership"))
+                WriteSyntheticOwnerObservation(path, observation);
+            var refusal = await Should.ThrowAsync<InvalidOperationException>(() => observer.ObserveAsync(
+                activation, coordinates, TestContext.Current.CancellationToken));
+            refusal.Message.ShouldBe(change == "removed-evidence"
+                ? "source-catalog-private-evidence-invalid" : "native-owner-observation-mismatched");
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void NativeOwnerObservationRegistrationRefusesMissingSyntheticPrivateEvidence()
+    {
+        var (configuration, _, activation, _) = CreateSyntheticOwnerObservation();
+        string directory = Directory.CreateTempSubdirectory("tenants-synthetic-owner-observer-missing-").FullName;
+        try
+        {
+            IServiceCollection services = NativeOwnerReadServiceComposition.CreateServices(configuration);
+            Should.Throw<InvalidOperationException>(() => NativeOwnerReadServiceComposition.RegisterCommittedObservation(
+                services, configuration, activation, directory, TestContext.Current.CancellationToken));
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    private static (IConfiguration Configuration, RouteCatalogHostObservation Observation,
+        RouteCatalogActivation Activation, List<RouteCatalogHostIdentity> Hosts) CreateSyntheticOwnerObservation()
+    {
+        // These are deliberately synthetic private unit inputs. No authority is activated and no native transport is invoked.
+        var configuration = NativeOwnerReadServiceComposition.CreateConfiguration(new Uri("http://127.0.0.1:54321"),
+            NativeOwnerReadServiceComposition.CreatePrivateKey());
+        var coordinates = RouteCatalogStateCoordinates.Capture(configuration, new RouteCatalogHostOptions
+        {
+            StateStore = configuration["EventStore:RouteCatalog:StateStore"]!,
+            StateKey = configuration["EventStore:RouteCatalog:StateKey"]!,
+        });
+        var declaration = CompiledRouteCatalogDeclarations.Read([typeof(TenantCatalogDeclarations).Assembly])
+            .First(route => route.Kind == "query");
+        var operation = CompiledRouteCatalogDeclarations.ReadOperations([typeof(TenantCatalogDeclarations).Assembly])
+            .Single(item => item.RouteId == declaration.RouteId);
+        var envelope = VersionedRouteCatalogBuilder.Build(new(1, "Development", [declaration], [operation],
+            [new(declaration.RouteId, "tenants", TenantCatalogDeclarations.ReceiverMethods[declaration.RouteId],
+                declaration.ContractVersion, false, "*")], []));
+        var observation = new RouteCatalogHostObservation("tenants", "tenants", [declaration], envelope.Routes, ["tenants"],
+            [JsonSerializer.SerializeToUtf8Bytes(new
+            {
+                kind = "Component", metadata = new { name = coordinates.StateStore },
+                spec = new { type = "state.redis", metadata = new[] { new { name = "keyPrefix", value = "none" } } },
+                scopes = new[] { "tenants" },
+            }), "{\"spec\":{\"accessControl\":{\"defaultAction\":\"deny\",\"trustDomain\":\"synthetic-unit-only\"}}}"u8.ToArray()],
+            "synthetic-unit-authentication"u8.ToArray(), AdmissionPolicies: [], ProjectionCapabilities: [], AuxiliaryOperations: [],
+            AuthorityCoordinates: coordinates, Operations: [operation]);
+        List<RouteCatalogHostIdentity> hosts = [ObservedRouteCatalogHost.Identity(observation)];
+        var activation = new RouteCatalogActivation("synthetic-observer-unit-control", RouteCatalogCodec.Encode(envelope),
+            RouteCatalogCodec.ComputeRootDigest(envelope), null, hosts, "synthetic-unit-data-not-runtime-acceptance", "");
+        return (configuration, observation, activation, hosts);
+    }
+
+    private static void WriteSyntheticOwnerObservation(string path, RouteCatalogHostObservation observation)
+    {
+        File.WriteAllBytes(path, JsonSerializer.SerializeToUtf8Bytes(observation));
+        if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+    }
+#endif
 
     [Fact]
     public void RestAndBackgroundDeliveryUseSeparateFixturesAndLifecycleMappings()

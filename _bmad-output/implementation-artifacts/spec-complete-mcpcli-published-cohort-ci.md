@@ -40,7 +40,7 @@ Wait for the root agent to verify authentic published Tenants 7.0.0 before imple
 
 ## Code Map
 
-- `references/Hexalith.McpCli/Directory.Build.props` pins EventStore 4.0.0 before importing shared versions; advance it to published 4.0.2, which the new Tenants packages require. Preserve the legacy test harness override.
+- `references/Hexalith.McpCli/Directory.Build.props` pins EventStore 4.0.0 before importing shared versions; advance it to the independently verified published 4.0.3 patch selected by the final Tenants packages. Preserve the legacy test harness override.
 - `references/Hexalith.McpCli/tools/dependency-policy.json` pins the exact production/test closure; update only changed effective versions from a fresh restore, preserving approved package identities and unrelated module pins.
 - `references/Hexalith.McpCli/tools/conformance-vectors/v1/modules/Hexalith.Tenants.Contracts/approval.json` already targets 7.0.0, but status is pending and its hash is only a local candidate. Bind the authentic signed archive SHA-512, inventory and exact vector hashes; retain old candidate facts as explicitly historical context.
 - `tools/conformance-vectors/v1/README.md` defines the validator, approval evidence and production replay checks. `check_enrolled.py` requires exact restored archive bytes, module inventory and complete vectors.
@@ -58,3 +58,5 @@ Wait for the root agent to verify authentic published Tenants 7.0.0 before imple
 ## Implementation Notes
 
 - Baseline McpCli CI run 41515759839 fails NU1102 for Tenants 7.0.0 and refuses candidate approval. EventStore 4.0.2 is now published and independently verified. No McpCli files have been edited yet.
+
+- Follow-up producer repair for the actual Tenants runtime failure selects EventStore 4.0.3 from 9aa4e5d690db3cce734ae38942b05c23c8380bac. Keep the original 4.0.2 publication facts historical; use the final published 4.0.3 dependency closure during this later McpCli handoff.

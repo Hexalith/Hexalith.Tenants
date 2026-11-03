@@ -115,7 +115,7 @@ with open(os.environ['MOCK_DOTNET_LOG'], 'a') as output:
         self.assertEqual(len(calls), 6)
         for call in calls:
             self.assertIsNone(call['versionEnvironment'])
-            self.assertIn('-p:HexalithEventStoreVersion=4.0.2', call['arguments'])
+            self.assertIn('-p:HexalithEventStoreVersion=4.0.3', call['arguments'])
             self.assertIn('-p:HexalithMcpCliVersion=2.0.0', call['arguments'])
             self.assertIn('-p:UseHexalithProjectReferences=false', call['arguments'])
             self.assertIn('-p:UseNuGetDeps=true', call['arguments'])
