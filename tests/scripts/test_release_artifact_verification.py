@@ -257,7 +257,8 @@ class ReleaseArtifactVerificationTests(unittest.TestCase):
         self.assertEqual((evidence / "github" / name).read_bytes(), b"conflicting github bytes")
 
     def test_temporarily_unindexed_nuget_package_waits_until_available(self):
-        self.fixture.environment["HEXALITH_RELEASE_NUGET_WAIT_SECONDS"] = "2"
+        # The cohort budget includes all five fixture packages and Python process startup.
+        self.fixture.environment["HEXALITH_RELEASE_NUGET_WAIT_SECONDS"] = "30"
         self.fixture.destinations["nuget_statuses"] = {self.fixture.ids[0]: [404, 404, 200]}
         self.fixture.save()
         self.run_verifier()
