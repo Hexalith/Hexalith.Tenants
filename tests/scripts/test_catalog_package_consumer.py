@@ -40,7 +40,7 @@ class CatalogPackageMetadataTests(unittest.TestCase):
         self.reject(server={'version': '7.0.1'}, message='versions disagree')
 
     def test_unknown_or_prerelease_sdk_refuses_before_restore(self):
-        for sdk in ('3.128.4', '3.129.0-preview.1', '3.129.2', '3.130.3', '3.131.1', '3.132.3', '3.133.1', '4.0.5', '4.0.4-preview.1', '4.0.4.1', '4.0.3-preview.1', '4.0.0-preview.1',
+        for sdk in ('3.128.4', '3.129.0-preview.1', '3.129.2', '3.130.3', '3.131.1', '3.132.3', '3.133.1', '4.0.5', '4.1.1', '4.2.0', '4.1.0-preview.1', '4.1.0.1', '4.1.0+', '4.1.0+invalid..metadata', '4.0.4-preview.1', '4.0.4.1', '4.0.3-preview.1', '4.0.0-preview.1',
                     '3.133.0-preview.1', '3.133.0.1',
                     '3.132.2-preview.1', '3.132.2.1',
                     '3.132.1-preview.1', '3.132.1-preview.1+metadata', '3.132.1.1', '3.132.1+',
@@ -53,7 +53,7 @@ class CatalogPackageMetadataTests(unittest.TestCase):
                 self.reject(server={'sdk': sdk}, message='qualified stable cohort')
 
     def test_every_qualified_sdk_and_alias_reaches_only_its_normalized_restore(self):
-        for sdk in ('3.129.0', '3.129.1', '3.130.0', '3.130.1', '3.130.2', '3.131.0', '3.132.0', '3.132.1', '3.132.2', '3.133.0', '4.0.0', '4.0.1', '4.0.2', '4.0.3', '4.0.4'):
+        for sdk in ('3.129.0', '3.129.1', '3.130.0', '3.130.1', '3.130.2', '3.131.0', '3.132.0', '3.132.1', '3.132.2', '3.133.0', '4.0.0', '4.0.1', '4.0.2', '4.0.3', '4.0.4', '4.1.0'):
             for alias in (sdk, sdk + '.0', sdk + '+metadata-with-dash', sdk + '.0+metadata.1'):
                 with self.subTest(sdk=sdk, alias=alias), tempfile.TemporaryDirectory(prefix='tenants-catalog-metadata-') as temporary:
                     root = Path(temporary)
@@ -94,6 +94,8 @@ class CatalogPackageMetadataTests(unittest.TestCase):
         self.reject(contracts={'sdk': '3.132.2'}, server={'sdk': '3.133.0'}, message='qualified stable cohort')
         self.reject(contracts={'sdk': '3.133.0'}, server={'sdk': '3.132.2'}, message='qualified stable cohort')
         self.reject(contracts={'sdk': '4.0.0'}, server={'sdk': '3.133.0'}, message='qualified stable cohort')
+        self.reject(contracts={'sdk': '4.0.4'}, server={'sdk': '4.1.0'}, message='qualified stable cohort')
+        self.reject(contracts={'sdk': '4.1.0'}, server={'sdk': '4.0.4'}, message='qualified stable cohort')
 
     def reject(self, server, message, contracts=None):
         with tempfile.TemporaryDirectory(prefix='tenants-catalog-metadata-') as temporary:

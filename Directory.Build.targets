@@ -3,47 +3,47 @@
   <PropertyGroup>
     <_TenantsNestedReferenceRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)references/'))</_TenantsNestedReferenceRoot>
     <HexalithTenantsCatalogArtifactsAvailable>false</HexalithTenantsCatalogArtifactsAvailable>
-    <HexalithTenantsCatalogSdkVersion>$([System.Text.RegularExpressions.Regex]::Replace('$(HexalithEventStoreVersion)', '\A(3\.129\.[01]|3\.130\.[012]|3\.131\.0|3\.132\.[012]|3\.133\.0|4\.0\.[01234])(?:\.0)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?\z', '$1'))</HexalithTenantsCatalogSdkVersion>
+    <HexalithTenantsCatalogSdkVersion>$([System.Text.RegularExpressions.Regex]::Replace('$(HexalithEventStoreVersion)', '\A(3\.129\.[01]|3\.130\.[012]|3\.131\.0|3\.132\.[012]|3\.133\.0|4\.0\.[01234]|4\.1\.0)(?:\.0)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?\z', '$1'))</HexalithTenantsCatalogSdkVersion>
   </PropertyGroup>
-  <!-- The canonical EventStore 4.0.x packages carries the same development catalog cohort as its source. -->
-  <PropertyGroup Condition="'$(HexalithEventStoreFromSource)' == 'true' or ('$(HexalithTenantsCatalogSdkVersion)' == '4.0.0' or '$(HexalithTenantsCatalogSdkVersion)' == '4.0.1' or '$(HexalithTenantsCatalogSdkVersion)' == '4.0.2' or '$(HexalithTenantsCatalogSdkVersion)' == '4.0.3' or '$(HexalithTenantsCatalogSdkVersion)' == '4.0.4')">
+  <!-- The qualified EventStore 4.0.x and 4.1.0 packages carry the same development catalog cohort as its source. -->
+  <PropertyGroup Condition="'$(HexalithEventStoreFromSource)' == 'true' or ('$(HexalithTenantsCatalogSdkVersion)' == '4.0.0' or '$(HexalithTenantsCatalogSdkVersion)' == '4.0.1' or '$(HexalithTenantsCatalogSdkVersion)' == '4.0.2' or '$(HexalithTenantsCatalogSdkVersion)' == '4.0.3' or '$(HexalithTenantsCatalogSdkVersion)' == '4.0.4' or '$(HexalithTenantsCatalogSdkVersion)' == '4.1.0')">
     <DefineConstants>$(DefineConstants);HEXALITH_DEVELOPMENT_CATALOG_COHORT</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition="'$(HexalithEventStoreFromSource)' == 'true'">
     <DefineConstants>$(DefineConstants);HEXALITH_DEVELOPMENT_CATALOG_SOURCE_REFERENCE</DefineConstants>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(HexalithEventStoreFromSource)' == 'true' or '$(HexalithTenantsCatalogSdkVersion)' == '3.129.0' or '$(HexalithTenantsCatalogSdkVersion)' == '3.129.1' or '$(HexalithTenantsCatalogSdkVersion)' == '3.130.0' or '$(HexalithTenantsCatalogSdkVersion)' == '3.130.1' or '$(HexalithTenantsCatalogSdkVersion)' == '3.130.2' or '$(HexalithTenantsCatalogSdkVersion)' == '3.131.0' or '$(HexalithTenantsCatalogSdkVersion)' == '3.132.0' or '$(HexalithTenantsCatalogSdkVersion)' == '3.132.1' or '$(HexalithTenantsCatalogSdkVersion)' == '3.132.2' or '$(HexalithTenantsCatalogSdkVersion)' == '3.133.0' or ('$(HexalithTenantsCatalogSdkVersion)' == '4.0.0' or '$(HexalithTenantsCatalogSdkVersion)' == '4.0.1' or '$(HexalithTenantsCatalogSdkVersion)' == '4.0.2' or '$(HexalithTenantsCatalogSdkVersion)' == '4.0.3' or '$(HexalithTenantsCatalogSdkVersion)' == '4.0.4')">
+  <PropertyGroup Condition="'$(HexalithEventStoreFromSource)' == 'true' or '$(HexalithTenantsCatalogSdkVersion)' == '3.129.0' or '$(HexalithTenantsCatalogSdkVersion)' == '3.129.1' or '$(HexalithTenantsCatalogSdkVersion)' == '3.130.0' or '$(HexalithTenantsCatalogSdkVersion)' == '3.130.1' or '$(HexalithTenantsCatalogSdkVersion)' == '3.130.2' or '$(HexalithTenantsCatalogSdkVersion)' == '3.131.0' or '$(HexalithTenantsCatalogSdkVersion)' == '3.132.0' or '$(HexalithTenantsCatalogSdkVersion)' == '3.132.1' or '$(HexalithTenantsCatalogSdkVersion)' == '3.132.2' or '$(HexalithTenantsCatalogSdkVersion)' == '3.133.0' or ('$(HexalithTenantsCatalogSdkVersion)' == '4.0.0' or '$(HexalithTenantsCatalogSdkVersion)' == '4.0.1' or '$(HexalithTenantsCatalogSdkVersion)' == '4.0.2' or '$(HexalithTenantsCatalogSdkVersion)' == '4.0.3' or '$(HexalithTenantsCatalogSdkVersion)' == '4.0.4' or '$(HexalithTenantsCatalogSdkVersion)' == '4.1.0')">
     <HexalithTenantsCatalogArtifactsAvailable>true</HexalithTenantsCatalogArtifactsAvailable>
     <DefineConstants>$(DefineConstants);HEXALITH_DEVELOPMENT_CATALOG_SOURCE</DefineConstants>
   </PropertyGroup>
 
   <!-- Technical HTTP activation v2 is available only in this qualified binary or the enrolled source graph. -->
-  <PropertyGroup Condition="'$(HexalithEventStoreFromSource)' == 'true' or '$(HexalithTenantsCatalogSdkVersion)' == '3.131.0' or '$(HexalithTenantsCatalogSdkVersion)' == '3.132.0' or '$(HexalithTenantsCatalogSdkVersion)' == '3.132.1' or '$(HexalithTenantsCatalogSdkVersion)' == '3.132.2' or '$(HexalithTenantsCatalogSdkVersion)' == '3.133.0' or ('$(HexalithTenantsCatalogSdkVersion)' == '4.0.0' or '$(HexalithTenantsCatalogSdkVersion)' == '4.0.1' or '$(HexalithTenantsCatalogSdkVersion)' == '4.0.2' or '$(HexalithTenantsCatalogSdkVersion)' == '4.0.3' or '$(HexalithTenantsCatalogSdkVersion)' == '4.0.4')">
+  <PropertyGroup Condition="'$(HexalithEventStoreFromSource)' == 'true' or '$(HexalithTenantsCatalogSdkVersion)' == '3.131.0' or '$(HexalithTenantsCatalogSdkVersion)' == '3.132.0' or '$(HexalithTenantsCatalogSdkVersion)' == '3.132.1' or '$(HexalithTenantsCatalogSdkVersion)' == '3.132.2' or '$(HexalithTenantsCatalogSdkVersion)' == '3.133.0' or ('$(HexalithTenantsCatalogSdkVersion)' == '4.0.0' or '$(HexalithTenantsCatalogSdkVersion)' == '4.0.1' or '$(HexalithTenantsCatalogSdkVersion)' == '4.0.2' or '$(HexalithTenantsCatalogSdkVersion)' == '4.0.3' or '$(HexalithTenantsCatalogSdkVersion)' == '4.0.4' or '$(HexalithTenantsCatalogSdkVersion)' == '4.1.0')">
     <DefineConstants>$(DefineConstants);HEXALITH_TECHNICAL_HTTP_CATALOG_BINDING</DefineConstants>
   </PropertyGroup>
 
   <!-- The optional durable tenant projection needs EventStore's checkpointed client API, first published in 3.133.0. -->
-  <PropertyGroup Condition="'$(HexalithEventStoreFromSource)' == 'true' or '$(HexalithTenantsCatalogSdkVersion)' == '3.133.0' or ('$(HexalithTenantsCatalogSdkVersion)' == '4.0.0' or '$(HexalithTenantsCatalogSdkVersion)' == '4.0.1' or '$(HexalithTenantsCatalogSdkVersion)' == '4.0.2' or '$(HexalithTenantsCatalogSdkVersion)' == '4.0.3' or '$(HexalithTenantsCatalogSdkVersion)' == '4.0.4')">
+  <PropertyGroup Condition="'$(HexalithEventStoreFromSource)' == 'true' or '$(HexalithTenantsCatalogSdkVersion)' == '3.133.0' or ('$(HexalithTenantsCatalogSdkVersion)' == '4.0.0' or '$(HexalithTenantsCatalogSdkVersion)' == '4.0.1' or '$(HexalithTenantsCatalogSdkVersion)' == '4.0.2' or '$(HexalithTenantsCatalogSdkVersion)' == '4.0.3' or '$(HexalithTenantsCatalogSdkVersion)' == '4.0.4' or '$(HexalithTenantsCatalogSdkVersion)' == '4.1.0')">
     <DefineConstants>$(DefineConstants);HEXALITH_CHECKPOINTED_TENANT_PROJECTION</DefineConstants>
   </PropertyGroup>
 
   <Target Name="ValidateCatalogSdkSelection" BeforeTargets="CollectPackageReferences;PrepareForBuild"
           Condition="'$(HexalithEventStoreFromSource)' != 'true' and '$(HexalithEventStoreVersion)' != '' and !$(MSBuildProjectFullPath.StartsWith('$(_TenantsNestedReferenceRoot)'))">
     <Error Condition="$([MSBuild]::VersionGreaterThanOrEquals('$(HexalithEventStoreVersion)', '3.129.0')) and '$(HexalithTenantsCatalogArtifactsAvailable)' != 'true'"
-           Text="Catalog SDK selection '$(HexalithEventStoreVersion)' is not qualified. Use a qualified stable SDK through 3.133.0 or the coordinated 4.0.x package cohort, or the explicit legacy compatibility profile." />
+           Text="Catalog SDK selection '$(HexalithEventStoreVersion)' is not qualified. Use a qualified stable SDK through 3.133.0 or the coordinated 4.0.x or 4.1.0 package cohort, or the explicit legacy compatibility profile." />
   </Target>
 
   <Target Name="ValidatePublishedCatalogSdk">
     <Error Condition="'$(IsPackable)' == 'true' and '$(HexalithTenantsCatalogArtifactsAvailable)' != 'true'"
-           Text="Published Tenants packages require the qualified EventStore catalog SDK through 3.133.0, the coordinated 4.0.x package cohort, or an enrolled source build. The 3.128.4 compatibility profile is not publishable." />
+           Text="Published Tenants packages require the qualified EventStore catalog SDK through 3.133.0, the coordinated 4.0.x or 4.1.0 package cohort, or an enrolled source build. The 3.128.4 compatibility profile is not publishable." />
   </Target>
 
   <!-- Every current Tenants archive must retain the coordinated major-version cohort,
        including packing without a build against a DLL produced with different global properties. -->
   <Target Name="ValidateCanonicalBoundaryPackageCohort" BeforeTargets="CollectPackageReferences;PrepareForBuild;GenerateNuspec"
           Condition="'$(MSBuildProjectName)' == 'Hexalith.Tenants.Contracts' or '$(MSBuildProjectName)' == 'Hexalith.Tenants.Server' or '$(MSBuildProjectName)' == 'Hexalith.Tenants.Client' or '$(MSBuildProjectName)' == 'Hexalith.Tenants.Testing' or '$(MSBuildProjectName)' == 'Hexalith.Tenants.Aspire'">
-    <Error Condition="'$(HexalithEventStoreFromSource)' != 'true' and '$(HexalithEventStoreVersion)' != '4.0.4'"
-           Text="Canonical Tenants packages require EventStore 4.0.4 in package mode." />
+    <Error Condition="'$(HexalithEventStoreFromSource)' != 'true' and '$(HexalithEventStoreVersion)' != '4.0.4' and '$(HexalithEventStoreVersion)' != '4.1.0'"
+           Text="Canonical Tenants packages require EventStore 4.0.4 or 4.1.0 in package mode." />
     <Error Condition="'$(HexalithMcpCliFromSource)' != 'true' and '$(HexalithMcpCliVersion)' != '2.0.0'"
            Text="Canonical Tenants packages require McpCli.Abstractions 2.0.0 in package mode." />
   </Target>

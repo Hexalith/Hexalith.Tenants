@@ -86,8 +86,10 @@ result records are uploaded; raw observations and key material remain private.
 
 ## Published SDK qualification
 
-The current default package selection is public stable EventStore `4.0.4`. The
-current canonical-scope catalog cohort is `4.0.0`, `4.0.1`, `4.0.2`, `4.0.3` and `4.0.4`.
+The current default package selection is public stable EventStore `4.1.0`. The
+qualified canonical-scope catalog cohort is `4.0.0`, `4.0.1`, `4.0.2`, `4.0.3`, `4.0.4`
+and `4.1.0`. Current Tenants package builds accept exact `4.1.0` or the retained
+`4.0.4` compatibility profile; ordinary release preparation uses the `4.1.0` default.
 The retained finite compatibility set is `3.129.0`, `3.129.1`, `3.130.0`, `3.130.1`,
 `3.130.2`, `3.131.0`, `3.132.0`, `3.132.1`, `3.132.2` and `3.133.0`;
 zero fourth revisions and build metadata normalize to the same stable cohort.
@@ -105,9 +107,11 @@ version override. Its lane requires compiled
 enrollment, the complete owner catalog, all generated HTTP cases, ordinary stale
 artifact refusals, and a fresh packed Contracts/Server consumer. The consumer
 checks source metadata and candidate archive/DLL hashes before discovering all
-22 routes, 22 operations and 12 command adapters through the public SDK APIs.
-Binary qualification enables `HEXALITH_DEVELOPMENT_CATALOG_SOURCE`; only an
-actual source graph enables `HEXALITH_DEVELOPMENT_CATALOG_COHORT`.
+23 routes, 23 operations and 12 command adapters through the public SDK APIs.
+Binary qualification enables `HEXALITH_DEVELOPMENT_CATALOG_SOURCE`; the canonical
+4.x package cohort and an actual source graph also enable
+`HEXALITH_DEVELOPMENT_CATALOG_COHORT`. Only source graphs enable
+`HEXALITH_DEVELOPMENT_CATALOG_SOURCE_REFERENCE`.
 
 Reproduce the public package checks from this repository with .NET pinned by
 `global.json`, using the root-declared Builds and Platform inputs (no nested
@@ -171,7 +175,7 @@ for the published package selection. On 2026-11-02, local Release builds of both
 the standalone and source solutions completed with zero warnings and errors.
 The package governance suite passed 409 cases, the generated HTTP suite passed
 66 cases, and an isolated consumer restored fresh Contracts and Server archives
-and discovered 22 routes, 22 operations and 12 adapters. Exact-source CI and
+and discovered 23 routes, 23 operations and 12 adapters. Exact-source CI and
 release admission still run on the pushed commit.
 
 The [3.132.1 qualification record](eventstore-3.132.1-qualification.json) records

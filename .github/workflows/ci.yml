@@ -22,7 +22,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - profile: canonical scope 4.0.4
+          - profile: canonical scope 4.1.0
             sdk-argument: ''
             budget-minimum: 8
             runtime-minimum: 7
@@ -73,7 +73,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - profile: canonical scope 4.0.4
+          - profile: canonical scope 4.1.0
             sdk-argument: ''
             owner-source-minimum: 25
     env:
@@ -254,7 +254,14 @@ jobs:
         run: |
           set -euo pipefail
           source_sha="$(git rev-parse HEAD:references/Hexalith.EventStore)"
-          printf 'TENANTS_SOURCE_SDK_PRODUCER_VERSION=4.0.4\n' >> "$GITHUB_ENV"
+          sdk_producer_version="$(dotnet msbuild src/Hexalith.Tenants/Hexalith.Tenants.csproj -nologo \
+            -getProperty:HexalithEventStoreVersion -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true \
+            -p:HexalithEventStoreFromSource=false -p:HexalithEventStoreVersion=4.1.0)"
+          if [[ "$sdk_producer_version" != '4.1.0' ]]; then
+            echo 'The authenticated package profile did not select its exact qualified SDK.' >&2
+            exit 1
+          fi
+          printf 'TENANTS_SOURCE_SDK_PRODUCER_VERSION=%s\n' "$sdk_producer_version" >> "$GITHUB_ENV"
           python3 scripts/prepare-source-catalog-profile.py \
             --ci-job authenticated-routes --sdk-source-sha "$source_sha" \
             --output "${RUNNER_TEMP}/tenants-package-backend.json"
@@ -274,7 +281,7 @@ jobs:
             tests/Hexalith.Tenants.AppHost.Tests/Hexalith.Tenants.AppHost.Tests.csproj \
             tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj; do
             dotnet build "$project" --configuration Release \
-              -p:HexalithEventStoreVersion=4.0.4 -p:HexalithMcpCliVersion=2.0.0 \
+              -p:HexalithEventStoreVersion=4.1.0 -p:HexalithMcpCliVersion=2.0.0 \
               -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true \
               -p:HexalithFrontComposerFromSource=false -p:HexalithMemoriesFromSource=false \
               -warnaserror -m:1 -nr:false

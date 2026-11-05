@@ -109,13 +109,50 @@ with open(os.environ['MOCK_DOTNET_LOG'], 'a') as output:
         calls = [json.loads(line) for line in log.read_text().splitlines()] if log.exists() else []
         return result, calls
 
+    def test_package_profile_binds_the_evaluated_sdk_before_provisioning(self):
+        self.run_package_profile('4.1.0', accepted=True)
+
+    def test_package_profile_refuses_a_different_evaluated_sdk_before_provisioning(self):
+        self.run_package_profile('4.0.4', accepted=False)
+
+    def run_package_profile(self, selected, accepted):
+        log = self.root / 'profile-dotnet.json'
+        dotnet = self.bin / 'dotnet'
+        dotnet.write_text("""#!/usr/bin/env python3
+import json, os, pathlib, sys
+pathlib.Path(os.environ['MOCK_DOTNET_LOG']).write_text(json.dumps(sys.argv[1:]))
+print(os.environ['MOCK_SDK_SELECTION'])
+""")
+        dotnet.chmod(0o755)
+        workflow = (ROOT / '.github/workflows/ci.yml').read_text()
+        step = workflow.split('      - name: Provision the canonical package catalog on the fresh backend\n', 1)[1]
+        block = step.split('        run: |\n', 1)[1].split('\n      - name:', 1)[0]
+        environment = self.environment | {'MOCK_DOTNET_LOG': str(log), 'MOCK_SDK_SELECTION': selected,
+                                          'RUNNER_TEMP': str(self.root)}
+        provisioned = self.root / 'provisioned'
+        result = subprocess.run(['bash', '-c', 'python3() { touch "$RUNNER_TEMP/provisioned"; };\n' + textwrap.dedent(block)],
+                                env=environment, capture_output=True, text=True, timeout=20)
+        arguments = json.loads(log.read_text())
+        self.assertEqual(arguments[:2], ['msbuild', 'src/Hexalith.Tenants/Hexalith.Tenants.csproj'])
+        self.assertIn('-getProperty:HexalithEventStoreVersion', arguments)
+        self.assertIn('-p:HexalithEventStoreVersion=4.1.0', arguments)
+        self.assertIn('-p:HexalithEventStoreFromSource=false', arguments)
+        self.assertIn('-p:UseHexalithProjectReferences=false', arguments)
+        self.assertIn('-p:UseNuGetDeps=true', arguments)
+        self.assertEqual(result.returncode == 0, accepted, result.stdout + result.stderr)
+        self.assertEqual(provisioned.exists(), accepted)
+        self.assertEqual(self.environment_file.read_text(), 'Retained=value\n' +
+                         ('TENANTS_SOURCE_SDK_PRODUCER_VERSION=4.1.0\n' if accepted else ''))
+        if not accepted:
+            self.assertIn('did not select its exact qualified SDK', result.stderr)
+
     def test_live_build_pins_the_major_package_cohort(self):
         result, calls = self.run_live_build()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(len(calls), 6)
         for call in calls:
             self.assertIsNone(call['versionEnvironment'])
-            self.assertIn('-p:HexalithEventStoreVersion=4.0.4', call['arguments'])
+            self.assertIn('-p:HexalithEventStoreVersion=4.1.0', call['arguments'])
             self.assertIn('-p:HexalithMcpCliVersion=2.0.0', call['arguments'])
             self.assertIn('-p:UseHexalithProjectReferences=false', call['arguments'])
             self.assertIn('-p:UseNuGetDeps=true', call['arguments'])

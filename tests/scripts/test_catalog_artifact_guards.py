@@ -78,13 +78,22 @@ class CatalogArtifactPackTests(unittest.TestCase):
             self.assertEqual(built.returncode, 0, built.stdout + built.stderr)
             stale = {package: binary(package).read_bytes() for package in ('Contracts', 'Server')}
             for property_name, version, diagnostic in (
-                    ('HexalithEventStoreVersion', '3.128.4', 'Canonical Tenants packages require EventStore 4.0.4'),
+                    ('HexalithEventStoreVersion', '3.128.4', 'Canonical Tenants packages require EventStore 4.0.4 or 4.1.0'),
+                    ('HexalithEventStoreVersion', '3.133.0', 'Canonical Tenants packages require EventStore 4.0.4 or 4.1.0'),
                     ('HexalithMcpCliVersion', '1.1.0', 'Canonical Tenants packages require McpCli.Abstractions 2.0.0')):
                 with self.subTest(canonical_guard=property_name):
                     rejected = run('build', project('Contracts'), '--no-restore', *common,
                                    f'-p:{property_name}={version}')
                     self.assertNotEqual(rejected.returncode, 0, rejected.stdout + rejected.stderr)
                     self.assertIn(diagnostic, rejected.stdout + rejected.stderr)
+            # Keep the exact previously qualified canonical package profile buildable.
+            compatible = run('build', 'PackFixtures.slnx', *common, '-warnaserror',
+                             '-p:HexalithEventStoreVersion=4.0.4')
+            self.assertEqual(compatible.returncode, 0, compatible.stdout + compatible.stderr)
+            # The ordinary default remains the current public SDK.
+            selected = run('msbuild', project('Contracts'), '-nologo', '-getProperty:HexalithEventStoreVersion')
+            self.assertEqual(selected.returncode, 0, selected.stdout + selected.stderr)
+            self.assertEqual(selected.stdout.strip(), '4.1.0')
             for package in PACKAGES:
                 with self.subTest(legacy_package=package):
                     output = parent / ('legacy-rejected-' + package)
