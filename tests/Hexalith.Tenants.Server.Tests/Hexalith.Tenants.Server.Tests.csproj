@@ -23,7 +23,8 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Hexalith.EventStore.Testing" />
+        <ProjectReference Include="$(HexalithEventStoreRoot)\src\Hexalith.EventStore.Testing\Hexalith.EventStore.Testing.csproj" Condition="'$(Configuration)' == 'Debug' and '$(HexalithEventStoreFromSource)' == 'true' and '$(EnablePrivateOwnerSourceReadProof)' == 'true'" />
+        <PackageReference Include="Hexalith.EventStore.Testing" Condition="'$(Configuration)' != 'Debug' or '$(HexalithEventStoreFromSource)' != 'true' or '$(EnablePrivateOwnerSourceReadProof)' != 'true'" />
         <PackageReference Include="YamlDotNet" />
     </ItemGroup>
 

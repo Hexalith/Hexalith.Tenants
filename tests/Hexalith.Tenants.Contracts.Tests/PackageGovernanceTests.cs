@@ -10,6 +10,9 @@ using Shouldly;
 namespace Hexalith.Tenants.Contracts.Tests;
 
 public class PackageGovernanceTests {
+    private const string PrivateSourceProofCondition = "'$(Configuration)' == 'Debug' and '$(HexalithEventStoreFromSource)' == 'true' and '$(EnablePrivateOwnerSourceReadProof)' == 'true'";
+    private const string PrivateSourceProofPackageCondition = "'$(Configuration)' != 'Debug' or '$(HexalithEventStoreFromSource)' != 'true' or '$(EnablePrivateOwnerSourceReadProof)' != 'true'";
+    private const string PrivateSourceProofProject = "$(HexalithEventStoreRoot)\\src\\Hexalith.EventStore.Testing\\Hexalith.EventStore.Testing.csproj";
     private const string GuardDispatchSha = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
     private const string RegistryDriftGuardStepName = "Require registry versions at or below the release tag floor";
@@ -163,6 +166,8 @@ public class PackageGovernanceTests {
             EventStoreReferences(hostProject, "ProjectReference");
         List<(string PackageId, XElement Element)> packageEdges =
             EventStoreReferences(hostProject, "PackageReference");
+        XElement privateHelper = ValidatePrivateSourceProofEdge(hostProject);
+        projectEdges.RemoveAll(edge => ReferenceEquals(edge.Element, privateHelper));
 
         List<string> violations = [];
 
@@ -212,6 +217,65 @@ public class PackageGovernanceTests {
         projectEdges.ShouldNotBeEmpty("The domain host must declare its EventStore dependencies; an empty result would pass vacuously.");
         violations.ShouldBeEmpty(
             "EventStore host dependencies must arrive as complementary source/package pairs.");
+    }
+
+    [Theory]
+    [InlineData("none")]
+    [InlineData("missing")]
+    [InlineData("debug")]
+    [InlineData("source")]
+    [InlineData("opt-in")]
+    [InlineData("path")]
+    [InlineData("duplicate")]
+    [InlineData("package")]
+    [InlineData("project-update")]
+    [InlineData("project-remove")]
+    [InlineData("package-update")]
+    [InlineData("define-condition")]
+    [InlineData("define-token")]
+    public void Private_owner_source_helper_admission_refuses_widened_or_ambiguous_edges(string mutation) {
+        XDocument project = XDocument.Load(Path.Combine(FindRepoRoot(), "src/Hexalith.Tenants/Hexalith.Tenants.csproj"));
+        XElement helper = EventStoreReferences(project, "ProjectReference").Single(edge => edge.PackageId == "Hexalith.EventStore.Testing").Element;
+        XElement symbol = project.Descendants("DefineConstants").Single();
+        switch (mutation) {
+            case "none": break;
+            case "missing": helper.Remove(); break;
+            case "debug": helper.Parent!.SetAttributeValue("Condition", PrivateSourceProofCondition.Replace("'$(Configuration)' == 'Debug' and ", "", StringComparison.Ordinal)); break;
+            case "source": helper.Parent!.SetAttributeValue("Condition", PrivateSourceProofCondition.Replace("'$(HexalithEventStoreFromSource)' == 'true' and ", "", StringComparison.Ordinal)); break;
+            case "opt-in": helper.Parent!.SetAttributeValue("Condition", PrivateSourceProofCondition.Replace(" and '$(EnablePrivateOwnerSourceReadProof)' == 'true'", "", StringComparison.Ordinal)); break;
+            case "path": helper.SetAttributeValue("Include", "foreign/Hexalith.EventStore.Testing.csproj"); break;
+            case "duplicate": helper.Parent!.Add(new XElement(helper)); break;
+            case "package": project.Root!.Add(new XElement("ItemGroup", new XElement("PackageReference", new XAttribute("Include", "Hexalith.EventStore.Testing")))); break;
+            case "project-update": project.Root!.Add(new XElement("ItemGroup", new XElement("ProjectReference", new XAttribute("Update", "@(ProjectReference)")))); break;
+            case "project-remove": project.Root!.Add(new XElement("ItemGroup", new XElement("ProjectReference", new XAttribute("Remove", "@(ProjectReference)")))); break;
+            case "package-update": project.Root!.Add(new XElement("ItemGroup", new XElement("PackageReference", new XAttribute("Update", "Hexalith.EventStore.Testing")))); break;
+            case "define-condition": symbol.Parent!.Attribute("Condition")!.Remove(); break;
+            case "define-token": symbol.Value = "$(DefineConstants);PRIVATE_OWNER_SOURCE_READ_PROOF;UNREVIEWED"; break;
+            default: throw new ArgumentOutOfRangeException(nameof(mutation));
+        }
+
+        if (mutation == "none") {
+            ValidatePrivateSourceProofEdge(project).ShouldBeSameAs(helper);
+            XDocument tests = XDocument.Load(Path.Combine(FindRepoRoot(), "tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj"));
+            ValidatePrivateSourceProofTestEdges(tests);
+            foreach (string fault in new[] { "missing-source", "missing-package", "source-condition", "package-condition", "duplicate-source", "duplicate-package", "local-version", "define-condition" }) {
+                XDocument changed = new(tests);
+                XElement source = EventStoreReferences(changed, "ProjectReference").Single(edge => edge.PackageId == "Hexalith.EventStore.Testing").Element;
+                XElement package = EventStoreReferences(changed, "PackageReference").Single(edge => edge.PackageId == "Hexalith.EventStore.Testing").Element;
+                switch (fault) {
+                    case "missing-source": source.Remove(); break;
+                    case "missing-package": package.Remove(); break;
+                    case "source-condition": source.SetAttributeValue("Condition", "'$(HexalithEventStoreFromSource)' == 'true'"); break;
+                    case "package-condition": package.SetAttributeValue("Condition", "'$(HexalithEventStoreFromSource)' != 'true'"); break;
+                    case "duplicate-source": source.Parent!.Add(new XElement(source)); break;
+                    case "duplicate-package": package.Parent!.Add(new XElement(package)); break;
+                    case "local-version": package.SetAttributeValue("Version", "4.1.0"); break;
+                    case "define-condition": changed.Descendants("DefineConstants").Single().Parent!.Attribute("Condition")!.Remove(); break;
+                }
+                Should.Throw<ShouldAssertException>(() => ValidatePrivateSourceProofTestEdges(changed), fault);
+            }
+        }
+        else Should.Throw<ShouldAssertException>(() => ValidatePrivateSourceProofEdge(project));
     }
 
     [Fact]
@@ -1225,6 +1289,42 @@ public class PackageGovernanceTests {
         }
 
         return references;
+    }
+
+    private static XElement ValidatePrivateSourceProofEdge(XDocument project) {
+        List<XElement> helpers = EventStoreReferences(project, "ProjectReference")
+            .Where(edge => edge.PackageId == "Hexalith.EventStore.Testing").Select(edge => edge.Element).ToList();
+        helpers.Count.ShouldBe(1, "Exactly one explicit private helper may be excluded from ordinary production SDK edges.");
+        XElement helper = helpers.Single();
+        ((string?)helper.Attribute("Include")).ShouldBe(PrivateSourceProofProject);
+        EffectiveCondition(helper).ShouldBe(PrivateSourceProofCondition, "The helper must be absent in Release, package mode and unselected source builds.");
+        helper.Elements().ShouldBeEmpty("The private helper cannot rewrite dependency properties or metadata.");
+        EventStoreReferences(project, "PackageReference").ShouldNotContain(edge => edge.PackageId == "Hexalith.EventStore.Testing",
+            "Private source proof must not introduce a production Testing package.");
+        project.Descendants().Where(element => element.Name.LocalName is "ProjectReference" or "PackageReference")
+            .ShouldAllBe(element => element.Attribute("Update") == null && element.Attribute("Remove") == null,
+                "Authored reference rewrites cannot widen or replace the finite private helper admission.");
+        List<XElement> symbols = project.Descendants("DefineConstants").ToList();
+        symbols.Count.ShouldBe(1);
+        EffectiveCondition(symbols.Single()).ShouldBe(PrivateSourceProofCondition);
+        symbols.Single().Value.ShouldBe("$(DefineConstants);PRIVATE_OWNER_SOURCE_READ_PROOF");
+        return helper;
+    }
+
+    private static void ValidatePrivateSourceProofTestEdges(XDocument project) {
+        List<XElement> sources = EventStoreReferences(project, "ProjectReference")
+            .Where(edge => edge.PackageId == "Hexalith.EventStore.Testing").Select(edge => edge.Element).ToList();
+        List<XElement> packages = EventStoreReferences(project, "PackageReference")
+            .Where(edge => edge.PackageId == "Hexalith.EventStore.Testing").Select(edge => edge.Element).ToList();
+        sources.Count.ShouldBe(1);
+        packages.Count.ShouldBe(1);
+        ((string?)sources.Single().Attribute("Include")).ShouldBe(PrivateSourceProofProject);
+        EffectiveCondition(sources.Single()).ShouldBe(PrivateSourceProofCondition);
+        EffectiveCondition(packages.Single()).ShouldBe(PrivateSourceProofPackageCondition);
+        HasLocalVersionAuthority(packages.Single()).ShouldBeFalse();
+        XElement symbol = project.Descendants("DefineConstants").Single();
+        EffectiveCondition(symbol).ShouldBe(PrivateSourceProofCondition);
+        symbol.Value.ShouldBe("$(DefineConstants);PRIVATE_OWNER_SOURCE_READ_PROOF");
     }
 
     private static bool AdditionalPropertiesExportVersion(string additionalProperties) {
