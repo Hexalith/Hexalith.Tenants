@@ -20,6 +20,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <PackageReference Include="Hexalith.EventStore.Testing" />
         <PackageReference Include="YamlDotNet" />
     </ItemGroup>
 

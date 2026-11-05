@@ -46,7 +46,8 @@ public sealed class GetTenantQueryHandler(
         TenantReadModel? model = tenantEntry?.Value;
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (model is null) {
+        // Rejection-only histories retain checkpoints without creating a tenant.
+        if (model is null || string.IsNullOrEmpty(model.TenantId)) {
             return await IsGlobalAdminAsync(envelope, cancellationToken).ConfigureAwait(false)
                 ? new QueryResult(false, default, ErrorMessage: "Tenant not found")
                 : new QueryResult(false, default, ErrorMessage: QueryAdapterFailureReason.Forbidden);
