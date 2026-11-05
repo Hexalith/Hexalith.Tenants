@@ -65,6 +65,7 @@ builder.Services.AddEventStoreDevelopmentDomainCatalog(builder.Configuration, ty
 builder.Services.TryAddSingleton(TimeProvider.System);
 // Current TenantOwner evidence is rebuilt from the authoritative tenant stream on every request.
 builder.Services.AddTenantOwnerSourceGateway();
+TenantOwnerSourceReadDevelopmentEnrollment.Add(builder.Services, builder.Configuration, builder.Environment);
 builder.Services.AddScoped<IAuthoritativeEventStreamReader>(provider =>
     new AuthoritativeEventStreamReader(provider.GetRequiredService<TenantOwnerSourceGateway>(),
         provider.GetRequiredService<TimeProvider>(), TimeSpan.FromSeconds(30)));

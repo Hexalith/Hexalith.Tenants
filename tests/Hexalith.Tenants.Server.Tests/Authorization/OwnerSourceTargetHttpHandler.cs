@@ -40,7 +40,7 @@ internal sealed class OwnerSourceTargetHttpHandler(string? expected, string call
         request.RequestUri!.AbsolutePath.ShouldBe("/api/v1/streams/read/workload");
         return new HttpResponseMessage(HttpStatusCode.OK)
         {
-            Content = JsonContent.Create(new StreamReadPage("system", "global-administrators", "global-administrators", [], new(0, 0, null, 0, 0, false, null))),
+            Content = JsonContent.Create(new StreamReadPage("system", "global-administrators", "global-administrators", [], new(0, null, null, 0, 0, false, null))),
         };
     }
 }

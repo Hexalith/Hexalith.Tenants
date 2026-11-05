@@ -2,6 +2,9 @@
     <PropertyGroup>
         <NoWarn>$(NoWarn);IDE1006</NoWarn>
     </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)' == 'Debug' and '$(HexalithEventStoreFromSource)' == 'true' and '$(EnablePrivateOwnerSourceReadProof)' == 'true'">
+        <DefineConstants>$(DefineConstants);PRIVATE_OWNER_SOURCE_READ_PROOF</DefineConstants>
+    </PropertyGroup>
 
     <ItemGroup>
         <FrameworkReference Include="Microsoft.AspNetCore.App" />
