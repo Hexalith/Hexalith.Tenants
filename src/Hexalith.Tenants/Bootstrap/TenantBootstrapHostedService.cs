@@ -119,7 +119,7 @@ public partial class TenantBootstrapHostedService(
                     return;
                 }
 
-                using HttpClient probeClient = httpClientFactory.CreateClient(TenantBootstrapServiceCollectionExtensions.ReadinessClientName);
+                TenantBootstrapAppReadiness readiness = scope.ServiceProvider.GetRequiredService<TenantBootstrapAppReadiness>();
                 TimeSpan readinessTimeout = TenantBootstrapReadinessBudget.Resolve(readinessClient, scope.ServiceProvider);
                 HttpRequestMessage? selectedRequest;
                 if (configuration.GetValue<bool>("Tenants:BootstrapBoundWorkloadEnabled"))
@@ -129,7 +129,7 @@ public partial class TenantBootstrapHostedService(
                         TenantIdentity.GlobalAdministratorsDomain, TenantIdentity.GlobalAdministratorsAggregateId,
                         nameof(BootstrapGlobalAdmin), payloadElement, correlationId);
                     selectedRequest = await TenantBootstrapBoundCommand.CreateAsync(scope.ServiceProvider, configuration,
-                        daprClient, probeClient, submitted, userId, accessToken, timeProvider ?? TimeProvider.System,
+                        daprClient, readiness, submitted, userId, accessToken, timeProvider ?? TimeProvider.System,
                         readinessTimeout, cancellationToken).ConfigureAwait(false);
                     if (selectedRequest is null) return;
                 }
@@ -138,7 +138,7 @@ public partial class TenantBootstrapHostedService(
                     phase = "app-readiness";
                     using var readinessDeadline = new CancellationTokenSource(readinessTimeout, timeProvider ?? TimeProvider.System);
                     using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, readinessDeadline.Token);
-                    await TenantBootstrapAppReadiness.WaitAsync(scope.ServiceProvider, daprClient, probeClient, deadline.Token).ConfigureAwait(false);
+                    await readiness.WaitAsync(scope.ServiceProvider, daprClient, deadline.Token).ConfigureAwait(false);
                     deadline.Token.ThrowIfCancellationRequested();
                     selectedRequest = daprClient.CreateInvokeMethodRequest(HttpMethod.Post, TenantEventStoreTarget.AppId(configuration), CommandEndpoint);
                     selectedRequest.Content = JsonContent.Create(commandBody);

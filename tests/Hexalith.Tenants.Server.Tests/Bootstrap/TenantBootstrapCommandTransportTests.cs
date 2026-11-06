@@ -55,23 +55,11 @@ public sealed class TenantBootstrapCommandTransportTests
                 if (hold) await Task.Delay(Timeout.InfiniteTimeSpan, token);
                 return new HttpResponseMessage(HttpStatusCode.ServiceUnavailable);
             }));
-        int probeRequests = 0;
-        builder.Services.AddHttpClient(TenantBootstrapServiceCollectionExtensions.ReadinessClientName)
-            .ConfigurePrimaryHttpMessageHandler(() => new BootstrapCommandHttpMessageHandler((_, _) =>
-            {
-                Interlocked.Increment(ref probeRequests);
-                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.ServiceUnavailable));
-            }));
         await using ServiceProvider provider = builder.Services.BuildServiceProvider();
         IHttpClientFactory factory = provider.GetRequiredService<IHttpClientFactory>();
         using HttpClient command = factory.CreateClient(TenantBootstrapServiceCollectionExtensions.CommandClientName);
         using HttpClient general = factory.CreateClient();
         using HttpClient credentials = factory.CreateClient(TenantBootstrapServiceCollectionExtensions.CredentialClientName);
-        using HttpClient probe = factory.CreateClient(TenantBootstrapServiceCollectionExtensions.ReadinessClientName);
-        probe.Timeout.ShouldBe(Timeout.InfiniteTimeSpan);
-        using HttpResponseMessage probeResponse = await probe.GetAsync("http://127.0.0.1:3500/readiness-control", TestContext.Current.CancellationToken);
-        probeResponse.StatusCode.ShouldBe(HttpStatusCode.ServiceUnavailable);
-        probeRequests.ShouldBe(1, "only the explicit read-only readiness loop may retry probes");
         command.Timeout.ShouldBe(TimeSpan.FromSeconds(30));
         general.Timeout.ShouldBe(Timeout.InfiniteTimeSpan);
         credentials.Timeout.ShouldBe(Timeout.InfiniteTimeSpan);

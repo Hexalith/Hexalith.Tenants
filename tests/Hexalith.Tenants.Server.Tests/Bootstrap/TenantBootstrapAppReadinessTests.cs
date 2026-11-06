@@ -37,7 +37,7 @@ public sealed class TenantBootstrapAppReadinessTests
         await using ServiceProvider provider = services.BuildServiceProvider();
         using DaprClient dapr = BootstrapAppReadinessFixture.CreateDapr(endpoint: "http://127.0.0.1:43123");
         int probes = 0;
-        using var probe = new HttpClient(new BootstrapCommandHttpMessageHandler((request, _) =>
+        using var probe = new TenantBootstrapAppReadiness(new BootstrapCommandHttpMessageHandler((request, _) =>
         {
             request.Method.ShouldBe(HttpMethod.Get);
             request.RequestUri!.AbsoluteUri.ShouldBe("http://127.0.0.1:43123/v1.0/invoke/tenants-physical-17/method/alive");
@@ -54,11 +54,11 @@ public sealed class TenantBootstrapAppReadinessTests
                 3 => HttpStatusCode.ServiceUnavailable,
                 _ => HttpStatusCode.NoContent,
             }));
-        })) { Timeout = Timeout.InfiniteTimeSpan };
+        }));
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
         deadline.CancelAfter(TimeSpan.FromSeconds(5));
 
-        await TenantBootstrapAppReadiness.WaitAsync(provider, dapr, probe, deadline.Token);
+        await probe.WaitAsync(provider, dapr, deadline.Token);
 
         probes.ShouldBe(4);
         await dapr.Received(1).GetMetadataAsync(Arg.Any<CancellationToken>());
@@ -73,12 +73,12 @@ public sealed class TenantBootstrapAppReadinessTests
         await using ServiceProvider provider = services.BuildServiceProvider();
         using DaprClient dapr = BootstrapAppReadinessFixture.CreateDapr();
         using var body = new BootstrapTokenResponseStream([], blockReads: true);
-        using var probe = new HttpClient(new BootstrapCommandHttpMessageHandler((_, _) => Task.FromResult(
+        using var probe = new TenantBootstrapAppReadiness(new BootstrapCommandHttpMessageHandler((_, _) => Task.FromResult(
             new HttpResponseMessage(HttpStatusCode.OK) { Content = new StreamContent(body) })));
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
         deadline.CancelAfter(TimeSpan.FromSeconds(2));
 
-        await TenantBootstrapAppReadiness.WaitAsync(provider, dapr, probe, deadline.Token);
+        await probe.WaitAsync(provider, dapr, deadline.Token);
 
         body.BytesRead.ShouldBe(0);
         body.IsDisposed.ShouldBeTrue();
@@ -104,13 +104,13 @@ public sealed class TenantBootstrapAppReadinessTests
         await using ServiceProvider provider = services.BuildServiceProvider();
         using DaprClient dapr = BootstrapAppReadinessFixture.CreateDapr(scenario == "foreign" ? "another-physical-app" : scenario == "blank-metadata" ? "" : BootstrapAppReadinessFixture.AppId);
         int probes = 0;
-        using var probe = new HttpClient(new BootstrapCommandHttpMessageHandler((_, _) =>
+        using var probe = new TenantBootstrapAppReadiness(new BootstrapCommandHttpMessageHandler((_, _) =>
         {
             Interlocked.Increment(ref probes);
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
         }));
 
-        await Should.ThrowAsync<Exception>(() => TenantBootstrapAppReadiness.WaitAsync(provider, dapr, probe, TestContext.Current.CancellationToken));
+        await Should.ThrowAsync<Exception>(() => probe.WaitAsync(provider, dapr, TestContext.Current.CancellationToken));
 
         probes.ShouldBe(0);
         dapr.DidNotReceive().CreateInvokeMethodRequest(Arg.Any<HttpMethod>(), Arg.Any<string>(), Arg.Any<string>());
@@ -133,16 +133,16 @@ public sealed class TenantBootstrapAppReadinessTests
                 throw new DaprException("Synthetic metadata transport outcome.", new RpcException(new Status(denied ? StatusCode.PermissionDenied : StatusCode.Unavailable, "Synthetic status.")));
             return Task.FromResult(new DaprMetadata(BootstrapAppReadinessFixture.AppId, [], new Dictionary<string, string>(), []));
         });
-        using HttpClient probe = BootstrapAppReadinessFixture.CreateProbe();
+        using TenantBootstrapAppReadiness probe = BootstrapAppReadinessFixture.CreateProbe();
         if (denied)
         {
-            await Should.ThrowAsync<DaprException>(() => TenantBootstrapAppReadiness.WaitAsync(provider, dapr, probe, TestContext.Current.CancellationToken));
+            await Should.ThrowAsync<DaprException>(() => probe.WaitAsync(provider, dapr, TestContext.Current.CancellationToken));
             observations.ShouldBe(1);
             dapr.DidNotReceive().CreateInvokeMethodRequest(Arg.Any<HttpMethod>(), Arg.Any<string>(), Arg.Any<string>());
         }
         else
         {
-            await TenantBootstrapAppReadiness.WaitAsync(provider, dapr, probe, TestContext.Current.CancellationToken);
+            await probe.WaitAsync(provider, dapr, TestContext.Current.CancellationToken);
             observations.ShouldBe(2);
         }
     }
@@ -169,19 +169,19 @@ public sealed class TenantBootstrapAppReadinessTests
         await using ServiceProvider provider = services.BuildServiceProvider();
         using DaprClient dapr = BootstrapAppReadinessFixture.CreateDapr();
         int probes = 0;
-        using var probe = new HttpClient(new BootstrapCommandHttpMessageHandler((_, _) =>
+        using var probe = new TenantBootstrapAppReadiness(new BootstrapCommandHttpMessageHandler((_, _) =>
         {
             Interlocked.Increment(ref probes);
             return Task.FromResult(new HttpResponseMessage((HttpStatusCode)status));
         }));
 
-        HttpRequestException failure = await Should.ThrowAsync<HttpRequestException>(() => TenantBootstrapAppReadiness.WaitAsync(provider, dapr, probe, TestContext.Current.CancellationToken));
+        HttpRequestException failure = await Should.ThrowAsync<HttpRequestException>(() => probe.WaitAsync(provider, dapr, TestContext.Current.CancellationToken));
 
         failure.StatusCode.ShouldBe((HttpStatusCode)status);
         probes.ShouldBe(1);
     }
 
-    /// <summary>Actual named probe transports reject every redirect without contacting same- or cross-origin destinations.</summary>
+    /// <summary>Actual private probe transports reject every redirect without contacting same- or cross-origin destinations.</summary>
     [Theory]
     [InlineData(301, false)]
     [InlineData(302, false)]
@@ -193,7 +193,7 @@ public sealed class TenantBootstrapAppReadinessTests
     [InlineData(303, true)]
     [InlineData(307, true)]
     [InlineData(308, true)]
-    public async Task FactoryProbeNeverFollowsActualLoopbackRedirects(int status, bool crossOrigin)
+    public async Task PrivateProbeNeverFollowsActualLoopbackRedirects(int status, bool crossOrigin)
     {
         int destinations = 0;
         int origins = 0;
@@ -239,10 +239,9 @@ public sealed class TenantBootstrapAppReadinessTests
             services.AddTenantBootstrap();
             await using ServiceProvider provider = services.BuildServiceProvider();
             using DaprClient dapr = BootstrapAppReadinessFixture.CreateDapr(endpoint: address);
-            using HttpClient probe = provider.GetRequiredService<IHttpClientFactory>().CreateClient(TenantBootstrapServiceCollectionExtensions.ReadinessClientName);
-            probe.Timeout.ShouldBe(Timeout.InfiniteTimeSpan);
+            using var probe = new TenantBootstrapAppReadiness();
 
-            await Should.ThrowAsync<HttpRequestException>(() => TenantBootstrapAppReadiness.WaitAsync(provider, dapr, probe, TestContext.Current.CancellationToken));
+            await Should.ThrowAsync<HttpRequestException>(() => probe.WaitAsync(provider, dapr, TestContext.Current.CancellationToken));
 
             origins.ShouldBe(1);
             destinations.ShouldBe(0);

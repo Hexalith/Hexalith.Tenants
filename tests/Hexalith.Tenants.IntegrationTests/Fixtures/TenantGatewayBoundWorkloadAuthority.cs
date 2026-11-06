@@ -93,7 +93,7 @@ internal sealed class TenantGatewayBoundWorkloadAuthority(string workload = "ten
         DaprClient dapr = scope.ServiceProvider.GetRequiredService<DaprClient>();
         // This gateway fixture does not launch a sidecar. Its explicit readiness double
         // represents an already admitted app without bypassing the production creator.
-        using var probe = new HttpClient(new BootstrapHttpMessageHandler((message, _) =>
+        using var probe = new TenantBootstrapAppReadiness(new BootstrapHttpMessageHandler((message, _) =>
         {
             if (message.Method != HttpMethod.Get || message.Content is not null
                 || message.RequestUri!.AbsolutePath != $"/v1.0/invoke/{PhysicalAppId}/method/alive"
@@ -101,7 +101,7 @@ internal sealed class TenantGatewayBoundWorkloadAuthority(string workload = "ten
                 || message.Headers.Contains(EventStoreWorkloadAuthenticationDefaults.AssertionHeaderName))
                 throw new InvalidOperationException("The fixture expected a credential-free physical self-health probe.");
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
-        })) { Timeout = Timeout.InfiniteTimeSpan };
+        }));
         HttpRequestMessage? request = await TenantBootstrapBoundCommand.CreateAsync(scope.ServiceProvider, configuration,
             dapr, probe, command, administrator, humanToken, TimeProvider.System, TimeSpan.FromSeconds(1), cancellationToken);
         if (request is null) return null;

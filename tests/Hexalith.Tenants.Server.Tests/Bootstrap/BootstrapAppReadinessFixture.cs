@@ -23,6 +23,7 @@ internal static class BootstrapAppReadinessFixture
     {
         services.AddSingleton<IOptions<DomainProjectionIdentityOptions>>(Options.Create(new DomainProjectionIdentityOptions { AppId = AppId }));
         services.AddScoped(_ => CreateDapr());
+        AddProbe(services);
     }
 
     /// <summary>Creates a sidecar double whose invocation envelopes come from the real SDK.</summary>
@@ -39,12 +40,10 @@ internal static class BootstrapAppReadinessFixture
     }
 
     /// <summary>Creates an independent successful health transport without consuming command expectations.</summary>
-    internal static HttpClient CreateProbe()
-        => new(new BootstrapCommandHttpMessageHandler((_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK))))
-        { Timeout = Timeout.InfiniteTimeSpan };
+    internal static TenantBootstrapAppReadiness CreateProbe()
+        => new(new BootstrapCommandHttpMessageHandler((_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK))));
 
-    /// <summary>Overrides only the named probe's inner transport in real factory-composition controls.</summary>
+    /// <summary>Registers a controlled private health transport independently of command factory policies.</summary>
     internal static void AddProbe(IServiceCollection services)
-        => services.AddHttpClient(TenantBootstrapServiceCollectionExtensions.ReadinessClientName)
-            .ConfigurePrimaryHttpMessageHandler(() => new BootstrapCommandHttpMessageHandler((_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK))));
+        => services.AddSingleton(_ => CreateProbe());
 }

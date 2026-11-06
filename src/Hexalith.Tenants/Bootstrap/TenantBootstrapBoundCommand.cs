@@ -26,7 +26,7 @@ namespace Hexalith.Tenants.Bootstrap;
 internal static class TenantBootstrapBoundCommand
 {
     internal static async Task<HttpRequestMessage?> CreateAsync(IServiceProvider services, IConfiguration configuration,
-        DaprClient dapr, HttpClient probeClient, SubmitCommandRequest command, string administrator, string accessToken, TimeProvider clock,
+        DaprClient dapr, TenantBootstrapAppReadiness readiness, SubmitCommandRequest command, string administrator, string accessToken, TimeProvider clock,
         TimeSpan readinessTimeout, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
@@ -70,7 +70,7 @@ internal static class TenantBootstrapBoundCommand
             }
         }
 #endif
-        await TenantBootstrapAppReadiness.WaitAsync(services, dapr, probeClient, deadline.Token).ConfigureAwait(false);
+        await readiness.WaitAsync(services, dapr, deadline.Token).ConfigureAwait(false);
         deadline.Token.ThrowIfCancellationRequested();
         string? assertion = await services.GetRequiredService<IWorkloadAssertionIssuer>()
             .IssueAsync(new("eventstore", EventStoreWorkloadOperations.GatewayCommandSubmit), deadline.Token).ConfigureAwait(false);

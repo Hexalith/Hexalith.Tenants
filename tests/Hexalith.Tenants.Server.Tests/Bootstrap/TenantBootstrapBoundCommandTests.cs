@@ -143,7 +143,7 @@ public sealed class TenantBootstrapBoundCommandTests
         await using var provider = services.BuildServiceProvider();
         await using var scope = provider.CreateAsyncScope();
         using DaprClient dapr = BootstrapAppReadinessFixture.CreateDapr();
-        using HttpClient probe = BootstrapAppReadinessFixture.CreateProbe();
+        using TenantBootstrapAppReadiness probe = BootstrapAppReadinessFixture.CreateProbe();
         string subject = scenario == "subject" ? "foreign-administrator" : "bootstrap-administrator";
         List<Claim> claims = [new("sub", subject)];
         if (scenario != "not-admin") claims.Add(new("global_admin", "true"));

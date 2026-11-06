@@ -150,8 +150,7 @@ public sealed class TenantBootstrapAppReadinessDispatchTests
             builder.Services.AddSingleton(catalog);
         }
 #endif
-        builder.Services.AddHttpClient(TenantBootstrapServiceCollectionExtensions.ReadinessClientName)
-            .ConfigurePrimaryHttpMessageHandler(() => new BootstrapCommandHttpMessageHandler(async (request, token) =>
+        builder.Services.AddSingleton(_ => new TenantBootstrapAppReadiness(new BootstrapCommandHttpMessageHandler(async (request, token) =>
             {
                 request.Method.ShouldBe(HttpMethod.Get);
                 request.RequestUri!.AbsolutePath.ShouldBe("/v1.0/invoke/tenants-physical-17/method/alive");
@@ -170,7 +169,7 @@ public sealed class TenantBootstrapAppReadinessDispatchTests
                 entered.TrySetResult();
                 await releaseHealth.Task.WaitAsync(token);
                 return new HttpResponseMessage(HttpStatusCode.OK);
-            }));
+            })));
         builder.Services.AddHttpClient(TenantBootstrapServiceCollectionExtensions.CommandClientName)
             .ConfigurePrimaryHttpMessageHandler(() => new BootstrapCommandHttpMessageHandler((request, _) =>
             {

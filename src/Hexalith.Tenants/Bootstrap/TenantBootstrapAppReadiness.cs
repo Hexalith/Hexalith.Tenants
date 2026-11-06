@@ -12,10 +12,27 @@ using Microsoft.Extensions.Options;
 namespace Hexalith.Tenants.Bootstrap;
 
 /// <summary>Observes the configured sidecar's identity and actual inbound app-health admission before bootstrap effects.</summary>
-internal static class TenantBootstrapAppReadiness
+internal sealed class TenantBootstrapAppReadiness : IDisposable
 {
+    private readonly HttpClient _probeClient;
+
+    /// <summary>Owns a private transport limited to this helper's exact read-only self-health operation.</summary>
+    internal TenantBootstrapAppReadiness()
+        : this(new SocketsHttpHandler { AllowAutoRedirect = false })
+    {
+    }
+
+    /// <summary>Owns the supplied transport for controlled physical-sidecar readiness observations.</summary>
+    internal TenantBootstrapAppReadiness(HttpMessageHandler transport)
+    {
+        _probeClient = new HttpClient(transport) { Timeout = Timeout.InfiniteTimeSpan };
+    }
+
+    /// <inheritdoc/>
+    public void Dispose() => _probeClient.Dispose();
+
     /// <summary>Waits for a read-only self invocation under the caller's original finite readiness deadline.</summary>
-    internal static async Task WaitAsync(IServiceProvider services, DaprClient dapr, HttpClient probeClient, CancellationToken token)
+    internal async Task WaitAsync(IServiceProvider services, DaprClient dapr, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
         DomainProjectionIdentityOptions identity = services.GetRequiredService<IOptions<DomainProjectionIdentityOptions>>().Value;
@@ -49,7 +66,7 @@ internal static class TenantBootstrapAppReadiness
                 throw new InvalidOperationException("Bootstrap readiness requires the exact read-only self invocation.");
             try
             {
-                using HttpResponseMessage response = await probeClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
+                using HttpResponseMessage response = await _probeClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
                 token.ThrowIfCancellationRequested();
                 if (response.IsSuccessStatusCode) return;
                 if (response.StatusCode is not (HttpStatusCode.InternalServerError or HttpStatusCode.ServiceUnavailable))

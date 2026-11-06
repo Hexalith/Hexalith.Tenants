@@ -47,7 +47,6 @@ public class TenantBootstrapHostedServiceTests
         using var commandClient = new HttpClient(commandHandler);
         IHttpClientFactory factory = Substitute.For<IHttpClientFactory>();
         factory.CreateClient(string.Empty).Returns(readinessClient);
-        factory.CreateClient(TenantBootstrapServiceCollectionExtensions.ReadinessClientName).Returns(_ => BootstrapAppReadinessFixture.CreateProbe());
         factory.CreateClient(TenantBootstrapServiceCollectionExtensions.CommandClientName).Returns(commandClient);
         factory.CreateClient(TenantBootstrapServiceCollectionExtensions.CredentialClientName).Returns(credentialClient);
         var services = new ServiceCollection();
@@ -1791,7 +1790,6 @@ public class TenantBootstrapHostedServiceTests
 
         IHttpClientFactory httpClientFactory = Substitute.For<IHttpClientFactory>();
         httpClientFactory.CreateClient(Arg.Any<string>()).Returns(new HttpClient(handler));
-        httpClientFactory.CreateClient(TenantBootstrapServiceCollectionExtensions.ReadinessClientName).Returns(_ => BootstrapAppReadinessFixture.CreateProbe());
         _ = services.AddSingleton(httpClientFactory);
 
         ServiceProvider provider = services.BuildServiceProvider();
