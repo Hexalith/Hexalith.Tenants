@@ -26,11 +26,11 @@ namespace Hexalith.Tenants.Bootstrap;
 internal static class TenantBootstrapBoundCommand
 {
     internal static async Task<HttpRequestMessage?> CreateAsync(IServiceProvider services, IConfiguration configuration,
-        DaprClient dapr, SubmitCommandRequest command, string administrator, string accessToken, TimeProvider clock,
+        DaprClient dapr, HttpClient probeClient, SubmitCommandRequest command, string administrator, string accessToken, TimeProvider clock,
         TimeSpan readinessTimeout, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
-        // Resilience handlers legitimately disable the transport timeout. Catalog readiness
+        // Resilience handlers legitimately disable the transport timeout. Catalog and app readiness
         // still gets HttpClient's normal finite budget rather than waiting indefinitely.
         if (readinessTimeout == Timeout.InfiniteTimeSpan) readinessTimeout = TimeSpan.FromSeconds(100);
         if (readinessTimeout <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(readinessTimeout));
@@ -52,12 +52,12 @@ internal static class TenantBootstrapBoundCommand
         string? caller = configuration["Authentication:WorkloadIssuer:Workload"];
         string? privateKey = configuration["Authentication:BoundStreamRead:PrivateKey"];
         if (string.IsNullOrWhiteSpace(caller) || string.IsNullOrWhiteSpace(privateKey)) return null;
+        using var readinessDeadline = new CancellationTokenSource(readinessTimeout, clock);
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token, readinessDeadline.Token);
 #if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
         if (services.GetService<IRouteCatalogAuthority>() is { } authority
             && configuration["EventStore:RouteCatalog:DevelopmentBootstrap:RootDigest"] is { Length: > 0 } root)
         {
-            using var readinessDeadline = new CancellationTokenSource(readinessTimeout, clock);
-            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token, readinessDeadline.Token);
             while (true)
             {
                 try
@@ -70,8 +70,10 @@ internal static class TenantBootstrapBoundCommand
             }
         }
 #endif
+        await TenantBootstrapAppReadiness.WaitAsync(services, dapr, probeClient, deadline.Token).ConfigureAwait(false);
+        deadline.Token.ThrowIfCancellationRequested();
         string? assertion = await services.GetRequiredService<IWorkloadAssertionIssuer>()
-            .IssueAsync(new("eventstore", EventStoreWorkloadOperations.GatewayCommandSubmit), token).ConfigureAwait(false);
+            .IssueAsync(new("eventstore", EventStoreWorkloadOperations.GatewayCommandSubmit), deadline.Token).ConfigureAwait(false);
         if (string.IsNullOrWhiteSpace(assertion)) return null;
         var bound = new BoundWorkloadCommandRequest(command, subjects[0].Value);
         var request = dapr.CreateInvokeMethodRequest(HttpMethod.Post, TenantEventStoreTarget.AppId(configuration), "api/v1/commands/bound/workload");
@@ -80,13 +82,14 @@ internal static class TenantBootstrapBoundCommand
             request.Content = JsonContent.Create(bound);
             // Dapr must see a known-length body so its timeout retry can replay the same
             // signed command instead of reusing a consumed chunked request stream.
-            token.ThrowIfCancellationRequested();
-            await request.Content.LoadIntoBufferAsync(1_048_576, token).ConfigureAwait(false);
-            token.ThrowIfCancellationRequested();
+            deadline.Token.ThrowIfCancellationRequested();
+            await request.Content.LoadIntoBufferAsync(1_048_576, deadline.Token).ConfigureAwait(false);
+            deadline.Token.ThrowIfCancellationRequested();
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
             request.Headers.Add("X-Hexalith-Scope", TenantPlatformScopes.GlobalAdministrators);
             request.Headers.Add(EventStoreWorkloadAuthenticationDefaults.AssertionHeaderName, assertion);
             request.Headers.Add(BoundWorkloadCommandProof.HeaderName, BoundWorkloadCommandProof.Issue(bound, caller, privateKey, clock.GetUtcNow()));
+            deadline.Token.ThrowIfCancellationRequested();
             return request;
         }
         catch

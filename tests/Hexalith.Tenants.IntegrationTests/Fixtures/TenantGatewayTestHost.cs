@@ -6,6 +6,7 @@ using FluentValidation;
 using Hexalith.EventStore.Authorization;
 using Hexalith.EventStore.Controllers;
 using Hexalith.EventStore.Extensions;
+using Hexalith.EventStore.DomainService;
 using Hexalith.EventStore.Middleware;
 using Hexalith.EventStore.Server.Commands;
 using Hexalith.EventStore.Server.Projections;
@@ -106,7 +107,16 @@ internal sealed class TenantGatewayTestHost(
         builder.Services.AddValidatorsFromAssembly(typeof(TenantAggregate).Assembly);
         builder.Services.RemoveAll<ITenantValidator>();
         builder.Services.AddScoped<ITenantValidator, TenantsSystemTenantValidator>();
-        builder.Services.AddSingleton(Substitute.For<DaprClient>());
+        builder.Services.Configure<DomainProjectionIdentityOptions>(builder.Configuration.GetSection("EventStore:DomainService"));
+        var dapr = Substitute.For<DaprClient>();
+        dapr.GetMetadataAsync(Arg.Any<CancellationToken>()).Returns(Task.FromResult(new DaprMetadata(
+            TenantGatewayBoundWorkloadAuthority.PhysicalAppId, [], new Dictionary<string, string>(), [])));
+        dapr.CreateInvokeMethodRequest(Arg.Any<HttpMethod>(), Arg.Any<string>(), Arg.Any<string>()).Returns(call =>
+        {
+            using DaprClient concrete = new DaprClientBuilder().UseHttpEndpoint("http://127.0.0.1:3500").Build();
+            return concrete.CreateInvokeMethodRequest(call.ArgAt<HttpMethod>(0), call.ArgAt<string>(1), call.ArgAt<string>(2));
+        });
+        builder.Services.AddSingleton(dapr);
         builder.Services.AddSingleton<IActorProxyFactory>(_ => new ActorProxyFactory());
         builder.Services.AddSingleton(Substitute.For<IQueryRouter>());
         builder.Services.AddHttpClient();

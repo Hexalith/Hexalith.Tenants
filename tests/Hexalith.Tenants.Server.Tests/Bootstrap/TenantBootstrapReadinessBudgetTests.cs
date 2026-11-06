@@ -128,9 +128,10 @@ public sealed class TenantBootstrapReadinessBudgetTests
         var command = new SubmitCommandRequest("01ARZ3NDEKTSV4RRFFQ69G5FAV", TenantPlatformScopes.GlobalAdministrators,
             TenantIdentity.GlobalAdministratorsDomain, TenantIdentity.GlobalAdministratorsAggregateId, nameof(BootstrapGlobalAdmin),
             JsonSerializer.SerializeToElement(new BootstrapGlobalAdmin("administrator")));
-        using DaprClient dapr = new DaprClientBuilder().UseHttpEndpoint("http://127.0.0.1:3500").Build();
+        using DaprClient dapr = BootstrapAppReadinessFixture.CreateDapr();
+        using HttpClient probe = BootstrapAppReadinessFixture.CreateProbe();
         using CancellationTokenSource caller = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
-        Task<HttpRequestMessage?> pending = TenantBootstrapBoundCommand.CreateAsync(scope.ServiceProvider, host.Configuration, dapr, command, "administrator", credential,
+        Task<HttpRequestMessage?> pending = TenantBootstrapBoundCommand.CreateAsync(scope.ServiceProvider, host.Configuration, dapr, probe, command, "administrator", credential,
             TimeProvider.System, budget, caller.Token);
         if (cancelCaller)
         {

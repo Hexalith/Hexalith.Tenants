@@ -47,10 +47,11 @@ public class TenantBootstrapHostedServiceTests
         using var commandClient = new HttpClient(commandHandler);
         IHttpClientFactory factory = Substitute.For<IHttpClientFactory>();
         factory.CreateClient(string.Empty).Returns(readinessClient);
+        factory.CreateClient(TenantBootstrapServiceCollectionExtensions.ReadinessClientName).Returns(_ => BootstrapAppReadinessFixture.CreateProbe());
         factory.CreateClient(TenantBootstrapServiceCollectionExtensions.CommandClientName).Returns(commandClient);
         factory.CreateClient(TenantBootstrapServiceCollectionExtensions.CredentialClientName).Returns(credentialClient);
         var services = new ServiceCollection();
-        services.AddDaprClient();
+        BootstrapAppReadinessFixture.AddSidecar(services);
         services.AddSingleton(factory);
         await using ServiceProvider provider = services.BuildServiceProvider();
         using var lifetime = new TestHostApplicationLifetime();
@@ -1710,11 +1711,12 @@ public class TenantBootstrapHostedServiceTests
         ILoggerFactory loggerFactory = Substitute.For<ILoggerFactory>();
         loggerFactory.CreateLogger(Arg.Any<string>()).Returns(logger);
         var services = new ServiceCollection();
-        services.AddDaprClient();
+        BootstrapAppReadinessFixture.AddSidecar(services);
         services.AddLogging();
         services.AddSingleton(loggerFactory);
         services.AddHttpClient();
         services.ConfigureHttpClientDefaults(builder => builder.ConfigurePrimaryHttpMessageHandler(() => handler));
+        BootstrapAppReadinessFixture.AddProbe(services);
         await using ServiceProvider provider = services.BuildServiceProvider();
         using var lifetime = new TestHostApplicationLifetime();
         TenantBootstrapHostedService service = CreateService(
@@ -1785,10 +1787,11 @@ public class TenantBootstrapHostedServiceTests
     private static IServiceScopeFactory CreateScopeFactory(TestHttpMessageHandler handler)
     {
         ServiceCollection services = new();
-        services.AddDaprClient();
+        BootstrapAppReadinessFixture.AddSidecar(services);
 
         IHttpClientFactory httpClientFactory = Substitute.For<IHttpClientFactory>();
         httpClientFactory.CreateClient(Arg.Any<string>()).Returns(new HttpClient(handler));
+        httpClientFactory.CreateClient(TenantBootstrapServiceCollectionExtensions.ReadinessClientName).Returns(_ => BootstrapAppReadinessFixture.CreateProbe());
         _ = services.AddSingleton(httpClientFactory);
 
         ServiceProvider provider = services.BuildServiceProvider();

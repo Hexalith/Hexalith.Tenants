@@ -17,7 +17,7 @@ using Microsoft.Extensions.Options;
 namespace Hexalith.Tenants.Bootstrap;
 
 /// <summary>
-/// Submits <c>BootstrapGlobalAdmin</c> for <c>Tenants:BootstrapGlobalAdminUserId</c> once the host is listening.
+/// Submits <c>BootstrapGlobalAdmin</c> for <c>Tenants:BootstrapGlobalAdminUserId</c> once its sidecar admits inbound self invocation.
 /// </summary>
 /// <remarks>
 /// EventStore Story 5.5: the command is authorized only by the configured administrator's delegated human credential
@@ -119,6 +119,8 @@ public partial class TenantBootstrapHostedService(
                     return;
                 }
 
+                using HttpClient probeClient = httpClientFactory.CreateClient(TenantBootstrapServiceCollectionExtensions.ReadinessClientName);
+                TimeSpan readinessTimeout = TenantBootstrapReadinessBudget.Resolve(readinessClient, scope.ServiceProvider);
                 HttpRequestMessage? selectedRequest;
                 if (configuration.GetValue<bool>("Tenants:BootstrapBoundWorkloadEnabled"))
                 {
@@ -127,12 +129,17 @@ public partial class TenantBootstrapHostedService(
                         TenantIdentity.GlobalAdministratorsDomain, TenantIdentity.GlobalAdministratorsAggregateId,
                         nameof(BootstrapGlobalAdmin), payloadElement, correlationId);
                     selectedRequest = await TenantBootstrapBoundCommand.CreateAsync(scope.ServiceProvider, configuration,
-                        daprClient, submitted, userId, accessToken, timeProvider ?? TimeProvider.System,
-                        TenantBootstrapReadinessBudget.Resolve(readinessClient, scope.ServiceProvider), cancellationToken).ConfigureAwait(false);
+                        daprClient, probeClient, submitted, userId, accessToken, timeProvider ?? TimeProvider.System,
+                        readinessTimeout, cancellationToken).ConfigureAwait(false);
                     if (selectedRequest is null) return;
                 }
                 else
                 {
+                    phase = "app-readiness";
+                    using var readinessDeadline = new CancellationTokenSource(readinessTimeout, timeProvider ?? TimeProvider.System);
+                    using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, readinessDeadline.Token);
+                    await TenantBootstrapAppReadiness.WaitAsync(scope.ServiceProvider, daprClient, probeClient, deadline.Token).ConfigureAwait(false);
+                    deadline.Token.ThrowIfCancellationRequested();
                     selectedRequest = daprClient.CreateInvokeMethodRequest(HttpMethod.Post, TenantEventStoreTarget.AppId(configuration), CommandEndpoint);
                     selectedRequest.Content = JsonContent.Create(commandBody);
                     selectedRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
@@ -141,11 +148,13 @@ public partial class TenantBootstrapHostedService(
                 if (!httpRequest.Headers.Contains("X-Hexalith-Scope"))
                     httpRequest.Headers.Add("X-Hexalith-Scope", TenantPlatformScopes.GlobalAdministrators);
 
+                cancellationToken.ThrowIfCancellationRequested();
                 TenantBootstrapReceipt? receipt = configuration.GetValue<bool>("Tenants:BootstrapBoundWorkloadEnabled")
                     ? await TenantBootstrapReceipt.BeginAsync(configuration, messageId, correlationId, userId, cancellationToken).ConfigureAwait(false) : null;
                 phase = "command-dispatch";
                 Log.BootstrapAttempt(logger, messageId, correlationId);
                 using HttpClient commandClient = httpClientFactory.CreateClient(TenantBootstrapServiceCollectionExtensions.CommandClientName);
+                cancellationToken.ThrowIfCancellationRequested();
                 using HttpResponseMessage httpResponse = await commandClient.SendAsync(httpRequest, cancellationToken).ConfigureAwait(false);
 
                 if (httpResponse.StatusCode == HttpStatusCode.Accepted)

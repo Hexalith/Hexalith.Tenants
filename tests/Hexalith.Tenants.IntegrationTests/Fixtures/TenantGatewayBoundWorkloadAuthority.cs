@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Json;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
@@ -21,6 +22,9 @@ namespace Hexalith.Tenants.IntegrationTests.Fixtures;
 /// <param name="workload">The separately signed workload identity, including an untrusted caller for negative controls.</param>
 internal sealed class TenantGatewayBoundWorkloadAuthority(string workload = "tenants") : IDisposable
 {
+    /// <summary>Gets the non-native fixture physical identity, independent of its signed workload.</summary>
+    internal const string PhysicalAppId = "tenants-physical-fixture";
+
     private readonly RSA _proofKey = RSA.Create(2048);
     private readonly string _channelToken = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
 
@@ -28,6 +32,7 @@ internal sealed class TenantGatewayBoundWorkloadAuthority(string workload = "ten
     internal IReadOnlyDictionary<string, string?> Settings => new Dictionary<string, string?>
     {
         ["APP_API_TOKEN"] = _channelToken,
+        ["EventStore:DomainService:AppId"] = PhysicalAppId,
         ["Authentication:DaprInternal:Audience"] = "eventstore",
         ["Authentication:DaprInternal:AllowedCallers:0"] = "tenants",
         ["Authentication:WorkloadIssuer:Workload"] = workload,
@@ -85,9 +90,20 @@ internal sealed class TenantGatewayBoundWorkloadAuthority(string workload = "ten
     {
         using IServiceScope scope = services.CreateScope();
         IConfiguration configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
-        using DaprClient dapr = new DaprClientBuilder().UseHttpEndpoint("http://127.0.0.1:3500").Build();
+        DaprClient dapr = scope.ServiceProvider.GetRequiredService<DaprClient>();
+        // This gateway fixture does not launch a sidecar. Its explicit readiness double
+        // represents an already admitted app without bypassing the production creator.
+        using var probe = new HttpClient(new BootstrapHttpMessageHandler((message, _) =>
+        {
+            if (message.Method != HttpMethod.Get || message.Content is not null
+                || message.RequestUri!.AbsolutePath != $"/v1.0/invoke/{PhysicalAppId}/method/alive"
+                || message.Headers.Authorization is not null || message.Headers.Contains(BoundWorkloadCommandProof.HeaderName)
+                || message.Headers.Contains(EventStoreWorkloadAuthenticationDefaults.AssertionHeaderName))
+                throw new InvalidOperationException("The fixture expected a credential-free physical self-health probe.");
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
+        })) { Timeout = Timeout.InfiniteTimeSpan };
         HttpRequestMessage? request = await TenantBootstrapBoundCommand.CreateAsync(scope.ServiceProvider, configuration,
-            dapr, command, administrator, humanToken, TimeProvider.System, TimeSpan.FromSeconds(1), cancellationToken);
+            dapr, probe, command, administrator, humanToken, TimeProvider.System, TimeSpan.FromSeconds(1), cancellationToken);
         if (request is null) return null;
         request.RequestUri = new Uri("/api/v1/commands/bound/workload", UriKind.Relative);
         request.Headers.Add(DaprAppChannelToken.HeaderName, _channelToken);

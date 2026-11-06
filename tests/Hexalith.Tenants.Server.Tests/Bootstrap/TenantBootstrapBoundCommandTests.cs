@@ -139,9 +139,11 @@ public sealed class TenantBootstrapBoundCommandTests
             services.AddSingleton(authority);
         }
 #endif
+        BootstrapAppReadinessFixture.AddSidecar(services);
         await using var provider = services.BuildServiceProvider();
         await using var scope = provider.CreateAsyncScope();
-        using DaprClient dapr = new DaprClientBuilder().UseHttpEndpoint("http://127.0.0.1:3500").Build();
+        using DaprClient dapr = BootstrapAppReadinessFixture.CreateDapr();
+        using HttpClient probe = BootstrapAppReadinessFixture.CreateProbe();
         string subject = scenario == "subject" ? "foreign-administrator" : "bootstrap-administrator";
         List<Claim> claims = [new("sub", subject)];
         if (scenario != "not-admin") claims.Add(new("global_admin", "true"));
@@ -162,11 +164,11 @@ public sealed class TenantBootstrapBoundCommandTests
         if (scenario == "buffer-limit")
         {
             command = command with { Extensions = new Dictionary<string, string> { ["oversized"] = new string('x', 1_048_576) } };
-            await Should.ThrowAsync<HttpRequestException>(() => TenantBootstrapBoundCommand.CreateAsync(scope.ServiceProvider, configuration, dapr, command,
+            await Should.ThrowAsync<HttpRequestException>(() => TenantBootstrapBoundCommand.CreateAsync(scope.ServiceProvider, configuration, dapr, probe, command,
                 "bootstrap-administrator", bearer, clock, TimeSpan.FromSeconds(1), callerCancellation.Token));
             return;
         }
-        Task<HttpRequestMessage?> creation = TenantBootstrapBoundCommand.CreateAsync(scope.ServiceProvider, configuration, dapr, command,
+        Task<HttpRequestMessage?> creation = TenantBootstrapBoundCommand.CreateAsync(scope.ServiceProvider, configuration, dapr, probe, command,
             "bootstrap-administrator", bearer, clock, readinessTimeout, callerCancellation.Token);
         if (scenario is "cancel-before-buffer" or "buffer-cancellation")
         {
@@ -367,7 +369,7 @@ public sealed class TenantBootstrapBoundCommandTests
     public async Task InvalidReadinessTimeoutsAreRefused(int milliseconds)
     {
         var error = await Should.ThrowAsync<ArgumentOutOfRangeException>(() => TenantBootstrapBoundCommand.CreateAsync(
-            null!, null!, null!, null!, "administrator", "credential", TimeProvider.System,
+            null!, null!, null!, null!, null!, "administrator", "credential", TimeProvider.System,
             TimeSpan.FromMilliseconds(milliseconds), TestContext.Current.CancellationToken));
         error.ParamName.ShouldBe("readinessTimeout");
     }
@@ -379,7 +381,7 @@ public sealed class TenantBootstrapBoundCommandTests
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
         await Should.ThrowAsync<OperationCanceledException>(() => TenantBootstrapBoundCommand.CreateAsync(
-            null!, null!, null!, null!, "administrator", "credential", TimeProvider.System,
+            null!, null!, null!, null!, null!, "administrator", "credential", TimeProvider.System,
             Timeout.InfiniteTimeSpan, cancellation.Token));
     }
 }

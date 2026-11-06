@@ -55,11 +55,23 @@ public sealed class TenantBootstrapCommandTransportTests
                 if (hold) await Task.Delay(Timeout.InfiniteTimeSpan, token);
                 return new HttpResponseMessage(HttpStatusCode.ServiceUnavailable);
             }));
+        int probeRequests = 0;
+        builder.Services.AddHttpClient(TenantBootstrapServiceCollectionExtensions.ReadinessClientName)
+            .ConfigurePrimaryHttpMessageHandler(() => new BootstrapCommandHttpMessageHandler((_, _) =>
+            {
+                Interlocked.Increment(ref probeRequests);
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.ServiceUnavailable));
+            }));
         await using ServiceProvider provider = builder.Services.BuildServiceProvider();
         IHttpClientFactory factory = provider.GetRequiredService<IHttpClientFactory>();
         using HttpClient command = factory.CreateClient(TenantBootstrapServiceCollectionExtensions.CommandClientName);
         using HttpClient general = factory.CreateClient();
         using HttpClient credentials = factory.CreateClient(TenantBootstrapServiceCollectionExtensions.CredentialClientName);
+        using HttpClient probe = factory.CreateClient(TenantBootstrapServiceCollectionExtensions.ReadinessClientName);
+        probe.Timeout.ShouldBe(Timeout.InfiniteTimeSpan);
+        using HttpResponseMessage probeResponse = await probe.GetAsync("http://127.0.0.1:3500/readiness-control", TestContext.Current.CancellationToken);
+        probeResponse.StatusCode.ShouldBe(HttpStatusCode.ServiceUnavailable);
+        probeRequests.ShouldBe(1, "only the explicit read-only readiness loop may retry probes");
         command.Timeout.ShouldBe(TimeSpan.FromSeconds(30));
         general.Timeout.ShouldBe(Timeout.InfiniteTimeSpan);
         credentials.Timeout.ShouldBe(Timeout.InfiniteTimeSpan);
@@ -79,6 +91,10 @@ public sealed class TenantBootstrapCommandTransportTests
     [Theory]
     [InlineData(false, "accepted", true)]
     [InlineData(true, "accepted", true)]
+    [InlineData(false, "unhealthy", true)]
+    [InlineData(true, "unhealthy", true)]
+    [InlineData(false, "unhealthy", false)]
+    [InlineData(true, "unhealthy", false)]
     [InlineData(false, "unavailable", true)]
     [InlineData(true, "unavailable", true)]
     [InlineData(false, "denied", true)]
@@ -141,7 +157,7 @@ public sealed class TenantBootstrapCommandTransportTests
         builder.Services.AddScoped(provider =>
         {
             _ = provider.GetRequiredService<BootstrapCommandScopeCompletion>();
-            return new DaprClientBuilder().UseHttpEndpoint("http://127.0.0.1:3500").Build();
+            return BootstrapAppReadinessFixture.CreateDapr();
         });
         builder.Services.AddHttpClient(TenantBootstrapServiceCollectionExtensions.CommandClientName)
             .ConfigureHttpClient(client =>
@@ -209,6 +225,7 @@ public sealed class TenantBootstrapCommandTransportTests
                 if (scenario == "accepted") await Task.Delay(TimeSpan.FromMilliseconds(1500), token);
                 return new HttpResponseMessage(scenario switch
                 {
+                    "unhealthy" => HttpStatusCode.InternalServerError,
                     "unavailable" => HttpStatusCode.ServiceUnavailable,
                     "denied" => HttpStatusCode.Forbidden,
                     _ => HttpStatusCode.Accepted,
@@ -230,7 +247,7 @@ public sealed class TenantBootstrapCommandTransportTests
             if (scenario != "shutdown")
             {
                 int diagnostic = await outcome.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
-                diagnostic.ShouldBe(scenario switch { "accepted" => 2001, "unavailable" or "denied" => 2003, _ => 2002 });
+                diagnostic.ShouldBe(scenario switch { "accepted" => 2001, "unhealthy" or "unavailable" or "denied" => 2003, _ => 2002 });
             }
             else outcome.Task.IsCompleted.ShouldBeFalse();
 
@@ -244,12 +261,13 @@ public sealed class TenantBootstrapCommandTransportTests
                 receipt.Phase.ShouldBe(scenario switch
                 {
                     "accepted" => "accepted",
-                    "unavailable" or "denied" => "response-received",
+                    "unhealthy" or "unavailable" or "denied" => "response-received",
                     _ => "attempted",
                 });
                 receipt.HttpStatus.ShouldBe(scenario switch
                 {
                     "accepted" => 202,
+                    "unhealthy" => 500,
                     "unavailable" => 503,
                     "denied" => 403,
                     _ => (int?)null,
@@ -427,7 +445,8 @@ public sealed class TenantBootstrapCommandTransportTests
         }
     }
 
-    private static HostApplicationBuilder CreateBuilder(bool bootstrapFirst)
+    /// <summary>Composes the real general and bootstrap HTTP policies in either supported registration order.</summary>
+    internal static HostApplicationBuilder CreateBuilder(bool bootstrapFirst)
     {
         HostApplicationBuilder builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
         {
@@ -437,6 +456,8 @@ public sealed class TenantBootstrapCommandTransportTests
         if (bootstrapFirst) builder.Services.AddTenantBootstrap();
         builder.AddServiceDefaults();
         if (!bootstrapFirst) builder.Services.AddTenantBootstrap();
+        BootstrapAppReadinessFixture.AddSidecar(builder.Services);
+        BootstrapAppReadinessFixture.AddProbe(builder.Services);
         builder.Logging.ClearProviders();
         builder.Services.ConfigureAll<HttpStandardResilienceOptions>(static options =>
         {
