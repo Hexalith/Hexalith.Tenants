@@ -4,7 +4,7 @@
         <HexalithEventStoreVersion Condition="'$(HexalithEventStoreVersion)' == ''">4.1.0</HexalithEventStoreVersion>
         <HexalithMcpCliVersion Condition="'$(HexalithMcpCliVersion)' == ''">2.0.0</HexalithMcpCliVersion>
         <HexalithTenantsVersion Condition="'$(HexalithTenantsVersion)' == ''">7.0.0</HexalithTenantsVersion>
-        <HexalithMemoriesVersion Condition="'$(HexalithMemoriesVersion)' == ''">3.0.23</HexalithMemoriesVersion>
+        <HexalithMemoriesVersion Condition="'$(HexalithMemoriesVersion)' == ''">3.0.25</HexalithMemoriesVersion>
         <HexalithBuildPackageVersions1>$(MSBuildThisFileDirectory)references/Hexalith.Builds/Props/Directory.Packages.props</HexalithBuildPackageVersions1>
         <HexalithBuildPackageVersions2>$(MSBuildThisFileDirectory)../Hexalith.Builds/Props/Directory.Packages.props</HexalithBuildPackageVersions2>
         <HexalithBuildPackageVersions3>$(MSBuildThisFileDirectory)../../Hexalith.Builds/Props/Directory.Packages.props</HexalithBuildPackageVersions3>
