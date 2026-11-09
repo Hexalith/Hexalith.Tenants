@@ -78,8 +78,11 @@ class CatalogArtifactPackTests(unittest.TestCase):
             self.assertEqual(built.returncode, 0, built.stdout + built.stderr)
             stale = {package: binary(package).read_bytes() for package in ('Contracts', 'Server')}
             for property_name, version, diagnostic in (
-                    ('HexalithEventStoreVersion', '3.128.4', 'Canonical Tenants packages require EventStore 4.0.4 or 4.1.0'),
-                    ('HexalithEventStoreVersion', '3.133.0', 'Canonical Tenants packages require EventStore 4.0.4 or 4.1.0'),
+                    ('HexalithEventStoreVersion', '3.128.4', 'Canonical Tenants packages require EventStore 4.0.4, 4.1.0 or 4.2.0'),
+                    ('HexalithEventStoreVersion', '3.133.0', 'Canonical Tenants packages require EventStore 4.0.4, 4.1.0 or 4.2.0'),
+                    ('HexalithEventStoreVersion', '4.2.0-preview.1', "Catalog SDK selection '4.2.0-preview.1' is not qualified"),
+                    ('HexalithEventStoreVersion', '4.2.1', "Catalog SDK selection '4.2.1' is not qualified"),
+                    ('HexalithEventStoreVersion', '4.3.0', "Catalog SDK selection '4.3.0' is not qualified"),
                     ('HexalithMcpCliVersion', '1.1.0', 'Canonical Tenants packages require McpCli.Abstractions 2.0.0')):
                 with self.subTest(canonical_guard=property_name):
                     rejected = run('build', project('Contracts'), '--no-restore', *common,
@@ -87,9 +90,11 @@ class CatalogArtifactPackTests(unittest.TestCase):
                     self.assertNotEqual(rejected.returncode, 0, rejected.stdout + rejected.stderr)
                     self.assertIn(diagnostic, rejected.stdout + rejected.stderr)
             # Keep the exact previously qualified canonical package profile buildable.
-            compatible = run('build', 'PackFixtures.slnx', *common, '-warnaserror',
-                             '-p:HexalithEventStoreVersion=4.0.4')
-            self.assertEqual(compatible.returncode, 0, compatible.stdout + compatible.stderr)
+            for sdk in ('4.0.4', '4.1.0', '4.2.0'):
+                with self.subTest(canonical_sdk=sdk):
+                    compatible = run('build', 'PackFixtures.slnx', *common, '-warnaserror',
+                                     '-p:HexalithEventStoreVersion=' + sdk)
+                    self.assertEqual(compatible.returncode, 0, compatible.stdout + compatible.stderr)
             # The ordinary default remains the current public SDK.
             selected = run('msbuild', project('Contracts'), '-nologo', '-getProperty:HexalithEventStoreVersion')
             self.assertEqual(selected.returncode, 0, selected.stdout + selected.stderr)
