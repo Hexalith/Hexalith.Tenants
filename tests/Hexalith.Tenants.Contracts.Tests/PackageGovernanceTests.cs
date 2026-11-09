@@ -933,6 +933,30 @@ public class PackageGovernanceTests {
         bool accepted)
         => EvaluateEventStoreVersionSelectionAsync(selectedVersion, useSource, selectedVersion, globalOverride: true, accepted);
 
+    /// <summary>Requires the floor to run through ordinary restore and build entry targets.</summary>
+    /// <param name="entryTarget">The normal MSBuild entry target.</param>
+    /// <param name="selectedVersion">The global package or exact source selection.</param>
+    /// <param name="useSource">Whether the fixture selects the source graph.</param>
+    /// <param name="accepted">Whether the selection should pass the floor.</param>
+    [Theory]
+    [InlineData("CollectPackageReferences", "3.128.3", false, false)]
+    [InlineData("PrepareForBuild", "3.128.3", false, false)]
+    [InlineData("CollectPackageReferences", "3.128.4-preview.1", false, false)]
+    [InlineData("PrepareForBuild", "3.128.4-preview.1", false, false)]
+    [InlineData("CollectPackageReferences", "3.128.4+metadata-with-dash", false, true)]
+    [InlineData("PrepareForBuild", "3.128.4+metadata-with-dash", false, true)]
+    [InlineData("CollectPackageReferences", "4.1.0", false, true)]
+    [InlineData("PrepareForBuild", "4.1.0", false, true)]
+    [InlineData("CollectPackageReferences", "test-source-version", true, true)]
+    [InlineData("PrepareForBuild", "test-source-version", true, true)]
+    public Task EventStorePackageFloorRunsThroughRestoreAndBuildAsync(
+        string entryTarget,
+        string selectedVersion,
+        bool useSource,
+        bool accepted)
+        => EvaluateEventStoreVersionSelectionAsync(selectedVersion, useSource, selectedVersion,
+            globalOverride: true, accepted, entryTarget: entryTarget);
+
     [Fact]
     public Task EventStore_package_floor_does_not_override_nested_owner_catalogsAsync()
         => EvaluateEventStoreVersionSelectionAsync("3.128.4", false, "3.128.4", globalOverride: true, accepted: true, nestedReference: true);
@@ -1136,7 +1160,8 @@ public class PackageGovernanceTests {
         bool accepted,
         bool nestedReference = false,
         bool requireCatalogPackage = false,
-        bool requireSdkSelection = false) {
+        bool requireSdkSelection = false,
+        string? entryTarget = null) {
         ArgumentNullException.ThrowIfNull(selectedVersion);
         ArgumentNullException.ThrowIfNull(expectedVersion);
         string repoRoot = FindRepoRoot();
@@ -1162,7 +1187,9 @@ public class PackageGovernanceTests {
                         new XAttribute("Include", $"Hexalith.EventStore.{package}"),
                         new XAttribute("Version", selectedVersion)))),
                 new XElement("Import", new XAttribute("Project", Path.Combine(repoRoot, "Directory.Build.props"))),
-                new XElement("Import", new XAttribute("Project", Path.Combine(repoRoot, "Directory.Build.targets")))))
+                new XElement("Import", new XAttribute("Project", Path.Combine(repoRoot, "Directory.Build.targets"))),
+                new XElement("Target", new XAttribute("Name", "CollectPackageReferences")),
+                new XElement("Target", new XAttribute("Name", "PrepareForBuild"))))
                 .Save(projectPath);
 
             var startInfo = new ProcessStartInfo("dotnet") {
@@ -1179,7 +1206,7 @@ public class PackageGovernanceTests {
             }
             foreach (string argument in new[] {
                 "msbuild", projectPath, "-nologo",
-                requireSdkSelection ? "-target:ValidateCatalogSdkSelection"
+                entryTarget is not null ? $"-target:{entryTarget}" : requireSdkSelection ? "-target:ValidateCatalogSdkSelection"
                     : requireCatalogPackage ? "-target:ValidatePublishedCatalogSdk" : "-target:ValidateEventStorePackageFloor",
                 "-getProperty:HexalithEventStoreVersion,HexalithEventStoreFromSource,HexalithTenantsCatalogArtifactsAvailable,HexalithTenantsCatalogSdkVersion,DefineConstants", "-getItem:PackageVersion",
             }) {
