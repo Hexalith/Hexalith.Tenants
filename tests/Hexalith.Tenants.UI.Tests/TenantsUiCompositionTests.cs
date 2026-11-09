@@ -14,6 +14,7 @@ using Hexalith.EventStore.Client.Queries;
 using Hexalith.FrontComposer.Contracts.Registration;
 using Hexalith.FrontComposer.Shell.Components.Icons;
 using Hexalith.FrontComposer.Shell.Extensions;
+using Hexalith.FrontComposer.Shell.Options;
 using Hexalith.FrontComposer.Shell.Services.Auth;
 using Hexalith.Memories.Client.Rest;
 using Hexalith.Tenants.Contracts.Commands;
@@ -773,21 +774,27 @@ public sealed class TenantsUiCompositionTests
         ServiceCollection services = new();
         services.AddSingleton(configuration);
         services.AddHexalithFrontComposerTokenRelay();
+        services.Configure<FrontComposerAuthenticationOptions>(options => options.TenantClaimTypes.Add("tenant_id"));
         services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization);
         var primaryHandler = new AuthorizationRecordingHandler();
         services.AddHttpClient<TenantsRestQueryClient>()
             .ConfigurePrimaryHttpMessageHandler(() => primaryHandler);
+        FrontComposerTokenSession session = new("direct-read-session", "operator-user", "tenant-a");
         var httpContext = new DefaultHttpContext
         {
             User = new ClaimsPrincipal(new ClaimsIdentity(
-                [new Claim("sub", "operator-user")],
+                [
+                    new Claim("sub", session.UserId),
+                    new Claim("tenant_id", session.TenantId),
+                    new Claim(FrontComposerTokenSession.ClaimType, session.SessionId),
+                ],
                 authenticationType: "test")),
         };
         services.AddSingleton<IHttpContextAccessor>(new HttpContextAccessor { HttpContext = httpContext });
 
         using ServiceProvider provider = services.BuildServiceProvider();
         provider.GetRequiredService<FrontComposerUserTokenStore>().Set(
-            "operator-user",
+            session,
             "direct-read-token",
             DateTimeOffset.UtcNow.AddMinutes(5));
         using IServiceScope scope = provider.CreateScope();
