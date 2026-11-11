@@ -3,14 +3,14 @@
   "targetFramework": "net10.0",
   "baseline": "cca5537c3a9d6dde162787053b34e17c8351b21d",
   "submodules": {
-    "references/Hexalith.EventStore": "cffa12368677cfa83919a1f0bdc4cebc5a1bac01",
+    "references/Hexalith.EventStore": "dbb67326fe86a93e8215440919c65b5c77cedaf8",
     "references/Hexalith.Commons": "11555ace9efcae2928a00122dcba91243e5a8a1a",
     "references/Hexalith.AI.Tools": "8a3885dd22aea88edd57771cfe592c382df2c583",
-    "references/Hexalith.FrontComposer": "2783c0bde4145cc34699bf421aea0b97e57b045a",
+    "references/Hexalith.FrontComposer": "92d023c880caeae3ee1533fe79bc4241b4034bce",
     "references/Hexalith.Builds": "e35dd39872baf071aec6a7be1b252b16f460e08c",
     "references/Hexalith.PolymorphicSerializations": "bce4eb9f45c6b131b960ab4fa39e50ff01e51960",
     "references/Hexalith.Memories": "fe27727d0ee43892c55818acb1cfb435370b4005",
-    "references/Hexalith.McpCli": "ff957b59181a6e241f8a7cc686cd1be86d96f35e",
+    "references/Hexalith.McpCli": "2723ce19dff7765fef9dcfef91933b622a86cce2",
     "references/Hexalith.Platform": "b4b4eda9120e89a52afe6576f46bb7706860f3d1"
   },
   "localVerification": {
@@ -44,7 +44,10 @@
     "Hexalith.McpCli-correction-validation.log": "\u29d7   --- input ---\nfix(build): match apphost sdk to the recorded package catalog\n\u2714   found 0 problems, 0 warnings\n",
     "Hexalith.Memories-correction-validation.log": "\u29d7   --- input ---\nfix(build): match apphost sdk to the recorded package catalog\n\u2714   found 0 problems, 0 warnings\n",
     "Hexalith.FrontComposer-correction-validation.log": "\u29d7   --- input ---\nfix(build): match apphost sdk to the recorded package catalog\n\u2714   found 0 problems, 0 warnings\n",
-    "Hexalith.EventStore-correction-validation.log": "\u29d7   --- input ---\nfix(build): match apphost sdk to the recorded package catalog\n\u2714   found 0 problems, 0 warnings\n"
+    "Hexalith.EventStore-correction-validation.log": "\u29d7   --- input ---\nfix(build): match apphost sdk to the recorded package catalog\n\u2714   found 0 problems, 0 warnings\n",
+    "frontcomposer-ci-ledger-validation.log": "\u29d7   --- input ---\nfix(ci): reconcile the existing test fixture analyzer inventory\n\u2714   found 0 problems, 0 warnings\n",
+    "mcpcli-ci-identities-validation.log": "\u29d7   --- input ---\nfix(ci): validate catalog and workflow identities independently\n\u2714   found 0 problems, 0 warnings\n",
+    "eventstore-ci-fixtures-validation.log": "\u29d7   --- input ---\nfix(ci): distinguish test resource values from committed credentials\n\u2714   found 0 problems, 0 warnings\n"
   },
   "maintainerPushReports": {
     "Hexalith.EventStore": "Bypassed rule violations: pull request and 7 required status checks expected.",
@@ -73,5 +76,29 @@
     "priority": 0,
     "metadataAuthentication": "installed Ubuntu archive signing keyring",
     "disabledChecks": []
+  },
+  "submoduleCiRepairs": {
+    "Hexalith.FrontComposer": {
+      "analyzerGovernanceTests": 1,
+      "identifierSealTests": 1,
+      "consumerProjectionTests": 31,
+      "policySealChanged": false
+    },
+    "Hexalith.McpCli": {
+      "workflowGovernanceTests": 4,
+      "driftMutations": 11,
+      "nestedGitlinksChanged": false
+    },
+    "Hexalith.EventStore": {
+      "scannerRegressions": 276,
+      "focusedContractAndRedactionTests": 2,
+      "remainingImmutableArchiveFindings": 9,
+      "scanningScopeChanged": false
+    }
+  },
+  "remainingOwnerBlockers": {
+    "Hexalith.EventStore": "Nine immutable archived synthetic credential fixture findings require justified archive handling.",
+    "Hexalith.McpCli": "Recorded nested catalog vulnerability and111 foreign-source census findings.",
+    "Hexalith.Platform": "Frozen producer and historical qualification bindings require real provenance reconciliation."
   }
 }

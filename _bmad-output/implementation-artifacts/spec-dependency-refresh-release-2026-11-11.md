@@ -129,9 +129,9 @@ All declared root dependency pointers are intentional parts of the requested syn
 | Path | Baseline | Target |
 | --- | --- | --- |
 | `references/Hexalith.Builds` | `891886ddc60a9924d053bb74bf6bcc73e101b2ce` | `e35dd39872baf071aec6a7be1b252b16f460e08c` |
-| `references/Hexalith.EventStore` | `b882c1005050aaebfa70618b5a72c1c8be452281` | `cffa12368677cfa83919a1f0bdc4cebc5a1bac01` |
-| `references/Hexalith.FrontComposer` | `7ace06c5c50406b9021fc95d8d87cf962b5180dd` | `2783c0bde4145cc34699bf421aea0b97e57b045a` |
-| `references/Hexalith.McpCli` | `051fadedf68335ba5c525cf26c42f86aa69697f9` | `ff957b59181a6e241f8a7cc686cd1be86d96f35e` |
+| `references/Hexalith.EventStore` | `b882c1005050aaebfa70618b5a72c1c8be452281` | `dbb67326fe86a93e8215440919c65b5c77cedaf8` |
+| `references/Hexalith.FrontComposer` | `7ace06c5c50406b9021fc95d8d87cf962b5180dd` | `92d023c880caeae3ee1533fe79bc4241b4034bce` |
+| `references/Hexalith.McpCli` | `051fadedf68335ba5c525cf26c42f86aa69697f9` | `2723ce19dff7765fef9dcfef91933b622a86cce2` |
 | `references/Hexalith.Memories` | `43d2d72f7170a29a58b6046f69e05c9ad9734701` | `fe27727d0ee43892c55818acb1cfb435370b4005` |
 | `references/Hexalith.Platform` | `5adb00b2f30d2985ee0b1fb1abd713b10660dc48` | `b4b4eda9120e89a52afe6576f46bb7706860f3d1` |
 
@@ -140,3 +140,5 @@ Final shared CI repair: the canonical Builds owner revision supplies SDK10.0.404
 Hosted Ubuntu DNS recovery: the final runtime revision's ordinary checks passed, but all browser prerequisite jobs failed because the hosted resolver could not resolve Canonical mirror names. An isolated control run43041608789 reproduced this on Ubuntu24 and26; a priority-zero kernel.org mirror, Ubuntu-keyring verification and actual font installation passed on both. The immutable Builds CI hotfix f5a46e8a70a1893bc638fa5f488d57767fafdede backports only one prerequisite step to the previously qualified1cc workflow and adds the shared action/script plus8 passing tests. Tenants uses that exact action before its four matrix jobs and that exact workflow for its generic smoke lane. Source Builds dependencies remain at e35dd39872baf071aec6a7be1b252b16f460e08c. No signature, browser, application or coverage checks were disabled.
 
 The first mirror-recovery CI run passed all four live browser qualifications. Two Contracts governance assertions still pinned the previous workflow SHA. Their approved immutable workflow SHA now matches the recovery backport, and the approved action inventory includes the mirror initializer. Both focused workflow governance tests pass after a warning-free Release build.
+
+Additional owner-local CI repairs: FrontComposer records its existing private-fixture analyzer pragma in the factual ledger (governance and identifier seal tests plus31 consumer projection cases pass; the current configuration already matches its sealed digest). McpCli independently validates its approved catalog gitlink and workflow executor (4 tests and11 negative drift cases pass). EventStore fixes its stale4.47.0 tool assertion and four current scanner findings with276 scanner regressions plus focused contract and redaction cases passing. Nine immutable archived synthetic-fixture findings remain; their bytes and scanning scope are preserved. McpCli's older nested catalog vulnerability/census and Platform's frozen qualification lineage remain separate owner blockers. No nested gitlinks were changed.
