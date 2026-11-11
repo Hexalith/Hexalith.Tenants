@@ -1,0 +1,45 @@
+name: Runner network diagnostic
+on:
+  push:
+    branches: [fix/ci-runner-network-probe]
+permissions:
+  contents: read
+jobs:
+  dns:
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [ubuntu-latest, ubuntu-24.04]
+    runs-on: ${{ matrix.image }}
+    timeout-minutes: 10
+    steps:
+      - name: Diagnose DNS and Ubuntu mirror fallback
+        shell: bash
+        run: |
+          set -u
+          set +e
+          cat /etc/os-release
+          for host in github.com azure.archive.ubuntu.com archive.ubuntu.com security.ubuntu.com mirrors.edge.kernel.org; do
+            echo "Resolver probe: $host"
+            timeout 15 getent ahostsv4 "$host" || true
+            sudo -u _apt timeout 15 getent ahostsv4 "$host" || true
+          done
+          echo 'Original mirror list'
+          cat /etc/apt/apt-mirrors.txt || true
+          echo 'Original apt update'
+          sudo timeout 90 apt-get -o APT::Update::Error-Mode=any -o Acquire::Retries=0 -o Acquire::http::Timeout=10 -o Acquire::https::Timeout=10 update
+          initial_status=$?
+          echo "Initial apt status: $initial_status"
+          if [ "$initial_status" -ne 0 ]; then
+            . /etc/os-release
+            curl --fail --silent --show-error --location --max-time 30               "https://mirrors.edge.kernel.org/ubuntu/dists/$VERSION_CODENAME/InRelease" -o /tmp/ubuntu-probe-InRelease || exit 1
+            gpgv --keyring /usr/share/keyrings/ubuntu-archive-keyring.gpg /tmp/ubuntu-probe-InRelease || exit 1
+            if [ ! -f /etc/apt/apt-mirrors.txt ]; then
+              echo 'The runner does not use the expected bounded mirror list.' >&2
+              exit 1
+            fi
+            sudo cp /etc/apt/apt-mirrors.txt /tmp/ubuntu-original-mirrors.txt
+            { printf 'https://mirrors.edge.kernel.org/ubuntu/\tpriority:0\n'; cat /tmp/ubuntu-original-mirrors.txt; } | sudo tee /etc/apt/apt-mirrors.txt >/dev/null
+            sudo timeout 120 apt-get -o APT::Update::Error-Mode=any -o Acquire::Retries=0 -o Acquire::http::Timeout=10 -o Acquire::https::Timeout=10 update || exit 1
+          fi
+          sudo timeout 120 apt-get -o Acquire::Retries=0 -o Acquire::http::Timeout=10 -o Acquire::https::Timeout=10 install -y fonts-freefont-ttf fonts-unifont
