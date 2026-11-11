@@ -94,3 +94,43 @@ Implementation and review are complete. Publication remains an authorized operat
 - NuGet publication -- verify all five new package versions and exact release source through workflow evidence and public package endpoints.
 
 The Builds remote advanced during implementation with its own SDK11 refresh (see canonical recorded revisions in the companion JSON). Its owner changes supply SDK11, compatible MSBuild compile-only references, C#15-compatible source, current package selections and a complete317-entry audit. Integration preserved those changes; the local C#14 pin was discarded because the owning repository now pins SDK11. Only the remaining SwaggerUI11.0.0 update was applied on top, followed by a validated revision-bound audit. Final AppHost Release build and66 tests and intended UI Release build pass without warnings against that integrated revision. Review fixes pass11 catalog-consumer and14 bootstrap/workflow tests. Existing workspace inventory completeness errors and Platform's separate release-provenance refusal are independent of Tenants admission; no gates were weakened.
+
+## File List
+
+- `.github/workflows/ci.yml`
+- `CONTRIBUTING.md`
+- `Directory.Build.props`
+- `Directory.Build.targets`
+- `README.md`
+- `_bmad-output/implementation-artifacts/dependency-refresh-2026-11-11-verification.json`
+- `_bmad-output/implementation-artifacts/spec-dependency-refresh-release-2026-11-11.md`
+- `docs/development-route-catalog.md`
+- `docs/guides/canonical-scope-upgrade.md`
+- `docs/quickstart.md`
+- `docs/tenants-ui-deferred-at-handoff.md`
+- `global.json`
+- `references/Hexalith.Builds`
+- `references/Hexalith.EventStore`
+- `references/Hexalith.FrontComposer`
+- `references/Hexalith.McpCli`
+- `references/Hexalith.Memories`
+- `references/Hexalith.Platform`
+- `scripts/verify-catalog-package-consumer.py`
+- `src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj`
+- `tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs`
+- `tests/scripts/test_bootstrap_compatibility.py`
+- `tests/scripts/test_catalog_artifact_guards.py`
+- `tests/scripts/test_catalog_package_consumer.py`
+
+## Completion Notes List
+
+All declared root dependency pointers are intentional parts of the requested synchronization. Builds supplies the refreshed SDK/package catalog, SDK11-compatible tooling and validated package audit. The other pointers synchronize remotely available domain, UI, host and publication updates. Dependency AppHost SDKs retain the13.6.4 selected by their own recorded catalogs; Tenants uses13.6.5 from its updated root catalog. Updating these independent owners by guessing sibling-catalog compatibility caused NU1109 in standalone CI and was corrected without updating nested submodules or adding disallowed consumer catalog overrides.
+
+| Path | Baseline | Target |
+| --- | --- | --- |
+| `references/Hexalith.Builds` | `891886ddc60a9924d053bb74bf6bcc73e101b2ce` | `a3a3cf2959cc8020c37fc980a05d4cf6eb7a265b` |
+| `references/Hexalith.EventStore` | `b882c1005050aaebfa70618b5a72c1c8be452281` | `cffa12368677cfa83919a1f0bdc4cebc5a1bac01` |
+| `references/Hexalith.FrontComposer` | `7ace06c5c50406b9021fc95d8d87cf962b5180dd` | `2783c0bde4145cc34699bf421aea0b97e57b045a` |
+| `references/Hexalith.McpCli` | `051fadedf68335ba5c525cf26c42f86aa69697f9` | `ff957b59181a6e241f8a7cc686cd1be86d96f35e` |
+| `references/Hexalith.Memories` | `43d2d72f7170a29a58b6046f69e05c9ad9734701` | `fe27727d0ee43892c55818acb1cfb435370b4005` |
+| `references/Hexalith.Platform` | `5adb00b2f30d2985ee0b1fb1abd713b10660dc48` | `b4b4eda9120e89a52afe6576f46bb7706860f3d1` |

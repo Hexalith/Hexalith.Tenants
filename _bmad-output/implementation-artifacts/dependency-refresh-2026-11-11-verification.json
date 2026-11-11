@@ -3,14 +3,14 @@
   "targetFramework": "net10.0",
   "baseline": "cca5537c3a9d6dde162787053b34e17c8351b21d",
   "submodules": {
-    "references/Hexalith.EventStore": "eef4a2a1647702033e4d80a747bb804775fce60a",
+    "references/Hexalith.EventStore": "cffa12368677cfa83919a1f0bdc4cebc5a1bac01",
     "references/Hexalith.Commons": "11555ace9efcae2928a00122dcba91243e5a8a1a",
     "references/Hexalith.AI.Tools": "8a3885dd22aea88edd57771cfe592c382df2c583",
-    "references/Hexalith.FrontComposer": "59fb8457ef9989f2ae1f01da96ec8196e5f64e49",
+    "references/Hexalith.FrontComposer": "2783c0bde4145cc34699bf421aea0b97e57b045a",
     "references/Hexalith.Builds": "a3a3cf2959cc8020c37fc980a05d4cf6eb7a265b",
     "references/Hexalith.PolymorphicSerializations": "bce4eb9f45c6b131b960ab4fa39e50ff01e51960",
-    "references/Hexalith.Memories": "3a47c520052afa4d66cb9f3af15af1de610e3601",
-    "references/Hexalith.McpCli": "a736fd9805d7c6bb17dea410a0b8806f55a89bcf",
+    "references/Hexalith.Memories": "fe27727d0ee43892c55818acb1cfb435370b4005",
+    "references/Hexalith.McpCli": "ff957b59181a6e241f8a7cc686cd1be86d96f35e",
     "references/Hexalith.Platform": "b4b4eda9120e89a52afe6576f46bb7706860f3d1"
   },
   "localVerification": {
@@ -21,7 +21,8 @@
     "bootstrapWorkflowTests": 14,
     "browserModeTests": 4,
     "catalogEntries": 317,
-    "catalogFamilies": 157
+    "catalogFamilies": 157,
+    "fullReleaseSolutionBuild": "passed with zero warnings and errors"
   },
   "buildsContentCommit": "019fc503e02f3239938c4793fea94021eccac094",
   "buildsAuditCommit": "a3a3cf2959cc8020c37fc980a05d4cf6eb7a265b",
@@ -34,10 +35,20 @@
     "builds-content-final-validation.log": "\u29d7   --- input ---\nbuild(deps): refresh compatible swagger ui dependencies\n\u2714   found 0 problems, 0 warnings\n",
     "Hexalith.McpCli-validation.log": "\u29d7   --- input ---\nbuild(deps): align aspire apphost sdk with the shared catalog\n\u2714   found 0 problems, 0 warnings\n",
     "builds-content-validation.log": "\u29d7   --- input ---\nfix(build): support the latest sdk and compatible package versions\n\u2714   found 0 problems, 0 warnings\n",
-    "tenants-validation.log": "\u29d7   --- input ---\nfix(deps): update sdk and qualify the latest package cohort\n\u2714   found 0 problems, 0 warnings\n"
+    "tenants-validation.log": "\u29d7   --- input ---\nfix(deps): update sdk and qualify the latest package cohort\n\u2714   found 0 problems, 0 warnings\n",
+    "Hexalith.McpCli-correction-validation.log": "\u29d7   --- input ---\nfix(build): match apphost sdk to the recorded package catalog\n\u2714   found 0 problems, 0 warnings\n",
+    "Hexalith.Memories-correction-validation.log": "\u29d7   --- input ---\nfix(build): match apphost sdk to the recorded package catalog\n\u2714   found 0 problems, 0 warnings\n",
+    "Hexalith.FrontComposer-correction-validation.log": "\u29d7   --- input ---\nfix(build): match apphost sdk to the recorded package catalog\n\u2714   found 0 problems, 0 warnings\n",
+    "Hexalith.EventStore-correction-validation.log": "\u29d7   --- input ---\nfix(build): match apphost sdk to the recorded package catalog\n\u2714   found 0 problems, 0 warnings\n"
   },
   "maintainerPushReports": {
     "Hexalith.EventStore": "Bypassed rule violations: pull request and 7 required status checks expected.",
     "Hexalith.Memories": "Bypassed rule violations: pull request and 3 required status checks expected."
+  },
+  "ownerSdkCompatibility": {
+    "tenants": "13.6.5",
+    "dependencyAppHosts": "13.6.4",
+    "evidence": "Recorded owner Builds catalog versions match the restored SDK pins; /tmp/tenants-owner-sdk-alignment-2026-11-11.json",
+    "nestedSubmodulesUpdated": false
   }
 }
