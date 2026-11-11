@@ -3,7 +3,7 @@
   "targetFramework": "net10.0",
   "baseline": "cca5537c3a9d6dde162787053b34e17c8351b21d",
   "submodules": {
-    "references/Hexalith.EventStore": "a21996b2e23049d378476522a7e525e036bd57d0",
+    "references/Hexalith.EventStore": "0c7b14856f2b730749caa8a552742a77d4882dc7",
     "references/Hexalith.Commons": "11555ace9efcae2928a00122dcba91243e5a8a1a",
     "references/Hexalith.AI.Tools": "8a3885dd22aea88edd57771cfe592c382df2c583",
     "references/Hexalith.FrontComposer": "57aa756c02edbae4294412885823533308b7db0d",
@@ -53,7 +53,8 @@
     "frontcomposer-apt-recovery-validation.log": "\u29d7   --- input ---\nfix(ci): recover signed ubuntu mirrors before browser installation\n\u2714   found 0 problems, 0 warnings\n",
     "frontcomposer-apt-platform-validation.log": "\u29d7   --- input ---\nfix(ci): restrict ubuntu apt recovery to linux runners\n\u2714   found 0 problems, 0 warnings\n",
     "eventstore-probe-name-validation.log": "\u29d7   --- input ---\nfix(ci): distinguish the generated archive probe from a credential\n\u2714   found 0 problems, 0 warnings\n",
-    "frontcomposer-action-status-validation.log": "\u29d7   --- input ---\nfix(ci): keep the superseded successor action open\n\u2714   found 0 problems, 0 warnings\n"
+    "frontcomposer-action-status-validation.log": "\u29d7   --- input ---\nfix(ci): keep the superseded successor action open\n\u2714   found 0 problems, 0 warnings\n",
+    "eventstore-ci-toolchain-validation.log": "\u29d7   --- input ---\nfix(ci): select the required dapr integration toolchain\n\u2714   found 0 problems, 0 warnings\n"
   },
   "maintainerPushReports": {
     "Hexalith.EventStore": "Bypassed rule violations: pull request and 7 required status checks expected.",
@@ -113,7 +114,15 @@
       "scanningScopeChanged": false,
       "immutableArchiveBytesUnchanged": true,
       "independentReview": "all9linehashes and3snapshot hashes match trackedbytes; noblockingfindings",
-      "trackedHelperAndArchiveCasesAfterCommit": 10
+      "trackedHelperAndArchiveCasesAfterCommit": 10,
+      "workflowExecution": "fb027a87afcdf7661c8f80ade89231b7730b60d1",
+      "workflowCatalogTuple": {
+        "aspire": "13.6.4",
+        "daprCli": "1.19.1",
+        "daprRuntime": "1.19.1"
+      },
+      "workflowGovernanceTests": 3,
+      "actionlint": "passed"
     }
   },
   "remainingOwnerBlockers": {
@@ -121,13 +130,20 @@
     "Hexalith.Platform": "Frozen producer and historical qualification bindings require real provenance reconciliation."
   },
   "preSyncCiQualification": {
-    "source": "aa1653a45eaf2163c57278923543dc68f652f7b3",
-    "ci": 43053489644,
-    "storyGuards": 43053487705,
-    "sourceReference": 43053487946,
-    "codeql": 43053489439,
-    "commitlint": 43053489055,
+    "source": "c9f93e817c645dee8628c7ca96ab92f81511b792",
+    "ci": 43058015302,
+    "storyGuards": 43058014526,
+    "sourceReference": 43058014643,
+    "codeql": 43058015245,
+    "commitlint": 43058015069,
     "allConclusions": "success",
     "finalSourceQualification": "required after synchronization"
+  },
+  "cancelledUnpublishedRelease": {
+    "run": 43063000754,
+    "source": "c9f93e817c645dee8628c7ca96ab92f81511b792",
+    "reason": "Superseded before production approval to include EventStore CI toolchain alignment.",
+    "versionTagCreated": false,
+    "productionApprovalGranted": false
   }
 }

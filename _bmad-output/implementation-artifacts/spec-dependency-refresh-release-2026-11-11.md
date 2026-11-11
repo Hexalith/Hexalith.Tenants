@@ -129,7 +129,7 @@ All declared root dependency pointers are intentional parts of the requested syn
 | Path | Baseline | Target |
 | --- | --- | --- |
 | `references/Hexalith.Builds` | `891886ddc60a9924d053bb74bf6bcc73e101b2ce` | `e35dd39872baf071aec6a7be1b252b16f460e08c` |
-| `references/Hexalith.EventStore` | `b882c1005050aaebfa70618b5a72c1c8be452281` | `a21996b2e23049d378476522a7e525e036bd57d0` |
+| `references/Hexalith.EventStore` | `b882c1005050aaebfa70618b5a72c1c8be452281` | `0c7b14856f2b730749caa8a552742a77d4882dc7` |
 | `references/Hexalith.FrontComposer` | `7ace06c5c50406b9021fc95d8d87cf962b5180dd` | `57aa756c02edbae4294412885823533308b7db0d` |
 | `references/Hexalith.McpCli` | `051fadedf68335ba5c525cf26c42f86aa69697f9` | `94f5ee691c70dcb30e893c50629d95afb63d216f` |
 | `references/Hexalith.Memories` | `43d2d72f7170a29a58b6046f69e05c9ad9734701` | `fe27727d0ee43892c55818acb1cfb435370b4005` |
@@ -150,3 +150,5 @@ FrontComposer's exact-source Quality run reproduced canonical mirror DNS failure
 FrontComposer platform correction: its accessibility job runs on Windows, so all three Ubuntu initializer calls now have an explicit Linux condition. Actionlint and parsed YAML checks prove the condition and preserve initializer/HTTPS/browser ordering; Windows retains its original preparation flow.
 
 The complete Tenants CI, Story Guards, source-reference, CodeQL and Commitlint gates passed on aa1653a45eaf2163c57278923543dc68f652f7b3 (CI run43053489644), including all four live suites and the671+ Aspire tier. Final owner hygiene changes follow that qualification: EventStore renames only a runtime-generated probe variable in its now-tracked helper; its tracked-content scan and9 archive cases pass10/10 after a clean Release build. FrontComposer corrects one unsupported action status to the explicitly required open state; all222 validator tests pass with2 existing skips, and the prior exact-source browser/accessibility/Epic9 jobs are green. The synchronized final source must pass its own exact-source gates before release.
+
+The synchronized c9f93e817c645dee8628c7ca96ab92f81511b792 source passed all five exact-source workflows, including complete CI43058015302. Its unpublished release attempt43063000754 was cancelled before protected approval when EventStore's own integration step exposed a toolchain prerequisite mismatch: frozen executor b470 selected Dapr CLI1.18.2/runtime1.18.7, while the module requires1.19.1/1.19.1. EventStore now pins existing immutable Builds fb027a87afcdf7661c8f80ade89231b7730b60d1, with Aspire13.6.4 and the required Dapr tuple plus archive hashes. Actionlint, a warning-free Contracts Release build and3 focused governance facts pass. The supported workflow contract has no Dapr override fields, and no provenance or qualification records were changed. The updated source must pass its own exact-source gates before publication.
