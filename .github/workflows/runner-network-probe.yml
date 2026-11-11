@@ -39,7 +39,7 @@ jobs:
               exit 1
             fi
             sudo cp /etc/apt/apt-mirrors.txt /tmp/ubuntu-original-mirrors.txt
-            { echo 'https://mirrors.edge.kernel.org/ubuntu/'; cat /tmp/ubuntu-original-mirrors.txt; } | sudo tee /etc/apt/apt-mirrors.txt >/dev/null
+            { printf 'https://mirrors.edge.kernel.org/ubuntu/\tpriority:0\n'; cat /tmp/ubuntu-original-mirrors.txt; } | sudo tee /etc/apt/apt-mirrors.txt >/dev/null
             sudo timeout 120 apt-get -o APT::Update::Error-Mode=any -o Acquire::Retries=0 -o Acquire::http::Timeout=10 -o Acquire::https::Timeout=10 update || exit 1
           fi
           sudo timeout 120 apt-get -o Acquire::Retries=0 -o Acquire::http::Timeout=10 -o Acquire::https::Timeout=10 install -y fonts-freefont-ttf fonts-unifont
