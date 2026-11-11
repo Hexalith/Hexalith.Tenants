@@ -26,7 +26,8 @@
     "sdk11PreviouslyFailingFixtureCases": 13,
     "sharedWorkflowAssertions": 518,
     "sharedConsumerAuthorityProjects": 31,
-    "canonicalPackagedSeedProbe": "passed configured/declarative modes and archived/loaded seed hash equality"
+    "canonicalPackagedSeedProbe": "passed configured/declarative modes and archived/loaded seed hash equality",
+    "updatedCiWorkflowGovernanceTests": 2
   },
   "buildsContentCommit": "019fc503e02f3239938c4793fea94021eccac094",
   "buildsAuditCommit": "e35dd39872baf071aec6a7be1b252b16f460e08c",
