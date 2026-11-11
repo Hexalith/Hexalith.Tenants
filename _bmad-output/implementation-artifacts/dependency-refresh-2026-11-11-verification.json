@@ -3,14 +3,14 @@
   "targetFramework": "net10.0",
   "baseline": "cca5537c3a9d6dde162787053b34e17c8351b21d",
   "submodules": {
-    "references/Hexalith.EventStore": "dbb67326fe86a93e8215440919c65b5c77cedaf8",
+    "references/Hexalith.EventStore": "6f5262d0d4a98bec7f91687e714a7c1087b281ca",
     "references/Hexalith.Commons": "11555ace9efcae2928a00122dcba91243e5a8a1a",
     "references/Hexalith.AI.Tools": "8a3885dd22aea88edd57771cfe592c382df2c583",
-    "references/Hexalith.FrontComposer": "92d023c880caeae3ee1533fe79bc4241b4034bce",
+    "references/Hexalith.FrontComposer": "d1cfec71c41aab1020d27244866bc3ca488e688b",
     "references/Hexalith.Builds": "e35dd39872baf071aec6a7be1b252b16f460e08c",
     "references/Hexalith.PolymorphicSerializations": "bce4eb9f45c6b131b960ab4fa39e50ff01e51960",
     "references/Hexalith.Memories": "fe27727d0ee43892c55818acb1cfb435370b4005",
-    "references/Hexalith.McpCli": "2723ce19dff7765fef9dcfef91933b622a86cce2",
+    "references/Hexalith.McpCli": "94f5ee691c70dcb30e893c50629d95afb63d216f",
     "references/Hexalith.Platform": "b4b4eda9120e89a52afe6576f46bb7706860f3d1"
   },
   "localVerification": {
@@ -47,7 +47,10 @@
     "Hexalith.EventStore-correction-validation.log": "\u29d7   --- input ---\nfix(build): match apphost sdk to the recorded package catalog\n\u2714   found 0 problems, 0 warnings\n",
     "frontcomposer-ci-ledger-validation.log": "\u29d7   --- input ---\nfix(ci): reconcile the existing test fixture analyzer inventory\n\u2714   found 0 problems, 0 warnings\n",
     "mcpcli-ci-identities-validation.log": "\u29d7   --- input ---\nfix(ci): validate catalog and workflow identities independently\n\u2714   found 0 problems, 0 warnings\n",
-    "eventstore-ci-fixtures-validation.log": "\u29d7   --- input ---\nfix(ci): distinguish test resource values from committed credentials\n\u2714   found 0 problems, 0 warnings\n"
+    "eventstore-ci-fixtures-validation.log": "\u29d7   --- input ---\nfix(ci): distinguish test resource values from committed credentials\n\u2714   found 0 problems, 0 warnings\n",
+    "eventstore-archive-fixtures-validation.log": "\u29d7   --- input ---\nfix(ci): bind archived negative fixtures to their exact immutable bytes\n\u2714   found 0 problems, 0 warnings\n",
+    "mcpcli-census-parser-validation.log": "\u29d7   --- input ---\nfix(ci): recognize sdk imports and nonpublishing script context\n\u2714   found 0 problems, 0 warnings\n",
+    "frontcomposer-apt-recovery-validation.log": "\u29d7   --- input ---\nfix(ci): recover signed ubuntu mirrors before browser installation\n\u2714   found 0 problems, 0 warnings\n"
   },
   "maintainerPushReports": {
     "Hexalith.EventStore": "Bypassed rule violations: pull request and 7 required status checks expected.",
@@ -82,23 +85,31 @@
       "analyzerGovernanceTests": 1,
       "identifierSealTests": 1,
       "consumerProjectionTests": 31,
-      "policySealChanged": false
+      "policySealChanged": false,
+      "aptRecoveryAction": "f5a46e8a70a1893bc638fa5f488d57767fafdede",
+      "browserGovernanceTests": 2,
+      "originalHttpsPreparationPreserved": true,
+      "actionlint": "passed"
     },
     "Hexalith.McpCli": {
       "workflowGovernanceTests": 4,
       "driftMutations": 11,
-      "nestedGitlinksChanged": false
+      "nestedGitlinksChanged": false,
+      "censusFixtures": 145,
+      "fullLocalCensus": "blocked: git-object-unavailable in existing nested amendment fixture",
+      "censusPolicyChanged": false
     },
     "Hexalith.EventStore": {
-      "scannerRegressions": 276,
+      "scannerRegressions": 286,
       "focusedContractAndRedactionTests": 2,
-      "remainingImmutableArchiveFindings": 9,
-      "scanningScopeChanged": false
+      "remainingImmutableArchiveFindings": 0,
+      "scanningScopeChanged": false,
+      "immutableArchiveBytesUnchanged": true,
+      "independentReview": "all9linehashes and3snapshot hashes match trackedbytes; noblockingfindings"
     }
   },
   "remainingOwnerBlockers": {
-    "Hexalith.EventStore": "Nine immutable archived synthetic credential fixture findings require justified archive handling.",
-    "Hexalith.McpCli": "Recorded nested catalog vulnerability and111 foreign-source census findings.",
+    "Hexalith.McpCli": "Recorded nested catalog vulnerability; real source allowance scope drift requires specific owner approvals. Exact-source census CI must classify the graph after parser fixes.",
     "Hexalith.Platform": "Frozen producer and historical qualification bindings require real provenance reconciliation."
   }
 }

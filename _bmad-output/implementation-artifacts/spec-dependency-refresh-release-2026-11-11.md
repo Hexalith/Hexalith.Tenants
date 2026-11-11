@@ -129,9 +129,9 @@ All declared root dependency pointers are intentional parts of the requested syn
 | Path | Baseline | Target |
 | --- | --- | --- |
 | `references/Hexalith.Builds` | `891886ddc60a9924d053bb74bf6bcc73e101b2ce` | `e35dd39872baf071aec6a7be1b252b16f460e08c` |
-| `references/Hexalith.EventStore` | `b882c1005050aaebfa70618b5a72c1c8be452281` | `dbb67326fe86a93e8215440919c65b5c77cedaf8` |
-| `references/Hexalith.FrontComposer` | `7ace06c5c50406b9021fc95d8d87cf962b5180dd` | `92d023c880caeae3ee1533fe79bc4241b4034bce` |
-| `references/Hexalith.McpCli` | `051fadedf68335ba5c525cf26c42f86aa69697f9` | `2723ce19dff7765fef9dcfef91933b622a86cce2` |
+| `references/Hexalith.EventStore` | `b882c1005050aaebfa70618b5a72c1c8be452281` | `6f5262d0d4a98bec7f91687e714a7c1087b281ca` |
+| `references/Hexalith.FrontComposer` | `7ace06c5c50406b9021fc95d8d87cf962b5180dd` | `d1cfec71c41aab1020d27244866bc3ca488e688b` |
+| `references/Hexalith.McpCli` | `051fadedf68335ba5c525cf26c42f86aa69697f9` | `94f5ee691c70dcb30e893c50629d95afb63d216f` |
 | `references/Hexalith.Memories` | `43d2d72f7170a29a58b6046f69e05c9ad9734701` | `fe27727d0ee43892c55818acb1cfb435370b4005` |
 | `references/Hexalith.Platform` | `5adb00b2f30d2985ee0b1fb1abd713b10660dc48` | `b4b4eda9120e89a52afe6576f46bb7706860f3d1` |
 
@@ -141,4 +141,8 @@ Hosted Ubuntu DNS recovery: the final runtime revision's ordinary checks passed,
 
 The first mirror-recovery CI run passed all four live browser qualifications. Two Contracts governance assertions still pinned the previous workflow SHA. Their approved immutable workflow SHA now matches the recovery backport, and the approved action inventory includes the mirror initializer. Both focused workflow governance tests pass after a warning-free Release build.
 
-Additional owner-local CI repairs: FrontComposer records its existing private-fixture analyzer pragma in the factual ledger (governance and identifier seal tests plus31 consumer projection cases pass; the current configuration already matches its sealed digest). McpCli independently validates its approved catalog gitlink and workflow executor (4 tests and11 negative drift cases pass). EventStore fixes its stale4.47.0 tool assertion and four current scanner findings with276 scanner regressions plus focused contract and redaction cases passing. Nine immutable archived synthetic-fixture findings remain; their bytes and scanning scope are preserved. McpCli's older nested catalog vulnerability/census and Platform's frozen qualification lineage remain separate owner blockers. No nested gitlinks were changed.
+Additional owner-local CI repairs: FrontComposer records its existing private-fixture analyzer pragma in the factual ledger (governance and identifier seal tests plus31 consumer projection cases pass; the current configuration already matches its sealed digest). McpCli independently validates its approved catalog gitlink and workflow executor (4 tests and11 negative drift cases pass). EventStore fixes its stale4.47.0 tool assertion and four current scanner findings with276 scanner regressions plus focused contract and redaction cases passing. The initial nine immutable archived synthetic-fixture findings were subsequently corrected with exact path, line and full-snapshot hashes. All286 security tests, including the tracked scan, pass; archived bytes and detection of modified, moved or adjacent credentials remain intact. McpCli's older nested catalog vulnerability/census and Platform's frozen qualification lineage remain separate owner blockers. No nested gitlinks were changed.
+
+Final owner follow-through: EventStore archive fixture recognition passed286 complete security tests and independent hash/byte review. McpCli's bounded SDK-import and shell-context parser fixes pass145 census fixtures. Its full local scan is blocked by unavailable nested amendment fixture Git objects; exact-source CI remains authoritative. True new source scopes still require specific owner approvals under the census contract; no approval or provenance records were fabricated.
+
+FrontComposer's exact-source Quality run reproduced canonical mirror DNS failures before Chromium installation. The same validated immutable APT initializer now precedes each of its three existing HTTPS preparation steps. All original steps are retained; actionlint, two existing browser governance facts, immutable pin/order checks and the unchanged consumer seal validate.
