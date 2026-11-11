@@ -17,6 +17,7 @@ jobs:
         shell: bash
         run: |
           set -u
+          set +e
           cat /etc/os-release
           for host in github.com azure.archive.ubuntu.com archive.ubuntu.com security.ubuntu.com mirrors.edge.kernel.org; do
             echo "Resolver probe: $host"
