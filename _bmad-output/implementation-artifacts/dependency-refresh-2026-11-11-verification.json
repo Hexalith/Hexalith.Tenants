@@ -7,7 +7,7 @@
     "references/Hexalith.Commons": "11555ace9efcae2928a00122dcba91243e5a8a1a",
     "references/Hexalith.AI.Tools": "8a3885dd22aea88edd57771cfe592c382df2c583",
     "references/Hexalith.FrontComposer": "2783c0bde4145cc34699bf421aea0b97e57b045a",
-    "references/Hexalith.Builds": "a3a3cf2959cc8020c37fc980a05d4cf6eb7a265b",
+    "references/Hexalith.Builds": "e35dd39872baf071aec6a7be1b252b16f460e08c",
     "references/Hexalith.PolymorphicSerializations": "bce4eb9f45c6b131b960ab4fa39e50ff01e51960",
     "references/Hexalith.Memories": "fe27727d0ee43892c55818acb1cfb435370b4005",
     "references/Hexalith.McpCli": "ff957b59181a6e241f8a7cc686cd1be86d96f35e",
@@ -20,12 +20,16 @@
     "catalogConsumerTests": 11,
     "bootstrapWorkflowTests": 14,
     "browserModeTests": 4,
-    "catalogEntries": 317,
-    "catalogFamilies": 157,
-    "fullReleaseSolutionBuild": "passed with zero warnings and errors"
+    "catalogEntries": 318,
+    "catalogFamilies": 158,
+    "fullReleaseSolutionBuild": "passed with zero warnings and errors",
+    "sdk11PreviouslyFailingFixtureCases": 13,
+    "sharedWorkflowAssertions": 518,
+    "sharedConsumerAuthorityProjects": 31,
+    "canonicalPackagedSeedProbe": "passed configured/declarative modes and archived/loaded seed hash equality"
   },
   "buildsContentCommit": "019fc503e02f3239938c4793fea94021eccac094",
-  "buildsAuditCommit": "a3a3cf2959cc8020c37fc980a05d4cf6eb7a265b",
+  "buildsAuditCommit": "e35dd39872baf071aec6a7be1b252b16f460e08c",
   "remoteVerification": "Pending at implementation commit; exact-source GitHub workflow and release evidence are authoritative.",
   "commitlint": {
     "builds-audit-validation.log": "\u29d7   --- input ---\nbuild(deps): record the refreshed package catalog audit\n\u2714   found 0 problems, 0 warnings\n",
@@ -50,5 +54,8 @@
     "dependencyAppHosts": "13.6.4",
     "evidence": "Recorded owner Builds catalog versions match the restored SDK pins; /tmp/tenants-owner-sdk-alignment-2026-11-11.json",
     "nestedSubmodulesUpdated": false
-  }
+  },
+  "finalBuildsDependency": "e35dd39872baf071aec6a7be1b252b16f460e08c",
+  "buildsAuditGeneratedFrom": "44a2a75f2091e9947ebfc7084226b6a66dfd771e",
+  "sharedCiRepairEvidence": "/tmp/tenants-builds-sdk11-repair-verification.json"
 }

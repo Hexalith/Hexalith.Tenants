@@ -128,9 +128,11 @@ All declared root dependency pointers are intentional parts of the requested syn
 
 | Path | Baseline | Target |
 | --- | --- | --- |
-| `references/Hexalith.Builds` | `891886ddc60a9924d053bb74bf6bcc73e101b2ce` | `a3a3cf2959cc8020c37fc980a05d4cf6eb7a265b` |
+| `references/Hexalith.Builds` | `891886ddc60a9924d053bb74bf6bcc73e101b2ce` | `e35dd39872baf071aec6a7be1b252b16f460e08c` |
 | `references/Hexalith.EventStore` | `b882c1005050aaebfa70618b5a72c1c8be452281` | `cffa12368677cfa83919a1f0bdc4cebc5a1bac01` |
 | `references/Hexalith.FrontComposer` | `7ace06c5c50406b9021fc95d8d87cf962b5180dd` | `2783c0bde4145cc34699bf421aea0b97e57b045a` |
 | `references/Hexalith.McpCli` | `051fadedf68335ba5c525cf26c42f86aa69697f9` | `ff957b59181a6e241f8a7cc686cd1be86d96f35e` |
 | `references/Hexalith.Memories` | `43d2d72f7170a29a58b6046f69e05c9ad9734701` | `fe27727d0ee43892c55818acb1cfb435370b4005` |
 | `references/Hexalith.Platform` | `5adb00b2f30d2985ee0b1fb1abd713b10660dc48` | `b4b4eda9120e89a52afe6576f46bb7706860f3d1` |
+
+Final shared CI repair: the canonical Builds owner revision supplies SDK10.0.404 alongside SDK11 for isolated net10.0.15 targeting/apphost packs and binds the packaged probe to DiagnosticSource11 required by OpenTelemetry1.21. All13 formerly failing fixture cases,518 workflow assertions, real packaged loader/subscription probes and31-project consumer authority checks passed locally. Equivalent repairs landed upstream during validation; their canonical workflow and direct DiagnosticSource implementation were retained, and its real packaged probe was rebuilt and passed. The final revision-bound catalog audit validates318 packages/158 families. The full Tenants Release solution build is repeated against this final dependency. Independent nested catalog adoption remains pending the explicit exception requested from the user; no nested gitlinks or working trees have been changed.
