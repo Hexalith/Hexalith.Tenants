@@ -129,8 +129,8 @@ All declared root dependency pointers are intentional parts of the requested syn
 | Path | Baseline | Target |
 | --- | --- | --- |
 | `references/Hexalith.Builds` | `891886ddc60a9924d053bb74bf6bcc73e101b2ce` | `e35dd39872baf071aec6a7be1b252b16f460e08c` |
-| `references/Hexalith.EventStore` | `b882c1005050aaebfa70618b5a72c1c8be452281` | `6f5262d0d4a98bec7f91687e714a7c1087b281ca` |
-| `references/Hexalith.FrontComposer` | `7ace06c5c50406b9021fc95d8d87cf962b5180dd` | `093d0b314095b298b96dfe9da5e923d745802e02` |
+| `references/Hexalith.EventStore` | `b882c1005050aaebfa70618b5a72c1c8be452281` | `a21996b2e23049d378476522a7e525e036bd57d0` |
+| `references/Hexalith.FrontComposer` | `7ace06c5c50406b9021fc95d8d87cf962b5180dd` | `57aa756c02edbae4294412885823533308b7db0d` |
 | `references/Hexalith.McpCli` | `051fadedf68335ba5c525cf26c42f86aa69697f9` | `94f5ee691c70dcb30e893c50629d95afb63d216f` |
 | `references/Hexalith.Memories` | `43d2d72f7170a29a58b6046f69e05c9ad9734701` | `fe27727d0ee43892c55818acb1cfb435370b4005` |
 | `references/Hexalith.Platform` | `5adb00b2f30d2985ee0b1fb1abd713b10660dc48` | `b4b4eda9120e89a52afe6576f46bb7706860f3d1` |
@@ -148,3 +148,5 @@ Final owner follow-through: EventStore archive fixture recognition passed286 com
 FrontComposer's exact-source Quality run reproduced canonical mirror DNS failures before Chromium installation. The same validated immutable APT initializer now precedes each of its three existing HTTPS preparation steps. All original steps are retained; actionlint, two existing browser governance facts, immutable pin/order checks and the unchanged consumer seal validate.
 
 FrontComposer platform correction: its accessibility job runs on Windows, so all three Ubuntu initializer calls now have an explicit Linux condition. Actionlint and parsed YAML checks prove the condition and preserve initializer/HTTPS/browser ordering; Windows retains its original preparation flow.
+
+The complete Tenants CI, Story Guards, source-reference, CodeQL and Commitlint gates passed on aa1653a45eaf2163c57278923543dc68f652f7b3 (CI run43053489644), including all four live suites and the671+ Aspire tier. Final owner hygiene changes follow that qualification: EventStore renames only a runtime-generated probe variable in its now-tracked helper; its tracked-content scan and9 archive cases pass10/10 after a clean Release build. FrontComposer corrects one unsupported action status to the explicitly required open state; all222 validator tests pass with2 existing skips, and the prior exact-source browser/accessibility/Epic9 jobs are green. The synchronized final source must pass its own exact-source gates before release.
