@@ -6,7 +6,7 @@
     "references/Hexalith.EventStore": "6f5262d0d4a98bec7f91687e714a7c1087b281ca",
     "references/Hexalith.Commons": "11555ace9efcae2928a00122dcba91243e5a8a1a",
     "references/Hexalith.AI.Tools": "8a3885dd22aea88edd57771cfe592c382df2c583",
-    "references/Hexalith.FrontComposer": "d1cfec71c41aab1020d27244866bc3ca488e688b",
+    "references/Hexalith.FrontComposer": "093d0b314095b298b96dfe9da5e923d745802e02",
     "references/Hexalith.Builds": "e35dd39872baf071aec6a7be1b252b16f460e08c",
     "references/Hexalith.PolymorphicSerializations": "bce4eb9f45c6b131b960ab4fa39e50ff01e51960",
     "references/Hexalith.Memories": "fe27727d0ee43892c55818acb1cfb435370b4005",
@@ -50,7 +50,8 @@
     "eventstore-ci-fixtures-validation.log": "\u29d7   --- input ---\nfix(ci): distinguish test resource values from committed credentials\n\u2714   found 0 problems, 0 warnings\n",
     "eventstore-archive-fixtures-validation.log": "\u29d7   --- input ---\nfix(ci): bind archived negative fixtures to their exact immutable bytes\n\u2714   found 0 problems, 0 warnings\n",
     "mcpcli-census-parser-validation.log": "\u29d7   --- input ---\nfix(ci): recognize sdk imports and nonpublishing script context\n\u2714   found 0 problems, 0 warnings\n",
-    "frontcomposer-apt-recovery-validation.log": "\u29d7   --- input ---\nfix(ci): recover signed ubuntu mirrors before browser installation\n\u2714   found 0 problems, 0 warnings\n"
+    "frontcomposer-apt-recovery-validation.log": "\u29d7   --- input ---\nfix(ci): recover signed ubuntu mirrors before browser installation\n\u2714   found 0 problems, 0 warnings\n",
+    "frontcomposer-apt-platform-validation.log": "\u29d7   --- input ---\nfix(ci): restrict ubuntu apt recovery to linux runners\n\u2714   found 0 problems, 0 warnings\n"
   },
   "maintainerPushReports": {
     "Hexalith.EventStore": "Bypassed rule violations: pull request and 7 required status checks expected.",
@@ -89,7 +90,8 @@
       "aptRecoveryAction": "f5a46e8a70a1893bc638fa5f488d57767fafdede",
       "browserGovernanceTests": 2,
       "originalHttpsPreparationPreserved": true,
-      "actionlint": "passed"
+      "actionlint": "passed",
+      "aptRecoveryPlatformCondition": "runner.os == 'Linux'"
     },
     "Hexalith.McpCli": {
       "workflowGovernanceTests": 4,

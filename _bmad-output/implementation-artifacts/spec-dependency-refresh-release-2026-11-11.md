@@ -130,7 +130,7 @@ All declared root dependency pointers are intentional parts of the requested syn
 | --- | --- | --- |
 | `references/Hexalith.Builds` | `891886ddc60a9924d053bb74bf6bcc73e101b2ce` | `e35dd39872baf071aec6a7be1b252b16f460e08c` |
 | `references/Hexalith.EventStore` | `b882c1005050aaebfa70618b5a72c1c8be452281` | `6f5262d0d4a98bec7f91687e714a7c1087b281ca` |
-| `references/Hexalith.FrontComposer` | `7ace06c5c50406b9021fc95d8d87cf962b5180dd` | `d1cfec71c41aab1020d27244866bc3ca488e688b` |
+| `references/Hexalith.FrontComposer` | `7ace06c5c50406b9021fc95d8d87cf962b5180dd` | `093d0b314095b298b96dfe9da5e923d745802e02` |
 | `references/Hexalith.McpCli` | `051fadedf68335ba5c525cf26c42f86aa69697f9` | `94f5ee691c70dcb30e893c50629d95afb63d216f` |
 | `references/Hexalith.Memories` | `43d2d72f7170a29a58b6046f69e05c9ad9734701` | `fe27727d0ee43892c55818acb1cfb435370b4005` |
 | `references/Hexalith.Platform` | `5adb00b2f30d2985ee0b1fb1abd713b10660dc48` | `b4b4eda9120e89a52afe6576f46bb7706860f3d1` |
@@ -146,3 +146,5 @@ Additional owner-local CI repairs: FrontComposer records its existing private-fi
 Final owner follow-through: EventStore archive fixture recognition passed286 complete security tests and independent hash/byte review. McpCli's bounded SDK-import and shell-context parser fixes pass145 census fixtures. Its full local scan is blocked by unavailable nested amendment fixture Git objects; exact-source CI remains authoritative. True new source scopes still require specific owner approvals under the census contract; no approval or provenance records were fabricated.
 
 FrontComposer's exact-source Quality run reproduced canonical mirror DNS failures before Chromium installation. The same validated immutable APT initializer now precedes each of its three existing HTTPS preparation steps. All original steps are retained; actionlint, two existing browser governance facts, immutable pin/order checks and the unchanged consumer seal validate.
+
+FrontComposer platform correction: its accessibility job runs on Windows, so all three Ubuntu initializer calls now have an explicit Linux condition. Actionlint and parsed YAML checks prove the condition and preserve initializer/HTTPS/browser ordering; Windows retains its original preparation flow.
