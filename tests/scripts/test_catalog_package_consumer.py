@@ -1,7 +1,9 @@
 """Reject unbound catalog archive metadata before any restore or code execution."""
 
 import importlib.util
+import json
 from pathlib import Path
+import shutil
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -80,7 +82,74 @@ class CatalogPackageMetadataTests(unittest.TestCase):
 
     def test_missing_or_old_mcpcli_dependency_refuses_before_restore(self):
         self.reject(server={'include_mcp': False}, message='coordinated McpCli 2.0.0')
-        self.reject(server={'mcp': '1.1.0'}, message='coordinated McpCli 2.0.0')
+        for mcp in ('1.1.0', '2.0.2', '2.0.1-preview.1'):
+            with self.subTest(mcp=mcp):
+                self.reject(server={'mcp': mcp}, message='coordinated McpCli 2.0.0')
+
+    def test_refreshed_mcpcli_cohort_reaches_restore(self):
+        for mcp in ('2.0.0', '2.0.1'):
+            for dependency_range in (mcp, '[' + mcp + ']', '[' + mcp + ', )', '[' + mcp + ', 3.0.0)'):
+                with self.subTest(mcp=mcp, dependency_range=dependency_range), tempfile.TemporaryDirectory(prefix='tenants-catalog-metadata-') as temporary:
+                    root = Path(temporary)
+                    self.write_package(root, 'Hexalith.Tenants.Contracts', mcp=dependency_range)
+                    self.write_package(root, 'Hexalith.Tenants.Server', mcp=dependency_range)
+
+                    def inspect_restore(arguments, **kwargs):
+                        self.assertEqual(arguments[:2], ['dotnet', 'restore'])
+                        project = ET.parse(arguments[2])
+                        self.assertEqual(project.find('.//PackageReference[@Include="Hexalith.McpCli.Abstractions"]').get('Version'), '[' + mcp + ']')
+                        raise InterruptedError('Verified restore boundary')
+
+                    with patch.object(CONSUMER.subprocess, 'run', side_effect=inspect_restore) as run:
+                        with self.assertRaisesRegex(InterruptedError, 'Verified restore boundary'):
+                            CONSUMER.verify(root, 'a' * 40)
+                        run.assert_called_once()
+
+    def test_exclusive_or_malformed_mcpcli_ranges_refuse_before_restore(self):
+        for dependency_range in ('(2.0.1, )', '(2.0.0, 3.0.0]', '(, 2.0.1]',
+                                 '[2.0.1, 2.0.0)', '[2.0.1, 2.0.1)', '[2.0.1, )garbage',
+                                 '[2.0.1, invalid)', '[2.0.1, 3.0.0', '[2.0.1, ]',
+                                 '[2.0.1, 3.0.0, 4.0.0)', '[2.0.1-preview.1, )', '[2.0.2, )'):
+            with self.subTest(dependency_range=dependency_range):
+                self.reject(server={'mcp': dependency_range}, message='McpCli')
+
+    def test_restored_mcpcli_must_match_the_admitted_package_before_build(self):
+        for mcp in ('2.0.0', '2.0.1'):
+            for restored_version, kind in ((mcp, 'package'), ('2.0.2', 'package'), (mcp, 'project'), (None, None)):
+                with self.subTest(mcp=mcp, restored_version=restored_version, kind=kind), tempfile.TemporaryDirectory(prefix='tenants-catalog-assets-') as temporary:
+                    root = Path(temporary)
+                    for package_id in CONSUMER.IDS:
+                        self.write_package(root, package_id, mcp=mcp)
+
+                    def restore(arguments, **kwargs):
+                        if arguments[:2] == ['dotnet', 'build']:
+                            raise InterruptedError('Verified build boundary')
+                        self.assertEqual(arguments[:2], ['dotnet', 'restore'])
+                        consumer_root = Path(arguments[2]).parent
+                        (consumer_root / 'obj').mkdir()
+                        libraries = {}
+                        if restored_version is not None:
+                            libraries['Hexalith.McpCli.Abstractions/' + restored_version] = {'type': kind}
+                        for package_id in CONSUMER.IDS:
+                            libraries[package_id + '/7.0.0'] = {'type': 'package'}
+                            destination = consumer_root / 'packages' / package_id.lower() / '7.0.0' / (package_id.lower() + '.7.0.0.nupkg')
+                            destination.parent.mkdir(parents=True)
+                            shutil.copyfile(root / (package_id + '.7.0.0.nupkg'), destination)
+                        (consumer_root / 'obj/project.assets.json').write_text(json.dumps({'libraries': libraries}))
+
+                    with patch.object(CONSUMER.subprocess, 'run', side_effect=restore) as run:
+                        if restored_version == mcp and kind == 'package':
+                            with self.assertRaisesRegex(InterruptedError, 'Verified build boundary'):
+                                CONSUMER.verify(root, 'a' * 40)
+                            self.assertEqual(run.call_count, 2)
+                        else:
+                            with self.assertRaisesRegex(ValueError, 'Restored McpCli dependency differs'):
+                                CONSUMER.verify(root, 'a' * 40)
+                            run.assert_called_once()
+
+    def test_mixed_mcpcli_cohort_refuses_before_restore(self):
+        self.reject(server={'mcp': '2.0.1'}, message='coordinated McpCli 2.0.0')
+        self.reject(contracts={'mcp': '2.0.1'}, server={'mcp': '2.0.0'}, message='coordinated McpCli 2.0.0')
 
     def test_mixed_sdk_cohort_refuses_before_restore(self):
         for sdk in ('3.129.1', '3.130.2', '3.131.0', '3.132.0', '3.132.1', '3.132.2', '3.133.0'):

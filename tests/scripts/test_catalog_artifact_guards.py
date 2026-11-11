@@ -98,7 +98,7 @@ class CatalogArtifactPackTests(unittest.TestCase):
             # The ordinary default remains the current public SDK.
             selected = run('msbuild', project('Contracts'), '-nologo', '-getProperty:HexalithEventStoreVersion')
             self.assertEqual(selected.returncode, 0, selected.stdout + selected.stderr)
-            self.assertEqual(selected.stdout.strip(), '4.1.0')
+            self.assertEqual(selected.stdout.strip(), '4.2.0')
             for package in PACKAGES:
                 with self.subTest(legacy_package=package):
                     output = parent / ('legacy-rejected-' + package)

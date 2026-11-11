@@ -6,7 +6,7 @@ Thank you for your interest in contributing to Hexalith.Tenants! This guide cove
 
 ### Prerequisites
 
-- **.NET 10 SDK** — [Download](https://dot.net/download). Verify: `dotnet --version` → `10.x.xxx`
+- **.NET SDK 11.0.100** — [Download](https://dot.net/download). Verify the `global.json` selection: `dotnet --version` → `11.0.100` (or its latest patch). Retain the **.NET 10 and ASP.NET Core 10 runtimes** for the `net10.0` applications and tests; verify both with `dotnet --list-runtimes`.
 - **DAPR CLI + Runtime** — [Getting Started](https://docs.dapr.io/getting-started/). Run `dapr init` (**full init, NOT `--slim`** — the Aspire topology requires the full DAPR runtime with placement service for actors). Verify: `dapr --version`
 - **Docker** — [Download](https://docs.docker.com/get-started/get-docker/). Docker Desktop must be running. Allocate at least 4 GB of memory
 

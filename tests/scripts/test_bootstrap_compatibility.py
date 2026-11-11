@@ -110,7 +110,7 @@ with open(os.environ['MOCK_DOTNET_LOG'], 'a') as output:
         return result, calls
 
     def test_package_profile_binds_the_evaluated_sdk_before_provisioning(self):
-        self.run_package_profile('4.1.0', accepted=True)
+        self.run_package_profile('4.2.0', accepted=True)
 
     def test_package_profile_refuses_a_different_evaluated_sdk_before_provisioning(self):
         self.run_package_profile('4.0.4', accepted=False)
@@ -135,14 +135,14 @@ print(os.environ['MOCK_SDK_SELECTION'])
         arguments = json.loads(log.read_text())
         self.assertEqual(arguments[:2], ['msbuild', 'src/Hexalith.Tenants/Hexalith.Tenants.csproj'])
         self.assertIn('-getProperty:HexalithEventStoreVersion', arguments)
-        self.assertIn('-p:HexalithEventStoreVersion=4.1.0', arguments)
+        self.assertIn('-p:HexalithEventStoreVersion=4.2.0', arguments)
         self.assertIn('-p:HexalithEventStoreFromSource=false', arguments)
         self.assertIn('-p:UseHexalithProjectReferences=false', arguments)
         self.assertIn('-p:UseNuGetDeps=true', arguments)
         self.assertEqual(result.returncode == 0, accepted, result.stdout + result.stderr)
         self.assertEqual(provisioned.exists(), accepted)
         self.assertEqual(self.environment_file.read_text(), 'Retained=value\n' +
-                         ('TENANTS_SOURCE_SDK_PRODUCER_VERSION=4.1.0\n' if accepted else ''))
+                         ('TENANTS_SOURCE_SDK_PRODUCER_VERSION=4.2.0\n' if accepted else ''))
         if not accepted:
             self.assertIn('did not select its exact qualified SDK', result.stderr)
 
@@ -152,8 +152,8 @@ print(os.environ['MOCK_SDK_SELECTION'])
         self.assertEqual(len(calls), 6)
         for call in calls:
             self.assertIsNone(call['versionEnvironment'])
-            self.assertIn('-p:HexalithEventStoreVersion=4.1.0', call['arguments'])
-            self.assertIn('-p:HexalithMcpCliVersion=2.0.0', call['arguments'])
+            self.assertIn('-p:HexalithEventStoreVersion=4.2.0', call['arguments'])
+            self.assertIn('-p:HexalithMcpCliVersion=2.0.1', call['arguments'])
             self.assertIn('-p:UseHexalithProjectReferences=false', call['arguments'])
             self.assertIn('-p:UseNuGetDeps=true', call['arguments'])
 

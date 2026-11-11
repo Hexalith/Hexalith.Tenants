@@ -8,13 +8,15 @@ Clone the repository, run the application with .NET Aspire, send your first tena
 
 Before you begin, verify that the following tools are installed and working. Run each check command and confirm the expected output.
 
-### .NET 10 SDK
+### .NET SDK and runtime
 
 ```bash
 dotnet --version
 ```
 
-Expected: `10.0.403` or a later patch in the same feature band. The repository pins SDK `10.0.403` in [`global.json`](../global.json) with `rollForward: latestPatch`.
+Expected: `11.0.100` or a later patch in the same feature band. The repository pins SDK `11.0.100` in [`global.json`](../global.json) with `rollForward: latestPatch`.
+
+The applications and consumers still target `net10.0`. Install the .NET 10 and ASP.NET Core 10 runtimes alongside SDK 11; SDK 11 alone does not supply those runtimes. Verify `dotnet --list-runtimes` includes `Microsoft.NETCore.App 10.0.x` and `Microsoft.AspNetCore.App 10.0.x`.
 
 If not installed, download from [https://dot.net](https://dot.net/download).
 

@@ -86,10 +86,11 @@ result records are uploaded; raw observations and key material remain private.
 
 ## Published SDK qualification
 
-The current default package selection is public stable EventStore `4.1.0`. The
-qualified canonical-scope catalog cohort is `4.0.0`, `4.0.1`, `4.0.2`, `4.0.3`, `4.0.4`
-and `4.1.0`. Current Tenants package builds accept exact `4.1.0` or the retained
-`4.0.4` compatibility profile; ordinary release preparation uses the `4.1.0` default.
+The current default package selection is public stable EventStore `4.2.0` with
+McpCli.Abstractions `2.0.1`. The qualified canonical-scope catalog cohort is
+`4.0.0`, `4.0.1`, `4.0.2`, `4.0.3`, `4.0.4`, `4.1.0` and `4.2.0`. Current Tenants
+package builds accept exact `4.2.0` or the retained `4.0.4` and `4.1.0`
+compatibility profiles; ordinary release preparation uses the `4.2.0`/`2.0.1` default.
 The retained finite compatibility set is `3.129.0`, `3.129.1`, `3.130.0`, `3.130.1`,
 `3.130.2`, `3.131.0`, `3.132.0`, `3.132.1`, `3.132.2` and `3.133.0`;
 zero fourth revisions and build metadata normalize to the same stable cohort.

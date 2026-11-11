@@ -883,7 +883,7 @@ public class PackageGovernanceTests {
     }
 
     [Theory]
-    [InlineData("", false, "4.1.0")]
+    [InlineData("", false, "4.2.0")]
     [InlineData("4.0.0", false, "4.0.0")]
     [InlineData("4.0.1", false, "4.0.1")]
     [InlineData("4.0.2", false, "4.0.2")]

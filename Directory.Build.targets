@@ -44,8 +44,8 @@
           Condition="'$(MSBuildProjectName)' == 'Hexalith.Tenants.Contracts' or '$(MSBuildProjectName)' == 'Hexalith.Tenants.Server' or '$(MSBuildProjectName)' == 'Hexalith.Tenants.Client' or '$(MSBuildProjectName)' == 'Hexalith.Tenants.Testing' or '$(MSBuildProjectName)' == 'Hexalith.Tenants.Aspire'">
     <Error Condition="'$(HexalithEventStoreFromSource)' != 'true' and '$(HexalithEventStoreVersion)' != '4.0.4' and '$(HexalithEventStoreVersion)' != '4.1.0' and '$(HexalithEventStoreVersion)' != '4.2.0'"
            Text="Canonical Tenants packages require EventStore 4.0.4, 4.1.0 or 4.2.0 in package mode." />
-    <Error Condition="'$(HexalithMcpCliFromSource)' != 'true' and '$(HexalithMcpCliVersion)' != '2.0.0'"
-           Text="Canonical Tenants packages require McpCli.Abstractions 2.0.0 in package mode." />
+    <Error Condition="'$(HexalithMcpCliFromSource)' != 'true' and '$(HexalithMcpCliVersion)' != '2.0.0' and '$(HexalithMcpCliVersion)' != '2.0.1'"
+           Text="Canonical Tenants packages require McpCli.Abstractions 2.0.0 or 2.0.1 in package mode." />
   </Target>
 
   <!-- Foreign repositories can inherit this targets file while generating their own packages. -->

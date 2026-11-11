@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 import re
+import runpy
 import shutil
 import subprocess
 import tempfile
@@ -15,12 +16,14 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 IDS = ('Hexalith.Tenants.Contracts', 'Hexalith.Tenants.Server')
+NORMALIZE_RANGE = runpy.run_path(str(ROOT / 'scripts/validate-nuget-packages.py'))['normalize_range']
 
 
 def verify(directory, expected_source=None, output=None):
     archives = {}
     version = None
     sdk = None
+    mcp = None
     for path in sorted(directory.glob('*.nupkg')):
         with zipfile.ZipFile(path) as archive:
             names = [name for name in archive.namelist() if name.endswith('.nuspec')]
@@ -46,8 +49,14 @@ def verify(directory, expected_source=None, output=None):
                 raise ValueError("Catalog package is missing its required SDK dependency.")
             mcp_dependencies = [dependency.get('version', '') for dependency in metadata.findall('.//{*}dependency')
                                 if dependency.get('id') == 'Hexalith.McpCli.Abstractions']
-            if len(mcp_dependencies) != 1 or mcp_dependencies[0].lstrip('[(').split(',')[0].strip().rstrip('])') != '2.0.0':
-                raise ValueError('Catalog package is missing its coordinated McpCli 2.0.0 dependency.')
+            try:
+                mcp_range = NORMALIZE_RANGE(mcp_dependencies[0]) if len(mcp_dependencies) == 1 else ''
+            except ValueError as error:
+                raise ValueError('Catalog package requires a well-formed inclusive McpCli dependency range.') from error
+            selected_mcp = mcp_range[1:].split(',')[0].rstrip(']') if mcp_range.startswith('[') else None
+            if selected_mcp not in ('2.0.0', '2.0.1') or mcp is not None and selected_mcp != mcp:
+                raise ValueError('Catalog package requires one coordinated McpCli 2.0.0 or 2.0.1 dependency cohort.')
+            mcp = selected_mcp
             for dependency in metadata.findall('.//{*}dependency'):
                 if dependency.get('id', '').startswith('Hexalith.EventStore.'):
                     selected = dependency.get('version', '').lstrip('[(').split(',')[0].strip().rstrip('])')
@@ -97,6 +106,7 @@ def verify(directory, expected_source=None, output=None):
             ET.SubElement(references, 'PackageReference', Include=package_id, Version='[' + version + ']')
         for package_id in ('Hexalith.EventStore.ServiceDefaults', 'Hexalith.EventStore.DomainService'):
             ET.SubElement(references, 'PackageReference', Include=package_id, Version='[' + sdk + ']')
+        ET.SubElement(references, 'PackageReference', Include='Hexalith.McpCli.Abstractions', Version='[' + mcp + ']')
         ET.ElementTree(project).write(root / 'Consumer.csproj', encoding='unicode')
         configuration = ET.Element('configuration')
         sources = ET.SubElement(configuration, 'packageSources')
@@ -120,6 +130,11 @@ def verify(directory, expected_source=None, output=None):
         subprocess.run(['dotnet', 'restore', str(root / 'Consumer.csproj'), '--configfile', str(root / 'NuGet.Config'),
                         '--packages', str(packages), '--no-cache'], cwd=root, env=environment, check=True, timeout=180)
         assets = json.loads((root / 'obj/project.assets.json').read_text())
+        restored_mcp = {key: library for key, library in assets['libraries'].items()
+                        if key.partition('/')[0].casefold() == 'hexalith.mcpcli.abstractions'}
+        if (len(restored_mcp) != 1 or 'Hexalith.McpCli.Abstractions/' + mcp not in restored_mcp
+                or next(iter(restored_mcp.values()))['type'] != 'package'):
+            raise ValueError('Restored McpCli dependency differs from the admitted package cohort.')
         for package_id, record in archives.items():
             key = package_id + '/' + version
             if assets['libraries'][key]['type'] != 'package':

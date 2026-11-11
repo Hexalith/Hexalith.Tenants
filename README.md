@@ -21,7 +21,7 @@ Multi-tenant management for the Hexalith ecosystem. Built on event sourcing, DAP
 
 Get from clone to your first tenant command after local prerequisites are installed:
 
-**[Quickstart Guide](docs/quickstart.md)** — prerequisite-validated path for .NET 10, Docker, full DAPR local runtime, AppHost startup, local auth, and the first EventStore command submission.
+**[Quickstart Guide](docs/quickstart.md)** — prerequisite-validated path for .NET SDK 11.0.100 with the .NET 10 runtimes, Docker, full DAPR local runtime, AppHost startup, local auth, and the first EventStore command submission.
 
 **[Deployment Readiness](docs/deployment-readiness.md)** — consolidated operator checklist and evidence template for production-like Tenants deployments, covering auth, DAPR, service invocation, health, command/query paths, and pub/sub recovery boundaries.
 
@@ -47,11 +47,13 @@ Watch reactive cross-service access revocation in action: add a user to a tenant
 | [`Hexalith.Tenants.Testing`](https://www.nuget.org/packages/Hexalith.Tenants.Testing) | In-memory fakes and test helpers with production-parity domain logic |
 | [`Hexalith.Tenants.Aspire`](https://www.nuget.org/packages/Hexalith.Tenants.Aspire) | .NET Aspire hosting extensions for consuming AppHosts |
 
-Normal package builds use EventStore 3.133.0. Explicit stable 3.129.0, 3.129.1,
-3.130.0, 3.130.1, 3.130.2, 3.131.0, 3.132.0, 3.132.1 and 3.132.2 selections remain qualified, including zero-revision
-and build-metadata aliases. See the [published SDK qualification commands and evidence](docs/development-route-catalog.md#published-sdk-qualification).
+Normal package builds use EventStore 4.2.0 and McpCli.Abstractions 2.0.1. Explicit
+EventStore 4.0.4 and 4.1.0 package builds remain supported for compatibility.
+The retained catalog compatibility set includes stable 3.129.0, 3.129.1,
+3.130.0, 3.130.1, 3.130.2, 3.131.0, 3.132.0, 3.132.1, 3.132.2 and 3.133.0,
+including zero-revision and build-metadata aliases. See the [published SDK qualification commands and evidence](docs/development-route-catalog.md#published-sdk-qualification).
 The optional durable Client projection uses EventStore's checkpointed API and is
-available with the source SDK or published 3.133.0; older qualified SDKs keep the
+available with the source SDK or published 3.133.0 and the qualified 4.x cohorts; older qualified SDKs keep the
 in-memory Client projection.
 Contracts includes its compiled
 route and operation declarations; Server includes its existing declared intent

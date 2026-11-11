@@ -22,7 +22,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - profile: canonical scope 4.1.0
+          - profile: canonical scope 4.2.0
             sdk-argument: ''
             budget-minimum: 8
             runtime-minimum: 7
@@ -73,7 +73,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - profile: canonical scope 4.1.0
+          - profile: canonical scope 4.2.0
             sdk-argument: ''
             owner-source-minimum: 25
     env:
@@ -256,8 +256,8 @@ jobs:
           source_sha="$(git rev-parse HEAD:references/Hexalith.EventStore)"
           sdk_producer_version="$(dotnet msbuild src/Hexalith.Tenants/Hexalith.Tenants.csproj -nologo \
             -getProperty:HexalithEventStoreVersion -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true \
-            -p:HexalithEventStoreFromSource=false -p:HexalithEventStoreVersion=4.1.0)"
-          if [[ "$sdk_producer_version" != '4.1.0' ]]; then
+            -p:HexalithEventStoreFromSource=false -p:HexalithEventStoreVersion=4.2.0)"
+          if [[ "$sdk_producer_version" != '4.2.0' ]]; then
             echo 'The authenticated package profile did not select its exact qualified SDK.' >&2
             exit 1
           fi
@@ -281,7 +281,7 @@ jobs:
             tests/Hexalith.Tenants.AppHost.Tests/Hexalith.Tenants.AppHost.Tests.csproj \
             tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj; do
             dotnet build "$project" --configuration Release \
-              -p:HexalithEventStoreVersion=4.1.0 -p:HexalithMcpCliVersion=2.0.0 \
+              -p:HexalithEventStoreVersion=4.2.0 -p:HexalithMcpCliVersion=2.0.1 \
               -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true \
               -p:HexalithFrontComposerFromSource=false -p:HexalithMemoriesFromSource=false \
               -warnaserror -m:1 -nr:false
