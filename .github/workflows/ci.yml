@@ -205,6 +205,8 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '24'
+      - name: Initialize Ubuntu APT mirrors
+        uses: Hexalith/Hexalith.Builds/Github/initialize-apt@f5a46e8a70a1893bc638fa5f488d57767fafdede
       - name: Trust HTTPS development certificates for live sockets
         run: |
           sudo apt-get update
@@ -470,7 +472,7 @@ jobs:
           --minimum-expected-tests 117 --fail-skips on
 
   ci:
-    uses: Hexalith/Hexalith.Builds/.github/workflows/domain-ci.yml@1cc94bbb932be0d08a31b4e1393fcfc450a0b1c9
+    uses: Hexalith/Hexalith.Builds/.github/workflows/domain-ci.yml@f5a46e8a70a1893bc638fa5f488d57767fafdede
     with:
       solution: Hexalith.Tenants.slnx
       test-platform: microsoft-testing-platform

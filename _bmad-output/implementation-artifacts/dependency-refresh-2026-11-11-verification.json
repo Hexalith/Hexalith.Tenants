@@ -57,5 +57,20 @@
   },
   "finalBuildsDependency": "e35dd39872baf071aec6a7be1b252b16f460e08c",
   "buildsAuditGeneratedFrom": "44a2a75f2091e9947ebfc7084226b6a66dfd771e",
-  "sharedCiRepairEvidence": "/tmp/tenants-builds-sdk11-repair-verification.json"
+  "sharedCiRepairEvidence": "/tmp/tenants-builds-sdk11-repair-verification.json",
+  "ciNetworkRecovery": {
+    "executionBase": "1cc94bbb932be0d08a31b4e1393fcfc450a0b1c9",
+    "executionCommit": "f5a46e8a70a1893bc638fa5f488d57767fafdede",
+    "branch": "Hexalith/Hexalith.Builds:fix/tenants-ci-ubuntu-mirrors",
+    "diagnosticRun": "https://github.com/Hexalith/Hexalith.Tenants/actions/runs/43041608789",
+    "diagnosticPlatforms": [
+      "ubuntu-24.04",
+      "ubuntu-26.04"
+    ],
+    "unitTests": 8,
+    "mirror": "https://mirrors.edge.kernel.org/ubuntu/",
+    "priority": 0,
+    "metadataAuthentication": "installed Ubuntu archive signing keyring",
+    "disabledChecks": []
+  }
 }
