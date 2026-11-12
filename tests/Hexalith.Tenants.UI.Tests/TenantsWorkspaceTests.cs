@@ -142,10 +142,13 @@ public sealed partial class TenantsWorkspaceTests : BunitContext
         });
         TaskCompletionSource<IJSObjectReference> heldImport = new(TaskCreationOptions.RunContinuationsAsynchronously);
         int imports = 0;
+        // NSubstitute setup records expectations; it does not execute browser JavaScript.
+#pragma warning disable BL0016
         runtime.InvokeAsync<IJSObjectReference>("import", Arg.Any<object?[]>()).Returns(call =>
             new ValueTask<IJSObjectReference>(Equals(call.ArgAt<object?[]>(1)[0], "./js/tenantsFocus.js")
                 && Interlocked.Increment(ref imports) == 2 ? heldImport.Task : Task.FromResult(module)));
         module.InvokeAsync<bool>("movePagingFocusToHeading", Arg.Any<object?[]>()).Returns(new ValueTask<bool>(true));
+#pragma warning restore BL0016
         Services.AddSingleton(runtime);
         IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
         await cut.WaitForElement("[data-testid='tenants-list-next']").ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());

@@ -828,6 +828,8 @@ public sealed class SupportSafeCopyButtonTests : FluentBunitContext
 
         public int ImportCount { get; private set; }
 
+        // Fake interop only: no browser JavaScript runs, and injected faults must reach the component.
+#pragma warning disable BL0016
         public ValueTask<TValue> InvokeAsync<TValue>(string identifier, object?[]? args)
             => InvokeAsync<TValue>(identifier, CancellationToken.None, args);
 
@@ -838,6 +840,7 @@ public sealed class SupportSafeCopyButtonTests : FluentBunitContext
                 "writeText" => WriteAsync<TValue>(args),
                 _ => throw new JSException($"Unexpected JS invocation '{identifier}'."),
             };
+#pragma warning restore BL0016
 
         public async ValueTask DisposeAsync()
         {

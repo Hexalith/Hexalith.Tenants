@@ -10,7 +10,7 @@
             "request": "launch",
             "preLaunchTask": "build",
             // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/src/Hexalith.Tenants.AppHost/bin/Debug/net10.0/Hexalith.Tenants.AppHost.dll",
+            "program": "${workspaceFolder}/src/Hexalith.Tenants.AppHost/bin/Debug/net11.0/Hexalith.Tenants.AppHost.dll",
             "args": [],
             "cwd": "${workspaceFolder}/src/Hexalith.Tenants.AppHost",
             // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console

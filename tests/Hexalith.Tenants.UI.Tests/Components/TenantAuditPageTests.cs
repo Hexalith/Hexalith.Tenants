@@ -5488,6 +5488,8 @@ public sealed class TenantAuditPageTests : BunitContext
 
         private int _importCount;
 
+        // Fake interop only: no browser JavaScript runs, and injected faults must reach the component.
+#pragma warning disable BL0016
         public ValueTask<TValue> InvokeAsync<TValue>(string identifier, object?[]? args)
             => InvokeAsync<TValue>(identifier, CancellationToken.None, args);
 
@@ -5498,6 +5500,7 @@ public sealed class TenantAuditPageTests : BunitContext
                 "focusElementById" => new ValueTask<TValue>((TValue)(object)RecordFocus(args)),
                 _ => new ValueTask<TValue>(default(TValue)!),
             };
+#pragma warning restore BL0016
 
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 

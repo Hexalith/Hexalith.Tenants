@@ -115,7 +115,7 @@
          NOT imported because it adds analyzer packages (SonarAnalyzer, StyleCop, Roslynator)
          that this repository's analyzer policy intentionally excludes. -->
     <PropertyGroup>
-        <TargetFramework>net10.0</TargetFramework>
+        <TargetFramework>net11.0</TargetFramework>
         <Version Condition="'$(Version)' == '' and '$(HexalithTenantsVersion)' != ''">$(HexalithTenantsVersion)</Version>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>

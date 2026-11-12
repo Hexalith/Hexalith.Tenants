@@ -59,6 +59,8 @@ public sealed partial class TenantsWorkspaceTests
             await held.Task.ConfigureAwait(false);
             return replacement ? replacementModule : module;
         }
+        // NSubstitute/bUnit fake interop only; delayed imports and injected faults remain observable.
+#pragma warning disable BL0016
         runtime.InvokeAsync<IJSObjectReference>(Arg.Any<string>(), Arg.Any<object?[]?>()).Returns(call =>
             call.ArgAt<string>(0) == "import" && call.ArgAt<object?[]?>(1)?.FirstOrDefault() as string == "./js/tenantsFocus.js"
                 ? new ValueTask<IJSObjectReference>(ImportModuleAsync(replacementScope))
@@ -72,6 +74,7 @@ public sealed partial class TenantsWorkspaceTests
                 return ValueTask.CompletedTask;
             });
         }
+#pragma warning restore BL0016
         typeof(TenantsWorkspace).GetProperty("JS", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(cut.Instance, runtime);
         NavigationManager navigation = Services.GetRequiredService<NavigationManager>();
         try

@@ -72,7 +72,7 @@ class CatalogArtifactPackTests(unittest.TestCase):
                 return f'src/Hexalith.Tenants.{package}/Hexalith.Tenants.{package}.csproj'
 
             def binary(package, assembly=None):
-                return fixture / f'src/Hexalith.Tenants.{package}/bin/Release/net10.0/Hexalith.Tenants.{assembly or package}.dll'
+                return fixture / f'src/Hexalith.Tenants.{package}/bin/Release/net11.0/Hexalith.Tenants.{assembly or package}.dll'
 
             built = run('build', 'PackFixtures.slnx', *common, '-warnaserror')
             self.assertEqual(built.returncode, 0, built.stdout + built.stderr)
@@ -127,7 +127,7 @@ class CatalogArtifactPackTests(unittest.TestCase):
                     archives = list(output.glob('*.nupkg'))
                     self.assertEqual(len(archives), 1)
                     with zipfile.ZipFile(archives[0]) as archive:
-                        self.assertEqual(archive.read(f'lib/net10.0/Hexalith.Tenants.{package}.dll'), binary(package).read_bytes())
+                        self.assertEqual(archive.read(f'lib/net11.0/Hexalith.Tenants.{package}.dll'), binary(package).read_bytes())
             for package, assembly in (('Contracts', 'Contracts'), ('Server', 'Server'), ('Server', 'Contracts'),
                                       ('Client', 'Contracts'), ('Testing', 'Contracts'), ('Testing', 'Server')):
                 with self.subTest(package=package, stale_assembly=assembly):

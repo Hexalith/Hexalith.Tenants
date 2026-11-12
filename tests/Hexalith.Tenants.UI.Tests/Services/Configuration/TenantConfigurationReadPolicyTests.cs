@@ -1504,6 +1504,20 @@ public sealed class TenantConfigurationReadPolicyTests
         composition.SafeModel.Rows.ShouldHaveSingleItem().Key.ShouldBe("billing.mode");
     }
 
+    [Fact]
+    public async Task Authentication_change_during_a_delayed_read_refuses_the_old_administrator()
+    {
+        var provider = new PendingAuthenticationStateProvider();
+        var resolver = Resolver(circuitProvider: provider, userContextSubject: "operator.alpha");
+        Task<TenantConfigurationPrincipalEvidence> pending = resolver.ResolveAsync().AsTask();
+        await provider.Entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        provider.CompleteAfterChange(Principal(new Claim("sub", "operator.alpha"),
+            new Claim("eventstore:tenant", "system"), new Claim("global_admin", "true")));
+        TenantConfigurationPrincipalEvidence evidence = await pending.WaitAsync(TimeSpan.FromSeconds(5));
+        evidence.State.ShouldBe(TenantConfigurationPrincipalEvidenceState.Indeterminate);
+        evidence.Subject.ShouldBeNull();
+    }
+
     private static TenantConfigurationPrincipalResolver Resolver(
         ClaimsPrincipal? circuitPrincipal = null,
         AuthenticationStateProvider? circuitProvider = null,
@@ -1630,6 +1644,12 @@ public sealed class TenantConfigurationReadPolicyTests
 
         public TaskCompletionSource Entered { get; } =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public void CompleteAfterChange(ClaimsPrincipal stale)
+        {
+            NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(new ClaimsPrincipal())));
+            _completion.TrySetResult(new AuthenticationState(stale));
+        }
 
         public override Task<AuthenticationState> GetAuthenticationStateAsync()
         {

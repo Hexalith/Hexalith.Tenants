@@ -2297,6 +2297,8 @@ public sealed class TenantListSurfaceTests : BunitContext
         // identifier reaching the scanned set is exactly what the root-only version could not show.
         cut.Markup.ShouldContain("tenant.one", Case.Sensitive);
         navigation.Uri.ShouldContain("search=needle", Case.Sensitive);
+        // These are bUnit fake control channels proving that the non-disclosure assertions can fail.
+#pragma warning disable BL0016
         IJSObjectReference module = await cut.InvokeAsync(() => Services
             .GetRequiredService<IJSRuntime>()
             .InvokeAsync<IJSObjectReference>("import", "./js/tenantsClipboard.js")
@@ -2309,6 +2311,7 @@ public sealed class TenantListSurfaceTests : BunitContext
             .InvokeVoidAsync("tenantsListRootControlChannel", "control-sentinel-value")
             .AsTask());
 
+#pragma warning restore BL0016
         List<JSRuntimeInvocation> controlled = [.. JSInterop.Invocations, .. clipboard.Invocations];
         controlled.Select(static invocation => invocation.Identifier)
             .ShouldContain("tenantsListRootControlChannel");

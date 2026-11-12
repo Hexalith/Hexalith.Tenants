@@ -69,14 +69,26 @@ internal sealed class TenantConfigurationPrincipalResolver(
             return TenantConfigurationPrincipalEvidence.Indeterminate();
         }
 
-        System.Security.Claims.ClaimsPrincipal principal;
+        int authenticationChanged = 0;
+        void OnAuthenticationChanged(Task<AuthenticationState> _) => Interlocked.Exchange(ref authenticationChanged, 1);
+        provider.AuthenticationStateChanged += OnAuthenticationChanged;
         try
         {
             AuthenticationState state = await provider
                 .GetAuthenticationStateAsync()
                 .WaitAsync(cancellationToken)
                 .ConfigureAwait(false);
-            principal = state.User;
+            if (Volatile.Read(ref authenticationChanged) != 0)
+            {
+                // A delayed old task must not retain privileges after a live circuit identity change.
+                return TenantConfigurationPrincipalEvidence.Indeterminate();
+            }
+
+            // Corroborate against the independently resolved user context, without an HTTP-principal fallback.
+            return TenantsGlobalAdministratorClaims.ResolvePrincipalEvidence(
+                state.User,
+                userContextAccessor.UserId,
+                requireCorroboration: true);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -86,12 +98,9 @@ internal sealed class TenantConfigurationPrincipalResolver(
         {
             return TenantConfigurationPrincipalEvidence.Indeterminate();
         }
-
-        // Corroborated: the principal's sub claim must agree with the independently resolved user context.
-        // Claims alone are not sufficient evidence for global-administrator standing.
-        return TenantsGlobalAdministratorClaims.ResolvePrincipalEvidence(
-            principal,
-            userContextAccessor.UserId,
-            requireCorroboration: true);
+        finally
+        {
+            provider.AuthenticationStateChanged -= OnAuthenticationChanged;
+        }
     }
 }
