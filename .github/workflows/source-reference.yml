@@ -40,6 +40,8 @@ jobs:
             exit 1
           fi
           printf 'HexalithEventStoreVersion=%s\n' "$source_sdk_version" >> "$GITHUB_ENV"
+      - name: Verify canonical Platform source resolution
+        run: python3 -m unittest discover -s scripts/tests -p 'test_platform_source_root.py' -v
       - name: Build the source-reference integration graph
         run: >
           dotnet build tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj

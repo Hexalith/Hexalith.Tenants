@@ -37,6 +37,13 @@
     <ProjectReference Include="$(HexalithBuildsRoot)\src\libraries\Hexalith.Builds.Tooling\Hexalith.Builds.Tooling.csproj" IsAspireProjectResource="false" GlobalPropertiesToRemove="HexalithEventStoreVersion" />
   </ItemGroup>
 
+  <Target Name="ValidateCanonicalPlatformSource" BeforeTargets="PrepareForBuild">
+    <Error Condition="'$(HexalithPlatformRoot)' == '' or !Exists('$(HexalithPlatformRoot)/Hexalith.Platform.slnx')"
+           Text="The Tenants AppHost requires the canonical Platform checkout. For a Platform umbrella, supply its root explicitly with HexalithPlatformRoot." />
+    <Error Condition="!Exists('$(HexalithPlatformRoot)/DaprSelfHostedMtls.cs') or !Exists('$(HexalithPlatformRoot)/DaprSelfHostedMtlsSubscriber.cs')"
+           Text="The selected Platform checkout must contain both canonical Dapr self-hosted identity source files." />
+  </Target>
+
   <!-- Debug build-forcing references for the launched child host projects.
        The children are added to the app model via path-only IProjectMetadata (SuppressBuild=true) and Aspire
        launches them with `dotnet run` in no-build mode, so nothing on the `aspire run` path compiles them — a

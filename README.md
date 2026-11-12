@@ -140,6 +140,20 @@ mode (`-p:UseNuGetDeps=true -p:HexalithFrontComposerFromSource=false`).
 That solution contains every owned project and no project or file entries under
 `references/`.
 
+The AppHost links the two canonical Dapr identity source files from the declared
+`references/Hexalith.Platform` checkout, or the sibling `../Hexalith.Platform`
+checkout. An explicit `HexalithPlatformRoot` takes precedence. When Tenants is
+inside the Platform umbrella, run from the Platform root with that owner selected:
+
+```bash
+dotnet build references/Hexalith.Tenants/src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj -c Debug -p:UseHexalithProjectReferences=true -p:HexalithPlatformRoot="$PWD" -warnaserror
+```
+
+The AppHost requires the Platform solution marker and both canonical source files
+before building. It never discovers sources from unnamed parent directories.
+These checks establish build prerequisites; the owning source mapping and census
+retain responsibility for the exact committed source identities and bytes.
+
 ### Test Requirements
 
 All pull requests must pass the relevant existing test projects. Run test projects individually; the repository selects Microsoft.Testing.Platform for its xUnit 4 projects.
