@@ -122,7 +122,7 @@ jobs:
       - name: Verify material provisioning refuses retained or substituted inputs
         run: python3 -m unittest discover -s scripts/tests -p 'test_source_catalog_profile.py' -v
       - name: Initialize the same Dapr tuple as the selected SDK source gate
-        uses: Hexalith/Hexalith.Builds/Github/dapr-init@fff4a212180d8cd1c5c0759655a9bc4fb6963c45
+        uses: Hexalith/Hexalith.Builds/Github/dapr-init@6ad5854aa14a9950e1fbfc32d7e27953a1c4b82b
         with:
           version: '1.18.2'
           runtime-version: '1.18.7'

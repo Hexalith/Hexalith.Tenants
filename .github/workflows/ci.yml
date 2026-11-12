@@ -206,7 +206,7 @@ jobs:
         with:
           node-version: '24'
       - name: Initialize Ubuntu APT mirrors
-        uses: Hexalith/Hexalith.Builds/Github/initialize-apt@f5a46e8a70a1893bc638fa5f488d57767fafdede
+        uses: Hexalith/Hexalith.Builds/Github/initialize-apt@6ad5854aa14a9950e1fbfc32d7e27953a1c4b82b
       - name: Trust HTTPS development certificates for live sockets
         run: |
           sudo apt-get update
@@ -247,7 +247,7 @@ jobs:
               output.write("TENANTS_SOURCE_BACKEND_STARTED_AT=" + datetime.datetime.now(datetime.timezone.utc).isoformat() + "\n")
           PY
       - name: Install and initialize Dapr
-        uses: Hexalith/Hexalith.Builds/Github/dapr-init@fff4a212180d8cd1c5c0759655a9bc4fb6963c45
+        uses: Hexalith/Hexalith.Builds/Github/dapr-init@6ad5854aa14a9950e1fbfc32d7e27953a1c4b82b
         with:
           version: '1.18.2'
           runtime-version: '1.18.7'
@@ -472,7 +472,7 @@ jobs:
           --minimum-expected-tests 117 --fail-skips on
 
   ci:
-    uses: Hexalith/Hexalith.Builds/.github/workflows/domain-ci.yml@f5a46e8a70a1893bc638fa5f488d57767fafdede
+    uses: Hexalith/Hexalith.Builds/.github/workflows/domain-ci.yml@6ad5854aa14a9950e1fbfc32d7e27953a1c4b82b
     with:
       solution: Hexalith.Tenants.slnx
       test-platform: microsoft-testing-platform
