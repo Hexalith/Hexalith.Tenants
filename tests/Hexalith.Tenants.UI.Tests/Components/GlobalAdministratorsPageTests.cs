@@ -9470,10 +9470,22 @@ public sealed partial class GlobalAdministratorsPageTests : FluentBunitContext
                 return answer;
             }
 
-            AuthenticationState state = await _principalSource
-                .GetAuthenticationStateAsync()
-                .ConfigureAwait(false);
-            return TenantsGlobalAdministratorClaims.Evaluate(state.User);
+            int authenticationChanged = 0;
+            void OnAuthenticationChanged(Task<AuthenticationState> _) => Interlocked.Exchange(ref authenticationChanged, 1);
+            _principalSource.AuthenticationStateChanged += OnAuthenticationChanged;
+            try
+            {
+                AuthenticationState state = await _principalSource
+                    .GetAuthenticationStateAsync()
+                    .ConfigureAwait(false);
+                return Volatile.Read(ref authenticationChanged) == 0
+                    ? TenantsGlobalAdministratorClaims.Evaluate(state.User)
+                    : TenantLifecycleAuthorizationReflectionState.Indeterminate;
+            }
+            finally
+            {
+                _principalSource.AuthenticationStateChanged -= OnAuthenticationChanged;
+            }
         }
 
         public async ValueTask<GlobalAdministratorGrantPreview> ComposeGlobalAdministratorGrantPreviewAsync(

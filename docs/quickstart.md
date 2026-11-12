@@ -16,7 +16,7 @@ dotnet --version
 
 Expected: `11.0.100` or a later patch in the same feature band. The repository pins SDK `11.0.100` in [`global.json`](../global.json) with `rollForward: latestPatch`.
 
-The applications and consumers still target `net10.0`. Install the .NET 10 and ASP.NET Core 10 runtimes alongside SDK 11; SDK 11 alone does not supply those runtimes. Verify `dotnet --list-runtimes` includes `Microsoft.NETCore.App 10.0.x` and `Microsoft.AspNetCore.App 10.0.x`.
+The current applications and consumers target `net11.0`. Verify `dotnet --list-runtimes` includes `Microsoft.NETCore.App 11.0.x` and `Microsoft.AspNetCore.App 11.0.x`. Retained archive compatibility checks keep their explicit original framework and may additionally require the .NET 10 runtimes.
 
 If not installed, download from [https://dot.net](https://dot.net/download).
 

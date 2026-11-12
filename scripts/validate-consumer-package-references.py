@@ -132,7 +132,7 @@ def write_contracts_client_consumer(root: Path, version: str) -> Path:
         f"""<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net11.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
@@ -177,7 +177,7 @@ def write_testing_consumer(root: Path, version: str, versions: dict[str, str]) -
     project_file.write_text(
         f"""<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net11.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <IsPackable>false</IsPackable>
@@ -239,7 +239,7 @@ def validate_consumer(project_file: Path, test: bool = False) -> None:
             ],
             project_file.parent,
         )
-        test_assembly = project_file.parent / "bin" / "Release" / "net10.0" / f"{project_file.stem}.dll"
+        test_assembly = project_file.parent / "bin" / "Release" / "net11.0" / f"{project_file.stem}.dll"
         run_xunit_assembly(test_assembly, project_file.parent)
     else:
         # Keep -warnaserror for genuine compiler warnings against the public package surface, but do not fail on

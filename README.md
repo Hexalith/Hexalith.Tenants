@@ -21,7 +21,7 @@ Multi-tenant management for the Hexalith ecosystem. Built on event sourcing, DAP
 
 Get from clone to your first tenant command after local prerequisites are installed:
 
-**[Quickstart Guide](docs/quickstart.md)** — prerequisite-validated path for .NET SDK 11.0.100 with the .NET 10 runtimes, Docker, full DAPR local runtime, AppHost startup, local auth, and the first EventStore command submission.
+**[Quickstart Guide](docs/quickstart.md)** — prerequisite-validated path for .NET SDK 11.0.100 with the .NET 11 runtimes, Docker, full DAPR local runtime, AppHost startup, local auth, and the first EventStore command submission.
 
 **[Deployment Readiness](docs/deployment-readiness.md)** — consolidated operator checklist and evidence template for production-like Tenants deployments, covering auth, DAPR, service invocation, health, command/query paths, and pub/sub recovery boundaries.
 

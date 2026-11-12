@@ -31,10 +31,12 @@ public sealed class TenantCreateAuditReturnStateTests
 
     private sealed class SwitchingAuthenticationStateProvider : AuthenticationStateProvider
     {
-        public override Task<AuthenticationState> GetAuthenticationStateAsync()
+        private static Task<AuthenticationState> CurrentState()
             => Task.FromResult(new AuthenticationState(new ClaimsPrincipal()));
 
+        public override Task<AuthenticationState> GetAuthenticationStateAsync() => CurrentState();
+
         public void ChangeCaller()
-            => NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
+            => NotifyAuthenticationStateChanged(CurrentState());
     }
 }

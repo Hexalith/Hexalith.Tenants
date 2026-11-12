@@ -1476,7 +1476,7 @@ public class PackageGovernanceTests {
         XDocument buildProps = XDocument.Load(Path.Combine(repoRoot, "Directory.Build.props"));
         string buildPropsText = File.ReadAllText(Path.Combine(repoRoot, "Directory.Build.props"));
 
-        RequiredValueFor(buildProps, "TargetFramework").ShouldBe("net10.0");
+        RequiredValueFor(buildProps, "TargetFramework").ShouldBe("net11.0");
         RequiredValueFor(buildProps, "Nullable").ShouldBe("enable");
         RequiredValueFor(buildProps, "ImplicitUsings").ShouldBe("enable");
         RequiredValueFor(buildProps, "TreatWarningsAsErrors").ShouldBe("true");
@@ -1569,7 +1569,7 @@ public class PackageGovernanceTests {
         XDocument hostProject = XDocument.Load(Path.Combine(repoRoot, "src/Hexalith.Tenants/Hexalith.Tenants.csproj"));
         XDocument uiProject = XDocument.Load(Path.Combine(repoRoot, "src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj"));
 
-        RequiredValueFor(targets, "ContainerBaseImage").ShouldBe("mcr.microsoft.com/dotnet/aspnet:10.0-alpine");
+        RequiredValueFor(targets, "ContainerBaseImage").ShouldBe("mcr.microsoft.com/dotnet/aspnet:11.0-alpine");
         RequiredValueFor(targets, "ContainerRegistry").ShouldBe("registry.hexalith.com");
         RequiredValueFor(targets, "ContainerUser").ShouldBe("app");
         targets.Descendants("ContainerPort").Single().Attribute("Include")?.Value.ShouldBe("8080");

@@ -257,11 +257,11 @@ public class AuthenticationConfigurationTests {
     }
 
     [Fact]
-    public void StartupValidationShouldComposeEventStoreAndTenantsValidators() {
+    public async Task StartupValidationShouldComposeEventStoreAndTenantsValidators() {
         IConfiguration configuration = CreateConfiguration();
 
-        OptionsValidationException exception = Should.Throw<OptionsValidationException>(
-            () => ValidateOptionsOnStart(configuration, Environments.Production));
+        OptionsValidationException exception = await Should.ThrowAsync<OptionsValidationException>(
+            () => ValidateOptionsOnStartAsync(configuration, Environments.Production));
 
         string message = string.Join(Environment.NewLine, exception.Failures);
         message.ShouldContain("requires exactly one of Authority or SigningKey");
@@ -306,10 +306,10 @@ public class AuthenticationConfigurationTests {
             .Value
             .ShouldNotBeNull();
 
-    private static void ValidateOptionsOnStart(IConfiguration configuration, string environmentName)
+    private static Task ValidateOptionsOnStartAsync(IConfiguration configuration, string environmentName)
         => CreateServiceProvider(configuration, environmentName)
-            .GetRequiredService<IStartupValidator>()
-            .Validate();
+            .GetRequiredService<IAsyncStartupValidator>()
+            .ValidateAsync();
 
     private static ServiceProvider CreateServiceProvider(IConfiguration configuration, string environmentName) {
         var services = new ServiceCollection();

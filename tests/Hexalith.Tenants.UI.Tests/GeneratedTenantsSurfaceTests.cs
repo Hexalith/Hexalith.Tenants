@@ -334,10 +334,12 @@ public sealed class GeneratedTenantsSurfaceTests : FrontComposerTestBase
 
     private sealed class MutableAuthenticationStateProvider : AuthenticationStateProvider
     {
-        public override Task<AuthenticationState> GetAuthenticationStateAsync()
+        private static Task<AuthenticationState> CurrentState()
             => Task.FromResult(new AuthenticationState(new ClaimsPrincipal()));
 
+        public override Task<AuthenticationState> GetAuthenticationStateAsync() => CurrentState();
+
         public void PublishChange()
-            => NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
+            => NotifyAuthenticationStateChanged(CurrentState());
     }
 }

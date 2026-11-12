@@ -18,7 +18,7 @@ SPEC.loader.exec_module(CONSUMER)
 
 class CatalogPackageMetadataTests(unittest.TestCase):
     def write_package(self, root, package_id, version='7.0.0', source='a' * 40, sdk='4.0.0', include_dependency=True,
-                      mcp='2.0.0', include_mcp=True):
+                      mcp='2.0.0', include_mcp=True, framework='net11.0'):
         package = ET.Element('package')
         metadata = ET.SubElement(package, 'metadata')
         ET.SubElement(metadata, 'id').text = package_id
@@ -33,7 +33,23 @@ class CatalogPackageMetadataTests(unittest.TestCase):
         target = root / (package_id + '.' + version + '.nupkg')
         with zipfile.ZipFile(target, 'w') as archive:
             archive.writestr(package_id + '.nuspec', ET.tostring(package))
-            archive.writestr('lib/net10.0/' + package_id + '.dll', b'not executable')
+            archive.writestr('lib/' + framework + '/' + package_id + '.dll', b'not executable')
+
+    def test_current_net11_and_explicit_retained_net10_consumers_keep_distinct_frameworks(self):
+        for framework in ('net11.0', 'net10.0'):
+            with self.subTest(framework=framework), tempfile.TemporaryDirectory(prefix='tenants-catalog-framework-') as temporary:
+                root = Path(temporary)
+                for package_id in CONSUMER.IDS:
+                    self.write_package(root, package_id, framework=framework)
+                def inspect_restore(arguments, **kwargs):
+                    self.assertEqual(ET.parse(arguments[2]).findtext('.//TargetFramework'), framework)
+                    raise InterruptedError('Verified framework boundary')
+                with patch.object(CONSUMER.subprocess, 'run', side_effect=inspect_restore):
+                    with self.assertRaisesRegex(InterruptedError, 'Verified framework boundary'):
+                        options = {} if framework == 'net11.0' else {'target_framework': framework}
+                        CONSUMER.verify(root, 'a' * 40, **options)
+        with self.assertRaisesRegex(ValueError, 'framework is not qualified'):
+            CONSUMER.verify(Path('/unused'), target_framework='net12.0')
 
     def test_wrong_source_refuses_before_restore(self):
         self.reject(server={'source': 'b' * 40}, message='reviewed source')
@@ -42,7 +58,7 @@ class CatalogPackageMetadataTests(unittest.TestCase):
         self.reject(server={'version': '7.0.1'}, message='versions disagree')
 
     def test_unknown_or_prerelease_sdk_refuses_before_restore(self):
-        for sdk in ('3.128.4', '3.129.0-preview.1', '3.129.2', '3.130.3', '3.131.1', '3.132.3', '3.133.1', '4.0.5', '4.1.1', '4.2.1', '4.3.0', '4.2.0-preview.1', '4.2.0.1', '4.2.0+', '4.2.0+invalid..metadata', '4.1.0-preview.1', '4.1.0.1', '4.1.0+', '4.1.0+invalid..metadata', '4.0.4-preview.1', '4.0.4.1', '4.0.3-preview.1', '4.0.0-preview.1',
+        for sdk in ('3.128.4', '3.129.0-preview.1', '3.129.2', '3.130.3', '3.131.1', '3.132.3', '3.133.1', '4.0.5', '4.1.1', '4.2.1', '4.3.0', '5.0.0', '4.2.0-preview.1', '4.2.0.1', '4.2.0+', '4.2.0+invalid..metadata', '4.1.0-preview.1', '4.1.0.1', '4.1.0+', '4.1.0+invalid..metadata', '4.0.4-preview.1', '4.0.4.1', '4.0.3-preview.1', '4.0.0-preview.1',
                     '3.133.0-preview.1', '3.133.0.1',
                     '3.132.2-preview.1', '3.132.2.1',
                     '3.132.1-preview.1', '3.132.1-preview.1+metadata', '3.132.1.1', '3.132.1+',

@@ -225,7 +225,15 @@
                 return false;
             }
 
-            operation = JS.InvokeAsync<IJSObjectReference>("import", ClipboardModulePath);
+            try
+            {
+                operation = JS.InvokeAsync<IJSObjectReference>("import", ClipboardModulePath);
+            }
+            catch (Exception exception) when (exception is JSException or ObjectDisposedException or OperationCanceledException)
+            {
+                // Keep synchronous and asynchronous transport failures on CopyAsync's existing safe feedback path.
+                operation = ValueTask.FromException<IJSObjectReference>(exception);
+            }
             return true;
         }
     }
@@ -243,7 +251,14 @@
                 return false;
             }
 
-            operation = module.InvokeVoidAsync("writeText", value);
+            try
+            {
+                operation = module.InvokeVoidAsync("writeText", value);
+            }
+            catch (Exception exception) when (exception is JSException or ObjectDisposedException or OperationCanceledException)
+            {
+                operation = ValueTask.FromException(exception);
+            }
             return true;
         }
     }

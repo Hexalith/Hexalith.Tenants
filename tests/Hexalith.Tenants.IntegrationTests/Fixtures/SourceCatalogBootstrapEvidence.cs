@@ -22,7 +22,8 @@ internal static class SourceCatalogBootstrapEvidence
             ?? throw new InvalidOperationException("source-catalog-authority-unconfigured");
         // Dapr's real keyPrefix=name format is component||key. See its v1.18
         // state-sharing contract; no application prefix or alternate key is guessed.
-        using var redis = await ConnectionMultiplexer.ConnectAsync("localhost:6379,abortConnect=false,connectTimeout=5000,asyncTimeout=5000").WaitAsync(token);
+        using var redis = await ConnectionMultiplexer.ConnectAsync(RedisOptions(
+            Environment.GetEnvironmentVariable("TENANTS_SOURCE_CATALOG_REDIS_ENDPOINT"))).WaitAsync(token);
         while (true)
         {
             token.ThrowIfCancellationRequested();
@@ -40,6 +41,31 @@ internal static class SourceCatalogBootstrapEvidence
             }
             await Task.Delay(100, token);
         }
+    }
+
+    /// <summary>Selects the existing CI backend or one explicit loopback endpoint for an owned local fixture.</summary>
+    internal static ConfigurationOptions RedisOptions(string? endpoint)
+    {
+        var options = new ConfigurationOptions
+        {
+            AbortOnConnectFail = false,
+            ConnectTimeout = 5000,
+            AsyncTimeout = 5000,
+        };
+        if (endpoint is null)
+        {
+            options.EndPoints.Add("localhost", 6379);
+        }
+        else if (IPEndPoint.TryParse(endpoint, out IPEndPoint? selected)
+            && IPAddress.IsLoopback(selected.Address) && selected.Port > 0)
+        {
+            options.EndPoints.Add(selected);
+        }
+        else
+        {
+            throw new InvalidOperationException("source-catalog-backend-endpoint-invalid");
+        }
+        return options;
     }
 
     internal static async Task<(long? Sequence, string? Failure)> WaitForOwnedBootstrapAsync(HttpClient commandApi,

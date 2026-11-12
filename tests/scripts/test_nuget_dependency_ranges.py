@@ -66,7 +66,7 @@ class NuGetDependencyRangeTests(unittest.TestCase):
 
     def test_supported_framework_long_and_short_names_are_equivalent(self):
         for short, long in (("netcoreapp3.1", ".NETCoreApp3.1"), ("netstandard2.0", ".NETStandard2.0"),
-                             ("net10.0", ".NETCoreApp,Version=v10.0")):
+                             ("net10.0", ".NETCoreApp,Version=v10.0"), ("net11.0", ".NETCoreApp,Version=v11.0")):
             with self.subTest(short=short):
                 for section in ("projectFileDependencyGroups", "centralTransitiveDependencyGroups"):
                     self.assets[section] = {short: next(iter(self.assets[section].values()))}

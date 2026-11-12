@@ -1995,7 +1995,6 @@
 
         // A recovered authorization boundary starts a fresh subscription opportunity as well as a fresh read.
         Volatile.Write(ref _readRefreshAttempts, 0);
-        StateHasChanged();
         try
         {
             if (!await ReauthorizeAsync().ConfigureAwait(false))
@@ -3229,7 +3228,6 @@
         {
             InvalidateGrantMutation();
             InvalidateUndispatchedGrantPreview(previewSnapshot, previewLease);
-            StateHasChanged();
         }
     }
 
@@ -3417,7 +3415,6 @@
     private void OnGrantAcknowledgementChanged(bool value)
     {
         _grantAcknowledged = IsGrantPreviewOpen && value;
-        StateHasChanged();
     }
 
     private async Task ConfirmGrantAsync()

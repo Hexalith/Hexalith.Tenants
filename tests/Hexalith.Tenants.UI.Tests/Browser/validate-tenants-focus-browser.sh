@@ -12,11 +12,13 @@ if [[ -z "$build_configuration" ]]; then
         build_configuration="Debug"
     fi
 fi
+target_framework="$(dotnet msbuild "$project_root/src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj" -nologo "-p:Configuration=$build_configuration" -getProperty:TargetFramework)"
+[[ "$target_framework" == "net11.0" ]] || { echo "The current browser host must target net11.0." >&2; exit 1; }
 focus_module_path="$project_root/src/Hexalith.Tenants.UI/wwwroot/js/tenantsFocus.js"
-correction_css_path="$project_root/src/Hexalith.Tenants.UI/obj/${build_configuration}/net10.0/scopedcss/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor.rz.scp.css"
-receipt_css_path="$project_root/src/Hexalith.Tenants.UI/obj/${build_configuration}/net10.0/scopedcss/Components/Tenants/Audit/AuditEvidenceReceipt.razor.rz.scp.css"
-availability_css_path="$project_root/src/Hexalith.Tenants.UI/obj/${build_configuration}/net10.0/scopedcss/Components/Tenants/Audit/AuditAvailabilityState.razor.rz.scp.css"
-page_css_path="$project_root/src/Hexalith.Tenants.UI/obj/${build_configuration}/net10.0/scopedcss/Components/Pages/GlobalAdministratorsPage.razor.rz.scp.css"
+correction_css_path="$project_root/src/Hexalith.Tenants.UI/obj/${build_configuration}/${target_framework}/scopedcss/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor.rz.scp.css"
+receipt_css_path="$project_root/src/Hexalith.Tenants.UI/obj/${build_configuration}/${target_framework}/scopedcss/Components/Tenants/Audit/AuditEvidenceReceipt.razor.rz.scp.css"
+availability_css_path="$project_root/src/Hexalith.Tenants.UI/obj/${build_configuration}/${target_framework}/scopedcss/Components/Tenants/Audit/AuditAvailabilityState.razor.rz.scp.css"
+page_css_path="$project_root/src/Hexalith.Tenants.UI/obj/${build_configuration}/${target_framework}/scopedcss/Components/Pages/GlobalAdministratorsPage.razor.rz.scp.css"
 project_assets_path="$project_root/src/Hexalith.Tenants.UI/obj/project.assets.json"
 
 if [[ ! -f "$harness_path" || ! -f "$focus_module_path" || ! -f "$correction_css_path" || ! -f "$receipt_css_path" || ! -f "$availability_css_path" || ! -f "$page_css_path" || ! -f "$project_assets_path" ]]; then
@@ -289,7 +291,7 @@ validation_report_contains() {
 
 # Actual component badges qualify localized names and live-region properties in Chromium.
 run_status_badges() {
-    local test_executable="$project_root/tests/Hexalith.Tenants.UI.Tests/bin/${build_configuration}/net10.0/Hexalith.Tenants.UI.Tests"
+    local test_executable="$project_root/tests/Hexalith.Tenants.UI.Tests/bin/${build_configuration}/${target_framework}/Hexalith.Tenants.UI.Tests"
     if ! TENANTS_BADGE_FIXTURE_DIRECTORY="$validation_tmp" "$test_executable" \
         -method '*StatusBadgeContractTests.StatusBadgesExposeOneLocalizedNameAndExportBrowserFixtures' \
         -method '*TenantDetailSurfaceTests.DetailStatusUsesTheSharedBadgeAnatomy' \
@@ -303,7 +305,7 @@ run_status_badges() {
     local component
     for component in Shared/TruthStateBadge Shared/ProjectionLifecycleBadge Tenants/Audit/AuditAvailabilityState \
         Tenants/Audit/AuditDataGrid Pages/TenantDetailPage Tenants/TenantDataGrid Users/MyTenantsDataGrid; do
-        cat "$project_root/src/Hexalith.Tenants.UI/obj/${build_configuration}/net10.0/scopedcss/Components/${component}.razor.rz.scp.css" \
+        cat "$project_root/src/Hexalith.Tenants.UI/obj/${build_configuration}/${target_framework}/scopedcss/Components/${component}.razor.rz.scp.css" \
             >>"$validation_tmp/badge-components.css"
     done
     cp -- "$script_dir/status-badges-browser-validation.html" "$validation_tmp/badges.html"
@@ -362,7 +364,7 @@ fi
 # Export fixtures after the initial readiness/browser controls so their bounds exclude unrelated exports.
 # Export the real EN/FR component markup from the test executable built for $build_configuration
 # (Debug/source-reference locally; Story Guards sets TENANTS_BROWSER_BUILD_CONFIGURATION=Release).
-start_test_executable="$project_root/tests/Hexalith.Tenants.UI.Tests/bin/${build_configuration}/net10.0/Hexalith.Tenants.UI.Tests"
+start_test_executable="$project_root/tests/Hexalith.Tenants.UI.Tests/bin/${build_configuration}/${target_framework}/Hexalith.Tenants.UI.Tests"
 if ! TENANTS_IDENTITY_FIXTURE_DIRECTORY="$validation_tmp" "$start_test_executable" \
     -class 'Hexalith.Tenants.UI.Tests.Components.TenantDomIdentityRenderingTests' \
     >"$validation_tmp/identity-fixture-tests.log" 2>&1; then
@@ -385,10 +387,10 @@ for identity_fixture in my-detail-standalone my-detail-workspace tenant-detail-r
     fi
 done
 cp -- "$script_dir/tenant-identity-browser-validation.html" "$validation_tmp/identity.html"
-cp -- "$project_root/src/Hexalith.Tenants.UI/obj/${build_configuration}/net10.0/scopedcss/Components/Tenants/TenantDataGrid.razor.rz.scp.css" "$validation_tmp/tenant-grid.css"
-cp -- "$project_root/src/Hexalith.Tenants.UI/obj/${build_configuration}/net10.0/scopedcss/Components/Users/MyTenantsDataGrid.razor.rz.scp.css" "$validation_tmp/membership-grid.css"
-start_css_path="$project_root/src/Hexalith.Tenants.UI/obj/${build_configuration}/net10.0/scopedcss/Components/Tenants/Audit/TenantCorrectionStartPanel.razor.rz.scp.css"
-preview_css_path="$project_root/src/Hexalith.Tenants.UI/obj/${build_configuration}/net10.0/scopedcss/Components/Tenants/Audit/CorrectionStartPanel.razor.rz.scp.css"
+cp -- "$project_root/src/Hexalith.Tenants.UI/obj/${build_configuration}/${target_framework}/scopedcss/Components/Tenants/TenantDataGrid.razor.rz.scp.css" "$validation_tmp/tenant-grid.css"
+cp -- "$project_root/src/Hexalith.Tenants.UI/obj/${build_configuration}/${target_framework}/scopedcss/Components/Users/MyTenantsDataGrid.razor.rz.scp.css" "$validation_tmp/membership-grid.css"
+start_css_path="$project_root/src/Hexalith.Tenants.UI/obj/${build_configuration}/${target_framework}/scopedcss/Components/Tenants/Audit/TenantCorrectionStartPanel.razor.rz.scp.css"
+preview_css_path="$project_root/src/Hexalith.Tenants.UI/obj/${build_configuration}/${target_framework}/scopedcss/Components/Tenants/Audit/CorrectionStartPanel.razor.rz.scp.css"
 if ! TENANTS_CORRECTION_FIXTURE_DIRECTORY="$validation_tmp" "$start_test_executable" \
     -method '*TenantCorrectionStartPanelTests.StartAndHandoffPreserveSafeEvidenceWithoutCommandsOrStatusLookups' \
     >"$validation_tmp/start-fixture-tests.log" 2>&1; then
@@ -516,7 +518,7 @@ for culture in en fr; do
     done
 done
 cp -- "$script_dir/tenant-live-admission-browser-validation.html" "$validation_tmp/tenant-live-admission-browser-validation.html"
-cp -- "$project_root/src/Hexalith.Tenants.UI/obj/${build_configuration}/net10.0/scopedcss/Components/Tenants/Members/RemoveTenantMemberFlow.razor.rz.scp.css" "$validation_tmp/tenant-remove-member.css"
+cp -- "$project_root/src/Hexalith.Tenants.UI/obj/${build_configuration}/${target_framework}/scopedcss/Components/Tenants/Members/RemoveTenantMemberFlow.razor.rz.scp.css" "$validation_tmp/tenant-remove-member.css"
 # Qualify the existing responsive forms with production-rendered localized markup.
 if ! TENANTS_COMMAND_FORM_FIXTURE_DIRECTORY="$validation_tmp" "$start_test_executable" \
     -method '*CommandFormExportsLocalizedBrowserMarkup' -method '*MemberDismissalFocusUsesCurrentInteractiveLauncherOrHeading' \
@@ -533,12 +535,12 @@ for state in unchanged removed denied; do
     [[ -s "$validation_tmp/member-focus-${state}.html" ]] || exit 1
 done
 for item in 'Configuration/SetTenantConfigurationFlow:set' 'Configuration/RemoveTenantConfigurationFlow:remove' 'Lifecycle/TenantLifecycleCommandFlow:lifecycle'; do
-    cp -- "$project_root/src/Hexalith.Tenants.UI/obj/${build_configuration}/net10.0/scopedcss/Components/Tenants/${item%:*}.razor.rz.scp.css" "$validation_tmp/command-form-${item#*:}.css"
+    cp -- "$project_root/src/Hexalith.Tenants.UI/obj/${build_configuration}/${target_framework}/scopedcss/Components/Tenants/${item%:*}.razor.rz.scp.css" "$validation_tmp/command-form-${item#*:}.css"
 done
 cp -- "$script_dir/command-form-browser-validation.html" "$validation_tmp/command-form-browser-validation.html"
 
 # Resolve the asset actually selected by this UI build, in source or package mode.
-python3 - "$project_root/src/Hexalith.Tenants.UI/obj/${build_configuration}/net10.0/staticwebassets.build.json" "$validation_tmp/fc-layout-breakpoints.js" "$validation_tmp/viewport-asset-provenance.json" "$build_configuration" "$validation_tmp/fc-focus.js" <<'PY'
+python3 - "$project_root/src/Hexalith.Tenants.UI/obj/${build_configuration}/${target_framework}/staticwebassets.build.json" "$validation_tmp/fc-layout-breakpoints.js" "$validation_tmp/viewport-asset-provenance.json" "$build_configuration" "$validation_tmp/fc-focus.js" <<'PY'
 from pathlib import Path
 import hashlib
 import json

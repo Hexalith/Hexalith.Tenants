@@ -19,7 +19,10 @@ IDS = ('Hexalith.Tenants.Contracts', 'Hexalith.Tenants.Server')
 NORMALIZE_RANGE = runpy.run_path(str(ROOT / 'scripts/validate-nuget-packages.py'))['normalize_range']
 
 
-def verify(directory, expected_source=None, output=None):
+def verify(directory, expected_source=None, output=None, target_framework="net11.0"):
+    # Old archives require an explicit retained compatibility request; current packages use NET11.
+    if target_framework not in ("net10.0", "net11.0"):
+        raise ValueError("The catalog consumer framework is not qualified.")
     archives = {}
     version = None
     sdk = None
@@ -64,7 +67,7 @@ def verify(directory, expected_source=None, output=None):
                     if not normalized or sdk is not None and normalized[1] != sdk:
                         raise ValueError('Catalog SDK dependency is not one qualified stable cohort.')
                     sdk = normalized[1]
-            dll = archive.read('lib/net10.0/' + package_id + '.dll')
+            dll = archive.read('lib/' + target_framework + '/' + package_id + '.dll')
             archives[package_id] = {'file': path, 'sha256': hashlib.sha256(path.read_bytes()).hexdigest(),
                                     'dll_sha256': hashlib.sha256(dll).hexdigest(), 'source': source}
     if set(archives) != set(IDS) or sdk is None:
@@ -98,7 +101,7 @@ def verify(directory, expected_source=None, output=None):
         packages = root / 'packages'
         project = ET.Element('Project', Sdk='Microsoft.NET.Sdk')
         properties = ET.SubElement(project, 'PropertyGroup')
-        for key, value in {'OutputType': 'Exe', 'TargetFramework': 'net10.0', 'ImplicitUsings': 'enable',
+        for key, value in {'OutputType': 'Exe', 'TargetFramework': target_framework, 'ImplicitUsings': 'enable',
                            'Nullable': 'enable', 'TreatWarningsAsErrors': 'true'}.items():
             ET.SubElement(properties, key).text = value
         references = ET.SubElement(project, 'ItemGroup')
@@ -155,13 +158,13 @@ def verify(directory, expected_source=None, output=None):
         subprocess.run(['dotnet', 'build', str(root / 'Consumer.csproj'), '--no-restore', '-c', 'Release',
                         '-m:1', '-nr:false', '-warnaserror'], cwd=root, env=environment, check=True, timeout=120)
         for package_id, record in archives.items():
-            built = root / 'bin/Release/net10.0' / (package_id + '.dll')
+            built = root / 'bin/Release' / target_framework / (package_id + '.dll')
             if hashlib.sha256(built.read_bytes()).hexdigest() != record['dll_sha256']:
                 raise ValueError('Consumer loaded a DLL other than the archived catalog artifact.')
-        result = subprocess.run(['dotnet', str(root / 'bin/Release/net10.0/Consumer.dll')], cwd=root,
+        result = subprocess.run(['dotnet', str(root / 'bin/Release' / target_framework / 'Consumer.dll')], cwd=root,
                                 env=environment, capture_output=True, text=True, check=True, timeout=30)
         discovery = json.loads(result.stdout)
-        receipt = {'version': version, 'sdk': sdk, 'source': expected_source,
+        receipt = {'version': version, 'sdk': sdk, 'source': expected_source, 'targetFramework': target_framework,
                    'packages': {key: {name: value for name, value in row.items() if name != 'file'} for key, row in archives.items()},
                    'discovery': discovery}
         if output:
@@ -175,7 +178,9 @@ if __name__ == '__main__':
     parser.add_argument('package_directory', type=Path)
     parser.add_argument('--expected-source-sha', default=os.environ.get('GITHUB_SHA'))
     parser.add_argument('--output', type=Path)
+    parser.add_argument('--target-framework', choices=('net10.0', 'net11.0'), default='net11.0',
+                        help='Current NET11 consumer; net10.0 is only for explicit retained archive qualification.')
     arguments = parser.parse_args()
     if arguments.expected_source_sha is not None and not re.fullmatch('[0-9a-f]{40}', arguments.expected_source_sha):
         parser.error('An exact lowercase source SHA is required.')
-    verify(arguments.package_directory, arguments.expected_source_sha, arguments.output)
+    verify(arguments.package_directory, arguments.expected_source_sha, arguments.output, arguments.target_framework)
