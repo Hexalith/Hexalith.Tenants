@@ -1,7 +1,6 @@
 <Project>
     <PropertyGroup>
-        <!-- Canonical public scope requires the coordinated SemVer-major EventStore and McpCli packages. -->
-        <HexalithEventStoreVersion Condition="'$(HexalithEventStoreVersion)' == ''">4.2.0</HexalithEventStoreVersion>
+        <!-- The Builds catalog owns the qualified EventStore cohort; McpCli retains its coordinated major. -->
         <HexalithMcpCliVersion Condition="'$(HexalithMcpCliVersion)' == ''">2.0.1</HexalithMcpCliVersion>
         <HexalithTenantsVersion Condition="'$(HexalithTenantsVersion)' == ''">7.0.6</HexalithTenantsVersion>
         <HexalithBuildPackageVersions1>$(MSBuildThisFileDirectory)references/Hexalith.Builds/Props/Directory.Packages.props</HexalithBuildPackageVersions1>
