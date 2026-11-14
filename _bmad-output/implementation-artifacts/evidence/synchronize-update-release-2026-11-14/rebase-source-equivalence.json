@@ -1,0 +1,24 @@
+{
+  "recordedAtUtc": "2026-11-14T12:03:05.330136+00:00",
+  "oldUnpublishedTip": "da3345a6ac1af4fb79fec7ef63d46dc63e4bfb33",
+  "rebasedTipBeforeThisEvidenceAppend": "23f07e05cb0d86b2f0dde2e2975d2eb7822175e1",
+  "preservedUpstreamParent": "48218900f2836a60f2bd7760954a89601cf82bbb",
+  "oldCommits": [
+    "b4dabc9e68c355f6e211d2db98a85ecd28bd7ea3",
+    "da3345a6ac1af4fb79fec7ef63d46dc63e4bfb33"
+  ],
+  "rebasedCommits": [
+    "3dfa3f2b70d38c95d3de9591bf7e6c88f77fbc8d",
+    "23f07e05cb0d86b2f0dde2e2975d2eb7822175e1"
+  ],
+  "comparison": {
+    "method": "Compare full recursive tracked tree entries (mode, kind and object ID) at both tips; independently match saved pre-rebase SHA256 manifest against working files.",
+    "trackedEntries": 4976,
+    "nonGitlinkFileHashesMatched": 4967,
+    "changedEntries": [],
+    "allTrackedTreeEntriesIdentical": true,
+    "manifestSha256": "21867d7f50eff24d8e2eab3e95432386b1fa1edb7e9feff1cfd98a3a6200687a"
+  },
+  "scope": "Earlier local test receipts retain their original execution identity. Exact tracked source, fixtures, dependency selections and evidence bytes are identical at the rebased tip. This append only records rebase provenance; final hosted acceptance must name the actual pushed head.",
+  "push": "Prior ordinary push refused non-fast-forward; no force push used. Rebase preserves external boundary adoption and newer owner descendants."
+}

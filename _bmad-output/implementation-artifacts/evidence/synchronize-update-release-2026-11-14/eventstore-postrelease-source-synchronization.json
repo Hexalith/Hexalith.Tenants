@@ -1,0 +1,21 @@
+{
+  "verifiedAtUtc": "2026-11-14T11:55:00.846329+00:00",
+  "oldHead": "49084f66f8d6545cae442875355a7066d5f5e73d",
+  "newHead": "f712c08e5cfacd0e340fe7ec571385e72fc0177f",
+  "changedPaths": [
+    "_bmad-output/implementation-artifacts/spec-2-14-canonical-tenant-boundary.md",
+    "references/Hexalith.Builds",
+    "references/Hexalith.FrontComposer",
+    "references/Hexalith.McpCli",
+    "references/Hexalith.Memories",
+    "references/Hexalith.Platform",
+    "references/Hexalith.Tenants"
+  ],
+  "initializedNestedBefore": {},
+  "initializedNestedAfter": {},
+  "cleanAfter": true,
+  "publicPackageVersion": "5.1.0",
+  "publicPackageSource": "49084f66f8d6545cae442875355a7066d5f5e73d",
+  "publicPackageProofRelabeled": false,
+  "platformBindingUnaffected": "49084f66f8d6545cae442875355a7066d5f5e73d"
+}

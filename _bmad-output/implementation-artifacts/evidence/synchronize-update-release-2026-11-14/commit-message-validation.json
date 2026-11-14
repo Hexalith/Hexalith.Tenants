@@ -184,6 +184,27 @@
       "result": "found 0 problems, 0 warnings",
       "outputSha256": "3f5eb699d17b2e56d34474dcb2b3e6562758c7ef2bdcbc73a9ed2f777546346a",
       "output": "\u29d7   --- input ---\nbuild!: synchronize .NET 11 dependency cohorts and qualify package consumers\n\u2714   found 0 problems, 0 warnings\n"
+    },
+    {
+      "candidate": "build!: synchronize .NET 11 dependency cohorts and qualify package consumers\n",
+      "command": "npx --no -- commitlint --edit /dev/shm/tenants-release-2026-11-14/root-synchronized.commitmsg --verbose",
+      "result": "found 0 problems, 0 warnings",
+      "outputSha256": "3f5eb699d17b2e56d34474dcb2b3e6562758c7ef2bdcbc73a9ed2f777546346a",
+      "output": "\u29d7   --- input ---\nbuild!: synchronize .NET 11 dependency cohorts and qualify package consumers\n\u2714   found 0 problems, 0 warnings\n"
+    },
+    {
+      "candidate": "build(deps): qualify published FrontComposer 6.0.0 consumers\n",
+      "command": "npx --no -- commitlint --edit /dev/shm/tenants-release-2026-11-14/builds-frontcomposer6-final-audit.commitmsg --verbose",
+      "result": "found 0 problems, 0 warnings",
+      "outputSha256": "7c1ffc8853535f5b0bf95f603401e96d29d8a88355bf8a731aa3362e5bbe959b",
+      "output": "\u29d7   --- input ---\nbuild(deps): qualify published FrontComposer 6.0.0 consumers\n\u2714   found 0 problems, 0 warnings\n"
+    },
+    {
+      "candidate": "build: finalize synchronized dependency source evidence\n",
+      "command": "npx --no -- commitlint --edit /dev/shm/tenants-release-2026-11-14/root-final-sync.commitmsg --verbose",
+      "result": "found 0 problems, 0 warnings",
+      "outputSha256": "720efdc8222d960c732f7e0446bb3ad613e404cf32fa2614ec45601208149574",
+      "output": "\u29d7   --- input ---\nbuild: finalize synchronized dependency source evidence\n\u2714   found 0 problems, 0 warnings\n"
     }
   ]
 }

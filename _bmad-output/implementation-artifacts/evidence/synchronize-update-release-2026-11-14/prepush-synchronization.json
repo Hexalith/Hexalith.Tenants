@@ -1,0 +1,83 @@
+{
+  "capturedAtUtc": "2026-11-14T11:55:55.669687+00:00",
+  "scope": "Current remotely reachable clean direct source selections; newer metadata/dependency heads do not inherit older runtime/native/package qualification.",
+  "rootParent": "b4dabc9e68c355f6e211d2db98a85ecd28bd7ea3",
+  "repositories": [
+    {
+      "path": "references/Hexalith.EventStore",
+      "head": "f712c08e5cfacd0e340fe7ec571385e72fc0177f",
+      "verifiedRemoteMain": "f712c08e5cfacd0e340fe7ec571385e72fc0177f",
+      "clean": true
+    },
+    {
+      "path": "references/Hexalith.Commons",
+      "head": "fbf4e94233821f6ca336af91a06feaaeb7a16855",
+      "verifiedRemoteMain": "fbf4e94233821f6ca336af91a06feaaeb7a16855",
+      "clean": true
+    },
+    {
+      "path": "references/Hexalith.AI.Tools",
+      "head": "17a37d83db193f0b7494c1b931fd1e82a67c1424",
+      "verifiedRemoteMain": "17a37d83db193f0b7494c1b931fd1e82a67c1424",
+      "clean": true
+    },
+    {
+      "path": "references/Hexalith.FrontComposer",
+      "head": "b76cfb91bae1dff34bea126865c4b10a9a69a0eb",
+      "verifiedRemoteMain": "b76cfb91bae1dff34bea126865c4b10a9a69a0eb",
+      "clean": true
+    },
+    {
+      "path": "references/Hexalith.Builds",
+      "head": "1ebc5b84ff2c8afd21a87d80ef3d9c9048eaf5e5",
+      "verifiedRemoteMain": "1ebc5b84ff2c8afd21a87d80ef3d9c9048eaf5e5",
+      "clean": true
+    },
+    {
+      "path": "references/Hexalith.PolymorphicSerializations",
+      "head": "e97b56930e213f674b64c157551f499b0473ec43",
+      "verifiedRemoteMain": "e97b56930e213f674b64c157551f499b0473ec43",
+      "clean": true
+    },
+    {
+      "path": "references/Hexalith.Memories",
+      "head": "2c2e9b58990638ededf22e8e67ff5c12de75b434",
+      "verifiedRemoteMain": "2c2e9b58990638ededf22e8e67ff5c12de75b434",
+      "clean": true
+    },
+    {
+      "path": "references/Hexalith.McpCli",
+      "head": "4ffb33e84fd12a2642deb19b3492ce67ae670cee",
+      "verifiedRemoteMain": "4ffb33e84fd12a2642deb19b3492ce67ae670cee",
+      "clean": true
+    },
+    {
+      "path": "references/Hexalith.Platform",
+      "head": "de3ce6797865e31256b1293d0589a31f041f6def",
+      "verifiedRemoteMain": "de3ce6797865e31256b1293d0589a31f041f6def",
+      "clean": true
+    }
+  ],
+  "packageVersions": {
+    "SDK": "11.0.100",
+    "EventStore": "5.1.0",
+    "FrontComposer": "6.0.0",
+    "McpCli": "2.0.1",
+    "Memories": "4.0.0",
+    "TenantsBaseline": "7.0.7"
+  },
+  "packageSources": {
+    "EventStore": "49084f66f8d6545cae442875355a7066d5f5e73d",
+    "FrontComposer": "d7e8f57808b610f7cddf95ecd06db178dfd7592f"
+  },
+  "separateExecutionIdentity": "Root release Builds ff3b7628132059bc42e04fa8c98c1c427b528f62 unchanged; source catalog1ebc is not a runtime promotion.",
+  "pendingGates": "Final exact-source root CI; current EventStore/Platform/Mcp hosted checks; actual FC mutation outcome; root publication.",
+  "materialSourceHashes": {
+    "Directory.Build.props": "05984fe38991074431bf53e59184ac46e07283fe4f33a6e7a8c96a978cca9ba3",
+    "Directory.Build.targets": "01b8fbb75a43a58b89b592e4fcdf90c5af9b07a6fb8d1c22c66a57d412df631b",
+    ".github/workflows/ci.yml": "50c6c9d3b73dd9390aaa10a27e41457f20d294e1c10265d2c3dc4f7b9dcebacb",
+    "scripts/verify-catalog-package-consumer.py": "deed7981fecdaff8e214a95700ad94a3824ac41b2cdaa0f8fcbcc190dea0cdf7",
+    "tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs": "836ae028b8f562c91b6330320ad7870dec251019d3f42ea26ac07d428c33a03d",
+    "tests/Hexalith.Tenants.Server.Tests/Aggregates/TenantAccessRecoveryTests.cs": "6b1cb209ccbf58b35ca694e71f2191f6fc801f69cf40070b6941988e7896370a"
+  }
+}

@@ -39,7 +39,7 @@ Preserve existing work and historical evidence. Work in each owning repository; 
 
 ## Tasks & Acceptance
 
-- [ ] Root-declared repository Git histories -- integrate upstream and preserve local work; remotely verify content before root pointers.
+- [x] Root-declared repository Git histories -- integrate upstream and preserve local work; remotely verify content before root pointers.
 - [x] SDK and package authorities -- verify latest feeds, update required compatible cohorts and lockfiles, document retained constraints.
 - [x] Existing owner migrations and publication -- validate and deliver the FrontComposer generator required by package consumers.
 - [x] Root package/source builds and failing guards -- repair observed compatibility/CI failures and run relevant individual suites.
@@ -107,6 +107,9 @@ This is one coordinated release goal. The user's explicit request supersedes wor
 - `_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/builds-initialize-action-equivalence.json`
 - `_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/parent-sdk51-bounded-review.json`
 - `_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/parent-public-frontend-proof-check.json`
+- `_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/prepush-synchronization.json`
+- `_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/rebase-source-equivalence.json`
+- `_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/eventstore-postrelease-source-synchronization.json`
 
 ## Completion Notes List
 
@@ -188,3 +191,12 @@ FrontComposer6.0.0 is actually public from `d7e8f57808b610f7cddf95ecd06db178dfd7
 ## Independent5.1 review
 
 Parent independently reviewed the nine-file5.1 delta and reported no findings. It reran all14 catalog-consumer and14 bootstrap controls, verified all8 backend XML hashes/642 passed cases, checked11 real native SDK admission cases and13 source-only recovery cases. The retained parent-sdk51-bounded-review.json records the exact scope and evidence. Earlier three-layer review remains scoped to the initial release changes; supporting Platform/Mcp current-head renewal and final root CI/publication remain pending.
+
+## Final owning source selections before root push
+
+All9 direct dependencies are clean/equal remote main, with exact heads in prepush-synchronization.json. Platform `de3ce679` changes current EventStore coordinate and3 reviewed immutable metadata descriptors; governed producer/frozen tuples stay unchanged. Mcp `4ffb33e8` carries append-onlyPA02 source-digest maintenance retaining identity, signal, fixtures, nine-object closure and scanner. FC `b76cfb91` adds2 BMAD doc/status changes aboveb135; actual6.0.0 package source remainsd7. EventStore `f712c08e` adds1 spec and6 direct gitlink metadata changes above490, with product/test/helper/workflow bytes unchanged; actual5.1.0 archive source remains490. No nested checkout or Platform cascade occurred. Parent reviews and owner local controls pass; current supporting hosted gates remain pending and historicalb223 native evidence is not relabeled. Root source commitb4dabc9e remains local until this final metadata/pointer follow-up. Final publisher approval stays held for actual FC mutation and supporting gates, with no new human checkpoint.
+
+
+## Final Upstream Integration
+
+The first ordinary root push safely refused a concurrent remote advance. The two unpublished commits were rebased onto upstream `48218900f2836a60f2bd7760954a89601cf82bbb`, preserving its boundary dependency adoption and the newer owner descendants. Before this evidence append, every tracked tree entry at rebased `23f07e05` exactly matches the former unpublished `da3345a6`; the saved SHA256 manifest independently matches all non-gitlink files. Earlier local command receipts keep their original source attribution, and this exact source equivalence explains their applicability. Required hosted checks will run against the actual final pushed head; no earlier CI is relabeled.
