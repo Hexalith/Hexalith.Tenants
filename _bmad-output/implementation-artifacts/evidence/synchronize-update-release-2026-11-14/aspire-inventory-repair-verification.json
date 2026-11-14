@@ -1,0 +1,109 @@
+{
+  "capturedAtUtc": "2026-11-14T13:18:41.465422+00:00",
+  "source": "f3b0e85f68c0ef0515d567502f59257916ac18b6",
+  "modifiedFiles": {
+    "tests/Hexalith.Tenants.IntegrationTests/TenantsApiStructuralTests.cs": "efeb29c323ae6fa89a8645c69d41b23d8ed5d31cb43c6d0da033707156128ed1",
+    "tests/Hexalith.Tenants.IntegrationTests/CommandApiRuntimeIntegrationTests.cs": "300b41a87ffbfd54917499e1731d8e4b97ecba99eafc52de374ca9b2ce867113"
+  },
+  "sdk": "5.1.0",
+  "frontComposer": "6.0.0",
+  "result": "pass",
+  "build": "Actual Release Integration project, package-only, warnings-as-errors; zero warnings/errors.",
+  "results": [
+    {
+      "method": "*.TenantsRestController_IsOnlyGeneratedControllerAndUsesGatewayBoundary",
+      "counters": {
+        "total": "1",
+        "executed": "1",
+        "passed": "1",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "file": "root-aspire-recovery-inventory-0.trx",
+      "sha256": "88112e14e365c690529adc58a744c578b75b90f3e0ade3a47a83f7c9dc40c043"
+    },
+    {
+      "method": "*.All_tenant_rejection_types_have_explicit_problem_details_expectation",
+      "counters": {
+        "total": "1",
+        "executed": "1",
+        "passed": "1",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "file": "root-aspire-recovery-inventory-1.trx",
+      "sha256": "98ce9e48ba4c0a456d67f91708bd2936c8655fedf2f1bee43032dc300441fb34"
+    },
+    {
+      "method": "*.Commands_endpoint_returns_deterministic_problem_details_for_every_tenant_rejection",
+      "counters": {
+        "total": "15",
+        "executed": "15",
+        "passed": "15",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "file": "root-aspire-recovery-inventory-2.trx",
+      "sha256": "a830db111af4e723517c63ecb62e978f557e489c294cbac668e4f7d7440643d5"
+    }
+  ],
+  "scope": "Two exact previously failing structural/inventory facts and all15 production ProblemDetails rejection cases (including the new snapshot-budget rejection and redaction guards); no live Dapr qualification inferred.",
+  "temporaryWorkspace": "/dev/shm/tenants-release-2026-11-14/hexalith-job.CvGQRlpC/workspace",
+  "cleanup": "Verified private wrapper removed all workspace/cache/build outputs after child completedexit0.",
+  "hostedFailure": {
+    "source": "f3b0e85f68c0ef0515d567502f59257916ac18b6",
+    "run": 43596671136,
+    "job": 132456622405,
+    "results": {
+      "total": 683,
+      "passed": 681,
+      "failed": 2,
+      "skipped": 0
+    },
+    "causes": [
+      "Generated controller exact method list omitted RefreshTenantAccessCommandAsync.",
+      "Explicit ProblemDetails rejection inventory omitted TenantAccessSnapshotLimitExceededRejection."
+    ]
+  },
+  "logs": {
+    "root-f3-aspire-inventory-failure.log": {
+      "sha256": "ef2a9ece20148bab627523b278052dc53af2c8d5a5ff67b0157024cb7393200f"
+    },
+    "root-aspire-recovery-inventory-probe.log": {
+      "sha256": "c86d4914eb9e9bdfa12aedc357173003181901a49d6b3ded514124d68b7f67fa"
+    }
+  }
+}
