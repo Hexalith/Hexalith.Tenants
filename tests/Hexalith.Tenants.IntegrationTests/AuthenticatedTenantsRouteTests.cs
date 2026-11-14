@@ -360,10 +360,19 @@ public sealed class AuthenticatedTenantsRouteTests(AuthenticatedRouteTopologyFix
     }
 
     private ServiceProvider CreateProductionReadServices(string token)
+        => CreateProductionReadServices(fixture.TenantsUiDaprClient.BaseAddress!, token);
+
+    /// <summary>Creates the same production readers for live and owned-loopback qualification.</summary>
+    /// <param name="tenantsUiDaprEndpoint">The fixture-owned UI invocation endpoint.</param>
+    /// <param name="token">The caller's token to relay.</param>
+    internal static ServiceProvider CreateProductionReadServices(Uri tenantsUiDaprEndpoint, string token)
     {
+        ArgumentNullException.ThrowIfNull(tenantsUiDaprEndpoint);
+        // The local sign-in context does not select the gateway's explicit tenant/platform scope.
+        FrontComposerTokenSession session = new(Guid.NewGuid().ToString("N"), AuthenticatedRouteState.CallerId, "live-route");
         IConfiguration configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
         {
-            ["DAPR_HTTP_ENDPOINT"] = fixture.TenantsUiDaprClient.BaseAddress!.AbsoluteUri,
+            ["DAPR_HTTP_ENDPOINT"] = tenantsUiDaprEndpoint.AbsoluteUri,
         }).Build();
         ServiceCollection services = new();
         services.AddLogging();
@@ -371,17 +380,16 @@ public sealed class AuthenticatedTenantsRouteTests(AuthenticatedRouteTopologyFix
         services.AddHexalithFrontComposerTokenRelay();
         services.Configure<FrontComposerAuthenticationOptions>(options => options.TenantClaimTypes.Add("tenant_id"));
         services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: true);
-        FrontComposerTokenSession session = new("live-route-" + Guid.NewGuid().ToString("N"), AuthenticatedRouteState.CallerId, "system");
         services.AddSingleton<IHttpContextAccessor>(new HttpContextAccessor
         {
             HttpContext = new DefaultHttpContext
             {
                 User = new ClaimsPrincipal(new ClaimsIdentity(
-                    [
-                        new Claim("sub", session.UserId),
-                        new Claim("tenant_id", session.TenantId),
-                        new Claim(FrontComposerTokenSession.ClaimType, session.SessionId),
-                    ], "live-route")),
+                [
+                    new Claim("sub", session.UserId),
+                    new Claim("tenant_id", session.TenantId),
+                    new Claim(FrontComposerTokenSession.ClaimType, session.SessionId),
+                ], "live-route")),
             },
         });
         ServiceProvider provider = services.BuildServiceProvider();
