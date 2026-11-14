@@ -1,0 +1,163 @@
+{
+  "capturedAtUtc": "2026-11-14T12:45:21.620507+00:00",
+  "source": "a2142101a021161790546ba59b164940516ca6a6",
+  "modifiedFile": "tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsRouteTests.cs",
+  "modifiedFileSha256": "631b0e44a342c2873809abebe62d3ce6369ae54371e88c35b899dbc9dda45ace",
+  "files": {
+    "tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsRouteTests.cs": "631b0e44a342c2873809abebe62d3ce6369ae54371e88c35b899dbc9dda45ace",
+    "src/Hexalith.Tenants.Testing/Fakes/InMemoryTenantService.cs": "13dd433a4d39f22766d1613235e307d577f5f45d10b6a4547c2420257c94088d",
+    "src/Hexalith.Tenants.Testing/Projections/InMemoryTenantProjection.cs": "5aac10fa89a19d744df87fbd92e8abc44ed0de24577ec3b094fc26426ffed918",
+    "tests/Hexalith.Tenants.Testing.Tests/Conformance/TenantConformanceTests.cs": "5f5bb425aebb58a8b3af6b05af15f829b2e7e1738a07941f9e3846c7b41aa3f2",
+    "tests/Hexalith.Tenants.Testing.Tests/Projections/InMemoryTenantProjectionConformanceTests.cs": "a09666873cd7bd6d3f27c12ba4d61131fb42e09c8e1038c7fb7759cf85260a4f",
+    "tests/Hexalith.Tenants.Server.Tests/Routing/TenantIntentDeclarationTests.cs": "7ab1468fed75a7f49d60641b5e7f062f6d1ab7559248f9dfc14b7ed6fe31a299"
+  },
+  "suites": [
+    {
+      "project": "Hexalith.Tenants.Server.Tests",
+      "minimum": 31,
+      "trxSha256": "052b2b3ef20c49f38b74a7f1d393241b6f57757cd62223a72539264df8a2e98c"
+    }
+  ],
+  "fixtureMethodSha256": "357eb1e20f35c7dadebcf9397abe898df593e777233e28e82d03514536f8c4b4",
+  "sdk": "5.1.0",
+  "frontComposer": "6.0.0",
+  "build": "Actual modified Integration project Release package-mode build passes warnings-as-errors.",
+  "probe": "Compile exact modified fixture method body; replace only unavailable live endpoint expression and existing caller constant with their fixed test values. Uses actual public FC6 token store/gateway authorization handler and actual production DI. No live HTTP/Dapr behavior claimed locally.",
+  "result": {
+    "result": "pass",
+    "cases": [
+      "exact-session-subject-tenant-relay",
+      "refused-foreign-sub",
+      "refused-foreign-tenant_id",
+      "refused-foreign-hexalith:frontcomposer:token-session",
+      "refused-unscoped-write"
+    ]
+  },
+  "temporaryWorkspace": "/dev/shm/tenants-release-2026-11-14/hexalith-job.tLr8HawP/workspace",
+  "cleanup": "Verified private wrapper removed workspace/cache/feed/build/probe outputs after child completedexit0.",
+  "hostedFailures": {
+    "source": "a2142101a021161790546ba59b164940516ca6a6",
+    "ciRun": 43594007673,
+    "unitJob": 132444625004,
+    "restJob": 132444624951,
+    "causes": [
+      "Testing command conformance dispatch/scenarios omitted newly added RefreshTenantAccess.",
+      "Testing projection inventory omitted the nonbusiness TenantAccessRefreshed snapshot.",
+      "Server exact permission fixture omitted tenants:refresh-access.",
+      "Five live REST cases used the now-refused unscoped FC token store write."
+    ]
+  },
+  "logs": {
+    "root-a214-unit-failure.log": {
+      "sha256": "5766de94b622785e15aefd032860184da715651c2dbc6499988a70c1aaecff5a"
+    },
+    "root-a214-rest-failure.log": {
+      "sha256": "5dcb4ba202f9ffa95afea93d040047851912a00976e6fa57111559252605b93e"
+    },
+    "root-rest-token-session-repair-probe.log": {
+      "sha256": "810a48fb910a68383ae14f0dc2faa4494d1ee719c0d60e5b99df6aa3d4c08d21"
+    },
+    "root-recovery-repair-final-probe.log": {
+      "sha256": "104d2c9744577e174fb3771e97b13500498fed17871a522e8e69e700e0fba7eb"
+    },
+    "root-recovery-repair-final-corrected-probe.log": {
+      "sha256": "bfa60761a49cd5cd8fdff0979838c5b9d2a6f4664a32c90c9981666c2607e92c"
+    },
+    "root-recovery-repair-complete-probe.log": {
+      "sha256": "0a455c6a884c90ee4216aa8dbadbdf9d74b3077c5785ab1fb8d81160fa70e952"
+    },
+    "root-recovery-repair-intent-relay-probe.log": {
+      "sha256": "fc842e9afe77306e519128ee68eef417222c951faed973a42039b2f9cdf33636"
+    },
+    "root-recovery-repair-final-relay-probe.log": {
+      "sha256": "734ac3a17700af3b1e9c45a2c9b9f73d6a8a3f34e5aa18120382282fd56d8699"
+    },
+    "root-fc6-token-session-api-member.log": {
+      "sha256": "81e54edcd759ecae06a2046b4ba626f4ee287211039f69cb3a0f259162973c71"
+    }
+  },
+  "rawResults": [
+    {
+      "file": "Hexalith.Tenants.Testing.Tests-recovery-repair.trx",
+      "sha256": "8735ac2fba526bdcf6012162274fe29bdf087eafad57a5fca27a759414756921",
+      "counters": {
+        "total": "189",
+        "executed": "189",
+        "passed": "189",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "scope": "Full updated Testing suite, including six recovery sequences and typed collection refusal controls."
+    },
+    {
+      "file": "Hexalith.Tenants.Server.Tests-recovery-repair.trx",
+      "sha256": "0d6a93c4c6954abc3bfe2baacdce53c077b7babe45da8eafc9c849c40662dc34",
+      "counters": {
+        "total": "1888",
+        "executed": "1888",
+        "passed": "1888",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "scope": "Full Server suite after exact permission fixture repair, before final extra recovery intent theory row."
+    },
+    {
+      "file": "Hexalith.Tenants.Server.Tests-recovery-repair-intent-focused.trx",
+      "sha256": "052b2b3ef20c49f38b74a7f1d393241b6f57757cd62223a72539264df8a2e98c",
+      "counters": {
+        "total": "31",
+        "executed": "31",
+        "passed": "31",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "scope": "Updated complete intent class after adding recovery alias/target/retention/version theory row."
+    }
+  ],
+  "distinguishingControls": [
+    "Recovery owner/global snapshots, disabled tenant snapshots, reader/missing/target-substitution refusals reuse the actual aggregate.",
+    "Projection recovery snapshot changes no business state and does not create an unknown tenant.",
+    "Collection comparison accepts distinct equal instances and rejects changed role/key/count and reordered/truncated keys.",
+    "Typed session relay attaches the token only to the exact session/subject/system tenant; all three changed bindings and the legacy unscoped write refuse."
+  ],
+  "scratchCorrections": [
+    "Copied exact existing public Aspire5.1 metadata into private NuGet cache because the catalog metadata reader does not inspect restore fallback folders.",
+    "Added the pinned direct EventStore checkout privately for seven source-backed documentation tests; no product/test assertions were changed.",
+    "New snapshot conformance exposed collection-reference comparisons; corrected the narrowly typed test comparer and retained its initial failures.",
+    "The first relay harness requested an unregistered access-token-provider service; corrected the harness to the actual registered gateway authorization handler. No fixture registration was added to mask the harness error."
+  ],
+  "scope": "Actual package-only Integration build and five relay binding controls; full189 Testing and1888 Server before one extra intent theory row, then all31 updated intent cases. Combined Server coverage includes1889 distinct cases. Final actual five live cases and complete source gates remain required on the final pushed head."
+}

@@ -22,8 +22,7 @@ public sealed class InMemoryTenantProjectionConformanceTests {
     private static readonly HashSet<string> ExpectedHandledEvents = new(StringComparer.Ordinal) {
         nameof(TenantCreated), nameof(TenantUpdated), nameof(TenantDisabled), nameof(TenantEnabled),
         nameof(UserAddedToTenant), nameof(UserRemovedFromTenant), nameof(UserRoleChanged),
-        nameof(TenantConfigurationSet), nameof(TenantConfigurationRemoved),
-        nameof(TenantAccessRefreshed),
+        nameof(TenantConfigurationSet), nameof(TenantConfigurationRemoved), nameof(TenantAccessRefreshed),
         nameof(GlobalAdministratorSet), nameof(GlobalAdministratorRemoved),
     };
 
@@ -41,7 +40,7 @@ public sealed class InMemoryTenantProjectionConformanceTests {
         [nameof(UserRoleChanged)] = () => AssertTenantScopedEventRoutes(new UserRoleChanged("ghost", "user", TenantRole.TenantReader, TenantRole.TenantOwner)),
         [nameof(TenantConfigurationSet)] = () => AssertTenantScopedEventRoutes(new TenantConfigurationSet("ghost", "key", "value")),
         [nameof(TenantConfigurationRemoved)] = () => AssertTenantScopedEventRoutes(new TenantConfigurationRemoved("ghost", "key")),
-        [nameof(TenantAccessRefreshed)] = AssertRecoveryEvidenceDoesNotChangeBusinessState,
+        [nameof(TenantAccessRefreshed)] = AssertAccessSnapshotLeavesBusinessProjectionUnchanged,
         [nameof(GlobalAdministratorSet)] = () => {
             var projection = new InMemoryTenantProjection();
             projection.Apply(new GlobalAdministratorSet("system", "admin-1"));
@@ -142,29 +141,36 @@ public sealed class InMemoryTenantProjectionConformanceTests {
             .ShouldBeFalse("GlobalAdministratorRemoved must route into the global-administrator read model.");
     }
 
+    private static void AssertAccessSnapshotLeavesBusinessProjectionUnchanged() {
+        var projection = new InMemoryTenantProjection();
+        projection.Apply(new TenantAccessRefreshed("uncreated", TenantStatus.Disabled,
+            new Dictionary<string, TenantRole>(), []));
+        projection.GetAllTenants().ShouldBeEmpty("recovery evidence must not manufacture a business model");
+        projection.Apply(new TenantCreated("acme", "Acme", "Description", When));
+        projection.Apply(new UserAddedToTenant("acme", "owner", TenantRole.TenantOwner));
+        projection.Apply(new TenantConfigurationSet("acme", "theme", "dark"));
+        projection.Apply(new GlobalAdministratorSet("system", "admin"));
+        var before = projection.GetTenant("acme").ShouldNotBeNull();
+        string beforeJson = JsonSerializer.Serialize(before);
+        projection.Apply(new TenantAccessRefreshed("acme", TenantStatus.Disabled,
+            new Dictionary<string, TenantRole> { ["foreign"] = TenantRole.TenantReader }, ["other"]));
+        projection.GetTenant("acme").ShouldBeSameAs(before);
+        JsonSerializer.Serialize(projection.GetTenant("acme")).ShouldBe(beforeJson);
+        projection.GetGlobalAdministrators().Administrators.ShouldBe(["admin"]);
+        before.Name.ShouldBe("Acme");
+        before.Description.ShouldBe("Description");
+        before.Status.ShouldBe(TenantStatus.Active);
+        before.Members.ShouldHaveSingleItem().ShouldBe(new KeyValuePair<string, TenantRole>("owner", TenantRole.TenantOwner));
+        before.Configuration.ShouldHaveSingleItem().ShouldBe(new KeyValuePair<string, string>("theme", "dark"));
+        projection.Apply(new TenantAccessRefreshed("ghost", TenantStatus.Disabled, new Dictionary<string, TenantRole>(), []));
+        projection.GetTenant("ghost").ShouldBeNull();
+        projection.GetAllTenants().Count.ShouldBe(1);
+    }
+
     private static void AssertTenantScopedEventRoutes(IEventPayload evt) {
         var projection = new InMemoryTenantProjection();
         _ = Should.Throw<InvalidOperationException>(
             () => projection.Apply(evt),
             $"{evt.GetType().Name} must route through GetOrThrow on a missing tenant, not be silently dropped.");
-    }
-
-    private static void AssertRecoveryEvidenceDoesNotChangeBusinessState() {
-        var projection = new InMemoryTenantProjection();
-        var snapshot = new TenantAccessRefreshed("acme", TenantStatus.Disabled,
-            new Dictionary<string, TenantRole> { ["other"] = TenantRole.TenantReader }, ["other-key"]);
-        projection.Apply(snapshot);
-        projection.GetTenant("acme").ShouldBeNull("recovery evidence must not manufacture a business read model");
-
-        projection.Apply(new TenantCreated("acme", "Retained", "description", When));
-        projection.Apply(new UserAddedToTenant("acme", "owner", TenantRole.TenantOwner));
-        projection.Apply(new TenantConfigurationSet("acme", "secret", "retained-value"));
-        projection.Apply(new GlobalAdministratorSet("system", "admin"));
-        string before = JsonSerializer.Serialize(projection.GetTenant("acme"));
-
-        projection.Apply(snapshot);
-
-        JsonSerializer.Serialize(projection.GetTenant("acme")).ShouldBe(before);
-        projection.GetGlobalAdministrators().Administrators.ShouldBe(["admin"]);
     }
 }

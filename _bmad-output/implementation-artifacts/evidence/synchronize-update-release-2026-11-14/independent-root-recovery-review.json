@@ -1,0 +1,94 @@
+{
+  "scope": "Independent read-only source review; inspected owner test receipts, did not execute tests",
+  "base": "a2142101a021161790546ba59b164940516ca6a6",
+  "workingFileHashes": {
+    "src/Hexalith.Tenants.Testing/Fakes/InMemoryTenantService.cs": "13dd433a4d39f22766d1613235e307d577f5f45d10b6a4547c2420257c94088d",
+    "src/Hexalith.Tenants.Testing/Projections/InMemoryTenantProjection.cs": "5aac10fa89a19d744df87fbd92e8abc44ed0de24577ec3b094fc26426ffed918",
+    "tests/Hexalith.Tenants.Testing.Tests/Conformance/TenantConformanceTests.cs": "5f5bb425aebb58a8b3af6b05af15f829b2e7e1738a07941f9e3846c7b41aa3f2",
+    "tests/Hexalith.Tenants.Testing.Tests/Projections/InMemoryTenantProjectionConformanceTests.cs": "a09666873cd7bd6d3f27c12ba4d61131fb42e09c8e1038c7fb7759cf85260a4f",
+    "tests/Hexalith.Tenants.Server.Tests/Routing/TenantIntentDeclarationTests.cs": "7ab1468fed75a7f49d60641b5e7f062f6d1ab7559248f9dfc14b7ed6fe31a299",
+    "tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsRouteTests.cs": "631b0e44a342c2873809abebe62d3ce6369ae54371e88c35b899dbc9dda45ace"
+  },
+  "diffSha256": "49be5898bad1e1c9cf10142f7daefa76377269db0f5c19948dbae83bd79a8baa",
+  "findings": [],
+  "checks": [
+    "Fake delegates RefreshTenantAccess to existing production aggregate and replay Apply; no authorization logic copied or relaxed",
+    "Explicit projection snapshot no-op matches unchanged business model; conflicting status/membership/configuration and unknown tenant refusal are covered",
+    "Typed member comparison checks count/key/role, configuration keys compare ordered contents; role/key/count/reordering/truncation controls distinguish unequal snapshots",
+    "Global admin/owner/disabled owner/reader/missing target/payload substitution conformance scenarios cover recovery dispatch and state parity",
+    "Authenticated fixture stores and resolves matching unique session, exact subject and system Tenant; existing signed bearer and real handler remain in use",
+    "Review includes exact command permission inventory, with no domain handler or auth-policy edits"
+  ],
+  "ownerTestReceiptObservations": [
+    {
+      "path": "/dev/shm/tenants-release-2026-11-14/Hexalith.Tenants.Testing.Tests-recovery-repair.trx",
+      "sha256": "8735ac2fba526bdcf6012162274fe29bdf087eafad57a5fca27a759414756921",
+      "counters": {
+        "total": "189",
+        "executed": "189",
+        "passed": "189",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    {
+      "path": "/dev/shm/tenants-release-2026-11-14/Hexalith.Tenants.Server.Tests-recovery-repair.trx",
+      "sha256": "0d6a93c4c6954abc3bfe2baacdce53c077b7babe45da8eafc9c849c40662dc34",
+      "counters": {
+        "total": "1888",
+        "executed": "1888",
+        "passed": "1888",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    {
+      "path": "/dev/shm/tenants-release-2026-11-14/Hexalith.Tenants.Server.Tests-recovery-repair-intent-focused.trx",
+      "sha256": "6a483b1ac781b68b767571e63cc810c3817f4cd3d83087692b6a20b294ef37c8",
+      "counters": {
+        "total": "31",
+        "executed": "31",
+        "passed": "31",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    }
+  ],
+  "limitations": [
+    "Owner relay helper diagnostic is still being completed; static source review does not claim its runtime success",
+    "Conformance cases compare fake parity; independent aggregate recovery authorization/limit assertions remain separate tests"
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "capturedAtUtc": "2026-11-14T12:45:38.588118+00:00",
+  "scope": "Independent bounded review of six-file recovery Testing/conformance/REST fixture repair; final exact-source CI and live five-test acceptance remain mandatory",
+  "base": "a2142101a021161790546ba59b164940516ca6a6",
+  "result": "pass",
+  "findings": [],
+  "sourceHashes": {
+    "src/Hexalith.Tenants.Testing/Fakes/InMemoryTenantService.cs": "13dd433a4d39f22766d1613235e307d577f5f45d10b6a4547c2420257c94088d",
+    "src/Hexalith.Tenants.Testing/Projections/InMemoryTenantProjection.cs": "5aac10fa89a19d744df87fbd92e8abc44ed0de24577ec3b094fc26426ffed918",
+    "tests/Hexalith.Tenants.Testing.Tests/Conformance/TenantConformanceTests.cs": "5f5bb425aebb58a8b3af6b05af15f829b2e7e1738a07941f9e3846c7b41aa3f2",
+    "tests/Hexalith.Tenants.Testing.Tests/Projections/InMemoryTenantProjectionConformanceTests.cs": "a09666873cd7bd6d3f27c12ba4d61131fb42e09c8e1038c7fb7759cf85260a4f",
+    "tests/Hexalith.Tenants.Server.Tests/Routing/TenantIntentDeclarationTests.cs": "7ab1468fed75a7f49d60641b5e7f062f6d1ab7559248f9dfc14b7ed6fe31a299",
+    "tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsRouteTests.cs": "631b0e44a342c2873809abebe62d3ce6369ae54371e88c35b899dbc9dda45ace"
+  },
+  "diffSha256": "49be5898bad1e1c9cf10142f7daefa76377269db0f5c19948dbae83bd79a8baa",
+  "correctnessReview": [
+    "Fake dispatch delegates to the same production aggregate authorization and payload/aggregate-target checks",
+    "Snapshot replay delegates to TenantState.Apply and does not alter authoritative business state",
+    "In-memory business projection explicitly ignores access snapshot evidence, matching production read-model semantics; existing/unknown tenant controls retained",
+    "New six scenarios cover global admin/owner success, reader/missing/target-substitution refusal and disabled-owner authoritative status",
+    "Comparator is limited to member dictionary contents and ordered string keys; changed-role/key/count/order refusals remain",
+    "Only the exact refresh permission is added; all13 adapter alias/canonical-target/retention/version rows now execute",
+    "Fixture creates one explicit session/subject/system-tenant binding and leaves production auth/refusal unchanged"
+  ],
+  "independentReviews": {
+    "edge": {
+      "agent": "/root/dependency_verification",
+      "result": "no correctness findings; one missing adapter row identified and corrected"
+    },
+    "verification": {
+      "agent": "/root/implement_release_repairs",
+      "result": "pass/no findings",
+      "proof": "platform-mcp-sync/independent-root-recovery-review.json"
+    },
+    "parent": {
+      "result": "pass/no remaining findings"
+    }
+  },
+  "reviewTriage": [
+    {
+      "finding": "Refresh adapter absent from existing EveryActualOperationHasEquivalentPayloadAndAliasSemantics theory",
+      "disposition": "accepted and corrected with exact refresh-tenant-access InlineData; updated focused class required"
+    }
+  ],
+  "executionBoundary": "Owning-agent full Testing/Server, real session relay/refusal controls and hosted Dapr cases are execution evidence, separate from this code review."
+}
