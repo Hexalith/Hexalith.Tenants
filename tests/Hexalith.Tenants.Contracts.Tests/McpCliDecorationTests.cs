@@ -17,7 +17,7 @@ namespace Hexalith.Tenants.Contracts.Tests;
 
 /// <summary>
 /// Pins the McpCli decoration of the Tenants Contracts: one "tenants" module with String identifiers,
-/// explicit operation scopes, exactly the nine approved Commands and five approved Queries, interface-only routing, and a
+/// explicit operation scopes, exactly the ten approved Commands and five approved Queries, interface-only routing, and a
 /// described, schema-valid payload for every exposed operation.
 /// </summary>
 public class McpCliDecorationTests {
@@ -30,6 +30,7 @@ public class McpCliDecorationTests {
         typeof(CreateTenant),
         typeof(DisableTenant),
         typeof(EnableTenant),
+        typeof(RefreshTenantAccess),
         typeof(RemoveTenantConfiguration),
         typeof(RemoveUserFromTenant),
         typeof(SetTenantConfiguration),

@@ -69,6 +69,8 @@ public sealed class TenantAuditReadModel : IReadModelFreshness {
                 ["actorUserId"] = e.ActorUserId,
                 ["removedAt"] = e.RemovedAt.ToString("O", System.Globalization.CultureInfo.InvariantCulture),
             }),
+            nameof(TenantAccessRefreshed) => CreateAdministrativeEntry(evt, Deserialize<TenantAccessRefreshed>(evt.Payload), eventType,
+                _ => new Dictionary<string, string>(StringComparer.Ordinal) { ["operation"] = "refresh-tenant-access" }),
             nameof(TenantCreated) => CreateAdministrativeEntry(evt, Deserialize<TenantCreated>(evt.Payload), eventType, e => new Dictionary<string, string>(StringComparer.Ordinal) {
                 ["name"] = e.Name,
                 ["createdAt"] = e.CreatedAt.ToString("O", System.Globalization.CultureInfo.InvariantCulture),
@@ -157,6 +159,7 @@ public sealed class TenantAuditReadModel : IReadModelFreshness {
     private static string GetTenantId(IEventPayload payload) =>
         payload switch {
             TenantCreated e => e.TenantId,
+            TenantAccessRefreshed e => e.TenantId,
             TenantUpdated e => e.TenantId,
             TenantDisabled e => e.TenantId,
             TenantEnabled e => e.TenantId,

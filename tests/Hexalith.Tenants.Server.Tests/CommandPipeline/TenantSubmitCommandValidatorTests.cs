@@ -17,7 +17,18 @@ public class TenantSubmitCommandValidatorTests {
         new SetTenantConfigurationValidator(),
         new RemoveTenantConfigurationValidator(),
         new SetGlobalAdministratorValidator(),
-        new RemoveGlobalAdministratorValidator());
+        new RemoveGlobalAdministratorValidator(),
+        new RefreshTenantAccessValidator());
+
+    [Fact]
+    public void RefreshTenantAccessCannotSubstituteADifferentAggregateTarget()
+    {
+        SubmitCommand command = CreateCommand(new RefreshTenantAccess("other"));
+        command = command with { AggregateId = "acme" };
+        var result = _validator.Validate(command);
+        result.IsValid.ShouldBeFalse();
+        result.Errors.ShouldContain(error => error.PropertyName == "Payload.TenantId");
+    }
 
     [Fact]
     public void AddUserToTenant_payload_with_empty_user_id_fails_validation() {

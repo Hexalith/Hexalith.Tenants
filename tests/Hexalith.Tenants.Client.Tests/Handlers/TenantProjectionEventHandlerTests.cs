@@ -23,6 +23,48 @@ public class TenantProjectionEventHandlerTests {
         => new("system", tenantId, messageId, sequenceNumber, timestamp, correlationId);
 
     [Fact]
+    public async Task LegacyAccessRefreshDoesNotAdvanceBusinessStateCheckpoint()
+    {
+        var store = new InMemoryTenantProjectionStore();
+        var handler = new TenantProjectionEventHandler(store);
+        await handler.HandleAsync(new TenantCreated("acme", "Unchanged", "description", DateTimeOffset.UtcNow), CreateContext("acme"));
+        await handler.HandleAsync(new UserAddedToTenant("acme", "owner", TenantRole.TenantOwner),
+            CreateContext("acme", "membership", 2, DateTimeOffset.UtcNow, "correlation"));
+        await handler.HandleAsync(new TenantConfigurationSet("acme", "secret", "retained-value"),
+            CreateContext("acme", "configuration", 3, DateTimeOffset.UtcNow, "correlation"));
+        await handler.HandleAsync(new TenantAccessRefreshed("acme", TenantStatus.Disabled,
+            new Dictionary<string, TenantRole>(), []), CreateContext("acme", "refresh", 4, DateTimeOffset.UtcNow, "correlation"));
+        TenantLocalState state = (await store.GetAsync("acme")).ShouldNotBeNull();
+        state.Name.ShouldBe("Unchanged");
+        state.Description.ShouldBe("description");
+        state.Status.ShouldBe(TenantStatus.Active);
+        state.Members["owner"].ShouldBe(TenantRole.TenantOwner);
+        state.Configuration["secret"].ShouldBe("retained-value");
+        state.LastEvent.ShouldNotBeNull().LastMessageId.ShouldBe("configuration");
+        state.LastEvent.LastSequenceNumber.ShouldBe(3);
+    }
+
+    [Fact]
+    public async Task LegacyAccessRefreshCannotHideADelayedMembershipRevocation()
+    {
+        var store = new InMemoryTenantProjectionStore();
+        var handler = new TenantProjectionEventHandler(store);
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        await handler.HandleAsync(new TenantCreated("acme", "Tenant", null, now), CreateContext("acme", "create", 1, now, "correlation"));
+        await handler.HandleAsync(new UserAddedToTenant("acme", "owner", TenantRole.TenantOwner), CreateContext("acme", "add", 2, now, "correlation"));
+        await handler.HandleAsync(new TenantAccessRefreshed("acme", TenantStatus.Active, new Dictionary<string, TenantRole>(), []),
+            CreateContext("acme", "access-refresh", 4, now, "correlation"));
+        TenantLocalState beforeRemoval = (await store.GetAsync("acme")).ShouldNotBeNull();
+        beforeRemoval.LastEvent.ShouldNotBeNull().LastSequenceNumber.ShouldBe(2);
+        beforeRemoval.Members.ShouldContainKey("owner");
+
+        await handler.HandleAsync(new UserRemovedFromTenant("acme", "owner"), CreateContext("acme", "remove", 3, now, "correlation"));
+        TenantLocalState afterRemoval = (await store.GetAsync("acme")).ShouldNotBeNull();
+        afterRemoval.LastEvent.ShouldNotBeNull().LastSequenceNumber.ShouldBe(3);
+        afterRemoval.Members.ShouldNotContainKey("owner");
+    }
+
+    [Fact]
     public async Task HandleAsync_TenantCreated_InitializesState() {
         // Arrange
         var store = new InMemoryTenantProjectionStore();

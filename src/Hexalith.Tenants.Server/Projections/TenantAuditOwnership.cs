@@ -10,7 +10,7 @@ public static class TenantAuditOwnership
     private static readonly HashSet<string> s_global = new([nameof(GlobalAdministratorSet), nameof(GlobalAdministratorRemoved)], StringComparer.Ordinal);
     private static readonly HashSet<string> s_access = new([nameof(UserAddedToTenant), nameof(UserRemovedFromTenant), nameof(UserRoleChanged)], StringComparer.Ordinal);
     private static readonly HashSet<string> s_administrative = new([nameof(TenantCreated), nameof(TenantUpdated), nameof(TenantDisabled), nameof(TenantEnabled),
-        nameof(TenantConfigurationSet), nameof(TenantConfigurationRemoved)], StringComparer.Ordinal);
+        nameof(TenantConfigurationSet), nameof(TenantConfigurationRemoved), nameof(TenantAccessRefreshed)], StringComparer.Ordinal);
 
     /// <summary>Checks the optional stream selector and its tenant scope.</summary>
     public static bool IsValidSelector(string? stream, string tenantId)

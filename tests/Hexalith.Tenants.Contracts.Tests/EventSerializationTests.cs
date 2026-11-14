@@ -31,7 +31,14 @@ public class EventSerializationTests {
         object? deserialized = JsonSerializer.Deserialize(json, eventType);
 
         _ = deserialized.ShouldNotBeNull();
-        deserialized.ShouldBe(expected);
+        if (expected is TenantAccessRefreshed)
+        {
+            JsonSerializer.Serialize(deserialized, eventType).ShouldBe(JsonSerializer.Serialize(expected, eventType));
+        }
+        else
+        {
+            deserialized.ShouldBe(expected);
+        }
     }
 
     [Theory]
@@ -112,6 +119,18 @@ public class EventSerializationTests {
 
         if (paramType == typeof(TenantStatus)) {
             return TenantStatus.Disabled;
+        }
+
+        if (paramType == typeof(IReadOnlyDictionary<string, TenantRole>)) {
+            return new Dictionary<string, TenantRole> { ["owner"] = TenantRole.TenantOwner };
+        }
+
+        if (paramType == typeof(IReadOnlyList<string>)) {
+            return new[] { "projects.allowed" };
+        }
+
+        if (paramType == typeof(long)) {
+            return 1L;
         }
 
         if (paramType == typeof(int)) {

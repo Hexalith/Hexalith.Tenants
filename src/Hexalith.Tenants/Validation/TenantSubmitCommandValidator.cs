@@ -16,8 +16,13 @@ public class TenantSubmitCommandValidator : AbstractValidator<SubmitCommand> {
         IValidator<SetTenantConfiguration> setTenantConfigurationValidator,
         IValidator<RemoveTenantConfiguration> removeTenantConfigurationValidator,
         IValidator<SetGlobalAdministrator> setGlobalAdministratorValidator,
-        IValidator<RemoveGlobalAdministrator> removeGlobalAdministratorValidator) => RuleFor(x => x).Custom((command, context) => {
+        IValidator<RemoveGlobalAdministrator> removeGlobalAdministratorValidator,
+        IValidator<RefreshTenantAccess> refreshTenantAccessValidator) => RuleFor(x => x).Custom((command, context) => {
             switch (command.CommandType) {
+                case nameof(RefreshTenantAccess):
+                case "refresh-tenant-access":
+                    ValidatePayload(command, context, refreshTenantAccessValidator);
+                    break;
                 case nameof(AddUserToTenant):
                     ValidatePayload(command, context, addUserToTenantValidator);
                     break;
@@ -78,6 +83,13 @@ public class TenantSubmitCommandValidator : AbstractValidator<SubmitCommand> {
         if (payload is null) {
             context.AddFailure(nameof(SubmitCommand.Payload), $"Payload could not be deserialized to {typeof(TCommand).Name}.");
             return;
+        }
+
+        if (payload is RefreshTenantAccess refresh
+            && (!string.Equals(refresh.TenantId, command.AggregateId, StringComparison.Ordinal)
+                || !string.Equals(command.Domain, TenantIdentity.Domain, StringComparison.Ordinal)))
+        {
+            context.AddFailure("Payload.TenantId", "Tenant access recovery must match the admitted tenant aggregate identity.");
         }
 
         ValidationResult result = validator.Validate(payload);

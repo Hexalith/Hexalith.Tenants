@@ -167,6 +167,7 @@ public static class TenantServiceCollectionExtensions {
         _ = services.AddSingleton<TenantProjectionEventHandler>();
         RegisterProjectionHandler<TenantCreated>(services);
         RegisterProjectionHandler<TenantUpdated>(services);
+        RegisterProjectionHandler<TenantAccessRefreshed>(services);
         RegisterProjectionHandler<TenantDisabled>(services);
         RegisterProjectionHandler<TenantEnabled>(services);
         RegisterProjectionHandler<UserAddedToTenant>(services);

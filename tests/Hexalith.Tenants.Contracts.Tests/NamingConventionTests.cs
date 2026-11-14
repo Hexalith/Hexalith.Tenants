@@ -32,11 +32,13 @@ public class NamingConventionTests {
         "Change",
         "Set",
         "Bootstrap",
+        "Refresh",
     ];
 
     private static readonly string[] EventSuffixes =
     [
         "Created",
+        "Refreshed",
         "Updated",
         "Disabled",
         "Enabled",
@@ -144,6 +146,7 @@ public class NamingConventionTests {
         Type effectiveType = Nullable.GetUnderlyingType(type) ?? type;
         return effectiveType == typeof(string)
             || effectiveType == typeof(int)
+            || effectiveType == typeof(long)
             || effectiveType.IsEnum;
     }
 }

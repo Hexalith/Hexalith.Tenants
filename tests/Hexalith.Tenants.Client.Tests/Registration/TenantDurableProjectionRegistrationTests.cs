@@ -65,7 +65,7 @@ public sealed class TenantDurableProjectionRegistrationTests {
         _ = services.AddHexalithTenants();
         using ServiceProvider provider = services.BuildServiceProvider();
 
-        TenantProjectionTransition.RejectionEventTypes.Count.ShouldBe(10);
+        TenantProjectionTransition.RejectionEventTypes.Count.ShouldBe(11);
         TenantProjectionTransition.RejectionEventTypes.ShouldContain(typeof(TenantDisabledRejection));
         TenantProjectionTransition.RejectionEventTypes.ShouldContain(typeof(InsufficientPermissionsRejection));
         foreach (Type rejection in TenantProjectionTransition.RejectionEventTypes) {

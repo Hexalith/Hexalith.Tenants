@@ -48,6 +48,33 @@ The Client package's built-in local projection is runtime state for the consumin
 
 Commands are submitted through the EventStore command gateway. See the [Quickstart Guide](quickstart.md) for command submission details.
 
+## Supported tenant-access recovery
+
+`RefreshTenantAccess` is submitted through the authenticated command gateway with public scope
+`platform:tenants`, exact catalog permission `tenants:refresh-access`, wire command type
+`refresh-tenant-access`, and the managed tenant as aggregate target. Its generated REST adapter is
+`POST /api/tenants/{tenantId}/refresh-access`. The body `TenantId` must match the admitted aggregate.
+Current `TenantOwner` membership is checked against authoritative aggregate state; administrator
+hints require the existing verified administrator boundary. A disabled tenant remains disabled.
+
+`TenantAccessRefreshed` contains the complete current `Status`, `Members` mapping from principal ID
+to `TenantRole`, and `ConfigurationKeys` names. Configuration values are never copied. It changes no
+aggregate business fields. Contiguous durable Tenants consumers advance their checkpoints without replacing
+business read-model fields. Legacy non-checkpointed consumers skip this access-only event and retain their
+business-state checkpoint so delayed membership revocations remain applicable. Projects replaces its access evidence atomically at the new sequence.
+
+EventStore's reusable snapshot budget allows at most 4096 combined member/key entries and 262144
+UTF-8 JSON bytes. Rejection emits only `TenantAccessSnapshotLimitExceededRejection`, with `TenantId`,
+`Limit` (`entries` or `serialized-bytes`), `Actual` (an observed cost, possibly a lower bound), and
+`Maximum`. No partial access snapshot is emitted and replay changes no business state.
+
+Use one fresh operation/message ID for a recovery and reuse that ID across all retries of that
+operation. A later recovery requires a new ID, including after a subscriber marker survived a lost
+consumer projection. Poll terminal command status and the outer Projects list with a deadline;
+command completion alone does not prove subscriber convergence. An older snapshot never overwrites
+later membership removals or disabled status. If live delivery overtakes an incomplete recovery,
+Projects denies until a fresh recovery operation establishes a newer complete snapshot.
+
 ## Historical tenant projection schema changes
 
 For a change that reinterprets historical tenant events, follow the [coordinated
@@ -79,7 +106,7 @@ Command contracts expose REST-generation metadata members: `AggregateId` maps th
 
 All public contracts in this reference are owned by package `Hexalith.Tenants.Contracts`. The tables below are the source-backed index for commands, success events, rejections, queries, DTOs, and enums. Detailed field tables appear in the aggregate, rejection, query, and enum sections that follow.
 
-The package also declares the Hexalith McpCli module `tenants` (String identifiers) through `Hexalith.McpCli.Abstractions`. It exposes nine commands (`CreateTenant`, `UpdateTenant`, `DisableTenant`, `EnableTenant`, `AddUserToTenant`, `RemoveUserFromTenant`, `ChangeUserRole`, `SetTenantConfiguration`, `RemoveTenantConfiguration`) and five queries (`ListTenantsQuery`, `GetTenantQuery`, `GetTenantUsersQuery`, `GetUserTenantsQuery`, `GetTenantAuditQuery`) with their interface routing. Commands and cross-tenant reads declare `platform:tenants`; per-tenant reads require the caller's explicit canonical tenant. The per-tenant queries route to the `TenantId` aggregate and the list queries to the constant aggregate `index`. The global-administrator commands, `GetGlobalAdministratorsQuery`, `GetGlobalAdministratorAuditQuery`, and `ResolveTenantOwnerAuthority` are not exposed through these McpCli decorations. Its conformance vectors live in `tests/conformance-vectors/mcpcli-v1/`.
+The package also declares the Hexalith McpCli module `tenants` (String identifiers) through `Hexalith.McpCli.Abstractions`. It exposes ten commands (`RefreshTenantAccess`, `CreateTenant`, `UpdateTenant`, `DisableTenant`, `EnableTenant`, `AddUserToTenant`, `RemoveUserFromTenant`, `ChangeUserRole`, `SetTenantConfiguration`, `RemoveTenantConfiguration`) and five queries (`ListTenantsQuery`, `GetTenantQuery`, `GetTenantUsersQuery`, `GetUserTenantsQuery`, `GetTenantAuditQuery`) with their interface routing. Commands and cross-tenant reads declare `platform:tenants`; per-tenant reads require the caller's explicit canonical tenant. The per-tenant queries route to the `TenantId` aggregate and the list queries to the constant aggregate `index`. The global-administrator commands, `GetGlobalAdministratorsQuery`, `GetGlobalAdministratorAuditQuery`, and `ResolveTenantOwnerAuthority` are not exposed through these McpCli decorations. Its conformance vectors live in `tests/conformance-vectors/mcpcli-v1/`.
 
 ### Command Contracts
 
@@ -89,6 +116,7 @@ The package also declares the Hexalith McpCli module `tenants` (String identifie
 | `UpdateTenant` | `Hexalith.Tenants.Contracts` | `TenantAggregate` / `tenants` | `TenantId`, `Name`, `Description?` | Tenant contributor/owner or trusted global administrator | `TenantUpdated`; `TenantNotFoundRejection`, `TenantDisabledRejection`, `InsufficientPermissionsRejection` |
 | `DisableTenant` | `Hexalith.Tenants.Contracts` | `TenantAggregate` / `tenants` | `TenantId` | Trusted global administrator | `TenantDisabled`; `TenantNotFoundRejection`, `TenantLifecycleStateAlreadySetRejection`, `InsufficientPermissionsRejection` |
 | `EnableTenant` | `Hexalith.Tenants.Contracts` | `TenantAggregate` / `tenants` | `TenantId` | Trusted global administrator | `TenantEnabled`; `TenantNotFoundRejection`, `TenantLifecycleStateAlreadySetRejection`, `InsufficientPermissionsRejection` |
+| `RefreshTenantAccess` | `Hexalith.Tenants.Contracts` | `TenantAggregate` / `tenants` | `TenantId` | Current tenant owner or verified global administrator, including disabled tenants | `TenantAccessRefreshed`; `TenantNotFoundRejection`, `InsufficientPermissionsRejection`, `TenantAccessSnapshotLimitExceededRejection` |
 | `AddUserToTenant` | `Hexalith.Tenants.Contracts` | `TenantAggregate` / `tenants` | `TenantId`, `UserId`, `Role` | Tenant owner or trusted global administrator; first tenant member bootstrap is allowed | `UserAddedToTenant`; `TenantNotFoundRejection`, `TenantDisabledRejection`, `UserAlreadyInTenantRejection`, `RoleEscalationRejection`, `InsufficientPermissionsRejection` |
 | `RemoveUserFromTenant` | `Hexalith.Tenants.Contracts` | `TenantAggregate` / `tenants` | `TenantId`, `UserId` | Tenant owner or trusted global administrator | `UserRemovedFromTenant`; `TenantNotFoundRejection`, `TenantDisabledRejection`, `UserNotInTenantRejection`, `InsufficientPermissionsRejection` |
 | `ChangeUserRole` | `Hexalith.Tenants.Contracts` | `TenantAggregate` / `tenants` | `TenantId`, `UserId`, `NewRole` | Tenant owner or trusted global administrator | `UserRoleChanged`; `TenantNotFoundRejection`, `TenantDisabledRejection`, `UserNotInTenantRejection`, `RoleEscalationRejection`, `InsufficientPermissionsRejection` |
@@ -113,6 +141,7 @@ Every success event below is published to `tenants.events`. The EventStore envel
 | `UserRoleChanged` | `Hexalith.Tenants.Contracts` | `ChangeUserRole` | `TenantId`, `UserId`, `OldRole`, `NewRole` | None | Update local authorization decisions |
 | `TenantConfigurationSet` | `Hexalith.Tenants.Contracts` | `SetTenantConfiguration` | `TenantId`, `Key`, `Value` | None | Apply namespaced tenant configuration values |
 | `TenantConfigurationRemoved` | `Hexalith.Tenants.Contracts` | `RemoveTenantConfiguration` | `TenantId`, `Key` | None | Remove local configuration values |
+| `TenantAccessRefreshed` | `Hexalith.Tenants.Contracts` | `RefreshTenantAccess` | `TenantId`, `Status`, `Members`, `ConfigurationKeys` | Fresh envelope timestamp | Atomically replace consumer authorization evidence; preserve source business state |
 | `GlobalAdministratorSet` | `Hexalith.Tenants.Contracts` | `BootstrapGlobalAdmin`, `SetGlobalAdministrator` | `TenantId`, `UserId`, `ActorUserId`, `SetAt` | `SetAt` | Update support/admin authorization projections |
 | `GlobalAdministratorRemoved` | `Hexalith.Tenants.Contracts` | `RemoveGlobalAdministrator` | `TenantId`, `UserId`, `ActorUserId`, `RemovedAt` | `RemovedAt` | Update support/admin authorization projections |
 
@@ -773,6 +802,7 @@ Rejection events are produced when a command violates a business rule. All rejec
 | `RoleEscalationRejection`                      | `TenantId`, `UserId`, `AttemptedRole`                        | 422         | Review the rejection detail, correct the request, and retry when appropriate.                    |
 | `InsufficientPermissionsRejection`             | `TenantId`, `ActorUserId`, `ActorRole?`, `CommandName`        | 422         | Review the rejection detail, correct the request, and retry when appropriate.                    |
 | `ConfigurationLimitExceededRejection`          | `TenantId`, `LimitType`, `CurrentCount`, `MaxAllowed`         | 422         | Review the rejection detail, correct the request, and retry when appropriate.                    |
+| `TenantAccessSnapshotLimitExceededRejection` | `TenantId`, `Limit`, `Actual`, `Maximum` | 422 | Reduce source access snapshot size before starting a fresh recovery. |
 | `ConfigurationKeyNotFoundRejection`            | `TenantId`, `Key`                                             | 404         | Verify the configuration key and tenant context, then retry with an existing key.                |
 
 <details>

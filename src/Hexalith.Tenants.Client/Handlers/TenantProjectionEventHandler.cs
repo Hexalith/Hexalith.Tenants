@@ -13,7 +13,8 @@ namespace Hexalith.Tenants.Client.Handlers;
 /// tenant event types; the generic subscription/dedup plumbing is provided by the EventStore client SDK.
 /// </summary>
 /// <remarks>
-/// Every event is applied through the pure <see cref="TenantProjectionTransition"/>.
+/// Business events are applied through the pure <see cref="TenantProjectionTransition"/>.
+/// Access-only refresh evidence never advances a legacy store's business-state sequence.
 #if HEXALITH_CHECKPOINTED_TENANT_PROJECTION
 /// When the registered <see cref="ITenantProjectionStore"/> also implements <see cref="ITenantProjectionSnapshotStore"/>, deliveries
 /// route through its checkpointed write; otherwise the local store keeps its historical skip-older behavior.
@@ -24,6 +25,7 @@ namespace Hexalith.Tenants.Client.Handlers;
 public class TenantProjectionEventHandler :
     IEventStoreDomainEventHandler<TenantCreated>,
     IEventStoreDomainEventHandler<TenantUpdated>,
+    IEventStoreDomainEventHandler<TenantAccessRefreshed>,
     IEventStoreDomainEventHandler<TenantDisabled>,
     IEventStoreDomainEventHandler<TenantEnabled>,
     IEventStoreDomainEventHandler<UserAddedToTenant>,
@@ -45,6 +47,10 @@ public class TenantProjectionEventHandler :
 
     /// <inheritdoc/>
     public Task HandleAsync(TenantCreated @event, EventStoreDomainEventContext context, CancellationToken cancellationToken = default)
+        => ApplyAsync(@event, context, cancellationToken);
+
+    /// <inheritdoc/>
+    public Task HandleAsync(TenantAccessRefreshed @event, EventStoreDomainEventContext context, CancellationToken cancellationToken = default)
         => ApplyAsync(@event, context, cancellationToken);
 
     /// <inheritdoc/>
@@ -94,6 +100,10 @@ public class TenantProjectionEventHandler :
             return;
         }
 #endif
+
+        // Access-only evidence is not a complete TenantLocalState snapshot. Advancing the
+        // legacy whole-state sequence here could hide a delayed membership revocation.
+        if (@event is TenantAccessRefreshed) return;
 
         SemaphoreSlim tenantLock = _tenantLocks.GetOrAdd(context.AggregateId, static _ => new SemaphoreSlim(1, 1));
         await tenantLock.WaitAsync(cancellationToken).ConfigureAwait(false);

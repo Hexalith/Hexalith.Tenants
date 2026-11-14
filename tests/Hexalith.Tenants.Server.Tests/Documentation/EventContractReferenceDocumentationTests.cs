@@ -174,9 +174,9 @@ public class EventContractReferenceDocumentationTests {
             .Where(static type => type != typeof(IQueryContract))
             .OrderBy(static type => type.FullName, StringComparer.Ordinal)];
 
-        contractTypes.Count(static type => type.Namespace == typeof(CreateTenant).Namespace).ShouldBe(12);
-        contractTypes.Count(static type => type.Namespace == typeof(TenantCreated).Namespace).ShouldBe(11);
-        contractTypes.Count(static type => type.Namespace == typeof(TenantNotFoundRejection).Namespace).ShouldBe(14);
+        contractTypes.Count(static type => type.Namespace == typeof(CreateTenant).Namespace).ShouldBe(13);
+        contractTypes.Count(static type => type.Namespace == typeof(TenantCreated).Namespace).ShouldBe(12);
+        contractTypes.Count(static type => type.Namespace == typeof(TenantNotFoundRejection).Namespace).ShouldBe(15);
         contractTypes.Count(static type => typeof(IQueryContract).IsAssignableFrom(type)).ShouldBe(7);
         contractTypes.ShouldContain(typeof(PaginatedResult<>));
         contractTypes.Count(static type => type.IsEnum).ShouldBe(3);

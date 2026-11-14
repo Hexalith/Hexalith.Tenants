@@ -22,6 +22,8 @@ public sealed class TenantProjectionTransitionTests {
     public static TheoryData<IEventPayload, Action<TenantLocalState>> ProjectedEvents => new() {
         { new TenantCreated(Tenant, "Created", "description", s_at), static s => { s.Name.ShouldBe("Created"); s.Description.ShouldBe("description"); s.Status.ShouldBe(TenantStatus.Active); } },
         { new TenantUpdated(Tenant, "Renamed", null, s_at), static s => { s.Name.ShouldBe("Renamed"); s.Description.ShouldBeNull(); } },
+        { new TenantAccessRefreshed(Tenant, TenantStatus.Disabled, new Dictionary<string, TenantRole> { ["snapshot-only"] = TenantRole.TenantOwner }, []),
+            static s => { s.Status.ShouldBe(TenantStatus.Active); s.Members.ShouldNotContainKey("snapshot-only"); } },
         { new TenantDisabled(Tenant, s_at), static s => s.Status.ShouldBe(TenantStatus.Disabled) },
         { new TenantEnabled(Tenant, s_at), static s => s.Status.ShouldBe(TenantStatus.Active) },
         { new UserAddedToTenant(Tenant, "user-2", TenantRole.TenantContributor), static s => s.Members["user-2"].ShouldBe(TenantRole.TenantContributor) },
@@ -50,7 +52,7 @@ public sealed class TenantProjectionTransitionTests {
 
     [Fact]
     public void ProjectedEventTypesCoverEveryHandledTenantEvent()
-        => TenantProjectionTransition.ProjectedEventTypes.Count.ShouldBe(9);
+        => TenantProjectionTransition.ProjectedEventTypes.Count.ShouldBe(10);
 
     [Fact]
     public void NonProjectedEventsOnlyAdvanceTheCheckpointMetadata() {

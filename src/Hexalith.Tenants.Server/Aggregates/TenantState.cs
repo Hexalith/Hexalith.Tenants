@@ -115,5 +115,19 @@ public sealed class TenantState {
         MarkReplayOnlyEventHandled();
     }
 
+    /// <summary>Recovery evidence never changes the authoritative tenant state during replay.</summary>
+    public void Apply(TenantAccessRefreshed e)
+    {
+        ArgumentNullException.ThrowIfNull(e);
+        MarkReplayOnlyEventHandled();
+    }
+
+    /// <summary>A bounded recovery rejection changes no tenant state.</summary>
+    public void Apply(TenantAccessSnapshotLimitExceededRejection e)
+    {
+        ArgumentNullException.ThrowIfNull(e);
+        MarkReplayOnlyEventHandled();
+    }
+
     private void MarkReplayOnlyEventHandled() => _ = TenantId;
 }

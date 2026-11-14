@@ -48,6 +48,7 @@ public sealed class TenantProjectionHandler {
         typeof(TenantLifecycleStateAlreadySetRejection), typeof(InsufficientPermissionsRejection),
         typeof(RoleEscalationRejection), typeof(UserAlreadyInTenantRejection), typeof(UserNotInTenantRejection),
         typeof(ConfigurationLimitExceededRejection), typeof(ConfigurationKeyNotFoundRejection),
+        typeof(TenantAccessRefreshed), typeof(TenantAccessSnapshotLimitExceededRejection),
     ];
 
     private readonly ILogger<TenantProjectionHandler> _logger;

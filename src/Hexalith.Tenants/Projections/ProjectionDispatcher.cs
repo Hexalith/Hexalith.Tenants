@@ -47,6 +47,7 @@ public sealed partial class ProjectionDispatcher(
         nameof(TenantDisabled),
         nameof(TenantEnabled),
         nameof(TenantUpdated),
+        nameof(TenantAccessRefreshed),
         nameof(UserAddedToTenant),
         nameof(UserRemovedFromTenant),
         nameof(UserRoleChanged),

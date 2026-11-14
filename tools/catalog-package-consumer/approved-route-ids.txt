@@ -15,6 +15,7 @@ tenants-get-tenant-users
 tenants-get-user-tenants
 tenants-list-tenants
 tenants-projection
+tenants-refresh-tenant-access
 tenants-remove-tenant-configuration
 tenants-remove-user-from-tenant
 tenants-resolve-tenant-owner-authority

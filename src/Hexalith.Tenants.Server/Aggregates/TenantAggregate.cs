@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 
 using Hexalith.EventStore.Client.Aggregates;
 using Hexalith.EventStore.Client.Attributes;
+using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
@@ -216,6 +217,58 @@ public class TenantAggregate : EventStoreAggregate<TenantState> {
                 => DomainResult.NoOp(),
             _ => DomainResult.Success([new UserRoleChanged(tenantId, command.UserId, state.Users[command.UserId], command.NewRole)]),
         };
+    }
+
+    /// <summary>Publishes a fresh complete access snapshot from the authoritative actor state.</summary>
+    public static DomainResult Handle(RefreshTenantAccess command, TenantState? state, CommandEnvelope envelope)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        ArgumentNullException.ThrowIfNull(envelope);
+        string tenantId = envelope.AggregateId;
+        if (!string.Equals(command.TenantId, tenantId, StringComparison.Ordinal)
+            || state is not null && !string.Equals(state.TenantId, tenantId, StringComparison.Ordinal))
+        {
+            return GlobalAdminRequired(tenantId, envelope, state, nameof(RefreshTenantAccess));
+        }
+
+        if (state is null)
+        {
+            return DomainResult.Rejection([new TenantNotFoundRejection(tenantId)]);
+        }
+
+        if (!IsGlobalAdmin(envelope) && !IsAuthorized(state, envelope.UserId, TenantRole.TenantOwner))
+        {
+            return GlobalAdminRequired(tenantId, envelope, state, nameof(RefreshTenantAccess));
+        }
+
+        long entries = (long)state.Users.Count + state.Configuration.Count;
+        // Check the count before copying large collections. A disabled tenant is deliberately
+        // allowed through this command: the emitted status must still deny consumer access.
+        if (entries > ProjectionSnapshotLimits.Default.MaxEntries)
+        {
+            return DomainResult.Rejection([new TenantAccessSnapshotLimitExceededRejection(
+                tenantId, "entries", entries, ProjectionSnapshotLimits.Default.MaxEntries)]);
+        }
+
+        // Validate the bounded view before sorting keys: oversized historical identifiers
+        // must not force expensive comparisons before the byte budget rejects them.
+        TenantAccessRefreshed snapshot = new(tenantId, state.Status, state.Users, state.Configuration.Keys.ToArray());
+        try
+        {
+            ProjectionSnapshotLimits.Default.Validate(snapshot, entries);
+        }
+        catch (ProjectionSnapshotLimitExceededException exception)
+        {
+            return DomainResult.Rejection([new TenantAccessSnapshotLimitExceededRejection(
+                tenantId, exception.Limit, exception.Actual, exception.Maximum)]);
+        }
+
+        return DomainResult.Success([snapshot with
+        {
+            Members = state.Users.OrderBy(member => member.Key, StringComparer.Ordinal)
+                .ToDictionary(member => member.Key, member => member.Value, StringComparer.Ordinal),
+            ConfigurationKeys = snapshot.ConfigurationKeys.Order(StringComparer.Ordinal).ToArray(),
+        }]);
     }
 
     // Only the three real roles are assignable; the Unknown sentinel (ordinal 0) and out-of-range

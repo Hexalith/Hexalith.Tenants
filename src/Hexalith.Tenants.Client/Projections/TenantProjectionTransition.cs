@@ -15,10 +15,11 @@ namespace Hexalith.Tenants.Client.Projections;
 /// contiguous replay of authoritative history stays contiguous.
 /// </remarks>
 public static class TenantProjectionTransition {
-    /// <summary>Gets the tenant event types that change the projected state.</summary>
+    /// <summary>Gets accepted tenant event types, including checkpoint-only recovery evidence.</summary>
     public static IReadOnlyList<Type> ProjectedEventTypes { get; } = [
         typeof(TenantCreated),
         typeof(TenantUpdated),
+        typeof(TenantAccessRefreshed),
         typeof(TenantDisabled),
         typeof(TenantEnabled),
         typeof(UserAddedToTenant),

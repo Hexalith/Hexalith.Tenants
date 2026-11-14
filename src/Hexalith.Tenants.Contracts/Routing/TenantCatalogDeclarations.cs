@@ -66,12 +66,13 @@ public static class TenantCatalogDeclarations
             });
     }
 #endif
-    /// <summary>Gets the twelve explicit MessageId v1, Mutation/24-hour command policies.</summary>
+    /// <summary>Gets the explicit MessageId v1, Mutation/24-hour command policies.</summary>
     public static IReadOnlyList<CommandIntentDeclaration> Commands { get; } = [
         Command<CreateTenant>("create", false, [new("name", "string"), new("description-is-null", "boolean"), new("description", "string")]),
         Command<UpdateTenant>("update", false, [new("name", "string"), new("description-is-null", "boolean"), new("description", "string")]),
         Command<DisableTenant>("disable", false, []),
         Command<EnableTenant>("enable", false, []),
+        Command<RefreshTenantAccess>("refresh-access", false, []),
         Command<AddUserToTenant>("add-user", false, [new("user-id", "string"), new("role", "string")]),
         Command<RemoveUserFromTenant>("remove-user", false, [new("user-id", "string")]),
         Command<ChangeUserRole>("change-user-role", false, [new("user-id", "string"), new("new-role", "string")]),

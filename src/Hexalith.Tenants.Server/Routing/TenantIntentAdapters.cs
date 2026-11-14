@@ -12,11 +12,12 @@ namespace Hexalith.Tenants.Server.Routing;
 /// <summary>Typed owner semantic policies, constructed offline without registering runtime admission.</summary>
 public static class TenantIntentAdapters
 {
-    /// <summary>Constructs all twelve approved per-operation adapters.</summary>
+    /// <summary>Constructs all approved per-operation adapters.</summary>
     public static IReadOnlyList<IDeclaredIdempotencyIntentAdapter> Create() => [
         Adapter<CreateTenant>(c => Description(c.Name, c.Description)),
         Adapter<UpdateTenant>(c => Description(c.Name, c.Description)),
         Adapter<DisableTenant>(_ => Fields()), Adapter<EnableTenant>(_ => Fields()),
+        Adapter<RefreshTenantAccess>(_ => Fields()),
         Adapter<AddUserToTenant>(c => Fields(("user-id", c.UserId), ("role", Role(c.Role)))),
         Adapter<RemoveUserFromTenant>(c => Fields(("user-id", c.UserId))),
         Adapter<ChangeUserRole>(c => Fields(("user-id", c.UserId), ("new-role", Role(c.NewRole)))),
