@@ -213,6 +213,14 @@
       "result": "found 0 problems, 0 warnings",
       "outputSha256": "9f185def6d0ea729ca14346283a2a835d3d0aadc0f29f0cdbb54074b6e6a939c",
       "output": "\u29d7   --- input ---\nfix(ci): align packed catalog probe with tenant recovery\n\u2714   found 0 problems, 0 warnings\n"
+    },
+    {
+      "evidence": "root-recovery-conformance.commitlint.log",
+      "candidate": "fix: complete recovery conformance and bind live token sessions\n",
+      "command": "npx --no -- commitlint --edit /dev/shm/tenants-release-2026-11-14/root-recovery-conformance.commitmsg --verbose",
+      "result": "found 0 problems, 0 warnings",
+      "outputSha256": "faea979a8ff99406371085daab21ebcd244ee3c482128da9d84574a51dd112b7",
+      "output": "\u29d7   --- input ---\nfix: complete recovery conformance and bind live token sessions\n\u2714   found 0 problems, 0 warnings\n"
     }
   ]
 }

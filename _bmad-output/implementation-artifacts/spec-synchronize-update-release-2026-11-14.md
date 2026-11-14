@@ -76,6 +76,12 @@ This is one coordinated release goal. The user's explicit request supersedes wor
 - `.github/workflows/ci.yml`
 - `scripts/verify-catalog-package-consumer.py`
 - `tools/catalog-package-consumer/Program.cs`
+- `src/Hexalith.Tenants.Testing/Fakes/InMemoryTenantService.cs`
+- `src/Hexalith.Tenants.Testing/Projections/InMemoryTenantProjection.cs`
+- `tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsRouteTests.cs`
+- `tests/Hexalith.Tenants.Server.Tests/Routing/TenantIntentDeclarationTests.cs`
+- `tests/Hexalith.Tenants.Testing.Tests/Conformance/TenantConformanceTests.cs`
+- `tests/Hexalith.Tenants.Testing.Tests/Projections/InMemoryTenantProjectionConformanceTests.cs`
 - `tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs`
 - `tests/Hexalith.Tenants.Server.Tests/Aggregates/TenantAccessRecoveryTests.cs`
 - `tests/scripts/test_catalog_artifact_guards.py`
@@ -112,6 +118,10 @@ This is one coordinated release goal. The user's explicit request supersedes wor
 - `_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/rebase-source-equivalence.json`
 - `_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/packed-consumer-repair-verification.json`
 - `_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/parent-root-catalog-repair-review.json`
+- `_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/recovery-conformance-verification.json`
+- `_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/parent-root-rest-session-review.json`
+- `_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/parent-root-recovery-review.json`
+- `_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/independent-root-recovery-review.json`
 - `_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/eventstore-postrelease-source-synchronization.json`
 
 ## Completion Notes List
@@ -210,3 +220,10 @@ The first ordinary root push safely refused a concurrent remote advance. The two
 At pushed `6f4df89e`, Story Guards and both source-reference lanes succeed. The published catalog lane compiles and passes its focused HTTP and owner controls, then its actual packed consumer refuses stale12-command/12-adapter expectations after upstream recovery added a command. A private publicSDK5.1 build/pack reproduces that exact refusal, passes the corrected24-route/24-operation/13-adapter inventory, and still refuses an inventory omitting the recovery route. All14 metadata refusal controls pass. The verifier now surfaces failed-child stdout/stderr while retaining the failure, and all existing archive/source/cohort/digest checks remain unchanged. The wrapper cleans its private workspace/feed/cache/outputs; final CI must qualify the subsequent committed repair.
 
 Parent bounded review reports no findings: the exact24 unique route IDs,13+9+2 categories and13 adapter correspondence remain complete; all provenance/digest/archive/DLL/deadline checks are preserved. Its retained review records the distinguishing actual pass/refusal execution proof.
+
+
+## Recovery Conformance and Bound Live Credentials
+
+At `a2142101`, all packed catalog, HTTP, persisted, anonymous/authenticated UI, source-reference and Story guard lanes pass. Full Tier1 identifies three remaining recovery omissions in the Testing dispatch/projection and exact permission fixtures; five REST cases reject a legacy unscoped token-store write. The fake now delegates the new command/state event to existing aggregate methods, explicitly leaves business projection state unchanged for the access snapshot, and tests owner/global/disabled success plus reader/missing/target-substitution refusals. The fixture uses one exact session/subject/system-tenant binding through the existing FC relay. Runtime domain handlers and authentication policy are unchanged.
+
+Actual publicSDK5.1/FC6 builds pass without warnings; all189 Testing cases and1888 Server cases pass, followed by all31 intent cases after review adds the missing recovery alias/target/retention/version row. The real registered token-relay handler passes its exact binding and three foreign-binding/unscoped-write refusals. Wrapper cleanup is verified. Evidence retains initial collection-reference failures and private cache/source/probe-layout corrections. Parent and two independent bounded reviews report no remaining findings; the sole coverage finding is resolved by that new intent row. Final hosted Tier1/live cases must pass on the resulting source.

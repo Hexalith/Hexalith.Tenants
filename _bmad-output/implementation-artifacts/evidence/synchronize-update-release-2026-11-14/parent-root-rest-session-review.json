@@ -1,0 +1,16 @@
+{
+  "capturedAtUtc": "2026-11-14T12:34:36.582385+00:00",
+  "scope": "Independent bounded review of the FC6 live REST fixture session migration; real five-test Dapr acceptance remains pending",
+  "result": "pass",
+  "findings": [],
+  "changedFile": "tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsRouteTests.cs",
+  "sha256": "631b0e44a342c2873809abebe62d3ce6369ae54371e88c35b899dbc9dda45ace",
+  "reviewEvidence": [
+    "Published FC6 rejects the legacy unscoped Set overload; typed session API has unchanged production implementation from published source d7",
+    "One unique sign-in session binds existing caller subject and current system tenant; claims match that exact store key",
+    "tenant_id alias configured only in the fixture options; no production default/auth/refusal changed",
+    "Demo JWT subject equals existing CallerId, all such tokens retain system tenancy, and target-resource tenant scope remains in signed JWT permissions",
+    "LiveRouteUserContext still selects system; no live assertion, test inclusion or expected authorization result changed"
+  ],
+  "executionRequirement": "Owning agent focused real composition relay/refusal proof and exact resulting-source hosted five-live-test rerun"
+}

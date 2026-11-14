@@ -81,6 +81,18 @@ public sealed class TenantConformanceTests {
         AssertGlobalAdministratorStatesEqual(scenario.Name, result.AggregateGlobalAdminState, result.Service.GetGlobalAdminState());
     }
 
+    [Fact]
+    public void Snapshot_conformance_compares_collection_contents_and_refuses_differences() {
+        IReadOnlyDictionary<string, TenantRole> members = new Dictionary<string, TenantRole> { ["owner"] = TenantRole.TenantOwner };
+        ValuesEqual(members, new Dictionary<string, TenantRole> { ["owner"] = TenantRole.TenantOwner }).ShouldBeTrue();
+        ValuesEqual(members, new Dictionary<string, TenantRole> { ["owner"] = TenantRole.TenantReader }).ShouldBeFalse();
+        ValuesEqual(members, new Dictionary<string, TenantRole> { ["other"] = TenantRole.TenantOwner }).ShouldBeFalse();
+        ValuesEqual(members, new Dictionary<string, TenantRole>()).ShouldBeFalse();
+        ValuesEqual(new[] { "alpha", "beta" }, new[] { "alpha", "beta" }).ShouldBeTrue();
+        ValuesEqual(new[] { "alpha", "beta" }, new[] { "beta", "alpha" }).ShouldBeFalse();
+        ValuesEqual(new[] { "alpha", "beta" }, new[] { "alpha" }).ShouldBeFalse();
+    }
+
     public static IEnumerable<object[]> ConformanceScenarios() {
         yield return Scenario("CreateTenant global-admin success", typeof(CreateTenant), ctx =>
             ctx.ExecuteTenant(new CreateTenant("acme", "Acme", null), "acme", "admin", isGlobalAdmin: true));
@@ -89,6 +101,35 @@ public sealed class TenantConformanceTests {
         yield return Scenario("CreateTenant duplicate rejection", typeof(CreateTenant), ctx => {
             ctx.ExecuteTenant(new CreateTenant("acme", "Acme", null), "acme", "admin", isGlobalAdmin: true);
             ctx.ExecuteTenant(new CreateTenant("acme", "Acme Again", null), "acme", "admin", isGlobalAdmin: true);
+        });
+
+        yield return Scenario("RefreshTenantAccess global-admin snapshot", typeof(RefreshTenantAccess), ctx => {
+            ctx.CreateActiveTenant("acme");
+            ctx.AddUser("acme", "reader", TenantRole.TenantReader);
+            ctx.ExecuteTenant(new SetTenantConfiguration("acme", "theme", "dark"), "acme", "admin", isGlobalAdmin: true);
+            ctx.ExecuteTenant(new RefreshTenantAccess("acme"), "acme", "admin", isGlobalAdmin: true);
+        });
+        yield return Scenario("RefreshTenantAccess owner snapshot", typeof(RefreshTenantAccess), ctx => {
+            ctx.CreateActiveTenant("acme");
+            ctx.AddUser("acme", "owner", TenantRole.TenantOwner);
+            ctx.ExecuteTenant(new RefreshTenantAccess("acme"), "acme", "owner");
+        });
+        yield return Scenario("RefreshTenantAccess reader rejection", typeof(RefreshTenantAccess), ctx => {
+            ctx.CreateActiveTenant("acme");
+            ctx.AddUser("acme", "reader", TenantRole.TenantReader);
+            ctx.ExecuteTenant(new RefreshTenantAccess("acme"), "acme", "reader");
+        });
+        yield return Scenario("RefreshTenantAccess missing tenant rejection", typeof(RefreshTenantAccess), ctx =>
+            ctx.ExecuteTenant(new RefreshTenantAccess("missing"), "missing", "admin", isGlobalAdmin: true));
+        yield return Scenario("RefreshTenantAccess disabled owner snapshot", typeof(RefreshTenantAccess), ctx => {
+            ctx.CreateActiveTenant("acme");
+            ctx.AddUser("acme", "owner", TenantRole.TenantOwner);
+            ctx.ExecuteTenant(new DisableTenant("acme"), "acme", "admin", isGlobalAdmin: true);
+            ctx.ExecuteTenant(new RefreshTenantAccess("acme"), "acme", "owner");
+        });
+        yield return Scenario("RefreshTenantAccess payload target substitution rejection", typeof(RefreshTenantAccess), ctx => {
+            ctx.CreateActiveTenant("acme");
+            ctx.ExecuteTenant(new RefreshTenantAccess("foreign"), "acme", "admin", isGlobalAdmin: true);
         });
 
         yield return Scenario("DisableTenant global-admin success", typeof(DisableTenant), ctx => {
@@ -1531,6 +1572,7 @@ public sealed class TenantConformanceTests {
                 ChangeUserRole c => TenantAggregate.Handle(c, state, envelope),
                 SetTenantConfiguration c => TenantAggregate.Handle(c, state, envelope),
                 RemoveTenantConfiguration c => TenantAggregate.Handle(c, state, envelope),
+                RefreshTenantAccess c => TenantAggregate.Handle(c, state, envelope),
                 _ => throw new InvalidOperationException($"Unknown tenant command type: {command.GetType().Name}."),
             };
 
@@ -1586,6 +1628,7 @@ public sealed class TenantConformanceTests {
                 ChangeUserRole c => c.TenantId,
                 SetTenantConfiguration c => c.TenantId,
                 RemoveTenantConfiguration c => c.TenantId,
+                RefreshTenantAccess c => c.TenantId,
                 _ => null,
             };
             if (!string.IsNullOrWhiteSpace(payloadTenantId)) {
@@ -1633,6 +1676,9 @@ public sealed class TenantConformanceTests {
                         state.Apply(e);
                         break;
                     case TenantConfigurationRemoved e:
+                        state.Apply(e);
+                        break;
+                    case TenantAccessRefreshed e:
                         state.Apply(e);
                         break;
                 }
@@ -1749,6 +1795,10 @@ public sealed class TenantConformanceTests {
     private static bool ValuesEqual(object? actual, object? expected)
         => actual switch {
             null => expected is null,
+            IReadOnlyDictionary<string, TenantRole> members => expected is IReadOnlyDictionary<string, TenantRole> expectedMembers
+                && DictionariesEqual(members, expectedMembers),
+            IReadOnlyList<string> keys => expected is IReadOnlyList<string> expectedKeys
+                && keys.SequenceEqual(expectedKeys, StringComparer.Ordinal),
             _ => actual.Equals(expected),
         };
 

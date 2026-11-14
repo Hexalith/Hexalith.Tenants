@@ -57,6 +57,10 @@ public sealed class InMemoryTenantProjection {
                 GetOrThrow(e.TenantId).Apply(e);
                 break;
 
+            // Recovery snapshots supply access evidence without changing tenant business state.
+            case TenantAccessRefreshed:
+                break;
+
             // Global admin events — route to singleton GlobalAdministratorReadModel
             case GlobalAdministratorSet e:
                 _globalAdmins.Apply(e);

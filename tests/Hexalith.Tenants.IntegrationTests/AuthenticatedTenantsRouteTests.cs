@@ -24,6 +24,7 @@ using NSubstitute;
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.FrontComposer.Shell.Extensions;
+using Hexalith.FrontComposer.Shell.Options;
 using Hexalith.FrontComposer.Shell.Services.Auth;
 using Hexalith.Memories.Client.Rest;
 using Hexalith.Tenants.Contracts.Queries;
@@ -368,16 +369,23 @@ public sealed class AuthenticatedTenantsRouteTests(AuthenticatedRouteTopologyFix
         services.AddLogging();
         services.AddSingleton(configuration);
         services.AddHexalithFrontComposerTokenRelay();
+        services.Configure<FrontComposerAuthenticationOptions>(options => options.TenantClaimTypes.Add("tenant_id"));
         services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: true);
+        FrontComposerTokenSession session = new("live-route-" + Guid.NewGuid().ToString("N"), AuthenticatedRouteState.CallerId, "system");
         services.AddSingleton<IHttpContextAccessor>(new HttpContextAccessor
         {
             HttpContext = new DefaultHttpContext
             {
-                User = new ClaimsPrincipal(new ClaimsIdentity([new Claim("sub", AuthenticatedRouteState.CallerId)], "live-route")),
+                User = new ClaimsPrincipal(new ClaimsIdentity(
+                    [
+                        new Claim("sub", session.UserId),
+                        new Claim("tenant_id", session.TenantId),
+                        new Claim(FrontComposerTokenSession.ClaimType, session.SessionId),
+                    ], "live-route")),
             },
         });
         ServiceProvider provider = services.BuildServiceProvider();
-        provider.GetRequiredService<FrontComposerUserTokenStore>().Set(AuthenticatedRouteState.CallerId, token, DateTimeOffset.UtcNow.AddMinutes(5));
+        provider.GetRequiredService<FrontComposerUserTokenStore>().Set(session, token, DateTimeOffset.UtcNow.AddMinutes(5));
         return provider;
     }
 

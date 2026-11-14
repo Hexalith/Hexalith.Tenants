@@ -20,7 +20,7 @@ public sealed class InMemoryTenantProjectionConformanceTests {
     private static readonly HashSet<string> ExpectedHandledEvents = new(StringComparer.Ordinal) {
         nameof(TenantCreated), nameof(TenantUpdated), nameof(TenantDisabled), nameof(TenantEnabled),
         nameof(UserAddedToTenant), nameof(UserRemovedFromTenant), nameof(UserRoleChanged),
-        nameof(TenantConfigurationSet), nameof(TenantConfigurationRemoved),
+        nameof(TenantConfigurationSet), nameof(TenantConfigurationRemoved), nameof(TenantAccessRefreshed),
         nameof(GlobalAdministratorSet), nameof(GlobalAdministratorRemoved),
     };
 
@@ -38,6 +38,7 @@ public sealed class InMemoryTenantProjectionConformanceTests {
         [nameof(UserRoleChanged)] = () => AssertTenantScopedEventRoutes(new UserRoleChanged("ghost", "user", TenantRole.TenantReader, TenantRole.TenantOwner)),
         [nameof(TenantConfigurationSet)] = () => AssertTenantScopedEventRoutes(new TenantConfigurationSet("ghost", "key", "value")),
         [nameof(TenantConfigurationRemoved)] = () => AssertTenantScopedEventRoutes(new TenantConfigurationRemoved("ghost", "key")),
+        [nameof(TenantAccessRefreshed)] = AssertAccessSnapshotLeavesBusinessProjectionUnchanged,
         [nameof(GlobalAdministratorSet)] = () => {
             var projection = new InMemoryTenantProjection();
             projection.Apply(new GlobalAdministratorSet("system", "admin-1"));
@@ -136,6 +137,25 @@ public sealed class InMemoryTenantProjectionConformanceTests {
         projection.Apply(new GlobalAdministratorRemoved("system", "admin-1"));
         projection.GetGlobalAdministrators().Administrators.Contains("admin-1")
             .ShouldBeFalse("GlobalAdministratorRemoved must route into the global-administrator read model.");
+    }
+
+    private static void AssertAccessSnapshotLeavesBusinessProjectionUnchanged() {
+        var projection = new InMemoryTenantProjection();
+        projection.Apply(new TenantCreated("acme", "Acme", "Description", When));
+        projection.Apply(new UserAddedToTenant("acme", "owner", TenantRole.TenantOwner));
+        projection.Apply(new TenantConfigurationSet("acme", "theme", "dark"));
+        var before = projection.GetTenant("acme").ShouldNotBeNull();
+        projection.Apply(new TenantAccessRefreshed("acme", TenantStatus.Disabled,
+            new Dictionary<string, TenantRole> { ["foreign"] = TenantRole.TenantReader }, ["other"]));
+        projection.GetTenant("acme").ShouldBeSameAs(before);
+        before.Name.ShouldBe("Acme");
+        before.Description.ShouldBe("Description");
+        before.Status.ShouldBe(TenantStatus.Active);
+        before.Members.ShouldHaveSingleItem().ShouldBe(new KeyValuePair<string, TenantRole>("owner", TenantRole.TenantOwner));
+        before.Configuration.ShouldHaveSingleItem().ShouldBe(new KeyValuePair<string, string>("theme", "dark"));
+        projection.Apply(new TenantAccessRefreshed("ghost", TenantStatus.Disabled, new Dictionary<string, TenantRole>(), []));
+        projection.GetTenant("ghost").ShouldBeNull();
+        projection.GetAllTenants().Count.ShouldBe(1);
     }
 
     private static void AssertTenantScopedEventRoutes(IEventPayload evt) {
