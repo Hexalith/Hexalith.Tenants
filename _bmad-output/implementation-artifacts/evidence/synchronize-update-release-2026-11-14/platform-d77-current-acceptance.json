@@ -1,0 +1,95 @@
+{
+  "head": "d77f741d11bf01352a11fa6df2f1a14313c1328a",
+  "status": "all required exact-source hosted gates passed",
+  "tupleRun": 43613487426,
+  "catalogRun": 43613487451,
+  "artifactId": 14122439051,
+  "artifactArchive": "/dev/shm/tenants-release-2026-11-14/platform-mcp-sync/platform-d77-current-14122439051.zip",
+  "artifactSha256": "165ae382bdcef1d1be75e0abf54dd8f17dc7018055a750e0365ce7b69f839089",
+  "signedProducerVersion": "6.0.2",
+  "signedProducerSource": "60ce7967607dc8b703fff11f4fc13cabb09c090a",
+  "suites": {
+    "current42": {
+      "counts": {
+        "total": 478,
+        "passed": 478,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0,
+        "not-run": 0
+      },
+      "summary": "platform-d77-current42-summary.json",
+      "raw": "platform-d77-current42-tuple-ci-result.json",
+      "collectors": {
+        "current": {
+          "source": "d77f741d11bf01352a11fa6df2f1a14313c1328a",
+          "targetFramework": "net11.0",
+          "toolVersion": "6.0.2",
+          "toolRoot": "/home/runner/work/Hexalith.Platform/Hexalith.Platform/artifacts/tuple-ci-current/builds/published/tools/net11.0/any",
+          "dependencyIdentity": null
+        },
+        "retained": {
+          "source": "a8240bf1a9362e525bd0ecb31d89d037e4c6e8b5",
+          "targetFramework": "net10.0",
+          "toolVersion": "4.47.0",
+          "toolRoot": "/home/runner/work/Hexalith.Platform/Hexalith.Platform/artifacts/tuple-ci-current/builds-retained/published/tools/net10.0/any",
+          "dependencyIdentity": null
+        }
+      }
+    },
+    "base42": {
+      "counts": {
+        "total": 97,
+        "passed": 97,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0,
+        "not-run": 0
+      },
+      "summary": "platform-d77-base42-summary.json",
+      "raw": "platform-d77-base42-tuple-ci-result.json",
+      "collectors": {
+        "current": {
+          "source": "d77f741d11bf01352a11fa6df2f1a14313c1328a",
+          "targetFramework": "net11.0",
+          "toolVersion": "6.0.2",
+          "toolRoot": "/home/runner/work/Hexalith.Platform/Hexalith.Platform/artifacts/tuple-ci/builds/published/tools/net11.0/any",
+          "dependencyIdentity": null
+        },
+        "retained": {
+          "source": "a8240bf1a9362e525bd0ecb31d89d037e4c6e8b5",
+          "targetFramework": "net10.0",
+          "toolVersion": "4.47.0",
+          "toolRoot": "/home/runner/work/Hexalith.Platform/Hexalith.Platform/artifacts/tuple-ci/builds-retained/published/tools/net10.0/any",
+          "dependencyIdentity": null
+        }
+      }
+    },
+    "extensions": {
+      "counts": {
+        "total": 9,
+        "passed": 9,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0,
+        "not-run": 0
+      },
+      "summary": "platform-d77-extensions-summary.json",
+      "raw": "platform-d77-extensions-tuple-ci-result.json",
+      "collectors": {
+        "current": {
+          "source": "d77f741d11bf01352a11fa6df2f1a14313c1328a",
+          "targetFramework": "net11.0",
+          "toolVersion": "6.0.2",
+          "toolRoot": "/home/runner/work/Hexalith.Platform/Hexalith.Platform/artifacts/tuple-ci-extensions/builds/published/tools/net11.0/any",
+          "dependencyIdentity": null
+        }
+      }
+    }
+  },
+  "legacy": "platform-d77-legacy-summary.json",
+  "preExtension": "platform-d77-preext-summary.json",
+  "scope": "Required package-mode source/consumer regression gates; no new image, native, OCI or governed release identity inferred",
+  "maintainerPrRuleBypassReported": true,
+  "clean": true
+}

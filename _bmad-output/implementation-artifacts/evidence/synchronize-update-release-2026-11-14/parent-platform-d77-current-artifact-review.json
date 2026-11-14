@@ -1,0 +1,68 @@
+{
+  "result": "PASS",
+  "reviewer": "root",
+  "runId": 43613487426,
+  "artifactId": 14122439051,
+  "artifactSha256": "165ae382bdcef1d1be75e0abf54dd8f17dc7018055a750e0365ce7b69f839089",
+  "source": "d77f741d11bf01352a11fa6df2f1a14313c1328a",
+  "method": "independently hash original authenticated ZIP, parse all38 raw xUnit XML files, reconcile every count with actual result records and exact signed producer/current source, compare output hashes",
+  "suites": [
+    {
+      "suite": "current42",
+      "rawXmlRuns": 33,
+      "counts": {
+        "total": 478,
+        "passed": 478,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0,
+        "not-run": 0
+      },
+      "currentCollector": {
+        "source": "d77f741d11bf01352a11fa6df2f1a14313c1328a",
+        "toolVersion": "6.0.2",
+        "framework": "net11.0"
+      },
+      "retainedCollectorSource": "a8240bf1a9362e525bd0ecb31d89d037e4c6e8b5",
+      "outputHashesUnchanged": true
+    },
+    {
+      "suite": "base42",
+      "rawXmlRuns": 4,
+      "counts": {
+        "total": 97,
+        "passed": 97,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0,
+        "not-run": 0
+      },
+      "currentCollector": {
+        "source": "d77f741d11bf01352a11fa6df2f1a14313c1328a",
+        "toolVersion": "6.0.2",
+        "framework": "net11.0"
+      },
+      "retainedCollectorSource": "a8240bf1a9362e525bd0ecb31d89d037e4c6e8b5",
+      "outputHashesUnchanged": true
+    },
+    {
+      "suite": "extensions",
+      "rawXmlRuns": 1,
+      "counts": {
+        "total": 9,
+        "passed": 9,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0,
+        "not-run": 0
+      },
+      "currentCollector": {
+        "source": "d77f741d11bf01352a11fa6df2f1a14313c1328a",
+        "toolVersion": "6.0.2",
+        "framework": "net11.0"
+      },
+      "retainedCollectorSource": null,
+      "outputHashesUnchanged": true
+    }
+  ]
+}
