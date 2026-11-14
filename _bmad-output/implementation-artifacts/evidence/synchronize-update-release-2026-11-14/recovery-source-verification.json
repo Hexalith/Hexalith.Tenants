@@ -1,0 +1,66 @@
+{
+  "capturedAtUtc": "2026-11-14T10:00:56.305850+00:00",
+  "scope": "Source-only real Root Server/host + actual private SDK source copy recovery authorization probe; no main test ancillary packages. This is neither public-package nor live qualification.",
+  "privateTemporaryDirectory": "/dev/shm/tenants-release-2026-11-14/hexalith-job.GPBuEpLi",
+  "rootParent": "6fcff842a8e48fc843d7b2df942d369f99f92b6b",
+  "eventStoreSource": "98ee6d084f5669fc3b903c3cec69275a7b7f6f12",
+  "rootTrackedDiffSha256": "92d2e6876d7ed16009248a8d0a39020f4a58700bae4fd7ab3725f9dc246cb042",
+  "commands": [
+    [
+      "dotnet",
+      "build",
+      "/dev/shm/tenants-release-2026-11-14/hexalith-job.GPBuEpLi/workspace/tests/Recovery.Source.Probe/Recovery.Source.Probe.csproj",
+      "--configuration",
+      "Debug",
+      "-warnaserror",
+      "-m:1",
+      "-nr:false",
+      "--disable-build-servers",
+      "--artifacts-path",
+      "/dev/shm/tenants-release-2026-11-14/hexalith-job.GPBuEpLi/artifacts",
+      "-p:UseHexalithProjectReferences=true",
+      "-p:UseNuGetDeps=false",
+      "-p:RestoreFallbackFolders=/home/administrator/.nuget/packages"
+    ],
+    [
+      "dotnet",
+      "/dev/shm/tenants-release-2026-11-14/hexalith-job.GPBuEpLi/artifacts/bin/Recovery.Source.Probe/debug/Hexalith.Tenants.Server.Tests.dll",
+      "-class",
+      "Hexalith.Tenants.Server.Tests.Aggregates.TenantAccessRecoveryTests",
+      "-failSkips",
+      "-maxThreads",
+      "8",
+      "-noColor",
+      "-result-xml",
+      "/dev/shm/tenants-release-2026-11-14/root-recovery-source-probe-tests.xml"
+    ]
+  ],
+  "result": {
+    "environment": "64-bit (x64) .NET 11.0.0 [collection-per-class, parallel (collections, 8 threads)]",
+    "id": "1c76160f-7838-407a-a0dd-d1302f5c2eca",
+    "name": "/dev/shm/tenants-release-2026-11-14/hexalith-job.GPBuEpLi/artifacts/bin/Recovery.Source.Probe/debug/Hexalith.Tenants.Server.Tests.dll",
+    "run-date": "2026-11-14",
+    "run-time": "10:00:55",
+    "start-rtf": "2026-11-14T10:00:55.9939636+00:00",
+    "test-framework": "xUnit.net v3 4.0.3+384aa7f0b4",
+    "target-framework": ".NETCoreApp,Version=v11.0",
+    "errors": "0",
+    "failed": "0",
+    "finish-rtf": "2026-11-14T10:00:56.2682231+00:00",
+    "not-run": "0",
+    "passed": "13",
+    "skipped": "0",
+    "time": "0.274",
+    "time-rtf": "00:00:00.2740000",
+    "total": "13"
+  },
+  "xmlSha256": "0ba03c7c904fe2ff9245966a88935457993b4a908ba1e8d4ee84f63fbe8b03eb",
+  "cleanupVerified": true,
+  "buildResult": "0 warnings, 0 errors",
+  "logSha256": "dc66593e8a5847ba5a080e952dd08ef96e90d77d3e023cd313088143f0873d08",
+  "earlierHarnessAttempt": {
+    "scope": "Scratch-only source graph with SDK symlink aliases failed missing assembly references; corrected by copying SDK sources into the private workspace. No product source or gate changed.",
+    "log": "root-recovery-source-probe.log",
+    "sha256": "c81ec885d0d564dc8e106b04e55a9dbdb530f27a37f7f2a8a2c17832dcc23210"
+  }
+}

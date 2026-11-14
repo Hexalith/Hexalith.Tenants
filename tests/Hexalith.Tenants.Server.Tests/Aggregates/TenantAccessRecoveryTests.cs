@@ -82,6 +82,18 @@ public sealed class TenantAccessRecoveryTests
     }
 
     [Fact]
+    public async Task RecoveryCannotReadForeignAggregateStateEvenWhenTheActorIsItsOwner()
+    {
+        TenantState state = State();
+        state.TenantId = "foreign";
+        string before = JsonSerializer.Serialize(state);
+        var result = await new TenantAggregate().ProcessAsync(Envelope("owner"), state);
+        result.IsRejection.ShouldBeTrue();
+        result.Events.ShouldHaveSingleItem().ShouldBeOfType<InsufficientPermissionsRejection>().TenantId.ShouldBe("acme");
+        JsonSerializer.Serialize(state).ShouldBe(before);
+    }
+
+    [Fact]
     public async Task UnknownTenantCannotBeManufacturedByRecovery()
     {
         var result = await new TenantAggregate().ProcessAsync(Envelope("owner"), null);

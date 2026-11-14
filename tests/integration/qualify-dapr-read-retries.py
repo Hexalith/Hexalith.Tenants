@@ -138,7 +138,8 @@ try:
   except Exception:
    result['failureCategory']=failure_category
   result.update(elapsedSeconds=time.monotonic()-started,backendCalls=counts.get(('GET','/api/tenants/deadline-exhaustion'),0));results.append(result)
- report={'runtime':version,'mutation':args.mutate_retries,'deadlineControls':'normal-only: skipped in retry mutation' if args.mutate_retries else 'normal-only: 31-second success and configured finite exhaustion','originalControlCount':original_results,'namespace':namespace,'productionAclSha256':hashlib.sha256(original.encode()).hexdigest(),'productionResiliencySha256':hashlib.sha256(original_resiliency).hexdigest(),'loadedResiliencySha256':hashlib.sha256((resources/'resiliency.yaml').read_bytes()).hexdigest(),'results':results,'backendCounts':{str(k):v for k,v in counts.items()}}
+ loaded_resiliency=(resources/'resiliency.yaml').read_bytes()
+ report={'runtime':version,'mutation':args.mutate_retries,'deadlineControls':'normal-only: skipped in retry mutation' if args.mutate_retries else 'normal-only: 31-second success and configured finite exhaustion','originalControlCount':original_results,'namespace':namespace,'productionAclSha256':hashlib.sha256(original.encode()).hexdigest(),'productionResiliencySha256':hashlib.sha256(original_resiliency).hexdigest(),'loadedResiliencySha256':hashlib.sha256(loaded_resiliency).hexdigest(),'loadedResiliencyPolicy':loaded_resiliency.decode('utf-8'),'results':results,'backendCounts':{str(k):v for k,v in counts.items()}}
  args.output.parent.mkdir(parents=True,exist_ok=True);args.output.write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2));assert len(results)==(13 if args.mutate_retries else 15) and all(r['pass'] for r in results), 'Read transport contract failed; see the required 503 backend-call count.'
 finally:
  stop_backend.set()

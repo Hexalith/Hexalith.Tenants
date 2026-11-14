@@ -1,0 +1,70 @@
+{
+  "capturedAtUtc": "2026-11-14T08:32:45.263748+00:00",
+  "repository": "Hexalith/Hexalith.McpCli",
+  "head": "b22327db325f1b65ac87506b133bcf89a75e6c60",
+  "workflowRunId": 43572252528,
+  "workflowUrl": "https://github.com/Hexalith/Hexalith.McpCli/actions/runs/43572252528",
+  "nativeJobId": 132380590708,
+  "conclusion": "success",
+  "requiredJobs": "All8 required jobs succeed; performance intentionally skipped.",
+  "artifacts": [
+    {
+      "id": 14105899320,
+      "name": "aspire-hook-evidence",
+      "sha256": "8c81f733be0217e0db30afc1e8d8e5b67e24c2e9518591e4cbf3a32fc49642eb",
+      "head": "b22327db325f1b65ac87506b133bcf89a75e6c60",
+      "run": 43572252528
+    },
+    {
+      "id": 14105915180,
+      "name": "live-preflight-evidence",
+      "sha256": "52887d3210eb2e5d92f77d58cde77f8dee529548fdc82d99d66040b665abff38",
+      "head": "b22327db325f1b65ac87506b133bcf89a75e6c60",
+      "run": 43572252528
+    }
+  ],
+  "nativeResult": {
+    "result": "passed",
+    "fullLiveAccepted": true,
+    "passed": 21,
+    "failed": 0
+  },
+  "vectorCount": 21,
+  "allVectorExitCodesZero": true,
+  "boundaryResult": "passed",
+  "preflightResult": {
+    "result": "preflight-only",
+    "fullLiveAccepted": false
+  },
+  "rawReceipts": {
+    "aspire-hook-evidence/e345bdab5fd849d5b44b9604017cecb9/vectors/live-lane.json": "9c40dab3206d86c67bfcfd88e914fa16a0365a29723c2537b611c407697a6ebc",
+    "aspire-hook-evidence/e345bdab5fd849d5b44b9604017cecb9/boundary/boundary-result.json": "8d65a393cd5eaef1a244a7a4f614ac076759412483f3954a4eb123d1cd50cccf",
+    "live-preflight-evidence/live-lane.json": "7616df5fd75a6f26ea2d842c907233e57af109e68a4e21a19e0f34f770ee8827"
+  },
+  "scope": "Observed committed-source Mcp hosted qualification of its declared/frozen inputs. New root tenant-access recovery and SDK5.1 runtime qualification remain separate. Earlier census and98a native receipts retain their original scope.",
+  "historicalObservations": [
+    {
+      "repository": "Hexalith/Hexalith.McpCli",
+      "head": "98a04b5c6cc4e8b5c090bce41f9619eb5bcec8ff",
+      "workflowRunId": 43558572242,
+      "workflowUrl": "https://github.com/Hexalith/Hexalith.McpCli/actions/runs/43558572242",
+      "nativeJobId": 132338561020,
+      "conclusion": "success",
+      "artifact": "aspire-hook-evidence",
+      "nativeResult": {
+        "result": "passed",
+        "fullLiveAccepted": true,
+        "passed": 21,
+        "failed": 0
+      },
+      "vectorCount": 21,
+      "allVectorExitCodesZero": true,
+      "boundaryResult": "passed",
+      "rawReceipts": {
+        "b529c8100055482989261241d850ef9a/vectors/live-lane.json": "f57e7d82a6ea6fad09387adbd292b53995e06cbb24f59c67a31f3f1751de797a",
+        "b529c8100055482989261241d850ef9a/boundary/boundary-result.json": "b8f497ad0f4a81099a63d74851555e5a96e3ff85f92e637f890c33616d55984a"
+      },
+      "scope": "Observed committed-source hosted qualification; earlier census maintenance records retain their original narrower claims."
+    }
+  ]
+}

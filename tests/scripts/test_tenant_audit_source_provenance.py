@@ -196,7 +196,13 @@ case "$*" in
 esac
 ''',
             "dotnet": r'''printf 'dotnet %s\n' "$*" >> "$AUDIT_PERF_TEST_CALLS"
-if [[ "${1:-}" == --version ]]; then printf '10.0.402\n'; else exit 93; fi
+if [[ "$*" == --version ]]; then
+    printf '11.0.100\n'
+elif [[ "$*" == "msbuild $AUDIT_PERF_TEST_APPHOST -nologo -p:Configuration=Release -getProperty:TargetFramework" ]]; then
+    printf 'net11.0\n'
+else
+    exit 93
+fi
 ''',
             "dapr": "printf '1.18.0\n'\n",
             "sleep": "exit 0\n",
@@ -209,7 +215,8 @@ exit 94
             script.write_text("#!/usr/bin/env bash\nset -euo pipefail\n" + body)
             script.chmod(0o755)
         env = dict(os.environ, PATH=str(tool_dir) + os.pathsep + os.environ["PATH"],
-                   AUDIT_PERF_RESULT_DIR=str(self.output), AUDIT_PERF_SMOKE="1", AUDIT_PERF_TEST_CALLS=str(calls))
+                   AUDIT_PERF_RESULT_DIR=str(self.output), AUDIT_PERF_SMOKE="1", AUDIT_PERF_TEST_CALLS=str(calls),
+                   AUDIT_PERF_TEST_APPHOST=str(self.root / "src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj"))
 
         result = subprocess.run(["bash", str(self.root / "scripts" / _RUNNER.name)], env=env,
                                 text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -220,7 +227,10 @@ exit 94
         self.assertEqual(environment["gitRevision"], proof["rootRevision"])
         recorded = calls.read_text().splitlines()
         self.assertIn("aspire certs trust --non-interactive", recorded)
-        self.assertEqual([call for call in recorded if call.startswith("dotnet ")], ["dotnet --version"])
+        self.assertEqual([call for call in recorded if call.startswith("dotnet ")], [
+            f"dotnet msbuild {env['AUDIT_PERF_TEST_APPHOST']} -nologo -p:Configuration=Release -getProperty:TargetFramework",
+            "dotnet --version",
+        ])
         self.assertFalse(any(call.startswith("npm ") for call in recorded))
 
     def test_missing_dependency_is_rejected_before_work(self):

@@ -62,8 +62,16 @@ def verify(directory, expected_source=None, output=None, target_framework="net11
             mcp = selected_mcp
             for dependency in metadata.findall('.//{*}dependency'):
                 if dependency.get('id', '').startswith('Hexalith.EventStore.'):
-                    selected = dependency.get('version', '').lstrip('[(').split(',')[0].strip().rstrip('])')
-                    normalized = re.fullmatch(r'(3\.129\.[01]|3\.130\.[012]|3\.131\.0|3\.132\.[012]|3\.133\.0|4\.0\.[01234]|4\.[12]\.0)(?:\.0)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?', selected)
+                    # NuGet build metadata does not change a stable binary identity. Remove
+                    # only complete metadata suffixes before validating the entire range.
+                    dependency_range = re.sub(r'\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*(?=\s*(?:[,\])]|$))',
+                                              '', dependency.get('version', ''))
+                    try:
+                        sdk_range = NORMALIZE_RANGE(dependency_range)
+                    except ValueError as error:
+                        raise ValueError('Catalog SDK dependency is not one inclusive qualified stable cohort.') from error
+                    selected = sdk_range[1:].split(',')[0].rstrip(']') if sdk_range.startswith('[') else ''
+                    normalized = re.fullmatch(r'(3\.129\.[01]|3\.130\.[012]|3\.131\.0|3\.132\.[012]|3\.133\.0|4\.0\.[01234]|4\.[12]\.0|5\.0\.1|5\.1\.0)', selected)
                     if not normalized or sdk is not None and normalized[1] != sdk:
                         raise ValueError('Catalog SDK dependency is not one qualified stable cohort.')
                     sdk = normalized[1]
@@ -138,6 +146,11 @@ def verify(directory, expected_source=None, output=None, target_framework="net11
         if (len(restored_mcp) != 1 or 'Hexalith.McpCli.Abstractions/' + mcp not in restored_mcp
                 or next(iter(restored_mcp.values()))['type'] != 'package'):
             raise ValueError('Restored McpCli dependency differs from the admitted package cohort.')
+        for key, library in assets['libraries'].items():
+            package_id, _, package_version = key.partition('/')
+            if package_id.casefold().startswith('hexalith.eventstore.'):
+                if package_version != sdk or library['type'] != 'package':
+                    raise ValueError('Restored EventStore dependency differs from the admitted package cohort.')
         for package_id, record in archives.items():
             key = package_id + '/' + version
             if assets['libraries'][key]['type'] != 'package':

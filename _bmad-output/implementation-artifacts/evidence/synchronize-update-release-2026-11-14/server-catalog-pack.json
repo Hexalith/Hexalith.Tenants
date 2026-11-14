@@ -1,0 +1,4 @@
+{
+  "rawSha256": "dd3ce6a802b975b6ca5cfc827598965e1362691760e2799e823d5c9af108cdea",
+  "output": "  Actual pack-target catalog enrollment verified: Hexalith.Tenants.Server\n  Successfully created package '/dev/shm/tenants-release-2026-11-14/root-validation/catalog-packages/Hexalith.Tenants.Server.99.0.0-local.nupkg'.\n"
+}

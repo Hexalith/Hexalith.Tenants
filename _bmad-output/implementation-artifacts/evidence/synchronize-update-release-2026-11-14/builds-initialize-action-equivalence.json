@@ -1,0 +1,22 @@
+{
+  "capturedAtUtc": "2026-11-14T11:29:30.119720+00:00",
+  "scope": "Read-only consumed action closure equivalence; no publication/runtime qualification inference",
+  "base": "0230aefd0502775b034a38c3b037c32c79f20fd7",
+  "current": "1ebc5b84ff2c8afd21a87d80ef3d9c9048eaf5e5",
+  "action": "Github/initialize-build/action.yml",
+  "actionSha256": "8b73ee347e0a2e5c934e87b9fded11cb480970da29abf64db5bda36ecf5e139a",
+  "actionGitBlob": "417525ebd3c6fe805747d61ec03e95f034dcf9b1",
+  "inlineCommand": "git -c submodule.recurse=false submodule update --init --depth 1",
+  "localHelperDependencies": [],
+  "githubTreeUnchanged": true,
+  "githubTreeGitObject": "c26fe75a5da112d45c0e4d85a33c2e16b4b388e1",
+  "changedPaths": [
+    "Props/Directory.Packages.props",
+    "Tools/package-version-audit.json",
+    "Tools/test-authoritative-package-catalog.ps1",
+    "test/Hexalith.Builds.Module.Tests/DirectCatalogDeclarationTests.cs",
+    "test/Hexalith.Builds.Module.Tests/ManifestValidationTests.cs",
+    "test/Hexalith.Builds.Module.Tests/SupportedPlatformPinsCatalogTests.cs",
+    "test/Hexalith.Builds.Module.Tests/Workspace/CompositionCatalogPackageViewTests.cs"
+  ]
+}

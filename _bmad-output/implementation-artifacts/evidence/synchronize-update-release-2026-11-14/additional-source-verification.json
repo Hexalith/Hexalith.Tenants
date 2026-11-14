@@ -1,0 +1,41 @@
+{
+  "scope": "Local source UI qualification at this captured source selection; final committed-source hosted qualification and public-package qualification remain separate.",
+  "capturedUtc": "2026-11-14T05:19:41.513329+00:00",
+  "rootParent": "d99b7f63feb81f74cee75c3976894c02d173b373",
+  "trackedWorkingDiffSha256": "b30a736a02b42c5cf98a56bbb3ee5a977d4b460361cea6fe5e4b1f7a3568a9fe",
+  "submoduleHeads": {
+    "references/Hexalith.EventStore": "325c3ddcf122d7b6dfc9f2a5190fa88ac4fa1394",
+    "references/Hexalith.Commons": "fbf4e94233821f6ca336af91a06feaaeb7a16855",
+    "references/Hexalith.AI.Tools": "17a37d83db193f0b7494c1b931fd1e82a67c1424",
+    "references/Hexalith.FrontComposer": "80dcd61e1d3d04428c755cc7eb483469be9e7554",
+    "references/Hexalith.Builds": "c8c3473cc205ef811bd9fb3ee23fe7d375f9c566",
+    "references/Hexalith.PolymorphicSerializations": "e97b56930e213f674b64c157551f499b0473ec43",
+    "references/Hexalith.Memories": "2c2e9b58990638ededf22e8e67ff5c12de75b434",
+    "references/Hexalith.McpCli": "98a04b5c6cc4e8b5c090bce41f9619eb5bcec8ff",
+    "references/Hexalith.Platform": "20eecbdd2805fcd04c03d5b8661486b8e9ab9a21"
+  },
+  "buildCommand": "dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --configuration Debug -warnaserror -m:1 -nr:false --artifacts-path /dev/shm/tenants-release-2026-11-14/root-final-source-artifacts -p:UseHexalithProjectReferences=true -p:UseNuGetDeps=false",
+  "buildResult": "0 warnings, 0 errors",
+  "testCommand": "dotnet tests/Hexalith.Tenants.UI.Tests/obj/release-ci-probe/net11.0/Hexalith.Tenants.UI.Tests.dll -failSkips -maxThreads 8 -noColor -result-xml /dev/shm/tenants-release-2026-11-14/root-latest-source-ui-tests.xml",
+  "result": {
+    "total": "8082",
+    "passed": "8082",
+    "failed": "0",
+    "skipped": "0",
+    "errors": "0",
+    "not-run": "0",
+    "time": "83.995"
+  },
+  "rawEvidence": {
+    "root-latest-source-ui-tests.xml": "b829822a1ecc891d2643caf2dbf08c001d088f075ca69193a6537dc30734a7a4",
+    "root-latest-source-ui-tests.log": "d8b75b3fd0f581d639b85a3833f24ac0bac754efa4486bf4c82aa09d9ba7666a",
+    "root-latest-source-ui-build-fixed-layout.log": "d3d260617f197d5cda34ad055eb3d7c9a97ec9035c527d37ba23846725ad0a7f",
+    "Hexalith.Tenants.UI.Tests.dll": "399120e09c89f3d9631db8e63229cd14e981aec4c46c4074c3ec15d79b9aebb6"
+  },
+  "retainedSummary": [
+    "  Finished:    Hexalith.Tenants.UI.Tests (ID = '7c2f70b0404f4d2f870e464d7b58b67b62c0a94ea3efaf7f38234af789931724')",
+    "=== TEST EXECUTION SUMMARY ===",
+    "   Hexalith.Tenants.UI.Tests  Total: 8082, Errors: 0, Failed: 0, Skipped: 0, Not Run: 0, Time: 83.995s"
+  ],
+  "harness": "Real test entry files under the project obj output preserve source-scan ancestry and are excluded from MSBuild content. Other dependencies link to the task artifacts directory."
+}

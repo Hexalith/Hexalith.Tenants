@@ -1,0 +1,189 @@
+{
+  "scope": "Successful exact candidate validation before Git use; candidate validation alone does not assert a commit or publication occurred. Each command ran in the owning repository with its pinned CLI.",
+  "validations": [
+    {
+      "evidence": "eventstore-sample-fixture.commitlint.log",
+      "candidate": "test: preserve routed tenant scope in sample controller fixtures\n",
+      "command": "npx --no -- commitlint --edit /dev/shm/tenants-release-2026-11-14/eventstore-sample-fixture.commitmsg --verbose",
+      "result": "found 0 problems, 0 warnings",
+      "outputSha256": "dea48b0d92e4be56d7bf30b1a61a3343f3fd90273f83dea0203f53a4c759eb06",
+      "output": "\u29d7   --- input ---\ntest: preserve routed tenant scope in sample controller fixtures\n\u2714   found 0 problems, 0 warnings\n"
+    },
+    {
+      "evidence": "fc-ci.commitlint.log",
+      "candidate": "fix(ci): retain CLI diagnostics under .NET 11 cancellation checks\n",
+      "command": "npx --no -- commitlint --edit /dev/shm/tenants-release-2026-11-14/fc-ci.commitmsg --verbose",
+      "result": "found 0 problems, 0 warnings",
+      "outputSha256": "e56a8ba9a845f11a018f27a5d555472c1706425b0743e67f8e024abaabf606ea",
+      "output": "\u29d7   --- input ---\nfix(ci): retain CLI diagnostics under .NET 11 cancellation checks\n\u2714   found 0 problems, 0 warnings\n"
+    },
+    {
+      "evidence": "fc-tools.commitlint.log",
+      "candidate": "build(deps): update GitHub release tooling\n",
+      "command": "npx --no -- commitlint --edit /dev/shm/tenants-release-2026-11-14/fc-tools.commitmsg --verbose",
+      "result": "found 0 problems, 0 warnings",
+      "outputSha256": "46da1c874693809229942d2adc3684ca61aa9a35867de1bd1bc718a09d62916b",
+      "output": "\u29d7   --- input ---\nbuild(deps): update GitHub release tooling\n\u2714   found 0 problems, 0 warnings\n"
+    },
+    {
+      "evidence": "frontcomposer-compatibility.commitlint.log",
+      "candidate": "fix(packaging): validate .NET 11 packages against published APIs\n",
+      "command": "npx --no -- commitlint --edit /dev/shm/tenants-release-2026-11-14/frontcomposer-compatibility.commitmsg --verbose",
+      "result": "found 0 problems, 0 warnings",
+      "outputSha256": "ccf8f9551a2f64bea0817b6b3d117108f9483150d514b89c04c5eb3f938e6bf7",
+      "output": "\u29d7   --- input ---\nfix(packaging): validate .NET 11 packages against published APIs\n\u2714   found 0 problems, 0 warnings\n"
+    },
+    {
+      "evidence": "frontcomposer-current-contracts.commitlint.log",
+      "candidate": "fix(ci): align migration publication and browser contracts with .NET 11\n",
+      "command": "npx --no -- commitlint --edit /dev/shm/tenants-release-2026-11-14/frontcomposer-current-contracts.commitmsg --verbose",
+      "result": "found 0 problems, 0 warnings",
+      "outputSha256": "ed84ce4847ea1b9b3929e055fa99ea14082791874b4c36c3fff057c46e4d25ff",
+      "output": "\u29d7   --- input ---\nfix(ci): align migration publication and browser contracts with .NET 11\n\u2714   found 0 problems, 0 warnings\n"
+    },
+    {
+      "evidence": "frontcomposer-focus.commitlint.log",
+      "candidate": "fix(shell): propagate unrelated focus failures after module teardown\n",
+      "command": "npx --no -- commitlint --edit /dev/shm/tenants-release-2026-11-14/frontcomposer-focus.commitmsg --verbose",
+      "result": "found 0 problems, 0 warnings",
+      "outputSha256": "2d75fa5c68ce1e0ab8bf550c68d3422adf8b26a3cdea3d5ee79fe370fdf51ea5",
+      "output": "\u29d7   --- input ---\nfix(shell): propagate unrelated focus failures after module teardown\n\u2714   found 0 problems, 0 warnings\n"
+    },
+    {
+      "evidence": "frontcomposer-seal-activation.commitlint.log",
+      "candidate": "docs(governance): activate .NET 11 dependency seals\n",
+      "command": "npx --no -- commitlint --edit /dev/shm/tenants-release-2026-11-14/frontcomposer-seal-activation.commitmsg --verbose",
+      "result": "found 0 problems, 0 warnings",
+      "outputSha256": "bf5cda89545e0a4169dd2847c33e46668df8e8ab9a6c95896d51981e9a99ee0c",
+      "output": "\u29d7   --- input ---\ndocs(governance): activate .NET 11 dependency seals\n\u2714   found 0 problems, 0 warnings\n"
+    },
+    {
+      "evidence": "frontcomposer-seal.commitlint.log",
+      "candidate": "fix(governance): renew exact .NET 11 source and evaluator seals\n",
+      "command": "npx --no -- commitlint --edit /dev/shm/tenants-release-2026-11-14/frontcomposer-seal.commitmsg --verbose",
+      "result": "found 0 problems, 0 warnings",
+      "outputSha256": "56fcdb98707c5210d8dd0c1291d3f202d81e6d3aa9c44f73bee04af4e5be46df",
+      "output": "\u29d7   --- input ---\nfix(governance): renew exact .NET 11 source and evaluator seals\n\u2714   found 0 problems, 0 warnings\n"
+    },
+    {
+      "evidence": "frontcomposer.commitlint.log",
+      "candidate": "fix!: complete the .NET 11 source and validation migration\n",
+      "command": "npx --no -- commitlint --edit /dev/shm/tenants-release-2026-11-14/frontcomposer.commitmsg --verbose",
+      "result": "found 0 problems, 0 warnings",
+      "outputSha256": "29c1cf425d83655bd0d6349edf8a31cc151db540a7ae184defa327209a806083",
+      "output": "\u29d7   --- input ---\nfix!: complete the .NET 11 source and validation migration\n\u2714   found 0 problems, 0 warnings\n"
+    },
+    {
+      "evidence": "mcp-census.commitlint.log",
+      "candidate": "fix(ci): renew source-bound qualification census entries\n",
+      "command": "npx --no -- commitlint --edit /dev/shm/tenants-release-2026-11-14/mcp-census.commitmsg --verbose",
+      "result": "found 0 problems, 0 warnings",
+      "outputSha256": "e6d2b29996b889c74eb9dc29ce7e7cab293e9d3c5bb00f636b137f61b8b1c480",
+      "output": "\u29d7   --- input ---\nfix(ci): renew source-bound qualification census entries\n\u2714   found 0 problems, 0 warnings\n"
+    },
+    {
+      "evidence": "mcp-fixture.commitlint.log",
+      "candidate": "test: support Git file layouts in release selection fixtures\n",
+      "command": "npx --no -- commitlint --edit /dev/shm/tenants-release-2026-11-14/mcp-fixture.commitmsg --verbose",
+      "result": "found 0 problems, 0 warnings",
+      "outputSha256": "91e8f2b36a0e999a49ba8e22fac13e822de525ed46c34b2856ea63ecd1388f19",
+      "output": "\u29d7   --- input ---\ntest: support Git file layouts in release selection fixtures\n\u2714   found 0 problems, 0 warnings\n"
+    },
+    {
+      "evidence": "mcp-tools.commitlint.log",
+      "candidate": "build(deps): update GitHub release tooling\n",
+      "command": "npx --no -- commitlint --edit /dev/shm/tenants-release-2026-11-14/mcp-tools.commitmsg --verbose",
+      "result": "found 0 problems, 0 warnings",
+      "outputSha256": "46da1c874693809229942d2adc3684ca61aa9a35867de1bd1bc718a09d62916b",
+      "output": "\u29d7   --- input ---\nbuild(deps): update GitHub release tooling\n\u2714   found 0 problems, 0 warnings\n"
+    },
+    {
+      "evidence": "mcpcli-native-compatibility.commitlint.log",
+      "candidate": "fix(ci): apply retained native host compatibility after framework selection\n",
+      "command": "npx --no -- commitlint --edit /dev/shm/tenants-release-2026-11-14/mcpcli-native-compatibility.commitmsg --verbose",
+      "result": "found 0 problems, 0 warnings",
+      "outputSha256": "ad23543fe3682e7c69fe91452b767673daa6db7e609a1c9dc57f75864324d7da",
+      "output": "\u29d7   --- input ---\nfix(ci): apply retained native host compatibility after framework selection\n\u2714   found 0 problems, 0 warnings\n"
+    },
+    {
+      "evidence": "mcpcli-parties-compat.commitlint.log",
+      "candidate": "fix(ci): retain compatible Commons packages for frozen Parties hosts\n",
+      "command": "npx --no -- commitlint --edit /dev/shm/tenants-release-2026-11-14/mcpcli-parties-compat.commitmsg --verbose",
+      "result": "found 0 problems, 0 warnings",
+      "outputSha256": "31ca64fab9ca97c0f6d288d845e58b41c9dc845df22e07719c92d5d2589055b1",
+      "output": "\u29d7   --- input ---\nfix(ci): retain compatible Commons packages for frozen Parties hosts\n\u2714   found 0 problems, 0 warnings\n"
+    },
+    {
+      "evidence": "mcpcli.commitlint.log",
+      "candidate": "fix: preserve compatible packages and reviewed census evidence\n",
+      "command": "npx --no -- commitlint --edit /dev/shm/tenants-release-2026-11-14/mcpcli.commitmsg --verbose",
+      "result": "found 0 problems, 0 warnings",
+      "outputSha256": "f80e1f537ea6ff258be976835907bcdf54c2da2acf76f7e744108e0773ace05d",
+      "output": "\u29d7   --- input ---\nfix: preserve compatible packages and reviewed census evidence\n\u2714   found 0 problems, 0 warnings\n"
+    },
+    {
+      "evidence": "memories.commitlint.log",
+      "candidate": "fix: align current .NET 11 validation and operator tools\n",
+      "command": "npx --no -- commitlint --edit /dev/shm/tenants-release-2026-11-14/memories.commitmsg --verbose",
+      "result": "found 0 problems, 0 warnings",
+      "outputSha256": "a01d6bda23c39f172f84f7810e9b54354438fdfd022e17dc402fc6c799a030e9",
+      "output": "\u29d7   --- input ---\nfix: align current .NET 11 validation and operator tools\n\u2714   found 0 problems, 0 warnings\n"
+    },
+    {
+      "evidence": "platform-descriptors.commitlint.log",
+      "candidate": "fix(ci): bind current historical qualification sources\n",
+      "command": "npx --no -- commitlint --edit /dev/shm/tenants-release-2026-11-14/platform-descriptors.commitmsg --verbose",
+      "result": "found 0 problems, 0 warnings",
+      "outputSha256": "f6cca9014e87a60eee36fc09920763b474b8a900d5e95090ef804e6485e3278e",
+      "output": "\u29d7   --- input ---\nfix(ci): bind current historical qualification sources\n\u2714   found 0 problems, 0 warnings\n"
+    },
+    {
+      "evidence": "platform-legacy.commitlint.log",
+      "candidate": "test(tuple): prepare the current legacy qualification source\n",
+      "command": "npx --no -- commitlint --edit /dev/shm/tenants-release-2026-11-14/platform-legacy.commitmsg --verbose",
+      "result": "found 0 problems, 0 warnings",
+      "outputSha256": "fb23d882d09d5767084e6180e1f227e2d026695d160dd9a1aa21bf54048a1016",
+      "output": "\u29d7   --- input ---\ntest(tuple): prepare the current legacy qualification source\n\u2714   found 0 problems, 0 warnings\n"
+    },
+    {
+      "evidence": "platform-package-reader.commitlint.log",
+      "candidate": "test(tuple): prepare the current package reader source\n",
+      "command": "npx --no -- commitlint --edit /dev/shm/tenants-release-2026-11-14/platform-package-reader.commitmsg --verbose",
+      "result": "found 0 problems, 0 warnings",
+      "outputSha256": "662df840ed60820099cada16f184d59ca861b77fbeba28255b1030c056a04a51",
+      "output": "\u29d7   --- input ---\ntest(tuple): prepare the current package reader source\n\u2714   found 0 problems, 0 warnings\n"
+    },
+    {
+      "evidence": "platform-pre-extension.commitlint.log",
+      "candidate": "test(tuple): prepare the current pre-extension qualification source\n",
+      "command": "npx --no -- commitlint --edit /dev/shm/tenants-release-2026-11-14/platform-pre-extension.commitmsg --verbose",
+      "result": "found 0 problems, 0 warnings",
+      "outputSha256": "cac34dae3df233d3721840373d46ee5f9f8ca2983780da76809771f8efcf5607",
+      "output": "\u29d7   --- input ---\ntest(tuple): prepare the current pre-extension qualification source\n\u2714   found 0 problems, 0 warnings\n"
+    },
+    {
+      "evidence": "platform-source.commitlint.log",
+      "candidate": "fix(ci): restore published tuple bindings and contextual SDK checks\n",
+      "command": "npx --no -- commitlint --edit /dev/shm/tenants-release-2026-11-14/platform-source.commitmsg --verbose",
+      "result": "found 0 problems, 0 warnings",
+      "outputSha256": "2933dbee7bc1b488886ed173913c9eaf5c68530d2772ab18497b126dca6033a5",
+      "output": "\u29d7   --- input ---\nfix(ci): restore published tuple bindings and contextual SDK checks\n\u2714   found 0 problems, 0 warnings\n"
+    },
+    {
+      "evidence": "root-existing.commitlint.log",
+      "candidate": "fix: retain .NET 11 migration and native timeout evidence\n",
+      "command": "npx --no -- commitlint --edit /dev/shm/tenants-release-2026-11-14/root-existing.commitmsg --verbose",
+      "result": "found 0 problems, 0 warnings",
+      "outputSha256": "837990a5170411ced539d60ea3a7aca807f3611a87c91d895f6c425d4a26aca2",
+      "output": "\u29d7   --- input ---\nfix: retain .NET 11 migration and native timeout evidence\n\u2714   found 0 problems, 0 warnings\n"
+    },
+    {
+      "evidence": "root-synchronized.commitlint.log",
+      "candidate": "build!: synchronize .NET 11 dependency cohorts and qualify package consumers\n",
+      "command": "npx --no -- commitlint --edit /dev/shm/tenants-release-2026-11-14/root-synchronized.commitmsg --verbose",
+      "result": "found 0 problems, 0 warnings",
+      "outputSha256": "3f5eb699d17b2e56d34474dcb2b3e6562758c7ef2bdcbc73a9ed2f777546346a",
+      "output": "\u29d7   --- input ---\nbuild!: synchronize .NET 11 dependency cohorts and qualify package consumers\n\u2714   found 0 problems, 0 warnings\n"
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+{
+  "rawSha256": "e59bd677e0065fe79cc58c7da92a606c5027a6f8cc19dd906c5aae0a36995dab",
+  "output": "\nadded 318 packages, and audited 319 packages in 5s\n\n91 packages are looking for funding\n  run `npm fund` for details\n\nfound 0 vulnerabilities\n"
+}

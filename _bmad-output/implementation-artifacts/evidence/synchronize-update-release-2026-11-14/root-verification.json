@@ -1,0 +1,308 @@
+{
+  "kind": "Historical local implementation compatibility checks; separate current source snapshot; final committed-source hosted qualification and publication pending",
+  "baselineRevision": "401d926eb7d51bdf332696ed3f0fe39a812b3501",
+  "sdk": "11.0.100",
+  "packageCohort": {
+    "EventStore": "5.0.1",
+    "McpCli": "2.0.1",
+    "Memories": "4.0.0",
+    "Tenants": "7.0.7",
+    "FrontComposer": "5.0.0; new package publication pending"
+  },
+  "sourceFiles": {
+    "Directory.Build.props": "c197e94126209144a9b1449cf32f04f3b21934cd3fff5f71b87de3b8aaec5e07",
+    "Directory.Build.targets": "54f66f21061639226a743f3f1c8fefde5fdf200b7e0ca747c1d4e1778e024fbb",
+    ".github/workflows/ci.yml": "725a2d0383c3176b57d4c8c91b390ca48591396b4962e69b72fff9f9723091e9",
+    "scripts/verify-catalog-package-consumer.py": "dc2cfe24615c771aabb647c8baf1332d4bc640b09b55275d61333c7c64bbb023",
+    "tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs": "a84025907e60919c364a6d92d63ebe5c32279ebb06504729b4ef2d4d423bc92e",
+    "tests/scripts/test_catalog_artifact_guards.py": "07f6bdabadafe89fc42160b36a342bec2c6b5a89dd9cdd505b42a3efc807309f",
+    "tests/scripts/test_catalog_package_consumer.py": "514f3a8048e678dfd46cdaa058ab0beeadd9b8d1137cc29665d36ae11b54440a",
+    "tests/scripts/test_tenant_audit_source_provenance.py": "cfc0ff023a59509cf30c36a8e11c139b9d15b49b75a3571ffece6690f9294736",
+    "package.json": "14ac291c79617a9c09b49cdef8c0d8a371a710279d21bea13c842d1ebfc8d09e",
+    "package-lock.json": "7f72930d9ce431ad1040e0e9335e0542186b74512018e2cd9d21663a69c26228",
+    "tests/performance/tenant-audit/package.json": "6c9fdd3ab2ee18e59a47bfdb81143d1d48f4b9fe707a22b2e6f57481d89db306",
+    "tests/performance/tenant-audit/package-lock.json": "6bf66b87699deca7fc692bd92f830836ba170ea1033f1eeba857a4442a136ae4",
+    "README.md": "547de6b8d2b9dfdcce42a63a28c5b81f2060936b2f89054177a5b44b4fbf0efb",
+    "docs/development-route-catalog.md": "4aaf3e227b4664150302bc24990e917ca621bcf6accd3a258f44deb6d3652fd0",
+    "docs/guides/canonical-scope-upgrade.md": "2fad0a3bb3bbb62de859c214d2f5d76fcd03381ee7c623cb2a8026479e1be866"
+  },
+  "logs": [
+    {
+      "path": "candidate-version-tests.json",
+      "pythonTestCounts": [
+        24
+      ],
+      "xunitSummaries": [],
+      "rawOutputSha256": "1dfc57e59387caf297a682a7d96976a00324d783d82539374a2e478d66009ea7",
+      "sha256": "db175745dc15293d9b54ac29e703518b5ea041573d479327e3117bd14587a23f"
+    },
+    {
+      "path": "catalog-consumer.json",
+      "pythonTestCounts": [],
+      "xunitSummaries": [],
+      "rawOutputSha256": "1dd1cb541e54e6e198cf6b0d44dffbf940aca0bc2c54fbc43ffbe8fa674210f7",
+      "sha256": "c533df5d92a4e2b8794e228c5442f58997238ebf3a2a5a1f3ec92246468896c3"
+    },
+    {
+      "path": "catalog-source-tests.json",
+      "pythonTestCounts": [],
+      "xunitSummaries": [
+        [
+          3,
+          0,
+          0,
+          0
+        ]
+      ],
+      "rawOutputSha256": "8f3cb34de5678aec7db2a6d50568152a81ebbedc7569553e63b2ce11c97222dd",
+      "sha256": "8b63d4c3842f927438d6b07e84eb4055e6b45c93baaf5302b7b47e6c8a736acf"
+    },
+    {
+      "path": "contracts-catalog-pack.json",
+      "pythonTestCounts": [],
+      "xunitSummaries": [],
+      "rawOutputSha256": "92a443431b89b5e13e3b67957ae7bc9fd83f01c509e581734f5469b1d404f782",
+      "sha256": "bd57d8718a7bf17e92296676f01ebe2e3a12215bf311c1440ae3dd04d23de724"
+    },
+    {
+      "path": "contracts-package-build.json",
+      "pythonTestCounts": [],
+      "xunitSummaries": [],
+      "rawOutputSha256": "82f365bb2ef7986427d8aca9107e6660aecdd2b218af2e75e9a8660a419acfb3",
+      "sha256": "45a0bb686453b26fadc6d65db06c4bbeed0b52c4c16a3f63396c2e6ed644cf80"
+    },
+    {
+      "path": "contracts-qualified-tests.json",
+      "pythonTestCounts": [],
+      "xunitSummaries": [
+        [
+          540,
+          0,
+          0,
+          0
+        ]
+      ],
+      "rawOutputSha256": "38e91aabdaffa3c54171eedc718d1d7bee7376ac68a43f84ce9486a0ba5d96de",
+      "sha256": "4fb139e77cfde2de3b00f8baba2d8288a2bc7a6fd643d2a8659168cc571a0861"
+    },
+    {
+      "path": "contracts-source-build.json",
+      "pythonTestCounts": [],
+      "xunitSummaries": [],
+      "rawOutputSha256": "610acc7c687e3f26979ad0a00ed1bca3ab59b2ec62c7b708fc05113f6cf46b9a",
+      "sha256": "b1ccc5ab31b4a84436d33bc02d19087481595296f9e8f21a707bec32559c3f54"
+    },
+    {
+      "path": "integration-source-build.json",
+      "pythonTestCounts": [],
+      "xunitSummaries": [],
+      "rawOutputSha256": "2ca72a1ca5a53581a0339007c9e3c3550ab3a18216ba8d634c7bf694816fab1c",
+      "sha256": "a2b8b97d448733ce670ca5a4b8683e06e073b554a4f6dc281070f5a1f0b193c6"
+    },
+    {
+      "path": "npm-performance-ci.json",
+      "pythonTestCounts": [],
+      "xunitSummaries": [],
+      "rawOutputSha256": "e76093ecb6aa954e89a9f7824c6fe88a88b7c884bcec46b6770cb9ada31ef5ed",
+      "sha256": "d9f1436f47230ad97727fad05470e12ffeaa73344f740f5ff4f19bf9ddcae18b"
+    },
+    {
+      "path": "npm-root-ci.json",
+      "pythonTestCounts": [],
+      "xunitSummaries": [],
+      "rawOutputSha256": "e59bd677e0065fe79cc58c7da92a606c5027a6f8cc19dd906c5aae0a36995dab",
+      "sha256": "9eb1e50b065c665841aa5c93a5eb1dc0eddbed7fd105915af23e7b5efdd7911f"
+    },
+    {
+      "path": "server-boundary-tests.json",
+      "pythonTestCounts": [],
+      "xunitSummaries": [
+        [
+          19,
+          0,
+          0,
+          0
+        ]
+      ],
+      "rawOutputSha256": "278e0d320571ef87ab64a050d338e49b116455b05e2deb8cc85763abf698371e",
+      "sha256": "88ac465fac3f0dde8133fceb7be08abc826a79abd81c22722bc64cb56228577f"
+    },
+    {
+      "path": "server-catalog-pack.json",
+      "pythonTestCounts": [],
+      "xunitSummaries": [],
+      "rawOutputSha256": "dd3ce6a802b975b6ca5cfc827598965e1362691760e2799e823d5c9af108cdea",
+      "sha256": "5ae04dcc750acc1aaf6521ba03d789f189e75549a90133342f216debd37d3756"
+    },
+    {
+      "path": "server-package-build.json",
+      "pythonTestCounts": [],
+      "xunitSummaries": [],
+      "rawOutputSha256": "c1d73e7b7b41ebadd79102897bbae93e5f47322be82cbf77c0ac8c1e51bc0584",
+      "sha256": "f048c2328931d7903daf2f4f8b0b3bfb9cd44fbd9308e7a364c146a51ddda0c8"
+    },
+    {
+      "path": "test_bootstrap_handoff.json",
+      "pythonTestCounts": [
+        19
+      ],
+      "xunitSummaries": [],
+      "rawOutputSha256": "7950166e174650e8d04bc978923436daae7d945078327bfd73ce7e3ca58a8c49",
+      "sha256": "4e88517b4f6e99bdf5316ed8177c4a5388d60cc1e40ddbc0d8c690b11176a0ba"
+    },
+    {
+      "path": "test_elicitation_numbers.json",
+      "pythonTestCounts": [
+        6
+      ],
+      "xunitSummaries": [],
+      "rawOutputSha256": "7e6f20dbb40da4de52fbb2797a97bb214624c51a00815930f632f8b4646489ff",
+      "sha256": "f7fbe02425f7025fbc7a964feeb9b532c3bab9effceb5f7a138ebccc4c979cdf"
+    },
+    {
+      "path": "test_pushall_default_branch.json",
+      "pythonTestCounts": [
+        37
+      ],
+      "xunitSummaries": [],
+      "rawOutputSha256": "5b386e481df9ee32067ee11cff1905c94b5a7029661e6b031303e400d840a79c",
+      "sha256": "139e4bba23c0dbce24ec80e8f0d255503138b72006bbab1a718aabd1932aac08"
+    },
+    {
+      "path": "test_pushall_detached_head.json",
+      "pythonTestCounts": [
+        13
+      ],
+      "xunitSummaries": [],
+      "rawOutputSha256": "0dac3954e242a2cbec27135ddbd2e34452afdab77541baa17be0a21f375e9f56",
+      "sha256": "bcca6621ed94a544b0d9cc488615362294dfcf905e93167c18476fe0de69f59d"
+    },
+    {
+      "path": "test_resolve_customization.json",
+      "pythonTestCounts": [
+        10
+      ],
+      "xunitSummaries": [],
+      "rawOutputSha256": "2c988e3f2154a253fae7561c38776b17d4fec7049228cd738e72a1abe8e3bed8",
+      "sha256": "2697cd255f49943feb86dbe8917292a15fefbb06743d2400df10662a0be4d16c"
+    },
+    {
+      "path": "test_tea_enforcement.json",
+      "pythonTestCounts": [
+        14
+      ],
+      "xunitSummaries": [],
+      "rawOutputSha256": "5bb4b31f71e9002e4b7b596cdec863f818eb229b8e34703befd4a57c26bb3f16",
+      "sha256": "cc6e080c8ab4763afef3835248a56ea14a46db568ab70f23514963d6cc692d71"
+    },
+    {
+      "path": "test_tenant_audit_source_provenance.json",
+      "pythonTestCounts": [
+        19
+      ],
+      "xunitSummaries": [],
+      "rawOutputSha256": "5afcb0d824578229ee06cd6a6c83bc48dacdd7276a9f9e6da0d63903ce09f75c",
+      "sha256": "2b8510772e7821e9147459609e19c042b262dc7296e0894c06c8e7edb9a2baff"
+    },
+    {
+      "path": "test_validate_changed_story_gitlinks.json",
+      "pythonTestCounts": [
+        101
+      ],
+      "xunitSummaries": [],
+      "rawOutputSha256": "65624a51d04e7c8fabd027e7abbaf944eac249d40ce7b4a02c14b11a7c76a054",
+      "sha256": "eb1324b53952a979bd3a79199074148064fe07e312cb872c5e1c2fc8f109d5aa"
+    },
+    {
+      "path": "test_validate_story_gitlinks.json",
+      "pythonTestCounts": [
+        77
+      ],
+      "xunitSummaries": [],
+      "rawOutputSha256": "6e09f7091c4d276ca441a9af42cd56f1f018aeb7826f15c1c6e32fca815ec0c6",
+      "sha256": "aee09b32368225cdfb34c8a10ef36af4512f5dd110c35326d00eae9157abd89c"
+    },
+    {
+      "path": "http-source-tests.json",
+      "sha256": "7b3082213487fb6790d6048e84d9a0e8a1abac4ee3548318e5f20e7d00c7335a",
+      "rawOutputSha256": "f1987429b4a70881d403158a7ca58b0c5d8635bcb28a9c65caeb5723e64588a1"
+    }
+  ],
+  "actualPackedCatalog": {
+    "localOnlyVersion": "99.0.0-local",
+    "sdk": "5.0.1",
+    "routes": 23,
+    "operations": 23,
+    "adapters": 12,
+    "sourceMetadataMeaning": "starting revision in scratch candidates; not final committed-source provenance"
+  },
+  "commands": {
+    "packageBuild": "TMPDIR=/dev/shm NUGET_HTTP_CACHE_PATH=/dev/shm/tenants-release-2026-11-14/root-validation/http-cache dotnet build <project> --configuration Release --artifacts-path /dev/shm/tenants-release-2026-11-14/root-validation/package-artifacts -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true -p:HexalithEventStoreFromSource=false -p:HexalithFrontComposerFromSource=false -p:HexalithMemoriesFromSource=false -warnaserror -m:1 -nr:false",
+    "packageProjects": [
+      "tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj",
+      "tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj"
+    ],
+    "sourceBuild": "TMPDIR=/dev/shm NUGET_HTTP_CACHE_PATH=/dev/shm/tenants-release-2026-11-14/root-validation/http-cache dotnet build <project> --configuration Debug --artifacts-path /dev/shm/tenants-release-2026-11-14/root-validation/source-artifacts -p:UseHexalithProjectReferences=true -p:UseNuGetDeps=false -p:HexalithFrontComposerFromSource=true -p:HexalithMemoriesFromSource=true -warnaserror -m:1 -nr:false",
+    "sourceProjects": [
+      "tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj",
+      "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj"
+    ],
+    "packageCatalogTests": "TMPDIR=/dev/shm dotnet artifacts/root-contracts-tests/Hexalith.Tenants.Contracts.Tests.dll -class Hexalith.Tenants.Contracts.Tests.PackageGovernanceTests -class Hexalith.Tenants.Contracts.Tests.TenantCatalogTests -class Hexalith.Tenants.Contracts.Tests.PublishedTenantCatalogTests",
+    "sourceCatalogTests": "TMPDIR=/dev/shm dotnet artifacts/root-contracts-tests/Hexalith.Tenants.Contracts.Tests.dll -class Hexalith.Tenants.Contracts.Tests.TenantCatalogTests -class Hexalith.Tenants.Contracts.Tests.PublishedTenantCatalogTests",
+    "packageConsumer": "TMPDIR=/dev/shm NUGET_HTTP_CACHE_PATH=/dev/shm/tenants-release-2026-11-14/root-validation/http-cache python3 scripts/verify-catalog-package-consumer.py /dev/shm/tenants-release-2026-11-14/root-validation/catalog-packages --expected-source-sha 401d926eb7d51bdf332696ed3f0fe39a812b3501 --output /dev/shm/tenants-release-2026-11-14/root-validation/catalog-consumer.json",
+    "guardCommands": [
+      "TMPDIR=/dev/shm python3 tests/scripts/test_tenant_audit_source_provenance.py",
+      "TMPDIR=/dev/shm python3 tests/scripts/test_bootstrap_handoff.py",
+      "TMPDIR=/dev/shm python3 tests/scripts/test_tea_enforcement.py",
+      "TMPDIR=/dev/shm python3 tests/scripts/test_elicitation_numbers.py",
+      "TMPDIR=/dev/shm python3 tests/scripts/test_resolve_customization.py",
+      "TMPDIR=/dev/shm python3 tests/scripts/test_pushall_default_branch.py",
+      "TMPDIR=/dev/shm python3 tests/scripts/test_pushall_detached_head.py",
+      "TMPDIR=/dev/shm python3 tests/scripts/test_validate_story_gitlinks.py",
+      "TMPDIR=/dev/shm python3 tests/scripts/test_validate_changed_story_gitlinks.py"
+    ],
+    "otherPassed": [
+      "TMPDIR=/dev/shm python3 tests/scripts/test_catalog_package_consumer.py (12 cases)",
+      "TMPDIR=/dev/shm python3 tests/scripts/test_catalog_artifact_guards.py (2 cases)",
+      "TMPDIR=/dev/shm python3 tests/scripts/test_bootstrap_compatibility.py (14 cases)",
+      "TMPDIR=/dev/shm python3 tests/scripts/test_hosted_package_profile.py (2 cases)",
+      "TMPDIR=/dev/shm python3 tests/scripts/test_nuget_dependency_ranges.py (12 cases)",
+      "npm ci --ignore-scripts --cache /dev/shm/tenants-release-2026-11-14/root-validation/npm-cache",
+      "npm ci --prefix tests/performance/tenant-audit --ignore-scripts --cache /dev/shm/tenants-release-2026-11-14/root-validation/npm-cache",
+      "npm run typecheck --prefix tests/performance/tenant-audit",
+      "npm run test:mode --prefix tests/performance/tenant-audit (4 cases)",
+      "git diff --check"
+    ],
+    "sourceHttpTests": "TMPDIR=/dev/shm dotnet /dev/shm/tenants-release-2026-11-14/root-validation/source-artifacts/bin/Hexalith.Tenants.IntegrationTests/debug/Hexalith.Tenants.IntegrationTests.dll -class Hexalith.Tenants.IntegrationTests.TenantsApiGeneratedControllerTests -class Hexalith.Tenants.IntegrationTests.ProjectionReplayIntegrityTests -class Hexalith.Tenants.IntegrationTests.AuditStreamPersistenceTests"
+  },
+  "limitations": [
+    "AppHost baseline start succeeded; security unhealthy and dependent hosts waiting at inspection; stopped cleanly. Not full live-topology qualification.",
+    "First test runs from /dev/shm could not locate repository through assembly ancestry; final passing runs used copied task output under ignored root artifacts.",
+    "Package-only UI/Integration build and final remote CI/release acceptance await new FrontComposer package and parent orchestration."
+  ],
+  "historicalContext": {
+    "scope": "The retained baselineRevision, sdk, packageCohort, sourceFiles, logs and commands describe the earlier intermediate verification context.",
+    "dependencyIdentityLimitation": "Complete participating dependency HEAD/dirty/untracked manifests were not captured at those command times. The current source snapshot does not supply their missing provenance and does not requalify those commands.",
+    "sourceSnapshotUsage": "current-source-manifest.json is a later, explicitly current read-only snapshot for review and subsequent verification only."
+  },
+  "reviewCorrections": {
+    "commands": [
+      "TMPDIR=/dev/shm python3 tests/scripts/test_catalog_package_consumer.py",
+      "TMPDIR=/dev/shm python3 tests/scripts/test_bootstrap_compatibility.py",
+      "TMPDIR=/dev/shm python3 tests/scripts/test_dapr_read_policy_evidence.py",
+      "python3 -m py_compile tests/integration/qualify-dapr-read-retries.py"
+    ],
+    "results": {
+      "catalogConsumerTests": 14,
+      "bootstrapCompatibilityTests": 14,
+      "policyEvidenceTests": 1,
+      "failed": 0
+    },
+    "scope": "Only the edited Python/CI selection and safe evidence contracts were rerun. Full/live/hosted validation remains parent-owned."
+  },
+  "currentSourceManifest": {
+    "path": "current-source-manifest.json",
+    "sha256": "2f9b61b2f8efa4e4438c8d243b495444684d2c236408b1e50bf499e0958d6b71",
+    "appliesTo": "Current checkout snapshot only; not historical build/test command provenance."
+  }
+}

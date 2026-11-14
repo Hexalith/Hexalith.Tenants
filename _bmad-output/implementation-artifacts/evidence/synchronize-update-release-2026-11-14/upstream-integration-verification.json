@@ -1,0 +1,35 @@
+{
+  "capturedAtUtc": "2026-11-14T08:13:26.435880+00:00",
+  "scope": "Historical local integration/compatibility observations while new dependency publication remains pending. Final exact committed-source hosted qualification and public package qualification are separate.",
+  "rootUpstreamIntegrated": "6fcff842a8e48fc843d7b2df942d369f99f92b6b",
+  "buildsUpstreamIntegrated": "0230aefd0502775b034a38c3b037c32c79f20fd7",
+  "plannedEventStoreVersion": "5.1.0",
+  "dependencyPublicationAtCapture": "EventStore5.1.0 and new-source FrontComposer6.0.0 are not yet qualified/public; source catalog adoption commits remain local.",
+  "results": {
+    "sourceServerProduct": "Debug actual-source Server build succeeds with0 warnings/errors. This is source API compatibility, not package publication or live qualification.",
+    "sourceTestGraphs": "Contracts/Server test builds refuse unavailable public5.1.0 ServiceDefaults/Testing ancillary packages. Gates stay intact.",
+    "bootstrapControls": 14,
+    "catalogConsumerControls": 14,
+    "artifactControls": 2,
+    "catalogShapeRows": 317,
+    "catalogAuthorityPositiveNegativeProbes": 201,
+    "frozenAndPackagedHostAuthorityControls": 17,
+    "immutableViewTests": 2,
+    "immutableViewProjectConfigurationSubcases": 64,
+    "priorPublicSdk501Precondition": "Server.Tests using actual public5.0.1 fails4 missing snapshot-budget API errors after concurrent root6fc feature integration.",
+    "actualProductNativeSdkSelectionControls": 11
+  },
+  "rawLogs": {
+    "root-integrated-public-server-build.log": "094c876d5edf984249b425d6c6dc571714e8d336526ea5037138bf1a152a1ad0",
+    "root-integrated-source-product-build.log": "a768bf76d8c29d696701f59f023f8f4e26ce5c258fa326b3a1a3c20eb3a2bc99",
+    "root-integrated-source-server-build.log": "46765d259d9397688cd6ef7a0b2141ea52d26ee86c2e123a140e357795f53e21",
+    "root-integrated-source-contracts-build.log": "28e51a1bd205eacb817cd06eb98e5335b31459cbc2992fd80c4b8ed7d080ead6",
+    "root-sdk51-bootstrap-controls.log": "d488323788324d22fda054cb9562bd0a81f6776ee8d31bb37dc0fa41c08102ca",
+    "root-sdk51-catalog-consumer-controls.log": "a79766b5a5f1a971eb8e8f87941a9d067f3f2f6f3f91f68eab55000cfe742347",
+    "root-sdk51-artifact-controls.log": "580bae38856a11cc997f12ccc7c6d39f2227cf23fc8cebe1deb73b09c2b9f546",
+    "builds-frontcomposer6-integrated-immutable-view.log": "8d9984b2739906d20548ab9edffd5b379d84aec3a80e0a198ff6bc7fbb41e8af",
+    "builds-eventstore51-shape.log": "ee44adb78b46e18b2bd6b4d2c6ac2fe3beac9fed59a4afcefa943712d76f9107",
+    "builds-eventstore51-authority.log": "7c9b018752e968f5d4c2685848e84d71569f01634e3f5380504df3d07e410a0b",
+    "root-sdk51-native-selection-controls.json": "f6036e32a4638a6626b2af14ab6e41e03a7962459307edb5e03000b7c6052ff6"
+  }
+}

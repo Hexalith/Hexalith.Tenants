@@ -1,0 +1,4 @@
+{
+  "rawSha256": "38e91aabdaffa3c54171eedc718d1d7bee7376ac68a43f84ce9486a0ba5d96de",
+  "output": "xUnit.net v3 In-Process Runner v4.0.3+384aa7f0b4 (64-bit .NET 11.0.0)\n  Discovering: Hexalith.Tenants.Contracts.Tests\n  Discovered:  Hexalith.Tenants.Contracts.Tests\n  Starting:    Hexalith.Tenants.Contracts.Tests\n  Finished:    Hexalith.Tenants.Contracts.Tests (ID = '7be8b967316d8bb2a51bdb982d0d6ca1f84cdc60274e1ce3add71d4e5e7c2824')\n=== TEST EXECUTION SUMMARY ===\n   Hexalith.Tenants.Contracts.Tests  Total: 540, Errors: 0, Failed: 0, Skipped: 0, Not Run: 0, Time: 142.262s\n"
+}

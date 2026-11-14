@@ -1,0 +1,37 @@
+{
+  "scope": "Prepublication UI qualification against the retained, unsigned-author FrontComposer6.0.0 candidate; official public-package verification remains separate.",
+  "source": "46716fb07ed71d3f574a6d15f2763e907a6c0d5c",
+  "candidateRun": 43565376063,
+  "candidateVersion": "6.0.0",
+  "build": "Release package mode; all dependency source mappings disabled; zero warnings/errors",
+  "firstSuite": {
+    "total": "8081",
+    "passed": "8079",
+    "failed": "2",
+    "skipped": "0",
+    "errors": "0"
+  },
+  "firstSuiteFailures": "Two focus-validator fixture inputs were outside normal paths or in a fallback cache; corrected only the local validation environment, without source edits.",
+  "correctedFocusedRerun": {
+    "total": 2,
+    "passed": 2,
+    "failed": 0,
+    "skipped": 0
+  },
+  "coveredCases": 8081,
+  "rawEvidence": {
+    "root-candidate-package-ui-tests.xml": "2c5c3399bf4dbdc04b358ece2b44d81ab76ba9113bbbe367a7807916f29678c6",
+    "root-normal-release-ui-focus-inputs.json": "2897801061a464a26763e9c01462d2e60f6708bb62bbbda25884eac406bfa402"
+  },
+  "additionalSolutionBuild": {
+    "capturedAtUtc": "2026-11-14T07:01:34.261083+00:00",
+    "rootParent": "d99b7f63feb81f74cee75c3976894c02d173b373",
+    "trackedWorkingDiffSha256": "648fa70f1df58ad3162483f3f1fcc982e20afeb1ea7d3ce2f3a4a4c5b9ba9d07",
+    "result": "0 warnings, 0 errors",
+    "scope": "Entire Release solution including its explicitly listed dependency source projects; root dependency source mappings disabled, root consumers restore the isolated unsigned FC6 candidate. This does not claim public-feed qualification.",
+    "command": "TMPDIR=/dev/shm/tenants-release-2026-11-14 NUGET_HTTP_CACHE_PATH=/dev/shm/tenants-release-2026-11-14/http-cache NUGET_PACKAGES=/dev/shm/tenants-release-2026-11-14/root-candidate-consumer-packages dotnet build Hexalith.Tenants.slnx --configuration Release -warnaserror -m:1 -nr:false --artifacts-path /dev/shm/tenants-release-2026-11-14/root-candidate-full-solution -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true -p:HexalithEventStoreFromSource=false -p:HexalithFrontComposerFromSource=false -p:HexalithMemoriesFromSource=false -p:HexalithMcpCliFromSource=false -p:RestoreAdditionalProjectSources=/dev/shm/tenants-release-2026-11-14/fc-fallback-candidate/nupkgs -p:RestoreFallbackFolders=/home/administrator/.nuget/packages",
+    "rawEvidence": {
+      "root-candidate-full-solution.log": "265c93bef59f804d7829c9af6e82e221a2948c19dff10e7283a24ff86c25f067"
+    }
+  }
+}

@@ -47,13 +47,14 @@ Watch reactive cross-service access revocation in action: add a user to a tenant
 | [`Hexalith.Tenants.Testing`](https://www.nuget.org/packages/Hexalith.Tenants.Testing) | In-memory fakes and test helpers with production-parity domain logic |
 | [`Hexalith.Tenants.Aspire`](https://www.nuget.org/packages/Hexalith.Tenants.Aspire) | .NET Aspire hosting extensions for consuming AppHosts |
 
-Normal package builds use EventStore 4.2.0 and McpCli.Abstractions 2.0.1. Explicit
-EventStore 4.0.4 and 4.1.0 package builds remain supported for compatibility.
+Normal package builds use EventStore 5.1.0 and McpCli.Abstractions 2.0.1. Tenant-access
+recovery requires the EventStore 5.1.0 snapshot-budget API. Historical archive
+admission retains the qualified 4.x and 5.0.1 cohorts.
 The retained catalog compatibility set includes stable 3.129.0, 3.129.1,
 3.130.0, 3.130.1, 3.130.2, 3.131.0, 3.132.0, 3.132.1, 3.132.2 and 3.133.0,
 including zero-revision and build-metadata aliases. See the [published SDK qualification commands and evidence](docs/development-route-catalog.md#published-sdk-qualification).
 The optional durable Client projection uses EventStore's checkpointed API and is
-available with the source SDK or published 3.133.0 and the qualified 4.x cohorts; older qualified SDKs keep the
+available with the source SDK or published 3.133.0 and the qualified 4.x, 5.0.1 and 5.1.0 cohorts; older qualified SDKs keep the
 in-memory Client projection.
 Contracts includes its compiled
 route and operation declarations; Server includes its existing declared intent

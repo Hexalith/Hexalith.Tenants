@@ -1,0 +1,127 @@
+{
+  "capturedAtUtc": "2026-11-14T11:36:53.930883+00:00",
+  "scope": "Independent bounded review of newly admitted public EventStore5.1.0 and test-helper corrections; public package qualification only, not final committed-source CI or publication",
+  "result": "pass",
+  "findings": [],
+  "sourceHashes": {
+    "Directory.Build.props": "05984fe38991074431bf53e59184ac46e07283fe4f33a6e7a8c96a978cca9ba3",
+    "Directory.Build.targets": "01b8fbb75a43a58b89b592e4fcdf90c5af9b07a6fb8d1c22c66a57d412df631b",
+    "scripts/verify-catalog-package-consumer.py": "deed7981fecdaff8e214a95700ad94a3824ac41b2cdaa0f8fcbcc190dea0cdf7",
+    "tests/scripts/test_catalog_package_consumer.py": "3df7f8c86100d9a0c5f59a27ad41b77298b7aadcd235f7c9b43d16840bb98a4f",
+    "tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs": "836ae028b8f562c91b6330320ad7870dec251019d3f42ea26ac07d428c33a03d",
+    "tests/Hexalith.Tenants.Server.Tests/Aggregates/TenantAccessRecoveryTests.cs": "6b1cb209ccbf58b35ca694e71f2191f6fc801f69cf40070b6941988e7896370a",
+    ".github/workflows/ci.yml": "50c6c9d3b73dd9390aaa10a27e41457f20d294e1c10265d2c3dc4f7b9dcebacb",
+    "tests/scripts/test_bootstrap_compatibility.py": "bc5cfad355c4a88e6127132a96553d2b88109c0b97bd062b2d036220838e043c",
+    "tests/scripts/test_catalog_artifact_guards.py": "7bba4c1cc3a48033cafa8a145162279d7f9609da0bf46dc7fdfe26d561a353d2"
+  },
+  "reviewChecks": [
+    "Finite5.1.0 selection retains exact5.0.1 and historical cohorts; prerelease, malformed and neighboring-version refusal retained",
+    "Three private expected-symbol predicates admit5.1.0 consistently with production finite guards",
+    "Catalog consumer inclusive-minimum range validation and restored package-only exact-cohort verification retained",
+    "New foreign-aggregate recovery refusal asserts no state mutation; production recovery unchanged",
+    "Blocking CI lane selects actual public5.1.0 before provisioning/build; wrong-SDK refusal retained; fixed compatibility profiles not relabeled"
+  ],
+  "independentTest": {
+    "command": "TMPDIR=/dev/shm/tenants-release-2026-11-14 run-with-temp env PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests/scripts -p test_catalog_package_consumer.py -v",
+    "passed": 14,
+    "failed": 0
+  },
+  "verifiedRawBackendSuites": [
+    {
+      "class": "Hexalith.Tenants.Server.Tests.Aggregates.TenantAccessRecoveryTests",
+      "passed": 13,
+      "sha256": "bbbe0ce74f3dc17e19872da2c9382c5a3007ac45767af40d509aef9779eab29d"
+    },
+    {
+      "class": "Hexalith.Tenants.Server.Tests.Projections.TenantAccessRecoveryProjectionTests",
+      "passed": 1,
+      "sha256": "25bba5dd7b5f0f768de7f91eab4f4a63c21bd2bad867da8b786c03c4573e7b45"
+    },
+    {
+      "class": "Hexalith.Tenants.Server.Tests.CommandPipeline.TenantSubmitCommandValidatorTests",
+      "passed": 36,
+      "sha256": "af5fca48b1538043784f30bb3330809ce47195831fdd701cdd39679579958223"
+    },
+    {
+      "class": "Hexalith.Tenants.Contracts.Tests.TenantCatalogTests",
+      "passed": 2,
+      "sha256": "73e7c10ef5544b17022e95fc385cdff4855b616910f214ceb53acabfe4f13e6f"
+    },
+    {
+      "class": "Hexalith.Tenants.Contracts.Tests.PublishedTenantCatalogTests",
+      "passed": 1,
+      "sha256": "5390806b833284b5b945c80d4bff18a7092e0377fafaf02097e374932cfafc5c"
+    },
+    {
+      "class": "Hexalith.Tenants.Client.Tests.Handlers.TenantProjectionEventHandlerTests",
+      "passed": 19,
+      "sha256": "736f00f0c948dc902dc4ff84bf4bb102d953653cb0c24ce3de4be70e6b47a344"
+    },
+    {
+      "class": "Hexalith.Tenants.Client.Tests.Projections.TenantProjectionTransitionTests",
+      "passed": 14,
+      "sha256": "1c6e036caa8af86d2f87c093401b5408d4830bbfc317fe27931b8ea8ad3209c5"
+    },
+    {
+      "class": "Hexalith.Tenants.Contracts.Tests.PackageGovernanceTests",
+      "passed": 556,
+      "sha256": "76cf4676225fc75cdbd07ca659649e54ff8e957afba83fa6524d0d6ac822cacd"
+    }
+  ],
+  "verifiedLogs": [
+    {
+      "name": "root-public-sdk51-backend.log",
+      "sha256": "ddc17c82c1f8ff6155e74e1a2064ef38fbf0e18304b93ac5c45a2b63de90ba4a"
+    },
+    {
+      "name": "root-public-sdk51-backend-corrected.log",
+      "sha256": "1f54c0100e7540a0b6d71d0f52222210c8ad856dab7dcbf54284d576edb6929b"
+    },
+    {
+      "name": "root-public-sdk51-backend-final.log",
+      "sha256": "70a9af967d1c6260ef325ec963ac01e4f5be726c692910b41824cbf9969159a7"
+    }
+  ],
+  "packageIdentity": {
+    "eventStoreVersion": "5.1.0",
+    "eventStoreSource": "49084f66f8d6545cae442875355a7066d5f5e73d",
+    "restoredSdkIds": [
+      "Hexalith.EventStore.Client",
+      "Hexalith.EventStore.Contracts",
+      "Hexalith.EventStore.DomainService",
+      "Hexalith.EventStore.Server",
+      "Hexalith.EventStore.ServiceDefaults"
+    ]
+  },
+  "proofHarnessCorrection": "First read treated xUnit assemblies wrapper as assembly and refused missing passed attribute; corrected wrapper selection, no test execution/source changed.",
+  "nativeSelectionControls": {
+    "count": 11,
+    "sha256": "f6036e32a4638a6626b2af14ab6e41e03a7962459307edb5e03000b7c6052ff6",
+    "accepted": [
+      "5.1.0",
+      "5.1.0.0",
+      "5.1.0+metadata-with-dash",
+      "5.1.0.0+metadata.1"
+    ],
+    "refused": [
+      "5.1.0-preview.1",
+      "5.1.0.1",
+      "5.1.0+",
+      "5.1.0+invalid..metadata",
+      "5.1.1",
+      "5.2.0",
+      "5.0.2"
+    ]
+  },
+  "sourceRecoveryProof": {
+    "passed": 13,
+    "sha256": "0ba03c7c904fe2ff9245966a88935457993b4a908ba1e8d4ee84f63fbe8b03eb",
+    "source": "98ee6d084f5669fc3b903c3cec69275a7b7f6f12",
+    "scope": "Source-only real Root Server/host + actual private SDK source copy recovery authorization probe; no main test ancillary packages. This is neither public-package nor live qualification."
+  },
+  "independentBootstrapTest": {
+    "command": "TMPDIR=/dev/shm/tenants-release-2026-11-14 run-with-temp env PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests/scripts -p test_bootstrap_compatibility.py -v",
+    "passed": 14,
+    "failed": 0
+  }
+}

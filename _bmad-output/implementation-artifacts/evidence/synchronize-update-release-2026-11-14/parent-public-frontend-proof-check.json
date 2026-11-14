@@ -1,0 +1,57 @@
+{
+  "capturedAtUtc": "2026-11-14T11:40:14.613273+00:00",
+  "scope": "Independent public consumer receipt/log/rawXML verification; historical environment failures preserved separately; no final committed-source claim",
+  "rawEvidence": [
+    {
+      "observation": "root-public-frontend-focused",
+      "xml": "root-public-frontend-focused-0.xml",
+      "passed": 2,
+      "failed": 0,
+      "sha256": "368c2f2dff9a02f62ef3ba00fbaf1a2596a73efb4e38fe68446e61cee006dc6f"
+    },
+    {
+      "observation": "root-public-frontend-focused",
+      "xml": "root-public-frontend-focused-1.xml",
+      "passed": 67,
+      "failed": 0,
+      "sha256": "ec86a9b139ae41f268d734c93efc46feb450122da0b9ade15986e622db7bd71d"
+    },
+    {
+      "observation": "root-public-frontend-focused",
+      "xml": "root-public-frontend-focused-2.xml",
+      "passed": 27,
+      "failed": 0,
+      "sha256": "3855a8aa7ecc2128a7c87750e921fbb10d9adbeb35347b7a2a2305f5a3799650"
+    },
+    {
+      "observation": "builds-public-frontcomposer-consumers",
+      "xml": "builds-public-frontcomposer-consumers-0.xml",
+      "passed": 46,
+      "failed": 0,
+      "sha256": "b74701578416b771fcac3d83e178f332743f29416f2d8f3971224e8b67bef548"
+    },
+    {
+      "observation": "builds-public-frontcomposer-consumers",
+      "xml": "builds-public-frontcomposer-consumers-1.xml",
+      "passed": 52,
+      "failed": 0,
+      "sha256": "d8bfca93260611474c24e65eff236c397a48be11d252b0bd4662488b199c8041"
+    }
+  ],
+  "uiSuite": {
+    "total": 8081,
+    "initialPassed": 8079,
+    "initialFailed": 2,
+    "focusedCorrectedPassed": 2,
+    "failedAfterCorrection": 0,
+    "skipped": 0
+  },
+  "packageSource": "d7e8f57808b610f7cddf95ecd06db178dfd7592f",
+  "sdkSource": "49084f66f8d6545cae442875355a7066d5f5e73d",
+  "logsVerified": [
+    "root-public-frontend.log",
+    "root-public-frontend-final.log",
+    "root-public-frontend-focused.log",
+    "builds-public-frontcomposer-consumers.log"
+  ]
+}

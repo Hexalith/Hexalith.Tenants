@@ -1,0 +1,606 @@
+{
+  "capturedAtUtc": "2026-11-14T11:30:48.006575+00:00",
+  "scope": "Actual publicFC6/SDK5.1 consumer qualification before final root source commit/hosted gates; package source and current docs-only dependency head remain distinct.",
+  "frontComposerPackageSource": "d7e8f57808b610f7cddf95ecd06db178dfd7592f",
+  "eventStorePackageSource": "49084f66f8d6545cae442875355a7066d5f5e73d",
+  "uiSuite": {
+    "total": 8081,
+    "initialPassed": 8079,
+    "initialFailed": 2,
+    "focusedCorrectedPassed": 2,
+    "failedAfterCorrection": 0,
+    "skipped": 0
+  },
+  "correction": "Two source-dependency restore probes encountered aliases through external source symlinks in a private copy. Repeating with all9 direct dependency repositories copied privately passes both; no product source or test condition changed.",
+  "focusedSuites": [
+    {
+      "selector": "*TenantsUiProject_DoesNotHostGeneratedRestApiOrReferenceExternalApiHost*",
+      "result": {
+        "environment": "64-bit (x64) .NET 11.0.0 [collection-per-class, non-parallel]",
+        "id": "8d1484b8-76fb-4e2b-9088-77530a78addc",
+        "name": "/dev/shm/tenants-release-2026-11-14/hexalith-job.vvrQw7vc/workspace/tests/Hexalith.Tenants.UI.Tests/bin/Release/net11.0/Hexalith.Tenants.UI.Tests.dll",
+        "run-date": "2026-11-14",
+        "run-time": "11:27:38",
+        "start-rtf": "2026-11-14T11:27:38.9581813+00:00",
+        "test-framework": "xUnit.net v3 4.0.3+384aa7f0b4",
+        "target-framework": ".NETCoreApp,Version=v11.0",
+        "errors": "0",
+        "failed": "0",
+        "finish-rtf": "2026-11-14T11:27:43.0614550+00:00",
+        "not-run": "0",
+        "passed": "2",
+        "skipped": "0",
+        "time": "4.104",
+        "time-rtf": "00:00:04.1040000",
+        "total": "2"
+      },
+      "xmlSha256": "368c2f2dff9a02f62ef3ba00fbaf1a2596a73efb4e38fe68446e61cee006dc6f"
+    },
+    {
+      "selector": "Hexalith.Tenants.IntegrationTests.TenantsApiGeneratedControllerTests",
+      "result": {
+        "environment": "64-bit (x64) .NET 11.0.0 [collection-per-class, non-parallel]",
+        "id": "60f2998e-9745-457a-bcaf-f82143bfbd6a",
+        "name": "/dev/shm/tenants-release-2026-11-14/hexalith-job.vvrQw7vc/workspace/tests/Hexalith.Tenants.IntegrationTests/bin/Release/net11.0/Hexalith.Tenants.IntegrationTests.dll",
+        "run-date": "2026-11-14",
+        "run-time": "11:27:43",
+        "start-rtf": "2026-11-14T11:27:43.3300409+00:00",
+        "test-framework": "xUnit.net v3 4.0.3+384aa7f0b4",
+        "target-framework": ".NETCoreApp,Version=v11.0",
+        "errors": "0",
+        "failed": "0",
+        "finish-rtf": "2026-11-14T11:28:02.7676629+00:00",
+        "not-run": "0",
+        "passed": "67",
+        "skipped": "0",
+        "time": "19.438",
+        "time-rtf": "00:00:19.4380000",
+        "total": "67"
+      },
+      "xmlSha256": "ec86a9b139ae41f268d734c93efc46feb450122da0b9ade15986e622db7bd71d"
+    },
+    {
+      "selector": "Hexalith.Tenants.IntegrationTests.TenantOwnerSourceGatewayTests",
+      "result": {
+        "environment": "64-bit (x64) .NET 11.0.0 [collection-per-class, non-parallel]",
+        "id": "bbb6ee4d-b7a1-4b8c-a495-a83e0400326f",
+        "name": "/dev/shm/tenants-release-2026-11-14/hexalith-job.vvrQw7vc/workspace/tests/Hexalith.Tenants.IntegrationTests/bin/Release/net11.0/Hexalith.Tenants.IntegrationTests.dll",
+        "run-date": "2026-11-14",
+        "run-time": "11:28:03",
+        "start-rtf": "2026-11-14T11:28:03.0043192+00:00",
+        "test-framework": "xUnit.net v3 4.0.3+384aa7f0b4",
+        "target-framework": ".NETCoreApp,Version=v11.0",
+        "errors": "0",
+        "failed": "0",
+        "finish-rtf": "2026-11-14T11:28:52.1300260+00:00",
+        "not-run": "0",
+        "passed": "27",
+        "skipped": "0",
+        "time": "49.127",
+        "time-rtf": "00:00:49.1270000",
+        "total": "27"
+      },
+      "xmlSha256": "3855a8aa7ecc2128a7c87750e921fbb10d9adbeb35347b7a2a2305f5a3799650"
+    }
+  ],
+  "restoredFrontComposerArchives": [
+    {
+      "id": "Hexalith.FrontComposer.Contracts",
+      "version": "6.0.0",
+      "officialCatalog": "https://api.nuget.org/v3/catalog0/data/2026.11.14.10.59.07/hexalith.frontcomposer.contracts.6.0.0.json",
+      "source": "d7e8f57808b610f7cddf95ecd06db178dfd7592f",
+      "officialSha512": "jcmd+NwxIHRkuSNwU3R0ijou8O9fBHFqTwU41axUDekEoz4FKA354wlUvY86lqUXl3+ytxzkd//yOATtXvGNlg=="
+    },
+    {
+      "id": "Hexalith.FrontComposer.Contracts.UI",
+      "version": "6.0.0",
+      "officialCatalog": "https://api.nuget.org/v3/catalog0/data/2026.11.14.11.00.16/hexalith.frontcomposer.contracts.ui.6.0.0.json",
+      "source": "d7e8f57808b610f7cddf95ecd06db178dfd7592f",
+      "officialSha512": "SZiHMsXaab8XbSGeIsgjSMvwLRx251ooqCukyGXnUwUUgcFmdtRp+pvVoOFFBNCRJFEIXOlFnCQWy2YIwbIVVw=="
+    },
+    {
+      "id": "Hexalith.FrontComposer.Shell",
+      "version": "6.0.0",
+      "officialCatalog": "https://api.nuget.org/v3/catalog0/data/2026.11.14.10.59.07/hexalith.frontcomposer.shell.6.0.0.json",
+      "source": "d7e8f57808b610f7cddf95ecd06db178dfd7592f",
+      "officialSha512": "e+vqc6MEKGBsG3mkq5auQyxD4pjM1QVhgkAYHCdNVgVxrPsCR4hgrnWobQeI+pPMYdhRxqCo/f6Uc69NX0nGWQ=="
+    },
+    {
+      "id": "Hexalith.FrontComposer.Testing",
+      "version": "6.0.0",
+      "officialCatalog": "https://api.nuget.org/v3/catalog0/data/2026.11.14.10.58.32/hexalith.frontcomposer.testing.6.0.0.json",
+      "source": "d7e8f57808b610f7cddf95ecd06db178dfd7592f",
+      "officialSha512": "Y3XbE/5/cjXUEToRkDJ1uyikBbMeLvcU/W+iHpiixHuSv5JqjZDx9nfTKnTGNZPYC2etRo7WF7b3XgTL5NktqQ=="
+    },
+    {
+      "id": "Hexalith.FrontComposer.SourceTools",
+      "version": "6.0.0",
+      "officialCatalog": "https://api.nuget.org/v3/catalog0/data/2026.11.14.10.59.07/hexalith.frontcomposer.sourcetools.6.0.0.json",
+      "source": "d7e8f57808b610f7cddf95ecd06db178dfd7592f",
+      "officialSha512": "P+h7YZU4nmv0TTfui2fPOikC0VQpufP5VZfZdX4ku1vWzKWs6myn6DN3jatnKFHGJEQv9+OyejBepzyMEzAxCA=="
+    }
+  ],
+  "observations": {
+    "root-public-frontend": {
+      "startedAtUtc": "2026-11-14T11:17:43.214027+00:00",
+      "scope": "Actual publicFC6+SDK5.1 Root package-mode UI/HTTP compatibility; final committed-source hosted qualification/publication separate",
+      "privateTemporaryDirectory": "/dev/shm/tenants-release-2026-11-14/hexalith-job.lZcVgiZq",
+      "rootParent": "6fcff842a8e48fc843d7b2df942d369f99f92b6b",
+      "trackedWorkingDiffSha256": "2f7c361a6c6cc05930e1f3b3f7c0437c12f2d7f3b6bb3b06513e44cfda423be3",
+      "frontComposerPackageSource": "d7e8f57808b610f7cddf95ecd06db178dfd7592f",
+      "eventStorePackageSource": "49084f66f8d6545cae442875355a7066d5f5e73d",
+      "commands": [
+        [
+          "dotnet",
+          "build",
+          "tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj",
+          "--configuration",
+          "Release",
+          "-warnaserror",
+          "-m:1",
+          "-nr:false",
+          "--disable-build-servers",
+          "-p:UseHexalithProjectReferences=false",
+          "-p:UseNuGetDeps=true",
+          "-p:HexalithEventStoreFromSource=false",
+          "-p:HexalithFrontComposerFromSource=false",
+          "-p:HexalithMemoriesFromSource=false",
+          "-p:HexalithMcpCliFromSource=false",
+          "-p:RestoreFallbackFolders=/home/administrator/.nuget/packages",
+          "-p:RestoreSources=https://api.nuget.org/v3/index.json"
+        ],
+        [
+          "dotnet",
+          "build",
+          "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+          "--configuration",
+          "Release",
+          "-warnaserror",
+          "-m:1",
+          "-nr:false",
+          "--disable-build-servers",
+          "-p:UseHexalithProjectReferences=false",
+          "-p:UseNuGetDeps=true",
+          "-p:HexalithEventStoreFromSource=false",
+          "-p:HexalithFrontComposerFromSource=false",
+          "-p:HexalithMemoriesFromSource=false",
+          "-p:HexalithMcpCliFromSource=false",
+          "-p:RestoreFallbackFolders=/home/administrator/.nuget/packages",
+          "-p:RestoreSources=https://api.nuget.org/v3/index.json"
+        ]
+      ],
+      "tests": [],
+      "restoredFrontComposerArchives": [
+        {
+          "id": "Hexalith.FrontComposer.Contracts",
+          "version": "6.0.0",
+          "officialCatalog": "https://api.nuget.org/v3/catalog0/data/2026.11.14.10.59.07/hexalith.frontcomposer.contracts.6.0.0.json",
+          "source": "d7e8f57808b610f7cddf95ecd06db178dfd7592f",
+          "officialSha512": "jcmd+NwxIHRkuSNwU3R0ijou8O9fBHFqTwU41axUDekEoz4FKA354wlUvY86lqUXl3+ytxzkd//yOATtXvGNlg=="
+        },
+        {
+          "id": "Hexalith.FrontComposer.Contracts.UI",
+          "version": "6.0.0",
+          "officialCatalog": "https://api.nuget.org/v3/catalog0/data/2026.11.14.11.00.16/hexalith.frontcomposer.contracts.ui.6.0.0.json",
+          "source": "d7e8f57808b610f7cddf95ecd06db178dfd7592f",
+          "officialSha512": "SZiHMsXaab8XbSGeIsgjSMvwLRx251ooqCukyGXnUwUUgcFmdtRp+pvVoOFFBNCRJFEIXOlFnCQWy2YIwbIVVw=="
+        },
+        {
+          "id": "Hexalith.FrontComposer.Shell",
+          "version": "6.0.0",
+          "officialCatalog": "https://api.nuget.org/v3/catalog0/data/2026.11.14.10.59.07/hexalith.frontcomposer.shell.6.0.0.json",
+          "source": "d7e8f57808b610f7cddf95ecd06db178dfd7592f",
+          "officialSha512": "e+vqc6MEKGBsG3mkq5auQyxD4pjM1QVhgkAYHCdNVgVxrPsCR4hgrnWobQeI+pPMYdhRxqCo/f6Uc69NX0nGWQ=="
+        },
+        {
+          "id": "Hexalith.FrontComposer.Testing",
+          "version": "6.0.0",
+          "officialCatalog": "https://api.nuget.org/v3/catalog0/data/2026.11.14.10.58.32/hexalith.frontcomposer.testing.6.0.0.json",
+          "source": "d7e8f57808b610f7cddf95ecd06db178dfd7592f",
+          "officialSha512": "Y3XbE/5/cjXUEToRkDJ1uyikBbMeLvcU/W+iHpiixHuSv5JqjZDx9nfTKnTGNZPYC2etRo7WF7b3XgTL5NktqQ=="
+        }
+      ],
+      "cleanupVerified": true,
+      "result": "failed",
+      "error": "",
+      "finishedAtUtc": "2026-11-14T11:18:38.784406+00:00"
+    },
+    "root-public-frontend-final": {
+      "startedAtUtc": "2026-11-14T11:20:39.730658+00:00",
+      "scope": "Actual publicFC6+SDK5.1 Root package-mode UI/HTTP compatibility; final committed-source hosted qualification/publication separate",
+      "privateTemporaryDirectory": "/dev/shm/tenants-release-2026-11-14/hexalith-job.FCK1Wng0",
+      "rootParent": "6fcff842a8e48fc843d7b2df942d369f99f92b6b",
+      "trackedWorkingDiffSha256": "8caf1d95c59b8028b987527a71c74c94bf1d1264278d02735dc6ea0de2eb6ea1",
+      "frontComposerPackageSource": "d7e8f57808b610f7cddf95ecd06db178dfd7592f",
+      "eventStorePackageSource": "49084f66f8d6545cae442875355a7066d5f5e73d",
+      "commands": [
+        [
+          "dotnet",
+          "build",
+          "tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj",
+          "--configuration",
+          "Release",
+          "-warnaserror",
+          "-m:1",
+          "-nr:false",
+          "--disable-build-servers",
+          "-p:UseHexalithProjectReferences=false",
+          "-p:UseNuGetDeps=true",
+          "-p:HexalithEventStoreFromSource=false",
+          "-p:HexalithFrontComposerFromSource=false",
+          "-p:HexalithMemoriesFromSource=false",
+          "-p:HexalithMcpCliFromSource=false",
+          "-p:RestoreFallbackFolders=/home/administrator/.nuget/packages",
+          "-p:RestoreSources=https://api.nuget.org/v3/index.json"
+        ],
+        [
+          "dotnet",
+          "build",
+          "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+          "--configuration",
+          "Release",
+          "-warnaserror",
+          "-m:1",
+          "-nr:false",
+          "--disable-build-servers",
+          "-p:UseHexalithProjectReferences=false",
+          "-p:UseNuGetDeps=true",
+          "-p:HexalithEventStoreFromSource=false",
+          "-p:HexalithFrontComposerFromSource=false",
+          "-p:HexalithMemoriesFromSource=false",
+          "-p:HexalithMcpCliFromSource=false",
+          "-p:RestoreFallbackFolders=/home/administrator/.nuget/packages",
+          "-p:RestoreSources=https://api.nuget.org/v3/index.json"
+        ],
+        [
+          "dotnet",
+          "/dev/shm/tenants-release-2026-11-14/hexalith-job.FCK1Wng0/workspace/tests/Hexalith.Tenants.UI.Tests/bin/Release/net11.0/Hexalith.Tenants.UI.Tests.dll",
+          "-failSkips",
+          "-maxThreads",
+          "8",
+          "-noColor",
+          "-result-xml",
+          "/dev/shm/tenants-release-2026-11-14/root-public-frontend-final-0.xml"
+        ]
+      ],
+      "tests": [],
+      "restoredFrontComposerArchives": [
+        {
+          "id": "Hexalith.FrontComposer.Contracts",
+          "version": "6.0.0",
+          "officialCatalog": "https://api.nuget.org/v3/catalog0/data/2026.11.14.10.59.07/hexalith.frontcomposer.contracts.6.0.0.json",
+          "source": "d7e8f57808b610f7cddf95ecd06db178dfd7592f",
+          "officialSha512": "jcmd+NwxIHRkuSNwU3R0ijou8O9fBHFqTwU41axUDekEoz4FKA354wlUvY86lqUXl3+ytxzkd//yOATtXvGNlg=="
+        },
+        {
+          "id": "Hexalith.FrontComposer.Contracts.UI",
+          "version": "6.0.0",
+          "officialCatalog": "https://api.nuget.org/v3/catalog0/data/2026.11.14.11.00.16/hexalith.frontcomposer.contracts.ui.6.0.0.json",
+          "source": "d7e8f57808b610f7cddf95ecd06db178dfd7592f",
+          "officialSha512": "SZiHMsXaab8XbSGeIsgjSMvwLRx251ooqCukyGXnUwUUgcFmdtRp+pvVoOFFBNCRJFEIXOlFnCQWy2YIwbIVVw=="
+        },
+        {
+          "id": "Hexalith.FrontComposer.Shell",
+          "version": "6.0.0",
+          "officialCatalog": "https://api.nuget.org/v3/catalog0/data/2026.11.14.10.59.07/hexalith.frontcomposer.shell.6.0.0.json",
+          "source": "d7e8f57808b610f7cddf95ecd06db178dfd7592f",
+          "officialSha512": "e+vqc6MEKGBsG3mkq5auQyxD4pjM1QVhgkAYHCdNVgVxrPsCR4hgrnWobQeI+pPMYdhRxqCo/f6Uc69NX0nGWQ=="
+        },
+        {
+          "id": "Hexalith.FrontComposer.Testing",
+          "version": "6.0.0",
+          "officialCatalog": "https://api.nuget.org/v3/catalog0/data/2026.11.14.10.58.32/hexalith.frontcomposer.testing.6.0.0.json",
+          "source": "d7e8f57808b610f7cddf95ecd06db178dfd7592f",
+          "officialSha512": "Y3XbE/5/cjXUEToRkDJ1uyikBbMeLvcU/W+iHpiixHuSv5JqjZDx9nfTKnTGNZPYC2etRo7WF7b3XgTL5NktqQ=="
+        },
+        {
+          "id": "Hexalith.FrontComposer.SourceTools",
+          "version": "6.0.0",
+          "officialCatalog": "https://api.nuget.org/v3/catalog0/data/2026.11.14.10.59.07/hexalith.frontcomposer.sourcetools.6.0.0.json",
+          "source": "d7e8f57808b610f7cddf95ecd06db178dfd7592f",
+          "officialSha512": "P+h7YZU4nmv0TTfui2fPOikC0VQpufP5VZfZdX4ku1vWzKWs6myn6DN3jatnKFHGJEQv9+OyejBepzyMEzAxCA=="
+        }
+      ],
+      "cleanupVerified": true,
+      "result": "failed",
+      "error": "Command '['dotnet', '/dev/shm/tenants-release-2026-11-14/hexalith-job.FCK1Wng0/workspace/tests/Hexalith.Tenants.UI.Tests/bin/Release/net11.0/Hexalith.Tenants.UI.Tests.dll', '-failSkips', '-maxThreads', '8', '-noColor', '-result-xml', '/dev/shm/tenants-release-2026-11-14/root-public-frontend-final-0.xml']' returned non-zero exit status 1.",
+      "finishedAtUtc": "2026-11-14T11:23:08.379975+00:00"
+    },
+    "root-public-frontend-focused": {
+      "startedAtUtc": "2026-11-14T11:26:29.723736+00:00",
+      "scope": "Public FC6/SDK5.1 focused UI source-dependency probes and HTTP controls with all9 direct dependencies copied privately; final hosted qualification separate",
+      "privateTemporaryDirectory": "/dev/shm/tenants-release-2026-11-14/hexalith-job.vvrQw7vc",
+      "commands": [
+        [
+          "dotnet",
+          "build",
+          "tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj",
+          "--configuration",
+          "Release",
+          "-warnaserror",
+          "-m:1",
+          "-nr:false",
+          "--disable-build-servers",
+          "-p:UseHexalithProjectReferences=false",
+          "-p:UseNuGetDeps=true",
+          "-p:HexalithEventStoreFromSource=false",
+          "-p:HexalithFrontComposerFromSource=false",
+          "-p:HexalithMemoriesFromSource=false",
+          "-p:HexalithMcpCliFromSource=false",
+          "-p:RestoreFallbackFolders=/home/administrator/.nuget/packages",
+          "-p:RestoreSources=https://api.nuget.org/v3/index.json"
+        ],
+        [
+          "dotnet",
+          "build",
+          "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+          "--configuration",
+          "Release",
+          "-warnaserror",
+          "-m:1",
+          "-nr:false",
+          "--disable-build-servers",
+          "-p:UseHexalithProjectReferences=false",
+          "-p:UseNuGetDeps=true",
+          "-p:HexalithEventStoreFromSource=false",
+          "-p:HexalithFrontComposerFromSource=false",
+          "-p:HexalithMemoriesFromSource=false",
+          "-p:HexalithMcpCliFromSource=false",
+          "-p:RestoreFallbackFolders=/home/administrator/.nuget/packages",
+          "-p:RestoreSources=https://api.nuget.org/v3/index.json"
+        ],
+        [
+          "dotnet",
+          "/dev/shm/tenants-release-2026-11-14/hexalith-job.vvrQw7vc/workspace/tests/Hexalith.Tenants.UI.Tests/bin/Release/net11.0/Hexalith.Tenants.UI.Tests.dll",
+          "-method",
+          "*TenantsUiProject_DoesNotHostGeneratedRestApiOrReferenceExternalApiHost*",
+          "-failSkips",
+          "-maxThreads",
+          "8",
+          "-noColor",
+          "-result-xml",
+          "/dev/shm/tenants-release-2026-11-14/root-public-frontend-focused-0.xml"
+        ],
+        [
+          "dotnet",
+          "/dev/shm/tenants-release-2026-11-14/hexalith-job.vvrQw7vc/workspace/tests/Hexalith.Tenants.IntegrationTests/bin/Release/net11.0/Hexalith.Tenants.IntegrationTests.dll",
+          "-class",
+          "Hexalith.Tenants.IntegrationTests.TenantsApiGeneratedControllerTests",
+          "-failSkips",
+          "-maxThreads",
+          "8",
+          "-noColor",
+          "-result-xml",
+          "/dev/shm/tenants-release-2026-11-14/root-public-frontend-focused-1.xml"
+        ],
+        [
+          "dotnet",
+          "/dev/shm/tenants-release-2026-11-14/hexalith-job.vvrQw7vc/workspace/tests/Hexalith.Tenants.IntegrationTests/bin/Release/net11.0/Hexalith.Tenants.IntegrationTests.dll",
+          "-class",
+          "Hexalith.Tenants.IntegrationTests.TenantOwnerSourceGatewayTests",
+          "-failSkips",
+          "-maxThreads",
+          "8",
+          "-noColor",
+          "-result-xml",
+          "/dev/shm/tenants-release-2026-11-14/root-public-frontend-focused-2.xml"
+        ]
+      ],
+      "tests": [
+        {
+          "selector": "*TenantsUiProject_DoesNotHostGeneratedRestApiOrReferenceExternalApiHost*",
+          "result": {
+            "environment": "64-bit (x64) .NET 11.0.0 [collection-per-class, non-parallel]",
+            "id": "8d1484b8-76fb-4e2b-9088-77530a78addc",
+            "name": "/dev/shm/tenants-release-2026-11-14/hexalith-job.vvrQw7vc/workspace/tests/Hexalith.Tenants.UI.Tests/bin/Release/net11.0/Hexalith.Tenants.UI.Tests.dll",
+            "run-date": "2026-11-14",
+            "run-time": "11:27:38",
+            "start-rtf": "2026-11-14T11:27:38.9581813+00:00",
+            "test-framework": "xUnit.net v3 4.0.3+384aa7f0b4",
+            "target-framework": ".NETCoreApp,Version=v11.0",
+            "errors": "0",
+            "failed": "0",
+            "finish-rtf": "2026-11-14T11:27:43.0614550+00:00",
+            "not-run": "0",
+            "passed": "2",
+            "skipped": "0",
+            "time": "4.104",
+            "time-rtf": "00:00:04.1040000",
+            "total": "2"
+          },
+          "xmlSha256": "368c2f2dff9a02f62ef3ba00fbaf1a2596a73efb4e38fe68446e61cee006dc6f"
+        },
+        {
+          "selector": "Hexalith.Tenants.IntegrationTests.TenantsApiGeneratedControllerTests",
+          "result": {
+            "environment": "64-bit (x64) .NET 11.0.0 [collection-per-class, non-parallel]",
+            "id": "60f2998e-9745-457a-bcaf-f82143bfbd6a",
+            "name": "/dev/shm/tenants-release-2026-11-14/hexalith-job.vvrQw7vc/workspace/tests/Hexalith.Tenants.IntegrationTests/bin/Release/net11.0/Hexalith.Tenants.IntegrationTests.dll",
+            "run-date": "2026-11-14",
+            "run-time": "11:27:43",
+            "start-rtf": "2026-11-14T11:27:43.3300409+00:00",
+            "test-framework": "xUnit.net v3 4.0.3+384aa7f0b4",
+            "target-framework": ".NETCoreApp,Version=v11.0",
+            "errors": "0",
+            "failed": "0",
+            "finish-rtf": "2026-11-14T11:28:02.7676629+00:00",
+            "not-run": "0",
+            "passed": "67",
+            "skipped": "0",
+            "time": "19.438",
+            "time-rtf": "00:00:19.4380000",
+            "total": "67"
+          },
+          "xmlSha256": "ec86a9b139ae41f268d734c93efc46feb450122da0b9ade15986e622db7bd71d"
+        },
+        {
+          "selector": "Hexalith.Tenants.IntegrationTests.TenantOwnerSourceGatewayTests",
+          "result": {
+            "environment": "64-bit (x64) .NET 11.0.0 [collection-per-class, non-parallel]",
+            "id": "bbb6ee4d-b7a1-4b8c-a495-a83e0400326f",
+            "name": "/dev/shm/tenants-release-2026-11-14/hexalith-job.vvrQw7vc/workspace/tests/Hexalith.Tenants.IntegrationTests/bin/Release/net11.0/Hexalith.Tenants.IntegrationTests.dll",
+            "run-date": "2026-11-14",
+            "run-time": "11:28:03",
+            "start-rtf": "2026-11-14T11:28:03.0043192+00:00",
+            "test-framework": "xUnit.net v3 4.0.3+384aa7f0b4",
+            "target-framework": ".NETCoreApp,Version=v11.0",
+            "errors": "0",
+            "failed": "0",
+            "finish-rtf": "2026-11-14T11:28:52.1300260+00:00",
+            "not-run": "0",
+            "passed": "27",
+            "skipped": "0",
+            "time": "49.127",
+            "time-rtf": "00:00:49.1270000",
+            "total": "27"
+          },
+          "xmlSha256": "3855a8aa7ecc2128a7c87750e921fbb10d9adbeb35347b7a2a2305f5a3799650"
+        }
+      ],
+      "cleanupVerified": true,
+      "dependencyHeads": {
+        "Hexalith.AI.Tools": "17a37d83db193f0b7494c1b931fd1e82a67c1424",
+        "Hexalith.Builds": "1ebc5b84ff2c8afd21a87d80ef3d9c9048eaf5e5",
+        "Hexalith.Commons": "fbf4e94233821f6ca336af91a06feaaeb7a16855",
+        "Hexalith.EventStore": "49084f66f8d6545cae442875355a7066d5f5e73d",
+        "Hexalith.FrontComposer": "b13587aae9a40f2aa18b5cfee873edde5d61c29a",
+        "Hexalith.McpCli": "b22327db325f1b65ac87506b133bcf89a75e6c60",
+        "Hexalith.Memories": "2c2e9b58990638ededf22e8e67ff5c12de75b434",
+        "Hexalith.Platform": "20eecbdd2805fcd04c03d5b8661486b8e9ab9a21",
+        "Hexalith.PolymorphicSerializations": "e97b56930e213f674b64c157551f499b0473ec43"
+      },
+      "rootParent": "6fcff842a8e48fc843d7b2df942d369f99f92b6b",
+      "trackedWorkingDiffSha256": "d07ad2db4c0bdd1b3464a2f2063ea5fe03f841195277e03aa454870f66ee965e",
+      "result": "pass",
+      "finishedAtUtc": "2026-11-14T11:28:52.215068+00:00"
+    },
+    "builds-public-frontcomposer-consumers": {
+      "startedAtUtc": "2026-11-14T11:22:37.816697+00:00",
+      "scope": "Builds owned FC6 public package consumers and current-versus-frozen pin tests; no runtime identity promotion",
+      "privateTemporaryDirectory": "/dev/shm/tenants-release-2026-11-14/hexalith-job.3zhxedHl",
+      "sourceParent": "37a3cdd6eaeec4a95b5e0b1ef3231f2b05fda2d7",
+      "commands": [
+        [
+          "dotnet",
+          "build",
+          "src/hosts/Hexalith.Builds.Module.UiHost/Hexalith.Builds.Module.UiHost.csproj",
+          "--configuration",
+          "Release",
+          "-warnaserror",
+          "-m:1",
+          "-nr:false",
+          "--disable-build-servers",
+          "-p:RestoreFallbackFolders=/home/administrator/.nuget/packages",
+          "-p:RestoreSources=https://api.nuget.org/v3/index.json"
+        ],
+        [
+          "dotnet",
+          "build",
+          "test/fixtures/module/executable/P0Fixture.Ui/P0Fixture.Ui.csproj",
+          "--configuration",
+          "Release",
+          "-warnaserror",
+          "-m:1",
+          "-nr:false",
+          "--disable-build-servers",
+          "-p:RestoreFallbackFolders=/home/administrator/.nuget/packages",
+          "-p:RestoreSources=https://api.nuget.org/v3/index.json"
+        ],
+        [
+          "dotnet",
+          "build",
+          "test/Hexalith.Builds.Module.Tests/Hexalith.Builds.Module.Tests.csproj",
+          "--configuration",
+          "Release",
+          "-warnaserror",
+          "-m:1",
+          "-nr:false",
+          "--disable-build-servers",
+          "-p:RestoreFallbackFolders=/home/administrator/.nuget/packages",
+          "-p:RestoreSources=https://api.nuget.org/v3/index.json"
+        ],
+        [
+          "dotnet",
+          "/dev/shm/tenants-release-2026-11-14/hexalith-job.3zhxedHl/Builds/test/Hexalith.Builds.Module.Tests/bin/Release/net11.0/Hexalith.Builds.Module.Tests.dll",
+          "-class",
+          "Hexalith.Builds.ModuleTool.Tests.SupportedPlatformPinsCatalogTests",
+          "-failSkips",
+          "-maxThreads",
+          "8",
+          "-noColor",
+          "-result-xml",
+          "/dev/shm/tenants-release-2026-11-14/builds-public-frontcomposer-consumers-0.xml"
+        ],
+        [
+          "dotnet",
+          "/dev/shm/tenants-release-2026-11-14/hexalith-job.3zhxedHl/Builds/test/Hexalith.Builds.Module.Tests/bin/Release/net11.0/Hexalith.Builds.Module.Tests.dll",
+          "-class",
+          "Hexalith.Builds.ModuleTool.Tests.ManifestValidationTests",
+          "-failSkips",
+          "-maxThreads",
+          "8",
+          "-noColor",
+          "-result-xml",
+          "/dev/shm/tenants-release-2026-11-14/builds-public-frontcomposer-consumers-1.xml"
+        ]
+      ],
+      "tests": [
+        {
+          "class": "Hexalith.Builds.ModuleTool.Tests.SupportedPlatformPinsCatalogTests",
+          "result": {
+            "environment": "64-bit (x64) .NET 11.0.0 [collection-per-class, parallel (collections, 8 threads)]",
+            "id": "3c40efd8-10c3-4184-889f-e3c90daa9594",
+            "name": "/dev/shm/tenants-release-2026-11-14/hexalith-job.3zhxedHl/Builds/test/Hexalith.Builds.Module.Tests/bin/Release/net11.0/Hexalith.Builds.Module.Tests.dll",
+            "run-date": "2026-11-14",
+            "run-time": "11:23:34",
+            "start-rtf": "2026-11-14T11:23:34.1194252+00:00",
+            "test-framework": "xUnit.net v3 4.0.3+384aa7f0b4",
+            "target-framework": ".NETCoreApp,Version=v11.0",
+            "errors": "0",
+            "failed": "0",
+            "finish-rtf": "2026-11-14T11:23:34.2708395+00:00",
+            "not-run": "0",
+            "passed": "46",
+            "skipped": "0",
+            "time": "0.151",
+            "time-rtf": "00:00:00.1510000",
+            "total": "46"
+          },
+          "xmlSha256": "b74701578416b771fcac3d83e178f332743f29416f2d8f3971224e8b67bef548"
+        },
+        {
+          "class": "Hexalith.Builds.ModuleTool.Tests.ManifestValidationTests",
+          "result": {
+            "environment": "64-bit (x64) .NET 11.0.0 [collection-per-class, parallel (collections, 8 threads)]",
+            "id": "5d61247c-f4ee-49c9-a424-f803c2cc1794",
+            "name": "/dev/shm/tenants-release-2026-11-14/hexalith-job.3zhxedHl/Builds/test/Hexalith.Builds.Module.Tests/bin/Release/net11.0/Hexalith.Builds.Module.Tests.dll",
+            "run-date": "2026-11-14",
+            "run-time": "11:23:34",
+            "start-rtf": "2026-11-14T11:23:34.6658444+00:00",
+            "test-framework": "xUnit.net v3 4.0.3+384aa7f0b4",
+            "target-framework": ".NETCoreApp,Version=v11.0",
+            "errors": "0",
+            "failed": "0",
+            "finish-rtf": "2026-11-14T11:23:34.9962502+00:00",
+            "not-run": "0",
+            "passed": "52",
+            "skipped": "0",
+            "time": "0.331",
+            "time-rtf": "00:00:00.3310000",
+            "total": "52"
+          },
+          "xmlSha256": "d8bfca93260611474c24e65eff236c397a48be11d252b0bd4662488b199c8041"
+        }
+      ],
+      "cleanupVerified": true,
+      "result": "pass",
+      "finishedAtUtc": "2026-11-14T11:23:35.056429+00:00"
+    }
+  },
+  "logs": {
+    "root-public-frontend.log": "762d0f93faeabd0350bc149c8092e929187b54c33ca964129d393c79a07c0c95",
+    "root-public-frontend-final.log": "0042ca1a1586b7e5b241ed9a7b353bbcbf07b59e157cafba1c52df77c843163f",
+    "root-public-frontend-focused.log": "35b1ad09e721d7e6ee917aea4ec168c16a7978a75c0a6e897f32ed79fe6d1748",
+    "builds-public-frontcomposer-consumers.log": "1b268be07b4710feb0e19bf3e4d6372c396477c111b745d835097754af1ed941"
+  }
+}

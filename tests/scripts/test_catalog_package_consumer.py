@@ -58,7 +58,7 @@ class CatalogPackageMetadataTests(unittest.TestCase):
         self.reject(server={'version': '7.0.1'}, message='versions disagree')
 
     def test_unknown_or_prerelease_sdk_refuses_before_restore(self):
-        for sdk in ('3.128.4', '3.129.0-preview.1', '3.129.2', '3.130.3', '3.131.1', '3.132.3', '3.133.1', '4.0.5', '4.1.1', '4.2.1', '4.3.0', '5.0.0', '4.2.0-preview.1', '4.2.0.1', '4.2.0+', '4.2.0+invalid..metadata', '4.1.0-preview.1', '4.1.0.1', '4.1.0+', '4.1.0+invalid..metadata', '4.0.4-preview.1', '4.0.4.1', '4.0.3-preview.1', '4.0.0-preview.1',
+        for sdk in ('3.128.4', '3.129.0-preview.1', '3.129.2', '3.130.3', '3.131.1', '3.132.3', '3.133.1', '4.0.5', '4.1.1', '4.2.1', '4.3.0', '5.0.0', '5.0.2', '5.1.1', '5.2.0', '5.1.0-preview.1', '5.1.0.1', '5.1.0+', '5.1.0+invalid..metadata', '5.0.1-preview.1', '5.0.1.1', '5.0.1+', '5.0.1+invalid..metadata', '4.2.0-preview.1', '4.2.0.1', '4.2.0+', '4.2.0+invalid..metadata', '4.1.0-preview.1', '4.1.0.1', '4.1.0+', '4.1.0+invalid..metadata', '4.0.4-preview.1', '4.0.4.1', '4.0.3-preview.1', '4.0.0-preview.1',
                     '3.133.0-preview.1', '3.133.0.1',
                     '3.132.2-preview.1', '3.132.2.1',
                     '3.132.1-preview.1', '3.132.1-preview.1+metadata', '3.132.1.1', '3.132.1+',
@@ -71,7 +71,7 @@ class CatalogPackageMetadataTests(unittest.TestCase):
                 self.reject(server={'sdk': sdk}, message='qualified stable cohort')
 
     def test_every_qualified_sdk_and_alias_reaches_only_its_normalized_restore(self):
-        for sdk in ('3.129.0', '3.129.1', '3.130.0', '3.130.1', '3.130.2', '3.131.0', '3.132.0', '3.132.1', '3.132.2', '3.133.0', '4.0.0', '4.0.1', '4.0.2', '4.0.3', '4.0.4', '4.1.0', '4.2.0'):
+        for sdk in ('3.129.0', '3.129.1', '3.130.0', '3.130.1', '3.130.2', '3.131.0', '3.132.0', '3.132.1', '3.132.2', '3.133.0', '4.0.0', '4.0.1', '4.0.2', '4.0.3', '4.0.4', '4.1.0', '4.2.0', '5.0.1', '5.1.0'):
             for alias in (sdk, sdk + '.0', sdk + '+metadata-with-dash', sdk + '.0+metadata.1'):
                 with self.subTest(sdk=sdk, alias=alias), tempfile.TemporaryDirectory(prefix='tenants-catalog-metadata-') as temporary:
                     root = Path(temporary)
@@ -129,6 +129,48 @@ class CatalogPackageMetadataTests(unittest.TestCase):
             with self.subTest(dependency_range=dependency_range):
                 self.reject(server={'mcp': dependency_range}, message='McpCli')
 
+    def test_exclusive_or_malformed_sdk_ranges_refuse_before_restore(self):
+        for dependency_range in ('(5.0.1,5.0.2]', '(5.0.1,)', '(,5.0.1]',
+                                 '[5.0.1,5.0.0)', '[5.0.1,5.0.1)', '[5.0.1,invalid)',
+                                 '[5.0.1,5.0.2)garbage', '[5.0.1,5.0.2', '[5.0.1,]',
+                                 '[5.0.1,5.0.2,5.0.3)', '[5.0.1-preview.1,)'):
+            with self.subTest(dependency_range=dependency_range):
+                self.reject(contracts={'sdk': '5.0.1'}, server={'sdk': dependency_range},
+                            message='qualified stable cohort')
+
+    def test_public_restored_sdk_must_match_the_admitted_package_before_build(self):
+        for restored_version, kind in (('5.0.1', 'package'), ('5.0.2', 'package'), ('5.0.1', 'project')):
+            with self.subTest(restored_version=restored_version, kind=kind), tempfile.TemporaryDirectory(prefix='tenants-catalog-assets-') as temporary:
+                root = Path(temporary)
+                for package_id in CONSUMER.IDS:
+                    self.write_package(root, package_id, sdk='[5.0.1,5.0.2]')
+
+                def restore(arguments, **kwargs):
+                    if arguments[:2] == ['dotnet', 'build']:
+                        raise InterruptedError('Verified build boundary')
+                    self.assertEqual(arguments[:2], ['dotnet', 'restore'])
+                    consumer_root = Path(arguments[2]).parent
+                    (consumer_root / 'obj').mkdir()
+                    libraries = {'Hexalith.McpCli.Abstractions/2.0.0': {'type': 'package'},
+                                 'Hexalith.EventStore.Contracts/' + restored_version: {'type': kind},
+                                 'Hexalith.EventStore.ServiceDefaults/5.0.1': {'type': 'package'}}
+                    for package_id in CONSUMER.IDS:
+                        libraries[package_id + '/7.0.0'] = {'type': 'package'}
+                        destination = consumer_root / 'packages' / package_id.lower() / '7.0.0' / (package_id.lower() + '.7.0.0.nupkg')
+                        destination.parent.mkdir(parents=True)
+                        shutil.copyfile(root / (package_id + '.7.0.0.nupkg'), destination)
+                    (consumer_root / 'obj/project.assets.json').write_text(json.dumps({'libraries': libraries}))
+
+                with patch.object(CONSUMER.subprocess, 'run', side_effect=restore) as run:
+                    if restored_version == '5.0.1' and kind == 'package':
+                        with self.assertRaisesRegex(InterruptedError, 'Verified build boundary'):
+                            CONSUMER.verify(root, 'a' * 40)
+                        self.assertEqual(run.call_count, 2)
+                    else:
+                        with self.assertRaisesRegex(ValueError, 'Restored EventStore dependency differs'):
+                            CONSUMER.verify(root, 'a' * 40)
+                        run.assert_called_once()
+
     def test_restored_mcpcli_must_match_the_admitted_package_before_build(self):
         for mcp in ('2.0.0', '2.0.1'):
             for restored_version, kind in ((mcp, 'package'), ('2.0.2', 'package'), (mcp, 'project'), (None, None)):
@@ -183,6 +225,8 @@ class CatalogPackageMetadataTests(unittest.TestCase):
         self.reject(contracts={'sdk': '4.1.0'}, server={'sdk': '4.0.4'}, message='qualified stable cohort')
         self.reject(contracts={'sdk': '4.1.0'}, server={'sdk': '4.2.0'}, message='qualified stable cohort')
         self.reject(contracts={'sdk': '4.2.0'}, server={'sdk': '4.1.0'}, message='qualified stable cohort')
+        self.reject(contracts={'sdk': '5.0.1'}, server={'sdk': '4.2.0'}, message='qualified stable cohort')
+        self.reject(contracts={'sdk': '4.2.0'}, server={'sdk': '5.0.1'}, message='qualified stable cohort')
 
     def reject(self, server, message, contracts=None):
         with tempfile.TemporaryDirectory(prefix='tenants-catalog-metadata-') as temporary:

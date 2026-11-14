@@ -5620,3 +5620,15 @@ archived: 2026-10-22
 - source_spec: `_bmad-output/implementation-artifacts/spec-repair-current-mcpcli-published-cohort-ci.md`
   summary: Complete the remaining McpCli census source classifications and exact-source hosted qualification after specific owning-maintainer approval.
   evidence: The unchanged candidate checker still refuses eight earlier allowance source drifts and four inspection errors at the recorded McpCli source pins. The packet evidence/mcpcli-current-ci-2026-11-14/remaining-census-followup.json and source-context-comparison.json bind all observed paths, old/current digests and newer Platform closure differences. Amendment 1.0.8 authorizes only the two new EventStore identities; all other decisions and committed/hosted/native acceptance remain pending.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-complete-dotnet-11-source-graph.md`
+  summary: Source-only resolution of the earlier .NET 11 framework and browser-path deferral; package and governance qualification remain independent.
+  evidence: Root commit d99b7f63feb81f74cee75c3976894c02d173b373 preserves all seven corrected browser validator paths and the migration evidence at evidence/dotnet-11-source-graph-2026-11-13/verification.md and verification.json. FrontComposer migration a79714385319439296c79263ce2bc50f81821d79 and Memories migration 2c2e9b58990638ededf22e8e67ff5c12de75b434 preserve the owning source-framework repairs. This resolves the source-framework/browser-path portion of the earlier native-timeout review entry only. The historical failure text and evidence remain unchanged; published package compatibility, exact committed-source hosted acceptance, governed execution identities and McpCli census authority retain their separate outstanding obligations.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-synchronize-update-release-2026-11-14.md`
+  summary: Retain sanitized raw reports for the historical 2026-11-13 source-migration evidence.
+  evidence: Review B5 confirmed that the historical summaries retain original temporary/ignored report paths. This is pre-existing evidence debt; current release qualification must use fresh exact-source hosted reports and may not retroactively attribute those reports to the historical run.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-synchronize-update-release-2026-11-14.md`
+  summary: Bind the standalone workspace-focus validator endpoint to its measured running assembly identity.
+  evidence: Review B7 confirmed that validate-authenticated-workspace-focus.mjs records a local assembly digest while accepting an independently supplied endpoint. The framework edit changes only its output path. Preserve existing caller/topology ownership checks and add a distinguishing stale-host control before expanding this standalone proof claim.

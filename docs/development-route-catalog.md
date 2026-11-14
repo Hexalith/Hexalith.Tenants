@@ -86,11 +86,11 @@ result records are uploaded; raw observations and key material remain private.
 
 ## Published SDK qualification
 
-The current default package selection is public stable EventStore `4.2.0` with
-McpCli.Abstractions `2.0.1`. The qualified canonical-scope catalog cohort is
-`4.0.0`, `4.0.1`, `4.0.2`, `4.0.3`, `4.0.4`, `4.1.0` and `4.2.0`. Current Tenants
-package builds accept exact `4.2.0` or the retained `4.0.4` and `4.1.0`
-compatibility profiles; ordinary release preparation uses the `4.2.0`/`2.0.1` default.
+The current default package selection is public stable EventStore `5.1.0` with
+McpCli.Abstractions `2.0.1`. Tenant-access recovery requires its snapshot-budget
+API. Catalog archive admission retains the exact canonical-scope cohorts
+`4.0.0`, `4.0.1`, `4.0.2`, `4.0.3`, `4.0.4`, `4.1.0`, `4.2.0`, `5.0.1` and `5.1.0`.
+Ordinary release preparation uses the `5.1.0`/`2.0.1` default.
 The retained finite compatibility set is `3.129.0`, `3.129.1`, `3.130.0`, `3.130.1`,
 `3.130.2`, `3.131.0`, `3.132.0`, `3.132.1`, `3.132.2` and `3.133.0`;
 zero fourth revisions and build metadata normalize to the same stable cohort.
@@ -108,9 +108,9 @@ version override. Its lane requires compiled
 enrollment, the complete owner catalog, all generated HTTP cases, ordinary stale
 artifact refusals, and a fresh packed Contracts/Server consumer. The consumer
 checks source metadata and candidate archive/DLL hashes before discovering all
-23 routes, 23 operations and 12 command adapters through the public SDK APIs.
+24 routes, 24 operations and 13 command adapters through the public SDK APIs.
 Binary qualification enables `HEXALITH_DEVELOPMENT_CATALOG_SOURCE`; the canonical
-4.x package cohort and an actual source graph also enable
+4.x, 5.0.1 and 5.1.0 package cohorts and an actual source graph also enable
 `HEXALITH_DEVELOPMENT_CATALOG_COHORT`. Only source graphs enable
 `HEXALITH_DEVELOPMENT_CATALOG_SOURCE_REFERENCE`.
 

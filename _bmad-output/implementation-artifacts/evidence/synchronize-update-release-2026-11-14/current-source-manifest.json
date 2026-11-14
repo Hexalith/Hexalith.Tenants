@@ -1,0 +1,283 @@
+{
+  "capturedAtUtc": "2026-11-14T03:40:17.499453+00:00",
+  "scope": "Current authored checkout snapshot of Tenants and every root-declared dependency; HEAD plus current dirty tracked and nonignored untracked path identities. Ignored generated/build outputs and external machine configuration are outside this scope. No nested repository was initialized or updated.",
+  "historicalCommandApplicability": "None. This later snapshot does not describe missing dependency provenance for earlier commands. Final committed-source hosted qualification remains pending.",
+  "selfReferenceExclusions": [
+    "_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/current-source-manifest.json",
+    "_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/root-verification.json"
+  ],
+  "repositories": {
+    ".": {
+      "head": "d99b7f63feb81f74cee75c3976894c02d173b373",
+      "dirtyTracked": {
+        ".github/workflows/ci.yml": {
+          "kind": "file",
+          "sha256": "a433cb4a726aeac95973b9fb7a7d45675988fe9e406ea2447bef9af59b20988a"
+        },
+        "Directory.Build.props": {
+          "kind": "file",
+          "sha256": "c197e94126209144a9b1449cf32f04f3b21934cd3fff5f71b87de3b8aaec5e07"
+        },
+        "Directory.Build.targets": {
+          "kind": "file",
+          "sha256": "54f66f21061639226a743f3f1c8fefde5fdf200b7e0ca747c1d4e1778e024fbb"
+        },
+        "README.md": {
+          "kind": "file",
+          "sha256": "547de6b8d2b9dfdcce42a63a28c5b81f2060936b2f89054177a5b44b4fbf0efb"
+        },
+        "_bmad-output/implementation-artifacts/deferred-work.md": {
+          "kind": "file",
+          "sha256": "82fc5f0769eceea3950dfdaa3d3897455b379809a242199c435a0733d56fda38"
+        },
+        "docs/development-route-catalog.md": {
+          "kind": "file",
+          "sha256": "4aaf3e227b4664150302bc24990e917ca621bcf6accd3a258f44deb6d3652fd0"
+        },
+        "docs/guides/canonical-scope-upgrade.md": {
+          "kind": "file",
+          "sha256": "2fad0a3bb3bbb62de859c214d2f5d76fcd03381ee7c623cb2a8026479e1be866"
+        },
+        "package-lock.json": {
+          "kind": "file",
+          "sha256": "7f72930d9ce431ad1040e0e9335e0542186b74512018e2cd9d21663a69c26228"
+        },
+        "package.json": {
+          "kind": "file",
+          "sha256": "14ac291c79617a9c09b49cdef8c0d8a371a710279d21bea13c842d1ebfc8d09e"
+        },
+        "references/Hexalith.AI.Tools": {
+          "kind": "root-declared-submodule",
+          "head": "17a37d83db193f0b7494c1b931fd1e82a67c1424"
+        },
+        "references/Hexalith.Builds": {
+          "kind": "root-declared-submodule",
+          "head": "0b6400457ca646d63a0c21bdad471f9c861e0c5b"
+        },
+        "references/Hexalith.EventStore": {
+          "kind": "root-declared-submodule",
+          "head": "f80ca1bbaf37c88eb20216058a1b1a2f73f5a485"
+        },
+        "references/Hexalith.FrontComposer": {
+          "kind": "root-declared-submodule",
+          "head": "a66466051bdad8caf804e60d800abce53442f473"
+        },
+        "references/Hexalith.McpCli": {
+          "kind": "root-declared-submodule",
+          "head": "58ee13c7df889005876322d3f3f5839ed0de3cb3"
+        },
+        "references/Hexalith.Memories": {
+          "kind": "root-declared-submodule",
+          "head": "2c2e9b58990638ededf22e8e67ff5c12de75b434"
+        },
+        "references/Hexalith.Platform": {
+          "kind": "root-declared-submodule",
+          "head": "20eecbdd2805fcd04c03d5b8661486b8e9ab9a21"
+        },
+        "scripts/verify-catalog-package-consumer.py": {
+          "kind": "file",
+          "sha256": "4118024b4be50d7a2de51642ca9d7a581ba784e025b7d41ed12578d11b3bc8a5"
+        },
+        "tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs": {
+          "kind": "file",
+          "sha256": "a84025907e60919c364a6d92d63ebe5c32279ebb06504729b4ef2d4d423bc92e"
+        },
+        "tests/integration/qualify-dapr-read-retries.py": {
+          "kind": "file",
+          "sha256": "6802f438166f3c36bbbf789af9373a0df5a1296915db4388a5a11fcbaa1104cc"
+        },
+        "tests/performance/tenant-audit/package-lock.json": {
+          "kind": "file",
+          "sha256": "6bf66b87699deca7fc692bd92f830836ba170ea1033f1eeba857a4442a136ae4"
+        },
+        "tests/performance/tenant-audit/package.json": {
+          "kind": "file",
+          "sha256": "6c9fdd3ab2ee18e59a47bfdb81143d1d48f4b9fe707a22b2e6f57481d89db306"
+        },
+        "tests/scripts/test_bootstrap_compatibility.py": {
+          "kind": "file",
+          "sha256": "c2b938ffec23e0c90aab48b1da5fe674b95609823a7dbb8512ddf3a9ea870721"
+        },
+        "tests/scripts/test_catalog_artifact_guards.py": {
+          "kind": "file",
+          "sha256": "07f6bdabadafe89fc42160b36a342bec2c6b5a89dd9cdd505b42a3efc807309f"
+        },
+        "tests/scripts/test_catalog_package_consumer.py": {
+          "kind": "file",
+          "sha256": "54e59b96b1c899dcee708616dfc47b49abc1ff5963f4bda2519c5ee955a006f3"
+        },
+        "tests/scripts/test_tenant_audit_source_provenance.py": {
+          "kind": "file",
+          "sha256": "cfc0ff023a59509cf30c36a8e11c139b9d15b49b75a3571ffece6690f9294736"
+        }
+      },
+      "untracked": {
+        "_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/candidate-version-tests.json": {
+          "kind": "file",
+          "sha256": "db175745dc15293d9b54ac29e703518b5ea041573d479327e3117bd14587a23f"
+        },
+        "_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/catalog-consumer.json": {
+          "kind": "file",
+          "sha256": "c533df5d92a4e2b8794e228c5442f58997238ebf3a2a5a1f3ec92246468896c3"
+        },
+        "_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/catalog-source-tests.json": {
+          "kind": "file",
+          "sha256": "8b63d4c3842f927438d6b07e84eb4055e6b45c93baaf5302b7b47e6c8a736acf"
+        },
+        "_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/contracts-catalog-pack.json": {
+          "kind": "file",
+          "sha256": "bd57d8718a7bf17e92296676f01ebe2e3a12215bf311c1440ae3dd04d23de724"
+        },
+        "_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/contracts-package-build.json": {
+          "kind": "file",
+          "sha256": "45a0bb686453b26fadc6d65db06c4bbeed0b52c4c16a3f63396c2e6ed644cf80"
+        },
+        "_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/contracts-qualified-tests.json": {
+          "kind": "file",
+          "sha256": "4fb139e77cfde2de3b00f8baba2d8288a2bc7a6fd643d2a8659168cc571a0861"
+        },
+        "_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/contracts-source-build.json": {
+          "kind": "file",
+          "sha256": "b1ccc5ab31b4a84436d33bc02d19087481595296f9e8f21a707bec32559c3f54"
+        },
+        "_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/http-source-tests.json": {
+          "kind": "file",
+          "sha256": "7b3082213487fb6790d6048e84d9a0e8a1abac4ee3548318e5f20e7d00c7335a"
+        },
+        "_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/integration-source-build.json": {
+          "kind": "file",
+          "sha256": "a2b8b97d448733ce670ca5a4b8683e06e073b554a4f6dc281070f5a1f0b193c6"
+        },
+        "_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/npm-performance-ci.json": {
+          "kind": "file",
+          "sha256": "d9f1436f47230ad97727fad05470e12ffeaa73344f740f5ff4f19bf9ddcae18b"
+        },
+        "_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/npm-root-ci.json": {
+          "kind": "file",
+          "sha256": "9eb1e50b065c665841aa5c93a5eb1dc0eddbed7fd105915af23e7b5efdd7911f"
+        },
+        "_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/server-boundary-tests.json": {
+          "kind": "file",
+          "sha256": "88ac465fac3f0dde8133fceb7be08abc826a79abd81c22722bc64cb56228577f"
+        },
+        "_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/server-catalog-pack.json": {
+          "kind": "file",
+          "sha256": "5ae04dcc750acc1aaf6521ba03d789f189e75549a90133342f216debd37d3756"
+        },
+        "_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/server-package-build.json": {
+          "kind": "file",
+          "sha256": "f048c2328931d7903daf2f4f8b0b3bfb9cd44fbd9308e7a364c146a51ddda0c8"
+        },
+        "_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/test_bootstrap_handoff.json": {
+          "kind": "file",
+          "sha256": "4e88517b4f6e99bdf5316ed8177c4a5388d60cc1e40ddbc0d8c690b11176a0ba"
+        },
+        "_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/test_elicitation_numbers.json": {
+          "kind": "file",
+          "sha256": "f7fbe02425f7025fbc7a964feeb9b532c3bab9effceb5f7a138ebccc4c979cdf"
+        },
+        "_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/test_pushall_default_branch.json": {
+          "kind": "file",
+          "sha256": "139e4bba23c0dbce24ec80e8f0d255503138b72006bbab1a718aabd1932aac08"
+        },
+        "_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/test_pushall_detached_head.json": {
+          "kind": "file",
+          "sha256": "bcca6621ed94a544b0d9cc488615362294dfcf905e93167c18476fe0de69f59d"
+        },
+        "_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/test_resolve_customization.json": {
+          "kind": "file",
+          "sha256": "2697cd255f49943feb86dbe8917292a15fefbb06743d2400df10662a0be4d16c"
+        },
+        "_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/test_tea_enforcement.json": {
+          "kind": "file",
+          "sha256": "cc6e080c8ab4763afef3835248a56ea14a46db568ab70f23514963d6cc692d71"
+        },
+        "_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/test_tenant_audit_source_provenance.json": {
+          "kind": "file",
+          "sha256": "2b8510772e7821e9147459609e19c042b262dc7296e0894c06c8e7edb9a2baff"
+        },
+        "_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/test_validate_changed_story_gitlinks.json": {
+          "kind": "file",
+          "sha256": "eb1324b53952a979bd3a79199074148064fe07e312cb872c5e1c2fc8f109d5aa"
+        },
+        "_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/test_validate_story_gitlinks.json": {
+          "kind": "file",
+          "sha256": "aee09b32368225cdfb34c8a10ef36af4512f5dd110c35326d00eae9157abd89c"
+        },
+        "_bmad-output/implementation-artifacts/spec-synchronize-update-release-2026-11-14.md": {
+          "kind": "file",
+          "sha256": "dfda0d2d96fcc2aac51074c722c4fed3746f32d3e3c2b799cb7eb02bc5c200a7"
+        },
+        "tests/scripts/test_dapr_read_policy_evidence.py": {
+          "kind": "file",
+          "sha256": "67b1715883183e7d1462047d957eb705880c4960133b90bef5b66374a28fc39a"
+        }
+      },
+      "indexDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "workingTreeDiffSha256": "b62cc11bf53f86b622f58a3db3f0780da25400d1f8233e0a405cdc285a66526a"
+    },
+    "references/Hexalith.EventStore": {
+      "head": "f80ca1bbaf37c88eb20216058a1b1a2f73f5a485",
+      "dirtyTracked": {},
+      "untracked": {},
+      "indexDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "workingTreeDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "references/Hexalith.Commons": {
+      "head": "fbf4e94233821f6ca336af91a06feaaeb7a16855",
+      "dirtyTracked": {},
+      "untracked": {},
+      "indexDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "workingTreeDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "references/Hexalith.AI.Tools": {
+      "head": "17a37d83db193f0b7494c1b931fd1e82a67c1424",
+      "dirtyTracked": {},
+      "untracked": {},
+      "indexDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "workingTreeDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "references/Hexalith.FrontComposer": {
+      "head": "a66466051bdad8caf804e60d800abce53442f473",
+      "dirtyTracked": {},
+      "untracked": {},
+      "indexDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "workingTreeDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "references/Hexalith.Builds": {
+      "head": "0b6400457ca646d63a0c21bdad471f9c861e0c5b",
+      "dirtyTracked": {},
+      "untracked": {},
+      "indexDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "workingTreeDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "references/Hexalith.PolymorphicSerializations": {
+      "head": "e97b56930e213f674b64c157551f499b0473ec43",
+      "dirtyTracked": {},
+      "untracked": {},
+      "indexDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "workingTreeDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "references/Hexalith.Memories": {
+      "head": "2c2e9b58990638ededf22e8e67ff5c12de75b434",
+      "dirtyTracked": {},
+      "untracked": {},
+      "indexDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "workingTreeDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "references/Hexalith.McpCli": {
+      "head": "58ee13c7df889005876322d3f3f5839ed0de3cb3",
+      "dirtyTracked": {},
+      "untracked": {},
+      "indexDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "workingTreeDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "references/Hexalith.Platform": {
+      "head": "20eecbdd2805fcd04c03d5b8661486b8e9ab9a21",
+      "dirtyTracked": {},
+      "untracked": {},
+      "indexDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "workingTreeDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  }
+}

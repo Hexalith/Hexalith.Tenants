@@ -1,0 +1,122 @@
+{
+  "startedAtUtc": "2026-11-14T11:22:37.816697+00:00",
+  "scope": "Builds owned FC6 public package consumers and current-versus-frozen pin tests; no runtime identity promotion",
+  "privateTemporaryDirectory": "/dev/shm/tenants-release-2026-11-14/hexalith-job.3zhxedHl",
+  "sourceParent": "37a3cdd6eaeec4a95b5e0b1ef3231f2b05fda2d7",
+  "commands": [
+    [
+      "dotnet",
+      "build",
+      "src/hosts/Hexalith.Builds.Module.UiHost/Hexalith.Builds.Module.UiHost.csproj",
+      "--configuration",
+      "Release",
+      "-warnaserror",
+      "-m:1",
+      "-nr:false",
+      "--disable-build-servers",
+      "-p:RestoreFallbackFolders=/home/administrator/.nuget/packages",
+      "-p:RestoreSources=https://api.nuget.org/v3/index.json"
+    ],
+    [
+      "dotnet",
+      "build",
+      "test/fixtures/module/executable/P0Fixture.Ui/P0Fixture.Ui.csproj",
+      "--configuration",
+      "Release",
+      "-warnaserror",
+      "-m:1",
+      "-nr:false",
+      "--disable-build-servers",
+      "-p:RestoreFallbackFolders=/home/administrator/.nuget/packages",
+      "-p:RestoreSources=https://api.nuget.org/v3/index.json"
+    ],
+    [
+      "dotnet",
+      "build",
+      "test/Hexalith.Builds.Module.Tests/Hexalith.Builds.Module.Tests.csproj",
+      "--configuration",
+      "Release",
+      "-warnaserror",
+      "-m:1",
+      "-nr:false",
+      "--disable-build-servers",
+      "-p:RestoreFallbackFolders=/home/administrator/.nuget/packages",
+      "-p:RestoreSources=https://api.nuget.org/v3/index.json"
+    ],
+    [
+      "dotnet",
+      "/dev/shm/tenants-release-2026-11-14/hexalith-job.3zhxedHl/Builds/test/Hexalith.Builds.Module.Tests/bin/Release/net11.0/Hexalith.Builds.Module.Tests.dll",
+      "-class",
+      "Hexalith.Builds.ModuleTool.Tests.SupportedPlatformPinsCatalogTests",
+      "-failSkips",
+      "-maxThreads",
+      "8",
+      "-noColor",
+      "-result-xml",
+      "/dev/shm/tenants-release-2026-11-14/builds-public-frontcomposer-consumers-0.xml"
+    ],
+    [
+      "dotnet",
+      "/dev/shm/tenants-release-2026-11-14/hexalith-job.3zhxedHl/Builds/test/Hexalith.Builds.Module.Tests/bin/Release/net11.0/Hexalith.Builds.Module.Tests.dll",
+      "-class",
+      "Hexalith.Builds.ModuleTool.Tests.ManifestValidationTests",
+      "-failSkips",
+      "-maxThreads",
+      "8",
+      "-noColor",
+      "-result-xml",
+      "/dev/shm/tenants-release-2026-11-14/builds-public-frontcomposer-consumers-1.xml"
+    ]
+  ],
+  "tests": [
+    {
+      "class": "Hexalith.Builds.ModuleTool.Tests.SupportedPlatformPinsCatalogTests",
+      "result": {
+        "environment": "64-bit (x64) .NET 11.0.0 [collection-per-class, parallel (collections, 8 threads)]",
+        "id": "3c40efd8-10c3-4184-889f-e3c90daa9594",
+        "name": "/dev/shm/tenants-release-2026-11-14/hexalith-job.3zhxedHl/Builds/test/Hexalith.Builds.Module.Tests/bin/Release/net11.0/Hexalith.Builds.Module.Tests.dll",
+        "run-date": "2026-11-14",
+        "run-time": "11:23:34",
+        "start-rtf": "2026-11-14T11:23:34.1194252+00:00",
+        "test-framework": "xUnit.net v3 4.0.3+384aa7f0b4",
+        "target-framework": ".NETCoreApp,Version=v11.0",
+        "errors": "0",
+        "failed": "0",
+        "finish-rtf": "2026-11-14T11:23:34.2708395+00:00",
+        "not-run": "0",
+        "passed": "46",
+        "skipped": "0",
+        "time": "0.151",
+        "time-rtf": "00:00:00.1510000",
+        "total": "46"
+      },
+      "xmlSha256": "b74701578416b771fcac3d83e178f332743f29416f2d8f3971224e8b67bef548"
+    },
+    {
+      "class": "Hexalith.Builds.ModuleTool.Tests.ManifestValidationTests",
+      "result": {
+        "environment": "64-bit (x64) .NET 11.0.0 [collection-per-class, parallel (collections, 8 threads)]",
+        "id": "5d61247c-f4ee-49c9-a424-f803c2cc1794",
+        "name": "/dev/shm/tenants-release-2026-11-14/hexalith-job.3zhxedHl/Builds/test/Hexalith.Builds.Module.Tests/bin/Release/net11.0/Hexalith.Builds.Module.Tests.dll",
+        "run-date": "2026-11-14",
+        "run-time": "11:23:34",
+        "start-rtf": "2026-11-14T11:23:34.6658444+00:00",
+        "test-framework": "xUnit.net v3 4.0.3+384aa7f0b4",
+        "target-framework": ".NETCoreApp,Version=v11.0",
+        "errors": "0",
+        "failed": "0",
+        "finish-rtf": "2026-11-14T11:23:34.9962502+00:00",
+        "not-run": "0",
+        "passed": "52",
+        "skipped": "0",
+        "time": "0.331",
+        "time-rtf": "00:00:00.3310000",
+        "total": "52"
+      },
+      "xmlSha256": "d8bfca93260611474c24e65eff236c397a48be11d252b0bd4662488b199c8041"
+    }
+  ],
+  "cleanupVerified": true,
+  "result": "pass",
+  "finishedAtUtc": "2026-11-14T11:23:35.056429+00:00"
+}
