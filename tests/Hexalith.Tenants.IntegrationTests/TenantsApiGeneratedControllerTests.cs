@@ -1463,7 +1463,7 @@ public sealed class TenantsApiGeneratedControllerTests
             new SymmetricSecurityKey(Encoding.UTF8.GetBytes(JwtSigningKey)),
             SecurityAlgorithms.HmacSha256);
         string[] exactPermissions = permission == "commands:*"
-            ? ["tenants:create", "tenants:update", "tenants:disable", "tenants:enable", "tenants:add-user",
+            ? ["tenants:create", "tenants:update", "tenants:disable", "tenants:enable", "tenants:refresh-access", "tenants:add-user",
                 "tenants:remove-user", "tenants:change-user-role", "tenants:set-configuration", "tenants:remove-configuration",
                 "global-administrators:bootstrap", "global-administrators:set", "global-administrators:remove"]
             : ["tenants:read", "global-administrators:read"];
@@ -1555,6 +1555,16 @@ public sealed class TenantsApiGeneratedControllerTests
                 "tenantId",
                 "tenant-alpha"),
             new(
+                "refresh tenant access",
+                HttpMethod.Post,
+                "/api/tenants/tenant-alpha/refresh-access",
+                new RefreshTenantAccess("tenant-alpha"),
+                TenantIdentity.Domain,
+                "tenant-alpha",
+                RefreshTenantAccess.CommandType,
+                "tenantId",
+                "tenant-alpha"),
+            new(
                 "add tenant user",
                 HttpMethod.Post,
                 "/api/tenants/tenant-alpha/users/user.alpha/add",
@@ -1634,6 +1644,11 @@ public sealed class TenantsApiGeneratedControllerTests
                 HttpMethod.Post,
                 "/api/tenants/tenant-alpha/enable",
                 new EnableTenant("tenant.beta")),
+            new(
+                "recovery tenant id route mismatch",
+                HttpMethod.Post,
+                "/api/tenants/tenant-alpha/refresh-access",
+                new RefreshTenantAccess("tenant.beta")),
             new(
                 "tenant-user tenant id route mismatch",
                 HttpMethod.Post,

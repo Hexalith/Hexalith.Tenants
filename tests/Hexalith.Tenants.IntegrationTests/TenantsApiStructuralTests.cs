@@ -248,6 +248,7 @@ public sealed class TenantsApiStructuralTests
         AssertAction(controller, "UpdateTenantCommandAsync", typeof(HttpPutAttribute), "{tenantId}");
         AssertAction(controller, "EnableTenantCommandAsync", typeof(HttpPostAttribute), "{tenantId}/enable");
         AssertAction(controller, "DisableTenantCommandAsync", typeof(HttpPostAttribute), "{tenantId}/disable");
+        AssertAction(controller, "RefreshTenantAccessCommandAsync", typeof(HttpPostAttribute), "{tenantId}/refresh-access");
         AssertAction(controller, "AddUserToTenantCommandAsync", typeof(HttpPostAttribute), "{tenantId}/users/{userId}/add");
         AssertAction(controller, "RemoveUserFromTenantCommandAsync", typeof(HttpPostAttribute), "{tenantId}/users/{userId}/remove");
         AssertAction(controller, "ChangeUserRoleCommandAsync", typeof(HttpPatchAttribute), "{tenantId}/users/{userId}/role");
@@ -273,6 +274,7 @@ public sealed class TenantsApiStructuralTests
                     "GetTenantUsersQueryQueryAsync",
                     "GetUserTenantsQueryQueryAsync",
                     "ListTenantsQueryQueryAsync",
+                    "RefreshTenantAccessCommandAsync",
                     "RemoveGlobalAdministratorCommandAsync",
                     "RemoveTenantConfigurationCommandAsync",
                     "RemoveUserFromTenantCommandAsync",
