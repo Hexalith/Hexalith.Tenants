@@ -221,6 +221,14 @@
       "result": "found 0 problems, 0 warnings",
       "outputSha256": "faea979a8ff99406371085daab21ebcd244ee3c482128da9d84574a51dd112b7",
       "output": "\u29d7   --- input ---\nfix: complete recovery conformance and bind live token sessions\n\u2714   found 0 problems, 0 warnings\n"
+    },
+    {
+      "evidence": "root-aspire-inventory-repair.commitlint.log",
+      "candidate": "test: cover recovery routes and snapshot budget rejections\n",
+      "command": "npx --no -- commitlint --edit /dev/shm/tenants-release-2026-11-14/root-aspire-inventory-repair.commitmsg --verbose",
+      "result": "found 0 problems, 0 warnings",
+      "outputSha256": "08578281d386f577396732a8d9fb75cf91edcb8638a4949d59d0253a0a94c01f",
+      "output": "\u29d7   --- input ---\ntest: cover recovery routes and snapshot budget rejections\n\u2714   found 0 problems, 0 warnings\n"
     }
   ]
 }

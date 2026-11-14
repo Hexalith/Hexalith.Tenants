@@ -1,0 +1,26 @@
+{
+  "capturedAtUtc": "2026-11-14T13:20:25.269403+00:00",
+  "scope": "Independent bounded review of two existing Aspire/Integration fixture inventory updates; exact final-source hosted gate remains mandatory",
+  "result": "pass",
+  "findings": [],
+  "sourceHashes": {
+    "tests/Hexalith.Tenants.IntegrationTests/TenantsApiStructuralTests.cs": "efeb29c323ae6fa89a8645c69d41b23d8ed5d31cb43c6d0da033707156128ed1",
+    "tests/Hexalith.Tenants.IntegrationTests/CommandApiRuntimeIntegrationTests.cs": "300b41a87ffbfd54917499e1731d8e4b97ecba99eafc52de374ca9b2ce867113"
+  },
+  "reviewChecks": [
+    "Exact generated RefreshTenantAccessCommandAsync endpoint now asserted as POST tenantId/refresh-access and included in complete method inventory",
+    "Exact TenantAccessSnapshotLimitExceededRejection included in existing HTTP422/kebab-reason runtime matrix",
+    "Existing complete method/rejection inventories remain strict",
+    "Existing ProblemDetails redaction, corrective-action, identity and extension assertions run unchanged",
+    "No production code, status mapping, authorization rule, test exclusion or gate change"
+  ],
+  "executionReceipt": "root-aspire-recovery-inventory-probe.json",
+  "executionReceiptSha256": "6b969c0e259733ea51ed1b5c3e8c7ca0074494cafa9a3e8c91451a71f35c359f",
+  "ownerExecution": {
+    "actualBuild": "0warnings/errors",
+    "passedCases": 17,
+    "failedCases": 0,
+    "scope": "two previously failing facts and all15 actual HTTP ProblemDetails cases"
+  },
+  "finalRequirement": "Fresh complete shared Aspire smoke suite on final committed root source"
+}

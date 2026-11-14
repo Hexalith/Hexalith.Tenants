@@ -79,6 +79,8 @@ This is one coordinated release goal. The user's explicit request supersedes wor
 - `src/Hexalith.Tenants.Testing/Fakes/InMemoryTenantService.cs`
 - `src/Hexalith.Tenants.Testing/Projections/InMemoryTenantProjection.cs`
 - `tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsRouteTests.cs`
+- `tests/Hexalith.Tenants.IntegrationTests/TenantsApiStructuralTests.cs`
+- `tests/Hexalith.Tenants.IntegrationTests/CommandApiRuntimeIntegrationTests.cs`
 - `tests/Hexalith.Tenants.Server.Tests/Routing/TenantIntentDeclarationTests.cs`
 - `tests/Hexalith.Tenants.Testing.Tests/Conformance/TenantConformanceTests.cs`
 - `tests/Hexalith.Tenants.Testing.Tests/Projections/InMemoryTenantProjectionConformanceTests.cs`
@@ -122,6 +124,8 @@ This is one coordinated release goal. The user's explicit request supersedes wor
 - `_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/parent-root-rest-session-review.json`
 - `_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/parent-root-recovery-review.json`
 - `_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/independent-root-recovery-review.json`
+- `_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/aspire-inventory-repair-verification.json`
+- `_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/parent-root-aspire-inventory-review.json`
 - `_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/eventstore-postrelease-source-synchronization.json`
 
 ## Completion Notes List
@@ -227,3 +231,8 @@ Parent bounded review reports no findings: the exact24 unique route IDs,13+9+2 c
 At `a2142101`, all packed catalog, HTTP, persisted, anonymous/authenticated UI, source-reference and Story guard lanes pass. Full Tier1 identifies three remaining recovery omissions in the Testing dispatch/projection and exact permission fixtures; five REST cases reject a legacy unscoped token-store write. The fake now delegates the new command/state event to existing aggregate methods, explicitly leaves business projection state unchanged for the access snapshot, and tests owner/global/disabled success plus reader/missing/target-substitution refusals. The fixture uses one exact session/subject/system-tenant binding through the existing FC relay. Runtime domain handlers and authentication policy are unchanged.
 
 Actual publicSDK5.1/FC6 builds pass without warnings; all189 Testing cases and1888 Server cases pass, followed by all31 intent cases after review adds the missing recovery alias/target/retention/version row. The real registered token-relay handler passes its exact binding and three foreign-binding/unscoped-write refusals. Wrapper cleanup is verified. Evidence retains initial collection-reference failures and private cache/source/probe-layout corrections. Parent and two independent bounded reviews report no remaining findings; the sole coverage finding is resolved by that new intent row. Final hosted Tier1/live cases must pass on the resulting source.
+
+
+## Complete Hosted Recovery Inventory
+
+At `f3b0e85f`, all eight main functional CI jobs succeed, including full Tier1 and all eight live REST cases; Story Guards and both source-reference lanes also succeed. The additional shared Aspire hook runs683 Integration cases and exposes two remaining exact inventory omissions (681pass/2fail/0skip). The generated controller assertion now includes the exact POST refresh-access action, and the explicit budget-rejection row exercises the existing422 ProblemDetails, reason, identity, redaction and corrective-action assertions. Actual package-only build and all17 focused cases pass, with wrapper cleanup verified. Parent bounded review reports no findings. The complete final-source CI, including this shared smoke hook, remains required.
