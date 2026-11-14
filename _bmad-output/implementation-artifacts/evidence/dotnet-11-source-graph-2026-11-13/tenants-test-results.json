@@ -1,0 +1,52 @@
+[
+  {
+    "name": "tenants-ui-tests",
+    "command": [
+      "dotnet",
+      "tests/Hexalith.Tenants.UI.Tests/bin/Debug/net11.0/Hexalith.Tenants.UI.Tests.dll",
+      "-noLogo",
+      "-result-xml",
+      "_bmad-output/implementation-artifacts/evidence/dotnet-11-source-graph-2026-11-13/tenants-ui-tests.xml"
+    ],
+    "exit_code": 0,
+    "log": "_bmad-output/implementation-artifacts/evidence/dotnet-11-source-graph-2026-11-13/tenants-ui-tests.log",
+    "xml": "/tmp/tenants-net11-repair-ng54_u4z/tenants-ui-tests.xml",
+    "counts": {
+      "total": 8082,
+      "passed": 8082,
+      "failed": 0,
+      "skipped": 0,
+      "errors": 0
+    },
+    "failing_tests": [],
+    "xml_sha256": "c2b28297875922cda8738e490583168c80a9d38ebdd5160ee0670f65b532b499",
+    "log_sha256": "ebd3df1bc530e83e84af61a975a50d84c7c7bd10922862aa6358d60577ed871c"
+  },
+  {
+    "name": "tenants-native-api-tests",
+    "command": [
+      "dotnet",
+      "tests/Hexalith.Tenants.IntegrationTests/bin/Debug/net11.0/Hexalith.Tenants.IntegrationTests.dll",
+      "-class",
+      "Hexalith.Tenants.IntegrationTests.TenantOwnerSourceGatewayTests",
+      "-class",
+      "Hexalith.Tenants.IntegrationTests.TenantsApiGatewayResilienceTests",
+      "-noLogo",
+      "-result-xml",
+      "_bmad-output/implementation-artifacts/evidence/dotnet-11-source-graph-2026-11-13/tenants-native-api-tests.xml"
+    ],
+    "exit_code": 0,
+    "log": "_bmad-output/implementation-artifacts/evidence/dotnet-11-source-graph-2026-11-13/tenants-native-api-tests.log",
+    "xml": "/tmp/tenants-net11-repair-ng54_u4z/tenants-native-api-tests.xml",
+    "counts": {
+      "total": 35,
+      "passed": 35,
+      "failed": 0,
+      "skipped": 0,
+      "errors": 0
+    },
+    "failing_tests": [],
+    "xml_sha256": "d3804e795b3160fd551ebf00257ca8ecb4d22a81f23e51187c08ae6ba590f655",
+    "log_sha256": "6dde729ae9899949af14c0632d22d8ba4f3f81fdaf783c431622d6e46c8cd145"
+  }
+]

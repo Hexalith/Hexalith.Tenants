@@ -1,0 +1,40 @@
+{
+  "command": [
+    "dotnet",
+    "tests/Hexalith.FrontComposer.Shell.Tests/bin/Debug/net11.0/Hexalith.FrontComposer.Shell.Tests.dll",
+    "-class",
+    "Hexalith.FrontComposer.Shell.Tests.Generated.AsyncCommandFormValidationTests",
+    "-class",
+    "Hexalith.FrontComposer.Shell.Tests.Components.Layout.FcAccountMenu*",
+    "-class",
+    "Hexalith.FrontComposer.Shell.Tests.Services.Authorization.*",
+    "-class",
+    "Hexalith.FrontComposer.Shell.Tests.Services.FcBrowserDownloadServiceTests",
+    "-class",
+    "Hexalith.FrontComposer.Shell.Tests.Services.DataGridFocusScopeTests",
+    "-class",
+    "Hexalith.FrontComposer.Shell.Tests.Infrastructure.Storage.LocalStorageServiceTests",
+    "-class",
+    "Hexalith.FrontComposer.Shell.Tests.Components.Forms.FcFormAbandonmentGuardTests",
+    "-class",
+    "Hexalith.FrontComposer.Shell.Tests.Components.Lifecycle.FcLifecycleWrapper*",
+    "-class",
+    "Hexalith.FrontComposer.Shell.Tests.Components.Layout.FrontComposerNavigationTests",
+    "-class",
+    "Hexalith.FrontComposer.Shell.Tests.Components.Layout.FrontComposerShellTests",
+    "-result-xml",
+    "/tmp/tenants-net11-repair-ng54_u4z/post-review-owner-behavior.xml"
+  ],
+  "cwd": "/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer",
+  "exit_code": 0,
+  "counts": {
+    "total": 309,
+    "passed": 309,
+    "failed": 0,
+    "skipped": 0,
+    "errors": 0
+  },
+  "xml_path": "/tmp/tenants-net11-repair-ng54_u4z/post-review-owner-behavior.xml",
+  "xml_sha256": "7e56b42e9985f34cbbf314870cf2ada406b78ef446ab5a7c299deb556447aa30",
+  "log": "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/dotnet-11-source-graph-2026-11-13/post-review-owner-behavior.log"
+}

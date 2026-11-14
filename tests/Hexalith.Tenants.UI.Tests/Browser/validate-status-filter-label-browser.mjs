@@ -16,7 +16,7 @@ assert.match(timeoutSeconds, /^[1-9][0-9]*$/);
 const temporary = await mkdtemp(join(tmpdir(), 'tenants-status-label-'));
 let chrome, socket, server, deadline;
 try {
-    const executable = join(root, 'tests/Hexalith.Tenants.UI.Tests/bin', configuration, 'net10.0/Hexalith.Tenants.UI.Tests');
+    const executable = join(root, 'tests/Hexalith.Tenants.UI.Tests/bin', configuration, 'net11.0/Hexalith.Tenants.UI.Tests');
     const exported = spawnSync(executable, ['-class', 'Hexalith.Tenants.UI.Tests.Components.StatusFilterLabelRenderingTests'], {
         cwd: root, encoding: 'utf8', env: { ...process.env, TENANTS_STATUS_LABEL_FIXTURE_DIRECTORY: temporary },
         timeout: Number(timeoutSeconds) * 1000, killSignal: 'SIGKILL',

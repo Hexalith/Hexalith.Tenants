@@ -1,0 +1,202 @@
+{
+  "source_test_total": 399,
+  "source_test_passed": 399,
+  "lanes": [
+    {
+      "lane": "command-form-emitter",
+      "mode": "Debug/source; archive qualification is not claimed",
+      "command": [
+        "dotnet",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/bin/Debug/net11.0/Hexalith.FrontComposer.SourceTools.Tests.dll",
+        "-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.Emitters.CommandFormEmitterTests",
+        "-result-xml",
+        "/tmp/tenants-net11-repair-ng54_u4z/frontcomposer-command-form-emitter.xml"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer",
+      "exit_code": 0,
+      "counts": {
+        "total": 68,
+        "passed": 68,
+        "failed": 0,
+        "skipped": 0,
+        "errors": 0
+      },
+      "xml_path": "/tmp/tenants-net11-repair-ng54_u4z/frontcomposer-command-form-emitter.xml",
+      "xml_sha256": "4986a7811ab3b38bab901a75eae584d3232e1a8907682aa0c548764bef5886d1",
+      "log": "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/dotnet-11-source-graph-2026-11-13/frontcomposer-command-form-emitter-tests-final.log"
+    },
+    {
+      "lane": "shell-behavior",
+      "mode": "Debug/source; archive qualification is not claimed",
+      "command": [
+        "dotnet",
+        "tests/Hexalith.FrontComposer.Shell.Tests/bin/Debug/net11.0/Hexalith.FrontComposer.Shell.Tests.dll",
+        "-class",
+        "Hexalith.FrontComposer.Shell.Tests.Generated.AsyncCommandFormValidationTests",
+        "-class",
+        "Hexalith.FrontComposer.Shell.Tests.Components.Layout.FcAccountMenu*",
+        "-class",
+        "Hexalith.FrontComposer.Shell.Tests.Services.Authorization.*",
+        "-class",
+        "Hexalith.FrontComposer.Shell.Tests.Services.FcBrowserDownloadServiceTests",
+        "-class",
+        "Hexalith.FrontComposer.Shell.Tests.Services.DataGridFocusScopeTests",
+        "-class",
+        "Hexalith.FrontComposer.Shell.Tests.Infrastructure.Storage.LocalStorageServiceTests",
+        "-class",
+        "Hexalith.FrontComposer.Shell.Tests.Components.Forms.FcFormAbandonmentGuardTests",
+        "-class",
+        "Hexalith.FrontComposer.Shell.Tests.Components.Lifecycle.FcLifecycleWrapper*",
+        "-class",
+        "Hexalith.FrontComposer.Shell.Tests.Components.Layout.FrontComposerNavigationTests",
+        "-class",
+        "Hexalith.FrontComposer.Shell.Tests.Components.Layout.FrontComposerShellTests",
+        "-result-xml",
+        "/tmp/tenants-net11-repair-ng54_u4z/frontcomposer-shell-behavior.xml"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer",
+      "exit_code": 0,
+      "counts": {
+        "total": 297,
+        "passed": 297,
+        "failed": 0,
+        "skipped": 0,
+        "errors": 0
+      },
+      "xml_path": "/tmp/tenants-net11-repair-ng54_u4z/frontcomposer-shell-behavior.xml",
+      "xml_sha256": "bf1ace969de957d0d19afb1b460683a9184c7f3960f5823cfb2474384045d067",
+      "log": "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/dotnet-11-source-graph-2026-11-13/frontcomposer-shell-behavior-tests-final.log"
+    },
+    {
+      "lane": "governance-focused",
+      "mode": "Debug/source; archive qualification is not claimed",
+      "command": [
+        "dotnet",
+        "tests/Hexalith.FrontComposer.Shell.Tests/bin/Debug/net11.0/Hexalith.FrontComposer.Shell.Tests.dll",
+        "-method",
+        "Hexalith.FrontComposer.Shell.Tests.Governance.AnalyzerPolicyGovernanceTests.AnalyzerPolicy_GovernanceContract_FailsClosed",
+        "-method",
+        "Hexalith.FrontComposer.Shell.Tests.Governance.AnalyzerPolicyGovernanceTests.AnalyzerPolicy_IdentifierInventory_MatchesSeal",
+        "-method",
+        "Hexalith.FrontComposer.Shell.Tests.Governance.CiGovernanceTests.ToolchainPins_MatchApprovedDotnetAndAspireVersions",
+        "-method",
+        "Hexalith.FrontComposer.Shell.Tests.Governance.CiGovernanceTests.CiWorkflow_DelegatesToReusableDomainCiWithConsumerValidation",
+        "-method",
+        "Hexalith.FrontComposer.Shell.Tests.Governance.CiGovernanceTests.QualityWorkflow_PinsContractPactStaleAndArtifactGates",
+        "-method",
+        "Hexalith.FrontComposer.Shell.Tests.Governance.CiGovernanceTests.QualityWorkflow_PinsCliSmokeAndDocsGates",
+        "-method",
+        "Hexalith.FrontComposer.Shell.Tests.Architecture.FatalExceptionGuardGovernanceTests.*",
+        "-method",
+        "Hexalith.FrontComposer.Shell.Tests.Components.DataGrid.FcTblPackageBoundaryTests.FcTbl_PublicApi_MatchesIntentionalBaseline",
+        "-result-xml",
+        "/tmp/tenants-net11-repair-ng54_u4z/frontcomposer-governance-focused.xml"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer",
+      "exit_code": 0,
+      "counts": {
+        "total": 9,
+        "passed": 9,
+        "failed": 0,
+        "skipped": 0,
+        "errors": 0
+      },
+      "xml_path": "/tmp/tenants-net11-repair-ng54_u4z/frontcomposer-governance-focused.xml",
+      "xml_sha256": "bf86ccba6f920b9ba51e4b6fa4ddd3c9c0ee030a503f05df467c37c240c56ddf",
+      "log": "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/dotnet-11-source-graph-2026-11-13/frontcomposer-governance-tests-final.log"
+    },
+    {
+      "lane": "ui-source-boundary",
+      "mode": "Debug/source; archive qualification is not claimed",
+      "command": [
+        "dotnet",
+        "tests/Hexalith.FrontComposer.Contracts.UI.Tests/bin/Debug/net11.0/Hexalith.FrontComposer.Contracts.UI.Tests.dll",
+        "-method",
+        "Hexalith.FrontComposer.Contracts.UI.Tests.PackageBoundaryTests.PublicApi_ExportedMembers_MatchIntentionalBaseline",
+        "-method",
+        "Hexalith.FrontComposer.Contracts.UI.Tests.PackageBoundaryTests.AssemblyOwnership_MovedSurface_IsUiOwnedAndPointsOnlyDownward",
+        "-method",
+        "Hexalith.FrontComposer.Contracts.UI.Tests.PackageBoundaryTests.PackageValidation_PinsTheSharedPublishedBaseline",
+        "-result-xml",
+        "/tmp/tenants-net11-repair-ng54_u4z/frontcomposer-ui-boundary.xml"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer",
+      "exit_code": 0,
+      "counts": {
+        "total": 3,
+        "passed": 3,
+        "failed": 0,
+        "skipped": 0,
+        "errors": 0
+      },
+      "xml_path": "/tmp/tenants-net11-repair-ng54_u4z/frontcomposer-ui-boundary.xml",
+      "xml_sha256": "dd89a9a8b92fe30908ff2d0f3b8cc418ebd5bfb600dfa45271b023415d1ae67c",
+      "log": "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/dotnet-11-source-graph-2026-11-13/frontcomposer-ui-boundary-tests.log"
+    },
+    {
+      "lane": "testing-source-boundary",
+      "mode": "Debug/source; archive qualification is not claimed",
+      "command": [
+        "dotnet",
+        "tests/Hexalith.FrontComposer.Testing.Tests/bin/Debug/net11.0/Hexalith.FrontComposer.Testing.Tests.dll",
+        "-method",
+        "Hexalith.FrontComposer.Testing.Tests.PackageBoundaryTests.PublicApi_ExportedTypes_MatchIntentionalBaseline",
+        "-method",
+        "Hexalith.FrontComposer.Testing.Tests.PackageBoundaryTests.CentralPackageVersion_Mismatch_ReportsExpectedAndActualBeforePackaging",
+        "-result-xml",
+        "/tmp/tenants-net11-repair-ng54_u4z/frontcomposer-testing-boundary.xml"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer",
+      "exit_code": 0,
+      "counts": {
+        "total": 3,
+        "passed": 3,
+        "failed": 0,
+        "skipped": 0,
+        "errors": 0
+      },
+      "xml_path": "/tmp/tenants-net11-repair-ng54_u4z/frontcomposer-testing-boundary.xml",
+      "xml_sha256": "b927e3dfc0b9e28aa4af0acbee5763f59c761616a8f9ba9bb4b29a18fcd554c6",
+      "log": "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/dotnet-11-source-graph-2026-11-13/frontcomposer-testing-boundary-tests.log"
+    },
+    {
+      "lane": "mcp-source-controls",
+      "mode": "Debug/source; archive qualification is not claimed",
+      "command": [
+        "dotnet",
+        "tests/Hexalith.FrontComposer.Mcp.Tests/bin/Debug/net11.0/Hexalith.FrontComposer.Mcp.Tests.dll",
+        "-class",
+        "Hexalith.FrontComposer.Mcp.Tests.Invocation.CommandInvokerCoverageTests",
+        "-class",
+        "Hexalith.FrontComposer.Mcp.Tests.Skills.SkillTypeOrganizationGovernanceTests",
+        "-result-xml",
+        "/tmp/tenants-net11-repair-ng54_u4z/frontcomposer-mcp-controls.xml"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer",
+      "exit_code": 0,
+      "counts": {
+        "total": 19,
+        "passed": 19,
+        "failed": 0,
+        "skipped": 0,
+        "errors": 0
+      },
+      "xml_path": "/tmp/tenants-net11-repair-ng54_u4z/frontcomposer-mcp-controls.xml",
+      "xml_sha256": "f724c190c25adf844228b94b840a45c2f0c5e0000286b38c2f0b7884223724b9",
+      "log": "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/dotnet-11-source-graph-2026-11-13/frontcomposer-mcp-control-tests.log"
+    }
+  ],
+  "generator_copies": [
+    {
+      "path": "/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.SourceTools/bin/Debug/netstandard2.0/Hexalith.FrontComposer.SourceTools.dll",
+      "sha256": "e832c36bb26e24c285b08b00d4cd638e4a86731aeaa3a48f15bd9dc237de72f5"
+    },
+    {
+      "path": "/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/tests/Hexalith.FrontComposer.SourceTools.Tests/bin/Debug/net11.0/Hexalith.FrontComposer.SourceTools.dll",
+      "sha256": "e832c36bb26e24c285b08b00d4cd638e4a86731aeaa3a48f15bd9dc237de72f5"
+    }
+  ],
+  "emitter_source_sha256": "2d86824ef509e75455a116dc2a4145a91654e550d7387a6364d8ce53ed161f10",
+  "package_archive_proof": "Not run; existing archive controls require separate Release/package producers. Unowned Release outputs were not used."
+}

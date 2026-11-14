@@ -28,7 +28,7 @@ assert.ok(output, 'Supply a safe result JSON path');
 const git = (...args) => execFileSync('git', args, { cwd: root, encoding: 'utf8' }).trim();
 const hash = value => createHash('sha256').update(value).digest('hex');
 const uiDirectory = resolve(root, 'src/Hexalith.Tenants.UI');
-const assembly = resolve(uiDirectory, 'bin/Debug/net10.0/Hexalith.Tenants.UI.dll');
+const assembly = resolve(uiDirectory, 'bin/Debug/net11.0/Hexalith.Tenants.UI.dll');
 const evidence = {
     playwrightVersion: require(`${playwrightModule}/package.json`).version,
     startedUtc: new Date().toISOString(),
@@ -148,7 +148,7 @@ try {
     frontComposerDiffSha256: hash(git('-C', 'references/Hexalith.FrontComposer', 'diff', '--binary', 'HEAD', '--', 'src/Hexalith.FrontComposer.Shell')),
     validatorSha256: validatorBefore,
     localUiAssemblySha256: hash(await readFile(assembly)),
-    localShellAssemblySha256: hash(await readFile(resolve(uiDirectory, 'bin/Debug/net10.0/Hexalith.FrontComposer.Shell.dll'))),
+    localShellAssemblySha256: hash(await readFile(resolve(uiDirectory, 'bin/Debug/net11.0/Hexalith.FrontComposer.Shell.dll'))),
     });
     phase = 'fixture-start';
     upstream = createServer(async (request, response) => {

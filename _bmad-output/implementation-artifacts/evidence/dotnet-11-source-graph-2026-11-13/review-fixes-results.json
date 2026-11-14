@@ -1,0 +1,107 @@
+{
+  "cwd": "/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer",
+  "builds": [
+    {
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "--configuration",
+        "Debug",
+        "-m:1",
+        "-p:UseHexalithProjectReferences=true",
+        "-p:MinVerVersionOverride=1.0.0",
+        "-warnaserror"
+      ],
+      "exit_code": 0
+    },
+    {
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.FrontComposer.Shell.Tests/Hexalith.FrontComposer.Shell.Tests.csproj",
+        "--configuration",
+        "Debug",
+        "-m:1",
+        "-p:UseHexalithProjectReferences=true",
+        "-p:MinVerVersionOverride=1.0.0",
+        "-warnaserror"
+      ],
+      "exit_code": 0
+    }
+  ],
+  "python": {
+    "command": [
+      "python3",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "tests/eng",
+      "-p",
+      "test_adopter_proof.py"
+    ],
+    "passed": 27,
+    "exit_code": 0
+  },
+  "dotnet": [
+    {
+      "lane": "emitter",
+      "command": [
+        "dotnet",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/bin/Debug/net11.0/Hexalith.FrontComposer.SourceTools.Tests.dll",
+        "-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.Emitters.CommandFormEmitterTests",
+        "-result-xml",
+        "/tmp/tenants-net11-repair-ng54_u4z/review-fixes-emitter.xml"
+      ],
+      "counts": {
+        "total": 68,
+        "passed": 68,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "xml_path": "/tmp/tenants-net11-repair-ng54_u4z/review-fixes-emitter.xml",
+      "xml_sha256": "5287c766bad8b03b6b8f92b00a871792a02075ef2b58b7b2332618197e6bc775"
+    },
+    {
+      "lane": "generated-account-focus",
+      "command": [
+        "dotnet",
+        "tests/Hexalith.FrontComposer.Shell.Tests/bin/Debug/net11.0/Hexalith.FrontComposer.Shell.Tests.dll",
+        "-method",
+        "Hexalith.FrontComposer.Shell.Tests.Generated.AsyncCommandFormValidationTests.*",
+        "-method",
+        "Hexalith.FrontComposer.Shell.Tests.Components.Layout.FcAccountMenuAuthenticatedTests.*",
+        "-method",
+        "Hexalith.FrontComposer.Shell.Tests.Components.Layout.FrontComposerShellTests.FocusSettlingAfterKeyboardModuleTeardownHandlesOnlyDisposal",
+        "-result-xml",
+        "/tmp/tenants-net11-repair-ng54_u4z/review-fixes-shell.xml"
+      ],
+      "counts": {
+        "total": 24,
+        "passed": 24,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "xml_path": "/tmp/tenants-net11-repair-ng54_u4z/review-fixes-shell.xml",
+      "xml_sha256": "41b330321b69c7b9d2f898ebbcb62bb5a82496baa20cf921a97ed0e3a6ed0a78"
+    }
+  ],
+  "total_passed": 119,
+  "generator_copies": [
+    {
+      "path": "/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.SourceTools/bin/Debug/netstandard2.0/Hexalith.FrontComposer.SourceTools.dll",
+      "sha256": "08a376584e1445e70084afc3e42cde06454fd3516ea97b5527c5e9bed2af3be6"
+    },
+    {
+      "path": "/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/tests/Hexalith.FrontComposer.SourceTools.Tests/bin/Debug/net11.0/Hexalith.FrontComposer.SourceTools.dll",
+      "sha256": "08a376584e1445e70084afc3e42cde06454fd3516ea97b5527c5e9bed2af3be6"
+    }
+  ],
+  "scope": "Only the edited adopter/runtime/quality-gate, emitter/snapshot, generated form, account and focus tests; no broad verification or package archive lane was run.",
+  "emitter_source_sha256": "28dd7358de767980f6f0ed9484c51f41b75e6a9a6f8906d1bec9a21e34a4e90a",
+  "final_source_disposed_entry_guard": true
+}

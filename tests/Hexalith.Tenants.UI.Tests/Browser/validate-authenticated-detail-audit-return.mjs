@@ -28,7 +28,7 @@ assert.ok(output, 'Supply a safe result JSON path');
 const git = (...args) => execFileSync('git', args, { cwd: root, encoding: 'utf8' }).trim();
 const hash = value => createHash('sha256').update(value).digest('hex');
 const uiDirectory = resolve(root, 'src/Hexalith.Tenants.UI');
-const assembly = resolve(uiDirectory, 'bin/Debug/net10.0/Hexalith.Tenants.UI.dll');
+const assembly = resolve(uiDirectory, 'bin/Debug/net11.0/Hexalith.Tenants.UI.dll');
 const captureSource = async () => {
     const untrackedHash = async repository => {
         const paths = git('-C', repository, 'ls-files', '--others', '--exclude-standard', '-z', '--', 'src').split('\0').filter(Boolean).sort();
@@ -137,7 +137,7 @@ try {
     Object.assign(evidence, sourceAfterBuild, {
         sourceBeforeBuild, sourceAfterBuild, validatorSha256: validatorBeforeBuild,
         localUiAssemblySha256: hash(await readFile(assembly)),
-        localShellAssemblySha256: hash(await readFile(resolve(uiDirectory, 'bin/Debug/net10.0/Hexalith.FrontComposer.Shell.dll'))),
+        localShellAssemblySha256: hash(await readFile(resolve(uiDirectory, 'bin/Debug/net11.0/Hexalith.FrontComposer.Shell.dll'))),
     });
     phase = 'fixture-start';
     upstream = createServer(async (request, response) => {

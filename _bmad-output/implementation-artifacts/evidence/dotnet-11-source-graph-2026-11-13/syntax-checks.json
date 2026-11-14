@@ -1,0 +1,137 @@
+[
+  {
+    "command": [
+      "node",
+      "--check",
+      "tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-navigation-focus.mjs"
+    ],
+    "exit_code": 0,
+    "output": ""
+  },
+  {
+    "command": [
+      "node",
+      "--check",
+      "tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-detail-audit-return.mjs"
+    ],
+    "exit_code": 0,
+    "output": ""
+  },
+  {
+    "command": [
+      "node",
+      "--check",
+      "tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-live-routes.mjs"
+    ],
+    "exit_code": 0,
+    "output": ""
+  },
+  {
+    "command": [
+      "node",
+      "--check",
+      "tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-workspace-focus.mjs"
+    ],
+    "exit_code": 0,
+    "output": ""
+  },
+  {
+    "command": [
+      "node",
+      "--check",
+      "tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-audit-layout.mjs"
+    ],
+    "exit_code": 0,
+    "output": ""
+  },
+  {
+    "command": [
+      "node",
+      "--check",
+      "tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-administrator-dialogs.mjs"
+    ],
+    "exit_code": 0,
+    "output": ""
+  },
+  {
+    "command": [
+      "node",
+      "--check",
+      "tests/Hexalith.Tenants.UI.Tests/Browser/validate-status-filter-label-browser.mjs"
+    ],
+    "exit_code": 0,
+    "output": ""
+  },
+  {
+    "command": [
+      "python3",
+      "ast.parse",
+      "references/Hexalith.FrontComposer/eng/adopter_proof.py"
+    ],
+    "exit_code": 0
+  },
+  {
+    "command": [
+      "python3",
+      "ast.parse",
+      "references/Hexalith.FrontComposer/eng/verify-isolated-readiness.py"
+    ],
+    "exit_code": 0
+  },
+  {
+    "command": [
+      "python3",
+      "ast.parse",
+      "references/Hexalith.FrontComposer/scripts/validate-consumer-package-references.py"
+    ],
+    "exit_code": 0
+  },
+  {
+    "command": [
+      "python3",
+      "ast.parse",
+      "references/Hexalith.FrontComposer/scripts/validate-nuget-packages.py"
+    ],
+    "exit_code": 0
+  },
+  {
+    "command": [
+      "python3",
+      "ast.parse",
+      "references/Hexalith.FrontComposer/tests/e2e/scripts/verify-isolated-readiness.test.py"
+    ],
+    "exit_code": 0
+  },
+  {
+    "command": [
+      "python3",
+      "ast.parse",
+      "references/Hexalith.FrontComposer/tests/eng/test_adopter_proof.py"
+    ],
+    "exit_code": 0
+  },
+  {
+    "command": [
+      "python3",
+      "ast.parse",
+      "references/Hexalith.Memories/tests/tooling/ci_alignment/ci_alignment_test.py"
+    ],
+    "exit_code": 0
+  },
+  {
+    "command": [
+      "python3",
+      "ast.parse",
+      "references/Hexalith.Memories/tests/tooling/coverage_gate/coverage_contract_test.py"
+    ],
+    "exit_code": 0
+  },
+  {
+    "command": [
+      "python3",
+      "ast.parse",
+      "references/Hexalith.Memories/tools/access_telemetry_producer_common.py"
+    ],
+    "exit_code": 0
+  }
+]

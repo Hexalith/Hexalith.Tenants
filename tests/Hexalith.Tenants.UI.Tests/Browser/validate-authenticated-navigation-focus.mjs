@@ -28,7 +28,7 @@ assert.ok(output, 'Supply a safe result JSON path');
 const git = (...args) => execFileSync('git', args, { cwd: root, encoding: 'utf8' }).trim();
 const hash = value => createHash('sha256').update(value).digest('hex');
 const uiDirectory = resolve(root, 'src/Hexalith.Tenants.UI');
-const assembly = resolve(uiDirectory, 'bin/Debug/net10.0/Hexalith.Tenants.UI.dll');
+const assembly = resolve(uiDirectory, 'bin/Debug/net11.0/Hexalith.Tenants.UI.dll');
 const evidence = {
     playwrightVersion: require(`${playwrightModule}/package.json`).version,
     startedUtc: new Date().toISOString(),
@@ -201,7 +201,7 @@ try {
     } catch {
         throw Object.assign(new Error(), { safeLabel: 'Current Debug source build failed' });
     }
-    const uiDependencies = JSON.parse(await readFile(resolve(uiDirectory, 'bin/Debug/net10.0/Hexalith.Tenants.UI.deps.json')));
+    const uiDependencies = JSON.parse(await readFile(resolve(uiDirectory, 'bin/Debug/net11.0/Hexalith.Tenants.UI.deps.json')));
     Object.assign(evidence, {
     sourceBaseRevision: git('rev-parse', 'HEAD'),
     sourceDiffSha256: hash(git('diff', '--binary', 'HEAD', '--', 'src/Hexalith.Tenants.UI')),
@@ -209,10 +209,10 @@ try {
     frontComposerDiffSha256: hash(git('-C', 'references/Hexalith.FrontComposer', 'diff', '--binary', 'HEAD', '--', 'src/Hexalith.FrontComposer.Shell')),
     validatorSha256: hash(await readFile(fileURLToPath(import.meta.url))),
     localUiAssemblySha256: hash(await readFile(assembly)),
-    localShellAssemblySha256: hash(await readFile(resolve(uiDirectory, 'bin/Debug/net10.0/Hexalith.FrontComposer.Shell.dll'))),
+    localShellAssemblySha256: hash(await readFile(resolve(uiDirectory, 'bin/Debug/net11.0/Hexalith.FrontComposer.Shell.dll'))),
     fluentPackageVersion: Object.keys(uiDependencies.libraries)
         .find(name => name.startsWith('Microsoft.FluentUI.AspNetCore.Components/'))?.split('/')[1],
-    fluentAssemblySha256: hash(await readFile(resolve(uiDirectory, 'bin/Debug/net10.0/Microsoft.FluentUI.AspNetCore.Components.dll'))),
+    fluentAssemblySha256: hash(await readFile(resolve(uiDirectory, 'bin/Debug/net11.0/Microsoft.FluentUI.AspNetCore.Components.dll'))),
     });
     phase = 'fixture-start';
     upstream = createServer(async (request, response) => {

@@ -25,7 +25,7 @@ const evidence = {
     sourceBaseRevision: git('rev-parse', 'HEAD'),
     sourceDiffSha256: hash(git('diff', '--binary', 'HEAD', '--', 'src/Hexalith.Tenants.UI')),
     validatorSha256: hash(await readFile(fileURLToPath(import.meta.url))),
-    localUiAssemblySha256: hash(await readFile(resolve(root, 'src/Hexalith.Tenants.UI/bin/Debug/net10.0/Hexalith.Tenants.UI.dll'))),
+    localUiAssemblySha256: hash(await readFile(resolve(root, 'src/Hexalith.Tenants.UI/bin/Debug/net11.0/Hexalith.Tenants.UI.dll'))),
     playwrightVersion: require(`${playwrightModule}/package.json`).version,
     startedUtc: new Date().toISOString(),
     records: ['DW-333', 'DW-335', 'DW-336', 'DW-357', 'DW-359'],

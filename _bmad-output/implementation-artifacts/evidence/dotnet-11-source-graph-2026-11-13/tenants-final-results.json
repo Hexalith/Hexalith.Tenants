@@ -1,0 +1,76 @@
+[
+  {
+    "name": "tenants-ui-final-source-build",
+    "command": [
+      "dotnet",
+      "build",
+      "tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj",
+      "-c",
+      "Debug",
+      "-m:1",
+      "-warnaserror",
+      "-p:UseHexalithProjectReferences=true",
+      "-p:NuGetAudit=false",
+      "-p:MinVerVersionOverride=1.0.0",
+      "--nologo"
+    ],
+    "exit_code": 0,
+    "log": "_bmad-output/implementation-artifacts/evidence/dotnet-11-source-graph-2026-11-13/tenants-ui-final-source-build.log",
+    "log_sha256": "f0cfc289286f548d4bc02e6889f09490b98f145944450a3b28888a2667c54b8c"
+  },
+  {
+    "name": "tenants-integration-final-source-build",
+    "command": [
+      "dotnet",
+      "build",
+      "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+      "-c",
+      "Debug",
+      "-m:1",
+      "-warnaserror",
+      "-p:UseHexalithProjectReferences=true",
+      "-p:NuGetAudit=false",
+      "-p:MinVerVersionOverride=1.0.0",
+      "--nologo"
+    ],
+    "exit_code": 0,
+    "log": "_bmad-output/implementation-artifacts/evidence/dotnet-11-source-graph-2026-11-13/tenants-integration-final-source-build.log",
+    "log_sha256": "713c45f612093fe79aa2775058cf8bff0ad21796e3add7679491d40057a39587"
+  },
+  {
+    "name": "tenants-ui-final-tests",
+    "command": [
+      "dotnet",
+      "tests/Hexalith.Tenants.UI.Tests/bin/Debug/net11.0/Hexalith.Tenants.UI.Tests.dll",
+      "-noLogo",
+      "-result-xml",
+      "/tmp/tenants-net11-repair-ng54_u4z/tenants-ui-final-tests.xml"
+    ],
+    "exit_code": 0,
+    "counts": {
+      "total": 8082,
+      "passed": 8082,
+      "failed": 0,
+      "skipped": 0,
+      "errors": 0
+    },
+    "xml": "/tmp/tenants-net11-repair-ng54_u4z/tenants-ui-final-tests.xml",
+    "xml_sha256": "483a4939820880e6ccec129874164e384eb08eeaa90d9e34ab819f882ae717b1",
+    "log": "_bmad-output/implementation-artifacts/evidence/dotnet-11-source-graph-2026-11-13/tenants-ui-final-tests.log",
+    "log_sha256": "07bc92083124ed90e82fe11c182d98ad7ed334614451ffb6d40d0c78fa3187b7",
+    "failing_tests": []
+  },
+  {
+    "name": "tenants-status-label-browser",
+    "command": [
+      "node",
+      "tests/Hexalith.Tenants.UI.Tests/Browser/validate-status-filter-label-browser.mjs",
+      "Debug",
+      "/usr/bin/google-chrome-stable",
+      "60"
+    ],
+    "exit_code": 0,
+    "log": "_bmad-output/implementation-artifacts/evidence/dotnet-11-source-graph-2026-11-13/tenants-status-label-browser.log",
+    "log_sha256": "ff38eb798d4c59433510e96e7a6eab151efc76e6ae7d115fef8458892bd2bc25"
+  }
+]

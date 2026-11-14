@@ -1,0 +1,250 @@
+{
+  "created_utc": "2026-11-13T22:41:47.412562+00:00",
+  "status": "in-review",
+  "review_head": "401d926eb7d51bdf332696ed3f0fe39a812b3501",
+  "baseline_commit": "cea24f9a2cc513beef36d42805634e21ffe217a4",
+  "review_diff": {
+    "path": "/tmp/tenants-timeout-final-review-goakq9uu/full-baseline.diff",
+    "sha256": "e659fc1ea93099f987ad8908428e4f2b25fad626e955f29148ad3f7ab1e0876b"
+  },
+  "layers_completed": [
+    "blind-hunter",
+    "edge-case-hunter",
+    "verification-gap"
+  ],
+  "native_timeout_verification_gaps": 0,
+  "findings": [
+    {
+      "id": "B1",
+      "claim": "Same-subject revocation during corroboration",
+      "verdict": "maybe-false",
+      "route": "defer",
+      "carried": true,
+      "evidence": "Original Blind 7; substitute-accessor boundary reproduction added; actual production-accessor combination remains unqualified."
+    },
+    {
+      "id": "B2",
+      "claim": "Zero-poll release acquisition budget",
+      "verdict": "medium",
+      "route": "defer",
+      "carried": true,
+      "evidence": "Original Blind 6; existing-fixture clock reproduction confirms a later ready package gets no probe."
+    },
+    {
+      "id": "B3",
+      "claim": "Mixed framework source dependency graph",
+      "verdict": "medium",
+      "route": "defer",
+      "carried": true,
+      "evidence": "Existing migration group; retained source gate fails NU1201/NU1202."
+    },
+    {
+      "id": "B4",
+      "claim": "Obsolete generated UI validation",
+      "verdict": "medium",
+      "route": "defer",
+      "carried": true,
+      "evidence": "Existing migration group; retained package fallback fails CS0618."
+    },
+    {
+      "id": "B5",
+      "claim": "Authenticated-route binary capture paths",
+      "verdict": "medium",
+      "route": "defer",
+      "carried": true,
+      "evidence": "Original Blind 2; net10.0 paths unchanged."
+    },
+    {
+      "id": "B6",
+      "claim": "Status-label browser executable path",
+      "verdict": "medium",
+      "route": "defer",
+      "carried": true,
+      "evidence": "Original Blind 3; net10.0 path unchanged."
+    },
+    {
+      "id": "B7",
+      "claim": "Four standalone browser output paths",
+      "verdict": "medium",
+      "route": "defer",
+      "carried": true,
+      "evidence": "Original Blind 4; paths unchanged."
+    },
+    {
+      "id": "B8",
+      "claim": "Workspace-focus assembly hash path",
+      "verdict": "medium",
+      "route": "defer",
+      "carried": true,
+      "evidence": "Original Blind 5; path unchanged."
+    },
+    {
+      "id": "B9",
+      "claim": "Noncooperating enrichment task outlives page cancellation",
+      "verdict": "medium",
+      "route": "defer",
+      "carried": false,
+      "evidence": "Original baseline already directly awaits the same detail tasks inside Task.WhenAll. Current production authorization handler also awaits authentication state without a cancellation-aware wait. Separate composed qualification and safe late-task handling required; no observed business-topology hang claimed."
+    },
+    {
+      "id": "B10",
+      "claim": "Separate delayed controls for every Dapr target",
+      "verdict": "false",
+      "route": "reject",
+      "carried": true,
+      "evidence": "Original Blind 8; configuration mapping checks plus real sidecar loading/exhaustion controls remain applicable; no new changed wiring defect."
+    },
+    {
+      "id": "E1",
+      "claim": "Post-corroboration authentication guard",
+      "verdict": "maybe-false",
+      "route": "defer",
+      "carried": true,
+      "evidence": "Original Blind 7; same boundary reproduction and production-accessor limitation as B1."
+    },
+    {
+      "id": "V1",
+      "claim": "Authenticated browser evidence uses net10.0 paths",
+      "verdict": "medium",
+      "route": "defer",
+      "carried": true,
+      "evidence": "Original Blind 2; verification layer reported no native-timeout verification gaps."
+    }
+  ],
+  "implementation_changes_this_pass": [],
+  "retained_evidence": {
+    "path": "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/native-read-timeout-review-2026-11-13/verification.json",
+    "sha256": "3b6439c16557033fd5049b75120c9080c4f7c345b62527b87c5fcaa621a06806"
+  },
+  "audit": {
+    "checks": [
+      {
+        "name": "Producer query resilience and composed registration",
+        "result": "retained XML hash and counts match",
+        "total": 30,
+        "passed": 30,
+        "failed": 0,
+        "skipped": 0,
+        "errors": 0
+      },
+      {
+        "name": "Root native authority and Dapr policy mappings",
+        "result": "retained XML hash and counts match",
+        "total": 49,
+        "passed": 49,
+        "failed": 0,
+        "skipped": 0,
+        "errors": 0
+      },
+      {
+        "name": "AppHost security and invocation-budget resource models",
+        "result": "retained XML hash and counts match",
+        "total": 50,
+        "passed": 50,
+        "failed": 0,
+        "skipped": 0,
+        "errors": 0
+      },
+      {
+        "name": "Existing production native/API HTTP transport controls",
+        "result": "retained XML hash and counts match",
+        "total": 35,
+        "passed": 35,
+        "failed": 0,
+        "skipped": 0,
+        "errors": 0
+      },
+      {
+        "name": "Functional browser timing and safe evidence controls",
+        "result": "retained log hash matches; 6 recorded passes"
+      },
+      {
+        "name": "Real isolated Dapr HTTPS qualification",
+        "result": "retained 15-case report passes; current original policy bytes match"
+      }
+    ],
+    "build_logs_matched": 6,
+    "changed_source_hashes_matched": 3,
+    "ordinary_passes_audited": 185,
+    "ordinary_test_cases_rerun_this_pass": 0,
+    "retry_mutation": "exactly the expected one-call guard failed with four calls",
+    "python_syntax": "pass"
+  },
+  "supplementary_reproductions": [
+    {
+      "name": "Principal corroboration boundary",
+      "command": "dotnet run --project /tmp/tenants-principal-race-review-m9ltkwnx/Review.csproj --configuration Debug --nologo",
+      "scope": "Links actual resolver/evidence/claims types; substitutes accessor and circuit-service types. It does not execute production ServerCircuitUserContextAccessor. Not counted among the 185 retained passes.",
+      "files": [
+        {
+          "path": "/tmp/tenants-principal-race-review-m9ltkwnx/Review.csproj",
+          "sha256": "0544ad1111549a6be36b831107a6dd3e7bdcfc121de9ebdca41ed0b5854ef5a6",
+          "contents": "<Project Sdk=\"Microsoft.NET.Sdk\"><PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net11.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable></PropertyGroup><ItemGroup><FrameworkReference Include=\"Microsoft.AspNetCore.App\" /><Compile Include=\"/home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.UI/Services/Configuration/TenantConfigurationPrincipalResolver.cs\" /><Compile Include=\"/home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.UI/Services/Configuration/TenantConfigurationPrincipalEvidence.cs\" /><Compile Include=\"/home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.UI/Services/Configuration/TenantConfigurationPrincipalEvidenceState.cs\" /><Compile Include=\"/home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.UI/Services/Configuration/ITenantConfigurationPrincipalResolver.cs\" /><Compile Include=\"/home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.UI/Services/Gateways/TenantsGlobalAdministratorClaims.cs\" /><Compile Include=\"/home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.UI/State/TenantDetail/TenantLifecycleAuthorizationReflectionState.cs\" /></ItemGroup></Project>"
+        },
+        {
+          "path": "/tmp/tenants-principal-race-review-m9ltkwnx/Program.cs",
+          "sha256": "5a296d13bb61190aae5dac1aab5483fee236225924af8a2effc5c3f2e49537dd",
+          "contents": "using System.Security.Claims;\nusing Hexalith.FrontComposer.Shell.Services.Auth;\nusing Hexalith.FrontComposer.Contracts.Rendering;\nusing Hexalith.Tenants.UI.Services.Configuration;\nusing Microsoft.AspNetCore.Components.Authorization;\nvar provider = new ControlledProvider();\nvar accessor = new ChangingAccessor(provider);\nvar resolver = new TenantConfigurationPrincipalResolver(new CircuitServicesAccessor(), accessor, provider);\nvar evidence = await resolver.ResolveAsync();\nConsole.WriteLine($\"Resolver result: {evidence.State}; current administrator: {provider.Current.User.HasClaim(\"global_admin\", \"true\")}\");\nsealed class ControlledProvider : AuthenticationStateProvider {\n public AuthenticationState Current { get; private set; } = new(new ClaimsPrincipal(new ClaimsIdentity([new Claim(\"sub\", \"same-subject\"), new Claim(\"global_admin\", \"true\"), new Claim(\"eventstore:tenant\", \"system\")], \"test\")));\n public override Task<AuthenticationState> GetAuthenticationStateAsync() => Task.FromResult(Current);\n public void Revoke() { Current = new(new ClaimsPrincipal(new ClaimsIdentity([new Claim(\"sub\", \"same-subject\"), new Claim(\"global_admin\", \"false\"), new Claim(\"eventstore:tenant\", \"system\")], \"test\"))); NotifyAuthenticationStateChanged(Task.FromResult(Current)); }\n}\nsealed class ChangingAccessor(ControlledProvider provider) : IUserContextAccessor { public string? UserId { get { provider.Revoke(); return \"same-subject\"; } } }\n"
+        },
+        {
+          "path": "/tmp/tenants-principal-race-review-m9ltkwnx/Stubs.cs",
+          "sha256": "9de3264faa84a9643517c0407dbe714baf7ba19af2fbb1de5c16935f8ce47883",
+          "contents": "global using Microsoft.AspNetCore.Http;\nnamespace Hexalith.FrontComposer.Shell.Services.Auth { public sealed class CircuitServicesAccessor { public IServiceProvider? Services { get; set; } } }\nnamespace Hexalith.FrontComposer.Contracts.Rendering { public interface IUserContextAccessor { string? UserId { get; } } }\n"
+        },
+        {
+          "path": "/tmp/tenants-principal-race-review-m9ltkwnx/output.log",
+          "sha256": "7d4cd4b023ad5ce1855118caa4b36d2168a4b0aaf1fcfeb3dd89bab4872d1928",
+          "contents": "Resolver result: GlobalAdministrator; current administrator: False\n"
+        }
+      ]
+    },
+    {
+      "name": "Zero-poll release acquisition",
+      "command": "python3 /tmp/tenants-zero-poll-review-repro.py",
+      "scope": "Existing release fixture with all five packages ready and injected monotonic elapsed time. No remote requests or publication.",
+      "files": [
+        {
+          "path": "/tmp/tenants-zero-poll-review-repro.py",
+          "sha256": "ab40ab5cd99cf2866468371dce295f6b73449c4134c8dc3a2076bc82a67a4596",
+          "contents": "import sys\nsys.path.insert(0, '/home/administrator/projects/hexalith/tenants/tests/scripts')\nfrom test_release_artifact_verification import ReleaseArtifactVerificationTests\n\ncase = ReleaseArtifactVerificationTests()\ntry:\n    case.setUp()\n    case.fixture.environment['HEXALITH_RELEASE_NUGET_WAIT_SECONDS'] = '0'\n    # Simulate five seconds spent between the first and second package checks.\n    case.fixture.set_monotonic_clock([0, 0, 0, 5_000_000, 5_000_000, 5_000_000])\n    result = case.run_verifier(False)\n    print('Exit:', result.returncode)\n    print('Error:', result.stderr.strip())\n    calls = [call for call in case.fixture.calls() if call[0] == 'curl']\n    print('NuGet request count:', len(calls))\n    print('Ready package count:', len(case.fixture.destinations['packages']))\nfinally:\n    case.doCleanups()\n"
+        },
+        {
+          "path": "/tmp/tenants-zero-poll-review-repro.log",
+          "sha256": "dceb91e7d99f81215bd61032f61e8a3e01ac75dca78fd3e8abb1749136b10427",
+          "contents": "Exit: 1\nError: [partial-release-recovery] NuGet package Fixture.Package1 was not ready within 0 seconds.\nNuGet request count: 1\nReady package count: 5\n"
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "Full integration source graph fails NU1201/NU1202 because net10.0 FrontComposer/Memories projects consume net11.0 dependencies.",
+    "Serialized full Release/package fallback fails CS0618 in generated CreateTenantCommand EditContext.Validate(). No warnings or dependency gates were relaxed.",
+    "The changed protected-UI fixture and current UI C# deadline tests could not be compiled/executed as part of their full integration/UI graph. The 150-second resource selection was inspected; synthetic browser timing is separate evidence.",
+    "An initial isolated source transport runner compiled but could not load the matching 5.0.0 source assembly identity; its result is not counted. The successful runner explicitly uses the unchanged current root package selections, confirmed via dotnet msbuild src/Hexalith.Tenants.Api/Hexalith.Tenants.Api.csproj -p:UseNuGetDeps=true -getProperty:HexalithEventStoreVersion,HexalithMcpCliVersion,TargetFramework.",
+    "No full business AppHost/private business runtime, live native-removal topology, new registry-availability qualification, CI or publication was run.",
+    "The earlier historical /tmp/tenants-release-20261103-07JciR files are absent; their claims were not substituted for this session evidence."
+  ],
+  "deferred_work": "Only B9 appended; carried groups not duplicated. Historical evidence and earlier entries preserved.",
+  "final_checks": [
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    },
+    {
+      "command": "python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-align-native-read-timeout-budgets.md --ref ae40c9657175ae5567cdd182384d3840af64d8a2",
+      "exit_code": 0,
+      "result": "PASS; all six historical pointers declared"
+    },
+    {
+      "command": "python3 -m json.tool _bmad-output/implementation-artifacts/evidence/native-read-timeout-review-2026-11-13/final-review.json /dev/null",
+      "exit_code": 0
+    }
+  ],
+  "completion": {
+    "spec_status": "in-review",
+    "reason": "Required full integration/UI gates remain blocked by the recorded framework-cohort and generated-code errors. The repository baseline requires relevant tests to pass before completion.",
+    "commit_created": false,
+    "commit_reason": "The existing accepted spec explicitly prohibits staging/commits; pre-existing working-tree changes are preserved.",
+    "runtime_or_release_operations": false
+  }
+}

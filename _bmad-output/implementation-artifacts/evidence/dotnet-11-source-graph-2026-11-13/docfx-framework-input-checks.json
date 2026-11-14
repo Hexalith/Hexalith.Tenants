@@ -1,0 +1,38 @@
+[
+  {
+    "docfx_input": "src/Hexalith.FrontComposer.Contracts/bin/Release/net11.0/Hexalith.FrontComposer.Contracts.dll",
+    "declared_frameworks": [
+      "net11.0",
+      "netstandard2.0"
+    ],
+    "selected_framework": "net11.0"
+  },
+  {
+    "docfx_input": "src/Hexalith.FrontComposer.Contracts.UI/bin/Release/net11.0/Hexalith.FrontComposer.Contracts.UI.dll",
+    "declared_frameworks": [
+      "net11.0"
+    ],
+    "selected_framework": "net11.0"
+  },
+  {
+    "docfx_input": "src/Hexalith.FrontComposer.Shell/bin/Release/net11.0/Hexalith.FrontComposer.Shell.dll",
+    "declared_frameworks": [
+      "net11.0"
+    ],
+    "selected_framework": "net11.0"
+  },
+  {
+    "docfx_input": "src/Hexalith.FrontComposer.SourceTools/bin/Release/netstandard2.0/Hexalith.FrontComposer.SourceTools.dll",
+    "declared_frameworks": [
+      "netstandard2.0"
+    ],
+    "selected_framework": "netstandard2.0"
+  },
+  {
+    "docfx_input": "src/Hexalith.FrontComposer.Mcp/bin/Release/net11.0/Hexalith.FrontComposer.Mcp.dll",
+    "declared_frameworks": [
+      "net11.0"
+    ],
+    "selected_framework": "net11.0"
+  }
+]

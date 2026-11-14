@@ -5598,3 +5598,25 @@ archived: 2026-10-22
 - source_spec: `_bmad-output/implementation-artifacts/spec-fix-builds-sdk-cohort-fixtures.md`
   summary: Hexalith.Builds should reconcile pre-existing synthetic Source readiness Dapr metadata with its manifest and assess that profile's explicit pin-binding contract.
   evidence: The unchanged baseline positive release-passed.json reports Dapr runtime 1.18.0 while its bound manifest selects 1.18.7; full G4 acceptance separately checks all supported pins. This is not a regression or a failed CI assertion from the EventStore 4.0.2 refresh.
+
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-align-native-read-timeout-budgets.md`
+  summary: Complete the later .NET 11 migration across browser binary paths and the FrontComposer/Memories build cohort.
+  evidence: Resumed review at 401d926eb7d51bdf332696ed3f0fe39a812b3501 confirms net10.0 output paths in validate-authenticated-live-routes.mjs, validate-status-filter-label-browser.mjs, validate-authenticated-administrator-dialogs.mjs, validate-authenticated-navigation-focus.mjs, validate-authenticated-detail-audit-return.mjs, validate-authenticated-audit-layout.mjs and validate-authenticated-workspace-focus.mjs. Migration dc33fda90beea8ee9352b15cb061bf01dbf5f178 changed Tenants to net11.0; source integration restore now fails NU1201/NU1202 against net10.0 FrontComposer/Memories projects, while serialized package fallback fails CS0618 in generated CreateTenantCommand validation. Exact commands and logs are retained in this spec's verification artifact; no dependency or warning gate was weakened.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-align-native-read-timeout-budgets.md`
+  summary: Preserve every package's immediate acquisition probe when zero-poll release verification includes slow signature checks.
+  evidence: scripts/verify-release-artifacts.sh sets one five-second cohort deadline before its five-package loop, then runs comparison/native signature validation between acquisitions. Verification taking most of that interval prevents later already-published packages receiving their documented one-second immediate probe. This belongs to separate release-verification commit 8eaf6f601d82bcb4a92ed89aa1c2dcdc8815baa8; add a delayed-verifier control before choosing how acquisition and verification share the bound.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-align-native-read-timeout-budgets.md`
+  summary: Investigate an unverified same-subject authentication-change race while corroborating configuration principal evidence.
+  evidence: Unverified medium finding outside the timeout repair. TenantConfigurationPrincipalResolver.ResolveAsync checks authenticationChanged before userContextAccessor.UserId; ServerCircuitUserContextAccessor.UserId can call GetAuthenticationStateAsync again. A deterministic provider control must establish whether revocation during that second resolution can return the earlier principal's privileged evidence, then verify fail-closed behavior if reproduced. The resolver change belongs to later commit dc33fda90beea8ee9352b15cb061bf01dbf5f178.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-align-native-read-timeout-budgets.md`
+  summary: Qualify and enforce supplementary-page completion when an enrichment dependency ignores cancellation.
+  evidence: Medium, pre-existing boundary limitation. Both original baseline cea24f9a2cc513beef36d42805634e21ffe217a4 and current TenantQueryGateway.EnrichRowsAsync await detail tasks directly inside Task.WhenAll; cancelling the page token alone cannot complete an uncooperative task. The current production FrontComposerGatewayAuthorizationHandler awaits FrontComposerTokenSession.ReadPrincipalAsync, which awaits AuthenticationStateProvider without a cancellation-aware wait. Add a controlled pending-authentication/provider case and preserve caller isolation, fatal failures, late-task observation and bounded concurrency when selecting a fix. Existing deadline tests establish cooperative transport cancellation; no observed business-topology hang is claimed.
+
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-repair-current-mcpcli-published-cohort-ci.md`
+  summary: Complete the remaining McpCli census source classifications and exact-source hosted qualification after specific owning-maintainer approval.
+  evidence: The unchanged candidate checker still refuses eight earlier allowance source drifts and four inspection errors at the recorded McpCli source pins. The packet evidence/mcpcli-current-ci-2026-11-14/remaining-census-followup.json and source-context-comparison.json bind all observed paths, old/current digests and newer Platform closure differences. Amendment 1.0.8 authorizes only the two new EventStore identities; all other decisions and committed/hosted/native acceptance remain pending.

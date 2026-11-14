@@ -1,0 +1,121 @@
+[
+  {
+    "project": "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+    "command": [
+      "dotnet",
+      "build",
+      "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+      "--configuration",
+      "Debug",
+      "-m:1",
+      "-p:UseHexalithProjectReferences=true",
+      "-p:MinVerVersionOverride=1.0.0",
+      "-warnaserror"
+    ],
+    "cwd": "/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer",
+    "exit_code": 0,
+    "log": "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/dotnet-11-source-graph-2026-11-13/frontcomposer-sourcetools-final-source-build.log"
+  },
+  {
+    "project": "tests/Hexalith.FrontComposer.Shell.Tests/Hexalith.FrontComposer.Shell.Tests.csproj",
+    "command": [
+      "dotnet",
+      "build",
+      "tests/Hexalith.FrontComposer.Shell.Tests/Hexalith.FrontComposer.Shell.Tests.csproj",
+      "--configuration",
+      "Debug",
+      "-m:1",
+      "-p:UseHexalithProjectReferences=true",
+      "-p:MinVerVersionOverride=1.0.0",
+      "-warnaserror"
+    ],
+    "cwd": "/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer",
+    "exit_code": 0,
+    "log": "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/dotnet-11-source-graph-2026-11-13/frontcomposer-shell-final-source-build.log"
+  },
+  {
+    "project": "tests/Hexalith.FrontComposer.Contracts.Tests/Hexalith.FrontComposer.Contracts.Tests.csproj",
+    "command": [
+      "dotnet",
+      "build",
+      "tests/Hexalith.FrontComposer.Contracts.Tests/Hexalith.FrontComposer.Contracts.Tests.csproj",
+      "--configuration",
+      "Debug",
+      "-m:1",
+      "-p:UseHexalithProjectReferences=true",
+      "-p:MinVerVersionOverride=1.0.0",
+      "-warnaserror"
+    ],
+    "cwd": "/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer",
+    "exit_code": 0,
+    "log": "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/dotnet-11-source-graph-2026-11-13/frontcomposer-contracts-final-source-build.log"
+  },
+  {
+    "project": "tests/Hexalith.FrontComposer.Contracts.UI.Tests/Hexalith.FrontComposer.Contracts.UI.Tests.csproj",
+    "command": [
+      "dotnet",
+      "build",
+      "tests/Hexalith.FrontComposer.Contracts.UI.Tests/Hexalith.FrontComposer.Contracts.UI.Tests.csproj",
+      "--configuration",
+      "Debug",
+      "-m:1",
+      "-p:UseHexalithProjectReferences=true",
+      "-p:MinVerVersionOverride=1.0.0",
+      "-warnaserror"
+    ],
+    "cwd": "/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer",
+    "exit_code": 0,
+    "log": "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/dotnet-11-source-graph-2026-11-13/frontcomposer-contracts-ui-final-source-build.log"
+  },
+  {
+    "project": "tests/Hexalith.FrontComposer.Testing.Tests/Hexalith.FrontComposer.Testing.Tests.csproj",
+    "command": [
+      "dotnet",
+      "build",
+      "tests/Hexalith.FrontComposer.Testing.Tests/Hexalith.FrontComposer.Testing.Tests.csproj",
+      "--configuration",
+      "Debug",
+      "-m:1",
+      "-p:UseHexalithProjectReferences=true",
+      "-p:MinVerVersionOverride=1.0.0",
+      "-warnaserror"
+    ],
+    "cwd": "/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer",
+    "exit_code": 0,
+    "log": "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/dotnet-11-source-graph-2026-11-13/frontcomposer-testing-final-source-build.log"
+  },
+  {
+    "project": "tests/Hexalith.FrontComposer.Mcp.Tests/Hexalith.FrontComposer.Mcp.Tests.csproj",
+    "command": [
+      "dotnet",
+      "build",
+      "tests/Hexalith.FrontComposer.Mcp.Tests/Hexalith.FrontComposer.Mcp.Tests.csproj",
+      "--configuration",
+      "Debug",
+      "-m:1",
+      "-p:UseHexalithProjectReferences=true",
+      "-p:MinVerVersionOverride=1.0.0",
+      "-warnaserror"
+    ],
+    "cwd": "/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer",
+    "exit_code": 0,
+    "log": "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/dotnet-11-source-graph-2026-11-13/frontcomposer-mcp-final-source-build-3.log"
+  },
+  {
+    "project": "tests/Hexalith.FrontComposer.Shell.Tests.Bench/Hexalith.FrontComposer.Shell.Tests.Bench.csproj",
+    "command": [
+      "dotnet",
+      "build",
+      "tests/Hexalith.FrontComposer.Shell.Tests.Bench/Hexalith.FrontComposer.Shell.Tests.Bench.csproj",
+      "--configuration",
+      "Debug",
+      "-m:1",
+      "-p:UseHexalithProjectReferences=true",
+      "-p:MinVerVersionOverride=1.0.0",
+      "-warnaserror"
+    ],
+    "cwd": "/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer",
+    "exit_code": 0,
+    "log": "_bmad-output/implementation-artifacts/evidence/dotnet-11-source-graph-2026-11-13/frontcomposer-bench-source-build.log"
+  }
+]

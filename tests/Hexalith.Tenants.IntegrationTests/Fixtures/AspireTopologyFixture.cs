@@ -34,6 +34,8 @@ public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith
     private static readonly TimeSpan SampleHealthTimeout = TimeSpan.FromMinutes(2);
     private static readonly TimeSpan CommandApiClientTimeout = TimeSpan.FromSeconds(60);
     private static readonly TimeSpan TenantsApiClientTimeout = TimeSpan.FromSeconds(60);
+    // A protected page can await an initial read followed by the 90-second supplementary page budget.
+    private static readonly TimeSpan TenantsUiClientTimeout = TimeSpan.FromSeconds(150);
     private static readonly TimeSpan SampleClientTimeout = TimeSpan.FromSeconds(30);
     private static readonly TimeSpan BootstrapReadinessTimeout = TimeSpan.FromMinutes(2);
 
@@ -496,7 +498,7 @@ public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith
     [
         new("eventstore", "http", CommandApiClientTimeout, CommandApiHealthTimeout, WaitForAliveness: true, CommandApiHealthTimeout),
         new("tenants", "http", CommandApiClientTimeout, CommandApiHealthTimeout, WaitForAliveness: true, CommandApiHealthTimeout),
-        new("tenants-ui", "http", CommandApiClientTimeout, CommandApiHealthTimeout, WaitForAliveness: false, CommandApiHealthTimeout),
+        new("tenants-ui", "http", TenantsUiClientTimeout, CommandApiHealthTimeout, WaitForAliveness: false, CommandApiHealthTimeout),
         new("eventstore-dapr-cli", "http", TenantsApiClientTimeout, TenantsApiHealthTimeout, WaitForAliveness: false, TenantsApiHealthTimeout),
         new("tenants-dapr-cli", "http", TenantsApiClientTimeout, TenantsApiHealthTimeout, WaitForAliveness: false, TenantsApiHealthTimeout),
         new("tenants-ui-dapr-cli", "http", TenantsApiClientTimeout, TenantsApiHealthTimeout, WaitForAliveness: false, TenantsApiHealthTimeout),

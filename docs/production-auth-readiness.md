@@ -263,9 +263,10 @@ receiver authentication remains authoritative. No value is selected or normalize
 into a valid credential.
 
 The existing typed gateway client serves six queries and eleven commands. Its
-standard resilience retains a 30-second attempt/total budget, retries and circuit
+standard resilience uses a 50-second attempt/total budget, retries and circuit
 breaker. These are cooperative HTTP budgets; SDK durable lease cleanup can outlive
-cancellation. Other clients, Dapr policies and authorization rules are unchanged.
+cancellation. The enclosing Dapr bounds are documented above; unrelated clients
+and authorization rules retain their existing behavior.
 
 ## Manual Deployment Smoke Checks
 

@@ -1,0 +1,96 @@
+{
+  "created_utc": "2026-11-14T00:16:42.424273+00:00",
+  "implementation_status": "complete for the requested .NET 11 source migration",
+  "workflow_status": "in-review; broader owner governance/readiness prerequisites remain unqualified",
+  "scope": "Tenants source graph, FrontComposer/Memories targets and active tooling, generated async validation and necessary Blazor compatibility corrections; standard and historical compatibility retained.",
+  "installed_runtime_probe": {
+    "dotnet_sdk": "11.0.100",
+    "netcore": "11.0.0",
+    "aspnetcore": "11.0.0"
+  },
+  "core": {
+    "post_review_source_builds": "UI and Integration; both Debug/project references with -warnaserror; zero warnings/errors",
+    "ui": 8082,
+    "native_api_transport": 35,
+    "failures": 0,
+    "skips": 0,
+    "details": [
+      "tenants-post-review-results.json",
+      "tenants-test-results.json"
+    ]
+  },
+  "owner": {
+    "current_distinct_selected_cases": 411,
+    "composition": {
+      "emitter_snapshots": 68,
+      "affected_shell_behavior": 309,
+      "focused_governance": 9,
+      "contracts_ui_source_boundary": 3,
+      "testing_source_boundary": 3,
+      "mcp_source_controls": 19
+    },
+    "review_patch_checks": 119,
+    "details": [
+      "frontcomposer-owner-build-results.json",
+      "frontcomposer-owner-test-results.json",
+      "post-review-owner-behavior-results.json",
+      "post-review-governance-results.json",
+      "review-fixes-results.json"
+    ]
+  },
+  "focused_python_cli_cases": {
+    "total": 102,
+    "adopter_runtime_and_quality": 27,
+    "memories_prerequisites": 19,
+    "memories_ci_alignment": 15,
+    "memories_coverage_tools": 40,
+    "focused_readiness": 1
+  },
+  "distinct_passing_cases_counted_once": 8630,
+  "chromium_status_label_control": "pass using the rebuilt net11.0 test executable; stale-name mutation rejected",
+  "review": {
+    "layers_completed": 3,
+    "findings": 13,
+    "patched": 13,
+    "new_deferrals": 0,
+    "triage": "spec-complete-dotnet-11-source-graph.md"
+  },
+  "source_snapshots": {
+    "Tenants": {
+      "head": "401d926eb7d51bdf332696ed3f0fe39a812b3501",
+      "product_diff_sha256": "6948b1c44ec4073b44f73e6bf6fa47330226020b8cd2ddc51a7f784f57347a55"
+    },
+    "FrontComposer": {
+      "head": "19418a0c29daf38eef03b0891958cd8aa93c59bf",
+      "product_diff_sha256": "4f3ed0a34018c440ce4d7d02b6148152d6dbcedca1af8f16a6666bfc76606d98"
+    },
+    "Memories": {
+      "head": "a3f0b3a4a0f0905f6b88da039491ceb286103207",
+      "product_diff_sha256": "57b6692aadc702d3c882f3526ba64afaff607a9e26bad39e6c40049faeecfa2b"
+    }
+  },
+  "preservation": {
+    "all_preexisting_tracked_change_hashes_match": true,
+    "root_submodule_pointers_moved": false,
+    "nested_submodules_initialized": false,
+    "commits_staging_push_or_publication": false
+  },
+  "limitations": [
+    "Four broader FrontComposer governance cases remain unqualified: one assumes an unavailable nested Builds catalog; three unchanged synthetic release fixtures omit that catalog. Exact cases, commands and tracebacks are in frontcomposer-owner-verification.md.",
+    "The full isolated readiness suite separately encounters an unavailable nested AI.Tools baseline; its directly changed focused case passes. No nested checkout was initialized.",
+    "Fresh Release/package archive or package-only consumer qualification, full business AppHost topology and registry publication were not run. Source proof does not replace those lanes."
+  ],
+  "raw_report_location": "/tmp/tenants-net11-repair-ng54_u4z/",
+  "report_files": {
+    "docfx-framework-input-checks.json": "3ac2a5f831499b02cd25e1001577478d364d3ffc549ea4aefcb222b31a62a57a",
+    "frontcomposer-owner-build-results.json": "01b54023b5fb4b7c30f98d000a0546d7c5765e0a13c88ad69331983d41eb86ce",
+    "frontcomposer-owner-test-results.json": "713e4f92d365c52b346f834fef2fba513d2ebc16e5ef9815d6fc226a9642c9fc",
+    "post-review-governance-results.json": "197708b27cf261d4b7ddffc8cdbbfa54ddda8ae962e3b9cdb097201893dc2070",
+    "post-review-owner-behavior-results.json": "f8e10ececf17ab51f33a7313dc0c6995ba9dafaa5153f872300a70999de119a1",
+    "review-fixes-results.json": "292580c82356c405dc8c1ae28510db18927ea4dc6135698cdfc223fb04deacfd",
+    "syntax-checks.json": "ebcea46411adc67099007106d2daaba837706e5ffc07311da047feecfe8d01e9",
+    "tenants-final-results.json": "12f5c1696d9427279b9af3dd513ad0a7bed54d2fdcf1676fd1f61bdfe4657491",
+    "tenants-post-review-results.json": "104e312aa3fc8c29a5dfc94932e8833ae099391bfb9ca5438c708dda96bb33a1",
+    "tenants-test-results.json": "744373e9321b2b019c69e73920a1fc9cbd5b4722a0f1ea1c80e3af9ca85aa31c"
+  }
+}

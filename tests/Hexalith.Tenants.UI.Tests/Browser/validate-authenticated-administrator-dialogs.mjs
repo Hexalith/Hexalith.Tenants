@@ -48,7 +48,7 @@ assert.ok(output, 'Supply a safe result JSON path');
 const git = (...args) => execFileSync('git', args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
 const hash = value => createHash('sha256').update(value).digest('hex');
 const uiDirectory = resolve(root, 'src/Hexalith.Tenants.UI');
-const assembly = resolve(uiDirectory, 'bin/Debug/net10.0/Hexalith.Tenants.UI.dll');
+const assembly = resolve(uiDirectory, 'bin/Debug/net11.0/Hexalith.Tenants.UI.dll');
 const captureSource = async () => {
     const untrackedHash = async repository => {
         const paths = git('-C', repository, 'ls-files', '--others', '--exclude-standard', '-z', '--', 'src').split('\0').filter(Boolean).sort();
@@ -231,13 +231,13 @@ try {
         ...sourceAfterBuild,
         validatorSha256: hash(await readFile(fileURLToPath(import.meta.url))),
         localUiAssemblySha256: hash(await readFile(assembly)),
-        localShellAssemblySha256: hash(await readFile(resolve(uiDirectory, 'bin/Debug/net10.0/Hexalith.FrontComposer.Shell.dll'))),
+        localShellAssemblySha256: hash(await readFile(resolve(uiDirectory, 'bin/Debug/net11.0/Hexalith.FrontComposer.Shell.dll'))),
     });
     if (handoff) {
-        const dependencies = JSON.parse(await readFile(resolve(uiDirectory, 'bin/Debug/net10.0/Hexalith.Tenants.UI.deps.json')));
+        const dependencies = JSON.parse(await readFile(resolve(uiDirectory, 'bin/Debug/net11.0/Hexalith.Tenants.UI.deps.json')));
         evidence.fluentPackageVersion = Object.keys(dependencies.libraries)
             .find(name => name.startsWith('Microsoft.FluentUI.AspNetCore.Components/'))?.split('/')[1];
-        evidence.fluentAssemblySha256 = hash(await readFile(resolve(uiDirectory, 'bin/Debug/net10.0/Microsoft.FluentUI.AspNetCore.Components.dll')));
+        evidence.fluentAssemblySha256 = hash(await readFile(resolve(uiDirectory, 'bin/Debug/net11.0/Microsoft.FluentUI.AspNetCore.Components.dll')));
     }
     phase = 'fixture-start';
     upstream = createServer(async (request, response) => {

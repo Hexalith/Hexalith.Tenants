@@ -1,0 +1,430 @@
+{
+  "created_utc": "2026-11-13T22:04:04.483956+00:00",
+  "spec": "_bmad-output/implementation-artifacts/spec-align-native-read-timeout-budgets.md",
+  "status": "in-review",
+  "review_head": "401d926eb7d51bdf332696ed3f0fe39a812b3501",
+  "producer_source_head": "639c9d5c0c8c8fba14aaec536dd1c2e3ceaccc13",
+  "ordinary_cases_passed": 185,
+  "ordinary_cases_failed": 0,
+  "ordinary_cases_skipped": 0,
+  "checks": [
+    {
+      "name": "Producer query resilience and composed registration",
+      "mode": "Debug source; run from /home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore",
+      "command": "dotnet tests/Hexalith.EventStore.Server.Tests/bin/Debug/net11.0/Hexalith.EventStore.Server.Tests.dll -class Hexalith.EventStore.Server.Tests.Queries.DomainQueryResilienceTests -class Hexalith.EventStore.Server.Tests.Queries.QueryRouterComposedRegistrationTests -noLogo -xml /tmp/tenants-native-timeout-review-rtfo741u/producer-tests.xml",
+      "results_xml": {
+        "path": "/tmp/tenants-native-timeout-review-rtfo741u/producer-tests.xml",
+        "sha256": "d68e15b2d4a6540473cf5a2d33bb5f68af7c7af0ef55f02a84bd5dc6124ee5cf"
+      },
+      "total": 30,
+      "passed": 30,
+      "failed": 0,
+      "skipped": 0,
+      "errors": 0
+    },
+    {
+      "name": "Root native authority and Dapr policy mappings",
+      "mode": "Debug source",
+      "command": "dotnet tests/Hexalith.Tenants.Server.Tests/bin/Debug/net11.0/Hexalith.Tenants.Server.Tests.dll -class Hexalith.Tenants.Server.Tests.Authorization.TenantOwnerSourceRuntimeTests -class Hexalith.Tenants.Server.Tests.Authorization.TenantsGlobalAdministratorVerifierTests -class Hexalith.Tenants.Server.Tests.Configuration.EventPublicationConfigurationTests -noLogo -xml /tmp/tenants-native-timeout-review-rtfo741u/server-tests.xml",
+      "results_xml": {
+        "path": "/tmp/tenants-native-timeout-review-rtfo741u/server-tests.xml",
+        "sha256": "c7a5f330cfe04e8008d63d14dc9abb0f5b683e35287b327220397e20fcbfd16a"
+      },
+      "total": 49,
+      "passed": 49,
+      "failed": 0,
+      "skipped": 0,
+      "errors": 0
+    },
+    {
+      "name": "AppHost security and invocation-budget resource models",
+      "mode": "Release/package fallback; model-only, no AppHost runtime",
+      "command": "dotnet tests/Hexalith.Tenants.AppHost.Tests/bin/Release/net11.0/Hexalith.Tenants.AppHost.Tests.dll -class Hexalith.Tenants.AppHost.Tests.SourceAuthorityInvocationBudgetTests -class Hexalith.Tenants.AppHost.Tests.AppHostSecurityResourceGraphTests -noLogo -xml /tmp/tenants-native-timeout-review-rtfo741u/apphost-model-tests.xml",
+      "results_xml": {
+        "path": "/tmp/tenants-native-timeout-review-rtfo741u/apphost-model-tests.xml",
+        "sha256": "aded425b9854c76824caf85f1d33d3844a86b7669d4ac0372ba226901e8d2eb7"
+      },
+      "total": 50,
+      "passed": 50,
+      "failed": 0,
+      "skipped": 0,
+      "errors": 0
+    },
+    {
+      "name": "Existing production native/API HTTP transport controls",
+      "mode": "Focused temporary project links unchanged existing tests and actual Tenants/API projects; current root package pins 4.2.0 and 2.0.1, not source SDK 5.0.0",
+      "command": "dotnet /tmp/tenants-native-timeout-review-rtfo741u/focused-transports/bin/Debug/net11.0/Hexalith.Tenants.IntegrationTests.dll -class Hexalith.Tenants.IntegrationTests.TenantOwnerSourceGatewayTests -class Hexalith.Tenants.IntegrationTests.TenantsApiGatewayResilienceTests -noLogo -result-xml /tmp/tenants-native-timeout-review-rtfo741u/focused-transports-package-tests.xml",
+      "results_xml": {
+        "path": "/tmp/tenants-native-timeout-review-rtfo741u/focused-transports-package-tests.xml",
+        "sha256": "e91df1b5e6872bbd589666cf4f46f3fe1624ddd7bb316b43e49c3d50dd0b89b3"
+      },
+      "total": 35,
+      "passed": 35,
+      "failed": 0,
+      "skipped": 0,
+      "errors": 0
+    },
+    {
+      "name": "Functional browser timing and safe evidence controls",
+      "command": "node --test tests/Hexalith.Tenants.UI.Tests/Browser/authenticated-live-route-waits.test.mjs tests/Hexalith.Tenants.UI.Tests/Browser/authenticated-live-route-evidence.test.mjs",
+      "total": 6,
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0,
+      "log": {
+        "path": "/tmp/tenants-native-timeout-review-rtfo741u/browser-controls.log",
+        "sha256": "aaf1581909a9f5f677a807d56ff4de55c56433ca89fbbfa4f9a923af8e2095bb"
+      },
+      "notes": "Includes actual Chromium 31-second navigation/readiness and 91-second composed prerender. Initial attempt lacked the pinned browser binary; installed it with the existing Playwright CLI and reran successfully."
+    },
+    {
+      "name": "Real isolated Dapr HTTPS qualification",
+      "command": "python3 tests/integration/qualify-dapr-read-retries.py --output /tmp/tenants-native-timeout-review-rtfo741u/dapr-final-normal.json",
+      "total": 15,
+      "passed": 15,
+      "failed": 0,
+      "skipped": 0,
+      "report": {
+        "runtime": "1.18.7",
+        "mutation": false,
+        "deadlineControls": "normal-only: 31-second success and configured finite exhaustion",
+        "originalControlCount": 13,
+        "namespace": "tenants-retries-e58967858222",
+        "productionAclSha256": "21dc7d747d9465d4f3e93c7c5ad66431dd55574d1a62a478f5cc12171dee666b",
+        "productionResiliencySha256": "5ac59d117ff27326121fdcdb77f152e90acada09a4e212e9d29ed45482061fb3",
+        "loadedResiliencySha256": "1580a5938455d1ecc001a8da4f544597dcde0f25f0df1000f0c614d53febfdf8",
+        "results": [
+          {
+            "case": "tenants-ui cannot load Memories capabilities",
+            "status": 200,
+            "expected": 200,
+            "pass": true
+          },
+          {
+            "case": "tenants-api cannot load Memories capabilities",
+            "status": 200,
+            "expected": 200,
+            "pass": true
+          },
+          {
+            "case": "authorized /api/tenants",
+            "status": 200,
+            "expected": 200,
+            "diagnostic": "",
+            "pass": true
+          },
+          {
+            "case": "authorized /api/tenants/tenant.alpha",
+            "status": 200,
+            "expected": 200,
+            "diagnostic": "",
+            "pass": true
+          },
+          {
+            "case": "authorized /api/tenants/tenant.alpha/users",
+            "status": 200,
+            "expected": 200,
+            "diagnostic": "",
+            "pass": true
+          },
+          {
+            "case": "authorized /api/tenants/tenant.alpha/audit",
+            "status": 200,
+            "expected": 200,
+            "diagnostic": "",
+            "pass": true
+          },
+          {
+            "case": "authorized /api/users/user.alpha/tenants",
+            "status": 200,
+            "expected": 200,
+            "diagnostic": "",
+            "pass": true
+          },
+          {
+            "case": "authorized /api/global-administrators",
+            "status": 200,
+            "expected": 200,
+            "diagnostic": "",
+            "pass": true
+          },
+          {
+            "case": "conditional304",
+            "status": 304,
+            "expected": 304,
+            "pass": true
+          },
+          {
+            "case": "denied caller",
+            "status": 403,
+            "expected": 403,
+            "pass": true
+          },
+          {
+            "case": "denied verb",
+            "status": 403,
+            "expected": 403,
+            "pass": true
+          },
+          {
+            "case": "no retry on 503",
+            "status": 503,
+            "backendCalls": 1,
+            "expected": 503,
+            "pass": true
+          },
+          {
+            "case": "denied unrelated path",
+            "status": 403,
+            "expected": 403,
+            "pass": true
+          },
+          {
+            "case": "31-second HTTPS read survives former timeout",
+            "expected": 200,
+            "pass": true,
+            "status": 200,
+            "elapsedSeconds": 31.003458666999904,
+            "backendCalls": 1
+          },
+          {
+            "case": "configured Dapr deadline rejects one HTTPS read",
+            "expected": 500,
+            "configuredTimeoutSeconds": 60,
+            "pass": true,
+            "status": 500,
+            "errorCode": "ERR_DIRECT_INVOKE",
+            "elapsedSeconds": 60.00153561199977,
+            "backendCalls": 1
+          }
+        ],
+        "backendCounts": {
+          "('GET', '/dapr/config')": 1,
+          "('GET', '/api/tenants')": 1,
+          "('GET', '/api/tenants/tenant.alpha')": 2,
+          "('GET', '/api/tenants/tenant.alpha/users')": 1,
+          "('GET', '/api/tenants/tenant.alpha/audit')": 1,
+          "('GET', '/api/users/user.alpha/tenants')": 1,
+          "('GET', '/api/global-administrators')": 1,
+          "('GET', '/api/tenants/failure')": 1,
+          "('GET', '/api/tenants/slow-success')": 1,
+          "('GET', '/api/tenants/deadline-exhaustion')": 1
+        }
+      }
+    }
+  ],
+  "retry_mutation": {
+    "command": "python3 tests/integration/qualify-dapr-read-retries.py --output /tmp/tenants-native-timeout-review-rtfo741u/dapr-final-mutation.json --mutate-retries",
+    "expected_exit_code": 1,
+    "actual_exit_code": 1,
+    "qualification_passed": true,
+    "report": {
+      "runtime": "1.18.7",
+      "mutation": true,
+      "deadlineControls": "normal-only: skipped in retry mutation",
+      "originalControlCount": 13,
+      "namespace": "tenants-retries-9e766730d078",
+      "productionAclSha256": "21dc7d747d9465d4f3e93c7c5ad66431dd55574d1a62a478f5cc12171dee666b",
+      "productionResiliencySha256": "5ac59d117ff27326121fdcdb77f152e90acada09a4e212e9d29ed45482061fb3",
+      "loadedResiliencySha256": "7c5cf1199682591aa7f8239c2f7d604c960311ee1b7f4b252b94d933a3d47fcc",
+      "results": [
+        {
+          "case": "tenants-ui cannot load Memories capabilities",
+          "status": 200,
+          "expected": 200,
+          "pass": true
+        },
+        {
+          "case": "tenants-api cannot load Memories capabilities",
+          "status": 200,
+          "expected": 200,
+          "pass": true
+        },
+        {
+          "case": "authorized /api/tenants",
+          "status": 200,
+          "expected": 200,
+          "diagnostic": "",
+          "pass": true
+        },
+        {
+          "case": "authorized /api/tenants/tenant.alpha",
+          "status": 200,
+          "expected": 200,
+          "diagnostic": "",
+          "pass": true
+        },
+        {
+          "case": "authorized /api/tenants/tenant.alpha/users",
+          "status": 200,
+          "expected": 200,
+          "diagnostic": "",
+          "pass": true
+        },
+        {
+          "case": "authorized /api/tenants/tenant.alpha/audit",
+          "status": 200,
+          "expected": 200,
+          "diagnostic": "",
+          "pass": true
+        },
+        {
+          "case": "authorized /api/users/user.alpha/tenants",
+          "status": 200,
+          "expected": 200,
+          "diagnostic": "",
+          "pass": true
+        },
+        {
+          "case": "authorized /api/global-administrators",
+          "status": 200,
+          "expected": 200,
+          "diagnostic": "",
+          "pass": true
+        },
+        {
+          "case": "conditional304",
+          "status": 304,
+          "expected": 304,
+          "pass": true
+        },
+        {
+          "case": "denied caller",
+          "status": 403,
+          "expected": 403,
+          "pass": true
+        },
+        {
+          "case": "denied verb",
+          "status": 403,
+          "expected": 403,
+          "pass": true
+        },
+        {
+          "case": "no retry on 503",
+          "status": 503,
+          "backendCalls": 4,
+          "expected": 503,
+          "pass": false
+        },
+        {
+          "case": "denied unrelated path",
+          "status": 403,
+          "expected": 403,
+          "pass": true
+        }
+      ],
+      "backendCounts": {
+        "('GET', '/dapr/config')": 1,
+        "('GET', '/api/tenants')": 1,
+        "('GET', '/api/tenants/tenant.alpha')": 2,
+        "('GET', '/api/tenants/tenant.alpha/users')": 1,
+        "('GET', '/api/tenants/tenant.alpha/audit')": 1,
+        "('GET', '/api/users/user.alpha/tenants')": 1,
+        "('GET', '/api/global-administrators')": 1,
+        "('GET', '/api/tenants/failure')": 4
+      }
+    }
+  },
+  "builds": [
+    {
+      "command": "dotnet build tests/Hexalith.EventStore.Server.Tests/Hexalith.EventStore.Server.Tests.csproj -c Debug -m:1 -warnaserror -p:UseHexalithProjectReferences=true -p:NuGetAudit=false -p:MinVerVersionOverride=1.0.0 --nologo",
+      "cwd": "/home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore",
+      "exit_code": 0,
+      "log": {
+        "path": "/tmp/tenants-native-timeout-review-rtfo741u/producer-source-build.log",
+        "sha256": "7a32786660a532e57862765531b0372e3df08e69241f68ceecd214636979f36e"
+      },
+      "result_excerpt": "  Hexalith.EventStore -> /home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore/bin/Debug/net11.0/Hexalith.EventStore.dll\n  Hexalith.EventStore.Testing -> /home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.Testing/bin/Debug/net11.0/Hexalith.EventStore.Testing.dll\n  Hexalith.EventStore.QuerySelectorFixture -> /home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore/tests/Hexalith.EventStore.QuerySelectorFixture/bin/Debug/net11.0/Hexalith.EventStore.QuerySelectorFixture.dll\n  Hexalith.EventStore.Server.Tests -> /home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore/tests/Hexalith.EventStore.Server.Tests/bin/Debug/net11.0/Hexalith.EventStore.Server.Tests.dll\n\nBuild succeeded.\n    0 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:29.67"
+    },
+    {
+      "command": "dotnet build tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj -c Debug -m:1 -warnaserror -p:UseHexalithProjectReferences=true -p:EnablePrivateOwnerSourceReadProof=true -p:NuGetAudit=false -p:MinVerVersionOverride=1.0.0 --nologo",
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "exit_code": 0,
+      "log": {
+        "path": "/tmp/tenants-native-timeout-review-rtfo741u/server-source-build.log",
+        "sha256": "4bf19031cb548358a4e3aca2f22c93447d34b783794ea6b7ebedb6fff6157486"
+      },
+      "result_excerpt": "  Hexalith.Memories.Contracts -> /home/administrator/projects/hexalith/tenants/references/Hexalith.Memories/src/Hexalith.Memories.Contracts/bin/Debug/net10.0/Hexalith.Memories.Contracts.dll\n  Hexalith.Tenants.Client -> /home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.Client/bin/Debug/net11.0/Hexalith.Tenants.Client.dll\n  Hexalith.Tenants.Contracts -> /home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.Contracts/bin/Debug/net11.0/Hexalith.Tenants.Contracts.dll\n  Hexalith.Tenants.Server.Tests -> /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.Server.Tests/bin/Debug/net11.0/Hexalith.Tenants.Server.Tests.dll\n\nBuild succeeded.\n    0 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:16.60"
+    },
+    {
+      "command": "dotnet build tests/Hexalith.Tenants.AppHost.Tests/Hexalith.Tenants.AppHost.Tests.csproj -c Release -m:1 -warnaserror -p:UseNuGetDeps=true -p:HexalithFrontComposerFromSource=false -p:HexalithMemoriesFromSource=false -p:NuGetAudit=false -p:MinVerVersionOverride=1.0.0 --nologo",
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "exit_code": 0,
+      "log": {
+        "path": "/tmp/tenants-native-timeout-review-rtfo741u/apphost-model-build.log",
+        "sha256": "34f799fddb1811ffdb9b0766f28561397e6b0d835b442c62fbc5fd4705247b7d"
+      },
+      "result_excerpt": "  Platform version catalog validated: Hexalith.EventStore.Aspire/5.0.0, CommunityToolkit.Aspire.Hosting.Dapr/13.6.2-beta.959, required range 13.6.2-beta.959 for net11.0.\n  Hexalith.Builds.Tooling -> /home/administrator/projects/hexalith/tenants/references/Hexalith.Builds/src/libraries/Hexalith.Builds.Tooling/bin/Release/net11.0/Hexalith.Builds.Tooling.dll\n  Hexalith.Tenants.AppHost -> /home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.AppHost/bin/Release/net11.0/Hexalith.Tenants.AppHost.dll\n  Hexalith.Tenants.AppHost.Tests -> /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.AppHost.Tests/bin/Release/net11.0/Hexalith.Tenants.AppHost.Tests.dll\n\nBuild succeeded.\n    0 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:02.11"
+    },
+    {
+      "command": "dotnet build /tmp/tenants-native-timeout-review-rtfo741u/focused-transports/FocusedTransports.csproj -c Debug -m:1 -warnaserror -p:UseNuGetDeps=true -p:UseHexalithProjectReferences=false -p:HexalithEventStoreVersion=4.2.0 -p:HexalithMcpCliVersion=2.0.1 -p:NuGetAudit=false -p:MinVerVersionOverride=1.0.0 --nologo",
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "exit_code": 0,
+      "log": {
+        "path": "/tmp/tenants-native-timeout-review-rtfo741u/focused-transports-package-build.log",
+        "sha256": "dd5700904a7707383906ccb7082e0d2a5ecf245aad4392c2931a869fda08c732"
+      },
+      "result_excerpt": "  Hexalith.Tenants.Server -> /home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.Server/bin/Debug/net11.0/Hexalith.Tenants.Server.dll\n  Hexalith.Tenants -> /home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants/bin/Debug/net11.0/Hexalith.Tenants.dll\n  Hexalith.Tenants.Api -> /home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.Api/bin/Debug/net11.0/Hexalith.Tenants.Api.dll\n  FocusedTransports -> /tmp/tenants-native-timeout-review-rtfo741u/focused-transports/bin/Debug/net11.0/Hexalith.Tenants.IntegrationTests.dll\n\nBuild succeeded.\n    0 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:01.06"
+    },
+    {
+      "command": "dotnet build tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj -c Debug -m:1 -warnaserror -p:UseHexalithProjectReferences=true -p:NuGetAudit=false -p:MinVerVersionOverride=1.0.0 --nologo",
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "exit_code": 1,
+      "log": {
+        "path": "/tmp/tenants-native-timeout-review-rtfo741u/integration-source-build.log",
+        "sha256": "9b7cb9ba9515cc0773b17680f00175ea578620253ae8bd42f97dd5c5d1ba7962"
+      },
+      "result_excerpt": "/home/administrator/projects/hexalith/tenants/references/Hexalith.Memories/src/Hexalith.Memories.Server/Hexalith.Memories.Server.csproj : error NU1202: Package Microsoft.AspNetCore.Authentication.JwtBearer 11.0.0 is not compatible with net10.0 (.NETCoreApp,Version=v10.0). Package Microsoft.AspNetCore.Authentication.JwtBearer 11.0.0 supports: net11.0 (.NETCoreApp,Version=v11.0) [/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj]\n/home/administrator/projects/hexalith/tenants/references/Hexalith.Memories/src/Hexalith.Memories.Server/Hexalith.Memories.Server.csproj : error NU1201: Project Hexalith.EventStore.Client is not compatible with net10.0 (.NETCoreApp,Version=v10.0). Project Hexalith.EventStore.Client supports: net11.0 (.NETCoreApp,Version=v11.0) [/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj]\n/home/administrator/projects/hexalith/tenants/references/Hexalith.Memories/src/Hexalith.Memories.Server/Hexalith.Memories.Server.csproj : error NU1201: Project Hexalith.EventStore.DomainService is not compatible with net10.0 (.NETCoreApp,Version=v10.0). Project Hexalith.EventStore.DomainService supports: net11.0 (.NETCoreApp,Version=v11.0) [/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj]\n/home/administrator/projects/hexalith/tenants/references/Hexalith.Memories/src/Hexalith.Memories.Server/Hexalith.Memories.Server.csproj : error NU1201: Project Hexalith.EventStore.Contracts is not compatible with net10.0 (.NETCoreApp,Version=v10.0). Project Hexalith.EventStore.Contracts supports: net11.0 (.NETCoreApp,Version=v11.0) [/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj]\n/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Hexalith.FrontComposer.Shell.csproj : error NU1202: Package Microsoft.AspNetCore.Authentication.OpenIdConnect 11.0.0 is not compatible with net10.0 (.NETCoreApp,Version=v10.0). Package Microsoft.AspNetCore.Authentication.OpenIdConnect 11.0.0 supports: net11.0 (.NETCoreApp,Version=v11.0) [/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj]\n/home/administrator/projects/hexalith/tenants/references/Hexalith.Memories/src/Hexalith.Memories.EventStore/Hexalith.Memories.EventStore.csproj : error NU1201: Project Hexalith.EventStore.Contracts is not compatible with net10.0 (.NETCoreApp,Version=v10.0). Project Hexalith.EventStore.Contracts supports: net11.0 (.NETCoreApp,Version=v11.0) [/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj]\n    0 Warning(s)\n    6 Error(s)\n\nTime Elapsed 00:00:01.20"
+    },
+    {
+      "command": "dotnet build tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj -c Release -m:1 -warnaserror -p:UseNuGetDeps=true -p:HexalithFrontComposerFromSource=false -p:HexalithMemoriesFromSource=false -p:NuGetAudit=false -p:MinVerVersionOverride=1.0.0 --nologo",
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "exit_code": 1,
+      "log": {
+        "path": "/tmp/tenants-native-timeout-review-rtfo741u/integration-package-build.log",
+        "sha256": "76b6275ef7a325a58e314c3a7017f88cbca12be2f083997d9ed8d8ed6ee7fbe1"
+      },
+      "result_excerpt": "  Hexalith.Tenants.Client -> /home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.Client/bin/Release/net11.0/Hexalith.Tenants.Client.dll\n/home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.UI/obj/Release/net11.0/Hexalith.FrontComposer.SourceTools/Hexalith.FrontComposer.SourceTools.FrontComposerGenerator/Hexalith.Tenants.UI.Composition.CreateTenantCommand.CommandForm.g.razor.cs(550,68): error CS0618: 'EditContext.Validate()' is obsolete: 'Validate is obsolete. Use ValidateAsync instead.' [/home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj]\n\nBuild FAILED.\n\n/home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.UI/obj/Release/net11.0/Hexalith.FrontComposer.SourceTools/Hexalith.FrontComposer.SourceTools.FrontComposerGenerator/Hexalith.Tenants.UI.Composition.CreateTenantCommand.CommandForm.g.razor.cs(550,68): error CS0618: 'EditContext.Validate()' is obsolete: 'Validate is obsolete. Use ValidateAsync instead.' [/home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj]\n    0 Warning(s)\n    1 Error(s)\n\nTime Elapsed 00:00:08.29"
+    }
+  ],
+  "gitlink_audit": {
+    "review_head": "401d926eb7d51bdf332696ed3f0fe39a812b3501",
+    "historical_endpoint": "ae40c9657175ae5567cdd182384d3840af64d8a2",
+    "metadata_guard": "pass",
+    "current_pointer_diff_empty": true,
+    "command": "python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-align-native-read-timeout-budgets.md --ref ae40c9657175ae5567cdd182384d3840af64d8a2",
+    "exit_code": 0,
+    "output": "Story:    spec-align-native-read-timeout-budgets.md\nBaseline: cea24f9\nCompared: ae40c9657175ae5567cdd182384d3840af64d8a2 (ae40c96)\n\n6 references/ pointer change(s) in range:\n  [declared] references/Hexalith.Builds  66a1b2f -> 7257540\n  [declared] references/Hexalith.EventStore  9aa4e5d -> 16dff1f\n  [declared] references/Hexalith.FrontComposer  f842711 -> b105c84\n  [declared] references/Hexalith.McpCli  edaecb0 -> 58afd47\n  [declared] references/Hexalith.Memories  d9d61d8 -> d959bda\n  [declared] references/Hexalith.Platform  5d74c40 -> 8432397\n\nRESULT: PASS\n"
+  },
+  "review": {
+    "blind_findings": 10,
+    "edge_findings": 1,
+    "verification_gaps": 0,
+    "parent_findings": 1,
+    "patches": [
+      "Protected UI fixture alone uses 150 seconds",
+      "Dapr reports identify original and loaded resiliency bytes",
+      "API guidance correctly states 50 seconds"
+    ],
+    "deferred_groups": [
+      "Later .NET 11 migration/output paths/build cohort",
+      "Zero-poll release probe budget",
+      "Unverified same-subject principal-corroboration race"
+    ]
+  },
+  "changed_code_sha256": {
+    "tests/Hexalith.Tenants.IntegrationTests/Fixtures/AspireTopologyFixture.cs": "ea5a33ffb416ca72f81025ee770cda4146e9638ae2fd3480d43676ca049b3b70",
+    "tests/integration/qualify-dapr-read-retries.py": "aa54e55c74c500f039ccbc650522c2fb743dff37d85dd9d75ca7e1bb69d0c266",
+    "docs/production-auth-readiness.md": "2016e8ac29b993cb9f49b3178e946b47f44fdc5ffba7f793398bed96cbde1fcc"
+  },
+  "focused_runner_project": "<Project Sdk=\"Microsoft.NET.Sdk\">\n  <Import Project=\"/home/administrator/projects/hexalith/tenants/tests/Directory.Build.props\" />\n  <PropertyGroup><AssemblyName>Hexalith.Tenants.IntegrationTests</AssemblyName><EnableDefaultCompileItems>false</EnableDefaultCompileItems><OutputType>Exe</OutputType></PropertyGroup>\n  <ItemGroup><FrameworkReference Include=\"Microsoft.AspNetCore.App\" />\n    <ProjectReference Include=\"/home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants/Hexalith.Tenants.csproj\" />\n    <ProjectReference Include=\"/home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.Api/Hexalith.Tenants.Api.csproj\" Aliases=\"TenantsApi\" />\n    <PackageReference Include=\"Microsoft.AspNetCore.Mvc.Testing\" />\n    <Compile Include=\"/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.IntegrationTests/TenantOwnerSourceGatewayTests.cs\" />\n    <Compile Include=\"/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.IntegrationTests/OwnerSourceCaptureHandler.cs\" />\n    <Compile Include=\"/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.IntegrationTests/TenantsApiGatewayResilienceTests.cs\" />\n    <Compile Include=\"/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.IntegrationTests/ApiGatewayResilienceCapture.cs\" />\n    <Compile Include=\"/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.IntegrationTests/Fixtures/TenantOwnerCatalogTestAuthority.cs\" />\n    <Compile Include=\"/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.IntegrationTests/Fixtures/TenantOwnerCatalogTestStateStore.cs\" />\n    <Compile Include=\"/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.IntegrationTests/Fixtures/MutableGlobalAdministratorSource.cs\" />\n  </ItemGroup>\n  <Import Project=\"/home/administrator/projects/hexalith/tenants/Directory.Build.targets\" />\n</Project>\n",
+  "limitations": [
+    "Full integration source graph fails NU1201/NU1202 because net10.0 FrontComposer/Memories projects consume net11.0 dependencies.",
+    "Serialized full Release/package fallback fails CS0618 in generated CreateTenantCommand EditContext.Validate(). No warnings or dependency gates were relaxed.",
+    "The changed protected-UI fixture and current UI C# deadline tests could not be compiled/executed as part of their full integration/UI graph. The 150-second resource selection was inspected; synthetic browser timing is separate evidence.",
+    "An initial isolated source transport runner compiled but could not load the matching 5.0.0 source assembly identity; its result is not counted. The successful runner explicitly uses the unchanged current root package selections, confirmed via dotnet msbuild src/Hexalith.Tenants.Api/Hexalith.Tenants.Api.csproj -p:UseNuGetDeps=true -getProperty:HexalithEventStoreVersion,HexalithMcpCliVersion,TargetFramework.",
+    "No full business AppHost/private business runtime, live native-removal topology, new registry-availability qualification, CI or publication was run.",
+    "The earlier historical /tmp/tenants-release-20261103-07JciR files are absent; their claims were not substituted for this session evidence."
+  ]
+}

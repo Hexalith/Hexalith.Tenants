@@ -1,0 +1,84 @@
+[
+  {
+    "name": "tenants-ui-post-review-source-build",
+    "command": [
+      "dotnet",
+      "build",
+      "tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj",
+      "-c",
+      "Debug",
+      "-m:1",
+      "-warnaserror",
+      "-p:UseHexalithProjectReferences=true",
+      "-p:NuGetAudit=false",
+      "-p:MinVerVersionOverride=1.0.0",
+      "--nologo"
+    ],
+    "exit_code": 0,
+    "log": "_bmad-output/implementation-artifacts/evidence/dotnet-11-source-graph-2026-11-13/tenants-ui-post-review-source-build.log",
+    "log_sha256": "ccc18e07634a0a4b4eef22352287b4a9a354c04398fd3b3aa0e27b297865743c"
+  },
+  {
+    "name": "tenants-integration-post-review-source-build",
+    "command": [
+      "dotnet",
+      "build",
+      "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+      "-c",
+      "Debug",
+      "-m:1",
+      "-warnaserror",
+      "-p:UseHexalithProjectReferences=true",
+      "-p:NuGetAudit=false",
+      "-p:MinVerVersionOverride=1.0.0",
+      "--nologo"
+    ],
+    "exit_code": 0,
+    "log": "_bmad-output/implementation-artifacts/evidence/dotnet-11-source-graph-2026-11-13/tenants-integration-post-review-source-build.log",
+    "log_sha256": "130dd54c9dbea989560adf0637be5c65714ace72d13cc61ac82c739c305ed475"
+  },
+  {
+    "name": "tenants-ui-post-review-tests",
+    "command": [
+      "dotnet",
+      "tests/Hexalith.Tenants.UI.Tests/bin/Debug/net11.0/Hexalith.Tenants.UI.Tests.dll",
+      "-noLogo",
+      "-result-xml",
+      "/tmp/tenants-net11-repair-ng54_u4z/tenants-ui-post-review-tests.xml"
+    ],
+    "exit_code": 0,
+    "log": "_bmad-output/implementation-artifacts/evidence/dotnet-11-source-graph-2026-11-13/tenants-ui-post-review-tests.log",
+    "log_sha256": "377afdecd319895bba3ea852e2f6c9a3934ae5111cb594b6b1484ff0b95a6834",
+    "counts": {
+      "total": 8082,
+      "passed": 8082,
+      "failed": 0,
+      "skipped": 0,
+      "errors": 0
+    },
+    "xml": "/tmp/tenants-net11-repair-ng54_u4z/tenants-ui-post-review-tests.xml",
+    "xml_sha256": "72e522c019c2a45e5149a27e0601ed9f3be274a2c0635570426454390510095e"
+  },
+  {
+    "name": "tenants-post-review-status-label-browser",
+    "command": [
+      "node",
+      "tests/Hexalith.Tenants.UI.Tests/Browser/validate-status-filter-label-browser.mjs",
+      "Debug",
+      "/usr/bin/google-chrome-stable",
+      "60"
+    ],
+    "exit_code": 0,
+    "log": "_bmad-output/implementation-artifacts/evidence/dotnet-11-source-graph-2026-11-13/tenants-post-review-status-label-browser.log",
+    "log_sha256": "ff38eb798d4c59433510e96e7a6eab151efc76e6ae7d115fef8458892bd2bc25"
+  },
+  {
+    "name": "actual-adopter-runtime-probe",
+    "result": {
+      "dotnet_sdk": "11.0.100",
+      "netcore": "11.0.0",
+      "aspnetcore": "11.0.0"
+    },
+    "scope": "Metadata only; no host or business topology started"
+  }
+]

@@ -73,8 +73,9 @@ try:
  env=baseenv|{'DAPR_TRUST_ANCHORS':(certs/'ca.crt').read_text(),'DAPR_CERT_CHAIN':(certs/'issuer.crt').read_text(),'DAPR_CERT_KEY':(certs/'issuer.key').read_text(),'DAPR_HOST_IP':'127.0.0.1'}
  original=(REPO/'deploy/dapr/accesscontrol.tenants-api.yaml').read_text()
  receiver=ROOT/'receiver.yaml';receiver.write_text(original.replace('{env:DAPR_TRUST_DOMAIN|hexalith.io}','public').replace('{env:DAPR_NAMESPACE|hexalith}',namespace))
- read_timeout_seconds=int(re.search(r'^      tenantsApiInvocation: (\d+)s$',(REPO/'deploy/dapr/resiliency.yaml').read_text(),re.M).group(1))
- resources=ROOT/'resources';resources.mkdir(exist_ok=True);resiliency=(REPO/'deploy/dapr/resiliency.yaml').read_text().replace('      tenants-api:', '      '+receiver_alias+':');resiliency=resiliency.replace('maxRetries: 0','maxRetries: 3',1) if args.mutate_retries else resiliency;(resources/'resiliency.yaml').write_text(resiliency)
+ original_resiliency=(REPO/'deploy/dapr/resiliency.yaml').read_bytes()
+ read_timeout_seconds=int(re.search(r'^      tenantsApiInvocation: (\d+)s$',original_resiliency.decode(),re.M).group(1))
+ resources=ROOT/'resources';resources.mkdir(exist_ok=True);resiliency=original_resiliency.decode().replace('      tenants-api:', '      '+receiver_alias+':');resiliency=resiliency.replace('maxRetries: 0','maxRetries: 3',1) if args.mutate_retries else resiliency;(resources/'resiliency.yaml').write_bytes(resiliency.encode())
  # Both new readers scan the AppHost directory; Memories-only capabilities must stay invisible.
  (ROOT/'secrets.json').write_text('{}')
  for component in ['llm.memories.yaml','secretstore.memories.yaml']:
@@ -137,7 +138,7 @@ try:
   except Exception:
    result['failureCategory']=failure_category
   result.update(elapsedSeconds=time.monotonic()-started,backendCalls=counts.get(('GET','/api/tenants/deadline-exhaustion'),0));results.append(result)
- report={'runtime':version,'mutation':args.mutate_retries,'deadlineControls':'normal-only: skipped in retry mutation' if args.mutate_retries else 'normal-only: 31-second success and configured finite exhaustion','originalControlCount':original_results,'namespace':namespace,'productionAclSha256':hashlib.sha256(original.encode()).hexdigest(),'results':results,'backendCounts':{str(k):v for k,v in counts.items()}}
+ report={'runtime':version,'mutation':args.mutate_retries,'deadlineControls':'normal-only: skipped in retry mutation' if args.mutate_retries else 'normal-only: 31-second success and configured finite exhaustion','originalControlCount':original_results,'namespace':namespace,'productionAclSha256':hashlib.sha256(original.encode()).hexdigest(),'productionResiliencySha256':hashlib.sha256(original_resiliency).hexdigest(),'loadedResiliencySha256':hashlib.sha256((resources/'resiliency.yaml').read_bytes()).hexdigest(),'results':results,'backendCounts':{str(k):v for k,v in counts.items()}}
  args.output.parent.mkdir(parents=True,exist_ok=True);args.output.write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2));assert len(results)==(13 if args.mutate_retries else 15) and all(r['pass'] for r in results), 'Read transport contract failed; see the required 503 backend-call count.'
 finally:
  stop_backend.set()

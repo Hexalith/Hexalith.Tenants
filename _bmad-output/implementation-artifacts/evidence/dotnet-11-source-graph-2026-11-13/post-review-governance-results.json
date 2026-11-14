@@ -1,0 +1,36 @@
+{
+  "command": [
+    "dotnet",
+    "tests/Hexalith.FrontComposer.Shell.Tests/bin/Debug/net11.0/Hexalith.FrontComposer.Shell.Tests.dll",
+    "-method",
+    "Hexalith.FrontComposer.Shell.Tests.Governance.AnalyzerPolicyGovernanceTests.AnalyzerPolicy_GovernanceContract_FailsClosed",
+    "-method",
+    "Hexalith.FrontComposer.Shell.Tests.Governance.AnalyzerPolicyGovernanceTests.AnalyzerPolicy_IdentifierInventory_MatchesSeal",
+    "-method",
+    "Hexalith.FrontComposer.Shell.Tests.Governance.CiGovernanceTests.ToolchainPins_MatchApprovedDotnetAndAspireVersions",
+    "-method",
+    "Hexalith.FrontComposer.Shell.Tests.Governance.CiGovernanceTests.CiWorkflow_DelegatesToReusableDomainCiWithConsumerValidation",
+    "-method",
+    "Hexalith.FrontComposer.Shell.Tests.Governance.CiGovernanceTests.QualityWorkflow_PinsContractPactStaleAndArtifactGates",
+    "-method",
+    "Hexalith.FrontComposer.Shell.Tests.Governance.CiGovernanceTests.QualityWorkflow_PinsCliSmokeAndDocsGates",
+    "-method",
+    "Hexalith.FrontComposer.Shell.Tests.Architecture.FatalExceptionGuardGovernanceTests.*",
+    "-method",
+    "Hexalith.FrontComposer.Shell.Tests.Components.DataGrid.FcTblPackageBoundaryTests.FcTbl_PublicApi_MatchesIntentionalBaseline",
+    "-result-xml",
+    "/tmp/tenants-net11-repair-ng54_u4z/post-review-governance.xml"
+  ],
+  "cwd": "/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer",
+  "exit_code": 0,
+  "counts": {
+    "total": 9,
+    "passed": 9,
+    "failed": 0,
+    "skipped": 0,
+    "errors": 0
+  },
+  "xml_path": "/tmp/tenants-net11-repair-ng54_u4z/post-review-governance.xml",
+  "xml_sha256": "0a5b9aafe123a44050d37b40926cafdff14eabeeffdbccd7c9b1661a555a6ba6",
+  "log": "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/dotnet-11-source-graph-2026-11-13/post-review-governance.log"
+}
