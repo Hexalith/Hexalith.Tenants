@@ -129,6 +129,16 @@ This is one coordinated release goal. The user's explicit request supersedes wor
 - `_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/final-source-synchronization.json`
 - `_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/root-platform6-provenance-assertion-audit.json`
 - `_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/builds6-publication-verification.json`
+- `_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/builds601-publication-verification.json`
+- `_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/builds602-publication-verification.json`
+- `_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/platform-d77-current-acceptance.json`
+- `_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/parent-platform-d77-current-artifact-review.json`
+- `_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/builds-retained-sdk42-verification.json`
+- `_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/builds-retained-sdk42-audit-preservation.json`
+- `_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/parent-builds602-compatibility-review.json`
+- `_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/parent-builds602-integrated-review.json`
+- `_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/builds12475-github-action-closure.json`
+- `_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/root-postrepair-sdk-package-version-audit.json`
 - `_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/mcpcli-current-hosted-verification.json`
 - `_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/builds-c91-integration-verification.json`
 - `_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/root-final-submodule-url-sync.json`
@@ -254,3 +264,19 @@ Builds source advances to `c91beec6`, preserving two external finite PlatformSDK
 FC selects `89b1c553` after reviewed test/CI-only followups and supported MTP collector wiring. Original configs, Category filters, thresholds and validators are unchanged; real per-test coverage, known mutation kill and full cohort case-ID equality qualify the collector fix locally. Full authoritative Nightly still must pass. Public6.0.0 archives retain sourced7. Platform selects merged `2119b7ed`; signed producer6.0.0/source1ebc observes defaultSDK5.1/Mem4 separately from the explicit admitted SDK4.2/T707/M327/P311/Mcp201 native build/replay family. Frozen4/5 roles remain unchanged; no defaultSDK5.1 native credit is inferred. Current hosted Platform gates remain pending.
 
 The latest sourcecatalogc91, actual signed producer6/1ebc, Root CI executor6ad5854 and Release executorff3 are distinct. Root live/source assertions dynamically record actual sources and need no producer assertion migration. EventStore currentf712 passes completeCI/integration while public5.1 archives retain490 provenance. Mcp current4ff passes completeCI,445-surface census and authenticated21-vector/45-boundary live proof limited to retained frozen profiles; it does not enroll Root5.1/new recovery operations. Final root source must pass all three workflows including shared Aspire; final publisher approval stays held for outstanding automatic dependency gates.
+
+
+## Published producer compatibility repair
+
+Root `0cfe90e8` passes all three required workflows, including all nine functional CI jobs and shared Aspire. Its unprotected 8.0.0 preparation succeeds with five exact source packages and the real consumer discovers 24 routes, 24 operations and 13 adapters. That candidate remains unpublished and is deliberately cancelled before any publisher step because later dependency repairs require a new final source. Its artifact and source markers remain historical.
+
+The actual Platform reader reveals two producer gaps: signed Builds 6.0.0 does not retain its SDK 4.2 view, and 6.0.1 still selects Memories 4 for private Parties despite SDK 4.2. The unchanged catalog validator correctly refuses an inconsistent caller override. Upstream `590a56fa` and `60ce7967` supply the finite Parties, Platform and three packaged-host SDK 4.2/M327 correction and revision-bound audit. Those commits are preserved; `12475add` adds stronger tests only. All 247 actual catalog views and 51 materializer/declaration cases pass with zero warnings, failures or skips; independent reviews cover the complete scope. The existing 590a audit remains valid and preserves 156 unrelated family decisions and 312 package rows exactly. At this stage, source 12475 passes all seven functional owning CI jobs.
+
+Builds 6.0.2 is actually public from immutable source `60ce7967607dc8b703fff11f4fc13cabb09c090a`, distinct from source 12475. Both official listed archives pass source, SHA512 and repository-signature checks. The real CLI reports 6.0.2+60ce; all 38 Evidence and 316 Module unsigned payload entries match the authenticated original artifact. The existing publication was observed and verified; a redundant queued dispatch is cancelled before any jobs. Existing environment protection is unchanged. This publication supplies no native replay credit. Platform must bind the actual source/archive and pass its fresh complete qualification.
+
+A fresh 15:30 audit binds the then-current catalog blob/raw hash and confirms SDK 11.0.100 plus all 18 actual normal Release project selections. The 42 direct package identities and versions remain latest listed stable except the explicit frozen 3.128.4 bootstrap harness. Finite SDK 4.2 compatibility views do not change Root's generic SDK 5.1/Memories 4 defaults. All disposable verification workspaces are removed after completion.
+
+The FC WebKit failure is an existing product entry-focus readiness defect, also present in published 6.0.0/D7. A demonstrated fix needs a verified public 6.0.1 patch before Root advances its package selection. SourceTools mutation qualification retains its actual source/input scope and must complete without weakening cohorts or scores. Final Root owner pointers, version/audit receipt, exact source CI and publication remain pending those concrete inputs.
+
+
+Platform `d77f741d` subsequently passes both exact source workflows, including the complete tuple verdict and all six catalog consumers. Its authenticated current artifact proves 478 current SDK 4.2 cases, 97 base cases and 9 extensions, all passing without failures or skips; historical 349/412 replays also pass. Current .NET 11 / Builds 6.0.2 collectors remain distinct from the retained .NET 10 / 4.47 reader. The receipt supplies its stated package-mode source/consumer regression scope and does not infer a new image, OCI or release identity.

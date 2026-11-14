@@ -1,0 +1,115 @@
+{
+  "capturedAtUtc": "2026-11-14T15:49:22.217817+00:00",
+  "result": "pass",
+  "version": "6.0.2",
+  "publishedSource": "60ce7967607dc8b703fff11f4fc13cabb09c090a",
+  "latestCatalogSource": "12475add3f14b06709a5ffe74f413d27d4111d75",
+  "releaseUrl": "https://github.com/Hexalith/Hexalith.Builds/releases/tag/v6.0.2",
+  "releaseRunUrl": "https://github.com/Hexalith/Hexalith.Builds/actions/runs/43608949482",
+  "publicationPerformedByThisDelegate": false,
+  "existingPublicationObserved": true,
+  "officialNuGetVerification": {
+    "capturedAtUtc": "2026-11-14T15:32:23.097481+00:00",
+    "version": "6.0.2",
+    "source": "60ce7967607dc8b703fff11f4fc13cabb09c090a",
+    "result": "pass",
+    "packages": [
+      {
+        "id": "Hexalith.Builds.Evidence.Cli",
+        "version": "6.0.2",
+        "listed": true,
+        "source": "60ce7967607dc8b703fff11f4fc13cabb09c090a",
+        "registrationUrl": "https://api.nuget.org/v3/registration5-gz-semver2/hexalith.builds.evidence.cli/6.0.2.json",
+        "catalogUrl": "https://api.nuget.org/v3/catalog0/data/2026.11.14.15.25.58/hexalith.builds.evidence.cli.6.0.2.json",
+        "archiveUrl": "https://api.nuget.org/v3-flatcontainer/hexalith.builds.evidence.cli/6.0.2/hexalith.builds.evidence.cli.6.0.2.nupkg",
+        "sha256": "762a51012a311147b234a54a0f3cc37c603ba03b34028ad4797dab7c28e68c58",
+        "officialSha512": "mk01AiH7rLrJgM8b7CayUBlDWXK/gSkn4i3IRQfdJZZBSj7eXS8nK1kfP7+PvlOjS2WWs97lxdwR9ToA68kblw==",
+        "toolFramework": "net11.0",
+        "toolingSha256": null,
+        "signatureVerificationExitCode": 0,
+        "signatureVerificationLogSha256": "0e69aa0fddfce5cc63294b4c999b59e86928a66353e54f6b4948383ec7b7b8d7",
+        "published": "2026-11-14T15:20:39.55Z"
+      },
+      {
+        "id": "Hexalith.Builds.Module.Cli",
+        "version": "6.0.2",
+        "listed": true,
+        "source": "60ce7967607dc8b703fff11f4fc13cabb09c090a",
+        "registrationUrl": "https://api.nuget.org/v3/registration5-gz-semver2/hexalith.builds.module.cli/6.0.2.json",
+        "catalogUrl": "https://api.nuget.org/v3/catalog0/data/2026.11.14.15.30.39/hexalith.builds.module.cli.6.0.2.json",
+        "archiveUrl": "https://api.nuget.org/v3-flatcontainer/hexalith.builds.module.cli/6.0.2/hexalith.builds.module.cli.6.0.2.nupkg",
+        "sha256": "b50783c70440dafd310fadd0877eea42cfa94722dc54089e2459dd2313e4d93a",
+        "officialSha512": "VXdUN7pUdjUkhF6wJsUowEbeB7qxWRmwups01zGlsaA/sjux1Eom0GAwjrFtVkM4pzHUaEwyqz3p/h69afSH/w==",
+        "toolFramework": "net11.0",
+        "toolingSha256": "897a7e7efe58d910d3d334396fabc2d3eb7f650c4ef876b8ff86db9a76937392",
+        "signatureVerificationExitCode": 0,
+        "signatureVerificationLogSha256": "04f0357f5575a4e3b854e6e4db33bee7ba7404faaaeed68335beb0f6933a860e",
+        "published": "2026-11-14T15:20:41.477Z"
+      }
+    ]
+  },
+  "authenticatedOriginalReleaseHandoff": {
+    "releaseId": 445387362,
+    "runId": 43608949482,
+    "artifactId": 14119845550,
+    "artifactSha256": "97cc2ab9fc5392a21de423a5dd4a6a90cc23df8cd06d2c25401717b8b81fe52a",
+    "releaseBodySha256": "55a8418d9cc6b4df3fd8d764d853f6572c73ea451d527abcd2e098cbdea8aa98",
+    "tagSource": "60ce7967607dc8b703fff11f4fc13cabb09c090a",
+    "manifestSha256": "4c7f79500cf058bf31d4b4c0e67234fde5abf4da7b0e5baf8371f1e94f8a6c0e",
+    "artifactDigestSource": "public release body",
+    "qualificationCredit": false,
+    "legacyG4AcceptanceClaimed": false
+  },
+  "executableAndUnsignedPayloadVerification": {
+    "capturedAtUtc": "2026-11-14T15:35:29.473756+00:00",
+    "result": "pass",
+    "versionOutput": "6.0.2+60ce7967607dc8b703fff11f4fc13cabb09c090a",
+    "exitCode": 0,
+    "payloads": [
+      {
+        "id": "Hexalith.Builds.Evidence.Cli",
+        "payloadEntries": 38,
+        "identicalUnsignedPayload": true
+      },
+      {
+        "id": "Hexalith.Builds.Module.Cli",
+        "payloadEntries": 316,
+        "identicalUnsignedPayload": true
+      }
+    ],
+    "scope": "Exact executable version and all unsigned payload bytes; no native or OCI acceptance credit"
+  },
+  "sourceCatalog": {
+    "path": "Props/Directory.Packages.props",
+    "blob": "86e9b0d6fd49551d80047d92f3aaed93b91ca5a3",
+    "rawSha256": "1291e32272127e2409e337fb6a974bc4c5f76a2907da0ba0d5528cc5016fe44e",
+    "identicalAtPublishedAndLatestSource": true
+  },
+  "latestSourceQualification": {
+    "commit": "12475add3f14b06709a5ffe74f413d27d4111d75",
+    "scope": "Two additive test/control files above the immutable published source; production catalog/audit unchanged.",
+    "localChecks": "247 actual catalog views, 51 materialized/declaration cases, zero warnings/errors/failures/skips; both independent parent reviews passed.",
+    "hostedRun": 43610003450,
+    "hostedStatusAtCapture": "success",
+    "hostedConclusion": "All seven functional jobs successful; two restore placeholders intentionally skipped."
+  },
+  "qualificationBoundary": {
+    "nativeAcceptance": false,
+    "ociAcceptance": false,
+    "historical600And601Unchanged": true,
+    "currentPlatformAcceptance": "Pending fresh owning binding and actual full qualification; this publication receipt supplies no native replay credit."
+  },
+  "environmentObservation": {
+    "name": "hexalith-release",
+    "id": 26805500201,
+    "existingProtection": "branch policy only; no required reviewers were configured",
+    "protectionChanged": false,
+    "approvalFabricated": false
+  },
+  "redundantDispatch": {
+    "run": 43609569854,
+    "result": "cancelled before any jobs",
+    "reason": "An existing exact-source release was already active; its immutable publication was observed and verified instead."
+  },
+  "cleanup": "All public/handoff/executable wrappers removed their disposable workspaces after successful completion."
+}

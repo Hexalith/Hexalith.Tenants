@@ -1,0 +1,13 @@
+{
+  "result": "pass",
+  "latestSource": "12475add3f14b06709a5ffe74f413d27d4111d75",
+  "githubTrees": {
+    "0230aefd0502775b034a38c3b037c32c79f20fd7": "c26fe75a5da112d45c0e4d85a33c2e16b4b388e1",
+    "1ebc5b84ff2c8afd21a87d80ef3d9c9048eaf5e5": "c26fe75a5da112d45c0e4d85a33c2e16b4b388e1",
+    "c91beec60ce5eaa8cd62bf055d07fa6ca3890e89": "c26fe75a5da112d45c0e4d85a33c2e16b4b388e1",
+    "60ce7967607dc8b703fff11f4fc13cabb09c090a": "c26fe75a5da112d45c0e4d85a33c2e16b4b388e1",
+    "12475add3f14b06709a5ffe74f413d27d4111d75": "c26fe75a5da112d45c0e4d85a33c2e16b4b388e1"
+  },
+  "wholeGithubTreeUnchanged": true,
+  "scope": "All Github action sources and local helper files, including the mutable @main initialize-build closure; no downstream mutation qualification inferred."
+}

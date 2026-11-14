@@ -1,0 +1,99 @@
+{
+  "capturedAtUtc": "2026-11-14T14:41:55.179157+00:00",
+  "result": "pass",
+  "version": "6.0.1",
+  "source": "c91beec60ce5eaa8cd62bf055d07fa6ca3890e89",
+  "releaseUrl": "https://github.com/Hexalith/Hexalith.Builds/releases/tag/v6.0.1",
+  "releaseRunUrl": "https://github.com/Hexalith/Hexalith.Builds/actions/runs/43602532457",
+  "publicationPerformedByThisDelegate": false,
+  "existingPublicationObserved": true,
+  "sourceCatalog": {
+    "path": "Props/Directory.Packages.props",
+    "blob": "e17e81e703da4cd1805644134e62ec1122cafb47",
+    "gitBlobSha256": "ef691a7a3caa7a92e524f766a770574cd21ef5e32fccd996d1d2899b9d7bddd7"
+  },
+  "officialNuGetVerification": {
+    "capturedAtUtc": "2026-11-14T14:36:39.515559+00:00",
+    "version": "6.0.1",
+    "source": "c91beec60ce5eaa8cd62bf055d07fa6ca3890e89",
+    "result": "pass",
+    "packages": [
+      {
+        "id": "Hexalith.Builds.Evidence.Cli",
+        "version": "6.0.1",
+        "listed": true,
+        "source": "c91beec60ce5eaa8cd62bf055d07fa6ca3890e89",
+        "registrationUrl": "https://api.nuget.org/v3/registration5-gz-semver2/hexalith.builds.evidence.cli/6.0.1.json",
+        "catalogUrl": "https://api.nuget.org/v3/catalog0/data/2026.11.14.14.15.09/hexalith.builds.evidence.cli.6.0.1.json",
+        "archiveUrl": "https://api.nuget.org/v3-flatcontainer/hexalith.builds.evidence.cli/6.0.1/hexalith.builds.evidence.cli.6.0.1.nupkg",
+        "sha256": "661c88f5ed3a31219f37d862eed681713666ae06ec17b8591e676eea7ef49294",
+        "officialSha512": "DtoYNw8Ymn+gFFpnXEZl7C2fhkNSDtKMZMl5UyaUiiAhoyl0vVZFGFfSA3QzBS4nF2TZacoJID3QSZThlweU3A==",
+        "toolFramework": "net11.0",
+        "toolingSha256": null,
+        "signatureVerificationExitCode": 0,
+        "signatureVerificationLogSha256": "795ef7ce99e876c79461d0d1b7702d772a6bd9c7fe5356d68322b0418612b147",
+        "published": "2026-11-14T14:09:00.65Z"
+      },
+      {
+        "id": "Hexalith.Builds.Module.Cli",
+        "version": "6.0.1",
+        "listed": true,
+        "source": "c91beec60ce5eaa8cd62bf055d07fa6ca3890e89",
+        "registrationUrl": "https://api.nuget.org/v3/registration5-gz-semver2/hexalith.builds.module.cli/6.0.1.json",
+        "catalogUrl": "https://api.nuget.org/v3/catalog0/data/2026.11.14.14.16.18/hexalith.builds.module.cli.6.0.1.json",
+        "archiveUrl": "https://api.nuget.org/v3-flatcontainer/hexalith.builds.module.cli/6.0.1/hexalith.builds.module.cli.6.0.1.nupkg",
+        "sha256": "144fa157a0d559792b9a248d8f105b6ce218a4a1ef80b84cddd1cba236159e3b",
+        "officialSha512": "ZBuPzKiRT6Cxx8jJTqn5TKCSZLyFY1pWdPj9AT4cNQIFoQre+NaFXRXWI3WVZD8o29Zy2RchqL78EPWIM5OPCA==",
+        "toolFramework": "net11.0",
+        "toolingSha256": "35132d1b4e11e9ec00f2ed526f259a4ebd771aa7619cfb7102e5f50f5c0ca943",
+        "signatureVerificationExitCode": 0,
+        "signatureVerificationLogSha256": "07ffcfbe8e1db10a3515807339cb2e85e9ed16e5f051c59e02ffdec36e4c5f55",
+        "published": "2026-11-14T14:09:02.86Z"
+      }
+    ]
+  },
+  "authenticatedOriginalReleaseHandoff": {
+    "releaseId": 445339242,
+    "runId": 43602532457,
+    "artifactId": 14117540783,
+    "artifactSha256": "4c8964727a14b48c78024d9eaf39819edb603256c4c701e466fd747a87536cb9",
+    "releaseBodySha256": "ac850e25886b5ee6fba8c7725c69e57d7678e88caca9e795c8d2e2df86712986",
+    "tagSource": "c91beec60ce5eaa8cd62bf055d07fa6ca3890e89",
+    "manifestSha256": "7d8accdb0eb673f5e2a56ace83069862b9645d5507b7540b477d8730248a3d73",
+    "artifactDigestSource": "public release body",
+    "qualificationCredit": false,
+    "legacyG4AcceptanceClaimed": false
+  },
+  "executableAndUnsignedPayloadVerification": {
+    "capturedAtUtc": "2026-11-14T14:38:33.342600+00:00",
+    "result": "pass",
+    "versionOutput": "6.0.1+c91beec60ce5eaa8cd62bf055d07fa6ca3890e89",
+    "exitCode": 0,
+    "payloads": [
+      {
+        "id": "Hexalith.Builds.Evidence.Cli",
+        "payloadEntries": 38,
+        "identicalUnsignedPayload": true
+      },
+      {
+        "id": "Hexalith.Builds.Module.Cli",
+        "payloadEntries": 316,
+        "identicalUnsignedPayload": true
+      }
+    ],
+    "scope": "Exact executable version and all unsigned payload bytes; no native or OCI acceptance credit"
+  },
+  "qualificationBoundary": {
+    "nativeAcceptance": false,
+    "ociAcceptance": false,
+    "historical600Unchanged": true,
+    "historicalProof": "builds6-publication-verification.json",
+    "currentPlatformAcceptance": "Pending a fresh owning source binding and complete actual qualification; this publication proof supplies no native replay credit."
+  },
+  "verificationLimitCorrection": {
+    "initialHarnessLog": "/dev/shm/tenants-release-2026-11-14/builds601-public-verification.log",
+    "reason": "The Module.Cli archive exceeded the 32 MiB cap inherited from the smaller Tenants verifier; the corrected verifier bounds official responses to 128 MiB. No product, source or publication gate changed.",
+    "correctedLog": "/dev/shm/tenants-release-2026-11-14/builds601-public-verification-attempt2.log"
+  },
+  "retainedEvidenceRoot": "/dev/shm/tenants-release-2026-11-14"
+}

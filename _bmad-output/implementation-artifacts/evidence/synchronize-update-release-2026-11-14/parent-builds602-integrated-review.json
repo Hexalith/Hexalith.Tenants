@@ -1,0 +1,547 @@
+{
+  "capturedAtUtc": "2026-11-14T15:15:29.645794+00:00",
+  "result": "pass",
+  "scope": "Minimal producer PartiesSDK4.2/M327 compatibility view; existing finite40 names unchanged, no validator changes",
+  "base": "12475add3f14b06709a5ffe74f413d27d4111d75",
+  "reviewedSourceSha256": {
+    "Props/Directory.Packages.props": "6ca5b82b64fb78e7fb930e9023944c63213a1e4ad296c1bfb2ea635e95fa56ae",
+    "Tools/test-authoritative-package-catalog.ps1": "13245bf839f7901a5473189f1dbd8fedd65da593f1178d8b1333544e4019ba8d",
+    "test/Hexalith.Builds.Module.Tests/Workspace/CompositionCatalogPackageViewTests.cs": "1fcfbfbc4343a9d00837a9dda24beab86d8badcd5cf9c561ee5739c15f56c123"
+  },
+  "actualMsbuildCases": [
+    {
+      "consumer": "Hexalith.Parties",
+      "selectedSdk": null,
+      "selectedMemories": null,
+      "observed": {
+        "HexalithEventStoreVersion": "4.2.0",
+        "HexalithMemoriesVersion": "3.0.27"
+      },
+      "actualMemoriesClientRest": "3.0.27"
+    },
+    {
+      "consumer": "Hexalith.Parties.AdminPortal",
+      "selectedSdk": null,
+      "selectedMemories": null,
+      "observed": {
+        "HexalithEventStoreVersion": "4.2.0",
+        "HexalithMemoriesVersion": "3.0.27"
+      },
+      "actualMemoriesClientRest": "3.0.27"
+    },
+    {
+      "consumer": "Hexalith.Parties.AdminPortal.Tests",
+      "selectedSdk": null,
+      "selectedMemories": null,
+      "observed": {
+        "HexalithEventStoreVersion": "4.2.0",
+        "HexalithMemoriesVersion": "3.0.27"
+      },
+      "actualMemoriesClientRest": "3.0.27"
+    },
+    {
+      "consumer": "Hexalith.Parties.AppHost",
+      "selectedSdk": null,
+      "selectedMemories": null,
+      "observed": {
+        "HexalithEventStoreVersion": "4.2.0",
+        "HexalithMemoriesVersion": "3.0.27"
+      },
+      "actualMemoriesClientRest": "3.0.27"
+    },
+    {
+      "consumer": "Hexalith.Parties.Aspire",
+      "selectedSdk": null,
+      "selectedMemories": null,
+      "observed": {
+        "HexalithEventStoreVersion": "4.2.0",
+        "HexalithMemoriesVersion": "3.0.27"
+      },
+      "actualMemoriesClientRest": "3.0.27"
+    },
+    {
+      "consumer": "Hexalith.Parties.Aspire.Tests",
+      "selectedSdk": null,
+      "selectedMemories": null,
+      "observed": {
+        "HexalithEventStoreVersion": "4.2.0",
+        "HexalithMemoriesVersion": "3.0.27"
+      },
+      "actualMemoriesClientRest": "3.0.27"
+    },
+    {
+      "consumer": "Hexalith.Parties.Authentication",
+      "selectedSdk": null,
+      "selectedMemories": null,
+      "observed": {
+        "HexalithEventStoreVersion": "4.2.0",
+        "HexalithMemoriesVersion": "3.0.27"
+      },
+      "actualMemoriesClientRest": "3.0.27"
+    },
+    {
+      "consumer": "Hexalith.Parties.Authentication.Tests",
+      "selectedSdk": null,
+      "selectedMemories": null,
+      "observed": {
+        "HexalithEventStoreVersion": "4.2.0",
+        "HexalithMemoriesVersion": "3.0.27"
+      },
+      "actualMemoriesClientRest": "3.0.27"
+    },
+    {
+      "consumer": "Hexalith.Parties.Catalog.Tests",
+      "selectedSdk": null,
+      "selectedMemories": null,
+      "observed": {
+        "HexalithEventStoreVersion": "4.2.0",
+        "HexalithMemoriesVersion": "3.0.27"
+      },
+      "actualMemoriesClientRest": "3.0.27"
+    },
+    {
+      "consumer": "Hexalith.Parties.Ci.Tests",
+      "selectedSdk": null,
+      "selectedMemories": null,
+      "observed": {
+        "HexalithEventStoreVersion": "4.2.0",
+        "HexalithMemoriesVersion": "3.0.27"
+      },
+      "actualMemoriesClientRest": "3.0.27"
+    },
+    {
+      "consumer": "Hexalith.Parties.Client",
+      "selectedSdk": null,
+      "selectedMemories": null,
+      "observed": {
+        "HexalithEventStoreVersion": "4.2.0",
+        "HexalithMemoriesVersion": "3.0.27"
+      },
+      "actualMemoriesClientRest": "3.0.27"
+    },
+    {
+      "consumer": "Hexalith.Parties.Client.Tests",
+      "selectedSdk": null,
+      "selectedMemories": null,
+      "observed": {
+        "HexalithEventStoreVersion": "4.2.0",
+        "HexalithMemoriesVersion": "3.0.27"
+      },
+      "actualMemoriesClientRest": "3.0.27"
+    },
+    {
+      "consumer": "Hexalith.Parties.ConsumerPortal",
+      "selectedSdk": null,
+      "selectedMemories": null,
+      "observed": {
+        "HexalithEventStoreVersion": "4.2.0",
+        "HexalithMemoriesVersion": "3.0.27"
+      },
+      "actualMemoriesClientRest": "3.0.27"
+    },
+    {
+      "consumer": "Hexalith.Parties.ConsumerPortal.Tests",
+      "selectedSdk": null,
+      "selectedMemories": null,
+      "observed": {
+        "HexalithEventStoreVersion": "4.2.0",
+        "HexalithMemoriesVersion": "3.0.27"
+      },
+      "actualMemoriesClientRest": "3.0.27"
+    },
+    {
+      "consumer": "Hexalith.Parties.Contracts",
+      "selectedSdk": null,
+      "selectedMemories": null,
+      "observed": {
+        "HexalithEventStoreVersion": "4.2.0",
+        "HexalithMemoriesVersion": "3.0.27"
+      },
+      "actualMemoriesClientRest": "3.0.27"
+    },
+    {
+      "consumer": "Hexalith.Parties.Contracts.Tests",
+      "selectedSdk": null,
+      "selectedMemories": null,
+      "observed": {
+        "HexalithEventStoreVersion": "4.2.0",
+        "HexalithMemoriesVersion": "3.0.27"
+      },
+      "actualMemoriesClientRest": "3.0.27"
+    },
+    {
+      "consumer": "Hexalith.Parties.EventStoreAdminUI.TestHost",
+      "selectedSdk": null,
+      "selectedMemories": null,
+      "observed": {
+        "HexalithEventStoreVersion": "4.2.0",
+        "HexalithMemoriesVersion": "3.0.27"
+      },
+      "actualMemoriesClientRest": "3.0.27"
+    },
+    {
+      "consumer": "Hexalith.Parties.EventStoreExtensions",
+      "selectedSdk": null,
+      "selectedMemories": null,
+      "observed": {
+        "HexalithEventStoreVersion": "4.2.0",
+        "HexalithMemoriesVersion": "3.0.27"
+      },
+      "actualMemoriesClientRest": "3.0.27"
+    },
+    {
+      "consumer": "Hexalith.Parties.EventStoreGateway.TestHost",
+      "selectedSdk": null,
+      "selectedMemories": null,
+      "observed": {
+        "HexalithEventStoreVersion": "4.2.0",
+        "HexalithMemoriesVersion": "3.0.27"
+      },
+      "actualMemoriesClientRest": "3.0.27"
+    },
+    {
+      "consumer": "Hexalith.Parties.EventStoreSample.Contracts.TestArtifact",
+      "selectedSdk": null,
+      "selectedMemories": null,
+      "observed": {
+        "HexalithEventStoreVersion": "4.2.0",
+        "HexalithMemoriesVersion": "3.0.27"
+      },
+      "actualMemoriesClientRest": "3.0.27"
+    },
+    {
+      "consumer": "Hexalith.Parties.EventStoreSample.TestHost",
+      "selectedSdk": null,
+      "selectedMemories": null,
+      "observed": {
+        "HexalithEventStoreVersion": "4.2.0",
+        "HexalithMemoriesVersion": "3.0.27"
+      },
+      "actualMemoriesClientRest": "3.0.27"
+    },
+    {
+      "consumer": "Hexalith.Parties.IntegrationTests",
+      "selectedSdk": null,
+      "selectedMemories": null,
+      "observed": {
+        "HexalithEventStoreVersion": "4.2.0",
+        "HexalithMemoriesVersion": "3.0.27"
+      },
+      "actualMemoriesClientRest": "3.0.27"
+    },
+    {
+      "consumer": "Hexalith.Parties.Mcp",
+      "selectedSdk": null,
+      "selectedMemories": null,
+      "observed": {
+        "HexalithEventStoreVersion": "4.2.0",
+        "HexalithMemoriesVersion": "3.0.27"
+      },
+      "actualMemoriesClientRest": "3.0.27"
+    },
+    {
+      "consumer": "Hexalith.Parties.Mcp.Tests",
+      "selectedSdk": null,
+      "selectedMemories": null,
+      "observed": {
+        "HexalithEventStoreVersion": "4.2.0",
+        "HexalithMemoriesVersion": "3.0.27"
+      },
+      "actualMemoriesClientRest": "3.0.27"
+    },
+    {
+      "consumer": "Hexalith.Parties.Picker",
+      "selectedSdk": null,
+      "selectedMemories": null,
+      "observed": {
+        "HexalithEventStoreVersion": "4.2.0",
+        "HexalithMemoriesVersion": "3.0.27"
+      },
+      "actualMemoriesClientRest": "3.0.27"
+    },
+    {
+      "consumer": "Hexalith.Parties.Picker.Tests",
+      "selectedSdk": null,
+      "selectedMemories": null,
+      "observed": {
+        "HexalithEventStoreVersion": "4.2.0",
+        "HexalithMemoriesVersion": "3.0.27"
+      },
+      "actualMemoriesClientRest": "3.0.27"
+    },
+    {
+      "consumer": "Hexalith.Parties.Platform.AttachedLifecycleTests",
+      "selectedSdk": null,
+      "selectedMemories": null,
+      "observed": {
+        "HexalithEventStoreVersion": "4.2.0",
+        "HexalithMemoriesVersion": "3.0.27"
+      },
+      "actualMemoriesClientRest": "3.0.27"
+    },
+    {
+      "consumer": "Hexalith.Parties.Platform.IntegrationTests",
+      "selectedSdk": null,
+      "selectedMemories": null,
+      "observed": {
+        "HexalithEventStoreVersion": "4.2.0",
+        "HexalithMemoriesVersion": "3.0.27"
+      },
+      "actualMemoriesClientRest": "3.0.27"
+    },
+    {
+      "consumer": "Hexalith.Parties.Platform.LifecycleTests",
+      "selectedSdk": null,
+      "selectedMemories": null,
+      "observed": {
+        "HexalithEventStoreVersion": "4.2.0",
+        "HexalithMemoriesVersion": "3.0.27"
+      },
+      "actualMemoriesClientRest": "3.0.27"
+    },
+    {
+      "consumer": "Hexalith.Parties.Projections",
+      "selectedSdk": null,
+      "selectedMemories": null,
+      "observed": {
+        "HexalithEventStoreVersion": "4.2.0",
+        "HexalithMemoriesVersion": "3.0.27"
+      },
+      "actualMemoriesClientRest": "3.0.27"
+    },
+    {
+      "consumer": "Hexalith.Parties.Projections.Tests",
+      "selectedSdk": null,
+      "selectedMemories": null,
+      "observed": {
+        "HexalithEventStoreVersion": "4.2.0",
+        "HexalithMemoriesVersion": "3.0.27"
+      },
+      "actualMemoriesClientRest": "3.0.27"
+    },
+    {
+      "consumer": "Hexalith.Parties.Sample",
+      "selectedSdk": null,
+      "selectedMemories": null,
+      "observed": {
+        "HexalithEventStoreVersion": "4.2.0",
+        "HexalithMemoriesVersion": "3.0.27"
+      },
+      "actualMemoriesClientRest": "3.0.27"
+    },
+    {
+      "consumer": "Hexalith.Parties.Sample.Tests",
+      "selectedSdk": null,
+      "selectedMemories": null,
+      "observed": {
+        "HexalithEventStoreVersion": "4.2.0",
+        "HexalithMemoriesVersion": "3.0.27"
+      },
+      "actualMemoriesClientRest": "3.0.27"
+    },
+    {
+      "consumer": "Hexalith.Parties.Security",
+      "selectedSdk": null,
+      "selectedMemories": null,
+      "observed": {
+        "HexalithEventStoreVersion": "4.2.0",
+        "HexalithMemoriesVersion": "3.0.27"
+      },
+      "actualMemoriesClientRest": "3.0.27"
+    },
+    {
+      "consumer": "Hexalith.Parties.Security.Tests",
+      "selectedSdk": null,
+      "selectedMemories": null,
+      "observed": {
+        "HexalithEventStoreVersion": "4.2.0",
+        "HexalithMemoriesVersion": "3.0.27"
+      },
+      "actualMemoriesClientRest": "3.0.27"
+    },
+    {
+      "consumer": "Hexalith.Parties.Server.Tests",
+      "selectedSdk": null,
+      "selectedMemories": null,
+      "observed": {
+        "HexalithEventStoreVersion": "4.2.0",
+        "HexalithMemoriesVersion": "3.0.27"
+      },
+      "actualMemoriesClientRest": "3.0.27"
+    },
+    {
+      "consumer": "Hexalith.Parties.Testing",
+      "selectedSdk": null,
+      "selectedMemories": null,
+      "observed": {
+        "HexalithEventStoreVersion": "4.2.0",
+        "HexalithMemoriesVersion": "3.0.27"
+      },
+      "actualMemoriesClientRest": "3.0.27"
+    },
+    {
+      "consumer": "Hexalith.Parties.Tests",
+      "selectedSdk": null,
+      "selectedMemories": null,
+      "observed": {
+        "HexalithEventStoreVersion": "4.2.0",
+        "HexalithMemoriesVersion": "3.0.27"
+      },
+      "actualMemoriesClientRest": "3.0.27"
+    },
+    {
+      "consumer": "Hexalith.Parties.UI",
+      "selectedSdk": null,
+      "selectedMemories": null,
+      "observed": {
+        "HexalithEventStoreVersion": "4.2.0",
+        "HexalithMemoriesVersion": "3.0.27"
+      },
+      "actualMemoriesClientRest": "3.0.27"
+    },
+    {
+      "consumer": "Hexalith.Parties.UI.Tests",
+      "selectedSdk": null,
+      "selectedMemories": null,
+      "observed": {
+        "HexalithEventStoreVersion": "4.2.0",
+        "HexalithMemoriesVersion": "3.0.27"
+      },
+      "actualMemoriesClientRest": "3.0.27"
+    },
+    {
+      "consumer": "Unrelated.Consumer",
+      "selectedSdk": null,
+      "selectedMemories": null,
+      "observed": {
+        "HexalithEventStoreVersion": "5.1.0",
+        "HexalithMemoriesVersion": "4.0.0"
+      },
+      "actualMemoriesClientRest": "4.0.0"
+    },
+    {
+      "consumer": "Hexalith.Parties.Future",
+      "selectedSdk": null,
+      "selectedMemories": null,
+      "observed": {
+        "HexalithEventStoreVersion": "5.1.0",
+        "HexalithMemoriesVersion": "4.0.0"
+      },
+      "actualMemoriesClientRest": "4.0.0"
+    },
+    {
+      "consumer": "Hexalith.Parties.Tests.Future",
+      "selectedSdk": null,
+      "selectedMemories": null,
+      "observed": {
+        "HexalithEventStoreVersion": "5.1.0",
+        "HexalithMemoriesVersion": "4.0.0"
+      },
+      "actualMemoriesClientRest": "4.0.0"
+    },
+    {
+      "consumer": "hexalith.Parties.Tests",
+      "selectedSdk": null,
+      "selectedMemories": null,
+      "observed": {
+        "HexalithEventStoreVersion": "5.1.0",
+        "HexalithMemoriesVersion": "4.0.0"
+      },
+      "actualMemoriesClientRest": "4.0.0"
+    },
+    {
+      "consumer": "Hexalith.Platform.Composition",
+      "selectedSdk": null,
+      "selectedMemories": null,
+      "observed": {
+        "HexalithEventStoreVersion": "4.2.0",
+        "HexalithMemoriesVersion": "3.0.27"
+      },
+      "actualMemoriesClientRest": "3.0.27"
+    },
+    {
+      "consumer": "Hexalith.Platform.EventStoreHost",
+      "selectedSdk": null,
+      "selectedMemories": null,
+      "observed": {
+        "HexalithEventStoreVersion": "4.2.0",
+        "HexalithMemoriesVersion": "3.0.27"
+      },
+      "actualMemoriesClientRest": "3.0.27"
+    },
+    {
+      "consumer": "Hexalith.Parties",
+      "selectedSdk": "4.1.0",
+      "selectedMemories": null,
+      "observed": {
+        "HexalithEventStoreVersion": "4.1.0",
+        "HexalithMemoriesVersion": "4.0.0"
+      },
+      "actualMemoriesClientRest": "4.0.0"
+    },
+    {
+      "consumer": "Hexalith.Parties",
+      "selectedSdk": "5.1.0",
+      "selectedMemories": null,
+      "observed": {
+        "HexalithEventStoreVersion": "5.1.0",
+        "HexalithMemoriesVersion": "4.0.0"
+      },
+      "actualMemoriesClientRest": "4.0.0"
+    },
+    {
+      "consumer": "Hexalith.Parties",
+      "selectedSdk": null,
+      "selectedMemories": "3.0.26",
+      "observed": {
+        "HexalithEventStoreVersion": "4.2.0",
+        "HexalithMemoriesVersion": "3.0.26"
+      },
+      "actualMemoriesClientRest": "3.0.26"
+    },
+    {
+      "consumer": "Hexalith.Parties",
+      "selectedSdk": null,
+      "selectedMemories": "4.0.0",
+      "observed": {
+        "HexalithEventStoreVersion": "4.2.0",
+        "HexalithMemoriesVersion": "4.0.0"
+      },
+      "actualMemoriesClientRest": "4.0.0"
+    },
+    {
+      "consumer": "Hexalith.Builds.Module.AppHost",
+      "selectedSdk": null,
+      "selectedMemories": null,
+      "observed": {
+        "HexalithEventStoreVersion": "4.2.0",
+        "HexalithMemoriesVersion": "3.0.27"
+      },
+      "actualMemoriesClientRest": "3.0.27"
+    },
+    {
+      "consumer": "Hexalith.Builds.Module.EventStoreHost",
+      "selectedSdk": null,
+      "selectedMemories": null,
+      "observed": {
+        "HexalithEventStoreVersion": "4.2.0",
+        "HexalithMemoriesVersion": "3.0.27"
+      },
+      "actualMemoriesClientRest": "3.0.27"
+    },
+    {
+      "consumer": "Hexalith.Builds.Module.UiHost",
+      "selectedSdk": null,
+      "selectedMemories": null,
+      "observed": {
+        "HexalithEventStoreVersion": "4.2.0",
+        "HexalithMemoriesVersion": "3.0.27"
+      },
+      "actualMemoriesClientRest": "3.0.27"
+    }
+  ],
+  "exactPartiesConsumerCount": 40,
+  "noNewPartiesNames": true,
+  "genericLatestDefaultsRetained": true,
+  "explicitSelectionsRetained": true
+}

@@ -1,0 +1,25 @@
+{
+  "capturedAtUtc": "2026-11-14T15:22:01.207498+00:00",
+  "result": "pass",
+  "baselineCommit": "12475add3f14b06709a5ffe74f413d27d4111d75",
+  "workingSourceHashes": {
+    "Props/Directory.Packages.props": "6ca5b82b64fb78e7fb930e9023944c63213a1e4ad296c1bfb2ea635e95fa56ae",
+    "Tools/test-authoritative-package-catalog.ps1": "13245bf839f7901a5473189f1dbd8fedd65da593f1178d8b1333544e4019ba8d",
+    "test/Hexalith.Builds.Module.Tests/Workspace/CompositionCatalogPackageViewTests.cs": "1fcfbfbc4343a9d00837a9dda24beab86d8badcd5cf9c561ee5739c15f56c123"
+  },
+  "sourceScope": "Integrated upstream finite Parties/Platform/packaged-host SDK4.2 Memories defaults and audit, plus additive consumer tests; generic SDK5.1/M4 and explicit selections retained. No validator/action/runtime edits.",
+  "checks": [
+    "central catalog317-entry shape",
+    "authoritative actual-MSBuild owned/default/neighbor/explicit selection probes",
+    "normal Release Module test graph build with warnings as errors",
+    "both complete DirectCatalogDeclarationTests and CompositionCatalogPackageViewTests classes"
+  ],
+  "tests": 51,
+  "testXmlSha256": "9caa477d5f54ae044140516db17669606419cca23b673bd69d93af15dd8cd570",
+  "temporaryWorkspace": "/dev/shm/tenants-release-2026-11-14/hexalith-job.s9pbiTbW/builds",
+  "cleanup": "Verified wrapper removed all private source/cache/build/fixture outputs after exit0.",
+  "publicationClaimed": false,
+  "nativeQualificationClaimed": false,
+  "logSha256": "83b7ee96800953df294c4b695e0b96b2642369870a7911984a9812a1740980e6",
+  "parentReview": "parent-builds602-integrated-review.json"
+}
