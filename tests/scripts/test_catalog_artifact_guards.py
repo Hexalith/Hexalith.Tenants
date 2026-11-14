@@ -86,6 +86,8 @@ class CatalogArtifactPackTests(unittest.TestCase):
                     ('HexalithEventStoreVersion', '5.0.0', "Catalog SDK selection '5.0.0' is not qualified"),
                     ('HexalithEventStoreVersion', '5.0.1-preview.1', "Catalog SDK selection '5.0.1-preview.1' is not qualified"),
                     ('HexalithEventStoreVersion', '5.0.2', "Catalog SDK selection '5.0.2' is not qualified"),
+                    ('HexalithEventStoreVersion', '5.1.1', "Catalog SDK selection '5.1.1' is not qualified"),
+                    ('HexalithEventStoreVersion', '5.1.0-preview.1', "Catalog SDK selection '5.1.0-preview.1' is not qualified"),
                     ('HexalithMcpCliVersion', '1.1.0', 'Canonical Tenants packages require McpCli.Abstractions 2.0.0')):
                 with self.subTest(canonical_guard=property_name):
                     rejected = run('build', project('Contracts'), '--no-restore', *common,
