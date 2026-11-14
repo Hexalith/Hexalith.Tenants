@@ -1,0 +1,38 @@
+{
+  "verifiedAtUtc": "2026-11-14T12:23:03.043152+00:00",
+  "version": "6.0.0",
+  "source": "1ebc5b84ff2c8afd21a87d80ef3d9c9048eaf5e5",
+  "packages": [
+    {
+      "id": "Hexalith.Builds.Evidence.Cli",
+      "version": "6.0.0",
+      "source": "1ebc5b84ff2c8afd21a87d80ef3d9c9048eaf5e5",
+      "archive": "/dev/shm/tenants-release-2026-11-14/platform-mcp-sync/official-builds6/hexalith.builds.evidence.cli.6.0.0.nupkg",
+      "catalogUrl": "https://api.nuget.org/v3/catalog0/data/2026.11.14.12.18.48/hexalith.builds.evidence.cli.6.0.0.json",
+      "catalogSha512": "uw4E42Aodzvpp7H7F+ibxpLUB0mLxU8XW29zTfMjPwtaYx0KLMDuoe5gZWZ6ccurkP4AxrIg3l9BBbXBp5IEJg==",
+      "sha256": "9b0e2a355040ee5d6a57c9a31235b3f35922cf9912d2415dc1118922b0296f15",
+      "signatureLog": "/dev/shm/tenants-release-2026-11-14/platform-mcp-sync/official-builds6/hexalith.builds.evidence.cli.signature.log",
+      "signatureLogSha256": "659c0c191753f9193fb1b039a0fff302c442c78195b33f7ac8b60dda446d40b7",
+      "signatureExitCode": 0,
+      "toolFramework": "net11.0",
+      "toolingSha256": null
+    },
+    {
+      "id": "Hexalith.Builds.Module.Cli",
+      "version": "6.0.0",
+      "source": "1ebc5b84ff2c8afd21a87d80ef3d9c9048eaf5e5",
+      "archive": "/dev/shm/tenants-release-2026-11-14/platform-mcp-sync/official-builds6/hexalith.builds.module.cli.6.0.0.nupkg",
+      "catalogUrl": "https://api.nuget.org/v3/catalog0/data/2026.11.14.12.21.13/hexalith.builds.module.cli.6.0.0.json",
+      "catalogSha512": "K2kwapZEyPHT2ZvHBZl6bnyefbjjV9y8HywkvUAKC8/sPC1veEW5ivAyGPc5BBC5HCxansYTvRTYBiH1bqVF5Q==",
+      "sha256": "67d77de0e10e8799237c95f9bb8f24d3a94f3bb11535c9ffea231af0325f62c2",
+      "signatureLog": "/dev/shm/tenants-release-2026-11-14/platform-mcp-sync/official-builds6/hexalith.builds.module.cli.signature.log",
+      "signatureLogSha256": "9c79fe2a61ae3d560bae2fdc22d08f96ecb59e680beb4b4c22f6de444bdd3258",
+      "signatureExitCode": 0,
+      "toolFramework": "net11.0",
+      "toolingSha256": "38d1a1a35a426b130039e3ef1da6711ce31642da17e5a9ac15c6175d89f0eafa"
+    }
+  ],
+  "nativeAcceptance": false,
+  "ociAcceptance": false,
+  "qualification": "Official listed catalog SHA512, exact nuspec source and NuGet repository signatures only"
+}

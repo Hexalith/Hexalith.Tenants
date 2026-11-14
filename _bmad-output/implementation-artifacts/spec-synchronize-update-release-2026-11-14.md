@@ -126,6 +126,13 @@ This is one coordinated release goal. The user's explicit request supersedes wor
 - `_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/independent-root-recovery-review.json`
 - `_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/aspire-inventory-repair-verification.json`
 - `_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/parent-root-aspire-inventory-review.json`
+- `_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/final-source-synchronization.json`
+- `_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/root-platform6-provenance-assertion-audit.json`
+- `_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/builds6-publication-verification.json`
+- `_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/mcpcli-current-hosted-verification.json`
+- `_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/builds-c91-integration-verification.json`
+- `_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/root-final-submodule-url-sync.json`
+- `_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/root-final-sdk-package-version-audit.json`
 - `_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/eventstore-postrelease-source-synchronization.json`
 
 ## Completion Notes List
@@ -236,3 +243,14 @@ Actual publicSDK5.1/FC6 builds pass without warnings; all189 Testing cases and18
 ## Complete Hosted Recovery Inventory
 
 At `f3b0e85f`, all eight main functional CI jobs succeed, including full Tier1 and all eight live REST cases; Story Guards and both source-reference lanes also succeed. The additional shared Aspire hook runs683 Integration cases and exposes two remaining exact inventory omissions (681pass/2fail/0skip). The generated controller assertion now includes the exact POST refresh-access action, and the explicit budget-rejection row exercises the existing422 ProblemDetails, reason, identity, redaction and corrective-action assertions. Actual package-only build and all17 focused cases pass, with wrapper cleanup verified. Parent bounded review reports no findings. The complete final-source CI, including this shared smoke hook, remains required.
+
+
+## Final Current Dependency Source Selection
+
+At `91405352`, all root required workflows succeed, including all684 shared Aspire cases with0 failures/skips. A fresh nine-owner read verifies clean checkouts equal actual remote main heads. Nonrecursive `git submodule sync` aligns every declared/local/origin URL without changing owner HEADs or nested checkouts.
+
+Builds source advances to `c91beec6`, preserving two external finite PlatformSDK4.2/M327 compatibility-view commits and their revision-bound audit. Global defaults remainSDK5.1,Memories4,FC6. Shape317/audit157,202 positive-negative views, complete authority controls and all43 tests in both changed Module classes pass with0 warnings/errors; the entire Github action/helper tree is identical to1ebc. The official fresh SDK feed confirms11.0.100; actual normal Release evaluations of18 root projects and42 direct package IDs match latest listed stable versions except the explicit frozen3.128.4 bootstrap harness. Git-blobLF and BOM/CRLF checkout catalog hashes both match thec91 audit.
+
+FC selects `89b1c553` after reviewed test/CI-only followups and supported MTP collector wiring. Original configs, Category filters, thresholds and validators are unchanged; real per-test coverage, known mutation kill and full cohort case-ID equality qualify the collector fix locally. Full authoritative Nightly still must pass. Public6.0.0 archives retain sourced7. Platform selects merged `2119b7ed`; signed producer6.0.0/source1ebc observes defaultSDK5.1/Mem4 separately from the explicit admitted SDK4.2/T707/M327/P311/Mcp201 native build/replay family. Frozen4/5 roles remain unchanged; no defaultSDK5.1 native credit is inferred. Current hosted Platform gates remain pending.
+
+The latest sourcecatalogc91, actual signed producer6/1ebc, Root CI executor6ad5854 and Release executorff3 are distinct. Root live/source assertions dynamically record actual sources and need no producer assertion migration. EventStore currentf712 passes completeCI/integration while public5.1 archives retain490 provenance. Mcp current4ff passes completeCI,445-surface census and authenticated21-vector/45-boundary live proof limited to retained frozen profiles; it does not enroll Root5.1/new recovery operations. Final root source must pass all three workflows including shared Aspire; final publisher approval stays held for outstanding automatic dependency gates.

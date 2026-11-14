@@ -1,0 +1,163 @@
+{
+  "capturedAtUtc": "2026-11-14T13:55:07.853211+00:00",
+  "rootBeforePointerCommit": "91405352d4cb2803f9a79faae8c6c02e3420f6c0",
+  "owners": [
+    {
+      "path": "references/Hexalith.AI.Tools",
+      "head": "17a37d83db193f0b7494c1b931fd1e82a67c1424",
+      "remoteMain": "17a37d83db193f0b7494c1b931fd1e82a67c1424",
+      "branch": "main",
+      "clean": true,
+      "equalRemote": true,
+      "status": ""
+    },
+    {
+      "path": "references/Hexalith.Builds",
+      "head": "c91beec60ce5eaa8cd62bf055d07fa6ca3890e89",
+      "remoteMain": "c91beec60ce5eaa8cd62bf055d07fa6ca3890e89",
+      "branch": "main",
+      "clean": true,
+      "equalRemote": true,
+      "status": ""
+    },
+    {
+      "path": "references/Hexalith.Commons",
+      "head": "fbf4e94233821f6ca336af91a06feaaeb7a16855",
+      "remoteMain": "fbf4e94233821f6ca336af91a06feaaeb7a16855",
+      "branch": "main",
+      "clean": true,
+      "equalRemote": true,
+      "status": ""
+    },
+    {
+      "path": "references/Hexalith.EventStore",
+      "head": "f712c08e5cfacd0e340fe7ec571385e72fc0177f",
+      "remoteMain": "f712c08e5cfacd0e340fe7ec571385e72fc0177f",
+      "branch": "main",
+      "clean": true,
+      "equalRemote": true,
+      "status": ""
+    },
+    {
+      "path": "references/Hexalith.FrontComposer",
+      "head": "89b1c553245129a96521236ba21d26d1ee76a2a8",
+      "remoteMain": "89b1c553245129a96521236ba21d26d1ee76a2a8",
+      "branch": "main",
+      "clean": true,
+      "equalRemote": true,
+      "status": ""
+    },
+    {
+      "path": "references/Hexalith.McpCli",
+      "head": "4ffb33e84fd12a2642deb19b3492ce67ae670cee",
+      "remoteMain": "4ffb33e84fd12a2642deb19b3492ce67ae670cee",
+      "branch": "main",
+      "clean": true,
+      "equalRemote": true,
+      "status": ""
+    },
+    {
+      "path": "references/Hexalith.Memories",
+      "head": "2c2e9b58990638ededf22e8e67ff5c12de75b434",
+      "remoteMain": "2c2e9b58990638ededf22e8e67ff5c12de75b434",
+      "branch": "main",
+      "clean": true,
+      "equalRemote": true,
+      "status": ""
+    },
+    {
+      "path": "references/Hexalith.Platform",
+      "head": "2119b7ed990d16d14740398749210870f5bbaff0",
+      "remoteMain": "2119b7ed990d16d14740398749210870f5bbaff0",
+      "branch": "main",
+      "clean": true,
+      "equalRemote": true,
+      "status": ""
+    },
+    {
+      "path": "references/Hexalith.PolymorphicSerializations",
+      "head": "e97b56930e213f674b64c157551f499b0473ec43",
+      "remoteMain": "e97b56930e213f674b64c157551f499b0473ec43",
+      "branch": "main",
+      "clean": true,
+      "equalRemote": true,
+      "status": ""
+    }
+  ],
+  "identities": {
+    "buildsCatalogSource": "c91beec60ce5eaa8cd62bf055d07fa6ca3890e89",
+    "platformCurrentSignedProducer": {
+      "version": "6.0.0",
+      "source": "1ebc5b84ff2c8afd21a87d80ef3d9c9048eaf5e5"
+    },
+    "rootCiExecutor": "6ad5854aa14a9950e1fbfc32d7e27953a1c4b82b",
+    "rootReleaseExecutor": "ff3b7628132059bc42e04fa8c98c1c427b528f62",
+    "eventStorePublic": {
+      "version": "5.1.0",
+      "source": "49084f66f8d6545cae442875355a7066d5f5e73d"
+    },
+    "frontComposerPublic": {
+      "version": "6.0.0",
+      "source": "d7e8f57808b610f7cddf95ecd06db178dfd7592f"
+    },
+    "frozenProfiles": "Historical4/5 producer identities and3.128.4 bootstrap harness remain separate and unchanged."
+  },
+  "acceptance": {
+    "rootBeforePointers": {
+      "source": "91405352d4cb2803f9a79faae8c6c02e3420f6c0",
+      "ci": 43599557267,
+      "story": 43599557051,
+      "sourceReference": 43599557029,
+      "result": "success",
+      "sharedAspire": {
+        "total": 684,
+        "passed": 684,
+        "failed": 0,
+        "skipped": 0
+      }
+    },
+    "builds": {
+      "source": "c91beec60ce5eaa8cd62bf055d07fa6ca3890e89",
+      "ci": 43600169822,
+      "result": "pending",
+      "localProof": "builds-c91-integration-verification.json",
+      "publishedProducerRelease": 43591439615
+    },
+    "eventStore": {
+      "source": "f712c08e5cfacd0e340fe7ec571385e72fc0177f",
+      "ci": 43591868823,
+      "integration": 43591868472,
+      "result": "success"
+    },
+    "mcpCli": {
+      "source": "4ffb33e84fd12a2642deb19b3492ce67ae670cee",
+      "ci": 43591617749,
+      "result": "success",
+      "nativeProof": "mcpcli-current-hosted-verification.json"
+    },
+    "platform": {
+      "source": "2119b7ed990d16d14740398749210870f5bbaff0",
+      "tuple": 43601795307,
+      "catalog": 43601795306,
+      "result": "pending",
+      "scope": "Signed6SDK5.1/Mem4 defaults observed separately; explicit admitted SDK4.2/T707/M327/P311/Mcp201 native build/replay family. No default SDK5.1 native acceptance inferred."
+    },
+    "frontComposer": {
+      "source": "89b1c553245129a96521236ba21d26d1ee76a2a8",
+      "ci": 43600120557,
+      "ciResult": "success",
+      "result": "Quality and authoritative full mutation remain separately owned; publication authorization not inferred."
+    }
+  },
+  "frontComposerPostReleaseChangedPaths": [
+    ".github/workflows/mutation-property-nightly.yml",
+    "_bmad-output/implementation-artifacts/13-6-accessibility-result.md",
+    "_bmad-output/implementation-artifacts/deferred-work.md",
+    "_bmad-output/implementation-artifacts/spec-13-6-verify-responsive-and-assistive-accessibility.md",
+    "_bmad-output/implementation-artifacts/sprint-status.yaml",
+    "docs/how-to/mutation-and-property-quality-gates.md",
+    "tests/Hexalith.FrontComposer.Shell.Tests/Generated/CommandTargetGeneratedFormTests.cs",
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Docs/DocsSiteValidationTests.cs"
+  ],
+  "scope": "All nine independent owner results inspected: clean checkouts equal actual remote main heads. Source catalogc91 differs from immutable signed producer1ebc. Final root CI and remaining owner gates are required; parent publisher hold remains. No nested checkout updates or package provenance relabeling."
+}

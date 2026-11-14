@@ -1,0 +1,28 @@
+{
+  "capturedAtUtc": "2026-11-14T12:26:04.362280+00:00",
+  "rootSource": "a2142101a021161790546ba59b164940516ca6a6",
+  "scope": "Read-only root live/source provenance assertions for upcoming Platform authenticated Builds6 producer adoption. No source changes or qualification claims.",
+  "files": {
+    "scripts/prepare-source-catalog-profile.py": "2345e3f0eef761f74601b78e6c5f525dda49be4ecaca4d7b0fe814ca1079c1e2",
+    "scripts/tenant-audit-source-provenance.py": "3a63a27bb8c4682b714e75c4bfcf8df694a2dff6c7834be3f3e7290bb5f6057a",
+    "scripts/tests/test_source_catalog_profile.py": "ef77c20570c7b5c71f46051eba4234177a8d4d29cfee5c691ae972991e38b24b",
+    "tests/Hexalith.Tenants.IntegrationTests/SourceCatalogOwnerProfileTests.cs": "4f49047e56634bffbdbb780a89c803998930f15549576c6d56212a3133589b9d",
+    ".github/workflows/ci.yml": "50c6c9d3b73dd9390aaa10a27e41457f20d294e1c10265d2c3dc4f7b9dcebacb",
+    ".github/workflows/source-reference.yml": "26e5f105250f23ee8d46460693518c5b4183028751558609edfd7d428c645939",
+    ".github/workflows/release.yml": "8e631fcfcc4d3ab7f7a6c27a4ab744a49d4bb5ba2f7d84ddf627266e44532f58",
+    "src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj": "ef9e9e1a7bb50d9f75725a3cd6cfece18595a3dea57b2ed531e0acea2d12b15b",
+    "Directory.Build.props": "05984fe38991074431bf53e59184ac46e07283fe4f33a6e7a8c96a978cca9ba3",
+    "Directory.Build.targets": "01b8fbb75a43a58b89b592e4fcdf90c5af9b07a6fb8d1c22c66a57d412df631b"
+  },
+  "findings": [],
+  "conclusions": [
+    "No executable root source/workflow/probe assertion hardcodes Builds producer5.2.2 or02ed. Platform authenticated handoff producer migration remains owned by Platform; root need not rewrite a producer identity.",
+    "prepare-source-catalog-profile.py verifies both actual EventStore and Builds checkouts against their committed direct gitlinks, recording actual direct Builds sourceSHA dynamically.",
+    "Source-reference workflow derives SDK producerVersion from the selected EventStore Client project; source profile output records it dynamically. The ordinary packageCI explicitly binds EventStore5.1.0, which is a distinct SDK cohort and remains correct.",
+    "Tenant audit provenance verifies every direct root checkout against the exact recorded gitlink and requires clean source; it has no fixed Builds producer version.",
+    "Synthetic3.128.4 profile fixture tests SDK producer-value propagation and is retained. It does not assert the current authenticated Builds producer.",
+    "AppHost source reference to Builds.Tooling removes HexalithEventStoreVersion, allowing the Tooling project its own catalog selection.",
+    "Root CI execution remains pinned6ad5854aa14a9950e1fbfc32d7e27953a1c4b82b and Release executionff3b7628132059bc42e04fa8c98c1c427b528f62. Neither is inferred from the source catalog or Platform current/frozen handoff producer."
+  ],
+  "next": "Record the accepted Platform source only after its owner pushes and proves remote reachability. Retain historical5.2.2/frozen4/5 receipts unchanged and require final root hosted checks on the actual selected pointer."
+}

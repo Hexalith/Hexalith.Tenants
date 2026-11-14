@@ -229,6 +229,33 @@
       "result": "found 0 problems, 0 warnings",
       "outputSha256": "08578281d386f577396732a8d9fb75cf91edcb8638a4949d59d0253a0a94c01f",
       "output": "\u29d7   --- input ---\ntest: cover recovery routes and snapshot budget rejections\n\u2714   found 0 problems, 0 warnings\n"
+    },
+    {
+      "owningRepository": "Hexalith.Tenants",
+      "evidence": "root-current-heads.commitlint.log",
+      "candidate": "build: synchronize current dependency heads for release\n",
+      "command": "npx --no -- commitlint --edit /dev/shm/tenants-release-2026-11-14/root-current-heads.commitmsg --verbose",
+      "result": "found 0 problems, 0 warnings",
+      "outputSha256": "1e2ec870097a8cc2cab7b772a58502ade3b7f6fba034ed6936e02587a7da2608",
+      "output": "\u29d7   --- input ---\nbuild: synchronize current dependency heads for release\n\u2714   found 0 problems, 0 warnings\n"
+    },
+    {
+      "owningRepository": "Hexalith.Builds",
+      "evidence": "builds-external-platform-source.commitlint.log",
+      "candidate": "fix(catalog): restore the qualified Platform package view\n\nKeep the finite Platform consumers on SDK 4.2 and Memories 3.0.27.\nPreserve current SDK 5.1 and Memories 4 defaults for other consumers and explicit selections.\nQualify real materialized snapshots, cold declarations and complete package-family views.\n\n",
+      "command": "npx --no -- commitlint --edit /dev/shm/tenants-release-2026-11-14/builds-external-platform-source.commitmsg --verbose",
+      "result": "found 0 problems, 0 warnings",
+      "outputSha256": "fa8be3957202c80b06e828aa22a75da3a24b1d830633c032a2ac94fcc21a25ec",
+      "output": "\u29d7   --- input ---\nfix(catalog): restore the qualified Platform package view\n\nKeep the finite Platform consumers on SDK 4.2 and Memories 3.0.27.\nPreserve current SDK 5.1 and Memories 4 defaults for other consumers and explicit selections.\nQualify real materialized snapshots, cold declarations and complete package-family views.\n\u2714   found 0 problems, 0 warnings\n"
+    },
+    {
+      "owningRepository": "Hexalith.Builds",
+      "evidence": "builds-external-platform-audit.commitlint.log",
+      "candidate": "fix(catalog): qualify the Platform cohort package audit\n\nRefresh the Memories family from current official metadata against the committed catalog.\nPreserve the other 156 audited families and use the required explicit type in snapshot checks.\n\n",
+      "command": "npx --no -- commitlint --edit /dev/shm/tenants-release-2026-11-14/builds-external-platform-audit.commitmsg --verbose",
+      "result": "found 0 problems, 0 warnings",
+      "outputSha256": "99b3af171186a8b7ceb892168a0a303bdc154be7f2fdec6d429e0f7a14219d84",
+      "output": "\u29d7   --- input ---\nfix(catalog): qualify the Platform cohort package audit\n\nRefresh the Memories family from current official metadata against the committed catalog.\nPreserve the other 156 audited families and use the required explicit type in snapshot checks.\n\u2714   found 0 problems, 0 warnings\n"
     }
   ]
 }

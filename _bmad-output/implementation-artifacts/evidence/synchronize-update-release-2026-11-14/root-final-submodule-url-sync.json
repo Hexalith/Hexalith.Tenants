@@ -1,0 +1,90 @@
+{
+  "capturedAtUtc": "2026-11-14T13:52:37.344271+00:00",
+  "command": "git -c submodule.recurse=false submodule sync",
+  "result": "pass",
+  "output": "Synchronizing submodule url for 'references/Hexalith.AI.Tools'\nSynchronizing submodule url for 'references/Hexalith.Builds'\nSynchronizing submodule url for 'references/Hexalith.Commons'\nSynchronizing submodule url for 'references/Hexalith.EventStore'\nSynchronizing submodule url for 'references/Hexalith.FrontComposer'\nSynchronizing submodule url for 'references/Hexalith.McpCli'\nSynchronizing submodule url for 'references/Hexalith.Memories'\nSynchronizing submodule url for 'references/Hexalith.Platform'\nSynchronizing submodule url for 'references/Hexalith.PolymorphicSerializations'\n",
+  "scope": "Only nine root-declared initialized submodules synchronized; no recursive flag, nested initialization or checkout update; all owner HEADs unchanged.",
+  "submodules": [
+    {
+      "name": "Hexalith.EventStore",
+      "path": "references/Hexalith.EventStore",
+      "declaredUrl": "https://github.com/Hexalith/Hexalith.EventStore.git",
+      "localRootUrlMatches": true,
+      "ownerOriginMatches": true,
+      "headUnchanged": true,
+      "head": "f712c08e5cfacd0e340fe7ec571385e72fc0177f"
+    },
+    {
+      "name": "Hexalith.Commons",
+      "path": "references/Hexalith.Commons",
+      "declaredUrl": "https://github.com/Hexalith/Hexalith.Commons.git",
+      "localRootUrlMatches": true,
+      "ownerOriginMatches": true,
+      "headUnchanged": true,
+      "head": "fbf4e94233821f6ca336af91a06feaaeb7a16855"
+    },
+    {
+      "name": "Hexalith.AI.Tools",
+      "path": "references/Hexalith.AI.Tools",
+      "declaredUrl": "https://github.com/Hexalith/Hexalith.AI.Tools.git",
+      "localRootUrlMatches": true,
+      "ownerOriginMatches": true,
+      "headUnchanged": true,
+      "head": "17a37d83db193f0b7494c1b931fd1e82a67c1424"
+    },
+    {
+      "name": "Hexalith.FrontComposer",
+      "path": "references/Hexalith.FrontComposer",
+      "declaredUrl": "https://github.com/Hexalith/Hexalith.FrontComposer.git",
+      "localRootUrlMatches": true,
+      "ownerOriginMatches": true,
+      "headUnchanged": true,
+      "head": "89b1c553245129a96521236ba21d26d1ee76a2a8"
+    },
+    {
+      "name": "Hexalith.Builds",
+      "path": "references/Hexalith.Builds",
+      "declaredUrl": "https://github.com/Hexalith/Hexalith.Builds.git",
+      "localRootUrlMatches": true,
+      "ownerOriginMatches": true,
+      "headUnchanged": true,
+      "head": "c91beec60ce5eaa8cd62bf055d07fa6ca3890e89"
+    },
+    {
+      "name": "Hexalith.PolymorphicSerializations",
+      "path": "references/Hexalith.PolymorphicSerializations",
+      "declaredUrl": "https://github.com/Hexalith/Hexalith.PolymorphicSerializations.git",
+      "localRootUrlMatches": true,
+      "ownerOriginMatches": true,
+      "headUnchanged": true,
+      "head": "e97b56930e213f674b64c157551f499b0473ec43"
+    },
+    {
+      "name": "Hexalith.Memories",
+      "path": "references/Hexalith.Memories",
+      "declaredUrl": "https://github.com/Hexalith/Hexalith.Memories.git",
+      "localRootUrlMatches": true,
+      "ownerOriginMatches": true,
+      "headUnchanged": true,
+      "head": "2c2e9b58990638ededf22e8e67ff5c12de75b434"
+    },
+    {
+      "name": "Hexalith.McpCli",
+      "path": "references/Hexalith.McpCli",
+      "declaredUrl": "https://github.com/Hexalith/Hexalith.McpCli.git",
+      "localRootUrlMatches": true,
+      "ownerOriginMatches": true,
+      "headUnchanged": true,
+      "head": "4ffb33e84fd12a2642deb19b3492ce67ae670cee"
+    },
+    {
+      "name": "Hexalith.Platform",
+      "path": "references/Hexalith.Platform",
+      "declaredUrl": "https://github.com/Hexalith/Hexalith.Platform.git",
+      "localRootUrlMatches": true,
+      "ownerOriginMatches": true,
+      "headUnchanged": true,
+      "head": "2119b7ed990d16d14740398749210870f5bbaff0"
+    }
+  ]
+}
