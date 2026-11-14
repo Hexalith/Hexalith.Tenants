@@ -349,6 +349,22 @@ public sealed class TenantConformanceTests {
             ctx.ExecuteTenant(new RemoveTenantConfiguration("acme", "missing"), "acme", "admin", isGlobalAdmin: true);
         });
 
+        yield return Scenario("RefreshTenantAccess global-admin success", typeof(RefreshTenantAccess), ctx => {
+            ctx.CreateActiveTenant("acme");
+            ctx.ExecuteTenant(new RefreshTenantAccess("acme"), "acme", "admin", isGlobalAdmin: true);
+        });
+        yield return Scenario("RefreshTenantAccess owner snapshot preserves state", typeof(RefreshTenantAccess), ctx => {
+            ctx.CreateActiveTenant("acme");
+            ctx.AddUser("acme", "owner", TenantRole.TenantOwner);
+            ctx.ExecuteTenant(new SetTenantConfiguration("acme", "secret", "retained-value"), "acme", "admin", isGlobalAdmin: true);
+            ctx.ExecuteTenant(new RefreshTenantAccess("acme"), "acme", "owner");
+        });
+        yield return Scenario("RefreshTenantAccess cannot substitute payload target", typeof(RefreshTenantAccess), ctx => {
+            ctx.CreateActiveTenant("acme");
+            ctx.AddUser("acme", "owner", TenantRole.TenantOwner);
+            ctx.ExecuteTenant(new RefreshTenantAccess("foreign"), "acme", "owner");
+        });
+
         yield return Scenario("BootstrapGlobalAdmin success", typeof(BootstrapGlobalAdmin), ctx =>
             ctx.ExecuteGlobal(new BootstrapGlobalAdmin("admin1")));
         yield return Scenario("BootstrapGlobalAdmin already bootstrapped rejection", typeof(BootstrapGlobalAdmin), ctx => {

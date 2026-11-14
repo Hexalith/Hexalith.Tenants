@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 using Hexalith.EventStore.Contracts.Events;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Events;
@@ -141,13 +143,20 @@ public sealed class InMemoryTenantProjectionConformanceTests {
 
     private static void AssertAccessSnapshotLeavesBusinessProjectionUnchanged() {
         var projection = new InMemoryTenantProjection();
+        projection.Apply(new TenantAccessRefreshed("uncreated", TenantStatus.Disabled,
+            new Dictionary<string, TenantRole>(), []));
+        projection.GetAllTenants().ShouldBeEmpty("recovery evidence must not manufacture a business model");
         projection.Apply(new TenantCreated("acme", "Acme", "Description", When));
         projection.Apply(new UserAddedToTenant("acme", "owner", TenantRole.TenantOwner));
         projection.Apply(new TenantConfigurationSet("acme", "theme", "dark"));
+        projection.Apply(new GlobalAdministratorSet("system", "admin"));
         var before = projection.GetTenant("acme").ShouldNotBeNull();
+        string beforeJson = JsonSerializer.Serialize(before);
         projection.Apply(new TenantAccessRefreshed("acme", TenantStatus.Disabled,
             new Dictionary<string, TenantRole> { ["foreign"] = TenantRole.TenantReader }, ["other"]));
         projection.GetTenant("acme").ShouldBeSameAs(before);
+        JsonSerializer.Serialize(projection.GetTenant("acme")).ShouldBe(beforeJson);
+        projection.GetGlobalAdministrators().Administrators.ShouldBe(["admin"]);
         before.Name.ShouldBe("Acme");
         before.Description.ShouldBe("Description");
         before.Status.ShouldBe(TenantStatus.Active);
