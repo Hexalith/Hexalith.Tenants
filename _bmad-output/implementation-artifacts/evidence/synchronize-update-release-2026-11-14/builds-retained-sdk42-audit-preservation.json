@@ -1,0 +1,18 @@
+{
+  "capturedAtUtc": "2026-11-14T15:16:59.909825+00:00",
+  "result": "pass",
+  "source": "12475add3f14b06709a5ffe74f413d27d4111d75",
+  "preservedPublishedUpstream": [
+    "590a56faea48c114adf370bff8d24a89cb883dbb",
+    "60ce7967607dc8b703fff11f4fc13cabb09c090a"
+  ],
+  "catalogAndAuditIdenticalToUpstream": true,
+  "generatedFromRevision": "590a56faea48c114adf370bff8d24a89cb883dbb",
+  "auditSha256": "129c071271da8060e46b48030dacd2688adfcc5435b033c2788c2ced78006f39",
+  "preservedFamilyDecisions": 156,
+  "preservedPackageRows": 312,
+  "refreshedFamilies": [
+    "hexalith-memories"
+  ],
+  "reasonNoRedundantAuditRefresh": "The reviewed integration changes only two test/control files above60ce; the complete owned declarations still match their committed590a audit source, and the deterministic revision-bound validator passed."
+}
