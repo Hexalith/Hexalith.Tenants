@@ -56,6 +56,9 @@ public sealed class InMemoryTenantProjection {
             case TenantConfigurationRemoved e:
                 GetOrThrow(e.TenantId).Apply(e);
                 break;
+            case TenantAccessRefreshed:
+                // Production treats recovery snapshots as checkpoint/audit evidence, not business updates.
+                break;
 
             // Global admin events — route to singleton GlobalAdministratorReadModel
             case GlobalAdministratorSet e:

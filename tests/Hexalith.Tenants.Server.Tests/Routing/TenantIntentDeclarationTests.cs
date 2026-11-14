@@ -15,6 +15,7 @@ public class TenantIntentDeclarationTests
     [InlineData("update-tenant")]
     [InlineData("disable-tenant")]
     [InlineData("enable-tenant")]
+    [InlineData("refresh-tenant-access")]
     [InlineData("add-user-to-tenant")]
     [InlineData("remove-user-from-tenant")]
     [InlineData("change-user-role")]
@@ -93,7 +94,7 @@ public class TenantIntentDeclarationTests
         TenantCatalogDeclarations.Queries.Where(q => q.Execution!.RequiresDelegatedContext).ShouldAllBe(q => q.Execution!.QueryKind == "computed" && q.ProjectionType == null);
         TenantCatalogDeclarations.Commands.Select(c => c.Route.PlatformAdmission!.RequiredHumanPermission).Order().ShouldBe(new[] {
             "tenants:create", "tenants:update", "tenants:disable", "tenants:enable", "tenants:add-user", "tenants:remove-user", "tenants:change-user-role",
-            "tenants:set-configuration", "tenants:remove-configuration", "global-administrators:bootstrap", "global-administrators:set", "global-administrators:remove" }.Order());
+            "tenants:set-configuration", "tenants:remove-configuration", "tenants:refresh-access", "global-administrators:bootstrap", "global-administrators:set", "global-administrators:remove" }.Order());
     }
 
     private static IDeclaredIdempotencyIntentAdapter Adapter(string operation) => TenantIntentAdapters.Create().Single(adapter => adapter.CommandType == operation);

@@ -308,6 +308,35 @@ public sealed class TenantConformanceTests {
             ctx.ExecuteTenant(new RemoveTenantConfiguration("acme", "missing"), "acme", "admin", isGlobalAdmin: true);
         });
 
+        yield return Scenario("RefreshTenantAccess global-admin success", typeof(RefreshTenantAccess), ctx => {
+            ctx.CreateActiveTenant("acme");
+            ctx.ExecuteTenant(new RefreshTenantAccess("acme"), "acme", "admin", isGlobalAdmin: true);
+        });
+        yield return Scenario("RefreshTenantAccess owner snapshot preserves state", typeof(RefreshTenantAccess), ctx => {
+            ctx.CreateActiveTenant("acme");
+            ctx.AddUser("acme", "owner", TenantRole.TenantOwner);
+            ctx.ExecuteTenant(new SetTenantConfiguration("acme", "secret", "retained-value"), "acme", "admin", isGlobalAdmin: true);
+            ctx.ExecuteTenant(new RefreshTenantAccess("acme"), "acme", "owner");
+        });
+        yield return Scenario("RefreshTenantAccess disabled owner evidence", typeof(RefreshTenantAccess), ctx => {
+            ctx.CreateActiveTenant("acme");
+            ctx.AddUser("acme", "owner", TenantRole.TenantOwner);
+            ctx.ExecuteTenant(new DisableTenant("acme"), "acme", "admin", isGlobalAdmin: true);
+            ctx.ExecuteTenant(new RefreshTenantAccess("acme"), "acme", "owner");
+        });
+        yield return Scenario("RefreshTenantAccess unprivileged rejection", typeof(RefreshTenantAccess), ctx => {
+            ctx.CreateActiveTenant("acme");
+            ctx.AddUser("acme", "reader", TenantRole.TenantReader);
+            ctx.ExecuteTenant(new RefreshTenantAccess("acme"), "acme", "reader");
+        });
+        yield return Scenario("RefreshTenantAccess missing tenant rejection", typeof(RefreshTenantAccess), ctx =>
+            ctx.ExecuteTenant(new RefreshTenantAccess("missing"), "missing", "admin", isGlobalAdmin: true));
+        yield return Scenario("RefreshTenantAccess cannot substitute payload target", typeof(RefreshTenantAccess), ctx => {
+            ctx.CreateActiveTenant("acme");
+            ctx.AddUser("acme", "owner", TenantRole.TenantOwner);
+            ctx.ExecuteTenant(new RefreshTenantAccess("foreign"), "acme", "owner");
+        });
+
         yield return Scenario("BootstrapGlobalAdmin success", typeof(BootstrapGlobalAdmin), ctx =>
             ctx.ExecuteGlobal(new BootstrapGlobalAdmin("admin1")));
         yield return Scenario("BootstrapGlobalAdmin already bootstrapped rejection", typeof(BootstrapGlobalAdmin), ctx => {
@@ -1531,6 +1560,7 @@ public sealed class TenantConformanceTests {
                 ChangeUserRole c => TenantAggregate.Handle(c, state, envelope),
                 SetTenantConfiguration c => TenantAggregate.Handle(c, state, envelope),
                 RemoveTenantConfiguration c => TenantAggregate.Handle(c, state, envelope),
+                RefreshTenantAccess c => TenantAggregate.Handle(c, state, envelope),
                 _ => throw new InvalidOperationException($"Unknown tenant command type: {command.GetType().Name}."),
             };
 
@@ -1586,6 +1616,7 @@ public sealed class TenantConformanceTests {
                 ChangeUserRole c => c.TenantId,
                 SetTenantConfiguration c => c.TenantId,
                 RemoveTenantConfiguration c => c.TenantId,
+                RefreshTenantAccess c => c.TenantId,
                 _ => null,
             };
             if (!string.IsNullOrWhiteSpace(payloadTenantId)) {
@@ -1633,6 +1664,9 @@ public sealed class TenantConformanceTests {
                         state.Apply(e);
                         break;
                     case TenantConfigurationRemoved e:
+                        state.Apply(e);
+                        break;
+                    case TenantAccessRefreshed e:
                         state.Apply(e);
                         break;
                 }
@@ -1749,6 +1783,10 @@ public sealed class TenantConformanceTests {
     private static bool ValuesEqual(object? actual, object? expected)
         => actual switch {
             null => expected is null,
+            IReadOnlyDictionary<string, TenantRole> members when expected is IReadOnlyDictionary<string, TenantRole> expectedMembers
+                => DictionariesEqual(members, expectedMembers),
+            IReadOnlyList<string> keys when expected is IReadOnlyList<string> expectedKeys
+                => keys.SequenceEqual(expectedKeys, StringComparer.Ordinal),
             _ => actual.Equals(expected),
         };
 

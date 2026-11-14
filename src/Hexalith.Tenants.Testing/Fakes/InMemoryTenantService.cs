@@ -237,6 +237,7 @@ public sealed class InMemoryTenantService {
             ChangeUserRole c => TenantAggregate.Handle(c, state, envelope),
             SetTenantConfiguration c => TenantAggregate.Handle(c, state, envelope),
             RemoveTenantConfiguration c => TenantAggregate.Handle(c, state, envelope),
+            RefreshTenantAccess c => TenantAggregate.Handle(c, state, envelope),
             _ => throw new InvalidOperationException(
                 $"Unknown tenant command type: {command.GetType().Name}. Update ProcessTenantCommand when adding new command types."),
         };
@@ -342,6 +343,9 @@ public sealed class InMemoryTenantService {
                     state.Apply(e);
                     break;
                 case TenantConfigurationRemoved e:
+                    state.Apply(e);
+                    break;
+                case TenantAccessRefreshed e:
                     state.Apply(e);
                     break;
                 default:

@@ -24,6 +24,7 @@ using NSubstitute;
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.FrontComposer.Shell.Extensions;
+using Hexalith.FrontComposer.Shell.Options;
 using Hexalith.FrontComposer.Shell.Services.Auth;
 using Hexalith.Memories.Client.Rest;
 using Hexalith.Tenants.Contracts.Queries;
@@ -359,25 +360,40 @@ public sealed class AuthenticatedTenantsRouteTests(AuthenticatedRouteTopologyFix
     }
 
     private ServiceProvider CreateProductionReadServices(string token)
+        => CreateProductionReadServices(fixture.TenantsUiDaprClient.BaseAddress!, token);
+
+    /// <summary>Creates the same production readers for live and owned-loopback qualification.</summary>
+    /// <param name="tenantsUiDaprEndpoint">The fixture-owned UI invocation endpoint.</param>
+    /// <param name="token">The caller's token to relay.</param>
+    internal static ServiceProvider CreateProductionReadServices(Uri tenantsUiDaprEndpoint, string token)
     {
+        ArgumentNullException.ThrowIfNull(tenantsUiDaprEndpoint);
+        // The local sign-in context does not select the gateway's explicit tenant/platform scope.
+        FrontComposerTokenSession session = new(Guid.NewGuid().ToString("N"), AuthenticatedRouteState.CallerId, "live-route");
         IConfiguration configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
         {
-            ["DAPR_HTTP_ENDPOINT"] = fixture.TenantsUiDaprClient.BaseAddress!.AbsoluteUri,
+            ["DAPR_HTTP_ENDPOINT"] = tenantsUiDaprEndpoint.AbsoluteUri,
         }).Build();
         ServiceCollection services = new();
         services.AddLogging();
         services.AddSingleton(configuration);
         services.AddHexalithFrontComposerTokenRelay();
+        services.Configure<FrontComposerAuthenticationOptions>(options => options.TenantClaimTypes.Add("tenant_id"));
         services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: true);
         services.AddSingleton<IHttpContextAccessor>(new HttpContextAccessor
         {
             HttpContext = new DefaultHttpContext
             {
-                User = new ClaimsPrincipal(new ClaimsIdentity([new Claim("sub", AuthenticatedRouteState.CallerId)], "live-route")),
+                User = new ClaimsPrincipal(new ClaimsIdentity(
+                [
+                    new Claim("sub", session.UserId),
+                    new Claim("tenant_id", session.TenantId),
+                    new Claim(FrontComposerTokenSession.ClaimType, session.SessionId),
+                ], "live-route")),
             },
         });
         ServiceProvider provider = services.BuildServiceProvider();
-        provider.GetRequiredService<FrontComposerUserTokenStore>().Set(AuthenticatedRouteState.CallerId, token, DateTimeOffset.UtcNow.AddMinutes(5));
+        provider.GetRequiredService<FrontComposerUserTokenStore>().Set(session, token, DateTimeOffset.UtcNow.AddMinutes(5));
         return provider;
     }
 
