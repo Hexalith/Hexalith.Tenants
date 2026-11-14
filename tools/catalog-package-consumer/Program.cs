@@ -17,8 +17,8 @@ var operations = CompiledRouteCatalogDeclarations.ReadOperations([contracts]);
 var adapters = ((IEnumerable<IDeclaredIdempotencyIntentAdapter>)source.SourceType.GetMethod("Create")!.Invoke(null, null)!).ToArray();
 if (!routes.Select(route => route.RouteId).Order(StringComparer.Ordinal).SequenceEqual(expected, StringComparer.Ordinal)
     || !operations.Select(operation => operation.RouteId).Order(StringComparer.Ordinal).SequenceEqual(expected, StringComparer.Ordinal)
-    || routes.Count(route => route.Kind == "command") != 12 || routes.Count(route => route.Kind == "query") != 9 || routes.Count(route => route.Kind == "projection") != 2
-    || adapters.Length != 12 || !adapters.Select(adapter => adapter.Declaration.Route.RouteId).Order(StringComparer.Ordinal)
+    || routes.Count(route => route.Kind == "command") != 13 || routes.Count(route => route.Kind == "query") != 9 || routes.Count(route => route.Kind == "projection") != 2
+    || adapters.Length != 13 || !adapters.Select(adapter => adapter.Declaration.Route.RouteId).Order(StringComparer.Ordinal)
         .SequenceEqual(routes.Where(route => route.Kind == "command").Select(route => route.RouteId).Order(StringComparer.Ordinal), StringComparer.Ordinal)
     || operations.Any(operation => operation.Digest != RouteCatalogCodec.ComputeOperationContractDigest(operation))) throw new InvalidDataException("The actual packages differ from the approved complete catalog inventory.");
 Console.WriteLine(JsonSerializer.Serialize(new { routes = routes.Count, operations = operations.Count, adapters = adapters.Length,

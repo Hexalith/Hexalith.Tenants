@@ -75,6 +75,7 @@ This is one coordinated release goal. The user's explicit request supersedes wor
 - `Directory.Build.targets`
 - `.github/workflows/ci.yml`
 - `scripts/verify-catalog-package-consumer.py`
+- `tools/catalog-package-consumer/Program.cs`
 - `tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs`
 - `tests/Hexalith.Tenants.Server.Tests/Aggregates/TenantAccessRecoveryTests.cs`
 - `tests/scripts/test_catalog_artifact_guards.py`
@@ -109,6 +110,8 @@ This is one coordinated release goal. The user's explicit request supersedes wor
 - `_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/parent-public-frontend-proof-check.json`
 - `_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/prepush-synchronization.json`
 - `_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/rebase-source-equivalence.json`
+- `_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/packed-consumer-repair-verification.json`
+- `_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/parent-root-catalog-repair-review.json`
 - `_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/eventstore-postrelease-source-synchronization.json`
 
 ## Completion Notes List
@@ -200,3 +203,10 @@ All9 direct dependencies are clean/equal remote main, with exact heads in prepus
 ## Final Upstream Integration
 
 The first ordinary root push safely refused a concurrent remote advance. The two unpublished commits were rebased onto upstream `48218900f2836a60f2bd7760954a89601cf82bbb`, preserving its boundary dependency adoption and the newer owner descendants. Before this evidence append, every tracked tree entry at rebased `23f07e05` exactly matches the former unpublished `da3345a6`; the saved SHA256 manifest independently matches all non-gitlink files. Earlier local command receipts keep their original source attribution, and this exact source equivalence explains their applicability. Required hosted checks will run against the actual final pushed head; no earlier CI is relabeled.
+
+
+## Hosted Packed Consumer Correction
+
+At pushed `6f4df89e`, Story Guards and both source-reference lanes succeed. The published catalog lane compiles and passes its focused HTTP and owner controls, then its actual packed consumer refuses stale12-command/12-adapter expectations after upstream recovery added a command. A private publicSDK5.1 build/pack reproduces that exact refusal, passes the corrected24-route/24-operation/13-adapter inventory, and still refuses an inventory omitting the recovery route. All14 metadata refusal controls pass. The verifier now surfaces failed-child stdout/stderr while retaining the failure, and all existing archive/source/cohort/digest checks remain unchanged. The wrapper cleans its private workspace/feed/cache/outputs; final CI must qualify the subsequent committed repair.
+
+Parent bounded review reports no findings: the exact24 unique route IDs,13+9+2 categories and13 adapter correspondence remain complete; all provenance/digest/archive/DLL/deadline checks are preserved. Its retained review records the distinguishing actual pass/refusal execution proof.

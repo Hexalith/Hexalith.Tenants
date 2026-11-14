@@ -174,8 +174,11 @@ def verify(directory, expected_source=None, output=None, target_framework="net11
             built = root / 'bin/Release' / target_framework / (package_id + '.dll')
             if hashlib.sha256(built.read_bytes()).hexdigest() != record['dll_sha256']:
                 raise ValueError('Consumer loaded a DLL other than the archived catalog artifact.')
-        result = subprocess.run(['dotnet', str(root / 'bin/Release' / target_framework / 'Consumer.dll')], cwd=root,
-                                env=environment, capture_output=True, text=True, check=True, timeout=30)
+        try:
+            result = subprocess.run(['dotnet', str(root / 'bin/Release' / target_framework / 'Consumer.dll')], cwd=root,
+                                    env=environment, capture_output=True, text=True, check=True, timeout=30)
+        except subprocess.CalledProcessError as error:
+            raise ValueError('Packed catalog discovery failed: ' + error.stdout + error.stderr) from error
         discovery = json.loads(result.stdout)
         receipt = {'version': version, 'sdk': sdk, 'source': expected_source, 'targetFramework': target_framework,
                    'packages': {key: {name: value for name, value in row.items() if name != 'file'} for key, row in archives.items()},

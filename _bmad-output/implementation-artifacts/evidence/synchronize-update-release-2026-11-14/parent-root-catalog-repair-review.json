@@ -1,0 +1,28 @@
+{
+  "capturedAtUtc": "2026-11-14T12:15:56.683604+00:00",
+  "scope": "Independent bounded review of packed-consumer inventory and child-failure diagnostics; real positive/negative archive probes remain owning-agent execution",
+  "result": "pass",
+  "findings": [],
+  "expectedUniqueRoutes": 24,
+  "counts": {
+    "command": 13,
+    "query": 9,
+    "projection": 2,
+    "adapters": 13
+  },
+  "preservedAssertions": [
+    "exact route IDs",
+    "exact operation IDs",
+    "exact command-adapter IDs",
+    "declaration source identities",
+    "operation digests",
+    "restored archive/DLL hashes",
+    "30-second consumer deadline",
+    "fail-closed child exit"
+  ],
+  "diagnosticChange": "CalledProcessError now reports captured stdout/stderr and remains fatal; no success-path or validation bypass",
+  "sourceHashes": {
+    "tools/catalog-package-consumer/Program.cs": "d902abc492ca4c5f93b0a9c3f0a2b24c2a89097290c505c42f7afe1acd54140c",
+    "scripts/verify-catalog-package-consumer.py": "3de2194d07a13b71ec484b5221e50bb4b6eed38c65a0f1c7bf71d42d903ab74a"
+  }
+}
