@@ -1,0 +1,23 @@
+[
+  {
+    "name": "isolated-ui-source-build",
+    "command": [
+      "dotnet",
+      "build",
+      "tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj",
+      "-c",
+      "Debug",
+      "-m:1",
+      "-warnaserror",
+      "-p:UseHexalithProjectReferences=true",
+      "-p:NuGetAudit=false",
+      "-p:MinVerVersionOverride=1.0.0",
+      "--nologo"
+    ],
+    "cwd": "/tmp/hexalith-job.TLD1VKE8/workspace",
+    "exit_code": 0,
+    "elapsed_seconds": 23.96,
+    "log": "_bmad-output/implementation-artifacts/evidence/dotnet-11-source-graph-resume-2026-11-15/isolated-ui-source-build.log",
+    "sha256": "8893df5623a301af6d7646f9296bd6e0910810b1c454289d552f02e980b7d2b5"
+  }
+]

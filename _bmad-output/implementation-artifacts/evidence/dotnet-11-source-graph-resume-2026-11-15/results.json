@@ -1,0 +1,74 @@
+[
+  {
+    "name": "tenants-ui-source-build",
+    "command": [
+      "dotnet",
+      "build",
+      "tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj",
+      "-c",
+      "Debug",
+      "-m:1",
+      "-warnaserror",
+      "-p:UseHexalithProjectReferences=true",
+      "-p:NuGetAudit=false",
+      "-p:MinVerVersionOverride=1.0.0",
+      "--artifacts-path",
+      "/tmp/hexalith-job.oW0MBRhz/artifacts",
+      "--nologo"
+    ],
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "exit_code": 0,
+    "elapsed_seconds": 27.01,
+    "log": "_bmad-output/implementation-artifacts/evidence/dotnet-11-source-graph-resume-2026-11-15/tenants-ui-source-build.log",
+    "sha256": "d86f12492d73a6141d4d5e11d81a6b060e4251400a231dc410662fd10c2e1901"
+  },
+  {
+    "name": "tenants-integration-source-build",
+    "command": [
+      "dotnet",
+      "build",
+      "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+      "-c",
+      "Debug",
+      "-m:1",
+      "-warnaserror",
+      "-p:UseHexalithProjectReferences=true",
+      "-p:NuGetAudit=false",
+      "-p:MinVerVersionOverride=1.0.0",
+      "--artifacts-path",
+      "/tmp/hexalith-job.oW0MBRhz/artifacts",
+      "--nologo"
+    ],
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "exit_code": 0,
+    "elapsed_seconds": 45.45,
+    "log": "_bmad-output/implementation-artifacts/evidence/dotnet-11-source-graph-resume-2026-11-15/tenants-integration-source-build.log",
+    "sha256": "4a9099f64fa5fccceee25c30c78679ebab219ea436fa45bfba73949ea8f7fffe"
+  },
+  {
+    "name": "tenants-ui-tests",
+    "command": [
+      "dotnet",
+      "test",
+      "--project",
+      "tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj",
+      "-c",
+      "Debug",
+      "--no-build",
+      "--no-restore",
+      "-p:UseHexalithProjectReferences=true",
+      "--artifacts-path",
+      "/tmp/hexalith-job.oW0MBRhz/artifacts",
+      "--results-directory",
+      "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/dotnet-11-source-graph-resume-2026-11-15/ui-results",
+      "--report-xunit-trx",
+      "--report-xunit-trx-filename",
+      "tenants-ui.trx"
+    ],
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "exit_code": 2,
+    "elapsed_seconds": 109.71,
+    "log": "_bmad-output/implementation-artifacts/evidence/dotnet-11-source-graph-resume-2026-11-15/tenants-ui-tests.log",
+    "sha256": "11e2916e4c43b78870d5a572f9e946ed0b305015976aaa3d207e351b3a6d192f"
+  }
+]
