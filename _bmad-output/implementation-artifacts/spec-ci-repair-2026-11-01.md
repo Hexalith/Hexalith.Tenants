@@ -1,7 +1,9 @@
 ---
-status: in-review
+status: done
+closed: '2026-11-15'
 date: '2026-11-01'
 baseline_commit: 60cc86e2b80ab1dd912598a3753d2721c2520cf1
+gitlink_audit_ref: a67fb6f3357aab71e0505484f0ee425845660798
 ---
 
 # Repair merged-main CI compatibility
@@ -35,8 +37,10 @@ shared CI selection. Original HEAD is
 - `tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs`
 - `tests/Hexalith.Tenants.IntegrationTests/TenantsApiGeneratedControllerTests.cs`
 - `_bmad-output/implementation-artifacts/spec-qualify-sdk-3-130-catalog-selection.md`
+- `_bmad-output/implementation-artifacts/spec-complete-mcpcli-published-cohort-ci.md`
 - `_bmad-output/implementation-artifacts/deferred-work.md`
 - `_bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md`
+- `_bmad-output/implementation-artifacts/evidence/ci-repair-2026-11-01-review-2026-11-15/`
 
 ## Changes
 
@@ -140,3 +144,74 @@ Raw local logs are retained under `/tmp/tenants-source-provenance-repair-*` and
 `/tmp/tenants-apphost-identity-refs.json` and
 `/tmp/tenants-copied-aspire-identity.json`. No commit, push, runtime change or
 dependency migration was performed in this follow-up.
+
+## Resumed review — 2026-11-15
+
+Reviewed current source `8b03eb999cd596aa07906face9db295e6705f9de`. The two
+implementation commits are `00e7f380aadcef4dac7a04d139c6edaca2f1ff5b` and
+`a67fb6f3357aab71e0505484f0ee425845660798`. The original baseline remains
+unchanged. `gitlink_audit_ref` binds this historical repair to its final
+implementation endpoint, whose baseline-to-endpoint pointer diff is empty.
+
+Existing hosted CI `43709977021`, source-reference integration `43709976751`,
+Commitlint `43709976951`, and CodeQL `43709977016` all passed at the reviewed
+current source. Story Guards `43709976758` failed on two later historical
+records: the latest SDK qualification omitted eight range declarations, and
+the McpCli closure used a historical audit in a pointer-bearing push. Local
+replay reproduced both failures. A first correction also exposed later
+story-associated pointer commits beyond the McpCli record's old endpoint.
+
+The two records now inventory all nine actual baseline-to-closure pointers and
+audit the committed closure. Their original valid baselines remain unchanged;
+the McpCli original correction was independently checked before moving its
+metadata into historical fields. No validator, workflow, production code,
+dependency version or gitlink changes are part of this resumed repair. The
+correction must ship as a separate documentation-only event.
+
+Three independent reviewers received the complete original-baseline-to-current
+diff, which also contains later independently implemented stories. Findings
+about those later stories are classified below and deferred without changing
+their implementations. The original readiness coverage deferral remains
+historical: current tests now cover matching-root readiness, deadline expiry
+and caller cancellation, but do not distinguish a wrong-root transition.
+
+## Review Triage Log
+
+| ID | Finding | Verdict | Evidence and route |
+| --- | --- | --- | --- |
+| BH-1 | Older admitted SDKs lack snapshot-budget APIs | medium | `ValidateCanonicalBoundaryPackageCohort` admits 4.0.4 while `TenantAggregate.RefreshTenantAccess` unconditionally uses `ProjectionSnapshotLimits`; installed 4.0.4 Client XML lacks the type present in 5.1.0. Defer: current SDK recovery implementation postdates both repair commits. |
+| BH-2 | Canonical boundary rejects normalized SDK aliases | medium | `Directory.Build.targets:45` compares raw versions, unlike its catalog normalization; 5.1.0.0 is therefore rejected by the canonical target despite catalog admission. Defer: the canonical boundary target was introduced after this repair. |
+| BH-3 | Configured source AppHost needs an undocumented profile flag | medium | `Program.cs:350` additionally requires `TENANTS_SOURCE_CATALOG_PROFILE`, whereas the development-catalog guide describes custody configuration alone. The flag condition was added on November 2, after this repair. Defer the startup/documentation mismatch. |
+| BH-4 | Unknown recovered events may hide later access changes | maybe-false | `TenantProjectionCheckpointTransition.Decode` skips unknown types, but the reviewer did not identify a currently emitted unknown access-changing event. Defer as unverified high impact; a producer-upgrade/history replay must establish reachability and access-state consequences. This projection implementation postdates the repair. |
+| BH-5 | Recovered payload identity can differ from stream identity | maybe-false | The recovery transition lacks the live subscription's payload-to-aggregate check; the SDK fingerprints history bytes but does not validate the domain payload's TenantId. Whether authoritative history can carry that mismatch remains unproven. Defer as unverified high impact with a persisted-history corruption/refusal reproduction required. |
+| BH-6 | Global-audit REST branch omits duplicate row validation | low | The early return does omit the client check, but its consumer `TenantQueryGateway.GetTenantAuditCoreAsync` calls `IsValidTenantAuditPayload`, rejecting foreign TenantId and non-global event types before mapping. Reject redundant guard expansion: no displayed mixed-tenant acceptance was demonstrated. |
+| BH-7 | Optional list enrichment can delay rendering for 90 seconds | medium | `EnrichRowsAsync` awaits all supplemental detail reads under a 90-second timer, so slow reads delay a confirmed list. Defer: the timeout was changed on November 3 by independent native-timeout work. |
+| BH-8 | Current quickstart retains legacy public system examples | medium | The guide labels later examples historical, but its first-command instructions still submit system-scoped commands incompatible with the current default boundary. Defer to the later canonical-boundary documentation work; the November 1 repair changed no examples. |
+| BH-9 | Recovery workflow omits required Platform checkout | medium | The explicit initialization list omits Platform, while preparation builds the solution and AppHost's `ValidateCanonicalPlatformSource` requires Platform files. Defer: the Platform requirement and recovery changes belong to later work. Group with EC-1. |
+| BH-10 | Candidate dependency identity matching is case-sensitive | medium | `verify-catalog-package-consumer.py` uses case-sensitive candidate prefixes/keys but case-folds restored SDK identities elsewhere, so a lowercased local candidate is omitted from byte binding. Defer: coordinated candidate-feed support postdates this repair. |
+| EC-1 | Fresh partial-release preparation lacks Platform files | medium | Independently confirms BH-9 through the workflow-to-solution-build-to-AppHost target path. Same root cause; one deferred entry. |
+| VG-1 | Global-administrator audit cursor continuation lacks coverage | medium | Pre-verified regression gap: route-specific tests read page one only; changing cursor protection back to the tenant query type would leave them green while continuation fails. Defer: the dedicated global-audit route and derived QueryType postdate the repair. |
+
+No finding requires a further change to the original runtime repair. Ten distinct
+later-work follow-ups are recorded in the deferred ledger; BH-6 is rejected.
+Review findings do not establish current remote publication or production readiness.
+
+## Verification of resumed repair
+
+Durable receipts and exact command output are under
+`evidence/ci-repair-2026-11-01-review-2026-11-15/`. Focused checks cover the
+documentation/provenance correction, while the read-only hosted observations
+cover the existing compiled implementation; no fresh .NET build is claimed.
+
+- Frozen bootstrap selection: 14 tests passed.
+- Story gitlink validator: 77 tests passed; changed-story event runner: 101 passed.
+- Source catalog provisioning boundary: 3 tests passed.
+- All five affected workflow files passed actionlint.
+- The production guard passed the repair's original implementation endpoint
+  and both corrected historical inventories. The actual committed-snapshot
+  runner passed all three corrected records in a disposable documentation-only
+  commit, with no initialized submodules: changed stories 3, failed 0. The first
+  failed attempt is retained separately from that final passing receipt.
+- Pinned commitlint 21.2.4 accepted the exact saved message with zero problems.
+- The pre-existing unrelated accepted-dispositions edit is preserved. No
+  submodule pointer movement or remote mutation is part of this repair.

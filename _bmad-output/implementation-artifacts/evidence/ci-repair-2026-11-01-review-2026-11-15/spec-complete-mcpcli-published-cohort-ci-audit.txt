@@ -1,0 +1,9 @@
+Story:    spec-complete-mcpcli-published-cohort-ci.md
+Baseline: be43b92
+Compared: 35ddf94679ea92fb937b59f4202c4352bf7edf49 (35ddf94)
+
+2 references/ pointer change(s) in range:
+  [declared] references/Hexalith.Builds  10163c3 -> 70850b1
+  [declared] references/Hexalith.FrontComposer  e4df725 -> f842711
+
+RESULT: PASS

@@ -3,6 +3,7 @@ status: done
 date: '2026-10-31'
 baseline_commit: 9e5a991d0ba304bac7b1a5809cd71797b47d78ed
 resume_baseline_commit: 2ec938397c5b330cf1e694e8cc442cb4ad022f2b
+gitlink_audit_ref: 8b03eb999cd596aa07906face9db295e6705f9de
 sdk_version: '5.1.0'
 context:
   - AGENTS.md
@@ -338,7 +339,15 @@ pass at the exact pushed source before runtime freeze and final release acceptan
 
 ## File List
 
+- `references/Hexalith.AI.Tools`
+- `references/Hexalith.Builds`
+- `references/Hexalith.Commons`
 - `references/Hexalith.EventStore`
+- `references/Hexalith.FrontComposer`
+- `references/Hexalith.McpCli`
+- `references/Hexalith.Memories`
+- `references/Hexalith.Platform`
+- `references/Hexalith.PolymorphicSerializations`
 - `.github/workflows/ci.yml`
 - `.github/workflows/source-reference.yml`
 - `.github/workflows/story-guards.yml`
@@ -357,6 +366,27 @@ from `e014af6c3f1c67732485f24012cdbe528a12b0f6` to
 development catalog owner qualification consumed by the merged main graph; it
 does not change the published 3.130.0/3.130.1 package selections or the frozen
 3.128.4 bootstrap compatibility host.
+
+The paragraph above records the original integration. The following inventory
+records the entire historical baseline-to-audit range through the latest SDK
+qualification at `8b03eb999cd596aa07906face9db295e6705f9de`, including independent
+dependency synchronizations already integrated into main. It does not attribute
+those synchronizations to the documentation-only qualification or move any
+pointer. Story Guards run `43709976758` exposed the missing range declarations;
+this correction preserves the original baseline and uses the existing historical
+audit policy in a separate event without gitlink changes.
+
+| Path | Original baseline | Historical audit target |
+| --- | --- | --- |
+| `references/Hexalith.AI.Tools` | `9b78aa008cfc62cd88ad0ea4b39b1f07311956ce` | `17a37d83db193f0b7494c1b931fd1e82a67c1424` |
+| `references/Hexalith.Builds` | `a22b55f0a4f6d2aaa3a5ccc505896064ac595364` | `73e60af8a1fcdf3f06726d5d1b6e1199cce778ee` |
+| `references/Hexalith.Commons` | `0604bcf5304fc09a569f7abbd8e5d1b9049c02b7` | `fbf4e94233821f6ca336af91a06feaaeb7a16855` |
+| `references/Hexalith.EventStore` | `e014af6c3f1c67732485f24012cdbe528a12b0f6` | `fdb59895975e86a1e234325a01237f259cdbd53b` |
+| `references/Hexalith.FrontComposer` | `61a8afbb85c7e25b2eb97acb1cac262ef3e1e33d` | `bca9dff291ce42c57516598732340a80703dfb6d` |
+| `references/Hexalith.McpCli` | `7538bee529ab3a62c2d359fd498c9d60fca77621` | `23072f04f423eea3f30456fe5af13d2d382624fe` |
+| `references/Hexalith.Memories` | `71a721a87ebbb34c557c08517b5c39884a7417da` | `b7e195031cab96b38949b90317ea8033797027b8` |
+| `references/Hexalith.Platform` | `667e5a02a523cf8764ca54d6aa1b4b75db5dca64` | `f6f85032598865b9123f16364448bfd02c0ff5b0` |
+| `references/Hexalith.PolymorphicSerializations` | `92ede24cc11129379efe52cfe7fd2c820c567f7f` | `e97b56930e213f674b64c157551f499b0473ec43` |
 
 ## Qualified stable patch 3.130.1
 

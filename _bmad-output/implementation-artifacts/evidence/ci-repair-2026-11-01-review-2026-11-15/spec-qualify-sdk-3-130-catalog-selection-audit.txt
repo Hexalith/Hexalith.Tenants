@@ -1,0 +1,16 @@
+Story:    spec-qualify-sdk-3-130-catalog-selection.md
+Baseline: 9e5a991
+Compared: 8b03eb999cd596aa07906face9db295e6705f9de (8b03eb9)
+
+9 references/ pointer change(s) in range:
+  [declared] references/Hexalith.AI.Tools  9b78aa0 -> 17a37d8
+  [declared] references/Hexalith.Builds  a22b55f -> 73e60af
+  [declared] references/Hexalith.Commons  0604bcf -> fbf4e94
+  [declared] references/Hexalith.EventStore  e014af6 -> fdb5989
+  [declared] references/Hexalith.FrontComposer  61a8afb -> bca9dff
+  [declared] references/Hexalith.McpCli  7538bee -> 23072f0
+  [declared] references/Hexalith.Memories  71a721a -> b7e1950
+  [declared] references/Hexalith.Platform  667e5a0 -> f6f8503
+  [declared] references/Hexalith.PolymorphicSerializations  92ede24 -> e97b569
+
+RESULT: PASS

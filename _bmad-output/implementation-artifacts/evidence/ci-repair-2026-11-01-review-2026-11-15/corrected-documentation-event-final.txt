@@ -1,0 +1,44 @@
+Event range: 8b03eb999cd596aa07906face9db295e6705f9de..a4cba71d4b3f56aca7347d515dd6f44e2ae83a67
+Audit: _bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md at a67fb6f3357aab71e0505484f0ee425845660798
+Story:    spec-ci-repair-2026-11-01.md
+Baseline: 60cc86e
+Compared: a67fb6f3357aab71e0505484f0ee425845660798 (a67fb6f)
+
+No references/ pointer changes in range.
+
+RESULT: PASS
+Audit: _bmad-output/implementation-artifacts/spec-complete-mcpcli-published-cohort-ci.md at 8b03eb999cd596aa07906face9db295e6705f9de
+Story:    spec-complete-mcpcli-published-cohort-ci.md
+Baseline: be43b92
+Compared: 8b03eb999cd596aa07906face9db295e6705f9de (8b03eb9)
+
+9 references/ pointer change(s) in range:
+  [declared] references/Hexalith.AI.Tools  1745b66 -> 17a37d8
+  [declared] references/Hexalith.Builds  10163c3 -> 73e60af
+  [declared] references/Hexalith.Commons  11555ac -> fbf4e94
+  [declared] references/Hexalith.EventStore  f06abad -> fdb5989
+  [declared] references/Hexalith.FrontComposer  e4df725 -> bca9dff
+  [declared] references/Hexalith.McpCli  edaecb0 -> 23072f0
+  [declared] references/Hexalith.Memories  d9d61d8 -> b7e1950
+  [declared] references/Hexalith.Platform  1f5958e -> f6f8503
+  [declared] references/Hexalith.PolymorphicSerializations  bce4eb9 -> e97b569
+
+RESULT: PASS
+Audit: _bmad-output/implementation-artifacts/spec-qualify-sdk-3-130-catalog-selection.md at 8b03eb999cd596aa07906face9db295e6705f9de
+Story:    spec-qualify-sdk-3-130-catalog-selection.md
+Baseline: 9e5a991
+Compared: 8b03eb999cd596aa07906face9db295e6705f9de (8b03eb9)
+
+9 references/ pointer change(s) in range:
+  [declared] references/Hexalith.AI.Tools  9b78aa0 -> 17a37d8
+  [declared] references/Hexalith.Builds  a22b55f -> 73e60af
+  [declared] references/Hexalith.Commons  0604bcf -> fbf4e94
+  [declared] references/Hexalith.EventStore  e014af6 -> fdb5989
+  [declared] references/Hexalith.FrontComposer  61a8afb -> bca9dff
+  [declared] references/Hexalith.McpCli  7538bee -> 23072f0
+  [declared] references/Hexalith.Memories  71a721a -> b7e1950
+  [declared] references/Hexalith.Platform  667e5a0 -> f6f8503
+  [declared] references/Hexalith.PolymorphicSerializations  92ede24 -> e97b569
+
+RESULT: PASS
+Changed stories: 3; failed: 0

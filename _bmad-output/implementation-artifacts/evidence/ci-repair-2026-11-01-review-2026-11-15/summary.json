@@ -1,0 +1,15 @@
+{
+  "verified_at": "2026-11-15T13:38:39.428083+00:00",
+  "source_commit": "8b03eb999cd596aa07906face9db295e6705f9de",
+  "scratch_only_event_after": "a4cba71d4b3f56aca7347d515dd6f44e2ae83a67",
+  "scratch_event_claim": "Local committed-snapshot simulation only; not pushed or a hosted CI result.",
+  "commitlint_version": "21.2.4",
+  "production_or_dependency_changes": false,
+  "regression_tests_passed": 195,
+  "review_layers": 3,
+  "individual_findings": 12,
+  "distinct_deferred_followups": 10,
+  "rejected_findings": 1,
+  "preserved_user_file_sha256": "880cf99c4a0b10651a1500256c9d34960ae681ddbd974286ae94acefe99043f1",
+  "final_documentation_event_passed": true
+}

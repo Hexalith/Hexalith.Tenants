@@ -1,0 +1,352 @@
+[
+  {
+    "name": "commitlint",
+    "command": [
+      "node",
+      "/home/administrator/projects/hexalith/tenants/node_modules/@commitlint/cli/cli.js",
+      "--edit",
+      "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/ci-repair-2026-11-01-review-2026-11-15/commit-message.txt",
+      "--verbose"
+    ],
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "output": "\u29d7   --- input ---\ndocs(ci): complete November CI repair and historical audits\n\u2714   found 0 problems, 0 warnings\n"
+  },
+  {
+    "name": "bootstrap-compatibility",
+    "command": [
+      "python3",
+      "tests/scripts/test_bootstrap_compatibility.py"
+    ],
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "output": "..............\n----------------------------------------------------------------------\nRan 14 tests in 10.890s\n\nOK\n"
+  },
+  {
+    "name": "story-gitlink-regressions",
+    "command": [
+      "python3",
+      "tests/scripts/test_validate_story_gitlinks.py"
+    ],
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "output": ".............................................................................\n----------------------------------------------------------------------\nRan 77 tests in 7.812s\n\nOK\n"
+  },
+  {
+    "name": "changed-story-regressions",
+    "command": [
+      "python3",
+      "tests/scripts/test_validate_changed_story_gitlinks.py"
+    ],
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "output": ".....................................................................................................\n----------------------------------------------------------------------\nRan 101 tests in 19.197s\n\nOK\n"
+  },
+  {
+    "name": "source-catalog-profile",
+    "command": [
+      "python3",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "scripts/tests",
+      "-p",
+      "test_source_catalog_profile.py",
+      "-v"
+    ],
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "output": "test_fresh_owned_backend_provisions_private_material_and_public_receipt (test_source_catalog_profile.SourceCatalogProfileProvisioningTests.test_fresh_owned_backend_provisions_private_material_and_public_receipt) ... ok\ntest_package_job_uses_the_same_fresh_backend_guard (test_source_catalog_profile.SourceCatalogProfileProvisioningTests.test_package_job_uses_the_same_fresh_backend_guard) ... ok\ntest_refusals_preserve_existing_evidence_and_do_not_mint_owner_material (test_source_catalog_profile.SourceCatalogProfileProvisioningTests.test_refusals_preserve_existing_evidence_and_do_not_mint_owner_material) ... ok\n\n----------------------------------------------------------------------\nRan 3 tests in 0.012s\n\nOK\n"
+  },
+  {
+    "name": "actionlint",
+    "command": [
+      "actionlint",
+      ".github/workflows/ci.yml",
+      ".github/workflows/codeql.yml",
+      ".github/workflows/commitlint.yml",
+      ".github/workflows/source-reference.yml",
+      ".github/workflows/story-guards.yml"
+    ],
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "output": ""
+  },
+  {
+    "name": "original-hosted-event-reproduced",
+    "command": [
+      "python3",
+      "scripts/validate-changed-story-gitlinks.py",
+      "--event-name",
+      "push",
+      "--event-path",
+      "/tmp/hexalith-job.YuSjCaF1/original-event.json"
+    ],
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "exit_code": 1,
+    "expected_exit_code": 1,
+    "output": "Event range: 2ec938397c5b330cf1e694e8cc442cb4ad022f2b..8b03eb999cd596aa07906face9db295e6705f9de\nFAIL: _bmad-output/implementation-artifacts/spec-complete-mcpcli-published-cohort-ci.md: _bmad-output/implementation-artifacts/spec-complete-mcpcli-published-cohort-ci.md: historical gitlink_audit_ref cannot be combined with gitlink-bearing event commits. Isolate the historical repair from dependency changes.\nAudit: _bmad-output/implementation-artifacts/spec-qualify-sdk-3-130-catalog-selection.md at 8b03eb999cd596aa07906face9db295e6705f9de\nStory:    spec-qualify-sdk-3-130-catalog-selection.md\nBaseline: 9e5a991\nCompared: 8b03eb999cd596aa07906face9db295e6705f9de (8b03eb9)\n\n9 references/ pointer change(s) in range:\n  [UNDECLARED] references/Hexalith.AI.Tools  9b78aa0 -> 17a37d8\n  [UNDECLARED] references/Hexalith.Builds  a22b55f -> 73e60af\n  [UNDECLARED] references/Hexalith.Commons  0604bcf -> fbf4e94\n  [declared] references/Hexalith.EventStore  e014af6 -> fdb5989\n  [UNDECLARED] references/Hexalith.FrontComposer  61a8afb -> bca9dff\n  [UNDECLARED] references/Hexalith.McpCli  7538bee -> 23072f0\n  [UNDECLARED] references/Hexalith.Memories  71a721a -> b7e1950\n  [UNDECLARED] references/Hexalith.Platform  667e5a0 -> f6f8503\n  [UNDECLARED] references/Hexalith.PolymorphicSerializations  92ede24 -> e97b569\n\nRESULT: FAIL\n\nEvery submodule pointer this story moves must be a deliberate, stated change.\nFor each UNDECLARED entry above, do one of:\n  DECLARE \u2014 add the path to the story's File List and say in the Completion Notes\n            why the bump belongs to this story.\n  REVERT  \u2014 restore the baseline pointer, then commit the bump separately:\n\n    git checkout 9b78aa008cfc62cd88ad0ea4b39b1f07311956ce -- references/Hexalith.AI.Tools\n    git checkout a22b55f0a4f6d2aaa3a5ccc505896064ac595364 -- references/Hexalith.Builds\n    git checkout 0604bcf5304fc09a569f7abbd8e5d1b9049c02b7 -- references/Hexalith.Commons\n    git checkout 61a8afbb85c7e25b2eb97acb1cac262ef3e1e33d -- references/Hexalith.FrontComposer\n    git checkout 7538bee529ab3a62c2d359fd498c9d60fca77621 -- references/Hexalith.McpCli\n    git checkout 71a721a87ebbb34c557c08517b5c39884a7417da -- references/Hexalith.Memories\n    git checkout 667e5a02a523cf8764ca54d6aa1b4b75db5dca64 -- references/Hexalith.Platform\n    git checkout 92ede24cc11129379efe52cfe7fd2c820c567f7f -- references/Hexalith.PolymorphicSerializations\nChanged stories: 2; failed: 2\n"
+  },
+  {
+    "name": "spec-ci-repair-2026-11-01-audit",
+    "command": [
+      "python3",
+      "scripts/validate-story-gitlinks.py",
+      "_bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md",
+      "--ref",
+      "a67fb6f3357aab71e0505484f0ee425845660798"
+    ],
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "output": "Story:    spec-ci-repair-2026-11-01.md\nBaseline: 60cc86e\nCompared: a67fb6f3357aab71e0505484f0ee425845660798 (a67fb6f)\n\nNo references/ pointer changes in range.\n\nRESULT: PASS\n"
+  },
+  {
+    "name": "spec-qualify-sdk-3-130-catalog-selection-audit",
+    "command": [
+      "python3",
+      "scripts/validate-story-gitlinks.py",
+      "_bmad-output/implementation-artifacts/spec-qualify-sdk-3-130-catalog-selection.md",
+      "--ref",
+      "8b03eb999cd596aa07906face9db295e6705f9de"
+    ],
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "output": "Story:    spec-qualify-sdk-3-130-catalog-selection.md\nBaseline: 9e5a991\nCompared: 8b03eb999cd596aa07906face9db295e6705f9de (8b03eb9)\n\n9 references/ pointer change(s) in range:\n  [declared] references/Hexalith.AI.Tools  9b78aa0 -> 17a37d8\n  [declared] references/Hexalith.Builds  a22b55f -> 73e60af\n  [declared] references/Hexalith.Commons  0604bcf -> fbf4e94\n  [declared] references/Hexalith.EventStore  e014af6 -> fdb5989\n  [declared] references/Hexalith.FrontComposer  61a8afb -> bca9dff\n  [declared] references/Hexalith.McpCli  7538bee -> 23072f0\n  [declared] references/Hexalith.Memories  71a721a -> b7e1950\n  [declared] references/Hexalith.Platform  667e5a0 -> f6f8503\n  [declared] references/Hexalith.PolymorphicSerializations  92ede24 -> e97b569\n\nRESULT: PASS\n"
+  },
+  {
+    "name": "spec-complete-mcpcli-published-cohort-ci-audit",
+    "command": [
+      "python3",
+      "scripts/validate-story-gitlinks.py",
+      "_bmad-output/implementation-artifacts/spec-complete-mcpcli-published-cohort-ci.md",
+      "--ref",
+      "35ddf94679ea92fb937b59f4202c4352bf7edf49"
+    ],
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "output": "Story:    spec-complete-mcpcli-published-cohort-ci.md\nBaseline: be43b92\nCompared: 35ddf94679ea92fb937b59f4202c4352bf7edf49 (35ddf94)\n\n2 references/ pointer change(s) in range:\n  [declared] references/Hexalith.Builds  10163c3 -> 70850b1\n  [declared] references/Hexalith.FrontComposer  e4df725 -> f842711\n\nRESULT: PASS\n"
+  },
+  {
+    "name": "scratch-clone",
+    "command": [
+      "git",
+      "-c",
+      "submodule.recurse=false",
+      "clone",
+      "--shared",
+      "--no-checkout",
+      "/home/administrator/projects/hexalith/tenants",
+      "/tmp/hexalith-job.YuSjCaF1/repository"
+    ],
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "output": "Cloning into '/tmp/hexalith-job.YuSjCaF1/repository'...\ndone.\n"
+  },
+  {
+    "name": "scratch-checkout",
+    "command": [
+      "git",
+      "-c",
+      "submodule.recurse=false",
+      "checkout",
+      "--detach",
+      "8b03eb999cd596aa07906face9db295e6705f9de"
+    ],
+    "cwd": "/tmp/hexalith-job.YuSjCaF1/repository",
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "output": "HEAD is now at 8b03eb99 fix: catalog\n"
+  },
+  {
+    "name": "scratch-stage",
+    "command": [
+      "git",
+      "add",
+      "--",
+      "_bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md",
+      "_bmad-output/implementation-artifacts/spec-qualify-sdk-3-130-catalog-selection.md",
+      "_bmad-output/implementation-artifacts/spec-complete-mcpcli-published-cohort-ci.md"
+    ],
+    "cwd": "/tmp/hexalith-job.YuSjCaF1/repository",
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "output": ""
+  },
+  {
+    "name": "scratch-commit",
+    "command": [
+      "git",
+      "-c",
+      "user.name=CI repair verification",
+      "-c",
+      "user.email=ci-repair-verification@example.invalid",
+      "commit",
+      "--file",
+      "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/ci-repair-2026-11-01-review-2026-11-15/commit-message.txt"
+    ],
+    "cwd": "/tmp/hexalith-job.YuSjCaF1/repository",
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "output": "[detached HEAD 3add3a26] docs(ci): complete November CI repair and historical audits\n 3 files changed, 37 insertions(+)\n"
+  },
+  {
+    "name": "corrected-documentation-event",
+    "command": [
+      "python3",
+      "scripts/validate-changed-story-gitlinks.py",
+      "--event-name",
+      "push",
+      "--event-path",
+      "/tmp/hexalith-job.YuSjCaF1/original-event.json"
+    ],
+    "cwd": "/tmp/hexalith-job.YuSjCaF1/repository",
+    "exit_code": 1,
+    "expected_exit_code": 0,
+    "output": "Event range: 8b03eb999cd596aa07906face9db295e6705f9de..3add3a26aa62cdc5960134e1e4e231e04683c6c7\nAudit: _bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md at a67fb6f3357aab71e0505484f0ee425845660798\nStory:    spec-ci-repair-2026-11-01.md\nBaseline: 60cc86e\nCompared: a67fb6f3357aab71e0505484f0ee425845660798 (a67fb6f)\n\nNo references/ pointer changes in range.\n\nRESULT: PASS\nFAIL: _bmad-output/implementation-artifacts/spec-complete-mcpcli-published-cohort-ci.md: _bmad-output/implementation-artifacts/spec-complete-mcpcli-published-cohort-ci.md: historical endpoint omits later story-associated gitlink commit 5db9648cfd0456896c1c549dcd1021f4c216bf2d.\nAudit: _bmad-output/implementation-artifacts/spec-qualify-sdk-3-130-catalog-selection.md at 8b03eb999cd596aa07906face9db295e6705f9de\nStory:    spec-qualify-sdk-3-130-catalog-selection.md\nBaseline: 9e5a991\nCompared: 8b03eb999cd596aa07906face9db295e6705f9de (8b03eb9)\n\n9 references/ pointer change(s) in range:\n  [declared] references/Hexalith.AI.Tools  9b78aa0 -> 17a37d8\n  [declared] references/Hexalith.Builds  a22b55f -> 73e60af\n  [declared] references/Hexalith.Commons  0604bcf -> fbf4e94\n  [declared] references/Hexalith.EventStore  e014af6 -> fdb5989\n  [declared] references/Hexalith.FrontComposer  61a8afb -> bca9dff\n  [declared] references/Hexalith.McpCli  7538bee -> 23072f0\n  [declared] references/Hexalith.Memories  71a721a -> b7e1950\n  [declared] references/Hexalith.Platform  667e5a0 -> f6f8503\n  [declared] references/Hexalith.PolymorphicSerializations  92ede24 -> e97b569\n\nRESULT: PASS\nChanged stories: 3; failed: 1\n"
+  },
+  {
+    "name": "spec-ci-repair-2026-11-01-corrected-audit",
+    "command": [
+      "python3",
+      "scripts/validate-story-gitlinks.py",
+      "_bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md",
+      "--ref",
+      "a67fb6f3357aab71e0505484f0ee425845660798"
+    ],
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "output": "Story:    spec-ci-repair-2026-11-01.md\nBaseline: 60cc86e\nCompared: a67fb6f3357aab71e0505484f0ee425845660798 (a67fb6f)\n\nNo references/ pointer changes in range.\n\nRESULT: PASS\n"
+  },
+  {
+    "name": "spec-qualify-sdk-3-130-catalog-selection-corrected-audit",
+    "command": [
+      "python3",
+      "scripts/validate-story-gitlinks.py",
+      "_bmad-output/implementation-artifacts/spec-qualify-sdk-3-130-catalog-selection.md",
+      "--ref",
+      "8b03eb999cd596aa07906face9db295e6705f9de"
+    ],
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "output": "Story:    spec-qualify-sdk-3-130-catalog-selection.md\nBaseline: 9e5a991\nCompared: 8b03eb999cd596aa07906face9db295e6705f9de (8b03eb9)\n\n9 references/ pointer change(s) in range:\n  [declared] references/Hexalith.AI.Tools  9b78aa0 -> 17a37d8\n  [declared] references/Hexalith.Builds  a22b55f -> 73e60af\n  [declared] references/Hexalith.Commons  0604bcf -> fbf4e94\n  [declared] references/Hexalith.EventStore  e014af6 -> fdb5989\n  [declared] references/Hexalith.FrontComposer  61a8afb -> bca9dff\n  [declared] references/Hexalith.McpCli  7538bee -> 23072f0\n  [declared] references/Hexalith.Memories  71a721a -> b7e1950\n  [declared] references/Hexalith.Platform  667e5a0 -> f6f8503\n  [declared] references/Hexalith.PolymorphicSerializations  92ede24 -> e97b569\n\nRESULT: PASS\n"
+  },
+  {
+    "name": "spec-complete-mcpcli-published-cohort-ci-corrected-audit",
+    "command": [
+      "python3",
+      "scripts/validate-story-gitlinks.py",
+      "_bmad-output/implementation-artifacts/spec-complete-mcpcli-published-cohort-ci.md",
+      "--ref",
+      "8b03eb999cd596aa07906face9db295e6705f9de"
+    ],
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "output": "Story:    spec-complete-mcpcli-published-cohort-ci.md\nBaseline: be43b92\nCompared: 8b03eb999cd596aa07906face9db295e6705f9de (8b03eb9)\n\n9 references/ pointer change(s) in range:\n  [declared] references/Hexalith.AI.Tools  1745b66 -> 17a37d8\n  [declared] references/Hexalith.Builds  10163c3 -> 73e60af\n  [declared] references/Hexalith.Commons  11555ac -> fbf4e94\n  [declared] references/Hexalith.EventStore  f06abad -> fdb5989\n  [declared] references/Hexalith.FrontComposer  e4df725 -> bca9dff\n  [declared] references/Hexalith.McpCli  edaecb0 -> 23072f0\n  [declared] references/Hexalith.Memories  d9d61d8 -> b7e1950\n  [declared] references/Hexalith.Platform  1f5958e -> f6f8503\n  [declared] references/Hexalith.PolymorphicSerializations  bce4eb9 -> e97b569\n\nRESULT: PASS\n"
+  },
+  {
+    "name": "final-scratch-clone",
+    "command": [
+      "git",
+      "-c",
+      "submodule.recurse=false",
+      "clone",
+      "--shared",
+      "--no-checkout",
+      "/home/administrator/projects/hexalith/tenants",
+      "/tmp/hexalith-job.Y6tjylS9/repository"
+    ],
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "output": "Cloning into '/tmp/hexalith-job.Y6tjylS9/repository'...\ndone.\n"
+  },
+  {
+    "name": "final-scratch-checkout",
+    "command": [
+      "git",
+      "-c",
+      "submodule.recurse=false",
+      "checkout",
+      "--detach",
+      "8b03eb999cd596aa07906face9db295e6705f9de"
+    ],
+    "cwd": "/tmp/hexalith-job.Y6tjylS9/repository",
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "output": "HEAD is now at 8b03eb99 fix: catalog\n"
+  },
+  {
+    "name": "final-scratch-stage",
+    "command": [
+      "git",
+      "add",
+      "--",
+      "_bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md",
+      "_bmad-output/implementation-artifacts/spec-qualify-sdk-3-130-catalog-selection.md",
+      "_bmad-output/implementation-artifacts/spec-complete-mcpcli-published-cohort-ci.md",
+      "_bmad-output/implementation-artifacts/deferred-work.md"
+    ],
+    "cwd": "/tmp/hexalith-job.Y6tjylS9/repository",
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "output": ""
+  },
+  {
+    "name": "final-scratch-commit",
+    "command": [
+      "git",
+      "-c",
+      "user.name=CI repair verification",
+      "-c",
+      "user.email=ci-repair-verification@example.invalid",
+      "commit",
+      "--file",
+      "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/ci-repair-2026-11-01-review-2026-11-15/commit-message.txt"
+    ],
+    "cwd": "/tmp/hexalith-job.Y6tjylS9/repository",
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "output": "[detached HEAD a4cba71d] docs(ci): complete November CI repair and historical audits\n 4 files changed, 188 insertions(+), 3 deletions(-)\n"
+  },
+  {
+    "name": "corrected-documentation-event-final",
+    "command": [
+      "python3",
+      "scripts/validate-changed-story-gitlinks.py",
+      "--event-name",
+      "push",
+      "--event-path",
+      "/tmp/hexalith-job.Y6tjylS9/event.json"
+    ],
+    "cwd": "/tmp/hexalith-job.Y6tjylS9/repository",
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "output": "Event range: 8b03eb999cd596aa07906face9db295e6705f9de..a4cba71d4b3f56aca7347d515dd6f44e2ae83a67\nAudit: _bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md at a67fb6f3357aab71e0505484f0ee425845660798\nStory:    spec-ci-repair-2026-11-01.md\nBaseline: 60cc86e\nCompared: a67fb6f3357aab71e0505484f0ee425845660798 (a67fb6f)\n\nNo references/ pointer changes in range.\n\nRESULT: PASS\nAudit: _bmad-output/implementation-artifacts/spec-complete-mcpcli-published-cohort-ci.md at 8b03eb999cd596aa07906face9db295e6705f9de\nStory:    spec-complete-mcpcli-published-cohort-ci.md\nBaseline: be43b92\nCompared: 8b03eb999cd596aa07906face9db295e6705f9de (8b03eb9)\n\n9 references/ pointer change(s) in range:\n  [declared] references/Hexalith.AI.Tools  1745b66 -> 17a37d8\n  [declared] references/Hexalith.Builds  10163c3 -> 73e60af\n  [declared] references/Hexalith.Commons  11555ac -> fbf4e94\n  [declared] references/Hexalith.EventStore  f06abad -> fdb5989\n  [declared] references/Hexalith.FrontComposer  e4df725 -> bca9dff\n  [declared] references/Hexalith.McpCli  edaecb0 -> 23072f0\n  [declared] references/Hexalith.Memories  d9d61d8 -> b7e1950\n  [declared] references/Hexalith.Platform  1f5958e -> f6f8503\n  [declared] references/Hexalith.PolymorphicSerializations  bce4eb9 -> e97b569\n\nRESULT: PASS\nAudit: _bmad-output/implementation-artifacts/spec-qualify-sdk-3-130-catalog-selection.md at 8b03eb999cd596aa07906face9db295e6705f9de\nStory:    spec-qualify-sdk-3-130-catalog-selection.md\nBaseline: 9e5a991\nCompared: 8b03eb999cd596aa07906face9db295e6705f9de (8b03eb9)\n\n9 references/ pointer change(s) in range:\n  [declared] references/Hexalith.AI.Tools  9b78aa0 -> 17a37d8\n  [declared] references/Hexalith.Builds  a22b55f -> 73e60af\n  [declared] references/Hexalith.Commons  0604bcf -> fbf4e94\n  [declared] references/Hexalith.EventStore  e014af6 -> fdb5989\n  [declared] references/Hexalith.FrontComposer  61a8afb -> bca9dff\n  [declared] references/Hexalith.McpCli  7538bee -> 23072f0\n  [declared] references/Hexalith.Memories  71a721a -> b7e1950\n  [declared] references/Hexalith.Platform  667e5a0 -> f6f8503\n  [declared] references/Hexalith.PolymorphicSerializations  92ede24 -> e97b569\n\nRESULT: PASS\nChanged stories: 3; failed: 0\n"
+  },
+  {
+    "name": "final-diff-check",
+    "command": [
+      "git",
+      "diff",
+      "--check"
+    ],
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "output": ""
+  }
+]

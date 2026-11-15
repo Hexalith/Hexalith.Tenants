@@ -1,0 +1,8 @@
+{
+  "correction_verifier": "scripts/validate-changed-story-gitlinks.py:verify_baseline_correction",
+  "verified": true,
+  "original_rejected_baseline": "edaecb04b1a8edf78f6ad28e5bf253db594003f4",
+  "corrected_baseline": "be43b928ce700ae7433b1d078eec356ccd6079f8",
+  "creation_and_original_endpoint": "35ddf94679ea92fb937b59f4202c4352bf7edf49",
+  "checked_against_source": "8b03eb999cd596aa07906face9db295e6705f9de"
+}

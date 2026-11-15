@@ -1,0 +1,16 @@
+Story:    spec-complete-mcpcli-published-cohort-ci.md
+Baseline: be43b92
+Compared: 8b03eb999cd596aa07906face9db295e6705f9de (8b03eb9)
+
+9 references/ pointer change(s) in range:
+  [declared] references/Hexalith.AI.Tools  1745b66 -> 17a37d8
+  [declared] references/Hexalith.Builds  10163c3 -> 73e60af
+  [declared] references/Hexalith.Commons  11555ac -> fbf4e94
+  [declared] references/Hexalith.EventStore  f06abad -> fdb5989
+  [declared] references/Hexalith.FrontComposer  e4df725 -> bca9dff
+  [declared] references/Hexalith.McpCli  edaecb0 -> 23072f0
+  [declared] references/Hexalith.Memories  d9d61d8 -> b7e1950
+  [declared] references/Hexalith.Platform  1f5958e -> f6f8503
+  [declared] references/Hexalith.PolymorphicSerializations  bce4eb9 -> e97b569
+
+RESULT: PASS

@@ -1,0 +1,48 @@
+{
+  "source_commit": "8b03eb999cd596aa07906face9db295e6705f9de",
+  "runs": [
+    {
+      "id": 43709976951,
+      "name": "Commitlint",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Hexalith/Hexalith.Tenants/actions/runs/43709976951",
+      "sha": "8b03eb999cd596aa07906face9db295e6705f9de"
+    },
+    {
+      "id": 43709976751,
+      "name": "Source-reference integration",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Hexalith/Hexalith.Tenants/actions/runs/43709976751",
+      "sha": "8b03eb999cd596aa07906face9db295e6705f9de"
+    },
+    {
+      "id": 43709976758,
+      "name": "Story Guards",
+      "status": "completed",
+      "conclusion": "failure",
+      "url": "https://github.com/Hexalith/Hexalith.Tenants/actions/runs/43709976758",
+      "sha": "8b03eb999cd596aa07906face9db295e6705f9de"
+    },
+    {
+      "id": 43709977016,
+      "name": "CodeQL",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Hexalith/Hexalith.Tenants/actions/runs/43709977016",
+      "sha": "8b03eb999cd596aa07906face9db295e6705f9de"
+    },
+    {
+      "id": 43709977021,
+      "name": "CI",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Hexalith/Hexalith.Tenants/actions/runs/43709977021",
+      "sha": "8b03eb999cd596aa07906face9db295e6705f9de"
+    }
+  ],
+  "failed_job_id": 132799213165,
+  "failure_excerpt": "2026-11-15T11:41:21.3547718Z Event range: 2ec938397c5b330cf1e694e8cc442cb4ad022f2b..8b03eb999cd596aa07906face9db295e6705f9de\n2026-11-15T11:41:21.3879527Z FAIL: _bmad-output/implementation-artifacts/spec-complete-mcpcli-published-cohort-ci.md: _bmad-output/implementation-artifacts/spec-complete-mcpcli-published-cohort-ci.md: historical gitlink_audit_ref cannot be combined with gitlink-bearing event commits. Isolate the historical repair from dependency changes.\n2026-11-15T11:41:21.4040668Z Audit: _bmad-output/implementation-artifacts/spec-qualify-sdk-3-130-catalog-selection.md at 8b03eb999cd596aa07906face9db295e6705f9de\n2026-11-15T11:41:21.4572077Z   [UNDECLARED] references/Hexalith.AI.Tools  9b78aa0 -> 17a37d8\n2026-11-15T11:41:21.4572428Z   [UNDECLARED] references/Hexalith.Builds  a22b55f -> 73e60af\n2026-11-15T11:41:21.4572744Z   [UNDECLARED] references/Hexalith.Commons  0604bcf -> fbf4e94\n2026-11-15T11:41:21.4573437Z   [UNDECLARED] references/Hexalith.FrontComposer  61a8afb -> bca9dff\n2026-11-15T11:41:21.4573816Z   [UNDECLARED] references/Hexalith.McpCli  7538bee -> 23072f0\n2026-11-15T11:41:21.4574146Z   [UNDECLARED] references/Hexalith.Memories  71a721a -> b7e1950\n2026-11-15T11:41:21.4574558Z   [UNDECLARED] references/Hexalith.Platform  667e5a0 -> f6f8503\n2026-11-15T11:41:21.4575001Z   [UNDECLARED] references/Hexalith.PolymorphicSerializations  92ede24 -> e97b569\n2026-11-15T11:41:21.4575334Z RESULT: FAIL\n2026-11-15T11:41:21.4575981Z For each UNDECLARED entry above, do one of:\n2026-11-15T11:41:21.4584670Z Changed stories: 2; failed: 2",
+  "claim": "Read-only observations of existing hosted runs. The local documentation correction has not been pushed."
+}

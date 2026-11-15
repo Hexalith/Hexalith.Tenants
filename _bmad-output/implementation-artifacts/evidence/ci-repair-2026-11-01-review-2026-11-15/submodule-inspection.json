@@ -1,0 +1,191 @@
+[
+  {
+    "path": "references/Hexalith.EventStore",
+    "branch": "main",
+    "head": "fdb59895975e86a1e234325a01237f259cdbd53b",
+    "status": "",
+    "upstream": "origin/main",
+    "ahead": 0,
+    "remote_tracking_branches_containing_head": [
+      "  origin/HEAD -> origin/main",
+      "  origin/main"
+    ],
+    "remotes": [
+      "origin\thttps://github.com/Hexalith/Hexalith.EventStore.git (fetch)",
+      "origin\thttps://github.com/Hexalith/Hexalith.EventStore.git (push)"
+    ],
+    "recent_history": [
+      "fdb59895975e86a1e234325a01237f259cdbd53b build: sync submodule pointers with origin",
+      "9758d5b4a5a10a9d463e9992447968873ee318ee build: sync submodule pointers with origin",
+      "df976e0051b9e2eaa9d3592b3054a0317d83d0cb build: sync local changes via /pushall"
+    ]
+  },
+  {
+    "path": "references/Hexalith.Commons",
+    "branch": "main",
+    "head": "fbf4e94233821f6ca336af91a06feaaeb7a16855",
+    "status": "",
+    "upstream": "origin/main",
+    "ahead": 0,
+    "remote_tracking_branches_containing_head": [
+      "  origin/HEAD -> origin/main",
+      "  origin/main"
+    ],
+    "remotes": [
+      "origin\thttps://github.com/Hexalith/Hexalith.Commons.git (fetch)",
+      "origin\thttps://github.com/Hexalith/Hexalith.Commons.git (push)"
+    ],
+    "recent_history": [
+      "fbf4e94233821f6ca336af91a06feaaeb7a16855 chore(release): 3.0.0 [skip ci]",
+      "1705ebc20195a9f830da066144dd97b6bc4c0ace feat!: require .NET 11 for common libraries",
+      "5f9d783babadc30748a91f00e5ad6b863e16dd79 chore(release): 2.30.11 [skip ci]"
+    ]
+  },
+  {
+    "path": "references/Hexalith.AI.Tools",
+    "branch": "main",
+    "head": "17a37d83db193f0b7494c1b931fd1e82a67c1424",
+    "status": "",
+    "upstream": "origin/main",
+    "ahead": 0,
+    "remote_tracking_branches_containing_head": [
+      "  origin/HEAD -> origin/main",
+      "  origin/main"
+    ],
+    "remotes": [
+      "origin\thttps://github.com/Hexalith/Hexalith.AI.Tools.git (fetch)",
+      "origin\thttps://github.com/Hexalith/Hexalith.AI.Tools.git (push)"
+    ],
+    "recent_history": [
+      "17a37d83db193f0b7494c1b931fd1e82a67c1424 build(deps): refresh commit validation transitives",
+      "10b709b86f9c9148e5a18177e8d11fad79ae2c0b docs: exempt named local compiler and vector migration tools",
+      "8a3885dd22aea88edd57771cfe592c382df2c583 docs: add push authentication rules for scoped gh profiles"
+    ]
+  },
+  {
+    "path": "references/Hexalith.FrontComposer",
+    "branch": "main",
+    "head": "bca9dff291ce42c57516598732340a80703dfb6d",
+    "status": "",
+    "upstream": "origin/main",
+    "ahead": 0,
+    "remote_tracking_branches_containing_head": [
+      "  origin/HEAD -> origin/main",
+      "  origin/main"
+    ],
+    "remotes": [
+      "origin\thttps://github.com/Hexalith/Hexalith.FrontComposer.git (fetch)",
+      "origin\thttps://github.com/Hexalith/Hexalith.FrontComposer.git (push)"
+    ],
+    "recent_history": [
+      "bca9dff291ce42c57516598732340a80703dfb6d build: record synchronized submodule pointers",
+      "09e5dd0fce32df9653365759d955e1e78df74ed7 build: record synchronized submodule pointers",
+      "7063810a3eb940a8d803fcb977bde5a0a8a2ab59 build: record synchronized submodule pointers"
+    ]
+  },
+  {
+    "path": "references/Hexalith.Builds",
+    "branch": "main",
+    "head": "73e60af8a1fcdf3f06726d5d1b6e1199cce778ee",
+    "status": "",
+    "upstream": "origin/main",
+    "ahead": 0,
+    "remote_tracking_branches_containing_head": [
+      "  origin/HEAD -> origin/main",
+      "  origin/main"
+    ],
+    "remotes": [
+      "origin\thttps://github.com/Hexalith/Hexalith.Builds.git (fetch)",
+      "origin\thttps://github.com/Hexalith/Hexalith.Builds.git (push)"
+    ],
+    "recent_history": [
+      "73e60af8a1fcdf3f06726d5d1b6e1199cce778ee fix: update",
+      "6508014ba449856289f06b40d4b806cc8c8d2ff5 fix(catalog): adopt the latest listed package versions",
+      "7cd0c17a75ce33115c7bfc84f5fbd632e517035f build: sync local changes via /pushall"
+    ]
+  },
+  {
+    "path": "references/Hexalith.PolymorphicSerializations",
+    "branch": "main",
+    "head": "e97b56930e213f674b64c157551f499b0473ec43",
+    "status": "",
+    "upstream": "origin/main",
+    "ahead": 0,
+    "remote_tracking_branches_containing_head": [
+      "  origin/HEAD -> origin/main",
+      "  origin/main"
+    ],
+    "remotes": [
+      "origin\thttps://github.com/Hexalith/Hexalith.PolymorphicSerializations.git (fetch)",
+      "origin\thttps://github.com/Hexalith/Hexalith.PolymorphicSerializations.git (push)"
+    ],
+    "recent_history": [
+      "e97b56930e213f674b64c157551f499b0473ec43 build: merge setup-dotnet-6.1.0 dependabot branch via /pushall",
+      "322cb6b81c526ac4be384394fb1381d92c396362 ci(deps): bump actions/setup-dotnet from 6.0.0 to 6.1.0",
+      "4d58b8bebe989a6895c610afe4084566b9b254ab chore(release): 2.0.0 [skip ci]"
+    ]
+  },
+  {
+    "path": "references/Hexalith.Memories",
+    "branch": "main",
+    "head": "b7e195031cab96b38949b90317ea8033797027b8",
+    "status": "",
+    "upstream": "origin/main",
+    "ahead": 0,
+    "remote_tracking_branches_containing_head": [
+      "  origin/HEAD -> origin/main",
+      "  origin/main"
+    ],
+    "remotes": [
+      "origin\thttps://github.com/Hexalith/Hexalith.Memories.git (fetch)",
+      "origin\thttps://github.com/Hexalith/Hexalith.Memories.git (push)"
+    ],
+    "recent_history": [
+      "b7e195031cab96b38949b90317ea8033797027b8 build: sync submodule pointers with origin",
+      "66e2441e2536fc37708aca2bd3456fd4cd21a439 build: sync submodule pointers with origin",
+      "f20e8b8145a6c00310a2aed3d0c8758844b65fdc build: sync submodule pointers with origin"
+    ]
+  },
+  {
+    "path": "references/Hexalith.McpCli",
+    "branch": "main",
+    "head": "23072f04f423eea3f30456fe5af13d2d382624fe",
+    "status": "",
+    "upstream": "origin/main",
+    "ahead": 0,
+    "remote_tracking_branches_containing_head": [
+      "  origin/HEAD -> origin/main",
+      "  origin/main"
+    ],
+    "remotes": [
+      "origin\thttps://github.com/Hexalith/Hexalith.McpCli.git (fetch)",
+      "origin\thttps://github.com/Hexalith/Hexalith.McpCli.git (push)"
+    ],
+    "recent_history": [
+      "23072f04f423eea3f30456fe5af13d2d382624fe build: sync local changes via /pushall",
+      "63df6d2b1e96bda795d2a21fff7813b35b9da947 fix(ci): align native owners with the selected package catalog",
+      "dc39e2644fec0a8e4abcd74d1a1d9334b7634e26 feat!: migrate to .NET 11 and the current gateway cohort"
+    ]
+  },
+  {
+    "path": "references/Hexalith.Platform",
+    "branch": "main",
+    "head": "f6f85032598865b9123f16364448bfd02c0ff5b0",
+    "status": "",
+    "upstream": "origin/main",
+    "ahead": 0,
+    "remote_tracking_branches_containing_head": [
+      "  origin/HEAD -> origin/main",
+      "  origin/main"
+    ],
+    "remotes": [
+      "origin\thttps://github.com/Hexalith/Hexalith.Platform.git (fetch)",
+      "origin\thttps://github.com/Hexalith/Hexalith.Platform.git (push)"
+    ],
+    "recent_history": [
+      "f6f85032598865b9123f16364448bfd02c0ff5b0 fix: submodules",
+      "5a58ba20102847a3110a0a6c71430ec4d99157e5 build: sync local changes via /pushall",
+      "dccb3f13240051bcdc061ecdd59e0960b43bae0b build: sync local changes via /pushall"
+    ]
+  }
+]

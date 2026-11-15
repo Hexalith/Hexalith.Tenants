@@ -1,0 +1,7 @@
+Story:    spec-ci-repair-2026-11-01.md
+Baseline: 60cc86e
+Compared: a67fb6f3357aab71e0505484f0ee425845660798 (a67fb6f)
+
+No references/ pointer changes in range.
+
+RESULT: PASS

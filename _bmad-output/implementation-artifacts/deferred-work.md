@@ -5632,3 +5632,45 @@ archived: 2026-10-22
 - source_spec: `_bmad-output/implementation-artifacts/spec-synchronize-update-release-2026-11-14.md`
   summary: Bind the standalone workspace-focus validator endpoint to its measured running assembly identity.
   evidence: Review B7 confirmed that validate-authenticated-workspace-focus.mjs records a local assembly digest while accepting an independently supplied endpoint. The framework edit changes only its output path. Preserve existing caller/topology ownership checks and add a distinguishing stale-host control before expanding this standalone proof claim.
+
+## Deferred from: November 1 CI repair resumed review (2026-11-15)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md`
+  summary: Align the current Server SDK build floor with its snapshot-budget API dependency.
+  evidence: Medium, pre-existing later-story issue (BH-1). Directory.Build.targets admits EventStore 4.0.4 through 5.0.1, while TenantAggregate.RefreshTenantAccess unconditionally uses ProjectionSnapshotLimits and ProjectionSnapshotLimitExceededException introduced in 5.1.0. Current installed Client XML confirms the older API absence. Qualify actual admitted package builds and preserve explicitly historical archive cohorts rather than silently claiming current-source compatibility.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md`
+  summary: Reconcile canonical package-boundary admission with catalog SDK alias normalization.
+  evidence: Medium, pre-existing later-story issue (BH-2). ValidateCanonicalBoundaryPackageCohort compares raw HexalithEventStoreVersion literals although the catalog selector normalizes zero-revision and metadata aliases. Evaluate the actual target for 5.1.0.0 and 5.1.0+metadata and decide one consistent documented policy without broadening unqualified SDK admission.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md`
+  summary: Make configured source AppHost catalog activation agree with its developer instructions.
+  evidence: Medium, pre-existing later-story issue (BH-3). AppHost Program.cs gained a TENANTS_SOURCE_CATALOG_PROFILE condition on November 2, while docs/development-route-catalog.md describes source custody configuration without that required switch. An ordinary source run with custody alone does not create the catalog. Document and validate the intended opt-in or repair the enrollment condition while preserving custody ownership.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md`
+  summary: Verify unknown historical event handling across durable consumer upgrades before trusting access state.
+  evidence: Unverified high impact, pre-existing later-story concern (BH-4). TenantProjectionCheckpointTransition.Decode treats unknown event types as checkpoint-only evidence. No currently emitted unknown access-changing event was demonstrated. A producer-upgrade replay with an actual supported newer event must establish whether stale membership can remain healthy; retain explicit harmless rejection behavior and fail-closed access semantics when deciding the policy.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md`
+  summary: Qualify payload-to-stream tenant identity integrity during durable history recovery.
+  evidence: Unverified high impact, pre-existing later-story concern (BH-5). Live TenantServiceCollectionExtensions registers PayloadAggregateIdPropertyName=TenantId, but TenantProjectionCheckpointTransition decodes history without that check and the generic history adapter fingerprints bytes without domain payload validation. Demonstrate whether a persisted authoritative event with a foreign payload TenantId can reach the transition and assert refusal/unavailable health if reachable; no observed cross-tenant history corruption is claimed.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md`
+  summary: Assess the user-visible delay from the later 90-second supplementary list enrichment budget.
+  evidence: Medium, pre-existing later-story issue (BH-7). TenantQueryGateway.EnrichRowsAsync awaits every supplemental detail read before returning a confirmed list; its production timer increased to 90 seconds on November 3. Slow cooperative reads can therefore delay list rendering for that budget. Evaluate the intended latency and progressive/degraded rendering while preserving bounded concurrency and caller isolation.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md`
+  summary: Qualify current quickstart command examples against the canonical platform-scope boundary.
+  evidence: Medium, pre-existing later-story issue (BH-8). docs/quickstart.md explicitly labels later system-scoped request/claim examples legacy, but its advertised first-command path still uses them against the current checkout. Replace and qualify the executable path with the coordinated package cohort and required scope headers without changing retained system storage or administrator authorization.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md`
+  summary: Initialize the required root-declared Platform dependency before clean partial-release preparation.
+  evidence: Medium, pre-existing later-story issue (BH-9 and EC-1, same root cause). recover-partial-release.yml initializes a fixed solution-dependency list without references/Hexalith.Platform; prepare-partial-release.sh builds the solution and AppHost ValidateCanonicalPlatformSource requires Platform's solution and Dapr identity files. A fresh runner therefore cannot prepare recovery packages. Add the root dependency nonrecursively and validate the clean-checkout preparation boundary without publishing.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md`
+  summary: Normalize optional coordinated candidate package identities before archive byte binding.
+  evidence: Medium, pre-existing later-story issue (BH-10). verify-catalog-package-consumer.py uses case-sensitive SDK/McpCli prefixes and dictionary keys for local candidate archives but case-folds restored SDK identities elsewhere. A lowercased candidate is omitted from candidate source mapping and byte matching. Add a distinguishing casing control and normalize classification, duplicate detection and restored-byte lookup consistently.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md`
+  summary: Verify protected cursor continuation through the dedicated global-administrator audit query type.
+  evidence: Medium regression gap, pre-existing later-story issue (VG-1). GetGlobalAdministratorAuditQueryHandler overrides QueryType; GetTenantAuditQueryHandler now uses that derived value for cursor decode/protection. Existing global-audit handler, REST client, generated route and live tests read page one only. A mutation protecting the cursor with the old tenant QueryType would pass them and fail continuation. Add a persisted multi-row, page-size-one test using the real codec and assert that the returned cursor resumes the next global row.

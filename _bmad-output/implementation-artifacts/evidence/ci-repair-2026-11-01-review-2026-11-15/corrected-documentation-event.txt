@@ -1,0 +1,28 @@
+Event range: 8b03eb999cd596aa07906face9db295e6705f9de..3add3a26aa62cdc5960134e1e4e231e04683c6c7
+Audit: _bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md at a67fb6f3357aab71e0505484f0ee425845660798
+Story:    spec-ci-repair-2026-11-01.md
+Baseline: 60cc86e
+Compared: a67fb6f3357aab71e0505484f0ee425845660798 (a67fb6f)
+
+No references/ pointer changes in range.
+
+RESULT: PASS
+FAIL: _bmad-output/implementation-artifacts/spec-complete-mcpcli-published-cohort-ci.md: _bmad-output/implementation-artifacts/spec-complete-mcpcli-published-cohort-ci.md: historical endpoint omits later story-associated gitlink commit 5db9648cfd0456896c1c549dcd1021f4c216bf2d.
+Audit: _bmad-output/implementation-artifacts/spec-qualify-sdk-3-130-catalog-selection.md at 8b03eb999cd596aa07906face9db295e6705f9de
+Story:    spec-qualify-sdk-3-130-catalog-selection.md
+Baseline: 9e5a991
+Compared: 8b03eb999cd596aa07906face9db295e6705f9de (8b03eb9)
+
+9 references/ pointer change(s) in range:
+  [declared] references/Hexalith.AI.Tools  9b78aa0 -> 17a37d8
+  [declared] references/Hexalith.Builds  a22b55f -> 73e60af
+  [declared] references/Hexalith.Commons  0604bcf -> fbf4e94
+  [declared] references/Hexalith.EventStore  e014af6 -> fdb5989
+  [declared] references/Hexalith.FrontComposer  61a8afb -> bca9dff
+  [declared] references/Hexalith.McpCli  7538bee -> 23072f0
+  [declared] references/Hexalith.Memories  71a721a -> b7e1950
+  [declared] references/Hexalith.Platform  667e5a0 -> f6f8503
+  [declared] references/Hexalith.PolymorphicSerializations  92ede24 -> e97b569
+
+RESULT: PASS
+Changed stories: 3; failed: 1
