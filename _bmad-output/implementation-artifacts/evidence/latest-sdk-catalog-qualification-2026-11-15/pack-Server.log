@@ -1,0 +1,3 @@
+$ dotnet pack src/Hexalith.Tenants.Server/Hexalith.Tenants.Server.csproj --configuration Release --no-build --output /tmp/hexalith-job.yxMJLX0Z/catalog-packages -p:Version=0.0.0-catalog-qualification.20261115 -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true -p:HexalithEventStoreFromSource=false -p:HexalithFrontComposerFromSource=false -p:HexalithMemoriesFromSource=false
+  Actual pack-target catalog enrollment verified: Hexalith.Tenants.Server
+  Successfully created package '/tmp/hexalith-job.yxMJLX0Z/catalog-packages/Hexalith.Tenants.Server.0.0.0-catalog-qualification.20261115.nupkg'.

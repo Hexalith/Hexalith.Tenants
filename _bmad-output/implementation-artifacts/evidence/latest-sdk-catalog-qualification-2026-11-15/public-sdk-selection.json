@@ -1,0 +1,15 @@
+{
+  "checked": "2026-11-15T10:32:19.718299+00:00",
+  "index": "https://api.nuget.org/v3-flatcontainer/hexalith.eventstore.client/index.json",
+  "latestStable": "5.1.0",
+  "gallery": "https://www.nuget.org/packages/Hexalith.EventStore.Client",
+  "packageSources": [
+    "https://api.nuget.org/v3/index.json"
+  ],
+  "sdkCandidateFeed": false,
+  "environment": {
+    "RepositoryCommit": "2ec938397c5b330cf1e694e8cc442cb4ad022f2b",
+    "NUGET_PACKAGES": "/tmp/hexalith-job.yxMJLX0Z/packages",
+    "NUGET_HTTP_CACHE_PATH": "/tmp/hexalith-job.yxMJLX0Z/http-cache"
+  }
+}

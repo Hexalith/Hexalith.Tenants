@@ -1,0 +1,13 @@
+{
+  "finished": "2026-11-15T10:35:31.472153+00:00",
+  "sourceBase": "2ec938397c5b330cf1e694e8cc442cb4ad022f2b",
+  "workingTreeQualification": true,
+  "sdk": "5.1.0",
+  "failedCommands": [],
+  "allCommandsPassed": true,
+  "submodulesUnchanged": true,
+  "limits": [
+    "Local qualification only; no exact-source remote CI, publication or live Production qualification.",
+    "The five pre-existing moved gitlinks are inputs and are excluded from implementation changes."
+  ]
+}

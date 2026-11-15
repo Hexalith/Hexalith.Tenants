@@ -1,0 +1,29 @@
+$ dotnet build tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Release -warnaserror -m:1 -nr:false -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true -p:HexalithEventStoreFromSource=false -p:HexalithFrontComposerFromSource=false -p:HexalithMemoriesFromSource=false --source https://api.nuget.org/v3/index.json
+  Determining projects to restore...
+  Restored /tmp/hexalith-job.yxMJLX0Z/Hexalith.Tenants/src/Hexalith.Tenants.Contracts/Hexalith.Tenants.Contracts.csproj (in 1.47 sec).
+  Restored /tmp/hexalith-job.yxMJLX0Z/Hexalith.Tenants/src/Hexalith.Tenants.Client/Hexalith.Tenants.Client.csproj (in 1.49 sec).
+  Restored /tmp/hexalith-job.yxMJLX0Z/Hexalith.Tenants/references/Hexalith.Builds/src/libraries/Hexalith.Builds.Tooling/Hexalith.Builds.Tooling.csproj (in 1.64 sec).
+  Restored /tmp/hexalith-job.yxMJLX0Z/Hexalith.Tenants/src/Hexalith.Tenants.Api/Hexalith.Tenants.Api.csproj (in 2.11 sec).
+  Restored /tmp/hexalith-job.yxMJLX0Z/Hexalith.Tenants/src/Hexalith.Tenants/Hexalith.Tenants.csproj (in 2.11 sec).
+  Restored /tmp/hexalith-job.yxMJLX0Z/Hexalith.Tenants/src/Hexalith.Tenants.Server/Hexalith.Tenants.Server.csproj (in 2.17 sec).
+  Restored /tmp/hexalith-job.yxMJLX0Z/Hexalith.Tenants/src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj (in 2.16 sec).
+  Restored /tmp/hexalith-job.yxMJLX0Z/Hexalith.Tenants/src/Hexalith.Tenants.Aspire/Hexalith.Tenants.Aspire.csproj (in 2.47 sec).
+  Restored /tmp/hexalith-job.yxMJLX0Z/Hexalith.Tenants/src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj (in 2.47 sec).
+  Restored /tmp/hexalith-job.yxMJLX0Z/Hexalith.Tenants/tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj (in 2.49 sec).
+  Hexalith.Tenants.Contracts -> /tmp/hexalith-job.yxMJLX0Z/Hexalith.Tenants/src/Hexalith.Tenants.Contracts/bin/Release/net11.0/Hexalith.Tenants.Contracts.dll
+  Hexalith.Tenants.Server -> /tmp/hexalith-job.yxMJLX0Z/Hexalith.Tenants/src/Hexalith.Tenants.Server/bin/Release/net11.0/Hexalith.Tenants.Server.dll
+  Hexalith.Tenants -> /tmp/hexalith-job.yxMJLX0Z/Hexalith.Tenants/src/Hexalith.Tenants/bin/Release/net11.0/Hexalith.Tenants.dll
+  Hexalith.Tenants.Api -> /tmp/hexalith-job.yxMJLX0Z/Hexalith.Tenants/src/Hexalith.Tenants.Api/bin/Release/net11.0/Hexalith.Tenants.Api.dll
+  Hexalith.Tenants.Aspire -> /tmp/hexalith-job.yxMJLX0Z/Hexalith.Tenants/src/Hexalith.Tenants.Aspire/bin/Release/net11.0/Hexalith.Tenants.Aspire.dll
+  Platform version catalog validated: Hexalith.EventStore.Aspire/5.1.0, CommunityToolkit.Aspire.Hosting.Dapr/13.6.2-beta.959, required range 13.6.2-beta.959 for net11.0.
+  Hexalith.Builds.Tooling -> /tmp/hexalith-job.yxMJLX0Z/Hexalith.Tenants/references/Hexalith.Builds/src/libraries/Hexalith.Builds.Tooling/bin/Release/net11.0/Hexalith.Builds.Tooling.dll
+  Hexalith.Tenants.AppHost -> /tmp/hexalith-job.yxMJLX0Z/Hexalith.Tenants/src/Hexalith.Tenants.AppHost/bin/Release/net11.0/Hexalith.Tenants.AppHost.dll
+  Hexalith.Tenants.Client -> /tmp/hexalith-job.yxMJLX0Z/Hexalith.Tenants/src/Hexalith.Tenants.Client/bin/Release/net11.0/Hexalith.Tenants.Client.dll
+  Hexalith.Tenants.UI -> /tmp/hexalith-job.yxMJLX0Z/Hexalith.Tenants/src/Hexalith.Tenants.UI/bin/Release/net11.0/Hexalith.Tenants.UI.dll
+  Hexalith.Tenants.IntegrationTests -> /tmp/hexalith-job.yxMJLX0Z/Hexalith.Tenants/tests/Hexalith.Tenants.IntegrationTests/bin/Release/net11.0/Hexalith.Tenants.IntegrationTests.dll
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:13.76
