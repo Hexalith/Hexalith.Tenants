@@ -5484,7 +5484,15 @@ public sealed partial class GlobalAdministratorsPageTests : FluentBunitContext
         cut.Find("[data-testid='tenants-global-admin-remove-target']")
             .TextContent.ShouldContain("other-admin");
 
-        int focusCountBeforeCompletion = FocusedElementIds().Count;
+        string acknowledgementId = CapturedChildElementReferenceId(
+            cut.Instance,
+            "_removeAcknowledgementElement");
+        JSRuntimeInvocationHandler acknowledgementFocus = JSInterop.SetupVoid(
+            "Blazor._internal.domWrapper.focus",
+            invocation => invocation.Arguments.Count > 0
+                && invocation.Arguments[0] is ElementReference element
+                && element.Id == acknowledgementId);
+        acknowledgementFocus.SetVoidResult();
         delayedLauncherFocus.SetVoidResult();
         await staleCancelFocus.WaitAsync(TimeSpan.FromSeconds(5));
 
@@ -5494,11 +5502,9 @@ public sealed partial class GlobalAdministratorsPageTests : FluentBunitContext
         currentSnapshot.PreviewEvidence.ShouldNotBeNull().TargetUserId.ShouldBe("other-admin");
 
         await WaitUntilAsync(
-            () => FocusedElementIds().Count > focusCountBeforeCompletion,
+            () => acknowledgementFocus.Invocations.Count > 0,
             TimeSpan.FromSeconds(5));
-        FocusedElementIds()[^1].ShouldBe(CapturedChildElementReferenceId(
-            cut.Instance,
-            "_removeAcknowledgementElement"));
+        acknowledgementFocus.Invocations.ShouldHaveSingleItem();
     }
 
     [Fact]

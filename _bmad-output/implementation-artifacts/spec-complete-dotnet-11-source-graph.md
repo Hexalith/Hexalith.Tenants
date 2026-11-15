@@ -2,7 +2,8 @@
 title: 'Complete the .NET 11 source and validation graph'
 type: 'bugfix'
 created: '2026-11-13'
-status: 'in-review'
+updated: '2026-11-15'
+status: 'done'
 route: 'dispatch'
 baseline_commit: '401d926eb7d51bdf332696ed3f0fe39a812b3501'
 review_loop_iteration: 0
@@ -46,7 +47,7 @@ Acceptance:
 - Given only current net11 outputs, when current validators resolve binaries, then execution and evidence capture select those outputs without requiring stale net10 artifacts.
 - Given retained archive fixtures and standard library/analyzer faces, when migration is applied, then those explicit compatibility contracts remain intact.
 
-## Implementation Notes
+## Implementation Notes (original 2026-11-13 handoff)
 
 User authorization to update to 11 supersedes earlier timeout-spec restrictions against changing the dependency cohort. This is a separate repair; historical timeout evidence is preserved. No intent gaps or irreversible operations were identified.
 
@@ -80,13 +81,46 @@ All three independent layers completed before triage. Each finding was checked a
 | B11: current framework/governance descriptions still require net10 | low | patch: the active source-generation concept and dependency-governance SDK/runtime paragraph contradict current project targets. Correct current guidance while preserving dated proof and retained external compatibility SDKs. |
 | E1: field edits invalidate the pending validation result | medium | patch, same root cause as B4. The separate generated-form runner at /tmp/net11-edge-repro-4ddchtsy dispatches forbidden after an allowed value was captured by its pending validator; NotifyFieldChanged is explicitly raised. |
 | V1: initial pending authentication race lacks regression coverage | low | patch: existing tests initialize the provider with a completed task, so they cannot distinguish stale initial completion after a newer anonymous notification. Add the filed pending-initial-read case and wait for initialization completion before checking markup. |
+| R1: earlier EventStore package cohorts may lack snapshot-budget APIs | maybe-false | defer (medium, unverified): cumulative later tenant-access recovery code uses the APIs, while the current 5.1.0 source graph builds. Compiling production sources against every older advertised package is needed; synthetic marker fixtures are insufficient. |
+| R2: retained net10 consumer uses the later recovery-inclusive inventory | medium | defer: the later recovery feature added a route/adapter after this migration; retained historical consumer qualification needs an explicit historical inventory. No historical inventory was changed by this resumed repair. |
+| R3: canonical package guard rejects normalized version aliases | false | The canonical boundary intentionally pins exact published package-cohort strings; catalog artifact normalization is a separate compatibility check and does not authorize alternate publication selections. |
+| R4: later RefreshTenantAccess command lacks a dedicated McpCli vector | medium | defer: the independent recovery command is present in the cumulative diff but absent from the 14 earlier operation vectors; qualify that command's wire routing in its owning work. |
+| R5: field edits during authorization/BeforeSubmit bypass the validated revision | medium | patch: retain the validation revision/context through the final pre-submission check. Three real generated-form controls hold first authorization, confirmation and second authorization, assert no dispatch of changed values, and require a freshly validated retry. |
+| R6: evaluator does not revalidate tenant snapshot after a policy await | medium | defer: pre-existing delayed authorization behavior; the accessor exposes Revalidate but this evaluator does not call it. Preserve the migration's existing authority contract and qualify the independent tenant-context transition before changing it. |
+| R7: stalled authentication/policy tasks delay cancellation and subscription removal | medium | defer: both external awaits already lacked a cancellation-aware wait before this migration's observer; the existing explicit post-await cancellation contract is retained. Qualify an uncooperative provider/handler and cleanup before changing that contract. |
+| R8: private Stryker preparation leaves an incomplete deterministic cache after failure | medium | defer: this independently added tooling fails closed on an existing incomplete directory, preventing retry without operator cleanup. Add owned staging/atomic completion and failure/cancellation retry controls in the tool's own maintenance work. |
+| R9: Fluent time-editor tests do not exercise actual browser parsing | maybe-false | defer (medium, unverified): the later typed-field tests inspect emitted parameters/callbacks; real invalid, cleared and second-bearing native input must establish whether any visible defect exists. No parsing failure is claimed. |
+| R10: Tenants should duplicate exact snapshot-budget boundary controls | false | The reused EventStore ProjectionSnapshotLimitsTests already covers exact encoded-byte acceptance, one-byte overflow and escaped/non-ASCII values; Tenants passes that event payload to the shared validator before length-preserving ordering. No distinct migration boundary failure was established. |
+| G1: governance assumes a nested Builds catalog | medium | patch: resolve the same nested/sibling/parent-sibling catalog candidates as the effective package import; retain the actual package pin assertion and fail if no catalog exists. |
+| G2: sealed-release fixtures omit their authenticated catalog | medium | patch: commit a minimal catalog into the synthetic Builds fixture before computing its immutable graph; keep all graph/seal checks and artifact/definition mutation negatives enabled. |
+| G3: final UI verification races the bUnit invocation dictionary | medium | patch: the existing cancel-focus test polled a concurrently changing global invocation collection. Await its exact acknowledgement-focus handler and assert the single matching invocation, preserving the current-preview identity check. |
 
 
 ## File List
 
-- `references/Hexalith.FrontComposer` — owned framework, form generator and validation-tool migration; source edits only, no pointer movement.
-- `references/Hexalith.Memories` — owned framework/runtime/tooling migration; source edits only, no pointer movement.
-- Root browser validator paths listed above.
+- `references/Hexalith.FrontComposer`
+- `references/Hexalith.Memories`
+- `references/Hexalith.EventStore`
+- `references/Hexalith.Commons`
+- `references/Hexalith.AI.Tools`
+- `references/Hexalith.Builds`
+- `references/Hexalith.PolymorphicSerializations`
+- `references/Hexalith.McpCli`
+- `references/Hexalith.Platform`
+
+FrontComposer and Memories own the original framework/runtime/tooling migration; this resume adds only the FrontComposer source fixes listed below. All root pointer changes since the long-lived original baseline were inherited from independent synchronization work, including concurrent updates during verification. They are explicitly declared for audit and were preserved. The resumed agent performed no pointer updates. Root browser validators are the seven paths in the Code Map.
+
+
+### Resumed verification on 2026-11-15
+
+- `references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.SourceTools/Emitters/CommandFormEmitter.cs` — refuse field/context changes through the final pre-submission boundary.
+- `references/Hexalith.FrontComposer/tests/Hexalith.FrontComposer.Shell.Tests/Generated/AsyncCommandFormValidationTests.cs` — three awaited authorization/confirmation regression cases with admission release and valid retry.
+- `references/Hexalith.FrontComposer/tests/Hexalith.FrontComposer.Shell.Tests/Governance/CiGovernanceTests.cs` and `references/Hexalith.FrontComposer/tests/ci-governance/stage_release_state.py` — close the documented catalog fixture blockers without nested initialization or weaker guards.
+- Both existing CommandFormEmitter snapshots — match the final emitted validation lifetime.
+- `tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs` — observe the exact return-focus invocation rather than enumerating bUnit's mutable invocation dictionary during polling.
+- Root evidence under `evidence/dotnet-11-source-graph-resume-2026-11-15/` — current revisions, commands, before/after proof and review disposition. The initial relocated-output UI attempt is an infrastructure failure; the conventional-layout disposable checkout is the acceptance lane.
+- `references/Hexalith.EventStore`, `references/Hexalith.Commons`, `references/Hexalith.AI.Tools`, `references/Hexalith.Builds`, `references/Hexalith.PolymorphicSerializations`, `references/Hexalith.McpCli`, and `references/Hexalith.Platform` — inherited independent pointer changes since the original baseline, declared for the long-lived story audit. The resumed agent did not move these pointers. FrontComposer and Memories also have inherited pointer updates; this resume changes FrontComposer source only.
+
 
 ## Verification
 
@@ -95,8 +129,15 @@ All three independent layers completed before triage. Each finding was checked a
 - Node syntax checks for changed validators and actual status-label fixture/browser control when available.
 - `git diff --check` in each owning repository and root story-gitlink validation.
 
-## Review Corrections Verified
+## Review Corrections Verified (original handoff)
 
 All thirteen logged findings were patched with the existing implementation agent. The final source rebuilds pass with zero warnings/errors, regenerated Tenants UI passes 8,082 cases, transport evidence remains 35 passing cases, and final focused owner selections pass 411 cases. The review-specific scenarios/runtime controls pass 119 cases; the post-patch governance/fatal-taxonomy/exception-census controls pass nine cases. Actual Chromium net11 execution and the installed SDK/runtime identity probe pass.
 
-All pre-existing tracked edits retain their original SHA-256. No source pointer moved, no nested checkout was initialized and no VCS publication occurred. Consolidated evidence: `evidence/dotnet-11-source-graph-2026-11-13/verification.md` and `verification.json`. Implementation of the requested source migration is complete; status remains in-review because the separately documented broader owner governance/readiness and package lanes are unqualified.
+All pre-existing tracked edits retain their original SHA-256. No source pointer moved, no nested checkout was initialized and no VCS publication occurred. Consolidated evidence: `evidence/dotnet-11-source-graph-2026-11-13/verification.md` and `verification.json`. At that original handoff, implementation was complete but status remained in-review because broader owner governance/readiness and package lanes were unqualified. The resumed completion below supersedes that workflow state.
+
+
+## Resumed Completion — 2026-11-15
+
+The remaining source-validation work is complete. R5 and the three verification corrections G1–G3 are implemented and verified. All 8,686 distinct final tests pass with zero failures/skips: 8,082 Tenants UI, 428 generated-form, 105 CI-governance and 71 emitter/snapshot cases. The 355 focused administrator cases overlap the UI total. Both Tenants source graphs and both owner test projects build with zero warnings/errors. All three negative controls fail against the earlier form behavior and pass in the corrected generated-form suite. Actual net11 Chromium qualification and seven validator syntax checks pass.
+
+The previously recorded four governance fixture blockers are resolved without nested initialization or weaker gates. Seven independent findings from the cumulative review are recorded in the deferred ledger. Fresh Release/package and full business-topology readiness remain separate qualification work, not acceptance claims for this completed Debug source graph. Source changes remain uncommitted under the frozen scope. Final commands, counts, source identities and limitations: [completion verification](evidence/dotnet-11-source-graph-resume-2026-11-15/verification.md).

@@ -19,5 +19,29 @@
     "elapsed_seconds": 23.96,
     "log": "_bmad-output/implementation-artifacts/evidence/dotnet-11-source-graph-resume-2026-11-15/isolated-ui-source-build.log",
     "sha256": "8893df5623a301af6d7646f9296bd6e0910810b1c454289d552f02e980b7d2b5"
+  },
+  {
+    "name": "isolated-ui-tests",
+    "command": [
+      "dotnet",
+      "test",
+      "--project",
+      "tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj",
+      "-c",
+      "Debug",
+      "--no-build",
+      "--no-restore",
+      "-p:UseHexalithProjectReferences=true",
+      "--results-directory",
+      "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/dotnet-11-source-graph-resume-2026-11-15/isolated-ui-results",
+      "--report-xunit-trx",
+      "--report-xunit-trx-filename",
+      "tenants-ui.trx"
+    ],
+    "cwd": "/tmp/hexalith-job.TLD1VKE8/workspace",
+    "exit_code": 0,
+    "elapsed_seconds": 109.72,
+    "log": "_bmad-output/implementation-artifacts/evidence/dotnet-11-source-graph-resume-2026-11-15/isolated-ui-tests.log",
+    "sha256": "4b65c89180879c268db7282350926ab1ace9caaea97546e80ff1e0367a329176"
   }
 ]

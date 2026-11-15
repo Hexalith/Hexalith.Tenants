@@ -5674,3 +5674,31 @@ archived: 2026-10-22
 - source_spec: `_bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md`
   summary: Verify protected cursor continuation through the dedicated global-administrator audit query type.
   evidence: Medium regression gap, pre-existing later-story issue (VG-1). GetGlobalAdministratorAuditQueryHandler overrides QueryType; GetTenantAuditQueryHandler now uses that derived value for cursor decode/protection. Existing global-audit handler, REST client, generated route and live tests read page one only. A mutation protecting the cursor with the old tenant QueryType would pass them and fail continuation. Add a persisted multi-row, page-size-one test using the real codec and assert that the returned cursor resumes the next global row.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-complete-dotnet-11-source-graph.md`
+  summary: Qualify production Tenants compilation against each older advertised EventStore package cohort.
+  evidence: Medium, unverified (R1): later tenant-access recovery uses ProjectionSnapshotLimits and ProjectionSnapshotLimitExceededException. The current 5.1.0 source graph passes, but real older package builds are needed to establish compatibility; synthetic marker assemblies do not establish it.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-complete-dotnet-11-source-graph.md`
+  summary: Bind the retained net10 package-consumer mode to its historical route and adapter inventory.
+  evidence: Medium, pre-existing later-story issue (R2): the current consumer copies recovery-inclusive Program.cs and approved-route-ids.txt with 24 routes and 13 adapters, while older retained archives precede that independent command.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-complete-dotnet-11-source-graph.md`
+  summary: Add a dedicated McpCli conformance vector for the later RefreshTenantAccess operation.
+  evidence: Medium, pre-existing later-story coverage gap (R4): the decorated recovery command is absent from the 14 previous operation vectors. Qualify wire routing and operation identity in the recovery feature lane.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-complete-dotnet-11-source-graph.md`
+  summary: Revalidate the tenant snapshot after delayed command authorization completes.
+  evidence: Medium, pre-existing behavior (R6): CommandAuthorizationEvaluator captures TryGetContext before AuthorizeAsync but does not call the existing Revalidate seam afterward. Demonstrate a context-only transition and fail closed without changing the migration authority contract incidentally.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-complete-dotnet-11-source-graph.md`
+  summary: Qualify cancellation and observer cleanup with uncooperative authentication and policy tasks.
+  evidence: Medium, pre-existing wait contract (R7): EvaluateAsync waits external tasks without WaitAsync and checks cancellation after completion; its finally removes the authentication observer only then. Keep a held provider/handler pending, cancel, and qualify the intended completion/cleanup contract before changing it.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-complete-dotnet-11-source-graph.md`
+  summary: Make private Stryker preparation retryable after interrupted or failed cache creation.
+  evidence: Medium, independently added tooling issue (R8): prepare creates its deterministic directory before download/build and verify_build rejects that incomplete directory on subsequent calls. Use owned staging and atomic completion, or bounded joined cleanup, with failed-download/build/cancellation retry controls.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-complete-dotnet-11-source-graph.md`
+  summary: Qualify actual Fluent native time-editor parsing for the later typed-field mapping.
+  evidence: Medium, unverified (R9): current generated-field tests inspect component parameters and invoke callbacks; a rendered browser control must establish invalid-input, clearing and seconds-preservation behavior before claiming a parsing defect.
