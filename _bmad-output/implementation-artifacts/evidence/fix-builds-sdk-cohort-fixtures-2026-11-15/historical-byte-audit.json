@@ -1,0 +1,12 @@
+{
+  "baseline": "10163c3e4ffd84ddb9b2831dea767a04da04f2ef",
+  "repair": "70850b18e0d0b80facd2df0809974020dd935732",
+  "files": 106,
+  "changed_hash_bindings": 29,
+  "only_version_and_hash_substitutions": true,
+  "line_endings_preserved": true,
+  "all_changed_hashes_bind_same_fixture_paths": true,
+  "positive_readiness_manifest_and_artifact_bindings_valid": true,
+  "positive_acceptance_run_and_cleanup_bindings_valid": true,
+  "production_code_changed": false
+}

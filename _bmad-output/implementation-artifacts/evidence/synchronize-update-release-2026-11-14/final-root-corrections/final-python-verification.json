@@ -1,0 +1,29 @@
+{
+  "root_head": "4faa79395b092fd73cd552ae9a37fdcbf77124ae",
+  "checks": [
+    {
+      "name": "final-receipt-deadline-controls",
+      "exit_code": 0,
+      "log": "final-receipt-deadline-controls.log",
+      "log_sha256": "7b8662dc924eae11f6a252b7b9ab68f8511b78637104d946564999a750f677f6"
+    },
+    {
+      "name": "probe-shell-syntax",
+      "exit_code": 0,
+      "log": "probe-shell-syntax.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "strict-consumer-help",
+      "exit_code": 0,
+      "log": "strict-consumer-help.log",
+      "log_sha256": "2af43be643124aff861ad318449d1168a2595ea2747b3bc6673984ae9841c020"
+    }
+  ],
+  "source_sha256": {
+    "tests/scripts/test_release_resume_verification.py": "cf429e8880e46bb1cc18f9c70575730d68ed7b603e61c862d85f33e30972c0a9",
+    "scripts/verify-catalog-package-consumer.py": "3ccba585d264c26165b115e0576d05992f6686ec5aa71dab9e80c7d7f89cbc47",
+    "_bmad-output/implementation-artifacts/evidence/fix-builds-sdk-cohort-fixtures-2026-11-15/verify-current.py": "8fba486bff0d968e91ef4b898244a1593d3dfb76650d35011e9d91db33715deb",
+    "_bmad-output/implementation-artifacts/evidence/fix-firefox-route-focus-ci-2026-11-15/verify.sh": "5a589b116a3ea16812e584258b3ce6d3879441fa1abb5643417ac2982ad3eb70"
+  }
+}

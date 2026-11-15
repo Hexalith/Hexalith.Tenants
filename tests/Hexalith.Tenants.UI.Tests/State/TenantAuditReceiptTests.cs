@@ -179,6 +179,7 @@ public sealed class TenantAuditReceiptTests
     [InlineData("UnknownTenantEvent", AuditEventCategory.Access)]
     [InlineData("UserAddedToTenant", AuditEventCategory.Administrative)]
     [InlineData("TenantCreated", AuditEventCategory.Access)]
+    [InlineData("TenantAccessRefreshed", AuditEventCategory.Access)]
     public void Unknown_or_category_mismatched_outcome_cannot_become_available(
         string eventType,
         AuditEventCategory category)

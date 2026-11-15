@@ -1,0 +1,21 @@
+  Determining projects to restore...
+  Restored /dev/shm/hexalith-job.dS4Q6DM9/workspace/src/Hexalith.Tenants.Contracts/Hexalith.Tenants.Contracts.csproj (in 365 ms).
+  Restored /dev/shm/hexalith-job.dS4Q6DM9/workspace/src/Hexalith.Tenants.Server/Hexalith.Tenants.Server.csproj (in 372 ms).
+  Restored /dev/shm/hexalith-job.dS4Q6DM9/workspace/src/Hexalith.Tenants/Hexalith.Tenants.csproj (in 372 ms).
+  Restored /dev/shm/hexalith-job.dS4Q6DM9/workspace/tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj (in 377 ms).
+  Restored /dev/shm/hexalith-job.dS4Q6DM9/workspace/src/Hexalith.Tenants.Client/Hexalith.Tenants.Client.csproj (in 5 ms).
+  Restored /dev/shm/hexalith-job.dS4Q6DM9/workspace/src/Hexalith.Tenants.Testing/Hexalith.Tenants.Testing.csproj (in 5 ms).
+  Restored /dev/shm/hexalith-job.dS4Q6DM9/workspace/samples/Hexalith.Tenants.Sample/Hexalith.Tenants.Sample.csproj (in 7 ms).
+  Hexalith.Tenants.Contracts -> /dev/shm/hexalith-job.dS4Q6DM9/workspace/src/Hexalith.Tenants.Contracts/bin/Release/net11.0/Hexalith.Tenants.Contracts.dll
+  Hexalith.Tenants.Server -> /dev/shm/hexalith-job.dS4Q6DM9/workspace/src/Hexalith.Tenants.Server/bin/Release/net11.0/Hexalith.Tenants.Server.dll
+  Hexalith.Tenants -> /dev/shm/hexalith-job.dS4Q6DM9/workspace/src/Hexalith.Tenants/bin/Release/net11.0/Hexalith.Tenants.dll
+  Hexalith.Tenants.Testing -> /dev/shm/hexalith-job.dS4Q6DM9/workspace/src/Hexalith.Tenants.Testing/bin/Release/net11.0/Hexalith.Tenants.Testing.dll
+  Hexalith.Tenants.Client -> /dev/shm/hexalith-job.dS4Q6DM9/workspace/src/Hexalith.Tenants.Client/bin/Release/net11.0/Hexalith.Tenants.Client.dll
+  Hexalith.Tenants.Sample -> /dev/shm/hexalith-job.dS4Q6DM9/workspace/samples/Hexalith.Tenants.Sample/bin/Release/net11.0/Hexalith.Tenants.Sample.dll
+  Hexalith.Tenants.Server.Tests -> /dev/shm/hexalith-job.dS4Q6DM9/workspace/tests/Hexalith.Tenants.Server.Tests/bin/Release/net11.0/Hexalith.Tenants.Server.Tests.dll
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:13.76

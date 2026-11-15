@@ -193,6 +193,7 @@ public static class TenantIsolationTestHelpers {
         ArgumentNullException.ThrowIfNull(eventPayload);
 
         return eventPayload switch {
+            TenantAccessRefreshed e => e.TenantId,
             TenantCreated e => e.TenantId,
             TenantUpdated e => e.TenantId,
             TenantDisabled e => e.TenantId,

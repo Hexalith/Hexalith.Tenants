@@ -4139,6 +4139,9 @@
   <data name="Tenants.Audit.Receipt.Outcome.GlobalAdministratorRemoved" xml:space="preserve">
     <value>Global administrator removed</value>
   </data>
+  <data name="Tenants.Audit.Receipt.Outcome.TenantAccessRefreshed" xml:space="preserve">
+    <value>Tenant access refreshed</value>
+  </data>
   <data name="Tenants.Audit.Receipt.Outcome.TenantCreated" xml:space="preserve">
     <value>Tenant created</value>
   </data>

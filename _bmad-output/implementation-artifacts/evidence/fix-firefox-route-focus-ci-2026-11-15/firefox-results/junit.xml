@@ -1,0 +1,6 @@
+<testsuites id="" name="" tests="1" failures="0" skipped="0" errors="0" time="5.419078000000001">
+<testsuite name="route-contract.spec.ts" timestamp="2026-11-15T16:38:29.454Z" hostname="firefox" tests="1" failures="0" skipped="0" time="4.307" errors="0">
+<testcase name="Story 11.7: generated command and module route contract › module workspace palette activation reaches the generated full-page command" classname="route-contract.spec.ts" time="4.307">
+</testcase>
+</testsuite>
+</testsuites>

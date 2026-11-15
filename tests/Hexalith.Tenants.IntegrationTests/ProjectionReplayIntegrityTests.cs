@@ -9,6 +9,14 @@ using Hexalith.Tenants.Contracts.Events.Rejections;
 using Hexalith.Tenants.Projections;
 using Hexalith.Tenants.Server.Projections;
 
+using Hexalith.EventStore.Contracts.Queries;
+using Hexalith.Tenants.Contracts.Queries;
+using Hexalith.Tenants.UI.Services.Gateways;
+using Hexalith.Tenants.UI.State.TenantAudit;
+using Hexalith.FrontComposer.Contracts.Rendering;
+using Hexalith.Memories.Client.Rest;
+using Microsoft.AspNetCore.DataProtection;
+using NSubstitute;
 using Shouldly;
 
 namespace Hexalith.Tenants.IntegrationTests;
@@ -18,6 +26,45 @@ public sealed class ProjectionReplayIntegrityTests
 {
     private const string IndexKey = "projection:tenant-index:singleton";
     private const string GlobalKey = "projection:global-administrators:singleton";
+
+    [Fact]
+    public async Task ProjectedRecoveryAuditRowSurvivesGatewayAndReceiptHandling()
+    {
+        var store = new InMemoryReadModelStore();
+        var snapshot = new TenantAccessRefreshed("tenant-a", TenantStatus.Active,
+            new Dictionary<string, TenantRole> { ["owner"] = TenantRole.TenantOwner }, ["billing.mode"]);
+        await new TenantProjectionHandler(store).ProjectAsync(new("system", "tenants", "tenant-a", [
+            Event(new TenantCreated("tenant-a", "Acme", null, DateTimeOffset.UnixEpoch), 1, "event-created"),
+            Event(snapshot, 2, "event-refreshed"),
+        ]));
+        TenantAuditReadModel audit = (await store.GetAsync<TenantAuditReadModel>("statestore", TenantAuditStreams.GetTenantKey("tenant-a"))).Value!;
+        audit.ShouldNotBeNull();
+        audit.ProjectionVersion.ShouldBe("tenant-sequence:2");
+        var client = Substitute.For<ITenantsRestQueryClient>();
+        client.GetTenantAuditAsync(Arg.Any<GetTenantAuditQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(new TenantsRestQueryResponse<PaginatedResult<TenantAuditEntry>>(
+                new(audit.Entries, null, false),
+                new QueryResponseMetadata(IsStale: false, ProjectionVersion: audit.ProjectionVersion, ServedAt: DateTimeOffset.UtcNow)
+                { Provenance = QueryResponseProvenance.ProjectionBacked, Lifecycle = ProjectionLifecycleState.Current },
+                TenantsRestQueryFailureKind.None, 200));
+        var caller = Substitute.For<IUserContextAccessor>();
+        caller.UserId.Returns("owner");
+        caller.TenantId.Returns("tenant-a");
+        using var memoriesHttp = new HttpClient { BaseAddress = new Uri("https://memories.invalid") };
+        var memories = new MemoriesClient(memoriesHttp, Microsoft.Extensions.Options.Options.Create(new MemoriesClientOptions()),
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<MemoriesClient>.Instance);
+        using var gateway = new TenantQueryGateway(client, caller, memories,
+            new TenantSearchCursorCodec(new EphemeralDataProtectionProvider()));
+        TenantAuditSnapshot result = await gateway.GetTenantAuditAsync(new("tenant-a"), null, TestContext.Current.CancellationToken);
+        result.Kind.ShouldBe(TenantAuditSurfaceKind.Ready);
+        TenantAuditRow row = result.Rows.Single(row => row.EventType == nameof(TenantAccessRefreshed));
+        row.Category.ShouldBe(AuditEventCategory.Administrative);
+        TenantAuditReceipt receipt = TenantAuditReceipt.FromRow(row);
+        receipt.State.ShouldBe(TenantAuditReceiptState.Ready);
+        receipt.Outcome.ShouldBe(nameof(TenantAccessRefreshed));
+        receipt.Scope.ShouldBe("tenant-a");
+        receipt.Target.ShouldBe("tenant-a");
+    }
 
     [Theory]
     [InlineData(1)]

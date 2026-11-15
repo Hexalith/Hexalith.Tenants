@@ -336,7 +336,7 @@
     private string? LocalizedOutcome(string outcome)
     {
         if (!TenantAuditReceipt.IsKnownOutcome(outcome,
-            outcome is "TenantCreated" or "TenantUpdated" or "TenantDisabled" or "TenantEnabled"
+            outcome is "TenantAccessRefreshed" or "TenantCreated" or "TenantUpdated" or "TenantDisabled" or "TenantEnabled"
                 or "TenantConfigurationSet" or "TenantConfigurationRemoved"
                 ? Hexalith.Tenants.Contracts.Enums.AuditEventCategory.Administrative
                 : Hexalith.Tenants.Contracts.Enums.AuditEventCategory.Access))

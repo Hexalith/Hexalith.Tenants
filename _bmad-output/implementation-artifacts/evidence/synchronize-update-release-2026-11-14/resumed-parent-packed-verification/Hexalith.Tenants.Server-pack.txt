@@ -1,0 +1,7 @@
+  Determining projects to restore...
+  Restored /dev/shm/hexalith-job.nVxaZmg3/workspace/src/Hexalith.Tenants.Server/Hexalith.Tenants.Server.csproj (in 193 ms).
+  1 of 2 projects are up-to-date for restore.
+  Hexalith.Tenants.Contracts -> /dev/shm/hexalith-job.nVxaZmg3/workspace/src/Hexalith.Tenants.Contracts/bin/Release/net11.0/Hexalith.Tenants.Contracts.dll
+  Hexalith.Tenants.Server -> /dev/shm/hexalith-job.nVxaZmg3/workspace/src/Hexalith.Tenants.Server/bin/Release/net11.0/Hexalith.Tenants.Server.dll
+  Actual pack-target catalog enrollment verified: Hexalith.Tenants.Server
+  Successfully created package '/dev/shm/hexalith-job.nVxaZmg3/feed/Hexalith.Tenants.Server.8.0.0-local.finalreview.nupkg'.

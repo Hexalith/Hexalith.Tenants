@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Restore actual catalog archives into an isolated package-only consumer and discover their inputs."""
+"""Qualify current archives against the exact 24-route, 24-operation, 13-adapter inventory.
+
+Finite historical metadata admission is retained. Full discovery of older archives
+uses the verifier revision recorded by their historical qualification receipt.
+Selecting net10.0 changes the runtime target only, never the required inventory.
+"""
 
 import argparse
 import hashlib
@@ -20,7 +25,7 @@ NORMALIZE_RANGE = runpy.run_path(str(ROOT / 'scripts/validate-nuget-packages.py'
 
 
 def verify(directory, expected_source=None, output=None, target_framework="net11.0"):
-    # Old archives require an explicit retained compatibility request; current packages use NET11.
+    # The runtime target never relaxes the exact current discovery inventory.
     if target_framework not in ("net10.0", "net11.0"):
         raise ValueError("The catalog consumer framework is not qualified.")
     archives = {}
@@ -71,7 +76,7 @@ def verify(directory, expected_source=None, output=None, target_framework="net11
                     except ValueError as error:
                         raise ValueError('Catalog SDK dependency is not one inclusive qualified stable cohort.') from error
                     selected = sdk_range[1:].split(',')[0].rstrip(']') if sdk_range.startswith('[') else ''
-                    normalized = re.fullmatch(r'(3\.129\.[01]|3\.130\.[012]|3\.131\.0|3\.132\.[012]|3\.133\.0|4\.0\.[01234]|4\.[12]\.0|5\.0\.1|5\.1\.0)', selected)
+                    normalized = re.fullmatch(r'(3\.129\.[01]|3\.130\.[012]|3\.131\.0|3\.132\.[012]|3\.133\.0|4\.0\.[01234]|4\.[12]\.0|5\.0\.1|5\.1\.[01])', selected)
                     if not normalized or sdk is not None and normalized[1] != sdk:
                         raise ValueError('Catalog SDK dependency is not one qualified stable cohort.')
                     sdk = normalized[1]
@@ -195,7 +200,7 @@ if __name__ == '__main__':
     parser.add_argument('--expected-source-sha', default=os.environ.get('GITHUB_SHA'))
     parser.add_argument('--output', type=Path)
     parser.add_argument('--target-framework', choices=('net10.0', 'net11.0'), default='net11.0',
-                        help='Current NET11 consumer; net10.0 is only for explicit retained archive qualification.')
+                        help='Runtime target only: both targets require the current exact 24 routes/24 operations/13 adapters. Historical inventories use their recorded verifier revision.')
     arguments = parser.parse_args()
     if arguments.expected_source_sha is not None and not re.fullmatch('[0-9a-f]{40}', arguments.expected_source_sha):
         parser.error('An exact lowercase source SHA is required.')

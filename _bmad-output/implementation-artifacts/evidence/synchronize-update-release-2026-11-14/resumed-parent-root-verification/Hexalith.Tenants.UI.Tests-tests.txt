@@ -1,0 +1,557 @@
+xUnit.net v3 In-Process Runner v4.0.3+384aa7f0b4 (64-bit .NET 11.0.0)
+  Discovering: Hexalith.Tenants.UI.Tests
+  Discovered:  Hexalith.Tenants.UI.Tests
+  Starting:    Hexalith.Tenants.UI.Tests
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /dev/shm/hexalith-job.dS4Q6DM9/workspace/src/Hexalith.Tenants.UI
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /dev/shm/hexalith-job.dS4Q6DM9/workspace/src/Hexalith.Tenants.UI
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /dev/shm/hexalith-job.dS4Q6DM9/workspace/src/Hexalith.Tenants.UI
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /dev/shm/hexalith-job.dS4Q6DM9/workspace/src/Hexalith.Tenants.UI
+info: System.Net.Http.HttpClient.tenants-ui-tests-control-client.LogicalHandler[100]
+      Start processing HTTP request GET https://memories.invalid/v1/search?*
+info: System.Net.Http.HttpClient.tenants-ui-tests-control-client.ClientHandler[100]
+      Sending HTTP request GET https://memories.invalid/v1/search?*
+info: System.Net.Http.HttpClient.tenants-ui-tests-control-client.ClientHandler[101]
+      Received HTTP response headers after 0.0034ms - 200
+info: System.Net.Http.HttpClient.tenants-ui-tests-control-client.LogicalHandler[101]
+      End processing HTTP request after 2.1109ms - 200
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+    Hexalith.Tenants.UI.Tests.TenantsUiCompositionTests.Story_1_8_evidence_tracks_closed_safe_model_separately_from_open_external_blockers [FAIL]
+      System.IO.FileNotFoundException : Could not find file '/dev/shm/hexalith-job.dS4Q6DM9/workspace/_bmad-output/implementation-artifacts/story-1-8-support-safe-identifier-copy-and-read-experience-evidence-2026-07-21.md'.
+      Stack Trace:
+           at Interop.ThrowExceptionForIoErrno(ErrorInfo errorInfo, String path, Boolean isDirError)
+           at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String path, OpenFlags flags, Int32 mode, Boolean failForSymlink, Boolean& wasSymlink, Func`4 createOpenException)
+           at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, UnixFileMode openPermissions, Int64& fileLength, UnixFileMode& filePermissions, Boolean failForSymlink, Boolean& wasSymlink, Func`4 createOpenException)
+           at System.IO.Strategies.OSFileStreamStrategy..ctor(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+           at System.IO.StreamReader.ValidateArgsAndOpenPath(String path, Int32 bufferSize)
+           at System.IO.File.ReadAllText(String path, Encoding encoding)
+        tests/Hexalith.Tenants.UI.Tests/TenantsUiCompositionTests.cs(1661,0): at Hexalith.Tenants.UI.Tests.TenantsUiCompositionTests.Story_1_8_evidence_tracks_closed_safe_model_separately_from_open_external_blockers()
+           at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+           at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /dev/shm/hexalith-job.dS4Q6DM9/workspace/src/Hexalith.Tenants.UI
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /dev/shm/hexalith-job.dS4Q6DM9/workspace/src/Hexalith.Tenants.UI
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-start FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=D960D2DD1CEFD891
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=4B3BB501EC80C433
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=B512D9D0E482F08A
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=A950D284AAA2C962
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=B0DE57DE128DD64C
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=9FB2977E7A327841
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /dev/shm/hexalith-job.dS4Q6DM9/workspace/src/Hexalith.Tenants.UI
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-start FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=1C1ECB7743CA5389
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=BA9CD8C7E0B58298
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=36ECED17A18C0606
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=B249AA8707002E9A
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=5DB3CCA038634E00
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=B842AD6551763E35
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /dev/shm/hexalith-job.dS4Q6DM9/workspace/src/Hexalith.Tenants.UI
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-start FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=9CCA31F37D0672BD
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=3156C0D7D1AED6E0
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=10055BBA67168C84
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=69923AA72DE0348C
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=6D39BAAE680C5AE6
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=4F9C635FE40B395E
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /dev/shm/hexalith-job.dS4Q6DM9/workspace/src/Hexalith.Tenants.UI
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-start FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=FB90E5DA18EAF93B
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=34008E3F6DE8654E
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=809ABC2B1B8E9FC6
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=FF2A762C3CDCF8FC
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=00E6B46D6357DF94
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=40BC6CABD14F897A
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /dev/shm/hexalith-job.dS4Q6DM9/workspace/src/Hexalith.Tenants.UI
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /dev/shm/hexalith-job.dS4Q6DM9/workspace/src/Hexalith.Tenants.UI
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /dev/shm/hexalith-job.dS4Q6DM9/workspace/src/Hexalith.Tenants.UI
+warn: Hexalith.FrontComposer.Shell.Services.Auth.ServerCircuitUserContextAccessor[5663]
+      HFC2012: Circuit auth claim extraction failed. Reason=Unauthenticated TenantAliasCount=0 UserAliasCount=0.
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-start FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=B0F3F565BF5CD478
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=3B7BFE5C41163F4F
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=7563496241338EDB
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=F7B50D4485DC25AF
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=50EA222F3659220C
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=C687E4429FD72AF5
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /dev/shm/hexalith-job.dS4Q6DM9/workspace/src/Hexalith.Tenants.UI
+warn: Hexalith.FrontComposer.Shell.Services.Auth.ServerCircuitUserContextAccessor[5663]
+      HFC2012: Circuit auth claim extraction failed. Reason=Unauthenticated TenantAliasCount=0 UserAliasCount=0.
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-start FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=152779FA09CDFC96
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=AF7BCB184B88F106
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=68BA85E5DAAD66BA
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=D0F526B7D0140137
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=1A11625FB88977EA
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=AC83A745FA97FE34
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /dev/shm/hexalith-job.dS4Q6DM9/workspace/src/Hexalith.Tenants.UI
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-start FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=C9BFA79199EC7C53
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=E55AE4DE0195B6FB
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=72D55574B9DBDA30
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=C4216E781926C7E0
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=68258590C4C3368D
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=4DF4921BCB5858D5
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /dev/shm/hexalith-job.dS4Q6DM9/workspace/src/Hexalith.Tenants.UI
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-start FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=45BFF3276E856A32
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=F7101705DAAAC5C6
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=634806554E9332A6
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=0DFB60AD8A476BFA
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=966D901983FB08D9
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=77E19A1DCA2D486B
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /dev/shm/hexalith-job.dS4Q6DM9/workspace/src/Hexalith.Tenants.UI
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-start FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=7599DB11E5A19CE2
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=F3B53352CBC7FE5D
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=C4BFAF346BA64572
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=38FCD5AAD2DE5DC7
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=D90F97D5210DA1BA
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=7F2FA540998DCFEB
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /dev/shm/hexalith-job.dS4Q6DM9/workspace/src/Hexalith.Tenants.UI
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-start FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=62E9012DC4EAE1B2
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=3AFEB6435121A5F5
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=B37095C2E5EFFD9F
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=828E251489929F0E
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=778205DE34772B9E
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=1664023FCADFF68F
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /dev/shm/hexalith-job.dS4Q6DM9/workspace/src/Hexalith.Tenants.UI
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-start FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=3164052156232CAE
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=53BFBC2A3200667C
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=66ED213E889C293B
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=56F4DBC49B23E01C
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=6DC274F394CA427A
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=67151EB8DAE34006
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /dev/shm/hexalith-job.dS4Q6DM9/workspace/src/Hexalith.Tenants.UI
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-start FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=5C235A40F875EAD2
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=DD130BD402FAFF02
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=D2B6FA942DD6EECD
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=050938C99E5DCD20
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=BD873E4543A1CC43
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=929050D40BBD165B
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /dev/shm/hexalith-job.dS4Q6DM9/workspace/src/Hexalith.Tenants.UI
+warn: Hexalith.FrontComposer.Shell.Services.Auth.ServerCircuitUserContextAccessor[5663]
+      HFC2012: Circuit auth claim extraction failed. Reason=Unauthenticated TenantAliasCount=0 UserAliasCount=0.
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-start FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=4BAF8A46E410DDE5
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=7467BD3D96323612
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=18144B23B8B78769
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=0F7661244C354768
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=B289AD39BBC0416F
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=43F862CADD77676C
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /dev/shm/hexalith-job.dS4Q6DM9/workspace/src/Hexalith.Tenants.UI
+warn: Hexalith.FrontComposer.Shell.Services.Auth.ServerCircuitUserContextAccessor[5663]
+      HFC2012: Circuit auth claim extraction failed. Reason=Unauthenticated TenantAliasCount=0 UserAliasCount=0.
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-start FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=7864BF7F5BA85C8A
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=EF80D5E458BFFA6D
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=946FC3FC74008C16
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=8FDAB2845AAEEF11
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=48EA830988E67A0F
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=7DC26D05456AF9B0
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /dev/shm/hexalith-job.dS4Q6DM9/workspace/src/Hexalith.Tenants.UI
+warn: Hexalith.FrontComposer.Shell.Services.Auth.ServerCircuitUserContextAccessor[5663]
+      HFC2012: Circuit auth claim extraction failed. Reason=Unauthenticated TenantAliasCount=0 UserAliasCount=0.
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-start FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=CBA10F96AD5E4AE9
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=154FAEAF91AAE266
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=F793B3815868721F
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=B5686BA9D0991EBA
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=1BEF61691C79467C
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=B7469AC7BFA1A9FC
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /dev/shm/hexalith-job.dS4Q6DM9/workspace/src/Hexalith.Tenants.UI
+warn: Hexalith.FrontComposer.Shell.Services.Auth.ServerCircuitUserContextAccessor[5663]
+      HFC2012: Circuit auth claim extraction failed. Reason=Unauthenticated TenantAliasCount=0 UserAliasCount=0.
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-start FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=0835246C31A4F911
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=65A2F443B48A671D
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=491B279854FE5E41
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=F541FB9999383D34
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=471B8232486C0DAF
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=E63D05F3EAC70C12
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /dev/shm/hexalith-job.dS4Q6DM9/workspace/src/Hexalith.Tenants.UI
+warn: Hexalith.FrontComposer.Shell.Services.Auth.ServerCircuitUserContextAccessor[5663]
+      HFC2012: Circuit auth claim extraction failed. Reason=Unauthenticated TenantAliasCount=0 UserAliasCount=0.
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-start FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=75F6C9FFA3AD1F3D
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=5459344D27E89BF5
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=70DEF6EC2403EF85
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=71862456AE20FC55
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=94D45ED0ACD07FDA
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=570BBBCF396F9603
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /dev/shm/hexalith-job.dS4Q6DM9/workspace/src/Hexalith.Tenants.UI
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /dev/shm/hexalith-job.dS4Q6DM9/workspace/src/Hexalith.Tenants.UI
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /dev/shm/hexalith-job.dS4Q6DM9/workspace/src/Hexalith.Tenants.UI
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /dev/shm/hexalith-job.dS4Q6DM9/workspace/src/Hexalith.Tenants.UI
+warn: Hexalith.FrontComposer.Shell.Services.Auth.ServerCircuitUserContextAccessor[5663]
+      HFC2012: Circuit auth claim extraction failed. Reason=MissingClaim TenantAliasCount=1 UserAliasCount=0.
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-start FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=941EB97704DEFDB0
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=2E09BB306C6A3DA1
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=9FAEB29D38746C81
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=8151461896884024
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=BEC12DE75DD9E465
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=7F5BDC1A6DE1CE3B
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /dev/shm/hexalith-job.dS4Q6DM9/workspace/src/Hexalith.Tenants.UI
+warn: Hexalith.FrontComposer.Shell.Services.Auth.ServerCircuitUserContextAccessor[5663]
+      HFC2012: Circuit auth claim extraction failed. Reason=MultiValuedClaim TenantAliasCount=1 UserAliasCount=0.
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-start FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=A4623FCF3BBD98D2
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=8E1EE4DF09487B1C
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=C3A41D175DF73218
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=A12C470A3CA915C9
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=3D9FA37998515F17
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=3DA655047DB2427F
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /dev/shm/hexalith-job.dS4Q6DM9/workspace/src/Hexalith.Tenants.UI
+warn: Hexalith.FrontComposer.Shell.Services.Auth.ServerCircuitUserContextAccessor[5663]
+      HFC2012: Circuit auth claim extraction failed. Reason=MissingClaim TenantAliasCount=0 UserAliasCount=1.
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-start FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=513B8B4449DA1613
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=48E3FD6F56FA593D
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=0EFBCF5043744051
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=0FD90CDA7CD0FD5D
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=5B1234853EFCFD81
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=28CBB82FF63695AF
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /dev/shm/hexalith-job.dS4Q6DM9/workspace/src/Hexalith.Tenants.UI
+warn: Hexalith.FrontComposer.Shell.Services.Auth.ServerCircuitUserContextAccessor[5663]
+      HFC2012: Circuit auth claim extraction failed. Reason=MultiValuedClaim TenantAliasCount=0 UserAliasCount=1.
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-start FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=F8C2C7F1A7ED5CAA
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=37169E42E8878D20
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=243C3AD2D518719C
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=C9B10A695D1BBD5E
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=77FB34B85C64D4B1
+warn: Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.FrontComposerTenantContextAccessor[5650]
+      HFC2015: Tenant-scoped operation blocked. OperationKind=scope-render FailureCategory=TenantMissing RequestedTenantPresent=False AuthenticatedTenantPresent=False UserPresent=False CorrelationId=946DF97DF0A66A9F
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /dev/shm/hexalith-job.dS4Q6DM9/workspace/src/Hexalith.Tenants.UI
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+  Finished:    Hexalith.Tenants.UI.Tests (ID = 'c99eb4cb6ef094f183c40695ec853b13f000e7ebe3d6774fa3860e8f0327073b')
+=== TEST EXECUTION SUMMARY ===
+   Hexalith.Tenants.UI.Tests  Total: 8085, Errors: 0, Failed: 1, Skipped: 0, Not Run: 0, Time: 92.032s

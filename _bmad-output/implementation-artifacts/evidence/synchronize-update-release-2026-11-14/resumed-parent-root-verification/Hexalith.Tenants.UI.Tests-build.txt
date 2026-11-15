@@ -1,0 +1,14 @@
+  Determining projects to restore...
+  Restored /dev/shm/hexalith-job.dS4Q6DM9/workspace/src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj (in 283 ms).
+  Restored /dev/shm/hexalith-job.dS4Q6DM9/workspace/tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj (in 287 ms).
+  2 of 4 projects are up-to-date for restore.
+  Hexalith.Tenants.Contracts -> /dev/shm/hexalith-job.dS4Q6DM9/workspace/src/Hexalith.Tenants.Contracts/bin/Release/net11.0/Hexalith.Tenants.Contracts.dll
+  Hexalith.Tenants.Client -> /dev/shm/hexalith-job.dS4Q6DM9/workspace/src/Hexalith.Tenants.Client/bin/Release/net11.0/Hexalith.Tenants.Client.dll
+  Hexalith.Tenants.UI -> /dev/shm/hexalith-job.dS4Q6DM9/workspace/src/Hexalith.Tenants.UI/bin/Release/net11.0/Hexalith.Tenants.UI.dll
+  Hexalith.Tenants.UI.Tests -> /dev/shm/hexalith-job.dS4Q6DM9/workspace/tests/Hexalith.Tenants.UI.Tests/bin/Release/net11.0/Hexalith.Tenants.UI.Tests.dll
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:24.82

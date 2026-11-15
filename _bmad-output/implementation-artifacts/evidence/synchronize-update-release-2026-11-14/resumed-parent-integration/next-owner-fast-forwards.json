@@ -1,0 +1,28 @@
+[
+  {
+    "owner": "Hexalith.Builds",
+    "before": "f0f5007cca1f9183d4f192e162071ba1c3282a63",
+    "selected": "04bdcaf929198e69321c226dda5ab40f7b3839ce",
+    "command": [
+      "git",
+      "merge",
+      "--ff-only",
+      "origin/main"
+    ],
+    "remote": "04bdcaf929198e69321c226dda5ab40f7b3839ce\trefs/heads/main",
+    "scope": "Reviewed upstream-only workflow/test repairs; catalog and production inputs unchanged."
+  },
+  {
+    "owner": "Hexalith.Memories",
+    "before": "003e3d8677292739bb7978efea95415210c78719",
+    "selected": "59df159117c2f92c262804e8574a7e979525d202",
+    "command": [
+      "git",
+      "merge",
+      "--ff-only",
+      "origin/main"
+    ],
+    "remote": "59df159117c2f92c262804e8574a7e979525d202\trefs/heads/main",
+    "scope": "Reviewed upstream-only workflow/test repairs; catalog and production inputs unchanged."
+  }
+]

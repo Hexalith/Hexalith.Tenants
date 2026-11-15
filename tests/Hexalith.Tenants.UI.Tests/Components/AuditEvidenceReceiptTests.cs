@@ -204,6 +204,7 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
     [InlineData("TenantCreated", "Tenant created", "Locataire créé")]
     [InlineData("TenantUpdated", "Tenant updated", "Locataire modifié")]
     [InlineData("TenantDisabled", "Tenant disabled", "Locataire désactivé")]
+    [InlineData("TenantAccessRefreshed", "Tenant access refreshed", "Accès au locataire actualisé")]
     [InlineData("TenantEnabled", "Tenant enabled", "Locataire activé")]
     [InlineData("TenantConfigurationSet", "Tenant configuration set", "Configuration du locataire définie")]
     [InlineData("TenantConfigurationRemoved", "Tenant configuration removed", "Configuration du locataire supprimée")]
@@ -1059,6 +1060,7 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
             ["Tenants.Audit.Receipt.Outcome.UserRoleChanged"] = "User role changed",
             ["Tenants.Audit.Receipt.Outcome.GlobalAdministratorSet"] = "Global administrator granted",
             ["Tenants.Audit.Receipt.Outcome.GlobalAdministratorRemoved"] = "Global administrator removed",
+            ["Tenants.Audit.Receipt.Outcome.TenantAccessRefreshed"] = "Tenant access refreshed",
             ["Tenants.Audit.Receipt.Outcome.TenantCreated"] = "Tenant created",
             ["Tenants.Audit.Receipt.Outcome.TenantUpdated"] = "Tenant updated",
             ["Tenants.Audit.Receipt.Outcome.TenantDisabled"] = "Tenant disabled",

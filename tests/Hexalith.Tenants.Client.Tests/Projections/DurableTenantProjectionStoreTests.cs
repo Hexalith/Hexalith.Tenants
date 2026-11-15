@@ -48,6 +48,52 @@ public sealed class DurableTenantProjectionStoreTests {
             .ShouldNotBeNull().Members.ShouldContainKey("user-1");
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task RegisteredRefreshCheckpointsAndRecoversAWithheldRevocationBeforeTheNextBusinessEvent(bool withholdRevocation)
+    {
+        var harness = new DurableTenantProjectionHarness();
+        EventStoreDomainEventEnvelope created = harness.Persist(new TenantCreated(Tenant, "Recovery", "Preserved", s_at), Tenant, 1);
+        EventStoreDomainEventEnvelope added = harness.Persist(new UserAddedToTenant(Tenant, "revoked", TenantRole.TenantReader), Tenant, 2);
+        EventStoreDomainEventEnvelope removed = harness.Persist(new UserRemovedFromTenant(Tenant, "revoked"), Tenant, 3);
+        EventStoreDomainEventEnvelope refreshed = harness.Persist(new TenantAccessRefreshed(
+            Tenant, TenantStatus.Active, new Dictionary<string, TenantRole>(), []), Tenant, 4);
+        using (ServiceProvider host = harness.CreateHost())
+        {
+            (await DurableTenantProjectionHarness.ProcessAsync(host, created)).ShouldBe(EventStoreDomainEventProcessingResult.Processed);
+            (await DurableTenantProjectionHarness.ProcessAsync(host, added)).ShouldBe(EventStoreDomainEventProcessingResult.Processed);
+            if (!withholdRevocation)
+            {
+                (await DurableTenantProjectionHarness.ProcessAsync(host, removed)).ShouldBe(EventStoreDomainEventProcessingResult.Processed);
+            }
+            harness.Record(Tenant).ShouldNotBeNull().LastContiguousSequence.ShouldBe(withholdRevocation ? 2 : 3);
+            (await DurableTenantProjectionHarness.ProcessAsync(host, refreshed)).ShouldBe(EventStoreDomainEventProcessingResult.Processed);
+        }
+        CheckpointedProjectionRecord<TenantLocalState> persisted = harness.Record(Tenant).ShouldNotBeNull();
+        persisted.Health.ShouldBe(CheckpointedProjectionHealth.Healthy);
+        persisted.LastContiguousSequence.ShouldBe(4);
+        persisted.State.ShouldNotBeNull().Members.ShouldNotContainKey("revoked");
+        persisted.State.LastEvent.ShouldNotBeNull().LastSequenceNumber.ShouldBe(4);
+        persisted.State.Name.ShouldBe("Recovery");
+        persisted.State.Description.ShouldBe("Preserved");
+        harness.Gateway.Reads.ShouldBe(withholdRevocation ? 1 : 0);
+        using ServiceProvider restarted = harness.CreateHost(withHistory: false);
+        TenantProjectionSnapshot snapshot = (await restarted.GetRequiredService<ITenantProjectionSnapshotStore>()
+            .GetSnapshotAsync(Tenant, TestContext.Current.CancellationToken)).ShouldNotBeNull();
+        snapshot.IsHealthy.ShouldBeTrue();
+        snapshot.Checkpoint.ShouldBe(4);
+        snapshot.State.ShouldNotBeNull().Members.ShouldNotContainKey("revoked");
+        EventStoreDomainEventEnvelope updated = harness.Persist(new TenantUpdated(Tenant, "After recovery", "Next event", s_at), Tenant, 5);
+        (await DurableTenantProjectionHarness.ProcessAsync(restarted, updated)).ShouldBe(EventStoreDomainEventProcessingResult.Processed);
+        CheckpointedProjectionRecord<TenantLocalState> final = harness.Record(Tenant).ShouldNotBeNull();
+        final.Health.ShouldBe(CheckpointedProjectionHealth.Healthy);
+        final.LastContiguousSequence.ShouldBe(5);
+        final.State.ShouldNotBeNull().Name.ShouldBe("After recovery");
+        final.State.Members.ShouldNotContainKey("revoked");
+        harness.Gateway.Reads.ShouldBe(withholdRevocation ? 1 : 0, "the next business event remains contiguous without history access");
+    }
+
     [Fact]
     public async Task ConsumerGroupDeliveryAcrossTwoReplicasConvergesOnOneRecord() {
         var harness = new DurableTenantProjectionHarness();

@@ -1,0 +1,333 @@
+{
+  "config": {
+    "argv": [
+      "/home/administrator/.nvm/versions/node/v26.4.0/bin/node",
+      "/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/tests/e2e/node_modules/.bin/playwright",
+      "test",
+      "specs/route-contract.spec.ts",
+      "--project=firefox",
+      "--grep",
+      "module workspace palette activation reaches the generated full-page command",
+      "--workers=1",
+      "--retries=0"
+    ],
+    "configFile": "/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/tests/e2e/playwright.config.ts",
+    "rootDir": "/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/tests/e2e/specs",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": true,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "a11yEvidenceRunId": "ec484ede-a048-4b33-9927-d6c1a576b61a",
+      "testHostOptions": {
+        "ProjectionReconnectedNoticeDurationMs": 30000
+      },
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/fix-firefox-route-focus-ci-2026-11-15/firefox-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "a11yEvidenceRunId": "ec484ede-a048-4b33-9927-d6c1a576b61a",
+          "testHostOptions": {
+            "ProjectionReconnectedNoticeDurationMs": 30000
+          },
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/tests/e2e/specs",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/fix-firefox-route-focus-ci-2026-11-15/firefox-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "a11yEvidenceRunId": "ec484ede-a048-4b33-9927-d6c1a576b61a",
+          "testHostOptions": {
+            "ProjectionReconnectedNoticeDurationMs": 30000
+          },
+          "actualWorkers": 1
+        },
+        "id": "firefox",
+        "name": "firefox",
+        "testDir": "/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/tests/e2e/specs",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/fix-firefox-route-focus-ci-2026-11-15/firefox-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "a11yEvidenceRunId": "ec484ede-a048-4b33-9927-d6c1a576b61a",
+          "testHostOptions": {
+            "ProjectionReconnectedNoticeDurationMs": 30000
+          },
+          "actualWorkers": 1
+        },
+        "id": "webkit",
+        "name": "webkit",
+        "testDir": "/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/tests/e2e/specs",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "filteredProjects": [
+      {
+        "grep": {},
+        "grepInvert": null,
+        "outputDir": "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/fix-firefox-route-focus-ci-2026-11-15/firefox-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "a11yEvidenceRunId": "ec484ede-a048-4b33-9927-d6c1a576b61a",
+          "testHostOptions": {
+            "ProjectionReconnectedNoticeDurationMs": 30000
+          },
+          "actualWorkers": 1
+        },
+        "name": "firefox",
+        "testDir": "/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/tests/e2e/specs",
+        "snapshotDir": "/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/tests/e2e/specs",
+        "testIgnore": [],
+        "testMatch": "**/*.@(spec|test).?(c|m)[jt]s?(x)",
+        "timeout": 60000,
+        "use": {
+          "baseURL": "http://127.0.0.1:40409",
+          "actionTimeout": 15000,
+          "navigationTimeout": 30000,
+          "trace": "retain-on-failure",
+          "screenshot": "only-on-failure",
+          "video": "retain-on-failure",
+          "ignoreHTTPSErrors": true,
+          "testIdAttribute": "data-testid",
+          "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0",
+          "viewport": {
+            "width": 1280,
+            "height": 720
+          },
+          "screen": {
+            "width": 1920,
+            "height": 1080
+          },
+          "deviceScaleFactor": 1,
+          "isMobile": false,
+          "hasTouch": false,
+          "defaultBrowserType": "firefox",
+          "launchOptions": {
+            "env": {
+              "BASE_URL": "http://127.0.0.1:40409",
+              "LESSOPEN": "| /usr/bin/lesspipe %s",
+              "CODEX_CI": "1",
+              "USER": "administrator",
+              "npm_config_user_agent": "npm/11.18.0 node/v26.4.0 linux x64 workspaces/false",
+              "HC_TERMINAL_ID": "t2r",
+              "npm_node_execpath": "/home/administrator/.nvm/versions/node/v26.4.0/bin/node",
+              "FC_E2E_JSON_PATH": "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/fix-firefox-route-focus-ci-2026-11-15/firefox-results/playwright.json",
+              "SHLVL": "2",
+              "npm_config_noproxy": "",
+              "HOME": "/home/administrator",
+              "FC_E2E_JUNIT_PATH": "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/fix-firefox-route-focus-ci-2026-11-15/firefox-results/junit.xml",
+              "HC_TERMINAL_SOCKET": "/run/user/1000/herdr-core/default.sock",
+              "NVM_BIN": "/home/administrator/.nvm/versions/node/v26.4.0/bin",
+              "npm_package_json": "/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/tests/e2e/package.json",
+              "NVM_INC": "/home/administrator/.nvm/versions/node/v26.4.0/include/node",
+              "npm_package_engines_node": ">=24.10.0",
+              "HC_SCOPE": "29010-2027ae3be3aff41461df48a92896b3e3",
+              "HOMEBREW_PREFIX": "/home/linuxbrew/.linuxbrew",
+              "GTK_MODULES": "gail:atk-bridge",
+              "PAGER": "cat",
+              "LC_CTYPE": "C.UTF-8",
+              "npm_config_userconfig": "/home/administrator/.npmrc",
+              "npm_config_local_prefix": "/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/tests/e2e",
+              "NO_COLOR": "1",
+              "DBUS_SESSION_BUS_ADDRESS": "unix:path=/run/user/1000/bus",
+              "COLORTERM": "",
+              "COLOR": "0",
+              "NVM_DIR": "/home/administrator/.nvm",
+              "TMPDIR": "/tmp/hexalith-job.Z2KXWeyL",
+              "INFOPATH": "/home/linuxbrew/.linuxbrew/share/info:/home/linuxbrew/.linuxbrew/share/info:",
+              "CODEX_TOOL_CALL_ID": "exec-1faa68bb-5b56-4a06-a334-60b7cb83bedd",
+              "LOGNAME": "administrator",
+              "PLAYWRIGHT_SKIP_WEBSERVER": "1",
+              "TEMP": "/tmp/hexalith-job.Z2KXWeyL",
+              "_": "/home/administrator/.nvm/versions/node/v26.4.0/bin/npm",
+              "npm_config_prefix": "/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/tests/e2e",
+              "npm_config_npm_version": "11.18.0",
+              "CODEX_APPLY_PATCH_PRESERVE_LINE_ENDINGS": "1",
+              "TERM": "dumb",
+              "npm_config_cache": "/home/administrator/.npm",
+              "DOTNET_ROOT": "/home/administrator/.dotnet",
+              "npm_config_node_gyp": "/home/administrator/.nvm/versions/node/v26.4.0/lib/node_modules/npm/node_modules/node-gyp/bin/node-gyp.js",
+              "PATH": "/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/tests/e2e/node_modules/.bin:/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/tests/node_modules/.bin:/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/node_modules/.bin:/home/administrator/projects/hexalith/tenants/references/node_modules/.bin:/home/administrator/projects/hexalith/tenants/node_modules/.bin:/home/administrator/projects/hexalith/node_modules/.bin:/home/administrator/projects/node_modules/.bin:/home/administrator/node_modules/.bin:/home/node_modules/.bin:/node_modules/.bin:/home/administrator/.nvm/versions/node/v26.4.0/lib/node_modules/npm/node_modules/@npmcli/run-script/lib/node-gyp-bin:/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin:/home/administrator/.local/bin:/home/administrator/.dotnet:/home/administrator/.npm-global/bin:/home/administrator/.local/bin:/home/administrator/.codex/packages/standalone/releases/0.169.0-x86_64-unknown-linux-musl/codex-path:/home/administrator/.codex/tmp/arg0-linux/codex-arg0V7TK2A:/home/administrator/.codex/tmp/arg0-linux/codex-arg0WO1N0K:/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin:/home/administrator/.local/bin:/home/administrator/.local/bin:/home/administrator/.opencode/bin:/home/administrator/.nvm/versions/node/v26.4.0/bin:/home/administrator/.aspire/bin:/home/administrator/.dotnet:/home/administrator/.npm-global/bin:/home/administrator/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/home/administrator/.dotnet/tools",
+              "CODEX_VERSION": "0.169.0",
+              "CODEX_SESSION_ID": "01a1e00e-9ff0-7fb0-a17b-067902494671",
+              "HOMEBREW_CELLAR": "/home/linuxbrew/.linuxbrew/Cellar",
+              "NODE": "/home/administrator/.nvm/versions/node/v26.4.0/bin/node",
+              "npm_package_name": "hexalith-frontcomposer-e2e",
+              "XDG_RUNTIME_DIR": "/run/user/1000",
+              "LANG": "C.UTF-8",
+              "DOTNET_BUNDLE_EXTRACT_BASE_DIR": "/home/administrator/.cache/dotnet_bundle_extract",
+              "FC_E2E_HTML_REPORT_DIR": "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/fix-firefox-route-focus-ci-2026-11-15/firefox-report",
+              "GH_PAGER": "cat",
+              "LS_COLORS": "rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=00:su=37;41:sg=30;43:ca=00:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arc=01;31:*.arj=01;31:*.taz=01;31:*.lha=01;31:*.lz4=01;31:*.lzh=01;31:*.lzma=01;31:*.tlz=01;31:*.txz=01;31:*.tzo=01;31:*.t7z=01;31:*.zip=01;31:*.z=01;31:*.dz=01;31:*.gz=01;31:*.lrz=01;31:*.lz=01;31:*.lzo=01;31:*.xz=01;31:*.zst=01;31:*.tzst=01;31:*.bz2=01;31:*.bz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.war=01;31:*.ear=01;31:*.sar=01;31:*.rar=01;31:*.alz=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.cab=01;31:*.wim=01;31:*.swm=01;31:*.dwm=01;31:*.esd=01;31:*.avif=01;35:*.jpg=01;35:*.jpeg=01;35:*.mjpg=01;35:*.mjpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.webm=01;35:*.webp=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.cgm=01;35:*.emf=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.m4a=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.oga=00;36:*.opus=00;36:*.spx=00;36:*.xspf=00;36:*~=00;90:*#=00;90:*.bak=00;90:*.old=00;90:*.orig=00;90:*.part=00;90:*.rej=00;90:*.swp=00;90:*.tmp=00;90:*.dpkg-dist=00;90:*.dpkg-old=00;90:*.ucf-dist=00;90:*.ucf-new=00;90:*.ucf-old=00;90:*.rpmnew=00;90:*.rpmorig=00;90:*.rpmsave=00;90:",
+              "TMP": "/tmp/hexalith-job.Z2KXWeyL",
+              "TERM_PROGRAM": "ghostty",
+              "npm_lifecycle_script": "playwright test",
+              "SSH_AUTH_SOCK": "/run/user/1000/openssh_agent",
+              "SHELL": "/bin/bash",
+              "npm_package_version": "0.0.0",
+              "npm_lifecycle_event": "test",
+              "QT_ACCESSIBILITY": "1",
+              "LESSCLOSE": "/usr/bin/lesspipe %s %s",
+              "CODEX_THREAD_ID": "01a1e00e-9ff0-7fb0-a17b-067902494671",
+              "GPG_AGENT_INFO": "/run/user/1000/gnupg/S.gpg-agent:0:1",
+              "GIT_PAGER": "cat",
+              "FC_E2E_OUTPUT_DIR": "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/fix-firefox-route-focus-ci-2026-11-15/firefox-results",
+              "CLAUDE_CODE_OAUTH_TOKEN": "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",
+              "npm_config_globalconfig": "/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/tests/e2e/etc/npmrc",
+              "npm_config_init_module": "/home/administrator/.npm-init.js",
+              "PWD": "/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/tests/e2e",
+              "LC_ALL": "C.UTF-8",
+              "npm_execpath": "/home/administrator/.nvm/versions/node/v26.4.0/lib/node_modules/npm/bin/npm-cli.js",
+              "NVM_CD_FLAGS": "",
+              "XDG_DATA_DIRS": "/usr/local/share/:/usr/share/:/var/lib/snapd/desktop",
+              "npm_config_global_prefix": "/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/tests/e2e",
+              "HOMEBREW_REPOSITORY": "/home/linuxbrew/.linuxbrew/Homebrew",
+              "npm_config_allow_scripts": "",
+              "npm_command": "test",
+              "HEXALITH_DAPR_HOME": "/home/administrator/.hexalith/dapr/cli-1.18.2-runtime-1.18.7",
+              "INIT_CWD": "/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer",
+              "EDITOR": "vi",
+              "BROWSERSLIST_IGNORE_OLD_DATA": "true",
+              "FC_A11Y_EVIDENCE_RUN_ID": "ec484ede-a048-4b33-9927-d6c1a576b61a",
+              "FONTCONFIG_FILE": "/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/tests/e2e/fonts/linux-fontconfig.conf"
+            }
+          }
+        },
+        "dependencies": [],
+        "ignoreSnapshots": false,
+        "__projectId": "firefox"
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "html",
+        {
+          "outputFolder": "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/fix-firefox-route-focus-ci-2026-11-15/firefox-report",
+          "open": "never"
+        }
+      ],
+      [
+        "junit",
+        {
+          "outputFile": "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/fix-firefox-route-focus-ci-2026-11-15/firefox-results/junit.xml"
+        }
+      ],
+      [
+        "json",
+        {
+          "outputFile": "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/fix-firefox-route-focus-ci-2026-11-15/firefox-results/playwright.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "none",
+    "updateSourceMethod": "patch",
+    "version": "1.64.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "route-contract.spec.ts",
+      "file": "route-contract.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Story 11.7: generated command and module route contract",
+          "file": "route-contract.spec.ts",
+          "line": 5,
+          "column": 6,
+          "specs": [
+            {
+              "title": "module workspace palette activation reaches the generated full-page command",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 4307,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-11-15T16:38:29.757Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "7d41a4ed3bccc3724755-f2987aea879e77cc30ce",
+              "file": "route-contract.spec.ts",
+              "line": 43,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-15T16:38:29.332Z",
+    "duration": 5419.078,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

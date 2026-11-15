@@ -847,6 +847,49 @@ public partial class TenantProjectionHandlerTests {
     }
 
     [Theory]
+    [InlineData("valid", true)]
+    [InlineData("disabled", true)]
+    [InlineData("null-members", false)]
+    [InlineData("null-keys", false)]
+    [InlineData("unknown-role", false)]
+    [InlineData("undefined-role", false)]
+    [InlineData("empty-member", false)]
+    [InlineData("empty-key", false)]
+    [InlineData("duplicate-key", false)]
+    [InlineData("unknown-status", false)]
+    [InlineData("entries-budget", false)]
+    [InlineData("bytes-budget", false)]
+    [InlineData("duplicate-member", false)]
+    public async Task ProjectAsync_RecoveryCertificationRequiresACompleteBoundedDomainSnapshotAsync(string shape, bool complete)
+    {
+        var members = new Dictionary<string, TenantRole> { ["owner"] = TenantRole.TenantOwner };
+        IReadOnlyList<string> keys = ["billing.mode"];
+        if (shape == "entries-budget")
+            for (int index = 0; index < ProjectionSnapshotLimits.Default.MaxEntries; index++) members["reader-" + index] = TenantRole.TenantReader;
+        if (shape == "bytes-budget") members[new string('x', ProjectionSnapshotLimits.Default.MaxSerializedBytes)] = TenantRole.TenantReader;
+        if (shape == "unknown-role") members["reader"] = TenantRole.Unknown;
+        if (shape == "undefined-role") members["reader"] = (TenantRole)99;
+        if (shape == "empty-member") members[" "] = TenantRole.TenantReader;
+        if (shape == "empty-key") keys = [" "];
+        if (shape == "duplicate-key") keys = ["billing.mode", "billing.mode"];
+        var snapshot = new TenantAccessRefreshed("tenant-1", shape == "disabled" ? TenantStatus.Disabled :
+            shape == "unknown-status" ? TenantStatus.Unknown : TenantStatus.Active,
+            shape == "null-members" ? null! : members, shape == "null-keys" ? null! : keys);
+        ProjectionEventDto refreshed = CreateEvent(snapshot, "evt-refresh", ProjectionTime.AddMinutes(1), sequenceNumber: 2);
+        if (shape == "duplicate-member")
+        {
+            string json = System.Text.Encoding.UTF8.GetString(refreshed.Payload);
+            refreshed = refreshed with { Payload = System.Text.Encoding.UTF8.GetBytes(json.Replace("\"Members\":{", "\"Members\":{\"owner\":\"TenantReader\",")) };
+        }
+        var store = AuditAuthorityStore();
+        _ = await CreateHandler(store).ProjectAsync(new("tenant-1", "tenants", "tenant-1", [CanonicalAuditHistory()[0], refreshed]));
+        TenantAuditReadModel audit = SavedAudit(store);
+        audit.ProjectionVersion.ShouldBe(complete ? "tenant-sequence:2" : null);
+        audit.Entries.ShouldContain(row => row.EventId == "evt-created");
+        if (complete) audit.Entries.ShouldContain(row => row.EventType == nameof(TenantAccessRefreshed));
+    }
+
+    [Theory]
     [InlineData("null")]
     [InlineData("gap")]
     [InlineData("unknown")]

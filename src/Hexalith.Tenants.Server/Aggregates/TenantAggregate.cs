@@ -226,12 +226,13 @@ public class TenantAggregate : EventStoreAggregate<TenantState> {
         ArgumentNullException.ThrowIfNull(envelope);
         string tenantId = envelope.AggregateId;
         if (!string.Equals(command.TenantId, tenantId, StringComparison.Ordinal)
-            || state is not null && !string.Equals(state.TenantId, tenantId, StringComparison.Ordinal))
+            || state is not null && !string.IsNullOrEmpty(state.TenantId)
+                && !string.Equals(state.TenantId, tenantId, StringComparison.Ordinal))
         {
             return GlobalAdminRequired(tenantId, envelope, state, nameof(RefreshTenantAccess));
         }
 
-        if (state is null)
+        if (state is null || string.IsNullOrEmpty(state.TenantId))
         {
             return DomainResult.Rejection([new TenantNotFoundRejection(tenantId)]);
         }

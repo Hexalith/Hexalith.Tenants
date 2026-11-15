@@ -3357,6 +3357,7 @@ internal sealed class TenantQueryGateway(
                 or "GlobalAdministratorRemoved"
                     => category is AuditEventCategory.Access,
             "TenantCreated"
+                or "TenantAccessRefreshed"
                 or "TenantUpdated"
                 or "TenantDisabled"
                 or "TenantEnabled"

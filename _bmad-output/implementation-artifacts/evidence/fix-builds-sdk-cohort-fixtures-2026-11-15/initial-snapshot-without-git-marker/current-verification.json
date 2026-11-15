@@ -1,0 +1,60 @@
+{
+  "revision": "e2bbbd0893f586e4d447ef8358ff747ea3d34435",
+  "configuration": "Debug",
+  "checks": [
+    {
+      "name": "module-build",
+      "command": [
+        "dotnet",
+        "build",
+        "test/Hexalith.Builds.Module.Tests/Hexalith.Builds.Module.Tests.csproj",
+        "-c",
+        "Debug",
+        "-m:1",
+        "--nologo"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "manifest-contracts",
+      "command": [
+        "dotnet",
+        "test/Hexalith.Builds.Module.Tests/bin/Debug/net11.0/Hexalith.Builds.Module.Tests.dll",
+        "-class",
+        "*ManifestValidationTests",
+        "-class",
+        "*SupportedPlatformPinsCatalogTests"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "evidence-build",
+      "command": [
+        "dotnet",
+        "build",
+        "test/Hexalith.Builds.Evidence.Tests/Hexalith.Builds.Evidence.Tests.csproj",
+        "-c",
+        "Debug",
+        "-m:1",
+        "--nologo"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "evidence-contracts",
+      "command": [
+        "dotnet",
+        "test/Hexalith.Builds.Evidence.Tests/bin/Debug/net11.0/Hexalith.Builds.Evidence.Tests.dll",
+        "-class",
+        "*ReadinessEvidenceValidatorTests",
+        "-class",
+        "*G4P0AcceptanceValidatorTests",
+        "-class",
+        "*SelectedCleanupAcceptanceTests",
+        "-class",
+        "*EvidenceCommandApplicationTests"
+      ],
+      "exit_code": 1
+    }
+  ]
+}

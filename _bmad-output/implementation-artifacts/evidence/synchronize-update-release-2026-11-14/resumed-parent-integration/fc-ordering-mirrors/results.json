@@ -1,0 +1,72 @@
+[
+  {
+    "command": [
+      "dotnet",
+      "build",
+      "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+      "-c",
+      "Release",
+      "-m:1",
+      "-p:UseNuGetDeps=true",
+      "-p:MinVerVersionOverride=6.0.1",
+      "-p:RestoreFallbackFolders=/home/administrator/.nuget/packages",
+      "-warnaserror"
+    ],
+    "exit_code": 0,
+    "seconds": 26.1,
+    "fc_source": "984b6be79a09e5e5796f75c9c0eb35ab4ccc2707",
+    "fc_working_patch_sha256": "9f5522afb0c0bddf55d633451a2e55419fb6a3f313947bd7c38254d0daee63f7",
+    "builds_source": "73e60af8a1fcdf3f06726d5d1b6e1199cce778ee",
+    "log": "/dev/shm/tenants-release-resume-2026-11-15/fc-ordering-mirrors/command-0.log"
+  },
+  {
+    "command": [
+      "dotnet",
+      "tests/Hexalith.FrontComposer.SourceTools.Tests/bin/Release/net11.0/Hexalith.FrontComposer.SourceTools.Tests.dll",
+      "-class",
+      "*FcNipCommandTargetIdentityContractTests",
+      "-class",
+      "*GeneratorDriverTests",
+      "-parallelMode",
+      "none"
+    ],
+    "exit_code": 0,
+    "seconds": 8.04,
+    "fc_source": "984b6be79a09e5e5796f75c9c0eb35ab4ccc2707",
+    "fc_working_patch_sha256": "9f5522afb0c0bddf55d633451a2e55419fb6a3f313947bd7c38254d0daee63f7",
+    "builds_source": "73e60af8a1fcdf3f06726d5d1b6e1199cce778ee",
+    "log": "/dev/shm/tenants-release-resume-2026-11-15/fc-ordering-mirrors/command-1.log"
+  },
+  {
+    "command": [
+      "npm",
+      "--prefix",
+      "tests/e2e",
+      "ci",
+      "--ignore-scripts",
+      "--cache",
+      "/dev/shm/hexalith-job.qmp5FjiB/npm-cache"
+    ],
+    "exit_code": 0,
+    "seconds": 1.17,
+    "fc_source": "984b6be79a09e5e5796f75c9c0eb35ab4ccc2707",
+    "fc_working_patch_sha256": "9f5522afb0c0bddf55d633451a2e55419fb6a3f313947bd7c38254d0daee63f7",
+    "builds_source": "73e60af8a1fcdf3f06726d5d1b6e1199cce778ee",
+    "log": "/dev/shm/tenants-release-resume-2026-11-15/fc-ordering-mirrors/command-2.log"
+  },
+  {
+    "command": [
+      "npm",
+      "--prefix",
+      "tests/e2e",
+      "run",
+      "test:fc-nip"
+    ],
+    "exit_code": 0,
+    "seconds": 0.97,
+    "fc_source": "984b6be79a09e5e5796f75c9c0eb35ab4ccc2707",
+    "fc_working_patch_sha256": "9f5522afb0c0bddf55d633451a2e55419fb6a3f313947bd7c38254d0daee63f7",
+    "builds_source": "73e60af8a1fcdf3f06726d5d1b6e1199cce778ee",
+    "log": "/dev/shm/tenants-release-resume-2026-11-15/fc-ordering-mirrors/command-3.log"
+  }
+]

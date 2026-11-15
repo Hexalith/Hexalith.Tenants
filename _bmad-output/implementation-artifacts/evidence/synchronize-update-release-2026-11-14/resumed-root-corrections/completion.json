@@ -1,0 +1,97 @@
+{
+  "counts": {
+    "Hexalith.Tenants.Server.Tests": {
+      "total": "1896",
+      "passed": "1896",
+      "failed": "0",
+      "skipped": "0",
+      "errors": "0"
+    },
+    "Hexalith.Tenants.Client.Tests": {
+      "total": "103",
+      "passed": "103",
+      "failed": "0",
+      "skipped": "0",
+      "errors": "0"
+    },
+    "Hexalith.Tenants.Testing.Tests": {
+      "total": "197",
+      "passed": "197",
+      "failed": "0",
+      "skipped": "0",
+      "errors": "0"
+    },
+    "Hexalith.Tenants.Contracts.Tests": {
+      "total": "574",
+      "passed": "574",
+      "failed": "0",
+      "skipped": "0",
+      "errors": "0"
+    },
+    "Hexalith.Tenants.IntegrationTests": {
+      "total": "20",
+      "passed": "20",
+      "failed": "0",
+      "skipped": "0",
+      "errors": "0"
+    }
+  },
+  "scratch_cleanup": [
+    {
+      "receipt": "verification-attempt1.json",
+      "private_workspace_removed": true
+    },
+    {
+      "receipt": "verification-attempt2.json",
+      "private_workspace_removed": true
+    },
+    {
+      "receipt": "verification.json",
+      "private_workspace_removed": true
+    },
+    {
+      "receipt": "packed-verification.json",
+      "private_workspace_removed": true
+    },
+    {
+      "receipt": "integration-verification.json",
+      "private_workspace_removed": true
+    }
+  ],
+  "validation_attempts": {
+    "first_attempt": "New boundary test used IReadOnlyList.Length; corrected to Count. Compiler failure retained in Hexalith.Tenants.Server.Tests-build-attempt1.log.",
+    "second_attempt": "All new runtime cases passed; eight full-suite documentation tests failed only because the private copy omitted existing referenced EventStore docs/config/source and test-summary.md. Full raw failed XML/log retained as attempt2. Added required source-backed documentation inputs; all1896 subsequently pass.",
+    "integration_copy": "Initial Integration build failed CS1566 because copied Builds Tooling omitted schemas/hexalith.check-suite.v1.json. Added tracked schema inputs to the private snapshot; actual Integration build passes0warnings/errors and20live cases pass.",
+    "pack_copy": "Initial pack-only snapshot refused a concurrently dirty Platform owner checkout before running builds. Platform is not an input to the package build, so pack-only copies only the clean Builds source. Actual five-package pack/validation/consumer all pass."
+  },
+  "limitations": [
+    "Local copies bind input bytes and exact owner sources; no local result claims final committed-source hosted CI.",
+    "The 3.128.4 bootstrap harness remains intentional. Current actor/domain libraries and packed consumer use public5.1.1.",
+    "No native McpCli recovery enrollment, new Azure qualification or publication acceptance is inferred."
+  ],
+  "modified_root_files": {
+    ".github/workflows/ci.yml": "c9a8caa1a6aaff7425fbece001bb28c5b9779340cc7702a04bb1c4d964262205",
+    "Directory.Build.props": "f76b43facdc3aa3d3bd68de595838bd5a7e4c338c714bfe106a39a8efc91ae2d",
+    "Directory.Build.targets": "20d167f864ddc962c475bd426a8812e67b809f627c5a3a5ae98e6794dd04d9c1",
+    "README.md": "4b0aa706b4f397e9533b7cc23b4d4fd92da628b26c98b451ebdaa506087c0f98",
+    "docs/development-route-catalog.md": "e8035c908adfa7c7f928e395c4ce574bed1ce442233d747fa43a0aa851da7f64",
+    "docs/event-contract-reference.md": "3199018c04c024aec42d9bf62745a01c0fe801b87bea7a6967a67bc882954bf6",
+    "scripts/verify-catalog-package-consumer.py": "11270ea59fb3a850ef2f8b884c2bf3a797405e759f94d3e4d6e493bd29d70c6b",
+    "src/Hexalith.Tenants.Server/Aggregates/TenantAggregate.cs": "2b3cc276eb8dce58e45d6650fe8d87632290f0684cf88105be538438f015a542",
+    "src/Hexalith.Tenants.Testing/Fakes/InMemoryTenantService.cs": "fbccae0c77ab71c0d0a1de350a0b2ce8835f7835981913d13b093ed1dda65670",
+    "tests/Hexalith.Tenants.Client.Tests/Projections/DurableTenantProjectionStoreTests.cs": "f8546a3e68f580fafaf90205d3d50a8802c18b1fb2b2a7b6a62f21cda7bea15d",
+    "tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs": "ac877c070e737c8629fb422ac2a0cadb49be03832ebf5e151e681e50a6111d37",
+    "tests/Hexalith.Tenants.IntegrationTests/DaprEndToEndTests.cs": "3a9c51f22b1fb3b8377998adb0fd4c4800065e608377af40a590832a53b24d68",
+    "tests/Hexalith.Tenants.Server.Tests/Aggregates/TenantAccessRecoveryTests.cs": "94253028d514e1fc08f7145b8abd37a1f0f175d7349efad6edf79cb1438203c3",
+    "tests/Hexalith.Tenants.Testing.Tests/Fakes/InMemoryTenantServiceTests.cs": "afa76eec6a815dc496305411baf0d3e96274950bb00b0be1cd243afb05f42fd7",
+    "tests/scripts/test_bootstrap_compatibility.py": "40403753dc0ca590fbeb306341525bd41d28e9e08dfc5691955d3719bc9e84e2",
+    "tests/scripts/test_catalog_artifact_guards.py": "e4745ccd80ca0e6c057ecbdfddae11993c6dd2408e2148e922afa2c2ed36876c",
+    "tests/scripts/test_catalog_package_consumer.py": "2abef88784cddb3e5cf3a044611a564481e2af38a2e0b19ca16e7a0e4235165b",
+    "tests/scripts/test_release_resume_verification.py": "eecd5caa4fb84b6dffc6e45ae9ce0f2a53092a7b6c9b5bbb7867b80f3b58474e"
+  },
+  "final_modified_source_equivalence": {
+    "verification.json": "Every modified root source/config/test/documentation file equals the verified snapshot.",
+    "integration-verification.json": "Every modified root source/config/test/documentation file equals the verified snapshot.",
+    "packed-verification.json": "Every modified root source/config/test/documentation file equals the verified snapshot."
+  }
+}

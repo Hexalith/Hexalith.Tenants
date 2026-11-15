@@ -1,0 +1,33 @@
+{
+  "full_check_command": [
+    "git",
+    "diff",
+    "--cached",
+    "--check"
+  ],
+  "full_check_exit_code": 2,
+  "preserved_raw_artifact_whitespace": {
+    "_bmad-output/implementation-artifacts/evidence/fix-builds-sdk-cohort-fixtures-2026-11-15/workspace-since-baseline.diff": 298,
+    "_bmad-output/implementation-artifacts/evidence/fix-firefox-route-focus-ci-2026-11-15/implementation.diff": 11,
+    "_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/final-root-corrections/Hexalith.Tenants.UI.Tests-attempt1.xml": 13,
+    "_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration-verification-attempt2/Hexalith.Tenants.IntegrationTests-tests.txt": 4
+  },
+  "reason": "Captured diff context and failed-test/stdout diagnostics are byte-bound evidence, preserved unchanged. Only these exact raw artifact paths are excluded from the source-formatting check; no persistent policy or automated gate changes.",
+  "source_check_command": [
+    "git",
+    "diff",
+    "--cached",
+    "--check",
+    "--",
+    ".",
+    ":(exclude)_bmad-output/implementation-artifacts/evidence/fix-builds-sdk-cohort-fixtures-2026-11-15/workspace-since-baseline.diff",
+    ":(exclude)_bmad-output/implementation-artifacts/evidence/fix-firefox-route-focus-ci-2026-11-15/implementation.diff",
+    ":(exclude)_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/final-root-corrections/Hexalith.Tenants.UI.Tests-attempt1.xml",
+    ":(exclude)_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration-verification-attempt2/Hexalith.Tenants.IntegrationTests-tests.txt"
+  ],
+  "source_check_exit_code": 0,
+  "stdout": "",
+  "stderr": "",
+  "raw_diagnostics": "/dev/shm/tenants-release-resume-2026-11-15/raw-captured-artifact-whitespace.log",
+  "raw_diagnostics_sha256": "071b5b839210187096e6c74b32f4f216bf991f222f6b9c18092fd636ad8a6600"
+}

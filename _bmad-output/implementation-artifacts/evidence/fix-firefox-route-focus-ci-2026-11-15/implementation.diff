@@ -1,0 +1,306 @@
+diff --git a/src/Hexalith.FrontComposer.Shell/wwwroot/js/fc-expandinrow.js b/src/Hexalith.FrontComposer.Shell/wwwroot/js/fc-expandinrow.js
+index da519204..9e8c132e 100644
+--- a/src/Hexalith.FrontComposer.Shell/wwwroot/js/fc-expandinrow.js
++++ b/src/Hexalith.FrontComposer.Shell/wwwroot/js/fc-expandinrow.js
+@@ -1,7 +1,10 @@
+ // Story 2-2 Task 7 — expand-in-row scroll stabilization for CompactInline command renderers.
+-// Contract: `initializeExpandInRow(elementRef)` scrolls the element into view and, when the
+-// user has NOT requested reduced motion, applies a follow-up requestAnimationFrame measurement
+-// to correct for late-arriving layout shifts. Module-scoped import (./_content/Hexalith.FrontComposer.Shell/js/fc-expandinrow.js)
++// Contract: `initializeExpandInRow(elementRef, deferToRouteFocus = false)` scrolls the element
++// into view unless a route heading owns focus. Generated CompactInline initialization passes true
++// to also skip scrolling while focus is absent or on body; skipping returns without a queued retry.
++// User-triggered row expansion keeps the default false. Without reduced motion, a follow-up
++// requestAnimationFrame measurement corrects late-arriving layout shifts.
++// Module-scoped import (./_content/Hexalith.FrontComposer.Shell/js/fc-expandinrow.js)
+ // avoids global namespace pollution (Decision D11). Module is loaded lazily via
+ // `IExpandInRowJSModule` (Decision D25) and disposed on circuit teardown.
+ 
+@@ -21,15 +24,17 @@ export function focusTriggerElementById(elementId) {
+ // avoids fighting a smooth scrollIntoView that's still in flight.
+ const SCROLL_CORRECTION_THRESHOLD_PX = 4;
+ 
+-export function initializeExpandInRow(elementRef) {
++export function initializeExpandInRow(elementRef, deferToRouteFocus = false) {
+     if (!(elementRef instanceof Element) || !elementRef.isConnected) {
+         return;
+     }
+ 
+-    // Route navigation owns the initial heading focus. Eager inline forms must not scroll
+-    // that focused heading away; a user-opened form has already moved focus to its trigger.
+-    if (document.activeElement instanceof HTMLElement
+-        && document.activeElement.matches('#fc-main-content h1, main h1, [role="main"] h1')) {
++    // Eager inline forms defer to initial route focus. Ordinary row expansion can have
++    // body focus after a pointer interaction; all callers protect a focused route heading.
++    const activeElement = document.activeElement;
++    if ((deferToRouteFocus && (!activeElement || activeElement === document.body))
++        || (activeElement instanceof HTMLElement
++            && activeElement.matches('#fc-main-content h1, main h1, [role="main"] h1'))) {
+         return;
+     }
+ 
+@@ -47,9 +52,11 @@ export function initializeExpandInRow(elementRef) {
+     }
+ 
+     requestAnimationFrame(() => {
++        const activeElement = document.activeElement;
+         if (!elementRef.isConnected
+-            || (document.activeElement instanceof HTMLElement
+-                && document.activeElement.matches('#fc-main-content h1, main h1, [role="main"] h1'))) {
++            || (deferToRouteFocus && (!activeElement || activeElement === document.body))
++            || (activeElement instanceof HTMLElement
++                && activeElement.matches('#fc-main-content h1, main h1, [role="main"] h1'))) {
+             return;
+         }
+         const rect = elementRef.getBoundingClientRect();
+diff --git a/src/Hexalith.FrontComposer.SourceTools/Emitters/CommandRendererEmitter.cs b/src/Hexalith.FrontComposer.SourceTools/Emitters/CommandRendererEmitter.cs
+index 57d2e884..c6ec5827 100644
+--- a/src/Hexalith.FrontComposer.SourceTools/Emitters/CommandRendererEmitter.cs
++++ b/src/Hexalith.FrontComposer.SourceTools/Emitters/CommandRendererEmitter.cs
+@@ -804,7 +804,7 @@ public static class CommandRendererEmitter {
+         _ = sb.AppendLine("            try");
+         _ = sb.AppendLine("            {");
+         _ = sb.AppendLine("                _expandInRowModule ??= await JSRuntime.InvokeAsync<IJSObjectReference>(\"import\", \"./_content/Hexalith.FrontComposer.Shell/js/fc-expandinrow.js\").ConfigureAwait(false);");
+-        _ = sb.AppendLine("                await _expandInRowModule.InvokeVoidAsync(\"initializeExpandInRow\", _compactCardRef).ConfigureAwait(false);");
++        _ = sb.AppendLine("                await _expandInRowModule.InvokeVoidAsync(\"initializeExpandInRow\", _compactCardRef, true).ConfigureAwait(false);");
+         _ = sb.AppendLine("            }");
+         _ = sb.AppendLine("            catch (InvalidOperationException) { /* prerender: JSInterop not yet available. */ }");
+         _ = sb.AppendLine("            catch (JSDisconnectedException) { /* circuit teardown; benign. */ }");
+diff --git a/tests/Hexalith.FrontComposer.Shell.Tests/Generated/CommandRendererCompactInlineTests.cs b/tests/Hexalith.FrontComposer.Shell.Tests/Generated/CommandRendererCompactInlineTests.cs
+index f823534a..91604a5a 100644
+--- a/tests/Hexalith.FrontComposer.Shell.Tests/Generated/CommandRendererCompactInlineTests.cs
++++ b/tests/Hexalith.FrontComposer.Shell.Tests/Generated/CommandRendererCompactInlineTests.cs
+@@ -82,7 +82,7 @@ public sealed class CommandRendererCompactInlineTests : CommandRendererTestBase
+ 
+         _ = Render<TwoFieldCompactCommandRenderer>();
+ 
+-        // The single argument is the captured ElementReference (cannot be null when the card is in DOM).
++        // Preserve the card reference and explicitly defer eager initialization to route focus.
+         List<JSRuntimeInvocation> initInvocations = [];
+         foreach (JSRuntimeInvocation invocation in module.Invocations) {
+             if (invocation.Identifier == "initializeExpandInRow") {
+@@ -91,7 +91,9 @@ public sealed class CommandRendererCompactInlineTests : CommandRendererTestBase
+         }
+ 
+         initInvocations.ShouldNotBeEmpty();
+-        initInvocations[0].Arguments.Count.ShouldBe(1);
++        initInvocations[0].Arguments.Count.ShouldBe(2);
++        initInvocations[0].Arguments[0].ShouldBeOfType<Microsoft.AspNetCore.Components.ElementReference>();
++        initInvocations[0].Arguments[1].ShouldBeOfType<bool>().ShouldBeTrue();
+     }
+ 
+     [Fact]
+diff --git a/tests/Hexalith.FrontComposer.SourceTools.Tests/Emitters/CommandRendererEmitterTests.Renderer_FiveFields_FullPageBoundarySnapshot.verified.txt b/tests/Hexalith.FrontComposer.SourceTools.Tests/Emitters/CommandRendererEmitterTests.Renderer_FiveFields_FullPageBoundarySnapshot.verified.txt
+index 9dd29b3c..cec1263a 100644
+--- a/tests/Hexalith.FrontComposer.SourceTools.Tests/Emitters/CommandRendererEmitterTests.Renderer_FiveFields_FullPageBoundarySnapshot.verified.txt
++++ b/tests/Hexalith.FrontComposer.SourceTools.Tests/Emitters/CommandRendererEmitterTests.Renderer_FiveFields_FullPageBoundarySnapshot.verified.txt
+@@ -341,7 +341,7 @@ public partial class DemoCommandRenderer : ComponentBase, IInlinePopover
+             try
+             {
+                 _expandInRowModule ??= await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/Hexalith.FrontComposer.Shell/js/fc-expandinrow.js").ConfigureAwait(false);
+-                await _expandInRowModule.InvokeVoidAsync("initializeExpandInRow", _compactCardRef).ConfigureAwait(false);
++                await _expandInRowModule.InvokeVoidAsync("initializeExpandInRow", _compactCardRef, true).ConfigureAwait(false);
+             }
+             catch (InvalidOperationException) { /* prerender: JSInterop not yet available. */ }
+             catch (JSDisconnectedException) { /* circuit teardown; benign. */ }
+diff --git a/tests/Hexalith.FrontComposer.SourceTools.Tests/Emitters/CommandRendererEmitterTests.Renderer_FourFields_CompactInlineBoundarySnapshot.verified.txt b/tests/Hexalith.FrontComposer.SourceTools.Tests/Emitters/CommandRendererEmitterTests.Renderer_FourFields_CompactInlineBoundarySnapshot.verified.txt
+index 43fa4f46..e217891f 100644
+--- a/tests/Hexalith.FrontComposer.SourceTools.Tests/Emitters/CommandRendererEmitterTests.Renderer_FourFields_CompactInlineBoundarySnapshot.verified.txt
++++ b/tests/Hexalith.FrontComposer.SourceTools.Tests/Emitters/CommandRendererEmitterTests.Renderer_FourFields_CompactInlineBoundarySnapshot.verified.txt
+@@ -341,7 +341,7 @@ public partial class DemoCommandRenderer : ComponentBase, IInlinePopover
+             try
+             {
+                 _expandInRowModule ??= await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/Hexalith.FrontComposer.Shell/js/fc-expandinrow.js").ConfigureAwait(false);
+-                await _expandInRowModule.InvokeVoidAsync("initializeExpandInRow", _compactCardRef).ConfigureAwait(false);
++                await _expandInRowModule.InvokeVoidAsync("initializeExpandInRow", _compactCardRef, true).ConfigureAwait(false);
+             }
+             catch (InvalidOperationException) { /* prerender: JSInterop not yet available. */ }
+             catch (JSDisconnectedException) { /* circuit teardown; benign. */ }
+diff --git a/tests/Hexalith.FrontComposer.SourceTools.Tests/Emitters/CommandRendererEmitterTests.Renderer_OneField_InlinePopoverSnapshot.verified.txt b/tests/Hexalith.FrontComposer.SourceTools.Tests/Emitters/CommandRendererEmitterTests.Renderer_OneField_InlinePopoverSnapshot.verified.txt
+index 2cf13477..d94f10be 100644
+--- a/tests/Hexalith.FrontComposer.SourceTools.Tests/Emitters/CommandRendererEmitterTests.Renderer_OneField_InlinePopoverSnapshot.verified.txt
++++ b/tests/Hexalith.FrontComposer.SourceTools.Tests/Emitters/CommandRendererEmitterTests.Renderer_OneField_InlinePopoverSnapshot.verified.txt
+@@ -341,7 +341,7 @@ public partial class DemoCommandRenderer : ComponentBase, IInlinePopover
+             try
+             {
+                 _expandInRowModule ??= await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/Hexalith.FrontComposer.Shell/js/fc-expandinrow.js").ConfigureAwait(false);
+-                await _expandInRowModule.InvokeVoidAsync("initializeExpandInRow", _compactCardRef).ConfigureAwait(false);
++                await _expandInRowModule.InvokeVoidAsync("initializeExpandInRow", _compactCardRef, true).ConfigureAwait(false);
+             }
+             catch (InvalidOperationException) { /* prerender: JSInterop not yet available. */ }
+             catch (JSDisconnectedException) { /* circuit teardown; benign. */ }
+diff --git a/tests/Hexalith.FrontComposer.SourceTools.Tests/Emitters/CommandRendererEmitterTests.Renderer_OneField_WithIconAttributeSnapshot.verified.txt b/tests/Hexalith.FrontComposer.SourceTools.Tests/Emitters/CommandRendererEmitterTests.Renderer_OneField_WithIconAttributeSnapshot.verified.txt
+index aa6ec569..89c7e38a 100644
+--- a/tests/Hexalith.FrontComposer.SourceTools.Tests/Emitters/CommandRendererEmitterTests.Renderer_OneField_WithIconAttributeSnapshot.verified.txt
++++ b/tests/Hexalith.FrontComposer.SourceTools.Tests/Emitters/CommandRendererEmitterTests.Renderer_OneField_WithIconAttributeSnapshot.verified.txt
+@@ -346,7 +346,7 @@ public partial class DemoCommandRenderer : ComponentBase, IInlinePopover
+             try
+             {
+                 _expandInRowModule ??= await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/Hexalith.FrontComposer.Shell/js/fc-expandinrow.js").ConfigureAwait(false);
+-                await _expandInRowModule.InvokeVoidAsync("initializeExpandInRow", _compactCardRef).ConfigureAwait(false);
++                await _expandInRowModule.InvokeVoidAsync("initializeExpandInRow", _compactCardRef, true).ConfigureAwait(false);
+             }
+             catch (InvalidOperationException) { /* prerender: JSInterop not yet available. */ }
+             catch (JSDisconnectedException) { /* circuit teardown; benign. */ }
+diff --git a/tests/Hexalith.FrontComposer.SourceTools.Tests/Emitters/CommandRendererEmitterTests.Renderer_OneField_WithoutIconUsesDefaultSnapshot.verified.txt b/tests/Hexalith.FrontComposer.SourceTools.Tests/Emitters/CommandRendererEmitterTests.Renderer_OneField_WithoutIconUsesDefaultSnapshot.verified.txt
+index 2cf13477..d94f10be 100644
+--- a/tests/Hexalith.FrontComposer.SourceTools.Tests/Emitters/CommandRendererEmitterTests.Renderer_OneField_WithoutIconUsesDefaultSnapshot.verified.txt
++++ b/tests/Hexalith.FrontComposer.SourceTools.Tests/Emitters/CommandRendererEmitterTests.Renderer_OneField_WithoutIconUsesDefaultSnapshot.verified.txt
+@@ -341,7 +341,7 @@ public partial class DemoCommandRenderer : ComponentBase, IInlinePopover
+             try
+             {
+                 _expandInRowModule ??= await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/Hexalith.FrontComposer.Shell/js/fc-expandinrow.js").ConfigureAwait(false);
+-                await _expandInRowModule.InvokeVoidAsync("initializeExpandInRow", _compactCardRef).ConfigureAwait(false);
++                await _expandInRowModule.InvokeVoidAsync("initializeExpandInRow", _compactCardRef, true).ConfigureAwait(false);
+             }
+             catch (InvalidOperationException) { /* prerender: JSInterop not yet available. */ }
+             catch (JSDisconnectedException) { /* circuit teardown; benign. */ }
+diff --git a/tests/Hexalith.FrontComposer.SourceTools.Tests/Emitters/CommandRendererEmitterTests.Renderer_TwoFields_CompactInlineSnapshot.verified.txt b/tests/Hexalith.FrontComposer.SourceTools.Tests/Emitters/CommandRendererEmitterTests.Renderer_TwoFields_CompactInlineSnapshot.verified.txt
+index 43fa4f46..e217891f 100644
+--- a/tests/Hexalith.FrontComposer.SourceTools.Tests/Emitters/CommandRendererEmitterTests.Renderer_TwoFields_CompactInlineSnapshot.verified.txt
++++ b/tests/Hexalith.FrontComposer.SourceTools.Tests/Emitters/CommandRendererEmitterTests.Renderer_TwoFields_CompactInlineSnapshot.verified.txt
+@@ -341,7 +341,7 @@ public partial class DemoCommandRenderer : ComponentBase, IInlinePopover
+             try
+             {
+                 _expandInRowModule ??= await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/Hexalith.FrontComposer.Shell/js/fc-expandinrow.js").ConfigureAwait(false);
+-                await _expandInRowModule.InvokeVoidAsync("initializeExpandInRow", _compactCardRef).ConfigureAwait(false);
++                await _expandInRowModule.InvokeVoidAsync("initializeExpandInRow", _compactCardRef, true).ConfigureAwait(false);
+             }
+             catch (InvalidOperationException) { /* prerender: JSInterop not yet available. */ }
+             catch (JSDisconnectedException) { /* circuit teardown; benign. */ }
+diff --git a/tests/Hexalith.FrontComposer.SourceTools.Tests/Emitters/CommandRendererEmitterTests.Renderer_ZeroFields_InlineSnapshot.verified.txt b/tests/Hexalith.FrontComposer.SourceTools.Tests/Emitters/CommandRendererEmitterTests.Renderer_ZeroFields_InlineSnapshot.verified.txt
+index 703304c5..fd3507ec 100644
+--- a/tests/Hexalith.FrontComposer.SourceTools.Tests/Emitters/CommandRendererEmitterTests.Renderer_ZeroFields_InlineSnapshot.verified.txt
++++ b/tests/Hexalith.FrontComposer.SourceTools.Tests/Emitters/CommandRendererEmitterTests.Renderer_ZeroFields_InlineSnapshot.verified.txt
+@@ -354,7 +354,7 @@ public partial class DemoCommandRenderer : ComponentBase, IInlinePopover
+             try
+             {
+                 _expandInRowModule ??= await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/Hexalith.FrontComposer.Shell/js/fc-expandinrow.js").ConfigureAwait(false);
+-                await _expandInRowModule.InvokeVoidAsync("initializeExpandInRow", _compactCardRef).ConfigureAwait(false);
++                await _expandInRowModule.InvokeVoidAsync("initializeExpandInRow", _compactCardRef, true).ConfigureAwait(false);
+             }
+             catch (InvalidOperationException) { /* prerender: JSInterop not yet available. */ }
+             catch (JSDisconnectedException) { /* circuit teardown; benign. */ }
+diff --git a/tests/e2e/scripts/expand-in-row.test.mjs b/tests/e2e/scripts/expand-in-row.test.mjs
+index f6db211f..3445a1bc 100644
+--- a/tests/e2e/scripts/expand-in-row.test.mjs
++++ b/tests/e2e/scripts/expand-in-row.test.mjs
+@@ -5,30 +5,44 @@ import vm from 'node:vm';
+ 
+ const source = await readFile(new URL('../../../src/Hexalith.FrontComposer.Shell/wwwroot/js/fc-expandinrow.js', import.meta.url), 'utf8');
+ 
++function createEnvironment({ focus = 'trigger', reduceMotion = false } = {}) {
++  const frames = [];
++  const scrolls = [];
++  const initialScrolls = [];
++  class Element {
++    isConnected = true;
++    scrollIntoView(options) { initialScrolls.push(options); }
++    getBoundingClientRect() { return { top: 0, bottom: 900 }; }
++  }
++  class HTMLElement extends Element {
++    constructor(heading = false) { super(); this.heading = heading; }
++    matches(selector) {
++      assert.equal(selector, '#fc-main-content h1, main h1, [role="main"] h1');
++      return this.heading;
++    }
++  }
++  const body = new HTMLElement();
++  const activeElement = focus === 'body' ? body
++    : focus === 'null' ? null
++      : focus === 'missing' ? undefined
++        : new HTMLElement(focus === 'heading');
++  const document = { activeElement, body, documentElement: { clientHeight: 800 } };
++  const context = vm.createContext({
++    Element, HTMLElement, document,
++    window: { innerHeight: 800, matchMedia: () => ({ matches: reduceMotion }), scrollBy: (value) => scrolls.push(value) },
++    requestAnimationFrame: (callback) => frames.push(callback),
++  });
++  vm.runInContext(source.replaceAll('export function', 'function'), context);
++  return { context, document, HTMLElement, frames, scrolls, initialScrolls };
++}
++
+ for (const headingFocusedAfterInitialization of [false, true]) {
+   test(`queued expand-in-row correction respects later route focus: ${headingFocusedAfterInitialization}`, () => {
+-    const frames = [];
+-    const scrolls = [];
+-    class Element {
+-      isConnected = true;
+-      scrollIntoView() {}
+-      getBoundingClientRect() { return { top: 0, bottom: 900 }; }
+-    }
+-    class HTMLElement extends Element {
+-      constructor(heading = false) { super(); this.heading = heading; }
+-      matches(selector) {
+-        assert.equal(selector, '#fc-main-content h1, main h1, [role="main"] h1');
+-        return this.heading;
+-      }
+-    }
+-    const document = { activeElement: new HTMLElement(), documentElement: { clientHeight: 800 } };
+-    const context = vm.createContext({
+-      Element, HTMLElement, document,
+-      window: { innerHeight: 800, matchMedia: () => ({ matches: false }), scrollBy: (value) => scrolls.push(value) },
+-      requestAnimationFrame: (callback) => frames.push(callback),
+-    });
+-    vm.runInContext(source.replaceAll('export function', 'function'), context);
++    const { context, document, HTMLElement, frames, scrolls, initialScrolls } = createEnvironment();
+     context.initializeExpandInRow(new HTMLElement());
++    assert.equal(initialScrolls.length, 1);
++    assert.equal(initialScrolls[0].block, 'nearest');
++    assert.equal(initialScrolls[0].behavior, 'smooth');
+     assert.equal(frames.length, 1);
+     if (headingFocusedAfterInitialization) document.activeElement = new HTMLElement(true);
+     frames[0]();
+@@ -36,3 +50,52 @@ for (const headingFocusedAfterInitialization of [false, true]) {
+     if (!headingFocusedAfterInitialization) assert.equal(scrolls[0].top, 100);
+   });
+ }
++
++for (const deferToRouteFocus of [false, true]) {
++  for (const focus of ['body', 'null', 'missing', 'heading']) {
++    test(`initial expand-in-row focus ${focus}, defer to route: ${deferToRouteFocus}`, () => {
++      const { context, HTMLElement, frames, scrolls, initialScrolls } = createEnvironment({ focus });
++      if (deferToRouteFocus) context.initializeExpandInRow(new HTMLElement(), true);
++      else context.initializeExpandInRow(new HTMLElement());
++      const shouldScroll = !deferToRouteFocus && focus !== 'heading';
++      assert.equal(initialScrolls.length, shouldScroll ? 1 : 0);
++      assert.equal(frames.length, shouldScroll ? 1 : 0);
++      if (shouldScroll) {
++        assert.equal(initialScrolls[0].block, 'nearest');
++        assert.equal(initialScrolls[0].behavior, 'smooth');
++        frames[0]();
++        assert.equal(scrolls[0].top, 100);
++      }
++      assert.equal(scrolls.length, shouldScroll ? 1 : 0);
++    });
++
++    test(`queued correction after focus becomes ${focus}, defer to route: ${deferToRouteFocus}`, () => {
++      const { context, document, HTMLElement, frames, scrolls, initialScrolls } = createEnvironment();
++      if (deferToRouteFocus) context.initializeExpandInRow(new HTMLElement(), true);
++      else context.initializeExpandInRow(new HTMLElement());
++      assert.equal(initialScrolls.length, 1);
++      assert.equal(frames.length, 1);
++      document.activeElement = focus === 'body' ? document.body
++        : focus === 'null' ? null
++          : focus === 'missing' ? undefined
++            : new HTMLElement(true);
++      frames[0]();
++      const shouldCorrect = !deferToRouteFocus && focus !== 'heading';
++      assert.equal(scrolls.length, shouldCorrect ? 1 : 0);
++      if (shouldCorrect) assert.equal(scrolls[0].top, 100);
++    });
++  }
++
++  test(`expand-in-row preserves reduced motion, defer to route: ${deferToRouteFocus}`, () => {
++    const { context, HTMLElement, frames, scrolls, initialScrolls } = createEnvironment({
++      focus: deferToRouteFocus ? 'trigger' : 'body', reduceMotion: true,
++    });
++    if (deferToRouteFocus) context.initializeExpandInRow(new HTMLElement(), true);
++    else context.initializeExpandInRow(new HTMLElement());
++    assert.equal(initialScrolls.length, 1);
++    assert.equal(initialScrolls[0].block, 'nearest');
++    assert.equal(initialScrolls[0].behavior, 'auto');
++    assert.equal(frames.length, 0);
++    assert.equal(scrolls.length, 0);
++  });
++}

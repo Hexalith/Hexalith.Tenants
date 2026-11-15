@@ -13,6 +13,55 @@ using Shouldly;
 namespace Hexalith.Tenants.Testing.Tests.Fakes;
 
 public class InMemoryTenantServiceTests {
+    [Theory]
+    [InlineData("owner", false, false, true)]
+    [InlineData("owner", false, true, true)]
+    [InlineData("administrator", true, false, true)]
+    [InlineData("reader", false, false, false)]
+    public void OrdinaryRecoveryOverloadMatchesEnvelopeDispatchAndPreservesBusinessState(string actor, bool administrator, bool disabled, bool accepted)
+    {
+        var ordinary = new InMemoryTenantService();
+        var explicitEnvelope = new InMemoryTenantService();
+        foreach (InMemoryTenantService service in new[] { ordinary, explicitEnvelope })
+        {
+            service.ProcessCommand(new CreateTenant("acme", "Acme", "Preserved"));
+            service.ProcessCommand(new AddUserToTenant("acme", "owner", TenantRole.TenantOwner), "administrator", true);
+            service.ProcessCommand(new AddUserToTenant("acme", "reader", TenantRole.TenantReader), "administrator", true);
+            service.ProcessCommand(new SetTenantConfiguration("acme", "secret", "private-value"), "owner");
+            if (disabled) service.ProcessCommand(new DisableTenant("acme"));
+        }
+        string before = System.Text.Json.JsonSerializer.Serialize(ordinary.GetTenantState("acme"));
+        var command = new RefreshTenantAccess("acme");
+        DomainResult result = ordinary.ProcessCommand(command, actor, administrator);
+        DomainResult comparison = explicitEnvelope.ProcessTenantCommand(command,
+            Hexalith.Tenants.Testing.Helpers.TenantTestHelpers.CreateCommandEnvelope(command, "acme", actor, administrator));
+        result.IsSuccess.ShouldBe(accepted);
+        result.IsSuccess.ShouldBe(comparison.IsSuccess);
+        result.Events.Single().GetType().ShouldBe(comparison.Events.Single().GetType());
+        System.Text.Json.JsonSerializer.Serialize(result.Events[0], result.Events[0].GetType()).ShouldBe(
+            System.Text.Json.JsonSerializer.Serialize(comparison.Events[0], comparison.Events[0].GetType()));
+        System.Text.Json.JsonSerializer.Serialize(ordinary.GetTenantState("acme")).ShouldBe(before);
+        ordinary.EventHistory.Count.ShouldBe(explicitEnvelope.EventHistory.Count);
+        if (accepted)
+        {
+            TenantAccessRefreshed snapshot = ordinary.EventHistory.Last().ShouldBeOfType<TenantAccessRefreshed>();
+            snapshot.ConfigurationKeys.ShouldBe(["secret"]);
+            System.Text.Json.JsonSerializer.Serialize(snapshot).ShouldNotContain("private-value");
+        }
+    }
+
+    [Fact]
+    public void OrdinaryRecoveryOverloadRefusesAMissingTenantAndInvalidInputs()
+    {
+        var service = new InMemoryTenantService();
+        service.ProcessCommand(new RefreshTenantAccess("missing"), "administrator", true).Events.ShouldHaveSingleItem()
+            .ShouldBeOfType<TenantNotFoundRejection>();
+        service.GetTenantState("missing").ShouldBeNull();
+        service.EventHistory.ShouldBeEmpty();
+        Should.Throw<ArgumentNullException>(() => service.ProcessCommand((RefreshTenantAccess)null!, "owner"));
+        Should.Throw<ArgumentException>(() => service.ProcessCommand(new RefreshTenantAccess("acme"), " "));
+    }
+
     // ─── 3.2: CreateTenant produces TenantCreated event ───
 
     [Fact]

@@ -86,11 +86,13 @@ result records are uploaded; raw observations and key material remain private.
 
 ## Published SDK qualification
 
-The current default package selection is public stable EventStore `5.1.0` with
+The current default package selection is public stable EventStore `5.1.1` with
 McpCli.Abstractions `2.0.1`. Tenant-access recovery requires its snapshot-budget
 API. Catalog archive admission retains the exact canonical-scope cohorts
-`4.0.0`, `4.0.1`, `4.0.2`, `4.0.3`, `4.0.4`, `4.1.0`, `4.2.0`, `5.0.1` and `5.1.0`.
-Ordinary release preparation uses the `5.1.0`/`2.0.1` default.
+`4.0.0`, `4.0.1`, `4.0.2`, `4.0.3`, `4.0.4`, `4.1.0`, `4.2.0`, `5.0.1`, `5.1.0` and `5.1.1`.
+Ordinary release preparation uses the `5.1.1`/`2.0.1` default. Current package production requires
+EventStore `5.1.0` or `5.1.1`, including packing without a build; older archive
+cohorts remain verification inputs and cannot produce current Tenants packages.
 The retained finite compatibility set is `3.129.0`, `3.129.1`, `3.130.0`, `3.130.1`,
 `3.130.2`, `3.131.0`, `3.132.0`, `3.132.1`, `3.132.2` and `3.133.0`;
 zero fourth revisions and build metadata normalize to the same stable cohort.
@@ -110,9 +112,15 @@ artifact refusals, and a fresh packed Contracts/Server consumer. The consumer
 checks source metadata and candidate archive/DLL hashes before discovering all
 24 routes, 24 operations and 13 command adapters through the public SDK APIs.
 Binary qualification enables `HEXALITH_DEVELOPMENT_CATALOG_SOURCE`; the canonical
-4.x, 5.0.1 and 5.1.0 package cohorts and an actual source graph also enable
+4.x, 5.0.1, 5.1.0 and 5.1.1 package cohorts and an actual source graph also enable
 `HEXALITH_DEVELOPMENT_CATALOG_COHORT`. Only source graphs enable
 `HEXALITH_DEVELOPMENT_CATALOG_SOURCE_REFERENCE`.
+
+The current compiled consumer requires exactly 24 routes, 24 operations and 13
+adapters for either runtime target. Finite historical metadata admission does not
+qualify an older 23-route archive against this inventory. Historical end-to-end
+qualification uses the verifier revision recorded in its original receipt;
+`--target-framework net10.0` only changes the runtime target.
 
 Reproduce the public package checks from this repository with .NET pinned by
 `global.json`, using the root-declared Builds and Platform inputs (no nested

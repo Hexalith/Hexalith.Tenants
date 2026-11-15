@@ -46,6 +46,52 @@ public class DaprEndToEndTests : IDisposable {
     }
 
     [DaprFact]
+    public async Task RecoveryRetryRetainsItsOriginalSnapshotAndAFreshOperationCapturesTheCurrentAuthority()
+    {
+        _fixture.SkipIfUnavailable();
+        string tenantId = $"t-refresh-{Guid.NewGuid():N}";
+        CommandEnvelope create = CreateTenantCommand(new CreateTenant(tenantId, "Recovery", "Preserved"));
+        IAggregateActor proxy = CreateActorProxy(CreateActorProxyFactory(), create);
+        AssertAccepted(await proxy.ProcessCommandAsync(create), create, "Tenant setup must succeed");
+        CommandEnvelope add = CreateTenantCommand(new AddUserToTenant(tenantId, "revoked", TenantRole.TenantReader));
+        AssertAccepted(await proxy.ProcessCommandAsync(add), add, "Membership setup must succeed");
+        CommandEnvelope refresh = CreateTenantCommand(new RefreshTenantAccess(tenantId));
+        AssertAccepted(await proxy.ProcessCommandAsync(refresh), refresh, "Original recovery must succeed");
+        EventEnvelope original = await AssertPersistedOnceAsync<TenantAccessRefreshed>(proxy, refresh, 3);
+        TenantAccessRefreshed originalSnapshot = JsonSerializer.Deserialize<TenantAccessRefreshed>(original.Payload).ShouldNotBeNull();
+        originalSnapshot.Members["revoked"].ShouldBe(TenantRole.TenantReader);
+        CommandEnvelope revoke = CreateTenantCommand(new RemoveUserFromTenant(tenantId, "revoked"));
+        AssertAccepted(await proxy.ProcessCommandAsync(revoke), revoke, "Revocation must succeed");
+        (await proxy.GetCurrentSequenceAsync()).ShouldBe(4);
+
+        AssertAccepted(await proxy.ProcessCommandAsync(refresh), refresh, "Same operation ID must recover its original result");
+        (await proxy.GetCurrentSequenceAsync()).ShouldBe(4, "retry must not append a replacement snapshot");
+        EventEnvelope retained = await AssertPersistedOnceAsync<TenantAccessRefreshed>(proxy, refresh, 3);
+        retained.Payload.ShouldBe(original.Payload);
+        CommandEnvelope fresh = CreateTenantCommand(new RefreshTenantAccess(tenantId));
+        fresh.MessageId.ShouldNotBe(refresh.MessageId);
+        AssertAccepted(await proxy.ProcessCommandAsync(fresh), fresh, "Fresh operation must capture current authority");
+        (await proxy.GetCurrentSequenceAsync()).ShouldBe(5);
+        EventEnvelope current = await AssertPersistedOnceAsync<TenantAccessRefreshed>(proxy, fresh, 5);
+        TenantAccessRefreshed currentSnapshot = JsonSerializer.Deserialize<TenantAccessRefreshed>(current.Payload).ShouldNotBeNull();
+        currentSnapshot.TenantId.ShouldBe(tenantId);
+        currentSnapshot.Status.ShouldBe(TenantStatus.Active);
+        currentSnapshot.Members.ShouldNotContainKey("revoked");
+        EventEnvelope[] stream = await proxy.GetEventsAsync(0);
+        stream.Length.ShouldBe(5);
+        stream.Count(item => item.EventTypeName == typeof(TenantAccessRefreshed).FullName).ShouldBe(2);
+        var state = new TenantState();
+        state.Apply(JsonSerializer.Deserialize<TenantCreated>(stream[0].Payload).ShouldNotBeNull());
+        state.Apply(JsonSerializer.Deserialize<UserAddedToTenant>(stream[1].Payload).ShouldNotBeNull());
+        state.Apply(originalSnapshot);
+        state.Apply(JsonSerializer.Deserialize<UserRemovedFromTenant>(stream[3].Payload).ShouldNotBeNull());
+        state.Apply(currentSnapshot);
+        state.Name.ShouldBe("Recovery");
+        state.Description.ShouldBe("Preserved");
+        state.Users.ShouldNotContainKey("revoked");
+    }
+
+    [DaprFact]
     public async Task SameIdentityRecoveryPersistsTheOriginalDomainEventExactlyOnce()
     {
         _fixture.SkipIfUnavailable();

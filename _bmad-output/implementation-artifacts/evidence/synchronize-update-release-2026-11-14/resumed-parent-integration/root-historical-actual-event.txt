@@ -1,0 +1,213 @@
+Event range: d73267fdbe84d09ccddf0a6492390e32d8938405..4faa79395b092fd73cd552ae9a37fdcbf77124ae
+Audit: _bmad-output/implementation-artifacts/spec-align-native-read-timeout-budgets.md at ae40c9657175ae5567cdd182384d3840af64d8a2
+Story:    spec-align-native-read-timeout-budgets.md
+Baseline: cea24f9
+Compared: ae40c9657175ae5567cdd182384d3840af64d8a2 (ae40c96)
+
+6 references/ pointer change(s) in range:
+  [declared] references/Hexalith.Builds  66a1b2f -> 7257540
+  [declared] references/Hexalith.EventStore  9aa4e5d -> 16dff1f
+  [declared] references/Hexalith.FrontComposer  f842711 -> b105c84
+  [declared] references/Hexalith.McpCli  edaecb0 -> 58afd47
+  [declared] references/Hexalith.Memories  d9d61d8 -> d959bda
+  [declared] references/Hexalith.Platform  5d74c40 -> 8432397
+
+RESULT: PASS
+Audit: _bmad-output/implementation-artifacts/spec-eventstore-secret-scanner-ci-repair.md at ae40c9657175ae5567cdd182384d3840af64d8a2
+Story:    spec-eventstore-secret-scanner-ci-repair.md
+Baseline: 33835a0
+Compared: ae40c9657175ae5567cdd182384d3840af64d8a2 (ae40c96)
+
+5 references/ pointer change(s) in range:
+  [declared] references/Hexalith.Builds  89f6205 -> 7257540
+  [declared] references/Hexalith.EventStore  e97582b -> 16dff1f
+  [declared] references/Hexalith.FrontComposer  fbe01c9 -> b105c84
+  [declared] references/Hexalith.McpCli  56a57c5 -> 58afd47
+  [declared] references/Hexalith.Platform  bf101b9 -> 8432397
+
+RESULT: PASS
+Audit: _bmad-output/implementation-artifacts/spec-fix-builds-sdk-cohort-fixtures.md at ae40c9657175ae5567cdd182384d3840af64d8a2
+Story:    spec-fix-builds-sdk-cohort-fixtures.md
+Baseline: be43b92
+Compared: ae40c9657175ae5567cdd182384d3840af64d8a2 (ae40c96)
+
+6 references/ pointer change(s) in range:
+  [declared] references/Hexalith.Builds  10163c3 -> 7257540
+  [declared] references/Hexalith.EventStore  f06abad -> 16dff1f
+  [declared] references/Hexalith.FrontComposer  e4df725 -> b105c84
+  [declared] references/Hexalith.McpCli  edaecb0 -> 58afd47
+  [declared] references/Hexalith.Memories  d9d61d8 -> d959bda
+  [declared] references/Hexalith.Platform  1f5958e -> 8432397
+
+RESULT: PASS
+Audit: _bmad-output/implementation-artifacts/spec-fix-firefox-route-focus-ci.md at ae40c9657175ae5567cdd182384d3840af64d8a2
+Story:    spec-fix-firefox-route-focus-ci.md
+Baseline: be43b92
+Compared: ae40c9657175ae5567cdd182384d3840af64d8a2 (ae40c96)
+
+6 references/ pointer change(s) in range:
+  [declared] references/Hexalith.Builds  10163c3 -> 7257540
+  [declared] references/Hexalith.EventStore  f06abad -> 16dff1f
+  [declared] references/Hexalith.FrontComposer  e4df725 -> b105c84
+  [declared] references/Hexalith.McpCli  edaecb0 -> 58afd47
+  [declared] references/Hexalith.Memories  d9d61d8 -> d959bda
+  [declared] references/Hexalith.Platform  1f5958e -> 8432397
+
+RESULT: PASS
+Audit: _bmad-output/implementation-artifacts/spec-fix-native-removal-production-transport.md at ae40c9657175ae5567cdd182384d3840af64d8a2
+Story:    spec-fix-native-removal-production-transport.md
+Baseline: bcd9237
+Compared: ae40c9657175ae5567cdd182384d3840af64d8a2 (ae40c96)
+
+6 references/ pointer change(s) in range:
+  [declared] references/Hexalith.Builds  70850b1 -> 7257540
+  [declared] references/Hexalith.EventStore  f06abad -> 16dff1f
+  [declared] references/Hexalith.FrontComposer  f842711 -> b105c84
+  [declared] references/Hexalith.McpCli  edaecb0 -> 58afd47
+  [declared] references/Hexalith.Memories  d9d61d8 -> d959bda
+  [declared] references/Hexalith.Platform  1f5958e -> 8432397
+
+RESULT: PASS
+Audit: _bmad-output/implementation-artifacts/spec-native-mcpcli-runtime-cohort.md at ae40c9657175ae5567cdd182384d3840af64d8a2
+Story:    spec-native-mcpcli-runtime-cohort.md
+Baseline: 31aa26c
+Compared: ae40c9657175ae5567cdd182384d3840af64d8a2 (ae40c96)
+
+6 references/ pointer change(s) in range:
+  [declared] references/Hexalith.Builds  fc74371 -> 7257540
+  [declared] references/Hexalith.EventStore  326bfef -> 16dff1f
+  [declared] references/Hexalith.FrontComposer  f842711 -> b105c84
+  [declared] references/Hexalith.McpCli  edaecb0 -> 58afd47
+  [declared] references/Hexalith.Memories  d9d61d8 -> d959bda
+  [declared] references/Hexalith.Platform  ee6f477 -> 8432397
+
+RESULT: PASS
+Audit: _bmad-output/implementation-artifacts/spec-native-query-selector-compatibility-cohort.md at ae40c9657175ae5567cdd182384d3840af64d8a2
+Story:    spec-native-query-selector-compatibility-cohort.md
+Baseline: 33835a0
+Compared: ae40c9657175ae5567cdd182384d3840af64d8a2 (ae40c96)
+
+5 references/ pointer change(s) in range:
+  [declared] references/Hexalith.Builds  89f6205 -> 7257540
+  [declared] references/Hexalith.EventStore  e97582b -> 16dff1f
+  [declared] references/Hexalith.FrontComposer  fbe01c9 -> b105c84
+  [declared] references/Hexalith.McpCli  56a57c5 -> 58afd47
+  [declared] references/Hexalith.Platform  bf101b9 -> 8432397
+
+RESULT: PASS
+Audit: _bmad-output/implementation-artifacts/spec-native-request-compatibility-follow-up.md at ae40c9657175ae5567cdd182384d3840af64d8a2
+Story:    spec-native-request-compatibility-follow-up.md
+Baseline: 60daa51
+Compared: ae40c9657175ae5567cdd182384d3840af64d8a2 (ae40c96)
+
+5 references/ pointer change(s) in range:
+  [declared] references/Hexalith.Builds  89f6205 -> 7257540
+  [declared] references/Hexalith.EventStore  e97582b -> 16dff1f
+  [declared] references/Hexalith.FrontComposer  fbe01c9 -> b105c84
+  [declared] references/Hexalith.McpCli  56a57c5 -> 58afd47
+  [declared] references/Hexalith.Platform  bf101b9 -> 8432397
+
+RESULT: PASS
+Audit: _bmad-output/implementation-artifacts/spec-preserve-sample-background-ci.md at ae40c9657175ae5567cdd182384d3840af64d8a2
+Story:    spec-preserve-sample-background-ci.md
+Baseline: bcd9237
+Compared: ae40c9657175ae5567cdd182384d3840af64d8a2 (ae40c96)
+
+6 references/ pointer change(s) in range:
+  [declared] references/Hexalith.Builds  70850b1 -> 7257540
+  [declared] references/Hexalith.EventStore  f06abad -> 16dff1f
+  [declared] references/Hexalith.FrontComposer  f842711 -> b105c84
+  [declared] references/Hexalith.McpCli  edaecb0 -> 58afd47
+  [declared] references/Hexalith.Memories  d9d61d8 -> d959bda
+  [declared] references/Hexalith.Platform  1f5958e -> 8432397
+
+RESULT: PASS
+Audit: _bmad-output/implementation-artifacts/spec-publish-compiled-catalog-inputs.md at b9929ba726e687b46d009f2e0f42284c7c3b6ea6
+Story:    spec-publish-compiled-catalog-inputs.md
+Baseline: fff6a5c
+Compared: b9929ba726e687b46d009f2e0f42284c7c3b6ea6 (b9929ba)
+
+1 references/ pointer change(s) in range:
+  [declared] references/Hexalith.Builds  2186b9a -> a22b55f
+
+RESULT: PASS
+Audit: _bmad-output/implementation-artifacts/spec-qualify-published-eventstore-4.0.3-cohort.md at ae40c9657175ae5567cdd182384d3840af64d8a2
+Story:    spec-qualify-published-eventstore-4.0.3-cohort.md
+Baseline: bcd9237
+Compared: ae40c9657175ae5567cdd182384d3840af64d8a2 (ae40c96)
+
+6 references/ pointer change(s) in range:
+  [declared] references/Hexalith.Builds  70850b1 -> 7257540
+  [declared] references/Hexalith.EventStore  f06abad -> 16dff1f
+  [declared] references/Hexalith.FrontComposer  f842711 -> b105c84
+  [declared] references/Hexalith.McpCli  edaecb0 -> 58afd47
+  [declared] references/Hexalith.Memories  d9d61d8 -> d959bda
+  [declared] references/Hexalith.Platform  1f5958e -> 8432397
+
+RESULT: PASS
+Audit: _bmad-output/implementation-artifacts/spec-qualify-published-mcpcli-7.0.0-enrollment.md at ae40c9657175ae5567cdd182384d3840af64d8a2
+Story:    spec-qualify-published-mcpcli-7.0.0-enrollment.md
+Baseline: f5f65fc
+Compared: ae40c9657175ae5567cdd182384d3840af64d8a2 (ae40c96)
+
+6 references/ pointer change(s) in range:
+  [declared] references/Hexalith.Builds  66a1b2f -> 7257540
+  [declared] references/Hexalith.EventStore  9aa4e5d -> 16dff1f
+  [declared] references/Hexalith.FrontComposer  f842711 -> b105c84
+  [declared] references/Hexalith.McpCli  edaecb0 -> 58afd47
+  [declared] references/Hexalith.Memories  d9d61d8 -> d959bda
+  [declared] references/Hexalith.Platform  5d74c40 -> 8432397
+
+RESULT: PASS
+Audit: _bmad-output/implementation-artifacts/spec-refresh-and-publish-current-release.md at ae40c9657175ae5567cdd182384d3840af64d8a2
+Story:    spec-refresh-and-publish-current-release.md
+Baseline: 2aa3f04
+Compared: ae40c9657175ae5567cdd182384d3840af64d8a2 (ae40c96)
+
+6 references/ pointer change(s) in range:
+  [declared] references/Hexalith.Builds  6585f58 -> 7257540
+  [declared] references/Hexalith.EventStore  f06abad -> 16dff1f
+  [declared] references/Hexalith.FrontComposer  25139b7 -> b105c84
+  [declared] references/Hexalith.McpCli  edaecb0 -> 58afd47
+  [declared] references/Hexalith.Memories  d9d61d8 -> d959bda
+  [declared] references/Hexalith.Platform  2873796 -> 8432397
+
+RESULT: PASS
+Audit: _bmad-output/implementation-artifacts/spec-repair-current-mcpcli-published-cohort-ci.md at d99b7f63feb81f74cee75c3976894c02d173b373
+Story:    spec-repair-current-mcpcli-published-cohort-ci.md
+Baseline: 401d926
+Compared: d99b7f63feb81f74cee75c3976894c02d173b373 (d99b7f6)
+
+No references/ pointer changes in range.
+
+RESULT: PASS
+Audit: _bmad-output/implementation-artifacts/spec-scope-live-corpus-read-tokens.md at ae40c9657175ae5567cdd182384d3840af64d8a2
+Story:    spec-scope-live-corpus-read-tokens.md
+Baseline: f5f65fc
+Compared: ae40c9657175ae5567cdd182384d3840af64d8a2 (ae40c96)
+
+6 references/ pointer change(s) in range:
+  [declared] references/Hexalith.Builds  66a1b2f -> 7257540
+  [declared] references/Hexalith.EventStore  9aa4e5d -> 16dff1f
+  [declared] references/Hexalith.FrontComposer  f842711 -> b105c84
+  [declared] references/Hexalith.McpCli  edaecb0 -> 58afd47
+  [declared] references/Hexalith.Memories  d9d61d8 -> d959bda
+  [declared] references/Hexalith.Platform  5d74c40 -> 8432397
+
+RESULT: PASS
+Audit: _bmad-output/implementation-artifacts/spec-synchronize-update-release-2026-11-14.md at 4faa79395b092fd73cd552ae9a37fdcbf77124ae
+Story:    spec-synchronize-update-release-2026-11-14.md
+Baseline: 401d926
+Compared: 4faa79395b092fd73cd552ae9a37fdcbf77124ae (4faa793)
+
+7 references/ pointer change(s) in range:
+  [declared] references/Hexalith.AI.Tools  10b709b -> 17a37d8
+  [declared] references/Hexalith.Builds  05a75b6 -> e2bbbd0
+  [declared] references/Hexalith.EventStore  639c9d5 -> 9d715d4
+  [declared] references/Hexalith.FrontComposer  19418a0 -> b22be84
+  [declared] references/Hexalith.McpCli  42d3c2f -> 0795509
+  [declared] references/Hexalith.Memories  a3f0b3a -> 1306a0f
+  [declared] references/Hexalith.Platform  1cece24 -> ddb1c0b
+
+RESULT: PASS
+Changed stories: 16; failed: 0

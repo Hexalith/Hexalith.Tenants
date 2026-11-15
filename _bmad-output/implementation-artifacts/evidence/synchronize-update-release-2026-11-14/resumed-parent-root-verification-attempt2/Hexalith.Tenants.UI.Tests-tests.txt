@@ -1,0 +1,47 @@
+xUnit.net v3 In-Process Runner v4.0.3+384aa7f0b4 (64-bit .NET 11.0.0)
+  Discovering: Hexalith.Tenants.UI.Tests
+  Discovered:  Hexalith.Tenants.UI.Tests
+  Starting:    Hexalith.Tenants.UI.Tests
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /dev/shm/hexalith-job.R0690i1P/workspace/src/Hexalith.Tenants.UI
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /dev/shm/hexalith-job.R0690i1P/workspace/src/Hexalith.Tenants.UI
+info: System.Net.Http.HttpClient.tenants-ui-tests-control-client.LogicalHandler[100]
+      Start processing HTTP request GET https://memories.invalid/v1/search?*
+info: System.Net.Http.HttpClient.tenants-ui-tests-control-client.ClientHandler[100]
+      Sending HTTP request GET https://memories.invalid/v1/search?*
+info: System.Net.Http.HttpClient.tenants-ui-tests-control-client.ClientHandler[101]
+      Received HTTP response headers after 0.0031ms - 200
+info: System.Net.Http.HttpClient.tenants-ui-tests-control-client.LogicalHandler[101]
+      End processing HTTP request after 2.284ms - 200
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /dev/shm/hexalith-job.R0690i1P/workspace/src/Hexalith.Tenants.UI
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /dev/shm/hexalith-job.R0690i1P/workspace/src/Hexalith.Tenants.UI
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+  Finished:    Hexalith.Tenants.UI.Tests (ID = 'deb23361e150cb1b428be8d0472c1db8e30946dbf497c0074867b6d3b3f1d29f')
+=== TEST EXECUTION SUMMARY ===
+   Hexalith.Tenants.UI.Tests  Total: 96, Errors: 0, Failed: 0, Skipped: 0, Not Run: 0, Time: 5.741s

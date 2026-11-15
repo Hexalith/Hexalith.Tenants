@@ -124,6 +124,94 @@ public sealed class TenantAccessRecoveryTests
         JsonSerializer.Serialize(state).ShouldBe(before);
     }
 
+    [Fact]
+    public async Task RejectionOnlyHistoryStillReturnsNotFoundAndPreservesPayloadTargetRefusal()
+    {
+        var state = new TenantState();
+        state.Apply(new TenantNotFoundRejection("acme"));
+        state.TenantId.ShouldBeEmpty();
+        string before = JsonSerializer.Serialize(state);
+        var result = await new TenantAggregate().ProcessAsync(Envelope("owner"), state);
+        result.IsRejection.ShouldBeTrue();
+        result.Events.ShouldHaveSingleItem().ShouldBeOfType<TenantNotFoundRejection>().TenantId.ShouldBe("acme");
+        CommandEnvelope substituted = Envelope("owner") with { Payload = JsonSerializer.SerializeToUtf8Bytes(new RefreshTenantAccess("foreign")) };
+        (await new TenantAggregate().ProcessAsync(substituted, state)).Events.ShouldHaveSingleItem()
+            .ShouldBeOfType<InsufficientPermissionsRejection>();
+        JsonSerializer.Serialize(state).ShouldBe(before);
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(0)]
+    [InlineData(1)]
+    public async Task ExactEntryBudgetIsInclusiveAndRejectsTheNextEntryAtomically(int offset)
+    {
+        TenantState state = State();
+        state.Users.Clear();
+        state.Users["owner"] = TenantRole.TenantOwner;
+        int target = ProjectionSnapshotLimits.Default.MaxEntries + offset;
+        for (int i = 1; state.Users.Count + state.Configuration.Count < target; i++)
+        {
+            state.Users["reader-" + i] = TenantRole.TenantReader;
+        }
+        string before = JsonSerializer.Serialize(state);
+        var result = await new TenantAggregate().ProcessAsync(Envelope("owner"), state);
+        result.IsSuccess.ShouldBe(offset <= 0);
+        if (offset <= 0)
+        {
+            TenantAccessRefreshed snapshot = result.Events.ShouldHaveSingleItem().ShouldBeOfType<TenantAccessRefreshed>();
+            (snapshot.Members.Count + snapshot.ConfigurationKeys.Count).ShouldBe(target);
+            state.Apply(snapshot);
+        }
+        else
+        {
+            TenantAccessSnapshotLimitExceededRejection rejection = result.Events.ShouldHaveSingleItem()
+                .ShouldBeOfType<TenantAccessSnapshotLimitExceededRejection>();
+            rejection.Limit.ShouldBe("entries");
+            rejection.Actual.ShouldBe(target);
+            rejection.Maximum.ShouldBe(ProjectionSnapshotLimits.Default.MaxEntries);
+            state.Apply(rejection);
+        }
+        JsonSerializer.Serialize(state).ShouldBe(before);
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(0)]
+    [InlineData(1)]
+    public async Task ExactSerializedByteBudgetUsesTheActualSnapshotJsonAndRejectsAtomically(int offset)
+    {
+        TenantState state = State();
+        // ASCII padding grows the actual default event JSON by exactly one UTF-8 byte per character.
+        state.Users["padding"] = TenantRole.TenantReader;
+        int initial = JsonSerializer.SerializeToUtf8Bytes(new TenantAccessRefreshed(
+            "acme", state.Status, state.Users, state.Configuration.Keys.ToArray())).Length;
+        state.Users.Remove("padding");
+        int target = ProjectionSnapshotLimits.Default.MaxSerializedBytes + offset;
+        state.Users["padding" + new string('a', target - initial)] = TenantRole.TenantReader;
+        JsonSerializer.SerializeToUtf8Bytes(new TenantAccessRefreshed(
+            "acme", state.Status, state.Users, state.Configuration.Keys.ToArray())).Length.ShouldBe(target);
+        string before = JsonSerializer.Serialize(state);
+        var result = await new TenantAggregate().ProcessAsync(Envelope("owner"), state);
+        result.IsSuccess.ShouldBe(offset <= 0);
+        if (offset <= 0)
+        {
+            TenantAccessRefreshed snapshot = result.Events.ShouldHaveSingleItem().ShouldBeOfType<TenantAccessRefreshed>();
+            JsonSerializer.SerializeToUtf8Bytes(snapshot).Length.ShouldBe(target);
+            state.Apply(snapshot);
+        }
+        else
+        {
+            TenantAccessSnapshotLimitExceededRejection rejection = result.Events.ShouldHaveSingleItem()
+                .ShouldBeOfType<TenantAccessSnapshotLimitExceededRejection>();
+            rejection.Limit.ShouldBe("serialized-bytes");
+            rejection.Actual.ShouldBe(target);
+            rejection.Maximum.ShouldBe(ProjectionSnapshotLimits.Default.MaxSerializedBytes);
+            state.Apply(rejection);
+        }
+        JsonSerializer.Serialize(state).ShouldBe(before);
+    }
+
     private static TenantState State(TenantStatus status = TenantStatus.Active)
         => new()
         {

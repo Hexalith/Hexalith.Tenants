@@ -126,7 +126,7 @@ public sealed record TenantAuditReceipt(
                 => category is AuditEventCategory.Access,
             "GlobalAdministratorSet" or "GlobalAdministratorRemoved"
                 => category is AuditEventCategory.Access,
-            "TenantCreated" or "TenantUpdated" or "TenantDisabled" or "TenantEnabled"
+            "TenantAccessRefreshed" or "TenantCreated" or "TenantUpdated" or "TenantDisabled" or "TenantEnabled"
                 or "TenantConfigurationSet" or "TenantConfigurationRemoved"
                 => category is AuditEventCategory.Administrative,
             _ => false,

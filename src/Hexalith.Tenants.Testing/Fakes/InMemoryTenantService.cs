@@ -156,6 +156,22 @@ public sealed class InMemoryTenantService {
         return result;
     }
 
+    /// <summary>Processes a RefreshTenantAccess command using the production aggregate.</summary>
+    /// <param name="command">The recovery command.</param>
+    /// <param name="userId">The authenticated actor.</param>
+    /// <param name="isGlobalAdmin">Whether the actor has verified global administrator authority.</param>
+    /// <returns>The aggregate result.</returns>
+    public DomainResult ProcessCommand(RefreshTenantAccess command, string userId, bool isGlobalAdmin = false)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
+        CommandEnvelope envelope = CreateEnvelope(command, command.TenantId, userId, isGlobalAdmin);
+        TenantState? state = GetOrDefaultTenantState(command.TenantId);
+        DomainResult result = TenantAggregate.Handle(command, state, envelope);
+        ApplyTenantEvents(command.TenantId, result);
+        return result;
+    }
+
     // ─── Global Admin Commands ───
 
     /// <summary>Processes a BootstrapGlobalAdmin command.</summary>

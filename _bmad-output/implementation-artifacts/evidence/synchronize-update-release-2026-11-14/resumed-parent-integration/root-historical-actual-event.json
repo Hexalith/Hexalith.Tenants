@@ -1,0 +1,14 @@
+{
+  "before": "d73267fdbe84d09ccddf0a6492390e32d8938405",
+  "after": "4faa79395b092fd73cd552ae9a37fdcbf77124ae",
+  "command": [
+    "python3",
+    "scripts/validate-changed-story-gitlinks.py",
+    "--event-name",
+    "push",
+    "--event-path",
+    "/tmp/hexalith-job.YQUQXn0A/event.json"
+  ],
+  "exit_code": 0,
+  "output": "root-historical-actual-event.txt"
+}

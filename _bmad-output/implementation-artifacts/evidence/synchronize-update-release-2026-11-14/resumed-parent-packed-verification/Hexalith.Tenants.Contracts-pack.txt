@@ -1,0 +1,5 @@
+  Determining projects to restore...
+  Restored /dev/shm/hexalith-job.nVxaZmg3/workspace/src/Hexalith.Tenants.Contracts/Hexalith.Tenants.Contracts.csproj (in 273 ms).
+  Hexalith.Tenants.Contracts -> /dev/shm/hexalith-job.nVxaZmg3/workspace/src/Hexalith.Tenants.Contracts/bin/Release/net11.0/Hexalith.Tenants.Contracts.dll
+  Actual pack-target catalog enrollment verified: Hexalith.Tenants.Contracts
+  Successfully created package '/dev/shm/hexalith-job.nVxaZmg3/feed/Hexalith.Tenants.Contracts.8.0.0-local.finalreview.nupkg'.

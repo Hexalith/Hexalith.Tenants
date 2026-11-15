@@ -1,0 +1,2623 @@
+{
+  "fetchedAt": "2026-11-15T16:37:13.263Z",
+  "fixed": [
+    {
+      "id": 41612218129,
+      "name": "Mutation and Property Nightly",
+      "sha": "f842711d67004200e3248b3c42b7d9bcb2146907",
+      "url": "https://github.com/Hexalith/Hexalith.FrontComposer/actions/runs/41612218129",
+      "status": "completed",
+      "conclusion": "cancelled",
+      "created_at": "2026-11-03T09:35:13Z"
+    },
+    {
+      "id": 41611915036,
+      "name": "Nightly Quality",
+      "sha": "f842711d67004200e3248b3c42b7d9bcb2146907",
+      "url": "https://github.com/Hexalith/Hexalith.FrontComposer/actions/runs/41611915036",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-03T09:32:58Z"
+    },
+    {
+      "id": 41559854973,
+      "name": "Flaky Test Governance",
+      "sha": "f842711d67004200e3248b3c42b7d9bcb2146907",
+      "url": "https://github.com/Hexalith/Hexalith.FrontComposer/actions/runs/41559854973",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-03T01:27:26Z"
+    },
+    {
+      "id": 41559059800,
+      "name": "Quality",
+      "sha": "f842711d67004200e3248b3c42b7d9bcb2146907",
+      "url": "https://github.com/Hexalith/Hexalith.FrontComposer/actions/runs/41559059800",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-03T01:20:08Z"
+    },
+    {
+      "id": 41559060480,
+      "name": "Commitlint",
+      "sha": "f842711d67004200e3248b3c42b7d9bcb2146907",
+      "url": "https://github.com/Hexalith/Hexalith.FrontComposer/actions/runs/41559060480",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-03T01:20:08Z"
+    },
+    {
+      "id": 41559060437,
+      "name": "CodeQL",
+      "sha": "f842711d67004200e3248b3c42b7d9bcb2146907",
+      "url": "https://github.com/Hexalith/Hexalith.FrontComposer/actions/runs/41559060437",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-03T01:20:08Z"
+    },
+    {
+      "id": 41559060371,
+      "name": "CI",
+      "sha": "f842711d67004200e3248b3c42b7d9bcb2146907",
+      "url": "https://github.com/Hexalith/Hexalith.FrontComposer/actions/runs/41559060371",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-03T01:20:08Z"
+    }
+  ],
+  "current": [
+    {
+      "id": 43736184874,
+      "name": "CodeQL",
+      "sha": "60d2088c26e5cedb7c61471d2e4b813a86996ea2",
+      "url": "https://github.com/Hexalith/Hexalith.FrontComposer/actions/runs/43736184874",
+      "status": "in_progress",
+      "conclusion": null,
+      "created_at": "2026-11-15T16:33:56Z"
+    },
+    {
+      "id": 43736184949,
+      "name": "CI",
+      "sha": "60d2088c26e5cedb7c61471d2e4b813a86996ea2",
+      "url": "https://github.com/Hexalith/Hexalith.FrontComposer/actions/runs/43736184949",
+      "status": "in_progress",
+      "conclusion": null,
+      "created_at": "2026-11-15T16:33:56Z"
+    },
+    {
+      "id": 43736184654,
+      "name": "Quality",
+      "sha": "60d2088c26e5cedb7c61471d2e4b813a86996ea2",
+      "url": "https://github.com/Hexalith/Hexalith.FrontComposer/actions/runs/43736184654",
+      "status": "in_progress",
+      "conclusion": null,
+      "created_at": "2026-11-15T16:33:56Z"
+    },
+    {
+      "id": 43736184911,
+      "name": "Commitlint",
+      "sha": "60d2088c26e5cedb7c61471d2e4b813a86996ea2",
+      "url": "https://github.com/Hexalith/Hexalith.FrontComposer/actions/runs/43736184911",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-15T16:33:56Z"
+    },
+    {
+      "id": 43729248186,
+      "name": "Flaky Test Governance",
+      "sha": "b22be84bdbb23d9263a8835496ad0c95adf1843f",
+      "url": "https://github.com/Hexalith/Hexalith.FrontComposer/actions/runs/43729248186",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-15T15:19:39Z"
+    },
+    {
+      "id": 43728108008,
+      "name": "CI",
+      "sha": "b22be84bdbb23d9263a8835496ad0c95adf1843f",
+      "url": "https://github.com/Hexalith/Hexalith.FrontComposer/actions/runs/43728108008",
+      "status": "completed",
+      "conclusion": "failure",
+      "created_at": "2026-11-15T15:07:31Z"
+    },
+    {
+      "id": 43728107979,
+      "name": "Commitlint",
+      "sha": "b22be84bdbb23d9263a8835496ad0c95adf1843f",
+      "url": "https://github.com/Hexalith/Hexalith.FrontComposer/actions/runs/43728107979",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-15T15:07:31Z"
+    },
+    {
+      "id": 43728108042,
+      "name": "CodeQL",
+      "sha": "b22be84bdbb23d9263a8835496ad0c95adf1843f",
+      "url": "https://github.com/Hexalith/Hexalith.FrontComposer/actions/runs/43728108042",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-15T15:07:31Z"
+    },
+    {
+      "id": 43728107585,
+      "name": "Quality",
+      "sha": "b22be84bdbb23d9263a8835496ad0c95adf1843f",
+      "url": "https://github.com/Hexalith/Hexalith.FrontComposer/actions/runs/43728107585",
+      "status": "completed",
+      "conclusion": "failure",
+      "created_at": "2026-11-15T15:07:31Z"
+    },
+    {
+      "id": 43711178520,
+      "name": "Flaky Test Governance",
+      "sha": "0d065fceb2bfca9999307cb864a3f93392fb3400",
+      "url": "https://github.com/Hexalith/Hexalith.FrontComposer/actions/runs/43711178520",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-15T11:54:33Z"
+    },
+    {
+      "id": 43710270397,
+      "name": "Commitlint",
+      "sha": "0d065fceb2bfca9999307cb864a3f93392fb3400",
+      "url": "https://github.com/Hexalith/Hexalith.FrontComposer/actions/runs/43710270397",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-15T11:43:10Z"
+    },
+    {
+      "id": 43710270227,
+      "name": "Quality",
+      "sha": "0d065fceb2bfca9999307cb864a3f93392fb3400",
+      "url": "https://github.com/Hexalith/Hexalith.FrontComposer/actions/runs/43710270227",
+      "status": "completed",
+      "conclusion": "failure",
+      "created_at": "2026-11-15T11:43:10Z"
+    },
+    {
+      "id": 43710270479,
+      "name": "CodeQL",
+      "sha": "0d065fceb2bfca9999307cb864a3f93392fb3400",
+      "url": "https://github.com/Hexalith/Hexalith.FrontComposer/actions/runs/43710270479",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-15T11:43:10Z"
+    },
+    {
+      "id": 43710270442,
+      "name": "CI",
+      "sha": "0d065fceb2bfca9999307cb864a3f93392fb3400",
+      "url": "https://github.com/Hexalith/Hexalith.FrontComposer/actions/runs/43710270442",
+      "status": "completed",
+      "conclusion": "failure",
+      "created_at": "2026-11-15T11:43:10Z"
+    },
+    {
+      "id": 43709137367,
+      "name": "Quarantine Governance Nightly",
+      "sha": "bca9dff291ce42c57516598732340a80703dfb6d",
+      "url": "https://github.com/Hexalith/Hexalith.FrontComposer/actions/runs/43709137367",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-15T11:29:10Z"
+    }
+  ],
+  "fixedJobs": {
+    "jobs": [
+      {
+        "id": 125665255042,
+        "name": "debug-gated-tests",
+        "status": "completed",
+        "conclusion": "success",
+        "run_id": 41559059800,
+        "logs_url": null,
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1
+          },
+          {
+            "name": "Run actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2
+          },
+          {
+            "name": "Initialize root build submodule",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3
+          },
+          {
+            "name": "Run Hexalith/Hexalith.Builds/Github/initialize-dotnet@main",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4
+          },
+          {
+            "name": "Build Debug Shell tests",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 5
+          },
+          {
+            "name": "Run DEBUG-gated Shell test classes",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 6
+          },
+          {
+            "name": "Verify DEBUG-gated MTP evidence",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 7
+          },
+          {
+            "name": "Upload DEBUG-gated test results",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 8
+          },
+          {
+            "name": "Post Run Hexalith/Hexalith.Builds/Github/initialize-dotnet@main",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 15
+          },
+          {
+            "name": "Post Run actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 16
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 17
+          }
+        ]
+      },
+      {
+        "id": 125665255299,
+        "name": "browser-regressions-linux (firefox)",
+        "status": "completed",
+        "conclusion": "success",
+        "run_id": 41559059800,
+        "logs_url": null,
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1
+          },
+          {
+            "name": "Run actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2
+          },
+          {
+            "name": "Initialize root build submodule",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3
+          },
+          {
+            "name": "Run Hexalith/Hexalith.Builds/Github/initialize-dotnet@main",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4
+          },
+          {
+            "name": "Run actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 5
+          },
+          {
+            "name": "Install pinned Playwright workspace",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 6
+          },
+          {
+            "name": "Install all pinned Playwright browsers",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 7
+          },
+          {
+            "name": "Build Counter browser host",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 8
+          },
+          {
+            "name": "Build CLI browser fixture",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 9
+          },
+          {
+            "name": "Build Debug Counter diagnostic host",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 10
+          },
+          {
+            "name": "Run browser launch and scroll regressions",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 11
+          },
+          {
+            "name": "Typecheck browser regressions",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 12
+          },
+          {
+            "name": "Run all specs for selected browser engine",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 13
+          },
+          {
+            "name": "Test accessibility evidence attempt validation",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 14
+          },
+          {
+            "name": "Validate selected Linux accessibility engine and run",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 15
+          },
+          {
+            "name": "Validate Linux visual governance",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 16
+          },
+          {
+            "name": "Upload Linux browser results",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 17
+          },
+          {
+            "name": "Post Run actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 32
+          },
+          {
+            "name": "Post Run Hexalith/Hexalith.Builds/Github/initialize-dotnet@main",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 33
+          },
+          {
+            "name": "Post Run actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 34
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 35
+          }
+        ]
+      },
+      {
+        "id": 125665255366,
+        "name": "browser-regressions-linux (webkit)",
+        "status": "completed",
+        "conclusion": "success",
+        "run_id": 41559059800,
+        "logs_url": null,
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1
+          },
+          {
+            "name": "Run actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2
+          },
+          {
+            "name": "Initialize root build submodule",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3
+          },
+          {
+            "name": "Run Hexalith/Hexalith.Builds/Github/initialize-dotnet@main",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4
+          },
+          {
+            "name": "Run actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 5
+          },
+          {
+            "name": "Install pinned Playwright workspace",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 6
+          },
+          {
+            "name": "Install all pinned Playwright browsers",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 7
+          },
+          {
+            "name": "Build Counter browser host",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 8
+          },
+          {
+            "name": "Build CLI browser fixture",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 9
+          },
+          {
+            "name": "Build Debug Counter diagnostic host",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 10
+          },
+          {
+            "name": "Run browser launch and scroll regressions",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 11
+          },
+          {
+            "name": "Typecheck browser regressions",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 12
+          },
+          {
+            "name": "Run all specs for selected browser engine",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 13
+          },
+          {
+            "name": "Test accessibility evidence attempt validation",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 14
+          },
+          {
+            "name": "Validate selected Linux accessibility engine and run",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 15
+          },
+          {
+            "name": "Validate Linux visual governance",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 16
+          },
+          {
+            "name": "Upload Linux browser results",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 17
+          },
+          {
+            "name": "Post Run actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 32
+          },
+          {
+            "name": "Post Run Hexalith/Hexalith.Builds/Github/initialize-dotnet@main",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 33
+          },
+          {
+            "name": "Post Run actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 34
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 35
+          }
+        ]
+      },
+      {
+        "id": 125665255373,
+        "name": "browser-regressions-linux (chromium)",
+        "status": "completed",
+        "conclusion": "success",
+        "run_id": 41559059800,
+        "logs_url": null,
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1
+          },
+          {
+            "name": "Run actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2
+          },
+          {
+            "name": "Initialize root build submodule",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3
+          },
+          {
+            "name": "Run Hexalith/Hexalith.Builds/Github/initialize-dotnet@main",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4
+          },
+          {
+            "name": "Run actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 5
+          },
+          {
+            "name": "Install pinned Playwright workspace",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 6
+          },
+          {
+            "name": "Install all pinned Playwright browsers",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 7
+          },
+          {
+            "name": "Build Counter browser host",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 8
+          },
+          {
+            "name": "Build CLI browser fixture",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 9
+          },
+          {
+            "name": "Build Debug Counter diagnostic host",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 10
+          },
+          {
+            "name": "Run browser launch and scroll regressions",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 11
+          },
+          {
+            "name": "Typecheck browser regressions",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 12
+          },
+          {
+            "name": "Run all specs for selected browser engine",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 13
+          },
+          {
+            "name": "Test accessibility evidence attempt validation",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 14
+          },
+          {
+            "name": "Validate selected Linux accessibility engine and run",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 15
+          },
+          {
+            "name": "Validate Linux visual governance",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 16
+          },
+          {
+            "name": "Upload Linux browser results",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 17
+          },
+          {
+            "name": "Post Run actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 32
+          },
+          {
+            "name": "Post Run Hexalith/Hexalith.Builds/Github/initialize-dotnet@main",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 33
+          },
+          {
+            "name": "Post Run actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 34
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 35
+          }
+        ]
+      },
+      {
+        "id": 125665255437,
+        "name": "epic9-live-acceptance",
+        "status": "completed",
+        "conclusion": "success",
+        "run_id": 41559059800,
+        "logs_url": null,
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1
+          },
+          {
+            "name": "Run actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2
+          },
+          {
+            "name": "Initialize build submodules",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3
+          },
+          {
+            "name": "Run Hexalith/Hexalith.Builds/Github/initialize-dotnet@main",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4
+          },
+          {
+            "name": "Install source-resource compatibility SDK",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 5
+          },
+          {
+            "name": "Verify root and source-resource SDKs",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 6
+          },
+          {
+            "name": "Run actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 7
+          },
+          {
+            "name": "Install Playwright workspace dependencies",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 8
+          },
+          {
+            "name": "Install Chromium browser",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 9
+          },
+          {
+            "name": "Install Aspire CLI",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 10
+          },
+          {
+            "name": "Install Dapr CLI",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 11
+          },
+          {
+            "name": "Initialize Dapr runtime",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 12
+          },
+          {
+            "name": "Typecheck Epic 9 browser proof",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 13
+          },
+          {
+            "name": "Test Epic 9 evidence tooling",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 14
+          },
+          {
+            "name": "Run AppHost-discovered Epic 9 live proof",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 15
+          },
+          {
+            "name": "AppHost rejects invalid bearer tokens",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 16
+          },
+          {
+            "name": "Upload Epic 9 acceptance artifacts",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 17
+          },
+          {
+            "name": "Post Run actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 31
+          },
+          {
+            "name": "Post Install source-resource compatibility SDK",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 32
+          },
+          {
+            "name": "Post Run Hexalith/Hexalith.Builds/Github/initialize-dotnet@main",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 33
+          },
+          {
+            "name": "Post Run actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 34
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 35
+          }
+        ]
+      },
+      {
+        "id": 125665255486,
+        "name": "build-and-test",
+        "status": "completed",
+        "conclusion": "success",
+        "run_id": 41559059800,
+        "logs_url": null,
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1
+          },
+          {
+            "name": "Run actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2
+          },
+          {
+            "name": "Initialize build submodules",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3
+          },
+          {
+            "name": "Run Hexalith/Hexalith.Builds/Github/initialize-dotnet@main",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4
+          },
+          {
+            "name": "Record full CI lane start",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 5
+          },
+          {
+            "name": "Run actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 6
+          },
+          {
+            "name": "Validate npm lockfile",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 7
+          },
+          {
+            "name": "Cache NuGet packages",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 8
+          },
+          {
+            "name": "Gate 1: Contracts Build (netstandard2.0)",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 9
+          },
+          {
+            "name": "Gate 2: Solution Build",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 10
+          },
+          {
+            "name": "Gate 2a: CLI Tool Package Smoke",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 11
+          },
+          {
+            "name": "Restore local .NET tools",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 12
+          },
+          {
+            "name": "Prepare exact governance catalog objects",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 13
+          },
+          {
+            "name": "Gate 2b: Infrastructure governance and telemetry contracts",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 14
+          },
+          {
+            "name": "Gate 2b: Verify Governance MTP evidence",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 15
+          },
+          {
+            "name": "Gate 2b: Analyzer governance build proofs",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 16
+          },
+          {
+            "name": "Gate 2b: Verify analyzer governance build MTP evidence",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 17
+          },
+          {
+            "name": "Gate 2b: Release suppression lifecycle tests",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 18
+          },
+          {
+            "name": "Gate 2b: Story artifact validator tests",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 19
+          },
+          {
+            "name": "Gate 2b: Adopter proof runner tests",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 20
+          },
+          {
+            "name": "Gate 2b: Dependency graph semantic policy tests",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 21
+          },
+          {
+            "name": "Gate 2b: AppHost Memories dependency modes",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 22
+          },
+          {
+            "name": "Gate 2c: Contract pacts",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 23
+          },
+          {
+            "name": "Gate 2c: Live EventStore provider verification",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 24
+          },
+          {
+            "name": "Gate 2c: Validate contract artifacts",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 25
+          },
+          {
+            "name": "Gate 2c: Fail on stale pact diff",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 26
+          },
+          {
+            "name": "Contract Summary",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 27
+          },
+          {
+            "name": "Upload contract diagnostics",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 28
+          },
+          {
+            "name": "Upload contract artifacts",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 29
+          },
+          {
+            "name": "Gate 2d: Docs Validation",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 30
+          },
+          {
+            "name": "Gate 2e: Restore missing copy-local test references",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 31
+          },
+          {
+            "name": "Gate 3a: Unit + bUnit (default lane)",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 32
+          },
+          {
+            "name": "Gate 3a: Verify default MTP evidence",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 33
+          },
+          {
+            "name": "Gate 3b: Palette E2E (e2e-palette lane)",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 34
+          },
+          {
+            "name": "Gate 3c: Performance bench (Performance lane)",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 35
+          },
+          {
+            "name": "Gate 3d: Quarantined tests (warning-only)",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 36
+          },
+          {
+            "name": "Gate 4: Library Package Validation (ApiCompat baseline)",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 37
+          },
+          {
+            "name": "Gate 4a: Adopter proof kit smoke",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 38
+          },
+          {
+            "name": "Quarantine Summary",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 39
+          },
+          {
+            "name": "Upload quarantine artifacts",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 40
+          },
+          {
+            "name": "Test Summary",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 41
+          },
+          {
+            "name": "Upload test results",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 42
+          },
+          {
+            "name": "Coverage Summary",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 43
+          },
+          {
+            "name": "Upload coverage reports",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 44
+          },
+          {
+            "name": "Record CI duration summary",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 45
+          },
+          {
+            "name": "Upload CI duration artifacts",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 46
+          },
+          {
+            "name": "Post Cache NuGet packages",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 89
+          },
+          {
+            "name": "Post Run actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 90
+          },
+          {
+            "name": "Post Run Hexalith/Hexalith.Builds/Github/initialize-dotnet@main",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 91
+          },
+          {
+            "name": "Post Run actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 92
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 93
+          }
+        ]
+      },
+      {
+        "id": 125665255505,
+        "name": "accessibility-visual",
+        "status": "completed",
+        "conclusion": "success",
+        "run_id": 41559059800,
+        "logs_url": null,
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1
+          },
+          {
+            "name": "Run actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2
+          },
+          {
+            "name": "Initialize build submodules",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3
+          },
+          {
+            "name": "Run Hexalith/Hexalith.Builds/Github/initialize-dotnet@main",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4
+          },
+          {
+            "name": "Run actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 5
+          },
+          {
+            "name": "Install root npm dependencies",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 6
+          },
+          {
+            "name": "Install Playwright workspace dependencies",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 7
+          },
+          {
+            "name": "Install legacy Story 2.2 Playwright dependencies",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 8
+          },
+          {
+            "name": "Run legacy Story 2.2 result-contract tests",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 9
+          },
+          {
+            "name": "Install legacy Story 2.2 Chromium browser",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 10
+          },
+          {
+            "name": "Install Chromium browser",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 11
+          },
+          {
+            "name": "Build Counter specimen host",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 12
+          },
+          {
+            "name": "Typecheck Playwright accessibility lane",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 13
+          },
+          {
+            "name": "Run FC-NIP contract guards (browserless)",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 14
+          },
+          {
+            "name": "Run settings-persistence storage-key regression (browserless)",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 15
+          },
+          {
+            "name": "Test accessibility evidence negative fixtures",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 16
+          },
+          {
+            "name": "Run accessibility, keyboard, media, zoom, and visual specimen gate",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 17
+          },
+          {
+            "name": "Run legacy Story 2.2 live browser gate",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 18
+          },
+          {
+            "name": "Validate visual baseline governance",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 19
+          },
+          {
+            "name": "Validate accessibility artifacts",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 20
+          },
+          {
+            "name": "Upload accessibility and visual artifacts",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 21
+          },
+          {
+            "name": "Post Run actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 40
+          },
+          {
+            "name": "Post Run Hexalith/Hexalith.Builds/Github/initialize-dotnet@main",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 41
+          },
+          {
+            "name": "Post Run actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 42
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 43
+          }
+        ]
+      },
+      {
+        "id": 125665255535,
+        "name": "committed-files",
+        "status": "completed",
+        "conclusion": "success",
+        "run_id": 41559059800,
+        "logs_url": null,
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1
+          },
+          {
+            "name": "Run actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2
+          },
+          {
+            "name": "Reject committed evidence and oversized files",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3
+          },
+          {
+            "name": "Committed-files guard tests",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4
+          },
+          {
+            "name": "Post Run actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 8
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 9
+          }
+        ]
+      }
+    ]
+  },
+  "currentJobs": {
+    "jobs": [
+      {
+        "id": 132854366777,
+        "name": "build-and-test",
+        "status": "completed",
+        "conclusion": "failure",
+        "run_id": 43728107585,
+        "logs_url": null,
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1
+          },
+          {
+            "name": "Run actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2
+          },
+          {
+            "name": "Initialize build submodules",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3
+          },
+          {
+            "name": "Run Hexalith/Hexalith.Builds/Github/initialize-dotnet@6e77e79e8914a375b0c43b0af3bd142405675ecd",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4
+          },
+          {
+            "name": "Install .NET 11 runtimes",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 5
+          },
+          {
+            "name": "Record full CI lane start",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 6
+          },
+          {
+            "name": "Run actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 7
+          },
+          {
+            "name": "Validate npm lockfile",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 8
+          },
+          {
+            "name": "Cache NuGet packages",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 9
+          },
+          {
+            "name": "Gate 1: Contracts Build (netstandard2.0)",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 10
+          },
+          {
+            "name": "Gate 2: Solution Build",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 11
+          },
+          {
+            "name": "Gate 2a: CLI Tool Package Smoke",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 12
+          },
+          {
+            "name": "Restore local .NET tools",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 13
+          },
+          {
+            "name": "Prepare exact governance catalog objects",
+            "status": "completed",
+            "conclusion": "failure",
+            "number": 14
+          },
+          {
+            "name": "Gate 2b: Infrastructure governance and telemetry contracts",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 15
+          },
+          {
+            "name": "Gate 2b: Verify Governance MTP evidence",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 16
+          },
+          {
+            "name": "Gate 2b: Analyzer governance build proofs",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 17
+          },
+          {
+            "name": "Gate 2b: Verify analyzer governance build MTP evidence",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 18
+          },
+          {
+            "name": "Gate 2b: Release suppression lifecycle tests",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 19
+          },
+          {
+            "name": "Gate 2b: Story artifact validator tests",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 20
+          },
+          {
+            "name": "Gate 2b: Adopter proof runner tests",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 21
+          },
+          {
+            "name": "Gate 2b: Dependency graph semantic policy tests",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 22
+          },
+          {
+            "name": "Gate 2b: AppHost Memories dependency modes",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 23
+          },
+          {
+            "name": "Gate 2c: Contract pacts",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 24
+          },
+          {
+            "name": "Gate 2c: Live EventStore provider verification",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 25
+          },
+          {
+            "name": "Gate 2c: Validate contract artifacts",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 26
+          },
+          {
+            "name": "Gate 2c: Fail on stale pact diff",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 27
+          },
+          {
+            "name": "Contract Summary",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 28
+          },
+          {
+            "name": "Upload contract diagnostics",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 29
+          },
+          {
+            "name": "Upload contract artifacts",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 30
+          },
+          {
+            "name": "Gate 2d: Docs Validation",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 31
+          },
+          {
+            "name": "Gate 2e: Restore missing copy-local test references",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 32
+          },
+          {
+            "name": "Gate 3a: Unit + bUnit (default lane)",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 33
+          },
+          {
+            "name": "Gate 3a: Verify default MTP evidence",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 34
+          },
+          {
+            "name": "Gate 3b: Palette E2E (e2e-palette lane)",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 35
+          },
+          {
+            "name": "Gate 3c: Performance bench (Performance lane)",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 36
+          },
+          {
+            "name": "Gate 3d: Quarantined tests (warning-only)",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 37
+          },
+          {
+            "name": "Gate 4: Library Package Validation (ApiCompat baseline)",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 38
+          },
+          {
+            "name": "Gate 4a: Adopter proof kit smoke",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 39
+          },
+          {
+            "name": "Quarantine Summary",
+            "status": "completed",
+            "conclusion": "failure",
+            "number": 40
+          },
+          {
+            "name": "Upload quarantine artifacts",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 41
+          },
+          {
+            "name": "Test Summary",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 42
+          },
+          {
+            "name": "Upload test results",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 43
+          },
+          {
+            "name": "Coverage Summary",
+            "status": "completed",
+            "conclusion": "failure",
+            "number": 44
+          },
+          {
+            "name": "Upload coverage reports",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 45
+          },
+          {
+            "name": "Record CI duration summary",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 46
+          },
+          {
+            "name": "Upload CI duration artifacts",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 47
+          },
+          {
+            "name": "Post Cache NuGet packages",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 91
+          },
+          {
+            "name": "Post Run actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 92
+          },
+          {
+            "name": "Post Run Hexalith/Hexalith.Builds/Github/initialize-dotnet@6e77e79e8914a375b0c43b0af3bd142405675ecd",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 93
+          },
+          {
+            "name": "Post Run actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 94
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 95
+          }
+        ]
+      },
+      {
+        "id": 132854366982,
+        "name": "browser-regressions-linux (chromium)",
+        "status": "completed",
+        "conclusion": "success",
+        "run_id": 43728107585,
+        "logs_url": null,
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1
+          },
+          {
+            "name": "Run actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2
+          },
+          {
+            "name": "Initialize root build submodule",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3
+          },
+          {
+            "name": "Run Hexalith/Hexalith.Builds/Github/initialize-dotnet@6e77e79e8914a375b0c43b0af3bd142405675ecd",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4
+          },
+          {
+            "name": "Install .NET 11 runtimes",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 5
+          },
+          {
+            "name": "Run actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 6
+          },
+          {
+            "name": "Install pinned Playwright workspace",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 7
+          },
+          {
+            "name": "Initialize Ubuntu APT for browser dependencies",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 8
+          },
+          {
+            "name": "Use the Ubuntu HTTPS archive for browser dependencies",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 9
+          },
+          {
+            "name": "Install all pinned Playwright browsers",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 10
+          },
+          {
+            "name": "Build Counter browser host",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 11
+          },
+          {
+            "name": "Build CLI browser fixture",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 12
+          },
+          {
+            "name": "Build Debug Counter diagnostic host",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 13
+          },
+          {
+            "name": "Run browser launch and scroll regressions",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 14
+          },
+          {
+            "name": "Typecheck browser regressions",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 15
+          },
+          {
+            "name": "Run all specs for selected browser engine",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 16
+          },
+          {
+            "name": "Test accessibility evidence attempt validation",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 17
+          },
+          {
+            "name": "Validate selected Linux accessibility engine and run",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 18
+          },
+          {
+            "name": "Validate Linux visual governance",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 19
+          },
+          {
+            "name": "Upload Linux browser results",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 20
+          },
+          {
+            "name": "Post Run actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 38
+          },
+          {
+            "name": "Post Run Hexalith/Hexalith.Builds/Github/initialize-dotnet@6e77e79e8914a375b0c43b0af3bd142405675ecd",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 39
+          },
+          {
+            "name": "Post Run actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 40
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 41
+          }
+        ]
+      },
+      {
+        "id": 132854367005,
+        "name": "epic9-live-acceptance",
+        "status": "completed",
+        "conclusion": "success",
+        "run_id": 43728107585,
+        "logs_url": null,
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1
+          },
+          {
+            "name": "Run actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2
+          },
+          {
+            "name": "Initialize build submodules",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3
+          },
+          {
+            "name": "Run Hexalith/Hexalith.Builds/Github/initialize-dotnet@6e77e79e8914a375b0c43b0af3bd142405675ecd",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4
+          },
+          {
+            "name": "Install .NET 11 runtimes",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 5
+          },
+          {
+            "name": "Install source-resource compatibility SDK",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 6
+          },
+          {
+            "name": "Install dependency source-resource SDK",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 7
+          },
+          {
+            "name": "Verify root and source-resource SDKs",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 8
+          },
+          {
+            "name": "Run actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 9
+          },
+          {
+            "name": "Install Playwright workspace dependencies",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 10
+          },
+          {
+            "name": "Initialize Ubuntu APT for browser dependencies",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 11
+          },
+          {
+            "name": "Use the Ubuntu HTTPS archive for browser dependencies",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 12
+          },
+          {
+            "name": "Install Chromium browser",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 13
+          },
+          {
+            "name": "Install Aspire CLI",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 14
+          },
+          {
+            "name": "Install Dapr CLI",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 15
+          },
+          {
+            "name": "Initialize Dapr runtime",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 16
+          },
+          {
+            "name": "Typecheck Epic 9 browser proof",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 17
+          },
+          {
+            "name": "Test Epic 9 evidence tooling",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 18
+          },
+          {
+            "name": "Run AppHost-discovered Epic 9 live proof",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 19
+          },
+          {
+            "name": "AppHost rejects invalid bearer tokens",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 20
+          },
+          {
+            "name": "Upload Epic 9 acceptance artifacts",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 21
+          },
+          {
+            "name": "Post Run actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 38
+          },
+          {
+            "name": "Post Install dependency source-resource SDK",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 39
+          },
+          {
+            "name": "Post Install source-resource compatibility SDK",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 40
+          },
+          {
+            "name": "Post Run Hexalith/Hexalith.Builds/Github/initialize-dotnet@6e77e79e8914a375b0c43b0af3bd142405675ecd",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 41
+          },
+          {
+            "name": "Post Run actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 42
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 43
+          }
+        ]
+      },
+      {
+        "id": 132854367040,
+        "name": "debug-gated-tests",
+        "status": "completed",
+        "conclusion": "success",
+        "run_id": 43728107585,
+        "logs_url": null,
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1
+          },
+          {
+            "name": "Run actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2
+          },
+          {
+            "name": "Initialize root build submodule",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3
+          },
+          {
+            "name": "Run Hexalith/Hexalith.Builds/Github/initialize-dotnet@6e77e79e8914a375b0c43b0af3bd142405675ecd",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4
+          },
+          {
+            "name": "Install .NET 11 runtimes",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 5
+          },
+          {
+            "name": "Build Debug Shell tests",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 6
+          },
+          {
+            "name": "Run DEBUG-gated Shell test classes",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 7
+          },
+          {
+            "name": "Verify DEBUG-gated MTP evidence",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 8
+          },
+          {
+            "name": "Upload DEBUG-gated test results",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 9
+          },
+          {
+            "name": "Post Run Hexalith/Hexalith.Builds/Github/initialize-dotnet@6e77e79e8914a375b0c43b0af3bd142405675ecd",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 17
+          },
+          {
+            "name": "Post Run actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 18
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 19
+          }
+        ]
+      },
+      {
+        "id": 132854367075,
+        "name": "browser-regressions-linux (firefox)",
+        "status": "completed",
+        "conclusion": "success",
+        "run_id": 43728107585,
+        "logs_url": null,
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1
+          },
+          {
+            "name": "Run actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2
+          },
+          {
+            "name": "Initialize root build submodule",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3
+          },
+          {
+            "name": "Run Hexalith/Hexalith.Builds/Github/initialize-dotnet@6e77e79e8914a375b0c43b0af3bd142405675ecd",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4
+          },
+          {
+            "name": "Install .NET 11 runtimes",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 5
+          },
+          {
+            "name": "Run actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 6
+          },
+          {
+            "name": "Install pinned Playwright workspace",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 7
+          },
+          {
+            "name": "Initialize Ubuntu APT for browser dependencies",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 8
+          },
+          {
+            "name": "Use the Ubuntu HTTPS archive for browser dependencies",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 9
+          },
+          {
+            "name": "Install all pinned Playwright browsers",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 10
+          },
+          {
+            "name": "Build Counter browser host",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 11
+          },
+          {
+            "name": "Build CLI browser fixture",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 12
+          },
+          {
+            "name": "Build Debug Counter diagnostic host",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 13
+          },
+          {
+            "name": "Run browser launch and scroll regressions",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 14
+          },
+          {
+            "name": "Typecheck browser regressions",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 15
+          },
+          {
+            "name": "Run all specs for selected browser engine",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 16
+          },
+          {
+            "name": "Test accessibility evidence attempt validation",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 17
+          },
+          {
+            "name": "Validate selected Linux accessibility engine and run",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 18
+          },
+          {
+            "name": "Validate Linux visual governance",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 19
+          },
+          {
+            "name": "Upload Linux browser results",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 20
+          },
+          {
+            "name": "Post Run actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 38
+          },
+          {
+            "name": "Post Run Hexalith/Hexalith.Builds/Github/initialize-dotnet@6e77e79e8914a375b0c43b0af3bd142405675ecd",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 39
+          },
+          {
+            "name": "Post Run actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 40
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 41
+          }
+        ]
+      },
+      {
+        "id": 132854367204,
+        "name": "browser-regressions-linux (webkit)",
+        "status": "completed",
+        "conclusion": "success",
+        "run_id": 43728107585,
+        "logs_url": null,
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1
+          },
+          {
+            "name": "Run actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2
+          },
+          {
+            "name": "Initialize root build submodule",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3
+          },
+          {
+            "name": "Run Hexalith/Hexalith.Builds/Github/initialize-dotnet@6e77e79e8914a375b0c43b0af3bd142405675ecd",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4
+          },
+          {
+            "name": "Install .NET 11 runtimes",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 5
+          },
+          {
+            "name": "Run actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 6
+          },
+          {
+            "name": "Install pinned Playwright workspace",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 7
+          },
+          {
+            "name": "Initialize Ubuntu APT for browser dependencies",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 8
+          },
+          {
+            "name": "Use the Ubuntu HTTPS archive for browser dependencies",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 9
+          },
+          {
+            "name": "Install all pinned Playwright browsers",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 10
+          },
+          {
+            "name": "Build Counter browser host",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 11
+          },
+          {
+            "name": "Build CLI browser fixture",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 12
+          },
+          {
+            "name": "Build Debug Counter diagnostic host",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 13
+          },
+          {
+            "name": "Run browser launch and scroll regressions",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 14
+          },
+          {
+            "name": "Typecheck browser regressions",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 15
+          },
+          {
+            "name": "Run all specs for selected browser engine",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 16
+          },
+          {
+            "name": "Test accessibility evidence attempt validation",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 17
+          },
+          {
+            "name": "Validate selected Linux accessibility engine and run",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 18
+          },
+          {
+            "name": "Validate Linux visual governance",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 19
+          },
+          {
+            "name": "Upload Linux browser results",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 20
+          },
+          {
+            "name": "Post Run actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 38
+          },
+          {
+            "name": "Post Run Hexalith/Hexalith.Builds/Github/initialize-dotnet@6e77e79e8914a375b0c43b0af3bd142405675ecd",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 39
+          },
+          {
+            "name": "Post Run actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 40
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 41
+          }
+        ]
+      },
+      {
+        "id": 132854367206,
+        "name": "accessibility-visual",
+        "status": "completed",
+        "conclusion": "success",
+        "run_id": 43728107585,
+        "logs_url": null,
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1
+          },
+          {
+            "name": "Run actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2
+          },
+          {
+            "name": "Initialize build submodules",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3
+          },
+          {
+            "name": "Run Hexalith/Hexalith.Builds/Github/initialize-dotnet@6e77e79e8914a375b0c43b0af3bd142405675ecd",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4
+          },
+          {
+            "name": "Install .NET 11 runtimes",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 5
+          },
+          {
+            "name": "Run actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 6
+          },
+          {
+            "name": "Install root npm dependencies",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 7
+          },
+          {
+            "name": "Install Playwright workspace dependencies",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 8
+          },
+          {
+            "name": "Install legacy Story 2.2 Playwright dependencies",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 9
+          },
+          {
+            "name": "Run legacy Story 2.2 result-contract tests",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 10
+          },
+          {
+            "name": "Initialize Ubuntu APT for browser dependencies",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 11
+          },
+          {
+            "name": "Use the Ubuntu HTTPS archive for browser dependencies",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 12
+          },
+          {
+            "name": "Install legacy Story 2.2 Chromium browser",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 13
+          },
+          {
+            "name": "Install Chromium browser",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 14
+          },
+          {
+            "name": "Build Counter specimen host",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 15
+          },
+          {
+            "name": "Typecheck Playwright accessibility lane",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 16
+          },
+          {
+            "name": "Run FC-NIP contract guards (browserless)",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 17
+          },
+          {
+            "name": "Run settings-persistence storage-key regression (browserless)",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 18
+          },
+          {
+            "name": "Test accessibility evidence negative fixtures",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 19
+          },
+          {
+            "name": "Run accessibility, keyboard, media, zoom, and visual specimen gate",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 20
+          },
+          {
+            "name": "Run legacy Story 2.2 live browser gate",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 21
+          },
+          {
+            "name": "Validate visual baseline governance",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 22
+          },
+          {
+            "name": "Validate accessibility artifacts",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 23
+          },
+          {
+            "name": "Upload accessibility and visual artifacts",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 24
+          },
+          {
+            "name": "Post Run actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 46
+          },
+          {
+            "name": "Post Run Hexalith/Hexalith.Builds/Github/initialize-dotnet@6e77e79e8914a375b0c43b0af3bd142405675ecd",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 47
+          },
+          {
+            "name": "Post Run actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 48
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 49
+          }
+        ]
+      },
+      {
+        "id": 132854367301,
+        "name": "committed-files",
+        "status": "completed",
+        "conclusion": "success",
+        "run_id": 43728107585,
+        "logs_url": null,
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1
+          },
+          {
+            "name": "Run actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2
+          },
+          {
+            "name": "Reject committed evidence and oversized files",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3
+          },
+          {
+            "name": "Committed-files guard tests",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4
+          },
+          {
+            "name": "Post Run actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 8
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 9
+          }
+        ]
+      }
+    ]
+  }
+}

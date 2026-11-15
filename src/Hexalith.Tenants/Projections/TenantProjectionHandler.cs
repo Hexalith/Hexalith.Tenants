@@ -353,6 +353,25 @@ public sealed class TenantProjectionHandler {
                 return false;
             }
 
+            if (payload is TenantAccessRefreshed snapshot)
+            {
+                if (evt.Payload.Length > ProjectionSnapshotLimits.Default.MaxSerializedBytes
+                    || snapshot.Status is not (TenantStatus.Active or TenantStatus.Disabled)
+                    || snapshot.Members is null || snapshot.ConfigurationKeys is null
+                    || snapshot.Members.Any(member => string.IsNullOrWhiteSpace(member.Key)
+                        || member.Value is not (TenantRole.TenantOwner or TenantRole.TenantContributor or TenantRole.TenantReader))
+                    || snapshot.ConfigurationKeys.Any(string.IsNullOrWhiteSpace)
+                    || snapshot.ConfigurationKeys.Distinct(StringComparer.Ordinal).Count() != snapshot.ConfigurationKeys.Count
+                    || !AuditPayloadProperty(root, nameof(snapshot.Members), out JsonElement members)
+                    || members.ValueKind != JsonValueKind.Object
+                    || members.EnumerateObject().Count() != snapshot.Members.Count)
+                {
+                    return false;
+                }
+
+                ProjectionSnapshotLimits.Default.Validate(snapshot, (long)snapshot.Members.Count + snapshot.ConfigurationKeys.Count);
+            }
+
             foreach (System.Reflection.PropertyInfo property in contract.GetProperties())
             {
                 bool present = AuditPayloadProperty(root, property.Name, out JsonElement value);
@@ -383,7 +402,7 @@ public sealed class TenantProjectionHandler {
 
             return true;
         }
-        catch (JsonException)
+        catch (Exception exception) when (exception is JsonException or ProjectionSnapshotLimitExceededException)
         {
             return false;
         }

@@ -1,0 +1,110 @@
+[
+  {
+    "path": "references/Hexalith.EventStore",
+    "branch": "main",
+    "status": "",
+    "remotes": "origin\thttps://github.com/Hexalith/Hexalith.EventStore.git (fetch)\norigin\thttps://github.com/Hexalith/Hexalith.EventStore.git (push)",
+    "recent": "2dcf708cb docs(governance): record story 9.2 first ci run and required check\nc5602a46d ci(governance): add phase 4 gate risk matrix and assurance validator\n9d715d480 build: sync local changes via /pushall",
+    "head": "2dcf708cbab0d4ad0cf72f947d0b0a1444e251a1",
+    "fetch_exit_code": 0,
+    "fetch_output": "From https://github.com/Hexalith/Hexalith.EventStore\n * branch                main       -> FETCH_HEAD\n",
+    "remote": "2dcf708cbab0d4ad0cf72f947d0b0a1444e251a1",
+    "divergence": "0\t0"
+  },
+  {
+    "path": "references/Hexalith.Commons",
+    "branch": "main",
+    "status": "",
+    "remotes": "origin\thttps://github.com/Hexalith/Hexalith.Commons.git (fetch)\norigin\thttps://github.com/Hexalith/Hexalith.Commons.git (push)",
+    "recent": "ab5e92f build(deps): refresh release publisher\nfbf4e94 chore(release): 3.0.0 [skip ci]\n1705ebc feat!: require .NET 11 for common libraries",
+    "head": "ab5e92faa3bab1fa43b8ecadd423432dfe652bb2",
+    "fetch_exit_code": 0,
+    "fetch_output": "From https://github.com/Hexalith/Hexalith.Commons\n * branch            main       -> FETCH_HEAD\n",
+    "remote": "ab5e92faa3bab1fa43b8ecadd423432dfe652bb2",
+    "divergence": "0\t0"
+  },
+  {
+    "path": "references/Hexalith.AI.Tools",
+    "branch": "main",
+    "status": "",
+    "remotes": "origin\thttps://github.com/Hexalith/Hexalith.AI.Tools.git (fetch)\norigin\thttps://github.com/Hexalith/Hexalith.AI.Tools.git (push)",
+    "recent": "17a37d8 build(deps): refresh commit validation transitives\n10b709b docs: exempt named local compiler and vector migration tools\n8a3885d docs: add push authentication rules for scoped gh profiles",
+    "head": "17a37d83db193f0b7494c1b931fd1e82a67c1424",
+    "fetch_exit_code": 0,
+    "fetch_output": "From https://github.com/Hexalith/Hexalith.AI.Tools\n * branch            main       -> FETCH_HEAD\n",
+    "remote": "17a37d83db193f0b7494c1b931fd1e82a67c1424",
+    "divergence": "0\t0"
+  },
+  {
+    "path": "references/Hexalith.FrontComposer",
+    "branch": "main",
+    "status": "",
+    "remotes": "origin\thttps://github.com/Hexalith/Hexalith.FrontComposer.git (fetch)\norigin\thttps://github.com/Hexalith/Hexalith.FrontComposer.git (push)",
+    "recent": "a6ed4b94 test: align captured validation contract assertions\n984b6be7 fix: preserve captured form validation across frameworks\n8ce46cfc fix(ci): trust the exact mutation container checkout",
+    "head": "a6ed4b94b74aacf833c76ba1391a51e383bd6478",
+    "fetch_exit_code": 0,
+    "fetch_output": "From https://github.com/Hexalith/Hexalith.FrontComposer\n * branch              main       -> FETCH_HEAD\n",
+    "remote": "a6ed4b94b74aacf833c76ba1391a51e383bd6478",
+    "divergence": "0\t0"
+  },
+  {
+    "path": "references/Hexalith.Builds",
+    "branch": "main",
+    "status": "",
+    "remotes": "origin\thttps://github.com/Hexalith/Hexalith.Builds.git (fetch)\norigin\thttps://github.com/Hexalith/Hexalith.Builds.git (push)",
+    "recent": "f0f5007c fix(ci): align catalog compatibility expectations\n264e17d3 fix(ci): align evaluated EventStore expectations\nafeee370 build(deps): refresh the EventStore audit snapshot",
+    "head": "f0f5007cca1f9183d4f192e162071ba1c3282a63",
+    "fetch_exit_code": 0,
+    "fetch_output": "From https://github.com/Hexalith/Hexalith.Builds\n * branch              main       -> FETCH_HEAD\n   f0f5007c..04bdcaf9  main       -> origin/main\n",
+    "remote": "04bdcaf929198e69321c226dda5ab40f7b3839ce",
+    "divergence": "0\t1"
+  },
+  {
+    "path": "references/Hexalith.PolymorphicSerializations",
+    "branch": "main",
+    "status": "",
+    "remotes": "origin\thttps://github.com/Hexalith/Hexalith.PolymorphicSerializations.git (fetch)\norigin\thttps://github.com/Hexalith/Hexalith.PolymorphicSerializations.git (push)",
+    "recent": "476cfcc build(deps): refresh nuget release tooling\ne97b569 build: merge setup-dotnet-6.1.0 dependabot branch via /pushall\n322cb6b ci(deps): bump actions/setup-dotnet from 6.0.0 to 6.1.0",
+    "head": "476cfccac3c5ba694a8e0ef11b1157728b9ec093",
+    "fetch_exit_code": 0,
+    "fetch_output": "From https://github.com/Hexalith/Hexalith.PolymorphicSerializations\n * branch            main       -> FETCH_HEAD\n",
+    "remote": "476cfccac3c5ba694a8e0ef11b1157728b9ec093",
+    "divergence": "0\t0"
+  },
+  {
+    "path": "references/Hexalith.Memories",
+    "branch": "main",
+    "status": "",
+    "remotes": "origin\thttps://github.com/Hexalith/Hexalith.Memories.git (fetch)\norigin\thttps://github.com/Hexalith/Hexalith.Memories.git (push)",
+    "recent": "003e3d86 fix(ci): align the publication candidate pin\n1306a0f8 fix: story 30.5\n10e8cbee build: sync local changes via /pushall",
+    "head": "003e3d8677292739bb7978efea95415210c78719",
+    "fetch_exit_code": 0,
+    "fetch_output": "From https://github.com/Hexalith/Hexalith.Memories\n * branch              main       -> FETCH_HEAD\n   003e3d86..59df1591  main       -> origin/main\n",
+    "remote": "59df159117c2f92c262804e8574a7e979525d202",
+    "divergence": "0\t1"
+  },
+  {
+    "path": "references/Hexalith.McpCli",
+    "branch": "main",
+    "status": "",
+    "remotes": "origin\thttps://github.com/Hexalith/Hexalith.McpCli.git (fetch)\norigin\thttps://github.com/Hexalith/Hexalith.McpCli.git (push)",
+    "recent": "eaecf888 fix: story 5.8\n7a496c37 fix(ci): align the source catalog guard\n0795509f test: harden story 5.2 verification after code review pass 3",
+    "head": "eaecf888a0bace9981ae78a81fd6aa7486927d22",
+    "fetch_exit_code": 0,
+    "fetch_output": "From https://github.com/Hexalith/Hexalith.McpCli\n * branch              main       -> FETCH_HEAD\n",
+    "remote": "eaecf888a0bace9981ae78a81fd6aa7486927d22",
+    "divergence": "0\t0"
+  },
+  {
+    "path": "references/Hexalith.Platform",
+    "branch": "main",
+    "status": "",
+    "remotes": "origin\thttps://github.com/Hexalith/Hexalith.Platform.git (fetch)\norigin\thttps://github.com/Hexalith/Hexalith.Platform.git (push)",
+    "recent": "5b44f2d0 fix(ci): bind tuple readers to synchronized release tooling\nd386e360 build(deps): align current source release tooling\n217889d7 fix(ci): refresh immutable tuple comparison sources",
+    "head": "5b44f2d058f9221d8b54782c377e09fec5786b65",
+    "fetch_exit_code": 0,
+    "fetch_output": "From https://github.com/Hexalith/Hexalith.Platform\n * branch              main       -> FETCH_HEAD\n",
+    "remote": "5b44f2d058f9221d8b54782c377e09fec5786b65",
+    "divergence": "0\t0"
+  }
+]

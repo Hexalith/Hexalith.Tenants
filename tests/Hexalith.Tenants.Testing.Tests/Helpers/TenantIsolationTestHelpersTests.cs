@@ -127,6 +127,30 @@ public sealed class TenantIsolationTestHelpersTests {
     }
 
     [Fact]
+    public void RecoveryEventsAreRetainedByBothSelectorsOnlyForTheirActualTenant()
+    {
+        InMemoryTenantService service = TenantIsolationTestHelpers.CreateServiceWithTenants(
+            new Dictionary<string, IReadOnlyDictionary<string, TenantRole>> {
+                ["tenant-a"] = new Dictionary<string, TenantRole> { ["alice"] = TenantRole.TenantOwner },
+                ["tenant-b"] = new Dictionary<string, TenantRole> { ["bob"] = TenantRole.TenantOwner },
+            });
+        service.ProcessCommand(new Hexalith.Tenants.Contracts.Commands.RefreshTenantAccess("tenant-a"), "alice").IsSuccess.ShouldBeTrue();
+        service.ProcessCommand(new Hexalith.Tenants.Contracts.Commands.RefreshTenantAccess("tenant-b"), "bob").IsSuccess.ShouldBeTrue();
+        foreach (string tenantId in new[] { "tenant-a", "tenant-b" })
+        {
+            foreach (IReadOnlyList<IEventPayload> selected in new[] {
+                TenantIsolationTestHelpers.GetTenantEvents(service, tenantId),
+                TenantIsolationTestHelpers.SelectTenantEvents(service.EventHistory, tenantId) })
+            {
+                selected.OfType<Hexalith.Tenants.Contracts.Events.TenantAccessRefreshed>().ShouldHaveSingleItem()
+                    .TenantId.ShouldBe(tenantId);
+                selected.ShouldAllBe(payload => TenantIsolationTestHelpers.GetTenantId(payload) == tenantId);
+                selected.Count.ShouldBe(3);
+            }
+        }
+    }
+
+    [Fact]
     public void DuplicateDelivery_repeats_selected_success_events_for_idempotency_checks() {
         InMemoryTenantService service = TenantIsolationTestHelpers.CreateServiceWithTenants(
             new Dictionary<string, IReadOnlyDictionary<string, TenantRole>> {

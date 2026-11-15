@@ -1,4 +1,7 @@
 using System.Net;
+using System.Net.Http.Json;
+using Hexalith.Tenants.Contracts.Enums;
+using Hexalith.EventStore.Server.Events;
 using System.Net.Http.Headers;
 using System.Security.Claims;
 using System.Text;
@@ -120,6 +123,87 @@ public sealed class AuthenticatedTenantsRouteTests(AuthenticatedRouteTopologyFix
         (await retained.GetAsync<GlobalAdministratorReadModel>("statestore", "projection:global-administrators:singleton", timeout.Token))
             .Value.ShouldNotBeNull().Administrators.ShouldContain(administrator);
         TestContext.Current.TestOutputHelper?.WriteLine("Native removal control: committed removal present, production stream/final metadata readers verified, retained granting projection refused.");
+    }
+
+    [DaprFact]
+    public async Task AuthenticatedOwnerRecoveryPersistsExactSnapshotsAndPermissionRefusalDoesNotAppendEvents()
+    {
+        fixture.SkipIfUnavailable();
+        using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+        // The existing fixture owns the complete topology and its teardown; this test creates
+        // only its unique tenant and disposes every request, Redis connection and caller scope.
+        AuthenticatedRouteState state = await AuthenticatedRouteState.CreateAsync(fixture.CommandApiClient, timeout.Token);
+        string adminToken = AspireTopologyFixture.IsSourceCatalogProfile ? AspireTopologyTests.CreateDemoJwt() : state.Token;
+        var promote = AspireTopologyTests.CreateCommand("tenants", state.TenantId, nameof(ChangeUserRole),
+            new ChangeUserRole(state.TenantId, state.TargetUserId, TenantRole.TenantOwner));
+        var promoted = await AspireTopologyTests.SubmitAndWaitForTerminalStatusAsync(fixture.CommandApiClient, promote, adminToken, timeout.Token);
+        promoted.Status.ShouldBe("Completed");
+        long sequence = promoted.CommittedEventSequence.ShouldNotBeNull();
+        TenantReadModel before = await AspireTopologyTests.WaitForPersistedTenantAsync(state.TenantId, "tenant-sequence:" + sequence, timeout.Token);
+        string ownerToken = OwnerToken(true);
+        string deniedToken = OwnerToken(false);
+        using var redis = await StackExchange.Redis.ConnectionMultiplexer.ConnectAsync(new StackExchange.Redis.ConfigurationOptions
+        {
+            EndPoints = { $"localhost:{DaprDiagnostics.ResolveRedisPort()}" },
+            ConnectTimeout = 5_000, SyncTimeout = 5_000, AbortOnConnectFail = true,
+        });
+        var identity = new AggregateIdentity("system", "tenants", state.TenantId);
+        string eventPrefix = $"eventstore||AggregateActor||{identity.ActorId}||{identity.EventStreamKeyPrefix}";
+        foreach (bool disabled in new[] { false, true })
+        {
+            if (disabled)
+            {
+                var disable = AspireTopologyTests.CreateCommand("tenants", state.TenantId, nameof(DisableTenant), new DisableTenant(state.TenantId));
+                var status = await AspireTopologyTests.SubmitAndWaitForTerminalStatusAsync(fixture.CommandApiClient, disable, adminToken, timeout.Token);
+                status.Status.ShouldBe("Completed");
+                sequence = status.CommittedEventSequence.ShouldNotBeNull();
+                before = await AspireTopologyTests.WaitForPersistedTenantAsync(state.TenantId, "tenant-sequence:" + sequence, timeout.Token);
+            }
+            before.Status.ShouldBe(disabled ? TenantStatus.Disabled : TenantStatus.Active);
+            var request = AspireTopologyTests.CreateCommand("tenants", state.TenantId, nameof(RefreshTenantAccess), new RefreshTenantAccess(state.TenantId));
+            using (var denied = new HttpRequestMessage(HttpMethod.Post, "/api/v1/commands") { Content = JsonContent.Create(request) })
+            {
+                denied.Headers.Authorization = new AuthenticationHeaderValue("Bearer", deniedToken);
+                using HttpResponseMessage response = await fixture.CommandApiClient.SendAsync(denied, timeout.Token);
+                response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+            }
+            (await redis.GetDatabase().HashGetAsync(eventPrefix + (sequence + 1), "data").WaitAsync(timeout.Token)).IsNull.ShouldBeTrue();
+            var recovered = await AspireTopologyTests.SubmitAndWaitForTerminalStatusAsync(fixture.CommandApiClient, request, ownerToken, timeout.Token);
+            recovered.Status.ShouldBe("Completed");
+            recovered.EventCount.ShouldBe(1);
+            recovered.CommittedEventSequence.ShouldBe(sequence + 1);
+            sequence++;
+            var bytes = await redis.GetDatabase().HashGetAsync(eventPrefix + sequence, "data").WaitAsync(timeout.Token);
+            bytes.IsNull.ShouldBeFalse();
+            EventEnvelope stored = JsonSerializer.Deserialize<EventEnvelope>(bytes.ToString(), JsonSerializerOptions.Web).ShouldNotBeNull();
+            stored.EventTypeName.ShouldBe(typeof(TenantAccessRefreshed).FullName);
+            stored.UserId.ShouldBe(state.TargetUserId);
+            stored.CorrelationId.ShouldBe(recovered.CorrelationId);
+            TenantAccessRefreshed snapshot = JsonSerializer.Deserialize<TenantAccessRefreshed>(stored.Payload, JsonSerializerOptions.Web).ShouldNotBeNull();
+            snapshot.TenantId.ShouldBe(state.TenantId);
+            snapshot.Status.ShouldBe(before.Status);
+            snapshot.Members.OrderBy(member => member.Key).ShouldBe(before.Members.OrderBy(member => member.Key));
+            snapshot.ConfigurationKeys.Order().ShouldBe(before.Configuration.Keys.Order());
+            TenantReadModel after = await AspireTopologyTests.WaitForPersistedTenantAsync(state.TenantId, "tenant-sequence:" + sequence, timeout.Token);
+            after.Name.ShouldBe(before.Name);
+            after.Description.ShouldBe(before.Description);
+            after.Status.ShouldBe(before.Status);
+            after.Members.OrderBy(member => member.Key).ShouldBe(before.Members.OrderBy(member => member.Key));
+            after.Configuration.OrderBy(item => item.Key).ShouldBe(before.Configuration.OrderBy(item => item.Key));
+            (await redis.GetDatabase().HashGetAsync(eventPrefix + (sequence + 1), "data").WaitAsync(timeout.Token)).IsNull.ShouldBeTrue();
+        }
+
+        string OwnerToken(bool mayRefresh)
+        {
+            JwtSecurityToken original = new JwtSecurityTokenHandler().ReadJwtToken(state.Token);
+            var claims = original.Claims.Where(claim => claim.Type is not ("sub" or "roles" or "eventstore:permission"))
+                .Append(new Claim("sub", state.TargetUserId)).Append(new Claim("eventstore:permission", "tenants:read")).ToList();
+            if (mayRefresh) claims.Add(new Claim("eventstore:permission", "tenants:refresh-access"));
+            var token = new JwtSecurityToken(original.Issuer, original.Audiences.Single(), claims,
+                expires: DateTime.UtcNow.AddMinutes(5), signingCredentials: new SigningCredentials(
+                    new SymmetricSecurityKey(Encoding.UTF8.GetBytes(AspireTopologyFixture.DemoSigningKey)), SecurityAlgorithms.HmacSha256));
+            return new JwtSecurityTokenHandler().WriteToken(token);
+        }
     }
 
     [DaprFact]

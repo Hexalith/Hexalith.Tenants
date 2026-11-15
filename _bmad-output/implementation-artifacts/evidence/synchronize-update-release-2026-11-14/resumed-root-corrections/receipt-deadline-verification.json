@@ -1,0 +1,10 @@
+{
+  "actual_cross_revision_refusal_exit": 1,
+  "previous_receipt_sha256_before_and_after": "dea031498c6ff41adcd6ae1d53435f989223a725d1241626cc9ed09956af4b23",
+  "controls_exit": 0,
+  "files_sha256": {
+    "_bmad-output/implementation-artifacts/evidence/fix-builds-sdk-cohort-fixtures-2026-11-15/verify-current.py": "dce26b6319a073e41ef2a33f2487f7891737e8726771d7a5a666e457689dc990",
+    "tests/scripts/test_release_resume_verification.py": "eecd5caa4fb84b6dffc6e45ae9ce0f2a53092a7b6c9b5bbb7867b80f3b58474e",
+    "_bmad-output/implementation-artifacts/evidence/fix-firefox-route-focus-ci-2026-11-15/verify.sh": "df5e2a91bf1cad88a7a9e942ac69a4e26e6e0faa620d0c60e9b90188b750cfff"
+  }
+}

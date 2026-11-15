@@ -1,0 +1,85 @@
+{
+  "root_head": "4faa79395b092fd73cd552ae9a37fdcbf77124ae",
+  "scope": "Final bounded local root corrections only. Full and hosted acceptance remain parent-owned.",
+  "csharp_focused_counts": {
+    "Hexalith.Tenants.Server.Tests": {
+      "total": "26",
+      "passed": "26",
+      "failed": "0",
+      "skipped": "0",
+      "errors": "0"
+    },
+    "Hexalith.Tenants.Testing.Tests": {
+      "total": "6",
+      "passed": "6",
+      "failed": "0",
+      "skipped": "0",
+      "errors": "0"
+    },
+    "Hexalith.Tenants.UI.Tests": {
+      "total": "41",
+      "passed": "41",
+      "failed": "0",
+      "skipped": "0",
+      "errors": "0"
+    },
+    "Hexalith.Tenants.IntegrationTests": {
+      "total": "1",
+      "passed": "1",
+      "failed": "0",
+      "skipped": "0",
+      "errors": "0"
+    }
+  },
+  "python_focused_counts": {
+    "receipt_deadline": 7,
+    "catalog_metadata": 14
+  },
+  "source_sha256": {
+    "src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs": "71afce853db73b132014cfab661da5c7ec2450f324258b47bdfa5320bedf61a4",
+    "src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditReceipt.cs": "01876811c12b37b7d7d802a623713265325639a0e2650ea1d49f6d1df05ade97",
+    "src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditEvidenceReceipt.razor": "a21020714014c8ae4172fa560ca7eb96a1a8298a1efc8ac1c61e9120d69330d3",
+    "src/Hexalith.Tenants.UI/Resources/TenantsResources.resx": "edc02cf574a34bf9b254e73170cbf7606602c2f499bb3b0435211f6a1255126a",
+    "src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx": "c24351f114a5d358f2e73272d03af0a9296d5775bf755acea512d5f22995b46e",
+    "src/Hexalith.Tenants.Testing/Helpers/TenantIsolationTestHelpers.cs": "de54b31e88e9d2c4d8bce4b68499d110f13cb52f6523695897cad735ee60b626",
+    "src/Hexalith.Tenants/Projections/TenantProjectionHandler.cs": "d4b4a900fbf608daf0fb4ecf55fda4fb2f4a68ea3c1614a8d1a2d93dd9dd5caa",
+    "tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs": "e8019ef1babc7f1ef762205a8f3eebff1d2b0096da99032e79584be153dd6f37",
+    "tests/Hexalith.Tenants.UI.Tests/State/TenantAuditReceiptTests.cs": "95c14bcdf6d4bc7170bf7d0a83930ea10306f6a33b599c9fecbe85ab5c16cc57",
+    "tests/Hexalith.Tenants.UI.Tests/Components/AuditEvidenceReceiptTests.cs": "547090b7398584334d6b6e5c3f440b930b6324ccbe5901308482932b819840c5",
+    "tests/Hexalith.Tenants.Testing.Tests/Helpers/TenantIsolationTestHelpersTests.cs": "a4433ff8222fd7c0fd743c83f079ad171a60a3ab2711a813167652eafbfde320",
+    "tests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionHandlerTests.cs": "fd229b22276d60cbebd442b1809a8608269136ec85eea81cb6e2627ad6e538cc",
+    "tests/Hexalith.Tenants.IntegrationTests/ProjectionReplayIntegrityTests.cs": "dad3628570234188420b1eb56e826f4f7e143f1a7524b8b27e456c11af4a0372",
+    "tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsRouteTests.cs": "52ee216759c8c264d08d421fe5d478022ce73b7170260aa2d3180acdf77c182a",
+    "scripts/verify-catalog-package-consumer.py": "3ccba585d264c26165b115e0576d05992f6686ec5aa71dab9e80c7d7f89cbc47",
+    "docs/development-route-catalog.md": "af4a3a115186116b4e746bda5a085acc665cd64966701f2ddbd05979d051ae90",
+    "docs/guides/canonical-scope-upgrade.md": "dca234f55e490669fbcaf37c03ab10bad3b388d9a05318a4565daea72c0032b8",
+    "tests/scripts/test_release_resume_verification.py": "cf429e8880e46bb1cc18f9c70575730d68ed7b603e61c862d85f33e30972c0a9",
+    "_bmad-output/implementation-artifacts/evidence/fix-builds-sdk-cohort-fixtures-2026-11-15/verify-current.py": "8fba486bff0d968e91ef4b898244a1593d3dfb76650d35011e9d91db33715deb",
+    "_bmad-output/implementation-artifacts/evidence/fix-firefox-route-focus-ci-2026-11-15/verify.sh": "5a589b116a3ea16812e584258b3ce6d3879441fa1abb5643417ac2982ad3eb70"
+  },
+  "historical_builds_receipt_sha256": "dea031498c6ff41adcd6ae1d53435f989223a725d1241626cc9ed09956af4b23",
+  "live_runtime_acceptance": {
+    "status": "pending-genuine-prepared-authenticated-routes-CI",
+    "command": [
+      "dotnet",
+      "tests/Hexalith.Tenants.IntegrationTests/bin/Release/net11.0/Hexalith.Tenants.IntegrationTests.dll",
+      "-method",
+      "*AuthenticatedTenantsRouteTests.AuthenticatedOwnerRecoveryPersistsExactSnapshotsAndPermissionRefusalDoesNotAppendEvents"
+    ],
+    "exit_code": 58,
+    "executed_cases": 0,
+    "reason": "The retained local backend has no committed route-catalog host identity/profile. The existing provisioning script correctly requires its declared GitHub job, committed source selection and fresh/empty owned Redis; none were fabricated or bypassed.",
+    "receipt": "live-verification.json",
+    "log": "authenticated-owner-recovery.log"
+  },
+  "cleanup": {
+    "all_recorded_wrapper_workspaces_removed": true,
+    "owned_fixture_processes_remaining": 0,
+    "owned_aspire_containers_remaining": 0
+  },
+  "earlier_attempts": [
+    "The rendered outcome regression exposed a third existing allowlist; its initial failed XML/log remain as attempt1, followed by41 passing UI cases.",
+    "A missing interface import and private-copy Platform marker were corrected before successful Integration compilation.",
+    "The first runtime copy lacked the CI-prebuilt child executables; attempt3 preserves its cancelled fixture output. All four hosts then built with0warnings/errors before the actual catalog-profile refusal."
+  ]
+}

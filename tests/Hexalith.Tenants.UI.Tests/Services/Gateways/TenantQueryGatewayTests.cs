@@ -4949,6 +4949,8 @@ public sealed partial class TenantQueryGatewayTests
     [InlineData("TenantUpdated", AuditEventCategory.Access, false)]
     [InlineData("TenantDisabled", AuditEventCategory.Administrative, true)]
     [InlineData("TenantDisabled", AuditEventCategory.Access, false)]
+    [InlineData("TenantAccessRefreshed", AuditEventCategory.Administrative, true)]
+    [InlineData("TenantAccessRefreshed", AuditEventCategory.Access, false)]
     [InlineData("TenantEnabled", AuditEventCategory.Administrative, true)]
     [InlineData("TenantEnabled", AuditEventCategory.Access, false)]
     [InlineData("TenantConfigurationSet", AuditEventCategory.Administrative, true)]

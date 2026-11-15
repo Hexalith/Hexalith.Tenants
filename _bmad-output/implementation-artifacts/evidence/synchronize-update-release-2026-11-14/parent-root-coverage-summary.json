@@ -1,0 +1,25 @@
+{
+  "scope": "Composite local working-tree evidence; preserves the original failed private-copy attempt. Successful cases are not relabeled as a later committed-source run.",
+  "source_inputs_common_between_attempts_identical": true,
+  "original_root_inputs_still_match_working_tree": true,
+  "original_ui_counts": {
+    "total": "8085",
+    "passed": "8084",
+    "failed": "1",
+    "skipped": "0"
+  },
+  "original_ui_failure": "Hexalith.Tenants.UI.Tests.TenantsUiCompositionTests.Story_1_8_evidence_tracks_closed_safe_model_separately_from_open_external_blockers",
+  "original_failure_kind": "Missing tracked historical evidence Markdown in disposable copy.",
+  "rerun_ui_class_counts": {
+    "total": "96",
+    "passed": "96",
+    "failed": "0",
+    "skipped": "0"
+  },
+  "every_original_failed_ui_case_passes_after_copy_repair": true,
+  "covered_ui_cases": 8085,
+  "references": [
+    "resumed-parent-root-verification/verification.json",
+    "resumed-parent-root-verification-attempt2/verification.json"
+  ]
+}
