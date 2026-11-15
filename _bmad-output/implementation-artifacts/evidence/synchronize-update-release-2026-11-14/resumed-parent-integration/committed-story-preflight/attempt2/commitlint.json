@@ -1,0 +1,11 @@
+{
+  "command": [
+    "node",
+    "node_modules/@commitlint/cli/cli.js",
+    "--edit",
+    "/dev/shm/tenants-release-resume-2026-11-15/committed-story-preflight/attempt2/message.txt"
+  ],
+  "exit_code": 0,
+  "stdout": "",
+  "stderr": ""
+}

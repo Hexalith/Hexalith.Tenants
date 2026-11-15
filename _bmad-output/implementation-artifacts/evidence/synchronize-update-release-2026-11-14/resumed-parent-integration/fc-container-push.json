@@ -1,0 +1,11 @@
+{
+  "command": [
+    "git",
+    "push",
+    "origin",
+    "main"
+  ],
+  "exit_code": 0,
+  "stdout": "",
+  "stderr": "To https://github.com/Hexalith/Hexalith.FrontComposer.git\n   923988d8..8ce46cfc  main -> main\n"
+}

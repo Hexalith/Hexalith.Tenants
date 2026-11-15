@@ -1,0 +1,17 @@
+{
+  "kind": "legacy",
+  "source": "d386e36005214f925b391a34684748e6c56728e6",
+  "tree": "c791a853d9f568c6a5d140a65809805d4dc552d6",
+  "commitlint": {
+    "command": [
+      "node",
+      "node_modules/@commitlint/cli/cli.js",
+      "--edit",
+      "/dev/shm/tenants-release-resume-2026-11-15/platform-companions-d386e360/legacy-message.txt"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "",
+    "pinned_cli": "21.2.4"
+  }
+}

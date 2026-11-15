@@ -2,9 +2,13 @@
 title: 'Run unchanged McpCli vectors through the canonical native runtime'
 type: 'bugfix'
 created: '2026-11-03'
-status: 'in-review'
+status: 'done'
+resolution: 'superseded'
+closed: '2026-11-15'
+superseded_by: 'spec-synchronize-update-release-2026-11-14.md'
 route: 'dispatch'
 baseline_commit: '31aa26ccf4af260930143b6929dbcd6e215c5db8'
+gitlink_audit_ref: 'ae40c9657175ae5567cdd182384d3840af64d8a2'
 owning_repository_baseline_commit: 'edaecb04b1a8edf78f6ad28e5bf253db594003f4'
 context:
   - '/home/administrator/projects/hexalith/tenants/AGENTS.md'
@@ -137,3 +141,26 @@ Hosted run41628872425 reached genuine catalog activation:16 retained catalog rec
 The follow-up must repair the actual generic transport rather than rewriting requests inside a test gateway. Preserve original contract descriptors, approved artifacts, vectors and semantic request fields; the committed native catalog remains the dispatch authority. A signed administrator assertion may request independent owner verification, but cannot establish membership or bootstrap authority. Cover nonmember and unavailable-authority rejection. The isolated reader may omit a repeated advisory refresh only when the identical dependency graph has a retained successful online vulnerability audit. No validator, permission, source or artifact check is weakened.
 
 Published enrollment and native source preparation are complete locally. Exact hash-bound handoffs are /tmp/tenants-release-20261103-07JciR/mcpcli-enrollment-handoff.json and mcpcli-native-runtime-handoff.json in that directory. All original21 vectors/42 vector-plan inputs are preserved. Local strict replay and package/build/source guards pass; physical activation, all21 persisted effects, smoke and cleanup remain mandatory Root remote CI acceptance. No local evidence grants that acceptance. Shared owner HEAD advanced through the independent authorized session and is preserved; review covers the complete owning-repository delta from edaecb04b1a8edf78f6ad28e5bf253db594003f4.
+
+## Historical Closure — 2026-11-15
+
+Closed as superseded under the user’s instruction, "close obsolete specs". The active successor is [Synchronize dependencies and publish the .NET 11 release](spec-synchronize-update-release-2026-11-14.md). The original intent, checklist, review findings, baselines and verification notes above remain historical. The `done` status records administrative closure of this superseded plan; unchecked historical tasks are not asserted to have passed.
+
+The EventStore 4.0.4/Tenants 7.0.0 runtime handoff was followed by request/selector repairs and the later McpCli cohort repair. The successor records subsequent hosted McpCli native results and explicitly limits them to their selected frozen profiles; the current release is the remaining coordination scope.
+
+Remaining qualification: Retain exact package/source binding, every required vector plus smoke, persisted effects, independent authorization refusal and owned cleanup. Historical native results do not enroll new recovery operations or a different SDK cohort.
+
+This closure grants no new technical acceptance, policy exception, source classification, Git operation or publication authority. Existing deferred records remain unchanged. [Closure validation](evidence/obsolete-spec-closure-2026-11-15/validation.json) retains the pre-existing historical gitlink-audit failures separately from the documentation checks; no baseline or gitlink audit metadata is rewritten.
+
+## Completion Notes List
+
+Historical audit reconciliation (2026-11-15): `ae40c9657175ae5567cdd182384d3840af64d8a2` is the latest committed story-associated pointer event before the current documentation-only repair. The unchanged baseline is `31aa26ccf4af260930143b6929dbcd6e215c5db8`. The complete baseline-to-endpoint inventory below includes incidental workspace dependency movement; it records historical range contents and grants no runtime, publication, enrollment or maintainer approval. Original implementation notes, checklists and source-specific receipts retain their original attribution.
+
+| Dependency | Historical baseline | Historical audit endpoint |
+| --- | --- | --- |
+| `references/Hexalith.Builds` | `fc743715f7d0993392dee34b2ef9c4eb85cdd399` | `725754075e1d6369430a3adf94d46fb71e6eaf9e` |
+| `references/Hexalith.EventStore` | `326bfef884543cdbcaf96de7f4c4ad378dbad6d7` | `16dff1f018e8a68a9d244975e8228d96429eb61c` |
+| `references/Hexalith.FrontComposer` | `f842711d67004200e3248b3c42b7d9bcb2146907` | `b105c846c31844441f1cff84b5c187da0eff3546` |
+| `references/Hexalith.McpCli` | `edaecb04b1a8edf78f6ad28e5bf253db594003f4` | `58afd4766849e33e75471c9047ee945025ca3b6e` |
+| `references/Hexalith.Memories` | `d9d61d8a95c7dc8827acf68ae723859711703729` | `d959bdae5af9c22f53573eda71c091cb5c0aae4c` |
+| `references/Hexalith.Platform` | `ee6f477c595defb79e17ca6ea3e5790de24c114e` | `8432397c66ebc0fd22e5671ce620a7d2139f7453` |

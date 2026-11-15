@@ -2,8 +2,12 @@
 title: 'Preserve frozen query wire contracts with digest-bound native compatibility selectors'
 type: 'feature'
 created: '2026-11-03'
-status: 'in-review'
+status: 'done'
+resolution: 'superseded'
+closed: '2026-11-15'
+superseded_by: 'spec-synchronize-update-release-2026-11-14.md'
 baseline_commit: '33835a03e92579a26400e7cb7cf68d666c715b3e'
+gitlink_audit_ref: 'ae40c9657175ae5567cdd182384d3840af64d8a2'
 eventstore_baseline_commit: 'e97582bf43ffe8c2f7d958dd470a242c21bd4908'
 mcpcli_baseline_commit: 'f292f2f4a0cfe101a98bc91a9574b3a4cec16ccf'
 ---
@@ -74,3 +78,25 @@ SDK feature and all reviewed fixes are pushed through EventStore `0e5ecebc13e8d1
 McpCli `2e80701c31aafdf00abee05ac469a45ed76dfdf5` passes hosted ordinary build/test, frozen contract/replay/discovery and enrollment jobs in run41657078924. Its Aspire preparation fails the native reader audit-policy check before runtime acceptance; retain the online low-level all-dependency audit and warnings-as-errors requirements while correcting the actual cause. This does not supply native acceptance or a new public SDK cohort.
 
 Native audit preparation follow-up: McpCli `d92a5f1ec4ec635627749470b179422e5342f351` clears inherited `WarningsNotAsErrors` only for native qualification builds. The exact pinned Tenants source appends NU1901–NU1904 independently of `TreatWarningsAsErrors`; real MSBuild before/after and a removal regression reproduce the original refusal. All five focused parent controls pass. The online low-level all-dependency audit validator, archive/provenance checks and warning refusals remain unchanged. Receipt: `/tmp/tenants-release-20261103-07JciR/mcpcli-native-audit-fix-handoff.json`; parent log `mcpcli-native-audit-parent-final.log`.
+
+## Historical Closure — 2026-11-15
+
+Closed as superseded under the user’s instruction, "close obsolete specs". The active successor is [Synchronize dependencies and publish the .NET 11 release](spec-synchronize-update-release-2026-11-14.md). The original intent, checklist, review findings, baselines and verification notes above remain historical. The `done` status records administrative closure of this superseded plan; unchecked historical tasks are not asserted to have passed.
+
+This November 3 SDK compatibility-selector/publication handoff has been overtaken by later published SDK cohorts and McpCli qualification recorded in the successor. The current root catalog selection is EventStore 5.1.0; the completed latest-SDK qualification is recorded in spec-qualify-sdk-3-130-catalog-selection.md.
+
+Remaining qualification: Preserve frozen wire/vector contracts, digest-bound selectors and exact receiver/scope/permission authority; qualify each actual native consumer cohort rather than transferring old acceptance.
+
+This closure grants no new technical acceptance, policy exception, source classification, Git operation or publication authority. Existing deferred records remain unchanged. [Closure validation](evidence/obsolete-spec-closure-2026-11-15/validation.json) retains the pre-existing historical gitlink-audit failures separately from the documentation checks; no baseline or gitlink audit metadata is rewritten.
+
+## Completion Notes List
+
+Historical audit reconciliation (2026-11-15): `ae40c9657175ae5567cdd182384d3840af64d8a2` is the latest committed story-associated pointer event before the current documentation-only repair. The unchanged baseline is `33835a03e92579a26400e7cb7cf68d666c715b3e`. The complete baseline-to-endpoint inventory below includes incidental workspace dependency movement; it records historical range contents and grants no runtime, publication, enrollment or maintainer approval. Original implementation notes, checklists and source-specific receipts retain their original attribution.
+
+| Dependency | Historical baseline | Historical audit endpoint |
+| --- | --- | --- |
+| `references/Hexalith.Builds` | `89f62052c932d054bda2b435bdfef60d96e77612` | `725754075e1d6369430a3adf94d46fb71e6eaf9e` |
+| `references/Hexalith.EventStore` | `e97582bf43ffe8c2f7d958dd470a242c21bd4908` | `16dff1f018e8a68a9d244975e8228d96429eb61c` |
+| `references/Hexalith.FrontComposer` | `fbe01c913cb863abb0fd4a317d370d36fff593b3` | `b105c846c31844441f1cff84b5c187da0eff3546` |
+| `references/Hexalith.McpCli` | `56a57c5ecc590bbea56567f1a0daa9dc512c56bc` | `58afd4766849e33e75471c9047ee945025ca3b6e` |
+| `references/Hexalith.Platform` | `bf101b9d5f19ba741852b0230e526d1f01422022` | `8432397c66ebc0fd22e5671ce620a7d2139f7453` |

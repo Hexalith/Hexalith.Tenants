@@ -1,0 +1,14 @@
+{
+  "head": "984b6be79a09e5e5796f75c9c0eb35ab4ccc2707",
+  "remote": "984b6be79a09e5e5796f75c9c0eb35ab4ccc2707\trefs/heads/main",
+  "files": {
+    "src/Hexalith.FrontComposer.SourceTools/Emitters/CommandFormEmitter.cs": "7ae2f935d804ed242b215e47a644b9a5936e4974505486b455c7c545ed234c2b",
+    "tests/Hexalith.FrontComposer.Shell.Tests/Generated/CommandRendererWrapperIntegrationTests.cs": "301679a7f44628ac61c871b068d308a8d2f3a24bc34fb842379de2fed90a6f65",
+    "tests/Hexalith.FrontComposer.Shell.Tests/Generated/CommandTargetGeneratedFormTests.cs": "7203e9ae86a7d3dc0b090f5ae0cc5ea5912d65cafebe8288c1d01223d97d5284",
+    "tests/Hexalith.FrontComposer.Shell.Tests/Services/Lifecycle/UlidFactoryTests.cs": "baa3ff72d896570c3292e3da915a8b8f5d17d06ea5669c82f0cd937e387c5d55",
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Emitters/CommandFormEmitterTests.CommandForm_DerivableFieldsHidden_OmitsHiddenFieldsOnly.verified.txt": "89edae6fa5d90d35881f2248e2d4050aa16c08ef7fa47a0d766eb975c15b5892",
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Emitters/CommandFormEmitterTests.CommandForm_ShowFieldsOnly_RendersOnlyNamedFields.verified.txt": "98bcb6603f84437f165444ed4575c73838285e5ffd6986e984042722faeb398e",
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Emitters/CommandFormEmitterTests.cs": "e682ff2c9cb4dd96f2589656a4c924f6ff14ea88e08ad4ea299a3cca24e70ad4",
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Emitters/CommandFormValidationCompilationTests.cs": "24b918f2364cfe8f7954ff35b1bd51b65f7ba4552ef3ea0ba68ac40f6fe97116"
+  }
+}

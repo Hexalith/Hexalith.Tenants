@@ -1,0 +1,62 @@
+[
+  {
+    "repo": "/home/administrator/projects/hexalith/tenants",
+    "exit_code": 0,
+    "output": "",
+    "divergence": "0\t0"
+  },
+  {
+    "repo": "/home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore",
+    "exit_code": 0,
+    "output": "From https://github.com/Hexalith/Hexalith.EventStore\n   9d715d480..2dcf708cb  main       -> origin/main\n",
+    "divergence": "0\t2"
+  },
+  {
+    "repo": "/home/administrator/projects/hexalith/tenants/references/Hexalith.Commons",
+    "exit_code": 0,
+    "output": "",
+    "divergence": "0\t0"
+  },
+  {
+    "repo": "/home/administrator/projects/hexalith/tenants/references/Hexalith.AI.Tools",
+    "exit_code": 0,
+    "output": "",
+    "divergence": "0\t0"
+  },
+  {
+    "repo": "/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer",
+    "exit_code": 0,
+    "output": "From https://github.com/Hexalith/Hexalith.FrontComposer\n   b22be84b..38856d02  main       -> origin/main\n",
+    "divergence": "0\t2"
+  },
+  {
+    "repo": "/home/administrator/projects/hexalith/tenants/references/Hexalith.Builds",
+    "exit_code": 0,
+    "output": "From https://github.com/Hexalith/Hexalith.Builds\n   e2bbbd08..afeee370  main       -> origin/main\n",
+    "divergence": "0\t3"
+  },
+  {
+    "repo": "/home/administrator/projects/hexalith/tenants/references/Hexalith.PolymorphicSerializations",
+    "exit_code": 0,
+    "output": "",
+    "divergence": "0\t0"
+  },
+  {
+    "repo": "/home/administrator/projects/hexalith/tenants/references/Hexalith.Memories",
+    "exit_code": 0,
+    "output": "From https://github.com/Hexalith/Hexalith.Memories\n   1306a0f8..003e3d86  main       -> origin/main\n",
+    "divergence": "0\t1"
+  },
+  {
+    "repo": "/home/administrator/projects/hexalith/tenants/references/Hexalith.McpCli",
+    "exit_code": 0,
+    "output": "From https://github.com/Hexalith/Hexalith.McpCli\n   0795509f..7a496c37  main       -> origin/main\n",
+    "divergence": "0\t1"
+  },
+  {
+    "repo": "/home/administrator/projects/hexalith/tenants/references/Hexalith.Platform",
+    "exit_code": 0,
+    "output": "",
+    "divergence": "0\t0"
+  }
+]

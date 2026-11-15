@@ -1,0 +1,13 @@
+{
+  "command": [
+    "node",
+    "node_modules/@commitlint/cli/cli.js",
+    "--edit",
+    "/dev/shm/tenants-release-resume-2026-11-15/builds-commit.txt"
+  ],
+  "exit_code": 0,
+  "stdout": "",
+  "stderr": "",
+  "pinned_cli": "21.2.4",
+  "message_file": "/dev/shm/tenants-release-resume-2026-11-15/builds-commit.txt"
+}

@@ -1,0 +1,578 @@
+{
+  "event_base": "d73267fdbe84d09ccddf0a6492390e32d8938405",
+  "rows": [
+    {
+      "path": "_bmad-output/implementation-artifacts/spec-eventstore-secret-scanner-ci-repair.md",
+      "endpoint": "ae40c9657175ae5567cdd182384d3840af64d8a2",
+      "baseline": "33835a03e92579a26400e7cb7cf68d666c715b3e",
+      "sha256_before": "a77024fcb4e8e5a5c6828485f015f01a21b677e5982e5aefad4a9e3eacf2db81",
+      "sha256_after": "e07ec5b76cf07cd4c0f9b568f9b5213b92fd390398bca686b6d5e33a2cb2921f",
+      "baseline_preserved": true,
+      "frozen_intent_preserved": true,
+      "checklists_preserved": true,
+      "added_declarations": [],
+      "inventory": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "89f62052c932d054bda2b435bdfef60d96e77612",
+          "after": "725754075e1d6369430a3adf94d46fb71e6eaf9e"
+        },
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "e97582bf43ffe8c2f7d958dd470a242c21bd4908",
+          "after": "16dff1f018e8a68a9d244975e8228d96429eb61c"
+        },
+        {
+          "path": "references/Hexalith.FrontComposer",
+          "before": "fbe01c913cb863abb0fd4a317d370d36fff593b3",
+          "after": "b105c846c31844441f1cff84b5c187da0eff3546"
+        },
+        {
+          "path": "references/Hexalith.McpCli",
+          "before": "56a57c5ecc590bbea56567f1a0daa9dc512c56bc",
+          "after": "58afd4766849e33e75471c9047ee945025ca3b6e"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "bf101b9d5f19ba741852b0230e526d1f01422022",
+          "after": "8432397c66ebc0fd22e5671ce620a7d2139f7453"
+        }
+      ],
+      "creation_correction_already_landed": false
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/spec-fix-builds-sdk-cohort-fixtures.md",
+      "endpoint": "ae40c9657175ae5567cdd182384d3840af64d8a2",
+      "baseline": "be43b928ce700ae7433b1d078eec356ccd6079f8",
+      "sha256_before": "aa201b42f33e9352e9a7f6d09ee1051152fddf6fe2d49ec91929f4c77cfe531e",
+      "sha256_after": "1754304663b16e3858c33523489905b28f0b2742eb7b2c72781d2665dccfea12",
+      "baseline_preserved": true,
+      "frozen_intent_preserved": true,
+      "checklists_preserved": true,
+      "added_declarations": [
+        "references/Hexalith.EventStore",
+        "references/Hexalith.McpCli",
+        "references/Hexalith.Memories",
+        "references/Hexalith.Platform"
+      ],
+      "inventory": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "10163c3e4ffd84ddb9b2831dea767a04da04f2ef",
+          "after": "725754075e1d6369430a3adf94d46fb71e6eaf9e"
+        },
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "f06abada8dc3aab4a5fd240847fd680d515c98a5",
+          "after": "16dff1f018e8a68a9d244975e8228d96429eb61c"
+        },
+        {
+          "path": "references/Hexalith.FrontComposer",
+          "before": "e4df7256be0e89b48c830c0792033ecfeabec9ad",
+          "after": "b105c846c31844441f1cff84b5c187da0eff3546"
+        },
+        {
+          "path": "references/Hexalith.McpCli",
+          "before": "edaecb04b1a8edf78f6ad28e5bf253db594003f4",
+          "after": "58afd4766849e33e75471c9047ee945025ca3b6e"
+        },
+        {
+          "path": "references/Hexalith.Memories",
+          "before": "d9d61d8a95c7dc8827acf68ae723859711703729",
+          "after": "d959bdae5af9c22f53573eda71c091cb5c0aae4c"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "1f5958e24d1b414d8956d079270f89556e23415d",
+          "after": "8432397c66ebc0fd22e5671ce620a7d2139f7453"
+        }
+      ],
+      "creation_correction_already_landed": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/spec-fix-firefox-route-focus-ci.md",
+      "endpoint": "ae40c9657175ae5567cdd182384d3840af64d8a2",
+      "baseline": "be43b928ce700ae7433b1d078eec356ccd6079f8",
+      "sha256_before": "eff0b76e96944c5c354a1bb4f17f5c98c2ba354a8f52c4bc89b7f77b27620a07",
+      "sha256_after": "d4289856554882fe435937aaf938156bbc994af889b1e26aedf136861657535f",
+      "baseline_preserved": true,
+      "frozen_intent_preserved": true,
+      "checklists_preserved": true,
+      "added_declarations": [
+        "references/Hexalith.EventStore",
+        "references/Hexalith.McpCli",
+        "references/Hexalith.Memories",
+        "references/Hexalith.Platform"
+      ],
+      "inventory": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "10163c3e4ffd84ddb9b2831dea767a04da04f2ef",
+          "after": "725754075e1d6369430a3adf94d46fb71e6eaf9e"
+        },
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "f06abada8dc3aab4a5fd240847fd680d515c98a5",
+          "after": "16dff1f018e8a68a9d244975e8228d96429eb61c"
+        },
+        {
+          "path": "references/Hexalith.FrontComposer",
+          "before": "e4df7256be0e89b48c830c0792033ecfeabec9ad",
+          "after": "b105c846c31844441f1cff84b5c187da0eff3546"
+        },
+        {
+          "path": "references/Hexalith.McpCli",
+          "before": "edaecb04b1a8edf78f6ad28e5bf253db594003f4",
+          "after": "58afd4766849e33e75471c9047ee945025ca3b6e"
+        },
+        {
+          "path": "references/Hexalith.Memories",
+          "before": "d9d61d8a95c7dc8827acf68ae723859711703729",
+          "after": "d959bdae5af9c22f53573eda71c091cb5c0aae4c"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "1f5958e24d1b414d8956d079270f89556e23415d",
+          "after": "8432397c66ebc0fd22e5671ce620a7d2139f7453"
+        }
+      ],
+      "creation_correction_already_landed": true
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/spec-fix-native-removal-production-transport.md",
+      "endpoint": "ae40c9657175ae5567cdd182384d3840af64d8a2",
+      "baseline": "bcd923781e97cf7ea6391f73eb0b3d5469c254c4",
+      "sha256_before": "7104ac31c53769d9b577d60c700e935ca3dac17e2381e3712fc0f3b961561822",
+      "sha256_after": "7d3de40119157cd42054da307c3072110e7e733a23a1994d58dba88584f46384",
+      "baseline_preserved": true,
+      "frozen_intent_preserved": true,
+      "checklists_preserved": true,
+      "added_declarations": [
+        "references/Hexalith.FrontComposer",
+        "references/Hexalith.McpCli",
+        "references/Hexalith.Memories"
+      ],
+      "inventory": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "70850b18e0d0b80facd2df0809974020dd935732",
+          "after": "725754075e1d6369430a3adf94d46fb71e6eaf9e"
+        },
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "f06abada8dc3aab4a5fd240847fd680d515c98a5",
+          "after": "16dff1f018e8a68a9d244975e8228d96429eb61c"
+        },
+        {
+          "path": "references/Hexalith.FrontComposer",
+          "before": "f842711d67004200e3248b3c42b7d9bcb2146907",
+          "after": "b105c846c31844441f1cff84b5c187da0eff3546"
+        },
+        {
+          "path": "references/Hexalith.McpCli",
+          "before": "edaecb04b1a8edf78f6ad28e5bf253db594003f4",
+          "after": "58afd4766849e33e75471c9047ee945025ca3b6e"
+        },
+        {
+          "path": "references/Hexalith.Memories",
+          "before": "d9d61d8a95c7dc8827acf68ae723859711703729",
+          "after": "d959bdae5af9c22f53573eda71c091cb5c0aae4c"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "1f5958e24d1b414d8956d079270f89556e23415d",
+          "after": "8432397c66ebc0fd22e5671ce620a7d2139f7453"
+        }
+      ],
+      "creation_correction_already_landed": false
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/spec-native-mcpcli-runtime-cohort.md",
+      "endpoint": "ae40c9657175ae5567cdd182384d3840af64d8a2",
+      "baseline": "31aa26ccf4af260930143b6929dbcd6e215c5db8",
+      "sha256_before": "8969a237021d6505a4f1ee3db661acab8118634859c33f88e07b5b09db8cabe7",
+      "sha256_after": "915222b6512b27f147dd8a0e77cad18ebc1114c2ed7b8aa263f2d91700753b0a",
+      "baseline_preserved": true,
+      "frozen_intent_preserved": true,
+      "checklists_preserved": true,
+      "added_declarations": [],
+      "inventory": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "fc743715f7d0993392dee34b2ef9c4eb85cdd399",
+          "after": "725754075e1d6369430a3adf94d46fb71e6eaf9e"
+        },
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "326bfef884543cdbcaf96de7f4c4ad378dbad6d7",
+          "after": "16dff1f018e8a68a9d244975e8228d96429eb61c"
+        },
+        {
+          "path": "references/Hexalith.FrontComposer",
+          "before": "f842711d67004200e3248b3c42b7d9bcb2146907",
+          "after": "b105c846c31844441f1cff84b5c187da0eff3546"
+        },
+        {
+          "path": "references/Hexalith.McpCli",
+          "before": "edaecb04b1a8edf78f6ad28e5bf253db594003f4",
+          "after": "58afd4766849e33e75471c9047ee945025ca3b6e"
+        },
+        {
+          "path": "references/Hexalith.Memories",
+          "before": "d9d61d8a95c7dc8827acf68ae723859711703729",
+          "after": "d959bdae5af9c22f53573eda71c091cb5c0aae4c"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "ee6f477c595defb79e17ca6ea3e5790de24c114e",
+          "after": "8432397c66ebc0fd22e5671ce620a7d2139f7453"
+        }
+      ],
+      "creation_correction_already_landed": false
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/spec-native-query-selector-compatibility-cohort.md",
+      "endpoint": "ae40c9657175ae5567cdd182384d3840af64d8a2",
+      "baseline": "33835a03e92579a26400e7cb7cf68d666c715b3e",
+      "sha256_before": "19a146e03e87582cf2570ebf1c8671f8cc7df805475ab5ac5e557c57df5efe17",
+      "sha256_after": "ec87638b33b16dc60bc0c3d162b89d5af3a2d0d4eacb6cced18fe359d61024bb",
+      "baseline_preserved": true,
+      "frozen_intent_preserved": true,
+      "checklists_preserved": true,
+      "added_declarations": [],
+      "inventory": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "89f62052c932d054bda2b435bdfef60d96e77612",
+          "after": "725754075e1d6369430a3adf94d46fb71e6eaf9e"
+        },
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "e97582bf43ffe8c2f7d958dd470a242c21bd4908",
+          "after": "16dff1f018e8a68a9d244975e8228d96429eb61c"
+        },
+        {
+          "path": "references/Hexalith.FrontComposer",
+          "before": "fbe01c913cb863abb0fd4a317d370d36fff593b3",
+          "after": "b105c846c31844441f1cff84b5c187da0eff3546"
+        },
+        {
+          "path": "references/Hexalith.McpCli",
+          "before": "56a57c5ecc590bbea56567f1a0daa9dc512c56bc",
+          "after": "58afd4766849e33e75471c9047ee945025ca3b6e"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "bf101b9d5f19ba741852b0230e526d1f01422022",
+          "after": "8432397c66ebc0fd22e5671ce620a7d2139f7453"
+        }
+      ],
+      "creation_correction_already_landed": false
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/spec-native-request-compatibility-follow-up.md",
+      "endpoint": "ae40c9657175ae5567cdd182384d3840af64d8a2",
+      "baseline": "60daa5198169f093b11abd1bafca5a45afe254fe",
+      "sha256_before": "e91f2e29f299dc5cf9580c1617edf2707b531c32566a8bc2758c6e8808e6782c",
+      "sha256_after": "7eb6a01968c9749f2fb107bed6a157c2adac40e9f662c3257bc6fe3128a6a270",
+      "baseline_preserved": true,
+      "frozen_intent_preserved": true,
+      "checklists_preserved": true,
+      "added_declarations": [],
+      "inventory": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "89f62052c932d054bda2b435bdfef60d96e77612",
+          "after": "725754075e1d6369430a3adf94d46fb71e6eaf9e"
+        },
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "e97582bf43ffe8c2f7d958dd470a242c21bd4908",
+          "after": "16dff1f018e8a68a9d244975e8228d96429eb61c"
+        },
+        {
+          "path": "references/Hexalith.FrontComposer",
+          "before": "fbe01c913cb863abb0fd4a317d370d36fff593b3",
+          "after": "b105c846c31844441f1cff84b5c187da0eff3546"
+        },
+        {
+          "path": "references/Hexalith.McpCli",
+          "before": "56a57c5ecc590bbea56567f1a0daa9dc512c56bc",
+          "after": "58afd4766849e33e75471c9047ee945025ca3b6e"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "bf101b9d5f19ba741852b0230e526d1f01422022",
+          "after": "8432397c66ebc0fd22e5671ce620a7d2139f7453"
+        }
+      ],
+      "creation_correction_already_landed": false
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/spec-preserve-sample-background-ci.md",
+      "endpoint": "ae40c9657175ae5567cdd182384d3840af64d8a2",
+      "baseline": "bcd923781e97cf7ea6391f73eb0b3d5469c254c4",
+      "sha256_before": "9b08043a1aa5d296b16c1d5ebe0ca9abe916009d28aaf7188bfda9e76c6e65f1",
+      "sha256_after": "1bb63f79fa7a74b75c4865644655cfafd3d91bde1c7533e1cd201459add1b5ab",
+      "baseline_preserved": true,
+      "frozen_intent_preserved": true,
+      "checklists_preserved": true,
+      "added_declarations": [
+        "references/Hexalith.FrontComposer",
+        "references/Hexalith.McpCli",
+        "references/Hexalith.Memories"
+      ],
+      "inventory": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "70850b18e0d0b80facd2df0809974020dd935732",
+          "after": "725754075e1d6369430a3adf94d46fb71e6eaf9e"
+        },
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "f06abada8dc3aab4a5fd240847fd680d515c98a5",
+          "after": "16dff1f018e8a68a9d244975e8228d96429eb61c"
+        },
+        {
+          "path": "references/Hexalith.FrontComposer",
+          "before": "f842711d67004200e3248b3c42b7d9bcb2146907",
+          "after": "b105c846c31844441f1cff84b5c187da0eff3546"
+        },
+        {
+          "path": "references/Hexalith.McpCli",
+          "before": "edaecb04b1a8edf78f6ad28e5bf253db594003f4",
+          "after": "58afd4766849e33e75471c9047ee945025ca3b6e"
+        },
+        {
+          "path": "references/Hexalith.Memories",
+          "before": "d9d61d8a95c7dc8827acf68ae723859711703729",
+          "after": "d959bdae5af9c22f53573eda71c091cb5c0aae4c"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "1f5958e24d1b414d8956d079270f89556e23415d",
+          "after": "8432397c66ebc0fd22e5671ce620a7d2139f7453"
+        }
+      ],
+      "creation_correction_already_landed": false
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/spec-publish-compiled-catalog-inputs.md",
+      "endpoint": "b9929ba726e687b46d009f2e0f42284c7c3b6ea6",
+      "baseline": "fff6a5cb556ee0012974550c708eb7a871a25001",
+      "sha256_before": "7d07a25848b6df7d6785c67ff7d1c98541e7777caa38462afaea20e906bfd684",
+      "sha256_after": "f55da36b5a2e8189af9ff53155f59ff10031c1dc5acbed2c7b006d60f515b3c3",
+      "baseline_preserved": true,
+      "frozen_intent_preserved": true,
+      "checklists_preserved": true,
+      "added_declarations": [],
+      "inventory": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "2186b9a4bc507a116a457c590c80945c2e232cbd",
+          "after": "a22b55f0a4f6d2aaa3a5ccc505896064ac595364"
+        }
+      ],
+      "creation_correction_already_landed": false
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/spec-qualify-published-eventstore-4.0.3-cohort.md",
+      "endpoint": "ae40c9657175ae5567cdd182384d3840af64d8a2",
+      "baseline": "bcd923781e97cf7ea6391f73eb0b3d5469c254c4",
+      "sha256_before": "e9d6bd0b399a69fc58a6a775d2d69103a4ef063c0a3f2b6d0319cb46853b151d",
+      "sha256_after": "7ee8b8f62429cdbda2d6373b35dc0d3e47c4caa3bd7878904a66e8db15aa7c0b",
+      "baseline_preserved": true,
+      "frozen_intent_preserved": true,
+      "checklists_preserved": true,
+      "added_declarations": [
+        "references/Hexalith.FrontComposer",
+        "references/Hexalith.McpCli",
+        "references/Hexalith.Memories"
+      ],
+      "inventory": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "70850b18e0d0b80facd2df0809974020dd935732",
+          "after": "725754075e1d6369430a3adf94d46fb71e6eaf9e"
+        },
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "f06abada8dc3aab4a5fd240847fd680d515c98a5",
+          "after": "16dff1f018e8a68a9d244975e8228d96429eb61c"
+        },
+        {
+          "path": "references/Hexalith.FrontComposer",
+          "before": "f842711d67004200e3248b3c42b7d9bcb2146907",
+          "after": "b105c846c31844441f1cff84b5c187da0eff3546"
+        },
+        {
+          "path": "references/Hexalith.McpCli",
+          "before": "edaecb04b1a8edf78f6ad28e5bf253db594003f4",
+          "after": "58afd4766849e33e75471c9047ee945025ca3b6e"
+        },
+        {
+          "path": "references/Hexalith.Memories",
+          "before": "d9d61d8a95c7dc8827acf68ae723859711703729",
+          "after": "d959bdae5af9c22f53573eda71c091cb5c0aae4c"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "1f5958e24d1b414d8956d079270f89556e23415d",
+          "after": "8432397c66ebc0fd22e5671ce620a7d2139f7453"
+        }
+      ],
+      "creation_correction_already_landed": false
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/spec-qualify-published-mcpcli-7.0.0-enrollment.md",
+      "endpoint": "ae40c9657175ae5567cdd182384d3840af64d8a2",
+      "baseline": "f5f65fc0bb755fb4af31427e4f62727d44f578e9",
+      "sha256_before": "98396dcc4f8c0ba08d8f1d1583f7d04bcbeaf91e58f122f45ebd2986f38ada9d",
+      "sha256_after": "a44f21695bf997ff69c1c2c2cf6af538594bd0188aa195253c8b2b377759c206",
+      "baseline_preserved": true,
+      "frozen_intent_preserved": true,
+      "checklists_preserved": true,
+      "added_declarations": [],
+      "inventory": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "66a1b2f9b8087b45431b681c0b9907019aada142",
+          "after": "725754075e1d6369430a3adf94d46fb71e6eaf9e"
+        },
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "9aa4e5d690db3cce734ae38942b05c23c8380bac",
+          "after": "16dff1f018e8a68a9d244975e8228d96429eb61c"
+        },
+        {
+          "path": "references/Hexalith.FrontComposer",
+          "before": "f842711d67004200e3248b3c42b7d9bcb2146907",
+          "after": "b105c846c31844441f1cff84b5c187da0eff3546"
+        },
+        {
+          "path": "references/Hexalith.McpCli",
+          "before": "edaecb04b1a8edf78f6ad28e5bf253db594003f4",
+          "after": "58afd4766849e33e75471c9047ee945025ca3b6e"
+        },
+        {
+          "path": "references/Hexalith.Memories",
+          "before": "d9d61d8a95c7dc8827acf68ae723859711703729",
+          "after": "d959bdae5af9c22f53573eda71c091cb5c0aae4c"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "5d74c40b82940e1ba1788963dbb60cae41eab9dc",
+          "after": "8432397c66ebc0fd22e5671ce620a7d2139f7453"
+        }
+      ],
+      "creation_correction_already_landed": false
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/spec-refresh-and-publish-current-release.md",
+      "endpoint": "ae40c9657175ae5567cdd182384d3840af64d8a2",
+      "baseline": "2aa3f04014d9188fc59114113e3a6b0a2eb3964b",
+      "sha256_before": "bbfce2f6712d49ee9279da2d92b2f503ee8c54af754679e10bb28f14382e742b",
+      "sha256_after": "a82526cb6b80d6e7395952ee5bed4a9be86948b8a0a68eca1f8bd2a5299b5a34",
+      "baseline_preserved": true,
+      "frozen_intent_preserved": true,
+      "checklists_preserved": true,
+      "added_declarations": [
+        "references/Hexalith.McpCli",
+        "references/Hexalith.Memories"
+      ],
+      "inventory": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "6585f5860e87c146c26aa066d3a52b94eb56f271",
+          "after": "725754075e1d6369430a3adf94d46fb71e6eaf9e"
+        },
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "f06abada8dc3aab4a5fd240847fd680d515c98a5",
+          "after": "16dff1f018e8a68a9d244975e8228d96429eb61c"
+        },
+        {
+          "path": "references/Hexalith.FrontComposer",
+          "before": "25139b7f59e5ae5465d1665825e24c638928ccb2",
+          "after": "b105c846c31844441f1cff84b5c187da0eff3546"
+        },
+        {
+          "path": "references/Hexalith.McpCli",
+          "before": "edaecb04b1a8edf78f6ad28e5bf253db594003f4",
+          "after": "58afd4766849e33e75471c9047ee945025ca3b6e"
+        },
+        {
+          "path": "references/Hexalith.Memories",
+          "before": "d9d61d8a95c7dc8827acf68ae723859711703729",
+          "after": "d959bdae5af9c22f53573eda71c091cb5c0aae4c"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "28737966f2ec0cdbfc16e89a31c348f03a8058d2",
+          "after": "8432397c66ebc0fd22e5671ce620a7d2139f7453"
+        }
+      ],
+      "creation_correction_already_landed": false
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/spec-repair-current-mcpcli-published-cohort-ci.md",
+      "endpoint": "d99b7f63feb81f74cee75c3976894c02d173b373",
+      "baseline": "401d926eb7d51bdf332696ed3f0fe39a812b3501",
+      "sha256_before": "02c6c5c26ef9ef3c759d65b622cd5ec4918cc35663a2d526b6c82f79a9ec43e1",
+      "sha256_after": "9aa63dc7d4c5c2cabcafe2e3f763fd134c70ff5b864f084b242b042ad8eff5ab",
+      "baseline_preserved": true,
+      "frozen_intent_preserved": true,
+      "checklists_preserved": true,
+      "added_declarations": [],
+      "inventory": [],
+      "creation_correction_already_landed": false
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/spec-scope-live-corpus-read-tokens.md",
+      "endpoint": "ae40c9657175ae5567cdd182384d3840af64d8a2",
+      "baseline": "f5f65fc0bb755fb4af31427e4f62727d44f578e9",
+      "sha256_before": "ae2f4895a9cbcc1f7e0c41e17c402a492642632526556a8ea03ca244a526733f",
+      "sha256_after": "62c749b4c8313f957b2ee37f5646a21aa8dd140ec2a41a1d66c51a14e72a3d09",
+      "baseline_preserved": true,
+      "frozen_intent_preserved": true,
+      "checklists_preserved": true,
+      "added_declarations": [
+        "references/Hexalith.FrontComposer",
+        "references/Hexalith.McpCli"
+      ],
+      "inventory": [
+        {
+          "path": "references/Hexalith.Builds",
+          "before": "66a1b2f9b8087b45431b681c0b9907019aada142",
+          "after": "725754075e1d6369430a3adf94d46fb71e6eaf9e"
+        },
+        {
+          "path": "references/Hexalith.EventStore",
+          "before": "9aa4e5d690db3cce734ae38942b05c23c8380bac",
+          "after": "16dff1f018e8a68a9d244975e8228d96429eb61c"
+        },
+        {
+          "path": "references/Hexalith.FrontComposer",
+          "before": "f842711d67004200e3248b3c42b7d9bcb2146907",
+          "after": "b105c846c31844441f1cff84b5c187da0eff3546"
+        },
+        {
+          "path": "references/Hexalith.McpCli",
+          "before": "edaecb04b1a8edf78f6ad28e5bf253db594003f4",
+          "after": "58afd4766849e33e75471c9047ee945025ca3b6e"
+        },
+        {
+          "path": "references/Hexalith.Memories",
+          "before": "d9d61d8a95c7dc8827acf68ae723859711703729",
+          "after": "d959bdae5af9c22f53573eda71c091cb5c0aae4c"
+        },
+        {
+          "path": "references/Hexalith.Platform",
+          "before": "5d74c40b82940e1ba1788963dbb60cae41eab9dc",
+          "after": "8432397c66ebc0fd22e5671ce620a7d2139f7453"
+        }
+      ],
+      "creation_correction_already_landed": false
+    }
+  ]
+}

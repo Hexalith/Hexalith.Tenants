@@ -1,0 +1,194 @@
+[
+  {
+    "path": "_bmad-output/implementation-artifacts/spec-align-native-read-timeout-budgets.md",
+    "command": [
+      "python3",
+      "scripts/validate-story-gitlinks.py",
+      "_bmad-output/implementation-artifacts/spec-align-native-read-timeout-budgets.md",
+      "--ref",
+      "HEAD"
+    ],
+    "exit_code": 1,
+    "output": "Story:    spec-align-native-read-timeout-budgets.md\nBaseline: cea24f9\nCompared: HEAD (d73267f) + working tree\n\n9 references/ pointer change(s) in range:\n  [UNDECLARED] references/Hexalith.AI.Tools  1745b66 -> 17a37d8\n  [declared] references/Hexalith.Builds  66a1b2f -> 264e17d\n  [UNDECLARED] references/Hexalith.Commons  11555ac -> fbf4e94\n  [declared] references/Hexalith.EventStore  9aa4e5d -> 2dcf708\n  [declared] references/Hexalith.FrontComposer  f842711 -> 923988d\n  [declared] references/Hexalith.McpCli  edaecb0 -> 7a496c3\n  [declared] references/Hexalith.Memories  d9d61d8 -> 003e3d8\n  [declared] references/Hexalith.Platform  5d74c40 -> 217889d\n  [UNDECLARED] references/Hexalith.PolymorphicSerializations  bce4eb9 -> e97b569\n\nRESULT: FAIL\n\nEvery submodule pointer this story moves must be a deliberate, stated change.\nFor each UNDECLARED entry above, do one of:\n  DECLARE \u2014 add the path to the story's File List and say in the Completion Notes\n            why the bump belongs to this story.\n  REVERT  \u2014 restore the baseline pointer, then commit the bump separately:\n\n    git checkout 1745b6663ad32bb1288167135ed0f979366c53a0 -- references/Hexalith.AI.Tools\n    git checkout 11555ace9efcae2928a00122dcba91243e5a8a1a -- references/Hexalith.Commons\n    git checkout bce4eb9f45c6b131b960ab4fa39e50ff01e51960 -- references/Hexalith.PolymorphicSerializations\n"
+  },
+  {
+    "path": "_bmad-output/implementation-artifacts/spec-eventstore-secret-scanner-ci-repair.md",
+    "command": [
+      "python3",
+      "scripts/validate-story-gitlinks.py",
+      "_bmad-output/implementation-artifacts/spec-eventstore-secret-scanner-ci-repair.md",
+      "--ref",
+      "HEAD"
+    ],
+    "exit_code": 1,
+    "output": "Story:    spec-eventstore-secret-scanner-ci-repair.md\nBaseline: 33835a0\nCompared: HEAD (d73267f) + working tree\n\n9 references/ pointer change(s) in range:\n  [UNDECLARED] references/Hexalith.AI.Tools  1745b66 -> 17a37d8\n  [declared] references/Hexalith.Builds  89f6205 -> 264e17d\n  [UNDECLARED] references/Hexalith.Commons  11555ac -> fbf4e94\n  [declared] references/Hexalith.EventStore  e97582b -> 2dcf708\n  [declared] references/Hexalith.FrontComposer  fbe01c9 -> 923988d\n  [declared] references/Hexalith.McpCli  56a57c5 -> 7a496c3\n  [declared] references/Hexalith.Memories  d959bda -> 003e3d8\n  [declared] references/Hexalith.Platform  bf101b9 -> 217889d\n  [UNDECLARED] references/Hexalith.PolymorphicSerializations  bce4eb9 -> e97b569\n\nRESULT: FAIL\n\nEvery submodule pointer this story moves must be a deliberate, stated change.\nFor each UNDECLARED entry above, do one of:\n  DECLARE \u2014 add the path to the story's File List and say in the Completion Notes\n            why the bump belongs to this story.\n  REVERT  \u2014 restore the baseline pointer, then commit the bump separately:\n\n    git checkout 1745b6663ad32bb1288167135ed0f979366c53a0 -- references/Hexalith.AI.Tools\n    git checkout 11555ace9efcae2928a00122dcba91243e5a8a1a -- references/Hexalith.Commons\n    git checkout bce4eb9f45c6b131b960ab4fa39e50ff01e51960 -- references/Hexalith.PolymorphicSerializations\n"
+  },
+  {
+    "path": "_bmad-output/implementation-artifacts/spec-fix-builds-sdk-cohort-fixtures.md",
+    "command": [
+      "python3",
+      "scripts/validate-story-gitlinks.py",
+      "_bmad-output/implementation-artifacts/spec-fix-builds-sdk-cohort-fixtures.md",
+      "--ref",
+      "HEAD"
+    ],
+    "exit_code": 1,
+    "output": "Story:    spec-fix-builds-sdk-cohort-fixtures.md\nBaseline: be43b92\nCompared: HEAD (d73267f) + working tree\n\n9 references/ pointer change(s) in range:\n  [UNDECLARED] references/Hexalith.AI.Tools  1745b66 -> 17a37d8\n  [declared] references/Hexalith.Builds  10163c3 -> 264e17d\n  [UNDECLARED] references/Hexalith.Commons  11555ac -> fbf4e94\n  [UNDECLARED] references/Hexalith.EventStore  f06abad -> 2dcf708\n  [declared] references/Hexalith.FrontComposer  e4df725 -> 923988d\n  [UNDECLARED] references/Hexalith.McpCli  edaecb0 -> 7a496c3\n  [UNDECLARED] references/Hexalith.Memories  d9d61d8 -> 003e3d8\n  [UNDECLARED] references/Hexalith.Platform  1f5958e -> 217889d\n  [UNDECLARED] references/Hexalith.PolymorphicSerializations  bce4eb9 -> e97b569\n\n  [MISSTATED] references/Hexalith.Builds is 264e17d3185c87b72b0757dd66a13040793756bb in the tree, but the story states 70850b18e0d0b80facd2df0809974020dd935732.\n\n  [MISSTATED] references/Hexalith.FrontComposer is 923988d855cd6131b4287e3da763f12baf60ab22 in the tree, but the story states f842711d67004200e3248b3c42b7d9bcb2146907.\n\nRESULT: FAIL\n\nEvery submodule pointer this story moves must be a deliberate, stated change.\nFor each UNDECLARED entry above, do one of:\n  DECLARE \u2014 add the path to the story's File List and say in the Completion Notes\n            why the bump belongs to this story.\n  REVERT  \u2014 restore the baseline pointer, then commit the bump separately:\n\n    git checkout 1745b6663ad32bb1288167135ed0f979366c53a0 -- references/Hexalith.AI.Tools\n    git checkout 11555ace9efcae2928a00122dcba91243e5a8a1a -- references/Hexalith.Commons\n    git checkout f06abada8dc3aab4a5fd240847fd680d515c98a5 -- references/Hexalith.EventStore\n    git checkout edaecb04b1a8edf78f6ad28e5bf253db594003f4 -- references/Hexalith.McpCli\n    git checkout d9d61d8a95c7dc8827acf68ae723859711703729 -- references/Hexalith.Memories\n    git checkout 1f5958e24d1b414d8956d079270f89556e23415d -- references/Hexalith.Platform\n    git checkout bce4eb9f45c6b131b960ab4fa39e50ff01e51960 -- references/Hexalith.PolymorphicSerializations\n"
+  },
+  {
+    "path": "_bmad-output/implementation-artifacts/spec-fix-firefox-route-focus-ci.md",
+    "command": [
+      "python3",
+      "scripts/validate-story-gitlinks.py",
+      "_bmad-output/implementation-artifacts/spec-fix-firefox-route-focus-ci.md",
+      "--ref",
+      "HEAD"
+    ],
+    "exit_code": 1,
+    "output": "Story:    spec-fix-firefox-route-focus-ci.md\nBaseline: be43b92\nCompared: HEAD (d73267f) + working tree\n\n9 references/ pointer change(s) in range:\n  [UNDECLARED] references/Hexalith.AI.Tools  1745b66 -> 17a37d8\n  [declared] references/Hexalith.Builds  10163c3 -> 264e17d\n  [UNDECLARED] references/Hexalith.Commons  11555ac -> fbf4e94\n  [UNDECLARED] references/Hexalith.EventStore  f06abad -> 2dcf708\n  [declared] references/Hexalith.FrontComposer  e4df725 -> 923988d\n  [UNDECLARED] references/Hexalith.McpCli  edaecb0 -> 7a496c3\n  [UNDECLARED] references/Hexalith.Memories  d9d61d8 -> 003e3d8\n  [UNDECLARED] references/Hexalith.Platform  1f5958e -> 217889d\n  [UNDECLARED] references/Hexalith.PolymorphicSerializations  bce4eb9 -> e97b569\n\n  [MISSTATED] references/Hexalith.Builds is 264e17d3185c87b72b0757dd66a13040793756bb in the tree, but the story states 70850b18e0d0b80facd2df0809974020dd935732.\n\n  [MISSTATED] references/Hexalith.FrontComposer is 923988d855cd6131b4287e3da763f12baf60ab22 in the tree, but the story states f842711d67004200e3248b3c42b7d9bcb2146907.\n\nRESULT: FAIL\n\nEvery submodule pointer this story moves must be a deliberate, stated change.\nFor each UNDECLARED entry above, do one of:\n  DECLARE \u2014 add the path to the story's File List and say in the Completion Notes\n            why the bump belongs to this story.\n  REVERT  \u2014 restore the baseline pointer, then commit the bump separately:\n\n    git checkout 1745b6663ad32bb1288167135ed0f979366c53a0 -- references/Hexalith.AI.Tools\n    git checkout 11555ace9efcae2928a00122dcba91243e5a8a1a -- references/Hexalith.Commons\n    git checkout f06abada8dc3aab4a5fd240847fd680d515c98a5 -- references/Hexalith.EventStore\n    git checkout edaecb04b1a8edf78f6ad28e5bf253db594003f4 -- references/Hexalith.McpCli\n    git checkout d9d61d8a95c7dc8827acf68ae723859711703729 -- references/Hexalith.Memories\n    git checkout 1f5958e24d1b414d8956d079270f89556e23415d -- references/Hexalith.Platform\n    git checkout bce4eb9f45c6b131b960ab4fa39e50ff01e51960 -- references/Hexalith.PolymorphicSerializations\n"
+  },
+  {
+    "path": "_bmad-output/implementation-artifacts/spec-fix-native-removal-production-transport.md",
+    "command": [
+      "python3",
+      "scripts/validate-story-gitlinks.py",
+      "_bmad-output/implementation-artifacts/spec-fix-native-removal-production-transport.md",
+      "--ref",
+      "HEAD"
+    ],
+    "exit_code": 1,
+    "output": "Story:    spec-fix-native-removal-production-transport.md\nBaseline: bcd9237\nCompared: HEAD (d73267f) + working tree\n\n9 references/ pointer change(s) in range:\n  [UNDECLARED] references/Hexalith.AI.Tools  1745b66 -> 17a37d8\n  [declared] references/Hexalith.Builds  70850b1 -> 264e17d\n  [UNDECLARED] references/Hexalith.Commons  11555ac -> fbf4e94\n  [declared] references/Hexalith.EventStore  f06abad -> 2dcf708\n  [UNDECLARED] references/Hexalith.FrontComposer  f842711 -> 923988d\n  [UNDECLARED] references/Hexalith.McpCli  edaecb0 -> 7a496c3\n  [UNDECLARED] references/Hexalith.Memories  d9d61d8 -> 003e3d8\n  [declared] references/Hexalith.Platform  1f5958e -> 217889d\n  [UNDECLARED] references/Hexalith.PolymorphicSerializations  bce4eb9 -> e97b569\n\nRESULT: FAIL\n\nEvery submodule pointer this story moves must be a deliberate, stated change.\nFor each UNDECLARED entry above, do one of:\n  DECLARE \u2014 add the path to the story's File List and say in the Completion Notes\n            why the bump belongs to this story.\n  REVERT  \u2014 restore the baseline pointer, then commit the bump separately:\n\n    git checkout 1745b6663ad32bb1288167135ed0f979366c53a0 -- references/Hexalith.AI.Tools\n    git checkout 11555ace9efcae2928a00122dcba91243e5a8a1a -- references/Hexalith.Commons\n    git checkout f842711d67004200e3248b3c42b7d9bcb2146907 -- references/Hexalith.FrontComposer\n    git checkout edaecb04b1a8edf78f6ad28e5bf253db594003f4 -- references/Hexalith.McpCli\n    git checkout d9d61d8a95c7dc8827acf68ae723859711703729 -- references/Hexalith.Memories\n    git checkout bce4eb9f45c6b131b960ab4fa39e50ff01e51960 -- references/Hexalith.PolymorphicSerializations\n"
+  },
+  {
+    "path": "_bmad-output/implementation-artifacts/spec-native-mcpcli-runtime-cohort.md",
+    "command": [
+      "python3",
+      "scripts/validate-story-gitlinks.py",
+      "_bmad-output/implementation-artifacts/spec-native-mcpcli-runtime-cohort.md",
+      "--ref",
+      "HEAD"
+    ],
+    "exit_code": 1,
+    "output": "Story:    spec-native-mcpcli-runtime-cohort.md\nBaseline: 31aa26c\nCompared: HEAD (d73267f) + working tree\n\n9 references/ pointer change(s) in range:\n  [UNDECLARED] references/Hexalith.AI.Tools  1745b66 -> 17a37d8\n  [declared] references/Hexalith.Builds  fc74371 -> 264e17d\n  [UNDECLARED] references/Hexalith.Commons  11555ac -> fbf4e94\n  [declared] references/Hexalith.EventStore  326bfef -> 2dcf708\n  [declared] references/Hexalith.FrontComposer  f842711 -> 923988d\n  [declared] references/Hexalith.McpCli  edaecb0 -> 7a496c3\n  [declared] references/Hexalith.Memories  d9d61d8 -> 003e3d8\n  [declared] references/Hexalith.Platform  ee6f477 -> 217889d\n  [UNDECLARED] references/Hexalith.PolymorphicSerializations  bce4eb9 -> e97b569\n\nRESULT: FAIL\n\nEvery submodule pointer this story moves must be a deliberate, stated change.\nFor each UNDECLARED entry above, do one of:\n  DECLARE \u2014 add the path to the story's File List and say in the Completion Notes\n            why the bump belongs to this story.\n  REVERT  \u2014 restore the baseline pointer, then commit the bump separately:\n\n    git checkout 1745b6663ad32bb1288167135ed0f979366c53a0 -- references/Hexalith.AI.Tools\n    git checkout 11555ace9efcae2928a00122dcba91243e5a8a1a -- references/Hexalith.Commons\n    git checkout bce4eb9f45c6b131b960ab4fa39e50ff01e51960 -- references/Hexalith.PolymorphicSerializations\n"
+  },
+  {
+    "path": "_bmad-output/implementation-artifacts/spec-native-query-selector-compatibility-cohort.md",
+    "command": [
+      "python3",
+      "scripts/validate-story-gitlinks.py",
+      "_bmad-output/implementation-artifacts/spec-native-query-selector-compatibility-cohort.md",
+      "--ref",
+      "HEAD"
+    ],
+    "exit_code": 1,
+    "output": "Story:    spec-native-query-selector-compatibility-cohort.md\nBaseline: 33835a0\nCompared: HEAD (d73267f) + working tree\n\n9 references/ pointer change(s) in range:\n  [UNDECLARED] references/Hexalith.AI.Tools  1745b66 -> 17a37d8\n  [declared] references/Hexalith.Builds  89f6205 -> 264e17d\n  [UNDECLARED] references/Hexalith.Commons  11555ac -> fbf4e94\n  [declared] references/Hexalith.EventStore  e97582b -> 2dcf708\n  [declared] references/Hexalith.FrontComposer  fbe01c9 -> 923988d\n  [declared] references/Hexalith.McpCli  56a57c5 -> 7a496c3\n  [declared] references/Hexalith.Memories  d959bda -> 003e3d8\n  [declared] references/Hexalith.Platform  bf101b9 -> 217889d\n  [UNDECLARED] references/Hexalith.PolymorphicSerializations  bce4eb9 -> e97b569\n\nRESULT: FAIL\n\nEvery submodule pointer this story moves must be a deliberate, stated change.\nFor each UNDECLARED entry above, do one of:\n  DECLARE \u2014 add the path to the story's File List and say in the Completion Notes\n            why the bump belongs to this story.\n  REVERT  \u2014 restore the baseline pointer, then commit the bump separately:\n\n    git checkout 1745b6663ad32bb1288167135ed0f979366c53a0 -- references/Hexalith.AI.Tools\n    git checkout 11555ace9efcae2928a00122dcba91243e5a8a1a -- references/Hexalith.Commons\n    git checkout bce4eb9f45c6b131b960ab4fa39e50ff01e51960 -- references/Hexalith.PolymorphicSerializations\n"
+  },
+  {
+    "path": "_bmad-output/implementation-artifacts/spec-native-request-compatibility-follow-up.md",
+    "command": [
+      "python3",
+      "scripts/validate-story-gitlinks.py",
+      "_bmad-output/implementation-artifacts/spec-native-request-compatibility-follow-up.md",
+      "--ref",
+      "HEAD"
+    ],
+    "exit_code": 1,
+    "output": "Story:    spec-native-request-compatibility-follow-up.md\nBaseline: 60daa51\nCompared: HEAD (d73267f) + working tree\n\n9 references/ pointer change(s) in range:\n  [UNDECLARED] references/Hexalith.AI.Tools  1745b66 -> 17a37d8\n  [declared] references/Hexalith.Builds  89f6205 -> 264e17d\n  [UNDECLARED] references/Hexalith.Commons  11555ac -> fbf4e94\n  [declared] references/Hexalith.EventStore  e97582b -> 2dcf708\n  [declared] references/Hexalith.FrontComposer  fbe01c9 -> 923988d\n  [declared] references/Hexalith.McpCli  56a57c5 -> 7a496c3\n  [declared] references/Hexalith.Memories  d959bda -> 003e3d8\n  [declared] references/Hexalith.Platform  bf101b9 -> 217889d\n  [UNDECLARED] references/Hexalith.PolymorphicSerializations  bce4eb9 -> e97b569\n\nRESULT: FAIL\n\nEvery submodule pointer this story moves must be a deliberate, stated change.\nFor each UNDECLARED entry above, do one of:\n  DECLARE \u2014 add the path to the story's File List and say in the Completion Notes\n            why the bump belongs to this story.\n  REVERT  \u2014 restore the baseline pointer, then commit the bump separately:\n\n    git checkout 1745b6663ad32bb1288167135ed0f979366c53a0 -- references/Hexalith.AI.Tools\n    git checkout 11555ace9efcae2928a00122dcba91243e5a8a1a -- references/Hexalith.Commons\n    git checkout bce4eb9f45c6b131b960ab4fa39e50ff01e51960 -- references/Hexalith.PolymorphicSerializations\n"
+  },
+  {
+    "path": "_bmad-output/implementation-artifacts/spec-preserve-sample-background-ci.md",
+    "command": [
+      "python3",
+      "scripts/validate-story-gitlinks.py",
+      "_bmad-output/implementation-artifacts/spec-preserve-sample-background-ci.md",
+      "--ref",
+      "HEAD"
+    ],
+    "exit_code": 1,
+    "output": "Story:    spec-preserve-sample-background-ci.md\nBaseline: bcd9237\nCompared: HEAD (d73267f) + working tree\n\n9 references/ pointer change(s) in range:\n  [UNDECLARED] references/Hexalith.AI.Tools  1745b66 -> 17a37d8\n  [declared] references/Hexalith.Builds  70850b1 -> 264e17d\n  [UNDECLARED] references/Hexalith.Commons  11555ac -> fbf4e94\n  [declared] references/Hexalith.EventStore  f06abad -> 2dcf708\n  [UNDECLARED] references/Hexalith.FrontComposer  f842711 -> 923988d\n  [UNDECLARED] references/Hexalith.McpCli  edaecb0 -> 7a496c3\n  [UNDECLARED] references/Hexalith.Memories  d9d61d8 -> 003e3d8\n  [declared] references/Hexalith.Platform  1f5958e -> 217889d\n  [UNDECLARED] references/Hexalith.PolymorphicSerializations  bce4eb9 -> e97b569\n\nRESULT: FAIL\n\nEvery submodule pointer this story moves must be a deliberate, stated change.\nFor each UNDECLARED entry above, do one of:\n  DECLARE \u2014 add the path to the story's File List and say in the Completion Notes\n            why the bump belongs to this story.\n  REVERT  \u2014 restore the baseline pointer, then commit the bump separately:\n\n    git checkout 1745b6663ad32bb1288167135ed0f979366c53a0 -- references/Hexalith.AI.Tools\n    git checkout 11555ace9efcae2928a00122dcba91243e5a8a1a -- references/Hexalith.Commons\n    git checkout f842711d67004200e3248b3c42b7d9bcb2146907 -- references/Hexalith.FrontComposer\n    git checkout edaecb04b1a8edf78f6ad28e5bf253db594003f4 -- references/Hexalith.McpCli\n    git checkout d9d61d8a95c7dc8827acf68ae723859711703729 -- references/Hexalith.Memories\n    git checkout bce4eb9f45c6b131b960ab4fa39e50ff01e51960 -- references/Hexalith.PolymorphicSerializations\n"
+  },
+  {
+    "path": "_bmad-output/implementation-artifacts/spec-publish-compiled-catalog-inputs.md",
+    "command": [
+      "python3",
+      "scripts/validate-story-gitlinks.py",
+      "_bmad-output/implementation-artifacts/spec-publish-compiled-catalog-inputs.md",
+      "--ref",
+      "HEAD"
+    ],
+    "exit_code": 1,
+    "output": "Story:    spec-publish-compiled-catalog-inputs.md\nBaseline: fff6a5c\nCompared: HEAD (d73267f) + working tree\n\n9 references/ pointer change(s) in range:\n  [UNDECLARED] references/Hexalith.AI.Tools  9b78aa0 -> 17a37d8\n  [declared] references/Hexalith.Builds  2186b9a -> 264e17d\n  [UNDECLARED] references/Hexalith.Commons  0604bcf -> fbf4e94\n  [UNDECLARED] references/Hexalith.EventStore  e014af6 -> 2dcf708\n  [UNDECLARED] references/Hexalith.FrontComposer  61a8afb -> 923988d\n  [UNDECLARED] references/Hexalith.McpCli  7538bee -> 7a496c3\n  [UNDECLARED] references/Hexalith.Memories  71a721a -> 003e3d8\n  [UNDECLARED] references/Hexalith.Platform  667e5a0 -> 217889d\n  [UNDECLARED] references/Hexalith.PolymorphicSerializations  92ede24 -> e97b569\n\nRESULT: FAIL\n\nEvery submodule pointer this story moves must be a deliberate, stated change.\nFor each UNDECLARED entry above, do one of:\n  DECLARE \u2014 add the path to the story's File List and say in the Completion Notes\n            why the bump belongs to this story.\n  REVERT  \u2014 restore the baseline pointer, then commit the bump separately:\n\n    git checkout 9b78aa008cfc62cd88ad0ea4b39b1f07311956ce -- references/Hexalith.AI.Tools\n    git checkout 0604bcf5304fc09a569f7abbd8e5d1b9049c02b7 -- references/Hexalith.Commons\n    git checkout e014af6c3f1c67732485f24012cdbe528a12b0f6 -- references/Hexalith.EventStore\n    git checkout 61a8afbb85c7e25b2eb97acb1cac262ef3e1e33d -- references/Hexalith.FrontComposer\n    git checkout 7538bee529ab3a62c2d359fd498c9d60fca77621 -- references/Hexalith.McpCli\n    git checkout 71a721a87ebbb34c557c08517b5c39884a7417da -- references/Hexalith.Memories\n    git checkout 667e5a02a523cf8764ca54d6aa1b4b75db5dca64 -- references/Hexalith.Platform\n    git checkout 92ede24cc11129379efe52cfe7fd2c820c567f7f -- references/Hexalith.PolymorphicSerializations\n"
+  },
+  {
+    "path": "_bmad-output/implementation-artifacts/spec-qualify-published-eventstore-4.0.3-cohort.md",
+    "command": [
+      "python3",
+      "scripts/validate-story-gitlinks.py",
+      "_bmad-output/implementation-artifacts/spec-qualify-published-eventstore-4.0.3-cohort.md",
+      "--ref",
+      "HEAD"
+    ],
+    "exit_code": 1,
+    "output": "Story:    spec-qualify-published-eventstore-4.0.3-cohort.md\nBaseline: bcd9237\nCompared: HEAD (d73267f) + working tree\n\n9 references/ pointer change(s) in range:\n  [UNDECLARED] references/Hexalith.AI.Tools  1745b66 -> 17a37d8\n  [declared] references/Hexalith.Builds  70850b1 -> 264e17d\n  [UNDECLARED] references/Hexalith.Commons  11555ac -> fbf4e94\n  [declared] references/Hexalith.EventStore  f06abad -> 2dcf708\n  [UNDECLARED] references/Hexalith.FrontComposer  f842711 -> 923988d\n  [UNDECLARED] references/Hexalith.McpCli  edaecb0 -> 7a496c3\n  [UNDECLARED] references/Hexalith.Memories  d9d61d8 -> 003e3d8\n  [declared] references/Hexalith.Platform  1f5958e -> 217889d\n  [UNDECLARED] references/Hexalith.PolymorphicSerializations  bce4eb9 -> e97b569\n\nRESULT: FAIL\n\nEvery submodule pointer this story moves must be a deliberate, stated change.\nFor each UNDECLARED entry above, do one of:\n  DECLARE \u2014 add the path to the story's File List and say in the Completion Notes\n            why the bump belongs to this story.\n  REVERT  \u2014 restore the baseline pointer, then commit the bump separately:\n\n    git checkout 1745b6663ad32bb1288167135ed0f979366c53a0 -- references/Hexalith.AI.Tools\n    git checkout 11555ace9efcae2928a00122dcba91243e5a8a1a -- references/Hexalith.Commons\n    git checkout f842711d67004200e3248b3c42b7d9bcb2146907 -- references/Hexalith.FrontComposer\n    git checkout edaecb04b1a8edf78f6ad28e5bf253db594003f4 -- references/Hexalith.McpCli\n    git checkout d9d61d8a95c7dc8827acf68ae723859711703729 -- references/Hexalith.Memories\n    git checkout bce4eb9f45c6b131b960ab4fa39e50ff01e51960 -- references/Hexalith.PolymorphicSerializations\n"
+  },
+  {
+    "path": "_bmad-output/implementation-artifacts/spec-qualify-published-mcpcli-7.0.0-enrollment.md",
+    "command": [
+      "python3",
+      "scripts/validate-story-gitlinks.py",
+      "_bmad-output/implementation-artifacts/spec-qualify-published-mcpcli-7.0.0-enrollment.md",
+      "--ref",
+      "HEAD"
+    ],
+    "exit_code": 1,
+    "output": "Story:    spec-qualify-published-mcpcli-7.0.0-enrollment.md\nBaseline: f5f65fc\nCompared: HEAD (d73267f) + working tree\n\n9 references/ pointer change(s) in range:\n  [UNDECLARED] references/Hexalith.AI.Tools  1745b66 -> 17a37d8\n  [declared] references/Hexalith.Builds  66a1b2f -> 264e17d\n  [UNDECLARED] references/Hexalith.Commons  11555ac -> fbf4e94\n  [declared] references/Hexalith.EventStore  9aa4e5d -> 2dcf708\n  [declared] references/Hexalith.FrontComposer  f842711 -> 923988d\n  [declared] references/Hexalith.McpCli  edaecb0 -> 7a496c3\n  [declared] references/Hexalith.Memories  d9d61d8 -> 003e3d8\n  [declared] references/Hexalith.Platform  5d74c40 -> 217889d\n  [UNDECLARED] references/Hexalith.PolymorphicSerializations  bce4eb9 -> e97b569\n\nRESULT: FAIL\n\nEvery submodule pointer this story moves must be a deliberate, stated change.\nFor each UNDECLARED entry above, do one of:\n  DECLARE \u2014 add the path to the story's File List and say in the Completion Notes\n            why the bump belongs to this story.\n  REVERT  \u2014 restore the baseline pointer, then commit the bump separately:\n\n    git checkout 1745b6663ad32bb1288167135ed0f979366c53a0 -- references/Hexalith.AI.Tools\n    git checkout 11555ace9efcae2928a00122dcba91243e5a8a1a -- references/Hexalith.Commons\n    git checkout bce4eb9f45c6b131b960ab4fa39e50ff01e51960 -- references/Hexalith.PolymorphicSerializations\n"
+  },
+  {
+    "path": "_bmad-output/implementation-artifacts/spec-refresh-and-publish-current-release.md",
+    "command": [
+      "python3",
+      "scripts/validate-story-gitlinks.py",
+      "_bmad-output/implementation-artifacts/spec-refresh-and-publish-current-release.md",
+      "--ref",
+      "HEAD"
+    ],
+    "exit_code": 1,
+    "output": "Story:    spec-refresh-and-publish-current-release.md\nBaseline: 2aa3f04\nCompared: HEAD (d73267f) + working tree\n\n9 references/ pointer change(s) in range:\n  [UNDECLARED] references/Hexalith.AI.Tools  1745b66 -> 17a37d8\n  [declared] references/Hexalith.Builds  6585f58 -> 264e17d\n  [UNDECLARED] references/Hexalith.Commons  11555ac -> fbf4e94\n  [declared] references/Hexalith.EventStore  f06abad -> 2dcf708\n  [declared] references/Hexalith.FrontComposer  25139b7 -> 923988d\n  [UNDECLARED] references/Hexalith.McpCli  edaecb0 -> 7a496c3\n  [UNDECLARED] references/Hexalith.Memories  d9d61d8 -> 003e3d8\n  [declared] references/Hexalith.Platform  2873796 -> 217889d\n  [UNDECLARED] references/Hexalith.PolymorphicSerializations  bce4eb9 -> e97b569\n\nRESULT: FAIL\n\nEvery submodule pointer this story moves must be a deliberate, stated change.\nFor each UNDECLARED entry above, do one of:\n  DECLARE \u2014 add the path to the story's File List and say in the Completion Notes\n            why the bump belongs to this story.\n  REVERT  \u2014 restore the baseline pointer, then commit the bump separately:\n\n    git checkout 1745b6663ad32bb1288167135ed0f979366c53a0 -- references/Hexalith.AI.Tools\n    git checkout 11555ace9efcae2928a00122dcba91243e5a8a1a -- references/Hexalith.Commons\n    git checkout edaecb04b1a8edf78f6ad28e5bf253db594003f4 -- references/Hexalith.McpCli\n    git checkout d9d61d8a95c7dc8827acf68ae723859711703729 -- references/Hexalith.Memories\n    git checkout bce4eb9f45c6b131b960ab4fa39e50ff01e51960 -- references/Hexalith.PolymorphicSerializations\n"
+  },
+  {
+    "path": "_bmad-output/implementation-artifacts/spec-repair-current-mcpcli-published-cohort-ci.md",
+    "command": [
+      "python3",
+      "scripts/validate-story-gitlinks.py",
+      "_bmad-output/implementation-artifacts/spec-repair-current-mcpcli-published-cohort-ci.md",
+      "--ref",
+      "HEAD"
+    ],
+    "exit_code": 1,
+    "output": "Story:    spec-repair-current-mcpcli-published-cohort-ci.md\nBaseline: 401d926\nCompared: HEAD (d73267f) + working tree\n\n7 references/ pointer change(s) in range:\n  [UNDECLARED] references/Hexalith.AI.Tools  10b709b -> 17a37d8\n  [UNDECLARED] references/Hexalith.Builds  05a75b6 -> 264e17d\n  [UNDECLARED] references/Hexalith.EventStore  639c9d5 -> 2dcf708\n  [UNDECLARED] references/Hexalith.FrontComposer  19418a0 -> 923988d\n  [UNDECLARED] references/Hexalith.McpCli  42d3c2f -> 7a496c3\n  [UNDECLARED] references/Hexalith.Memories  a3f0b3a -> 003e3d8\n  [UNDECLARED] references/Hexalith.Platform  1cece24 -> 217889d\n\nRESULT: FAIL\n\nEvery submodule pointer this story moves must be a deliberate, stated change.\nFor each UNDECLARED entry above, do one of:\n  DECLARE \u2014 add the path to the story's File List and say in the Completion Notes\n            why the bump belongs to this story.\n  REVERT  \u2014 restore the baseline pointer, then commit the bump separately:\n\n    git checkout 10b709b86f9c9148e5a18177e8d11fad79ae2c0b -- references/Hexalith.AI.Tools\n    git checkout 05a75b626fb73c6e386d16c41e885f193d3cff16 -- references/Hexalith.Builds\n    git checkout 639c9d5c0c8c8fba14aaec536dd1c2e3ceaccc13 -- references/Hexalith.EventStore\n    git checkout 19418a0c29daf38eef03b0891958cd8aa93c59bf -- references/Hexalith.FrontComposer\n    git checkout 42d3c2fd48405e0f2c27f9b61f6d7025e4246934 -- references/Hexalith.McpCli\n    git checkout a3f0b3a4a0f0905f6b88da039491ceb286103207 -- references/Hexalith.Memories\n    git checkout 1cece242bd4a82c517bb92447c6d6799f6313b6f -- references/Hexalith.Platform\n"
+  },
+  {
+    "path": "_bmad-output/implementation-artifacts/spec-scope-live-corpus-read-tokens.md",
+    "command": [
+      "python3",
+      "scripts/validate-story-gitlinks.py",
+      "_bmad-output/implementation-artifacts/spec-scope-live-corpus-read-tokens.md",
+      "--ref",
+      "HEAD"
+    ],
+    "exit_code": 1,
+    "output": "Story:    spec-scope-live-corpus-read-tokens.md\nBaseline: f5f65fc\nCompared: HEAD (d73267f) + working tree\n\n9 references/ pointer change(s) in range:\n  [UNDECLARED] references/Hexalith.AI.Tools  1745b66 -> 17a37d8\n  [declared] references/Hexalith.Builds  66a1b2f -> 264e17d\n  [UNDECLARED] references/Hexalith.Commons  11555ac -> fbf4e94\n  [declared] references/Hexalith.EventStore  9aa4e5d -> 2dcf708\n  [UNDECLARED] references/Hexalith.FrontComposer  f842711 -> 923988d\n  [UNDECLARED] references/Hexalith.McpCli  edaecb0 -> 7a496c3\n  [declared] references/Hexalith.Memories  d9d61d8 -> 003e3d8\n  [declared] references/Hexalith.Platform  5d74c40 -> 217889d\n  [UNDECLARED] references/Hexalith.PolymorphicSerializations  bce4eb9 -> e97b569\n\nRESULT: FAIL\n\nEvery submodule pointer this story moves must be a deliberate, stated change.\nFor each UNDECLARED entry above, do one of:\n  DECLARE \u2014 add the path to the story's File List and say in the Completion Notes\n            why the bump belongs to this story.\n  REVERT  \u2014 restore the baseline pointer, then commit the bump separately:\n\n    git checkout 1745b6663ad32bb1288167135ed0f979366c53a0 -- references/Hexalith.AI.Tools\n    git checkout 11555ace9efcae2928a00122dcba91243e5a8a1a -- references/Hexalith.Commons\n    git checkout f842711d67004200e3248b3c42b7d9bcb2146907 -- references/Hexalith.FrontComposer\n    git checkout edaecb04b1a8edf78f6ad28e5bf253db594003f4 -- references/Hexalith.McpCli\n    git checkout bce4eb9f45c6b131b960ab4fa39e50ff01e51960 -- references/Hexalith.PolymorphicSerializations\n"
+  },
+  {
+    "path": "_bmad-output/implementation-artifacts/spec-synchronize-update-release-2026-11-14.md",
+    "command": [
+      "python3",
+      "scripts/validate-story-gitlinks.py",
+      "_bmad-output/implementation-artifacts/spec-synchronize-update-release-2026-11-14.md",
+      "--ref",
+      "HEAD"
+    ],
+    "exit_code": 0,
+    "output": "Story:    spec-synchronize-update-release-2026-11-14.md\nBaseline: 401d926\nCompared: HEAD (d73267f) + working tree\n\n7 references/ pointer change(s) in range:\n  [declared] references/Hexalith.AI.Tools  10b709b -> 17a37d8\n  [declared] references/Hexalith.Builds  05a75b6 -> 264e17d\n  [declared] references/Hexalith.EventStore  639c9d5 -> 2dcf708\n  [declared] references/Hexalith.FrontComposer  19418a0 -> 923988d\n  [declared] references/Hexalith.McpCli  42d3c2f -> 7a496c3\n  [declared] references/Hexalith.Memories  a3f0b3a -> 003e3d8\n  [declared] references/Hexalith.Platform  1cece24 -> 217889d\n\nRESULT: PASS\n"
+  }
+]

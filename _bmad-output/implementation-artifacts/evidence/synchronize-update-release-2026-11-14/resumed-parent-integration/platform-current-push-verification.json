@@ -1,0 +1,14 @@
+{
+  "source": "5b44f2d058f9221d8b54782c377e09fec5786b65",
+  "remote_command": [
+    "git",
+    "ls-remote",
+    "--exit-code",
+    "origin",
+    "refs/heads/main"
+  ],
+  "remote_result": "5b44f2d058f9221d8b54782c377e09fec5786b65\trefs/heads/main",
+  "observed_push_result": "d386e360..5b44f2d0 main -> main",
+  "observed_github_rule_notice": "Bypassed rule violations for refs/heads/main: Changes must be made through a pull request.",
+  "protection_changed": false
+}

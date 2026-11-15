@@ -1,7 +1,11 @@
 ---
-status: in-review
+status: 'done'
+resolution: 'superseded'
+closed: '2026-11-15'
+superseded_by: 'spec-synchronize-update-release-2026-11-14.md'
 date: '2026-10-31'
 baseline_commit: fff6a5cb556ee0012974550c708eb7a871a25001
+gitlink_audit_ref: 'b9929ba726e687b46d009f2e0f42284c7c3b6ea6'
 ---
 
 # Publish the existing compiled Tenants catalog inputs
@@ -535,3 +539,21 @@ skips, in148.600s. Affected Contracts.Tests build has zero warnings/errors. Logs
 probe lacked the existing helper's required Builds checkout; final proof uses
 the already recorded genuine detached exact source worktrees and bypasses no
 guard. Only this affected class was executed; no broader rerun.
+
+## Historical Closure — 2026-11-15
+
+Closed as superseded under the user’s instruction, "close obsolete specs". The active successor is [Synchronize dependencies and publish the .NET 11 release](spec-synchronize-update-release-2026-11-14.md). The original intent, checklist, review findings, baselines and verification notes above remain historical. The `done` status records administrative closure of this superseded plan; unchecked historical tasks are not asserted to have passed.
+
+The original SDK 3.129.0 compiled-enrollment/publication plan predates the existing Tenants 6/7 releases and the current EventStore 5.1.0 catalog. The successor records current packed-consumer checks and the newer 24-route/24-operation/13-adapter inventory; the completed latest-SDK qualification separately retains the older catalog history.
+
+Remaining qualification: Require current compiled catalog/actual-PE package-consumer verification, all five package identities, exact source/archive provenance and final intended-source publication.
+
+This closure grants no new technical acceptance, policy exception, source classification, Git operation or publication authority. Existing deferred records remain unchanged. [Closure validation](evidence/obsolete-spec-closure-2026-11-15/validation.json) retains the pre-existing historical gitlink-audit failures separately from the documentation checks; no baseline or gitlink audit metadata is rewritten.
+
+## Completion Notes List
+
+Historical audit reconciliation (2026-11-15): `b9929ba726e687b46d009f2e0f42284c7c3b6ea6` is the latest committed story-associated pointer event before the current documentation-only repair. The unchanged baseline is `fff6a5cb556ee0012974550c708eb7a871a25001`. The complete baseline-to-endpoint inventory below includes incidental workspace dependency movement; it records historical range contents and grants no runtime, publication, enrollment or maintainer approval. Original implementation notes, checklists and source-specific receipts retain their original attribution.
+
+| Dependency | Historical baseline | Historical audit endpoint |
+| --- | --- | --- |
+| `references/Hexalith.Builds` | `2186b9a4bc507a116a457c590c80945c2e232cbd` | `a22b55f0a4f6d2aaa3a5ccc505896064ac595364` |

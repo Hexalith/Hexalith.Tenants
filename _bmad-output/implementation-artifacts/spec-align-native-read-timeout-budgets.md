@@ -2,13 +2,13 @@
 title: 'Align bounded native verification with its enclosing transports'
 type: 'bugfix'
 created: '2026-11-03'
-status: 'in-review'
+status: 'done'
 route: 'dispatch'
 baseline_commit: 'cea24f9a2cc513beef36d42805634e21ffe217a4'
 owning_eventstore_baseline: '9aa4e5d690db3cce734ae38942b05c23c8380bac'
 gitlink_audit_ref: 'ae40c9657175ae5567cdd182384d3840af64d8a2'
-review_head: '401d926eb7d51bdf332696ed3f0fe39a812b3501'
-review_resumed: '2026-11-13'
+review_head: 'd73267fdbe84d09ccddf0a6492390e32d8938405'
+review_resumed: '2026-11-15'
 context:
   - '/home/administrator/projects/hexalith/tenants/AGENTS.md'
   - '/home/administrator/projects/hexalith/tenants/references/Hexalith.AI.Tools/hexalith-llm-instructions.md'
@@ -67,7 +67,8 @@ Do not weaken authority, catalog admission, proof, native removal, receipt, proj
 - `docs/production-auth-readiness.md` — resumed review: correct the remaining API caller-budget paragraph to 50 seconds.
 - `_bmad-output/implementation-artifacts/evidence/native-read-timeout-review-2026-11-13/verification.json` — current review commands, results and validation limitations.
 - `_bmad-output/implementation-artifacts/evidence/native-read-timeout-review-2026-11-13/final-review.json` — second independent review, retained-evidence audit and supplementary reproductions.
-- `_bmad-output/implementation-artifacts/deferred-work.md` — append the three unrelated or unverified review groups without modifying prior entries.
+- `_bmad-output/implementation-artifacts/deferred-work.md` — append unrelated or unverified review groups without modifying prior entries.
+- `_bmad-output/implementation-artifacts/evidence/native-read-timeout-review-2026-11-15/` — fresh source verification, independent review triage, normal and mutation Dapr policy evidence.
 
 ## Verification
 
@@ -165,3 +166,33 @@ All three layers reviewed the full original-baseline diff, including the existin
 - Fresh review verification passed 185 cases with zero failures/skips: producer source 30, root server source 49, AppHost models 50, existing native/API transport controls in the focused current-package runner 35, Chromium controls 6 and real Dapr HTTPS controls 15. The separate 13-case retry mutation failed exactly its one-call assertion with four backend calls, as required. The final Dapr runs verify both original and actually loaded policy hashes. All four successful focused builds retained warnings as errors and reported zero warnings/errors.
 - The historical endpoint passes both the merge-aware endpoint eligibility check and the production pointer validator; current `git diff HEAD -- references` is empty. Exact build/test commands, result counts, source/package distinctions and the unresolved full-build errors are retained in the verification artifact. Focused transport evidence does not claim that the changed UI fixture or the blocked UI C# test graph was executed.
 - The second pass audited the retained 185-case results, all six build-log hashes, the three changed-source hashes and the current deployment-policy hash; they match. Python syntax, diff whitespace and the historical gitlink guard pass. These are evidence-integrity checks, not another 185 test executions. Its one newly identified pre-existing enrichment limitation is appended to deferred work; existing deferred entries and historical evidence remain intact. Full integration/UI validation remains blocked, so status stays in-review.
+
+### Third independent pass, 2026-11-15
+
+Resumed at `d73267fdbe84d09ccddf0a6492390e32d8938405`. All three reviewers received the complete original-baseline diff, including unrelated later commits and existing untracked work. All returned before triage; the verification layer found no gaps. Historical baselines and the merge-aware gitlink endpoint are preserved.
+
+| Finding | Verdict | Route and evidence |
+| --- | --- | --- |
+| B1: Older admitted EventStore packages lack the new recovery snapshot API | medium | defer: Directory.Build.targets still admits 4.0.4/4.1.0/4.2.0/5.0.1 while TenantAggregate unconditionally uses ProjectionSnapshotLimits. Four dotnet-inspect API diffs confirm the type was added in 5.1.0. Recovery was introduced by 6fcff842a8e48fc843d7b2df942d369f99f92b6b; package selections are explicitly excluded from this timeout repair. |
+| B2: Authentication can change during user-context corroboration | maybe-false | carried defer: Carried from Blind 7 and B1/E1 of the 2026-11-13 review: the same getter remains after the only generation check. The prior boundary reproduction and outstanding production-accessor qualification retain their disposition; do not append another deferral. |
+| B3: Rejection-only tenant state receives a different recovery refusal | medium | defer: TenantState starts with an empty TenantId; its TenantNotFoundRejection Apply leaves it empty, and SDK replay constructs a state object. RefreshTenantAccess checks foreign TenantId before checking for an uncreated aggregate, so a subsequent attempt returns InsufficientPermissionsRejection. This belongs to later recovery commit 6fcff842a8e48fc843d7b2df942d369f99f92b6b. |
+| B4: Twenty-second credential expires during twenty-five-second readiness wait | false | reject: The reported timing does not cause the claimed rejection: the actual JwtBearerAuthenticationContract sets a sixty-second clock skew and the unnamed standard readiness allowance is thirty seconds. A token expiring five seconds before dispatch is still inside that effective lifetime. No refusal beyond the effective validated lifetime was demonstrated; do not add credential reacquisition from this example. |
+| B5: C# wrapper can truncate the browser progress checkpoint | medium | defer: RetainBrowserProgressAsync reads the retained snapshot then writes directly to the same path with File.WriteAllTextAsync. Interruption during that write can destroy the complete checkpoint. This later evidence-wrapper change is owned by 7066cbaeff0a34624250542eb4954fbb8c623027, outside the native timeout behavior. |
+| B6: Failure diagnostics can outlive the functional browser deadline | medium | defer: The failure path directly awaits captureFocus/captureReadiness; those execute page evaluation without a separate cancellation race. A wedged renderer can therefore keep failure cleanup pending until the outer test timeout. The original baseline already contains the unbounded captureReadiness call; no native budget increase introduced it. |
+| B7: Concurrent Firefox evidence driver labels a longer poll loop as thirty seconds | low | defer: The unrelated untracked fix-firefox-route-focus-ci-2026-11-15/verify.sh loops 120 times with a one-second HTTP timeout plus a 250ms pause. That is not a thirty-second elapsed-time bound. Preserve this other workstream and its evidence; no historical evidence file is edited. |
+| B8: Live corpus credential creation has no total corpus or encoded-token limit | medium | defer: AuthenticatedRouteState.CreateCorpusReadTokenAsync limits each page to 100 but continues for any fresh cursor, growing exactIds and cursors until caller cancellation. A sufficiently large valid corpus also becomes one JWT and then a browser session. This is separate scoped-live-credential work introduced by 5db9648cfd0456896c1c549dcd1021f4c216bf2d. |
+| B9: Recovery command tests omit exact default snapshot boundaries | low | reject: The cited command tests cover ordinary/oversized snapshots, not exactly 4096/4097 entries. SDK ProjectionSnapshotLimitsTests already exercise exact encoded-byte acceptance and one-byte excess; the command uses the shared default and a direct greater-than count check. No boundary defect was demonstrated, and extra command scaffolding is not a direct correction; reject this negligible testing improvement under the low-finding rule. |
+| B10: New recovery operation lacks a full delivery/convergence regression | medium | defer: Searches find RefreshTenantAccess in structural/generated-controller and aggregate tests, but no command-gateway live delivery test in the authenticated route suite. Add persisted-event and consumer-convergence coverage in the separate recovery feature from 6fcff842a8e48fc843d7b2df942d369f99f92b6b; this timeout intent excludes business-runtime launches. |
+| B11: Seventy-five-second mocked detail overstates the production API allowance | false | reject: DefaultEnrichmentDeadlineAcceptsAuthoritativeDetailAtSupportedElapsedTimes tests the injectable whole-page timer, not an end-to-end per-call service guarantee. The independent actual API transport tests enforce the fifty-second per-call timeout and caller cancellation. The ninety-second aggregate page allowance does not extend that caller SLA; no production budget defect follows from the unit seam. |
+| E1: Post-getter authentication-change recheck | maybe-false | carried defer: Carried from the same 2026-11-13 Blind 7/B1/E1 row as B2, with the same location and claim. Preserve the recorded production-accessor qualification limit; no repeated patch or ledger entry. |
+
+## Fresh Source Verification, 2026-11-15
+
+- All **1,029** ordinary focused checks passed with zero failures/skips: producer routing/resilience 30, server/native/configuration 49, AppHost resource models 50, real owner/API transport controls 35, gateway behavior/deadlines 843, Chromium timing/evidence 6, isolated real Dapr HTTPS 15, and Dapr policy-evidence control 1. All five individual Debug/project-reference graphs built with warnings as errors and zero warnings/errors. These fresh runs resolve the earlier source-build and UI-test blockers on the current workspace; they do not relabel the historical 2026-11-13 attempts.
+- Actual API and producer transport tests permit the held 31-second success and still enforce finite deadlines/caller cancellation. Chromium also accepts the controlled 91-second composed prerender. Real Dapr 1.18.7 permits one 31-second HTTPS call, cancels one held call at 60 seconds, and retains original/loaded policy bytes and hashes. Its separate 13-control retry mutation fails exactly the one-call assertion with four backend calls, as required.
+- The first redirected-output test attempt could not locate source-relative fixture inputs. A first disposable source copy correctly refused missing Git metadata. Successful producer/server/AppHost reruns preserve the required normal layout and existing root-declared Git metadata; no nested submodule or weakened guard was used. The missing pinned Chromium binary was installed only inside its disposable workspace. Exact commands, successful and failed attempt logs, XML results, source hashes and distinctions are retained in the evidence below.
+- No timeout implementation patch was needed. Seven unrelated findings are appended to deferred work; the already-recorded principal-corroboration finding retains its prior unverified disposition without duplicate deferral. No pre-existing user change, package selection, submodule pointer or historical evidence was altered.
+- Retained results: `_bmad-output/implementation-artifacts/evidence/native-read-timeout-review-2026-11-15/verification.json`, `review.json`, `dapr-normal.json`, and `dapr-mutation.json`. Useful detailed logs/results remain outside disposable workspaces at `/home/administrator/.local/state/codex/native-read-timeout-review-20261115/`.
+- This is local source/model/controlled-transport qualification. Full business-topology/live native-removal, public package/archive, CI and publication acceptance remain separate release prerequisites; this run performs none of those operations.
+
+- Workflow review is complete and status is `done` for this local timeout repair. The earlier `in-review` completion notes describe the blocked 2026-11-13 state. External release prerequisites above remain explicit. No staging or commit is performed because the supplied spec expressly prohibits both.

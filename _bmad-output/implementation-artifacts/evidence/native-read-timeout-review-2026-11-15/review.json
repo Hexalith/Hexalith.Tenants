@@ -1,0 +1,116 @@
+{
+  "created_utc": "2026-11-15T17:12:07.589438+00:00",
+  "review_head": "d73267fdbe84d09ccddf0a6492390e32d8938405",
+  "baseline_commit": "cea24f9a2cc513beef36d42805634e21ffe217a4",
+  "diff": {
+    "path": "/home/administrator/.local/state/codex/native-read-timeout-review-20261115/review.diff",
+    "bytes": 7464828,
+    "sha256": "5af70beea6943ea823fbc471f9c14c53d2bd29677785cb4972abce927607850d"
+  },
+  "layers": [
+    "blind-hunter",
+    "edge-case-hunter",
+    "verification-gap"
+  ],
+  "blind_finding_floor": 10,
+  "native_timeout_verification_gaps": 0,
+  "implementation_patches_required": 0,
+  "findings": [
+    {
+      "id": "B1",
+      "claim": "Older admitted EventStore packages lack the new recovery snapshot API",
+      "verdict": "medium",
+      "route": "defer",
+      "carried": false,
+      "evidence": "Directory.Build.targets still admits 4.0.4/4.1.0/4.2.0/5.0.1 while TenantAggregate unconditionally uses ProjectionSnapshotLimits. Four dotnet-inspect API diffs confirm the type was added in 5.1.0. Recovery was introduced by 6fcff842a8e48fc843d7b2df942d369f99f92b6b; package selections are explicitly excluded from this timeout repair."
+    },
+    {
+      "id": "B2",
+      "claim": "Authentication can change during user-context corroboration",
+      "verdict": "maybe-false",
+      "route": "defer",
+      "carried": true,
+      "evidence": "Carried from Blind 7 and B1/E1 of the 2026-11-13 review: the same getter remains after the only generation check. The prior boundary reproduction and outstanding production-accessor qualification retain their disposition; do not append another deferral."
+    },
+    {
+      "id": "B3",
+      "claim": "Rejection-only tenant state receives a different recovery refusal",
+      "verdict": "medium",
+      "route": "defer",
+      "carried": false,
+      "evidence": "TenantState starts with an empty TenantId; its TenantNotFoundRejection Apply leaves it empty, and SDK replay constructs a state object. RefreshTenantAccess checks foreign TenantId before checking for an uncreated aggregate, so a subsequent attempt returns InsufficientPermissionsRejection. This belongs to later recovery commit 6fcff842a8e48fc843d7b2df942d369f99f92b6b."
+    },
+    {
+      "id": "B4",
+      "claim": "Twenty-second credential expires during twenty-five-second readiness wait",
+      "verdict": "false",
+      "route": "reject",
+      "carried": false,
+      "evidence": "The reported timing does not cause the claimed rejection: the actual JwtBearerAuthenticationContract sets a sixty-second clock skew and the unnamed standard readiness allowance is thirty seconds. A token expiring five seconds before dispatch is still inside that effective lifetime. No refusal beyond the effective validated lifetime was demonstrated; do not add credential reacquisition from this example."
+    },
+    {
+      "id": "B5",
+      "claim": "C# wrapper can truncate the browser progress checkpoint",
+      "verdict": "medium",
+      "route": "defer",
+      "carried": false,
+      "evidence": "RetainBrowserProgressAsync reads the retained snapshot then writes directly to the same path with File.WriteAllTextAsync. Interruption during that write can destroy the complete checkpoint. This later evidence-wrapper change is owned by 7066cbaeff0a34624250542eb4954fbb8c623027, outside the native timeout behavior."
+    },
+    {
+      "id": "B6",
+      "claim": "Failure diagnostics can outlive the functional browser deadline",
+      "verdict": "medium",
+      "route": "defer",
+      "carried": false,
+      "evidence": "The failure path directly awaits captureFocus/captureReadiness; those execute page evaluation without a separate cancellation race. A wedged renderer can therefore keep failure cleanup pending until the outer test timeout. The original baseline already contains the unbounded captureReadiness call; no native budget increase introduced it."
+    },
+    {
+      "id": "B7",
+      "claim": "Concurrent Firefox evidence driver labels a longer poll loop as thirty seconds",
+      "verdict": "low",
+      "route": "defer",
+      "carried": false,
+      "evidence": "The unrelated untracked fix-firefox-route-focus-ci-2026-11-15/verify.sh loops 120 times with a one-second HTTP timeout plus a 250ms pause. That is not a thirty-second elapsed-time bound. Preserve this other workstream and its evidence; no historical evidence file is edited."
+    },
+    {
+      "id": "B8",
+      "claim": "Live corpus credential creation has no total corpus or encoded-token limit",
+      "verdict": "medium",
+      "route": "defer",
+      "carried": false,
+      "evidence": "AuthenticatedRouteState.CreateCorpusReadTokenAsync limits each page to 100 but continues for any fresh cursor, growing exactIds and cursors until caller cancellation. A sufficiently large valid corpus also becomes one JWT and then a browser session. This is separate scoped-live-credential work introduced by 5db9648cfd0456896c1c549dcd1021f4c216bf2d."
+    },
+    {
+      "id": "B9",
+      "claim": "Recovery command tests omit exact default snapshot boundaries",
+      "verdict": "low",
+      "route": "reject",
+      "carried": false,
+      "evidence": "The cited command tests cover ordinary/oversized snapshots, not exactly 4096/4097 entries. SDK ProjectionSnapshotLimitsTests already exercise exact encoded-byte acceptance and one-byte excess; the command uses the shared default and a direct greater-than count check. No boundary defect was demonstrated, and extra command scaffolding is not a direct correction; reject this negligible testing improvement under the low-finding rule."
+    },
+    {
+      "id": "B10",
+      "claim": "New recovery operation lacks a full delivery/convergence regression",
+      "verdict": "medium",
+      "route": "defer",
+      "carried": false,
+      "evidence": "Searches find RefreshTenantAccess in structural/generated-controller and aggregate tests, but no command-gateway live delivery test in the authenticated route suite. Add persisted-event and consumer-convergence coverage in the separate recovery feature from 6fcff842a8e48fc843d7b2df942d369f99f92b6b; this timeout intent excludes business-runtime launches."
+    },
+    {
+      "id": "B11",
+      "claim": "Seventy-five-second mocked detail overstates the production API allowance",
+      "verdict": "false",
+      "route": "reject",
+      "carried": false,
+      "evidence": "DefaultEnrichmentDeadlineAcceptsAuthoritativeDetailAtSupportedElapsedTimes tests the injectable whole-page timer, not an end-to-end per-call service guarantee. The independent actual API transport tests enforce the fifty-second per-call timeout and caller cancellation. The ninety-second aggregate page allowance does not extend that caller SLA; no production budget defect follows from the unit seam."
+    },
+    {
+      "id": "E1",
+      "claim": "Post-getter authentication-change recheck",
+      "verdict": "maybe-false",
+      "route": "defer",
+      "carried": true,
+      "evidence": "Carried from the same 2026-11-13 Blind 7/B1/E1 row as B2, with the same location and claim. Preserve the recorded production-accessor qualification limit; no repeated patch or ledger entry."
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "before": "d73267fdbe84d09ccddf0a6492390e32d8938405",
+  "after": "7f8c0895b1bd368dee18ca90f9da0e4a88593edb",
+  "tree": "2c6445be9ebb573e3d9065f4a6a509edb19a9133",
+  "command": [
+    "python3",
+    "scripts/validate-changed-story-gitlinks.py",
+    "--event-name",
+    "push",
+    "--event-path",
+    "/tmp/hexalith-job.SASV2Oc0/event.json"
+  ],
+  "exit_code": 1,
+  "gitlink_changes": ""
+}

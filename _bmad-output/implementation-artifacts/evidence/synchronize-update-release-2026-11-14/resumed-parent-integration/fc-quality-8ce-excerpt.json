@@ -1,0 +1,9 @@
+{
+  "kind": "failure excerpt, not complete hosted job log",
+  "run": 43744582233,
+  "job": 132905063083,
+  "source": "8ce46cfc1293925459c8b6af15ef7719cf0fc071",
+  "conclusion": "failure",
+  "log": "fc-quality-8ce-excerpt.log",
+  "sha256": "7651c4404228475b65e0d875f5c30022f1f3a4a4489a9bc9b74d7ae625abd5aa"
+}

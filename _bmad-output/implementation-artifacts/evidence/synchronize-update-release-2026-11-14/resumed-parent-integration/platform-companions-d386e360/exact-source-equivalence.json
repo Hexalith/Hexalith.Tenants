@@ -1,0 +1,62 @@
+{
+  "current": "5b44f2d058f9221d8b54782c377e09fec5786b65",
+  "results": [
+    {
+      "kind": "legacy",
+      "result": {
+        "legacySource": "55ddbc6e61596d9280404f03d3904f19b8288391",
+        "currentSource": "5b44f2d058f9221d8b54782c377e09fec5786b65",
+        "purpose": "same-code-legacy-tuple-regression",
+        "qualificationCredit": false,
+        "binaryEquivalenceClaimed": false,
+        "sourceEquivalence": "verified",
+        "requiredCount": 349,
+        "allowedMetadataDifferences": [
+          ".config/dotnet-tools.json",
+          "eng/builds-tuple.json",
+          "eng/legacy-tuple-source.json",
+          "eng/pre-extension-tuple-source.json",
+          "eng/tuple-ci-suites.json",
+          "hexalith-platform.json",
+          "references/Hexalith.Builds",
+          "references/Hexalith.EventStore",
+          "references/Hexalith.Parties",
+          "src/Hexalith.Platform.Composition/Declarations/provenance.json"
+        ]
+      }
+    },
+    {
+      "kind": "pre-extension",
+      "result": {
+        "historicalSource": "cff26b72649ce5f6f290c4e92dab5076a1cf8ea6",
+        "currentSource": "5b44f2d058f9221d8b54782c377e09fec5786b65",
+        "sourceEquivalence": "verified",
+        "purpose": "same-code-sdk41-tuple-regression",
+        "qualificationCredit": false,
+        "binaryEquivalenceClaimed": false,
+        "requiredCount": 412,
+        "allowedMetadataDifferences": [
+          ".config/dotnet-tools.json",
+          "eng/builds-tuple.json",
+          "eng/legacy-tuple-source.json",
+          "eng/pre-extension-tuple-source.json",
+          "hexalith-platform.json",
+          "references/Hexalith.Builds",
+          "references/Hexalith.EventStore",
+          "references/Hexalith.Parties",
+          "src/Hexalith.Platform.Composition/Declarations/provenance.json"
+        ]
+      }
+    },
+    {
+      "kind": "package-reader",
+      "result": {
+        "currentSourceRevision": "5b44f2d058f9221d8b54782c377e09fec5786b65",
+        "packageReaderSourceRevision": "dc1bbdb985d154b10c838337d1b270b895c7439b",
+        "sourceEquivalence": "verified",
+        "runtimeAcceptance": false,
+        "candidateAcceptance": false
+      }
+    }
+  ]
+}

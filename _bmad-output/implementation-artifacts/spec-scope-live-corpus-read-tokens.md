@@ -2,9 +2,13 @@
 title: 'Scope live list hydration tokens to the actual isolated test corpus'
 type: 'bugfix'
 created: '2026-11-03'
-status: 'in-review'
+status: 'done'
+resolution: 'superseded'
+closed: '2026-11-15'
+superseded_by: 'spec-synchronize-update-release-2026-11-14.md'
 route: 'dispatch'
 baseline_commit: 'f5f65fc0bb755fb4af31427e4f62727d44f578e9'
+gitlink_audit_ref: 'ae40c9657175ae5567cdd182384d3840af64d8a2'
 context:
   - '/home/administrator/projects/hexalith/tenants/AGENTS.md'
   - '/home/administrator/projects/hexalith/tenants/references/Hexalith.AI.Tools/hexalith-llm-instructions.md'
@@ -45,6 +49,9 @@ Test-only change. Preserve all production authorization, current-tenant selectio
 - references/Hexalith.EventStore
 - references/Hexalith.Builds
 - references/Hexalith.Platform
+
+- `references/Hexalith.FrontComposer`
+- `references/Hexalith.McpCli`
 
 ## Verification
 
@@ -90,3 +97,26 @@ The internal test envelope is corrected to25 minutes, its read-only exact-corpus
 All14 downloaded EventStore4.0.4 archives additionally passed actual `dotnet nuget verify --all` on2026-11-03. The cryptographic verification and unchanged archive hash proof are retained in /tmp/tenants-release-20261103-07JciR/eventstore-4.0.4-signature-verification.json; the earlier signature-presence-only record remains historical.
 
 Focused correction verification: unchanged case discovery,59 corpus/evidence controls passed with zero skips, and the individual changed graph built with zero warnings/errors. Semantic YAML comparison against475debea proves only the actual authenticated-routes matrix timeout changed; shared Aspire remains35 minutes. Exact commands/input hashes and source-scope rationale: /tmp/tenants-release-20261103-07JciR/corpus-token-envelope-handoff.json. Hosted qualification remains pending.
+
+## Historical Closure — 2026-11-15
+
+Closed as superseded under the user’s instruction, "close obsolete specs". The active successor is [Synchronize dependencies and publish the .NET 11 release](spec-synchronize-update-release-2026-11-14.md). The original intent, checklist, review findings, baselines and verification notes above remain historical. The `done` status records administrative closure of this superseded plan; unchecked historical tasks are not asserted to have passed.
+
+The exact-corpus token and bounded CI-envelope repairs are already implemented in the retained November 3 handoff. Its pending live/browser/current-source qualification has been overtaken by the successor’s later authenticated, persisted and browser lanes; the current release retains those gates against the actual selected sources.
+
+Remaining qualification: Preserve exact-corpus least-privilege tokens, malformed/incomplete corpus refusals, cancellation, all maintained browser cases and admission windows; require current-source hosted acceptance.
+
+This closure grants no new technical acceptance, policy exception, source classification, Git operation or publication authority. Existing deferred records remain unchanged. [Closure validation](evidence/obsolete-spec-closure-2026-11-15/validation.json) retains the pre-existing historical gitlink-audit failures separately from the documentation checks; no baseline or gitlink audit metadata is rewritten.
+
+## Completion Notes List
+
+Historical audit reconciliation (2026-11-15): `ae40c9657175ae5567cdd182384d3840af64d8a2` is the latest committed story-associated pointer event before the current documentation-only repair. The unchanged baseline is `f5f65fc0bb755fb4af31427e4f62727d44f578e9`. The complete baseline-to-endpoint inventory below includes incidental workspace dependency movement; it records historical range contents and grants no runtime, publication, enrollment or maintainer approval. Original implementation notes, checklists and source-specific receipts retain their original attribution.
+
+| Dependency | Historical baseline | Historical audit endpoint |
+| --- | --- | --- |
+| `references/Hexalith.Builds` | `66a1b2f9b8087b45431b681c0b9907019aada142` | `725754075e1d6369430a3adf94d46fb71e6eaf9e` |
+| `references/Hexalith.EventStore` | `9aa4e5d690db3cce734ae38942b05c23c8380bac` | `16dff1f018e8a68a9d244975e8228d96429eb61c` |
+| `references/Hexalith.FrontComposer` | `f842711d67004200e3248b3c42b7d9bcb2146907` | `b105c846c31844441f1cff84b5c187da0eff3546` |
+| `references/Hexalith.McpCli` | `edaecb04b1a8edf78f6ad28e5bf253db594003f4` | `58afd4766849e33e75471c9047ee945025ca3b6e` |
+| `references/Hexalith.Memories` | `d9d61d8a95c7dc8827acf68ae723859711703729` | `d959bdae5af9c22f53573eda71c091cb5c0aae4c` |
+| `references/Hexalith.Platform` | `5d74c40b82940e1ba1788963dbb60cae41eab9dc` | `8432397c66ebc0fd22e5671ce620a7d2139f7453` |

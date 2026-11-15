@@ -1,0 +1,38 @@
+[
+  {
+    "command": [
+      "dotnet",
+      "build",
+      "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+      "-c",
+      "Release",
+      "-m:1",
+      "-p:UseNuGetDeps=true",
+      "-p:MinVerVersionOverride=6.0.1",
+      "-p:RestoreFallbackFolders=/home/administrator/.nuget/packages",
+      "-warnaserror"
+    ],
+    "exit_code": 0,
+    "seconds": 25.34,
+    "fc_source": "8ce46cfc1293925459c8b6af15ef7719cf0fc071",
+    "fc_working_patch_sha256": "4917b847b1a94e72d2d8d5c6abc9e0877edf16ad653a204f7fcf2bc991c4e7a3",
+    "builds_source": "73e60af8a1fcdf3f06726d5d1b6e1199cce778ee",
+    "log": "/dev/shm/tenants-release-resume-2026-11-15/fc-quality-corrections/command-0.log"
+  },
+  {
+    "command": [
+      "dotnet",
+      "tests/Hexalith.FrontComposer.SourceTools.Tests/bin/Release/net11.0/Hexalith.FrontComposer.SourceTools.Tests.dll",
+      "-class",
+      "*CommandFormValidationCompilationTests",
+      "-parallelMode",
+      "none"
+    ],
+    "exit_code": 1,
+    "seconds": 1.52,
+    "fc_source": "8ce46cfc1293925459c8b6af15ef7719cf0fc071",
+    "fc_working_patch_sha256": "4917b847b1a94e72d2d8d5c6abc9e0877edf16ad653a204f7fcf2bc991c4e7a3",
+    "builds_source": "73e60af8a1fcdf3f06726d5d1b6e1199cce778ee",
+    "log": "/dev/shm/tenants-release-resume-2026-11-15/fc-quality-corrections/command-1.log"
+  }
+]

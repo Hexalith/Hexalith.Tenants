@@ -1,0 +1,405 @@
+{
+  "base": "d73267fdbe84d09ccddf0a6492390e32d8938405",
+  "rows": [
+    {
+      "path": "_bmad-output/implementation-artifacts/spec-eventstore-secret-scanner-ci-repair.md",
+      "endpoint": "ae40c9657175ae5567cdd182384d3840af64d8a2",
+      "history": [
+        {
+          "commit": "ae40c9657175ae5567cdd182384d3840af64d8a2",
+          "moves_gitlinks": true
+        },
+        {
+          "commit": "c0508dbb8efce8a4b3b297777cf023ad6ed43c85",
+          "moves_gitlinks": true
+        },
+        {
+          "commit": "3ba0f153053ed9abfd58499f6671486407137e4a",
+          "moves_gitlinks": false
+        },
+        {
+          "commit": "10cf25e522afc0e1f3fbfdbeffdc4754d24ddc29",
+          "moves_gitlinks": true
+        },
+        {
+          "commit": "84406a3dc8a407e4c114c67ca4c976eaaac24931",
+          "moves_gitlinks": false
+        },
+        {
+          "commit": "8a208e7501a830ee891dca0ed386714f94ef4787",
+          "moves_gitlinks": false
+        }
+      ],
+      "baseline": "33835a03e92579a26400e7cb7cf68d666c715b3e",
+      "last_story_touch": "ae40c9657175ae5567cdd182384d3840af64d8a2",
+      "correction_already_landed": false,
+      "original_baseline": null,
+      "creation_ref": null,
+      "old_audit_ref": null
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/spec-fix-builds-sdk-cohort-fixtures.md",
+      "endpoint": "ae40c9657175ae5567cdd182384d3840af64d8a2",
+      "history": [
+        {
+          "commit": "ae40c9657175ae5567cdd182384d3840af64d8a2",
+          "moves_gitlinks": true
+        },
+        {
+          "commit": "bcd923781e97cf7ea6391f73eb0b3d5469c254c4",
+          "moves_gitlinks": false
+        },
+        {
+          "commit": "30e5a7ccb202549dadeda0530335f827e0426c8c",
+          "moves_gitlinks": false
+        },
+        {
+          "commit": "35ddf94679ea92fb937b59f4202c4352bf7edf49",
+          "moves_gitlinks": true
+        }
+      ],
+      "baseline": "be43b928ce700ae7433b1d078eec356ccd6079f8",
+      "last_story_touch": "ae40c9657175ae5567cdd182384d3840af64d8a2",
+      "correction_already_landed": true,
+      "original_baseline": "10163c3e4ffd84ddb9b2831dea767a04da04f2ef",
+      "creation_ref": "35ddf94679ea92fb937b59f4202c4352bf7edf49",
+      "old_audit_ref": "35ddf94679ea92fb937b59f4202c4352bf7edf49"
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/spec-fix-firefox-route-focus-ci.md",
+      "endpoint": "ae40c9657175ae5567cdd182384d3840af64d8a2",
+      "history": [
+        {
+          "commit": "ae40c9657175ae5567cdd182384d3840af64d8a2",
+          "moves_gitlinks": true
+        },
+        {
+          "commit": "bcd923781e97cf7ea6391f73eb0b3d5469c254c4",
+          "moves_gitlinks": false
+        },
+        {
+          "commit": "30e5a7ccb202549dadeda0530335f827e0426c8c",
+          "moves_gitlinks": false
+        },
+        {
+          "commit": "35ddf94679ea92fb937b59f4202c4352bf7edf49",
+          "moves_gitlinks": true
+        }
+      ],
+      "baseline": "be43b928ce700ae7433b1d078eec356ccd6079f8",
+      "last_story_touch": "ae40c9657175ae5567cdd182384d3840af64d8a2",
+      "correction_already_landed": true,
+      "original_baseline": "e4df7256be0e89b48c830c0792033ecfeabec9ad",
+      "creation_ref": "35ddf94679ea92fb937b59f4202c4352bf7edf49",
+      "old_audit_ref": "35ddf94679ea92fb937b59f4202c4352bf7edf49"
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/spec-fix-native-removal-production-transport.md",
+      "endpoint": "ae40c9657175ae5567cdd182384d3840af64d8a2",
+      "history": [
+        {
+          "commit": "ae40c9657175ae5567cdd182384d3840af64d8a2",
+          "moves_gitlinks": true
+        },
+        {
+          "commit": "cea24f9a2cc513beef36d42805634e21ffe217a4",
+          "moves_gitlinks": false
+        },
+        {
+          "commit": "762247815782a1b15ceebf4aa3f5216c6d39eaf2",
+          "moves_gitlinks": true
+        }
+      ],
+      "baseline": "bcd923781e97cf7ea6391f73eb0b3d5469c254c4",
+      "last_story_touch": "ae40c9657175ae5567cdd182384d3840af64d8a2",
+      "correction_already_landed": false,
+      "original_baseline": null,
+      "creation_ref": null,
+      "old_audit_ref": null
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/spec-native-mcpcli-runtime-cohort.md",
+      "endpoint": "ae40c9657175ae5567cdd182384d3840af64d8a2",
+      "history": [
+        {
+          "commit": "ae40c9657175ae5567cdd182384d3840af64d8a2",
+          "moves_gitlinks": true
+        },
+        {
+          "commit": "8a208e7501a830ee891dca0ed386714f94ef4787",
+          "moves_gitlinks": false
+        },
+        {
+          "commit": "07e35f11d247c7ab2aff4ce68f4e64c2eda6af9c",
+          "moves_gitlinks": false
+        },
+        {
+          "commit": "bd4946b9599ac05e2a8bb619fc8f71f148835b3e",
+          "moves_gitlinks": true
+        },
+        {
+          "commit": "553cb1dc05bf9d2e091c2652cb7e890670c878a9",
+          "moves_gitlinks": true
+        },
+        {
+          "commit": "6680149f5a429e34725dd5bd7246471f7e617611",
+          "moves_gitlinks": true
+        },
+        {
+          "commit": "8c30bdfa0dc046155c2c1c10459cfa554a32eabc",
+          "moves_gitlinks": true
+        },
+        {
+          "commit": "74f82221fa52636151c760ee9e217238e3aa384a",
+          "moves_gitlinks": true
+        },
+        {
+          "commit": "fc4e96e531b5499f85a92a1bf15d133693ffee9e",
+          "moves_gitlinks": true
+        },
+        {
+          "commit": "ddb0572ad0acfe65628c47118fa55d5f94ac4946",
+          "moves_gitlinks": false
+        }
+      ],
+      "baseline": "31aa26ccf4af260930143b6929dbcd6e215c5db8",
+      "last_story_touch": "ae40c9657175ae5567cdd182384d3840af64d8a2",
+      "correction_already_landed": false,
+      "original_baseline": null,
+      "creation_ref": null,
+      "old_audit_ref": null
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/spec-native-query-selector-compatibility-cohort.md",
+      "endpoint": "ae40c9657175ae5567cdd182384d3840af64d8a2",
+      "history": [
+        {
+          "commit": "ae40c9657175ae5567cdd182384d3840af64d8a2",
+          "moves_gitlinks": true
+        },
+        {
+          "commit": "8a208e7501a830ee891dca0ed386714f94ef4787",
+          "moves_gitlinks": false
+        }
+      ],
+      "baseline": "33835a03e92579a26400e7cb7cf68d666c715b3e",
+      "last_story_touch": "ae40c9657175ae5567cdd182384d3840af64d8a2",
+      "correction_already_landed": false,
+      "original_baseline": null,
+      "creation_ref": null,
+      "old_audit_ref": null
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/spec-native-request-compatibility-follow-up.md",
+      "endpoint": "ae40c9657175ae5567cdd182384d3840af64d8a2",
+      "history": [
+        {
+          "commit": "ae40c9657175ae5567cdd182384d3840af64d8a2",
+          "moves_gitlinks": true
+        },
+        {
+          "commit": "8a208e7501a830ee891dca0ed386714f94ef4787",
+          "moves_gitlinks": false
+        }
+      ],
+      "baseline": "60daa5198169f093b11abd1bafca5a45afe254fe",
+      "last_story_touch": "ae40c9657175ae5567cdd182384d3840af64d8a2",
+      "correction_already_landed": false,
+      "original_baseline": null,
+      "creation_ref": null,
+      "old_audit_ref": null
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/spec-preserve-sample-background-ci.md",
+      "endpoint": "ae40c9657175ae5567cdd182384d3840af64d8a2",
+      "history": [
+        {
+          "commit": "ae40c9657175ae5567cdd182384d3840af64d8a2",
+          "moves_gitlinks": true
+        },
+        {
+          "commit": "5db9648cfd0456896c1c549dcd1021f4c216bf2d",
+          "moves_gitlinks": true
+        },
+        {
+          "commit": "cea24f9a2cc513beef36d42805634e21ffe217a4",
+          "moves_gitlinks": false
+        },
+        {
+          "commit": "762247815782a1b15ceebf4aa3f5216c6d39eaf2",
+          "moves_gitlinks": true
+        }
+      ],
+      "baseline": "bcd923781e97cf7ea6391f73eb0b3d5469c254c4",
+      "last_story_touch": "ae40c9657175ae5567cdd182384d3840af64d8a2",
+      "correction_already_landed": false,
+      "original_baseline": null,
+      "creation_ref": null,
+      "old_audit_ref": null
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/spec-publish-compiled-catalog-inputs.md",
+      "endpoint": "b9929ba726e687b46d009f2e0f42284c7c3b6ea6",
+      "history": [
+        {
+          "commit": "c12761223eafbe863d0a20c946685873173a9da4",
+          "moves_gitlinks": false
+        },
+        {
+          "commit": "67d9a4d825a4bc497df77830946a92ea998a6335",
+          "moves_gitlinks": false
+        },
+        {
+          "commit": "33337d18b6e560e79e0ac4567d803681a86232aa",
+          "moves_gitlinks": false
+        },
+        {
+          "commit": "8a27567ee92321493275082533b5d70d30ab0216",
+          "moves_gitlinks": false
+        },
+        {
+          "commit": "b9929ba726e687b46d009f2e0f42284c7c3b6ea6",
+          "moves_gitlinks": true
+        }
+      ],
+      "baseline": "fff6a5cb556ee0012974550c708eb7a871a25001",
+      "last_story_touch": "c12761223eafbe863d0a20c946685873173a9da4",
+      "correction_already_landed": false,
+      "original_baseline": null,
+      "creation_ref": null,
+      "old_audit_ref": null
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/spec-qualify-published-eventstore-4.0.3-cohort.md",
+      "endpoint": "ae40c9657175ae5567cdd182384d3840af64d8a2",
+      "history": [
+        {
+          "commit": "ae40c9657175ae5567cdd182384d3840af64d8a2",
+          "moves_gitlinks": true
+        },
+        {
+          "commit": "cea24f9a2cc513beef36d42805634e21ffe217a4",
+          "moves_gitlinks": false
+        },
+        {
+          "commit": "762247815782a1b15ceebf4aa3f5216c6d39eaf2",
+          "moves_gitlinks": true
+        }
+      ],
+      "baseline": "bcd923781e97cf7ea6391f73eb0b3d5469c254c4",
+      "last_story_touch": "ae40c9657175ae5567cdd182384d3840af64d8a2",
+      "correction_already_landed": false,
+      "original_baseline": null,
+      "creation_ref": null,
+      "old_audit_ref": null
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/spec-qualify-published-mcpcli-7.0.0-enrollment.md",
+      "endpoint": "ae40c9657175ae5567cdd182384d3840af64d8a2",
+      "history": [
+        {
+          "commit": "ae40c9657175ae5567cdd182384d3840af64d8a2",
+          "moves_gitlinks": true
+        },
+        {
+          "commit": "fc4e96e531b5499f85a92a1bf15d133693ffee9e",
+          "moves_gitlinks": true
+        },
+        {
+          "commit": "5db9648cfd0456896c1c549dcd1021f4c216bf2d",
+          "moves_gitlinks": true
+        }
+      ],
+      "baseline": "f5f65fc0bb755fb4af31427e4f62727d44f578e9",
+      "last_story_touch": "ae40c9657175ae5567cdd182384d3840af64d8a2",
+      "correction_already_landed": false,
+      "original_baseline": null,
+      "creation_ref": null,
+      "old_audit_ref": null
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/spec-refresh-and-publish-current-release.md",
+      "endpoint": "ae40c9657175ae5567cdd182384d3840af64d8a2",
+      "history": [
+        {
+          "commit": "ae40c9657175ae5567cdd182384d3840af64d8a2",
+          "moves_gitlinks": true
+        },
+        {
+          "commit": "5db9648cfd0456896c1c549dcd1021f4c216bf2d",
+          "moves_gitlinks": true
+        },
+        {
+          "commit": "cea24f9a2cc513beef36d42805634e21ffe217a4",
+          "moves_gitlinks": false
+        },
+        {
+          "commit": "762247815782a1b15ceebf4aa3f5216c6d39eaf2",
+          "moves_gitlinks": true
+        },
+        {
+          "commit": "35ddf94679ea92fb937b59f4202c4352bf7edf49",
+          "moves_gitlinks": true
+        },
+        {
+          "commit": "daa1a601fb670136d0a290c49b4f8f417c491b37",
+          "moves_gitlinks": false
+        },
+        {
+          "commit": "9b9d6fd1db2a4a2fdce879842b140063e3b6777f",
+          "moves_gitlinks": true
+        }
+      ],
+      "baseline": "2aa3f04014d9188fc59114113e3a6b0a2eb3964b",
+      "last_story_touch": "ae40c9657175ae5567cdd182384d3840af64d8a2",
+      "correction_already_landed": false,
+      "original_baseline": null,
+      "creation_ref": null,
+      "old_audit_ref": null
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/spec-repair-current-mcpcli-published-cohort-ci.md",
+      "endpoint": "d99b7f63feb81f74cee75c3976894c02d173b373",
+      "history": [
+        {
+          "commit": "d99b7f63feb81f74cee75c3976894c02d173b373",
+          "moves_gitlinks": false
+        }
+      ],
+      "baseline": "401d926eb7d51bdf332696ed3f0fe39a812b3501",
+      "last_story_touch": "d99b7f63feb81f74cee75c3976894c02d173b373",
+      "correction_already_landed": false,
+      "original_baseline": null,
+      "creation_ref": null,
+      "old_audit_ref": null
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/spec-scope-live-corpus-read-tokens.md",
+      "endpoint": "ae40c9657175ae5567cdd182384d3840af64d8a2",
+      "history": [
+        {
+          "commit": "ae40c9657175ae5567cdd182384d3840af64d8a2",
+          "moves_gitlinks": true
+        },
+        {
+          "commit": "1b2c71b0e3cc5b16745f87aa7f1bc2c0ac8ffc27",
+          "moves_gitlinks": false
+        },
+        {
+          "commit": "c7fb42a344d0633bdeb34021f439c9a3efd53bcb",
+          "moves_gitlinks": false
+        },
+        {
+          "commit": "5db9648cfd0456896c1c549dcd1021f4c216bf2d",
+          "moves_gitlinks": true
+        }
+      ],
+      "baseline": "f5f65fc0bb755fb4af31427e4f62727d44f578e9",
+      "last_story_touch": "ae40c9657175ae5567cdd182384d3840af64d8a2",
+      "correction_already_landed": false,
+      "original_baseline": null,
+      "creation_ref": null,
+      "old_audit_ref": null
+    }
+  ]
+}

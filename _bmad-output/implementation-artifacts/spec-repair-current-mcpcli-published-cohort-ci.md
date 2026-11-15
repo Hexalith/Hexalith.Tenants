@@ -2,10 +2,14 @@
 title: 'Repair current McpCli published-cohort CI'
 type: 'bugfix'
 created: '2026-11-14'
-status: 'in-review'
+status: 'done'
+resolution: 'superseded'
+closed: '2026-11-15'
+superseded_by: 'spec-synchronize-update-release-2026-11-14.md'
 route: 'dispatch'
 review_loop_iteration: 0
 baseline_commit: '401d926eb7d51bdf332696ed3f0fe39a812b3501'
+gitlink_audit_ref: 'd99b7f63feb81f74cee75c3976894c02d173b373'
 owning_repository_baseline_commit: '42d3c2fd48405e0f2c27f9b61f6d7025e4246934'
 investigated_remote_head: '7fa3df6a6b827f85fba6e12ec22c5efa08034ac8'
 context:
@@ -122,3 +126,20 @@ B9 remains an explicitly recorded pre-existing follow-up in the root deferred le
 Status stays in-review: additional specific census authority, committed-source hosted/native acceptance and publication are incomplete. The presentation workflow's automatic done/commit actions are withheld because the approved scope explicitly reserves staging/commits/pushes/publication for a later concrete decision and the overall CI acceptance remains unsatisfied. No existing work, branch, checkout or prior approval was overwritten.
 
 - Parent final new-file whitespace verification found four verbatim log/patch captures with trailing/CRLF whitespace. Four exact .gitattributes data entries follow existing repository capture conventions; no raw byte or executable-code whitespace rule changed. The final source/index links and final unchanged-scanner receipt include this metadata correction.
+
+## Historical Closure — 2026-11-15
+
+Closed as superseded under the user’s instruction, "close obsolete specs". The active successor is [Synchronize dependencies and publish the .NET 11 release](spec-synchronize-update-release-2026-11-14.md). The original intent, checklist, review findings, baselines and verification notes above remain historical. The `done` status records administrative closure of this superseded plan; unchecked historical tasks are not asserted to have passed.
+
+This local repair explicitly preserved the former .NET 10 product target. The successor explicitly incorporates its reviewed compatibility/evidence work and later McpCli hosted results, while subsequent owning McpCli history records the .NET 11/current-gateway migration. The old local handoff is superseded as an execution plan; its exact two approved classifications and all retained evidence remain historical.
+
+Remaining qualification: The existing remaining-census follow-up in deferred-work.md stays open and unchanged. No additional source renewal, classification, exclusion or approval follows from this closure; current committed-source census/hosted/native and publication acceptance remain separately scoped.
+
+This closure grants no new technical acceptance, policy exception, source classification, Git operation or publication authority. Existing deferred records remain unchanged. [Closure validation](evidence/obsolete-spec-closure-2026-11-15/validation.json) retains the pre-existing historical gitlink-audit failures separately from the documentation checks; no baseline or gitlink audit metadata is rewritten.
+
+## Completion Notes List
+
+Historical audit reconciliation (2026-11-15): `d99b7f63feb81f74cee75c3976894c02d173b373` is the latest committed story-associated pointer event before the current documentation-only repair. The unchanged baseline is `401d926eb7d51bdf332696ed3f0fe39a812b3501`. The complete baseline-to-endpoint inventory below includes incidental workspace dependency movement; it records historical range contents and grants no runtime, publication, enrollment or maintainer approval. Original implementation notes, checklists and source-specific receipts retain their original attribution.
+
+| Dependency | Historical baseline | Historical audit endpoint |
+| --- | --- | --- |

@@ -1,0 +1,18 @@
+[
+  {
+    "command": [
+      "python3",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "tests/eng",
+      "-p",
+      "test_dependency_graph.py"
+    ],
+    "exit_code": 1,
+    "seconds": 35.92,
+    "builds_source": "73e60af8a1fcdf3f06726d5d1b6e1199cce778ee",
+    "log": "/dev/shm/tenants-release-resume-2026-11-15/fc-locked/command-0.log"
+  }
+]

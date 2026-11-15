@@ -1,0 +1,17 @@
+{
+  "kind": "package-reader",
+  "source": "ddb1c0b141372a66d4a9d9c231d0041afbb7cd0c",
+  "tree": "a3889c80e8d43983ad47358b3ae56efd2490093c",
+  "commitlint": {
+    "command": [
+      "node",
+      "node_modules/@commitlint/cli/cli.js",
+      "--edit",
+      "/dev/shm/tenants-release-resume-2026-11-15/platform-companions/package-reader-message.txt"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "",
+    "pinned_cli": "21.2.4"
+  }
+}

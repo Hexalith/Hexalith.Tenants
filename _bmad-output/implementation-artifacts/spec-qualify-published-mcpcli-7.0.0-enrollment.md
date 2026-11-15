@@ -2,9 +2,13 @@
 title: 'Qualify McpCli against authentic published Tenants7 enrollment'
 type: 'bugfix'
 created: '2026-11-03'
-status: 'in-review'
+status: 'done'
+resolution: 'superseded'
+closed: '2026-11-15'
+superseded_by: 'spec-synchronize-update-release-2026-11-14.md'
 route: 'dispatch'
 baseline_commit: 'f5f65fc0bb755fb4af31427e4f62727d44f578e9'
+gitlink_audit_ref: 'ae40c9657175ae5567cdd182384d3840af64d8a2'
 owning_repository_baseline_commit: 'edaecb04b1a8edf78f6ad28e5bf253db594003f4'
 context:
   - '/home/administrator/projects/hexalith/tenants/AGENTS.md'
@@ -80,3 +84,26 @@ Coordination clarification: the supplied shared cache governs ordinary .NET comm
 ## Coordinated Local Qualification
 
 Published enrollment and native source preparation are complete locally. Exact hash-bound handoffs are /tmp/tenants-release-20261103-07JciR/mcpcli-enrollment-handoff.json and mcpcli-native-runtime-handoff.json in that directory. All original21 vectors/42 vector-plan inputs are preserved. Local strict replay and package/build/source guards pass; physical activation, all21 persisted effects, smoke and cleanup remain mandatory Root remote CI acceptance. No local evidence grants that acceptance. Shared owner HEAD advanced through the independent authorized session and is preserved; review covers the complete owning-repository delta from edaecb04b1a8edf78f6ad28e5bf253db594003f4.
+
+## Historical Closure — 2026-11-15
+
+Closed as superseded under the user’s instruction, "close obsolete specs". The active successor is [Synchronize dependencies and publish the .NET 11 release](spec-synchronize-update-release-2026-11-14.md). The original intent, checklist, review findings, baselines and verification notes above remain historical. The `done` status records administrative closure of this superseded plan; unchecked historical tasks are not asserted to have passed.
+
+The authentic Tenants 7.0.0 enrollment was delivered and is explicitly described as superseded in spec-repair-current-mcpcli-published-cohort-ci.md. That later spec selects Tenants 7.0.7/EventStore 4.2.0; the current release now coordinates subsequent McpCli integration and qualification.
+
+Remaining qualification: Preserve authentic published-artifact approvals and frozen vectors; current enrollment, replay, native behavior and publication require their own exact-source evidence.
+
+This closure grants no new technical acceptance, policy exception, source classification, Git operation or publication authority. Existing deferred records remain unchanged. [Closure validation](evidence/obsolete-spec-closure-2026-11-15/validation.json) retains the pre-existing historical gitlink-audit failures separately from the documentation checks; no baseline or gitlink audit metadata is rewritten.
+
+## Completion Notes List
+
+Historical audit reconciliation (2026-11-15): `ae40c9657175ae5567cdd182384d3840af64d8a2` is the latest committed story-associated pointer event before the current documentation-only repair. The unchanged baseline is `f5f65fc0bb755fb4af31427e4f62727d44f578e9`. The complete baseline-to-endpoint inventory below includes incidental workspace dependency movement; it records historical range contents and grants no runtime, publication, enrollment or maintainer approval. Original implementation notes, checklists and source-specific receipts retain their original attribution.
+
+| Dependency | Historical baseline | Historical audit endpoint |
+| --- | --- | --- |
+| `references/Hexalith.Builds` | `66a1b2f9b8087b45431b681c0b9907019aada142` | `725754075e1d6369430a3adf94d46fb71e6eaf9e` |
+| `references/Hexalith.EventStore` | `9aa4e5d690db3cce734ae38942b05c23c8380bac` | `16dff1f018e8a68a9d244975e8228d96429eb61c` |
+| `references/Hexalith.FrontComposer` | `f842711d67004200e3248b3c42b7d9bcb2146907` | `b105c846c31844441f1cff84b5c187da0eff3546` |
+| `references/Hexalith.McpCli` | `edaecb04b1a8edf78f6ad28e5bf253db594003f4` | `58afd4766849e33e75471c9047ee945025ca3b6e` |
+| `references/Hexalith.Memories` | `d9d61d8a95c7dc8827acf68ae723859711703729` | `d959bdae5af9c22f53573eda71c091cb5c0aae4c` |
+| `references/Hexalith.Platform` | `5d74c40b82940e1ba1788963dbb60cae41eab9dc` | `8432397c66ebc0fd22e5671ce620a7d2139f7453` |

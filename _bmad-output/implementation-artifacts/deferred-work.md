@@ -5702,3 +5702,40 @@ archived: 2026-10-22
 - source_spec: `_bmad-output/implementation-artifacts/spec-complete-dotnet-11-source-graph.md`
   summary: Qualify actual Fluent native time-editor parsing for the later typed-field mapping.
   evidence: Medium, unverified (R9): current generated-field tests inspect component parameters and invoke callbacks; a rendered browser control must establish invalid-input, clearing and seconds-preservation behavior before claiming a parsing defect.
+
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-fix-builds-sdk-cohort-fixtures.md`
+  summary: Reconcile pre-existing synthetic Source readiness module topology labels with the manifest they cite.
+  evidence: Resumed blind review 2; both Builds baseline 10163c3e4ffd84ddb9b2831dea767a04da04f2ef and repair 70850b18e0d0b80facd2df0809974020dd935732 describe module-a/module-b in release-passed.json while the bound manifest declares p0-fixture-orders/p0-fixture-inventory. This is descriptive synthetic metadata; current command/manifest/profile/filter/fixture binding and separate G4 acceptance checks pass. No runtime qualification is claimed.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-fix-builds-sdk-cohort-fixtures.md`
+  summary: Isolate the pre-existing Source readiness non-test-command negative from its other deliberately invalid bindings.
+  evidence: Resumed blind review 4; baseline binding-mismatch.yaml and down-run.json combine a non-test command, null profile/filter and an all-A manifest hash, so that single fixture does not independently distinguish command rejection. Improve the control separately while retaining exact negative oracles and avoiding changes to production validation.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-align-native-read-timeout-budgets.md`
+  summary: Older admitted EventStore packages lack the new recovery snapshot API.
+  evidence: 2026-11-15 resumed review B1, medium; Directory.Build.targets still admits 4.0.4/4.1.0/4.2.0/5.0.1 while TenantAggregate unconditionally uses ProjectionSnapshotLimits. Four dotnet-inspect API diffs confirm the type was added in 5.1.0. Recovery was introduced by 6fcff842a8e48fc843d7b2df942d369f99f92b6b; package selections are explicitly excluded from this timeout repair.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-align-native-read-timeout-budgets.md`
+  summary: Rejection-only tenant state receives a different recovery refusal.
+  evidence: 2026-11-15 resumed review B3, medium; TenantState starts with an empty TenantId; its TenantNotFoundRejection Apply leaves it empty, and SDK replay constructs a state object. RefreshTenantAccess checks foreign TenantId before checking for an uncreated aggregate, so a subsequent attempt returns InsufficientPermissionsRejection. This belongs to later recovery commit 6fcff842a8e48fc843d7b2df942d369f99f92b6b.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-align-native-read-timeout-budgets.md`
+  summary: C# wrapper can truncate the browser progress checkpoint.
+  evidence: 2026-11-15 resumed review B5, medium; RetainBrowserProgressAsync reads the retained snapshot then writes directly to the same path with File.WriteAllTextAsync. Interruption during that write can destroy the complete checkpoint. This later evidence-wrapper change is owned by 7066cbaeff0a34624250542eb4954fbb8c623027, outside the native timeout behavior.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-align-native-read-timeout-budgets.md`
+  summary: Failure diagnostics can outlive the functional browser deadline.
+  evidence: 2026-11-15 resumed review B6, medium; The failure path directly awaits captureFocus/captureReadiness; those execute page evaluation without a separate cancellation race. A wedged renderer can therefore keep failure cleanup pending until the outer test timeout. The original baseline already contains the unbounded captureReadiness call; no native budget increase introduced it.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-align-native-read-timeout-budgets.md`
+  summary: Concurrent Firefox evidence driver labels a longer poll loop as thirty seconds.
+  evidence: 2026-11-15 resumed review B7, low; The unrelated untracked fix-firefox-route-focus-ci-2026-11-15/verify.sh loops 120 times with a one-second HTTP timeout plus a 250ms pause. That is not a thirty-second elapsed-time bound. Preserve this other workstream and its evidence; no historical evidence file is edited.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-align-native-read-timeout-budgets.md`
+  summary: Live corpus credential creation has no total corpus or encoded-token limit.
+  evidence: 2026-11-15 resumed review B8, medium; AuthenticatedRouteState.CreateCorpusReadTokenAsync limits each page to 100 but continues for any fresh cursor, growing exactIds and cursors until caller cancellation. A sufficiently large valid corpus also becomes one JWT and then a browser session. This is separate scoped-live-credential work introduced by 5db9648cfd0456896c1c549dcd1021f4c216bf2d.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-align-native-read-timeout-budgets.md`
+  summary: New recovery operation lacks a full delivery/convergence regression.
+  evidence: 2026-11-15 resumed review B10, medium; Searches find RefreshTenantAccess in structural/generated-controller and aggregate tests, but no command-gateway live delivery test in the authenticated route suite. Add persisted-event and consumer-convergence coverage in the separate recovery feature from 6fcff842a8e48fc843d7b2df942d369f99f92b6b; this timeout intent excludes business-runtime launches.

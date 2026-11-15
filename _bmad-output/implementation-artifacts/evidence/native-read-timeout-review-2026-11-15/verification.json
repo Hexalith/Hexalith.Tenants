@@ -1,0 +1,409 @@
+{
+  "created_utc": "2026-11-15T17:12:07.604407+00:00",
+  "status": "done",
+  "review_head": "d73267fdbe84d09ccddf0a6492390e32d8938405",
+  "baseline_commit": "cea24f9a2cc513beef36d42805634e21ffe217a4",
+  "successful_ordinary_checks": 1029,
+  "failed_ordinary_checks": 0,
+  "skipped_ordinary_checks": 0,
+  "checks": [
+    {
+      "name": "producer",
+      "mode": "Debug/project references",
+      "results_xml": "/home/administrator/.local/state/codex/native-read-timeout-review-20261115/layout-preserved/producer-tests.xml",
+      "results_sha256": "996d5b96e6a4494aa9345184b340c412c1cde2fc5fc1affb0df4418117474827",
+      "total": 30,
+      "passed": 30,
+      "failed": 0,
+      "skipped": 0,
+      "errors": 0,
+      "execution": {
+        "name": "producer-tests",
+        "cwd": "/tmp/hexalith-job.UdulCjX2/workspace/references/Hexalith.EventStore",
+        "command": [
+          "dotnet",
+          "/tmp/hexalith-job.UdulCjX2/workspace/references/Hexalith.EventStore/tests/Hexalith.EventStore.Server.Tests/bin/Debug/net11.0/Hexalith.EventStore.Server.Tests.dll",
+          "-noLogo",
+          "-result-xml",
+          "/home/administrator/.local/state/codex/native-read-timeout-review-20261115/layout-preserved/producer-tests.xml",
+          "-class",
+          "Hexalith.EventStore.Server.Tests.Queries.DomainQueryResilienceTests",
+          "-class",
+          "Hexalith.EventStore.Server.Tests.Queries.QueryRouterComposedRegistrationTests"
+        ],
+        "exit_code": 0,
+        "seconds": 123.24,
+        "log": "/home/administrator/.local/state/codex/native-read-timeout-review-20261115/layout-preserved/producer-tests.log"
+      }
+    },
+    {
+      "name": "server",
+      "mode": "Debug/project references",
+      "results_xml": "/home/administrator/.local/state/codex/native-read-timeout-review-20261115/model-source-final/server-tests.xml",
+      "results_sha256": "e5b381c4e4eaf937dfd9550842877185d4298b987f4aba5b33fdebf6b04562bf",
+      "total": 49,
+      "passed": 49,
+      "failed": 0,
+      "skipped": 0,
+      "errors": 0,
+      "execution": {
+        "name": "server-tests",
+        "cwd": "/tmp/hexalith-job.oAMSWrSV/workspace",
+        "command": [
+          "dotnet",
+          "/tmp/hexalith-job.oAMSWrSV/workspace/tests/Hexalith.Tenants.Server.Tests/bin/Debug/net11.0/Hexalith.Tenants.Server.Tests.dll",
+          "-noLogo",
+          "-result-xml",
+          "/home/administrator/.local/state/codex/native-read-timeout-review-20261115/model-source-final/server-tests.xml",
+          "-class",
+          "Hexalith.Tenants.Server.Tests.Authorization.TenantOwnerSourceRuntimeTests",
+          "-class",
+          "Hexalith.Tenants.Server.Tests.Authorization.TenantsGlobalAdministratorVerifierTests",
+          "-class",
+          "Hexalith.Tenants.Server.Tests.Configuration.EventPublicationConfigurationTests"
+        ],
+        "exit_code": 0,
+        "seconds": 1.26,
+        "log": "/home/administrator/.local/state/codex/native-read-timeout-review-20261115/model-source-final/server-tests.log"
+      }
+    },
+    {
+      "name": "apphost",
+      "mode": "Debug/project references",
+      "results_xml": "/home/administrator/.local/state/codex/native-read-timeout-review-20261115/model-source-final/apphost-tests.xml",
+      "results_sha256": "0a9688936c0d19f4249b8211221bde86d196379e680c9f04a8f043497ce1e3e6",
+      "total": 50,
+      "passed": 50,
+      "failed": 0,
+      "skipped": 0,
+      "errors": 0,
+      "execution": {
+        "name": "apphost-tests",
+        "cwd": "/tmp/hexalith-job.oAMSWrSV/workspace",
+        "command": [
+          "dotnet",
+          "/tmp/hexalith-job.oAMSWrSV/workspace/tests/Hexalith.Tenants.AppHost.Tests/bin/Debug/net11.0/Hexalith.Tenants.AppHost.Tests.dll",
+          "-noLogo",
+          "-result-xml",
+          "/home/administrator/.local/state/codex/native-read-timeout-review-20261115/model-source-final/apphost-tests.xml",
+          "-class",
+          "Hexalith.Tenants.AppHost.Tests.SourceAuthorityInvocationBudgetTests",
+          "-class",
+          "Hexalith.Tenants.AppHost.Tests.AppHostSecurityResourceGraphTests"
+        ],
+        "exit_code": 0,
+        "seconds": 2.26,
+        "log": "/home/administrator/.local/state/codex/native-read-timeout-review-20261115/model-source-final/apphost-tests.log"
+      }
+    },
+    {
+      "name": "integration",
+      "mode": "Debug/project references",
+      "results_xml": "/home/administrator/.local/state/codex/native-read-timeout-review-20261115/integration-tests.xml",
+      "results_sha256": "afc55db656bd86b657cda532cbf5e89bc7977ad04ef1dd6168c49eadca90e060",
+      "total": 35,
+      "passed": 35,
+      "failed": 0,
+      "skipped": 0,
+      "errors": 0,
+      "execution": {
+        "name": "integration-tests",
+        "cwd": "/home/administrator/projects/hexalith/tenants",
+        "command": [
+          "dotnet",
+          "/tmp/hexalith-job.azBcOXJd/artifacts/bin/Hexalith.Tenants.IntegrationTests/debug/Hexalith.Tenants.IntegrationTests.dll",
+          "-noLogo",
+          "-xml",
+          "/home/administrator/.local/state/codex/native-read-timeout-review-20261115/integration-tests.xml",
+          "-class",
+          "Hexalith.Tenants.IntegrationTests.TenantOwnerSourceGatewayTests",
+          "-class",
+          "Hexalith.Tenants.IntegrationTests.TenantsApiGatewayResilienceTests",
+          "-class",
+          "Hexalith.Tenants.IntegrationTests.NativeOwnerReadServiceTests"
+        ],
+        "exit_code": 0,
+        "seconds": 137.28,
+        "log": "/home/administrator/.local/state/codex/native-read-timeout-review-20261115/integration-tests.log"
+      }
+    },
+    {
+      "name": "ui",
+      "mode": "Debug/project references",
+      "results_xml": "/home/administrator/.local/state/codex/native-read-timeout-review-20261115/ui-tests.xml",
+      "results_sha256": "54dddfbb1d5110c737a436ccca2d828882a6cd961b1398519e4a67eabccfb8d0",
+      "total": 843,
+      "passed": 843,
+      "failed": 0,
+      "skipped": 0,
+      "errors": 0,
+      "execution": {
+        "name": "ui-tests",
+        "cwd": "/home/administrator/projects/hexalith/tenants",
+        "command": [
+          "dotnet",
+          "/tmp/hexalith-job.azBcOXJd/artifacts/bin/Hexalith.Tenants.UI.Tests/debug/Hexalith.Tenants.UI.Tests.dll",
+          "-noLogo",
+          "-xml",
+          "/home/administrator/.local/state/codex/native-read-timeout-review-20261115/ui-tests.xml",
+          "-class",
+          "Hexalith.Tenants.UI.Tests.Services.Gateways.TenantQueryGatewayTests"
+        ],
+        "exit_code": 0,
+        "seconds": 3.1,
+        "log": "/home/administrator/.local/state/codex/native-read-timeout-review-20261115/ui-tests.log"
+      }
+    }
+  ],
+  "builds": [
+    {
+      "name": "producer-source-build",
+      "cwd": "/tmp/hexalith-job.UdulCjX2/workspace/references/Hexalith.EventStore",
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.EventStore.Server.Tests/Hexalith.EventStore.Server.Tests.csproj",
+        "-c",
+        "Debug",
+        "-m:1",
+        "-warnaserror",
+        "-p:UseHexalithProjectReferences=true",
+        "-p:NuGetAudit=false",
+        "-p:MinVerVersionOverride=5.1.0",
+        "--nologo"
+      ],
+      "exit_code": 0,
+      "seconds": 28.65,
+      "log": "/home/administrator/.local/state/codex/native-read-timeout-review-20261115/layout-preserved/producer-source-build.log",
+      "log_sha256": "9841814df35c81da735aff57d35745ada7738143c1e2a4a36f170a0b3f5b263a"
+    },
+    {
+      "name": "server-source-build",
+      "cwd": "/tmp/hexalith-job.oAMSWrSV/workspace",
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj",
+        "-c",
+        "Debug",
+        "-m:1",
+        "-warnaserror",
+        "-p:UseHexalithProjectReferences=true",
+        "-p:NuGetAudit=false",
+        "--nologo",
+        "-p:EnablePrivateOwnerSourceReadProof=true"
+      ],
+      "exit_code": 0,
+      "seconds": 29.6,
+      "log": "/home/administrator/.local/state/codex/native-read-timeout-review-20261115/model-source-final/server-source-build.log",
+      "log_sha256": "205824337c01468d80bd317af8d28246a60c779dee9b381bf84fc5621d971cd0"
+    },
+    {
+      "name": "apphost-source-build",
+      "cwd": "/tmp/hexalith-job.oAMSWrSV/workspace",
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.Tenants.AppHost.Tests/Hexalith.Tenants.AppHost.Tests.csproj",
+        "-c",
+        "Debug",
+        "-m:1",
+        "-warnaserror",
+        "-p:UseHexalithProjectReferences=true",
+        "-p:NuGetAudit=false",
+        "--nologo"
+      ],
+      "exit_code": 0,
+      "seconds": 42.75,
+      "log": "/home/administrator/.local/state/codex/native-read-timeout-review-20261115/model-source-final/apphost-source-build.log",
+      "log_sha256": "a86e2a284e3c7b8db6abbcec972ed86a035f2534f7d1361b52bf7c5b05d4a180"
+    },
+    {
+      "name": "integration-source-build",
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+        "-c",
+        "Debug",
+        "-m:1",
+        "-warnaserror",
+        "-p:UseHexalithProjectReferences=true",
+        "-p:NuGetAudit=false",
+        "--artifacts-path",
+        "/tmp/hexalith-job.azBcOXJd/artifacts",
+        "--nologo"
+      ],
+      "exit_code": 0,
+      "seconds": 38.34,
+      "log": "/home/administrator/.local/state/codex/native-read-timeout-review-20261115/integration-source-build.log",
+      "log_sha256": "edffc7d9b433ff5222952cb2c99041daa7f7e93e46e8ff04897d16809e81b319"
+    },
+    {
+      "name": "ui-source-build",
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj",
+        "-c",
+        "Debug",
+        "-m:1",
+        "-warnaserror",
+        "-p:UseHexalithProjectReferences=true",
+        "-p:NuGetAudit=false",
+        "--artifacts-path",
+        "/tmp/hexalith-job.azBcOXJd/artifacts",
+        "--nologo"
+      ],
+      "exit_code": 0,
+      "seconds": 17.62,
+      "log": "/home/administrator/.local/state/codex/native-read-timeout-review-20261115/ui-source-build.log",
+      "log_sha256": "3e4d1628341120ad2a973677d6f22b8acb9a46ee28aadb9e1f76e1cb8e12567e"
+    }
+  ],
+  "additional_checks": [
+    {
+      "name": "Dapr HTTPS",
+      "passed": 15,
+      "runtime": "1.18.7",
+      "command": [
+        "run-with-temp",
+        "python3",
+        "tests/integration/qualify-dapr-read-retries.py",
+        "--output",
+        "/home/administrator/.local/state/codex/native-read-timeout-review-20261115/dapr-normal.json"
+      ],
+      "report": "/home/administrator/.local/state/codex/native-read-timeout-review-20261115/dapr-normal.json",
+      "sha256": "03fb4d6d186bd18cf0cb6fb0163f54fd977e069c7ea9f06b6d6ae4294ee09b00"
+    },
+    {
+      "name": "Chromium functional timing and retained evidence",
+      "passed": 6,
+      "command": [
+        "run-with-temp",
+        "bash",
+        "-c",
+        "PLAYWRIGHT_BROWSERS_PATH=\"$TMPDIR/browsers\"; node tests/performance/tenant-audit/node_modules/playwright/cli.js install chromium; node --test tests/Hexalith.Tenants.UI.Tests/Browser/authenticated-live-route-waits.test.mjs tests/Hexalith.Tenants.UI.Tests/Browser/authenticated-live-route-evidence.test.mjs"
+      ],
+      "log": "/home/administrator/.local/state/codex/native-read-timeout-review-20261115/browser-final.log",
+      "sha256": "06a32955aaacb46371c1a909162f11c93b43db57c0e36cd690eaa1a2cd854d40"
+    },
+    {
+      "name": "Dapr policy evidence controls",
+      "passed": 1,
+      "command": [
+        "run-with-temp",
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests/scripts",
+        "-p",
+        "test_dapr_read_policy_evidence.py",
+        "-v"
+      ]
+    }
+  ],
+  "retry_mutation": {
+    "expected_exit_code": 1,
+    "actual_exit_code": 1,
+    "control_count": 13,
+    "failed_control": {
+      "case": "no retry on 503",
+      "status": 503,
+      "backendCalls": 4,
+      "expected": 503,
+      "pass": false
+    },
+    "report": "/home/administrator/.local/state/codex/native-read-timeout-review-20261115/dapr-mutation.json",
+    "sha256": "b1ec266738b36f3773c4fe353c3eb8a9c62415a071058f662c887ab1023e19fc"
+  },
+  "source_manifest": {
+    "repositories": {
+      ".": {
+        "head": "d73267fdbe84d09ccddf0a6492390e32d8938405",
+        "status": " M _bmad-output/implementation-artifacts/deferred-work.md\n M _bmad-output/implementation-artifacts/spec-fix-builds-sdk-cohort-fixtures.md\n M _bmad-output/implementation-artifacts/spec-fix-firefox-route-focus-ci.md\n M references/Hexalith.FrontComposer\n?? _bmad-output/implementation-artifacts/evidence/fix-builds-sdk-cohort-fixtures-2026-11-15/\n?? _bmad-output/implementation-artifacts/evidence/fix-firefox-route-focus-ci-2026-11-15/\n"
+      },
+      "references/Hexalith.EventStore": {
+        "head": "9d715d480c2a0243f863608bcaa3138bd03c43a6",
+        "status": ""
+      },
+      "references/Hexalith.Commons": {
+        "head": "fbf4e94233821f6ca336af91a06feaaeb7a16855",
+        "status": ""
+      },
+      "references/Hexalith.AI.Tools": {
+        "head": "17a37d83db193f0b7494c1b931fd1e82a67c1424",
+        "status": ""
+      },
+      "references/Hexalith.FrontComposer": {
+        "head": "b22be84bdbb23d9263a8835496ad0c95adf1843f",
+        "status": " M src/Hexalith.FrontComposer.Shell/wwwroot/js/fc-expandinrow.js\n M src/Hexalith.FrontComposer.SourceTools/Emitters/CommandFormEmitter.cs\n M tests/Hexalith.FrontComposer.Shell.Tests/Generated/AsyncCommandFormValidationTests.cs\n M tests/Hexalith.FrontComposer.Shell.Tests/Governance/CiGovernanceTests.cs\n M tests/Hexalith.FrontComposer.SourceTools.Tests/Emitters/CommandFormEmitterTests.CommandForm_DerivableFieldsHidden_OmitsHiddenFieldsOnly.verified.txt\n M tests/Hexalith.FrontComposer.SourceTools.Tests/Emitters/CommandFormEmitterTests.CommandForm_ShowFieldsOnly_RendersOnlyNamedFields.verified.txt\n M tests/ci-governance/stage_release_state.py\n"
+      },
+      "references/Hexalith.Builds": {
+        "head": "e2bbbd0893f586e4d447ef8358ff747ea3d34435",
+        "status": ""
+      },
+      "references/Hexalith.PolymorphicSerializations": {
+        "head": "e97b56930e213f674b64c157551f499b0473ec43",
+        "status": ""
+      },
+      "references/Hexalith.Memories": {
+        "head": "1306a0f84cf78160a192be6bc341798fe32427d4",
+        "status": ""
+      },
+      "references/Hexalith.McpCli": {
+        "head": "0795509fca063aaf2fd8dba8ac7a8213b57485a2",
+        "status": ""
+      },
+      "references/Hexalith.Platform": {
+        "head": "ddb1c0b141372a66d4a9d9c231d0041afbb7cd0c",
+        "status": ""
+      }
+    },
+    "source_sha256": {
+      "src/Hexalith.Tenants/Program.cs": "17e9c836a269c5bf8102e5736f6536945b89a2b123549104e966d3cae9817449",
+      "src/Hexalith.Tenants/Authorization/TenantOwnerSourceGatewayRegistration.cs": "c84b36eccb875a9bc4d5669f84ed847435c1a18cd291226b99bd8f2091975b19",
+      "src/Hexalith.Tenants.Api/Program.cs": "7df4b5e93269b96c0044036a093e908478a1a7d5ada47aaeb122fe30d83b7073",
+      "src/Hexalith.Tenants.AppHost/Program.cs": "def3c7a85298b26432b1f5bc31112f57dfb6a0c9433feba7fada3ab7336ab255",
+      "src/Hexalith.Tenants.AppHost/DaprComponents/resiliency.yaml": "9513a5b658544c9ae31ea96403510b744acdf1cf7a1462a828ff31ab3ae48d60",
+      "deploy/dapr/resiliency.yaml": "5ac59d117ff27326121fdcdb77f152e90acada09a4e212e9d29ed45482061fb3",
+      "src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs": "7daa10b78e0c2942b18b37f0a01d0caa6a762c7ddaac318f0d136676b7e38968",
+      "tests/Hexalith.Tenants.IntegrationTests/Fixtures/AspireTopologyFixture.cs": "ea5a33ffb416ca72f81025ee770cda4146e9638ae2fd3480d43676ca049b3b70",
+      "tests/Hexalith.Tenants.IntegrationTests/Fixtures/NativeOwnerReadServiceComposition.cs": "eed7bd8a93520987edcd677054deca058658ec57385d6c35fc7ae1e2836abe7b",
+      "tests/Hexalith.Tenants.IntegrationTests/TenantOwnerSourceGatewayTests.cs": "dbb7ce66a47bf18233bc06f9575575b81ffd344770935751bc0787c19ea7c447",
+      "tests/Hexalith.Tenants.IntegrationTests/TenantsApiGatewayResilienceTests.cs": "cecde11d487b707acbf6f3344bab0b62d8293ca13c9bc5a955f7a93450ec9740",
+      "tests/Hexalith.Tenants.AppHost.Tests/SourceAuthorityInvocationBudgetTests.cs": "4500f26f1f7b9ef8395833feaba519c246aca7c9583ea3119edb897a15dc4f24",
+      "tests/Hexalith.Tenants.Server.Tests/Configuration/EventPublicationConfigurationTests.cs": "efff16a2f4f3188cc73fe94df19d59683472a67c4b14643c1d920ee658166ba1",
+      "tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.Deadlines.cs": "09909621e76f1d99b89473ca1e263932de389a2993f3f81fb474132e8f4909ed",
+      "tests/integration/qualify-dapr-read-retries.py": "6802f438166f3c36bbbf789af9373a0df5a1296915db4388a5a11fcbaa1104cc",
+      "references/Hexalith.EventStore/src/Hexalith.EventStore/Extensions/DomainQueryRoutingServiceCollectionExtensions.cs": "470d5fc38970b431a531528d684fce2deeffb31184c79a92fa0d866ecb239d6e",
+      "references/Hexalith.EventStore/tests/Hexalith.EventStore.Server.Tests/Queries/DomainQueryResilienceTests.cs": "12f4a451fea97685cbcecae61d262e9c6e1259eae78deab506956c0d55d09167",
+      "references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.SourceTools/Emitters/CommandFormEmitter.cs": "308414c3e7e23545e4a3b832602acacbf72043e2b17e7a8df189c1f356e35c0f"
+    },
+    "review_diff_sha256": "5af70beea6943ea823fbc471f9c14c53d2bd29677785cb4972abce927607850d"
+  },
+  "review": "_bmad-output/implementation-artifacts/evidence/native-read-timeout-review-2026-11-15/review.json",
+  "failed_harness_attempts": {
+    "flattened_artifacts_path": "Producer/server/AppHost tests rely on their normal bin/Debug/net11.0 ancestry and failed source discovery after --artifacts-path flattened it. Corrected runs preserve the normal repository layout; initial failures remain in commands.json and XML.",
+    "copy_without_git_metadata": "The first copied workspace omitted .git and correctly tripped Memories source-submodule guards. Final server/AppHost copies retain links to the existing root-declared Git metadata; no nested submodule was initialized and no guard was disabled.",
+    "missing_browser": "The first Chromium run failed because the pinned v1255 browser was absent. The successful run installed that exact browser into its private TMPDIR and removed it on exit.",
+    "api_inspector_syntax": "The installed dotnet-inspect CLI rejected the skill example --oneline flag; its actual --help was consulted and successful --markdown comparisons were retained."
+  },
+  "retained_attempt_logs": [
+    "/home/administrator/.local/state/codex/native-read-timeout-review-20261115/commands.json",
+    "/home/administrator/.local/state/codex/native-read-timeout-review-20261115/layout-preserved/commands.json",
+    "/home/administrator/.local/state/codex/native-read-timeout-review-20261115/model-source-final/commands.json"
+  ],
+  "limitations": [
+    "No business AppHost or private business runtime was launched. AppHost checks inspect resource models; owner/API tests use controlled in-process transports.",
+    "No full live business-topology, native-removal topology, public package archive/release qualification, CI, publication, commit, push, dependency update, or pointer change was performed.",
+    "The passing source builds include the pre-existing FrontComposer changes already present in the shared workspace; this task does not claim them as implementation changes.",
+    "The producer disposable copy used MinVerVersionOverride=5.1.0 as a build metadata pin because it omitted Git metadata. Its source result does not establish package publication provenance.",
+    "NuGetAudit=false is an environment pin in these local source builds. Warnings remain errors; no build or assertion gate was weakened."
+  ],
+  "completion": "Local source verification and three-layer review complete; external live/release qualification remains separate."
+}

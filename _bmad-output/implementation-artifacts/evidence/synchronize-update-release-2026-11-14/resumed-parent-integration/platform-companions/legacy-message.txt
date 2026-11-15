@@ -1,0 +1,1 @@
+test(tuple): freeze synchronized source with retained legacy inputs

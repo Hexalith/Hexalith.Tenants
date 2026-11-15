@@ -1,0 +1,1 @@
+test(catalog): align evaluated source expectations with SDK 5.1.1

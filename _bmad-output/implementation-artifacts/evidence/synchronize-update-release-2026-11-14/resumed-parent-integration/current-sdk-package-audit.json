@@ -1,0 +1,1678 @@
+{
+  "capturedAtUtc": "2026-11-15T18:10:43.510668+00:00",
+  "scope": "Fresh official SDK, actual18-project normal Release evaluation, official stable/listed NuGet metadata. This is a source-selection audit, not product tests, native enrollment or publication.",
+  "rootHead": "d73267fdbe84d09ccddf0a6492390e32d8938405",
+  "buildsSource": "f0f5007cca1f9183d4f192e162071ba1c3282a63",
+  "sdk": {
+    "source": "https://builds.dotnet.microsoft.com/dotnet/release-metadata/11.0/releases.json",
+    "latestSdk": "11.0.100",
+    "globalJson": {
+      "version": "11.0.100",
+      "rollForward": "latestPatch"
+    },
+    "installed": "11.0.100"
+  },
+  "catalog": {
+    "sha256Raw": "75ebabd2a74b3ca5b2a553082ec7a66bf5659a7d254b503bd4bbe731ef2f5a2f"
+  },
+  "projects": [
+    {
+      "project": "samples/Hexalith.Tenants.Sample/Hexalith.Tenants.Sample.csproj",
+      "command": [
+        "dotnet",
+        "msbuild",
+        "samples/Hexalith.Tenants.Sample/Hexalith.Tenants.Sample.csproj",
+        "-nologo",
+        "-noAutoResponse",
+        "-nr:false",
+        "-p:Configuration=Release",
+        "-p:UseNuGetDeps=true",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:HexalithFrontComposerFromSource=false",
+        "-p:HexalithMemoriesFromSource=false",
+        "-getProperty:TargetFramework,HexalithEventStoreVersion,HexalithMcpCliVersion,HexalithMemoriesVersion,HexalithFrontComposerVersion,HexalithTenantsVersion",
+        "-getItem:PackageReference,PackageVersion"
+      ],
+      "properties": {
+        "TargetFramework": "net11.0",
+        "HexalithEventStoreVersion": "5.1.1",
+        "HexalithMcpCliVersion": "2.0.1",
+        "HexalithMemoriesVersion": "4.0.0",
+        "HexalithFrontComposerVersion": "6.0.0",
+        "HexalithTenantsVersion": "8.0.0"
+      },
+      "directPackages": [
+        {
+          "id": "Hexalith.EventStore.DomainService",
+          "version": "5.1.1"
+        },
+        {
+          "id": "Hexalith.Memories.Contracts",
+          "version": "4.0.0"
+        }
+      ]
+    },
+    {
+      "project": "samples/Hexalith.Tenants.Sample.Tests/Hexalith.Tenants.Sample.Tests.csproj",
+      "command": [
+        "dotnet",
+        "msbuild",
+        "samples/Hexalith.Tenants.Sample.Tests/Hexalith.Tenants.Sample.Tests.csproj",
+        "-nologo",
+        "-noAutoResponse",
+        "-nr:false",
+        "-p:Configuration=Release",
+        "-p:UseNuGetDeps=true",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:HexalithFrontComposerFromSource=false",
+        "-p:HexalithMemoriesFromSource=false",
+        "-getProperty:TargetFramework,HexalithEventStoreVersion,HexalithMcpCliVersion,HexalithMemoriesVersion,HexalithFrontComposerVersion,HexalithTenantsVersion",
+        "-getItem:PackageReference,PackageVersion"
+      ],
+      "properties": {
+        "TargetFramework": "net11.0",
+        "HexalithEventStoreVersion": "5.1.1",
+        "HexalithMcpCliVersion": "2.0.1",
+        "HexalithMemoriesVersion": "4.0.0",
+        "HexalithFrontComposerVersion": "6.0.0",
+        "HexalithTenantsVersion": "8.0.0"
+      },
+      "directPackages": [
+        {
+          "id": "Microsoft.Testing.Extensions.CodeCoverage",
+          "version": "18.12.0"
+        },
+        {
+          "id": "Microsoft.NET.Test.Sdk",
+          "version": "18.12.0"
+        },
+        {
+          "id": "xunit.v3",
+          "version": "4.0.3"
+        },
+        {
+          "id": "xunit.runner.visualstudio",
+          "version": "4.0.1"
+        },
+        {
+          "id": "Shouldly",
+          "version": "4.3.0"
+        },
+        {
+          "id": "NSubstitute",
+          "version": "6.2.0"
+        },
+        {
+          "id": "Microsoft.AspNetCore.Mvc.Testing",
+          "version": "11.0.0"
+        }
+      ]
+    },
+    {
+      "project": "src/Hexalith.Tenants/Hexalith.Tenants.csproj",
+      "command": [
+        "dotnet",
+        "msbuild",
+        "src/Hexalith.Tenants/Hexalith.Tenants.csproj",
+        "-nologo",
+        "-noAutoResponse",
+        "-nr:false",
+        "-p:Configuration=Release",
+        "-p:UseNuGetDeps=true",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:HexalithFrontComposerFromSource=false",
+        "-p:HexalithMemoriesFromSource=false",
+        "-getProperty:TargetFramework,HexalithEventStoreVersion,HexalithMcpCliVersion,HexalithMemoriesVersion,HexalithFrontComposerVersion,HexalithTenantsVersion",
+        "-getItem:PackageReference,PackageVersion"
+      ],
+      "properties": {
+        "TargetFramework": "net11.0",
+        "HexalithEventStoreVersion": "5.1.1",
+        "HexalithMcpCliVersion": "2.0.1",
+        "HexalithMemoriesVersion": "4.0.0",
+        "HexalithFrontComposerVersion": "6.0.0",
+        "HexalithTenantsVersion": "8.0.0"
+      },
+      "directPackages": [
+        {
+          "id": "Hexalith.EventStore.Gateway",
+          "version": "5.1.1"
+        },
+        {
+          "id": "Hexalith.EventStore.DomainService",
+          "version": "5.1.1"
+        },
+        {
+          "id": "Dapr.AspNetCore",
+          "version": "1.19.1"
+        },
+        {
+          "id": "MediatR",
+          "version": "15.0.0"
+        },
+        {
+          "id": "FluentValidation.DependencyInjectionExtensions",
+          "version": "12.2.0"
+        },
+        {
+          "id": "Microsoft.AspNetCore.Authentication.JwtBearer",
+          "version": "11.0.0"
+        },
+        {
+          "id": "Microsoft.AspNetCore.OpenApi",
+          "version": "11.0.0"
+        },
+        {
+          "id": "Swashbuckle.AspNetCore.SwaggerUI",
+          "version": "11.0.1"
+        }
+      ]
+    },
+    {
+      "project": "src/Hexalith.Tenants.Api/Hexalith.Tenants.Api.csproj",
+      "command": [
+        "dotnet",
+        "msbuild",
+        "src/Hexalith.Tenants.Api/Hexalith.Tenants.Api.csproj",
+        "-nologo",
+        "-noAutoResponse",
+        "-nr:false",
+        "-p:Configuration=Release",
+        "-p:UseNuGetDeps=true",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:HexalithFrontComposerFromSource=false",
+        "-p:HexalithMemoriesFromSource=false",
+        "-getProperty:TargetFramework,HexalithEventStoreVersion,HexalithMcpCliVersion,HexalithMemoriesVersion,HexalithFrontComposerVersion,HexalithTenantsVersion",
+        "-getItem:PackageReference,PackageVersion"
+      ],
+      "properties": {
+        "TargetFramework": "net11.0",
+        "HexalithEventStoreVersion": "5.1.1",
+        "HexalithMcpCliVersion": "2.0.1",
+        "HexalithMemoriesVersion": "4.0.0",
+        "HexalithFrontComposerVersion": "6.0.0",
+        "HexalithTenantsVersion": "8.0.0"
+      },
+      "directPackages": [
+        {
+          "id": "Hexalith.EventStore.Client",
+          "version": "5.1.1"
+        },
+        {
+          "id": "Hexalith.EventStore.RestApi.Generators",
+          "version": "5.1.1"
+        },
+        {
+          "id": "Hexalith.EventStore.ServiceDefaults",
+          "version": "5.1.1"
+        },
+        {
+          "id": "Microsoft.AspNetCore.Authentication.JwtBearer",
+          "version": "11.0.0"
+        }
+      ]
+    },
+    {
+      "project": "src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj",
+      "command": [
+        "dotnet",
+        "msbuild",
+        "src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj",
+        "-nologo",
+        "-noAutoResponse",
+        "-nr:false",
+        "-p:Configuration=Release",
+        "-p:UseNuGetDeps=true",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:HexalithFrontComposerFromSource=false",
+        "-p:HexalithMemoriesFromSource=false",
+        "-getProperty:TargetFramework,HexalithEventStoreVersion,HexalithMcpCliVersion,HexalithMemoriesVersion,HexalithFrontComposerVersion,HexalithTenantsVersion",
+        "-getItem:PackageReference,PackageVersion"
+      ],
+      "properties": {
+        "TargetFramework": "net11.0",
+        "HexalithEventStoreVersion": "5.1.1",
+        "HexalithMcpCliVersion": "2.0.1",
+        "HexalithMemoriesVersion": "4.0.0",
+        "HexalithFrontComposerVersion": "6.0.0",
+        "HexalithTenantsVersion": "8.0.0"
+      },
+      "directPackages": [
+        {
+          "id": "Hexalith.Commons.Aspire",
+          "version": "3.0.0"
+        },
+        {
+          "id": "Hexalith.EventStore.Aspire",
+          "version": "5.1.1"
+        },
+        {
+          "id": "Hexalith.Memories.Aspire",
+          "version": "4.0.0"
+        }
+      ]
+    },
+    {
+      "project": "src/Hexalith.Tenants.Aspire/Hexalith.Tenants.Aspire.csproj",
+      "command": [
+        "dotnet",
+        "msbuild",
+        "src/Hexalith.Tenants.Aspire/Hexalith.Tenants.Aspire.csproj",
+        "-nologo",
+        "-noAutoResponse",
+        "-nr:false",
+        "-p:Configuration=Release",
+        "-p:UseNuGetDeps=true",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:HexalithFrontComposerFromSource=false",
+        "-p:HexalithMemoriesFromSource=false",
+        "-getProperty:TargetFramework,HexalithEventStoreVersion,HexalithMcpCliVersion,HexalithMemoriesVersion,HexalithFrontComposerVersion,HexalithTenantsVersion",
+        "-getItem:PackageReference,PackageVersion"
+      ],
+      "properties": {
+        "TargetFramework": "net11.0",
+        "HexalithEventStoreVersion": "5.1.1",
+        "HexalithMcpCliVersion": "2.0.1",
+        "HexalithMemoriesVersion": "4.0.0",
+        "HexalithFrontComposerVersion": "6.0.0",
+        "HexalithTenantsVersion": "8.0.0"
+      },
+      "directPackages": [
+        {
+          "id": "Aspire.Hosting",
+          "version": "13.6.5"
+        },
+        {
+          "id": "Hexalith.EventStore.Aspire",
+          "version": "5.1.1"
+        }
+      ]
+    },
+    {
+      "project": "src/Hexalith.Tenants.Client/Hexalith.Tenants.Client.csproj",
+      "command": [
+        "dotnet",
+        "msbuild",
+        "src/Hexalith.Tenants.Client/Hexalith.Tenants.Client.csproj",
+        "-nologo",
+        "-noAutoResponse",
+        "-nr:false",
+        "-p:Configuration=Release",
+        "-p:UseNuGetDeps=true",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:HexalithFrontComposerFromSource=false",
+        "-p:HexalithMemoriesFromSource=false",
+        "-getProperty:TargetFramework,HexalithEventStoreVersion,HexalithMcpCliVersion,HexalithMemoriesVersion,HexalithFrontComposerVersion,HexalithTenantsVersion",
+        "-getItem:PackageReference,PackageVersion"
+      ],
+      "properties": {
+        "TargetFramework": "net11.0",
+        "HexalithEventStoreVersion": "5.1.1",
+        "HexalithMcpCliVersion": "2.0.1",
+        "HexalithMemoriesVersion": "4.0.0",
+        "HexalithFrontComposerVersion": "6.0.0",
+        "HexalithTenantsVersion": "8.0.0"
+      },
+      "directPackages": [
+        {
+          "id": "Hexalith.EventStore.Client",
+          "version": "5.1.1"
+        },
+        {
+          "id": "Dapr.AspNetCore",
+          "version": "1.19.1"
+        }
+      ]
+    },
+    {
+      "project": "src/Hexalith.Tenants.Contracts/Hexalith.Tenants.Contracts.csproj",
+      "command": [
+        "dotnet",
+        "msbuild",
+        "src/Hexalith.Tenants.Contracts/Hexalith.Tenants.Contracts.csproj",
+        "-nologo",
+        "-noAutoResponse",
+        "-nr:false",
+        "-p:Configuration=Release",
+        "-p:UseNuGetDeps=true",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:HexalithFrontComposerFromSource=false",
+        "-p:HexalithMemoriesFromSource=false",
+        "-getProperty:TargetFramework,HexalithEventStoreVersion,HexalithMcpCliVersion,HexalithMemoriesVersion,HexalithFrontComposerVersion,HexalithTenantsVersion",
+        "-getItem:PackageReference,PackageVersion"
+      ],
+      "properties": {
+        "TargetFramework": "net11.0",
+        "HexalithEventStoreVersion": "5.1.1",
+        "HexalithMcpCliVersion": "2.0.1",
+        "HexalithMemoriesVersion": "4.0.0",
+        "HexalithFrontComposerVersion": "6.0.0",
+        "HexalithTenantsVersion": "8.0.0"
+      },
+      "directPackages": [
+        {
+          "id": "Hexalith.EventStore.Contracts",
+          "version": "5.1.1"
+        },
+        {
+          "id": "Hexalith.McpCli.Abstractions",
+          "version": "2.0.1"
+        }
+      ]
+    },
+    {
+      "project": "src/Hexalith.Tenants.Server/Hexalith.Tenants.Server.csproj",
+      "command": [
+        "dotnet",
+        "msbuild",
+        "src/Hexalith.Tenants.Server/Hexalith.Tenants.Server.csproj",
+        "-nologo",
+        "-noAutoResponse",
+        "-nr:false",
+        "-p:Configuration=Release",
+        "-p:UseNuGetDeps=true",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:HexalithFrontComposerFromSource=false",
+        "-p:HexalithMemoriesFromSource=false",
+        "-getProperty:TargetFramework,HexalithEventStoreVersion,HexalithMcpCliVersion,HexalithMemoriesVersion,HexalithFrontComposerVersion,HexalithTenantsVersion",
+        "-getItem:PackageReference,PackageVersion"
+      ],
+      "properties": {
+        "TargetFramework": "net11.0",
+        "HexalithEventStoreVersion": "5.1.1",
+        "HexalithMcpCliVersion": "2.0.1",
+        "HexalithMemoriesVersion": "4.0.0",
+        "HexalithFrontComposerVersion": "6.0.0",
+        "HexalithTenantsVersion": "8.0.0"
+      },
+      "directPackages": [
+        {
+          "id": "Hexalith.EventStore.Server",
+          "version": "5.1.1"
+        },
+        {
+          "id": "Dapr.Client",
+          "version": "1.19.1"
+        },
+        {
+          "id": "FluentValidation",
+          "version": "12.2.0"
+        },
+        {
+          "id": "MediatR",
+          "version": "15.0.0"
+        }
+      ]
+    },
+    {
+      "project": "src/Hexalith.Tenants.Testing/Hexalith.Tenants.Testing.csproj",
+      "command": [
+        "dotnet",
+        "msbuild",
+        "src/Hexalith.Tenants.Testing/Hexalith.Tenants.Testing.csproj",
+        "-nologo",
+        "-noAutoResponse",
+        "-nr:false",
+        "-p:Configuration=Release",
+        "-p:UseNuGetDeps=true",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:HexalithFrontComposerFromSource=false",
+        "-p:HexalithMemoriesFromSource=false",
+        "-getProperty:TargetFramework,HexalithEventStoreVersion,HexalithMcpCliVersion,HexalithMemoriesVersion,HexalithFrontComposerVersion,HexalithTenantsVersion",
+        "-getItem:PackageReference,PackageVersion"
+      ],
+      "properties": {
+        "TargetFramework": "net11.0",
+        "HexalithEventStoreVersion": "5.1.1",
+        "HexalithMcpCliVersion": "2.0.1",
+        "HexalithMemoriesVersion": "4.0.0",
+        "HexalithFrontComposerVersion": "6.0.0",
+        "HexalithTenantsVersion": "8.0.0"
+      },
+      "directPackages": [
+        {
+          "id": "Shouldly",
+          "version": "4.3.0"
+        },
+        {
+          "id": "xunit.v3.assert",
+          "version": "4.0.3"
+        },
+        {
+          "id": "Hexalith.EventStore.ServiceDefaults",
+          "version": "5.1.1"
+        }
+      ]
+    },
+    {
+      "project": "src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj",
+      "command": [
+        "dotnet",
+        "msbuild",
+        "src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj",
+        "-nologo",
+        "-noAutoResponse",
+        "-nr:false",
+        "-p:Configuration=Release",
+        "-p:UseNuGetDeps=true",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:HexalithFrontComposerFromSource=false",
+        "-p:HexalithMemoriesFromSource=false",
+        "-getProperty:TargetFramework,HexalithEventStoreVersion,HexalithMcpCliVersion,HexalithMemoriesVersion,HexalithFrontComposerVersion,HexalithTenantsVersion",
+        "-getItem:PackageReference,PackageVersion"
+      ],
+      "properties": {
+        "TargetFramework": "net11.0",
+        "HexalithEventStoreVersion": "5.1.1",
+        "HexalithMcpCliVersion": "2.0.1",
+        "HexalithMemoriesVersion": "4.0.0",
+        "HexalithFrontComposerVersion": "6.0.0",
+        "HexalithTenantsVersion": "8.0.0"
+      },
+      "directPackages": [
+        {
+          "id": "Hexalith.FrontComposer.Contracts",
+          "version": "6.0.0"
+        },
+        {
+          "id": "Hexalith.FrontComposer.Shell",
+          "version": "6.0.0"
+        },
+        {
+          "id": "Hexalith.FrontComposer.SourceTools",
+          "version": "6.0.0"
+        },
+        {
+          "id": "Hexalith.Memories.Contracts",
+          "version": "4.0.0"
+        },
+        {
+          "id": "Hexalith.Memories.Client.Rest",
+          "version": "4.0.0"
+        },
+        {
+          "id": "Microsoft.FluentUI.AspNetCore.Components",
+          "version": "5.0.1"
+        },
+        {
+          "id": "NUlid",
+          "version": "1.7.3"
+        }
+      ]
+    },
+    {
+      "project": "tests/Hexalith.Tenants.AppHost.Tests/Hexalith.Tenants.AppHost.Tests.csproj",
+      "command": [
+        "dotnet",
+        "msbuild",
+        "tests/Hexalith.Tenants.AppHost.Tests/Hexalith.Tenants.AppHost.Tests.csproj",
+        "-nologo",
+        "-noAutoResponse",
+        "-nr:false",
+        "-p:Configuration=Release",
+        "-p:UseNuGetDeps=true",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:HexalithFrontComposerFromSource=false",
+        "-p:HexalithMemoriesFromSource=false",
+        "-getProperty:TargetFramework,HexalithEventStoreVersion,HexalithMcpCliVersion,HexalithMemoriesVersion,HexalithFrontComposerVersion,HexalithTenantsVersion",
+        "-getItem:PackageReference,PackageVersion"
+      ],
+      "properties": {
+        "TargetFramework": "net11.0",
+        "HexalithEventStoreVersion": "5.1.1",
+        "HexalithMcpCliVersion": "2.0.1",
+        "HexalithMemoriesVersion": "4.0.0",
+        "HexalithFrontComposerVersion": "6.0.0",
+        "HexalithTenantsVersion": "8.0.0"
+      },
+      "directPackages": [
+        {
+          "id": "Microsoft.Testing.Extensions.CodeCoverage",
+          "version": "18.12.0"
+        },
+        {
+          "id": "Microsoft.NET.Test.Sdk",
+          "version": "18.12.0"
+        },
+        {
+          "id": "xunit.v3",
+          "version": "4.0.3"
+        },
+        {
+          "id": "xunit.runner.visualstudio",
+          "version": "4.0.1"
+        },
+        {
+          "id": "Shouldly",
+          "version": "4.3.0"
+        },
+        {
+          "id": "NSubstitute",
+          "version": "6.2.0"
+        },
+        {
+          "id": "Aspire.Hosting.Testing",
+          "version": "13.6.5"
+        }
+      ]
+    },
+    {
+      "project": "tests/Hexalith.Tenants.Client.Tests/Hexalith.Tenants.Client.Tests.csproj",
+      "command": [
+        "dotnet",
+        "msbuild",
+        "tests/Hexalith.Tenants.Client.Tests/Hexalith.Tenants.Client.Tests.csproj",
+        "-nologo",
+        "-noAutoResponse",
+        "-nr:false",
+        "-p:Configuration=Release",
+        "-p:UseNuGetDeps=true",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:HexalithFrontComposerFromSource=false",
+        "-p:HexalithMemoriesFromSource=false",
+        "-getProperty:TargetFramework,HexalithEventStoreVersion,HexalithMcpCliVersion,HexalithMemoriesVersion,HexalithFrontComposerVersion,HexalithTenantsVersion",
+        "-getItem:PackageReference,PackageVersion"
+      ],
+      "properties": {
+        "TargetFramework": "net11.0",
+        "HexalithEventStoreVersion": "5.1.1",
+        "HexalithMcpCliVersion": "2.0.1",
+        "HexalithMemoriesVersion": "4.0.0",
+        "HexalithFrontComposerVersion": "6.0.0",
+        "HexalithTenantsVersion": "8.0.0"
+      },
+      "directPackages": [
+        {
+          "id": "Microsoft.Testing.Extensions.CodeCoverage",
+          "version": "18.12.0"
+        },
+        {
+          "id": "Microsoft.NET.Test.Sdk",
+          "version": "18.12.0"
+        },
+        {
+          "id": "xunit.v3",
+          "version": "4.0.3"
+        },
+        {
+          "id": "xunit.runner.visualstudio",
+          "version": "4.0.1"
+        },
+        {
+          "id": "Shouldly",
+          "version": "4.3.0"
+        },
+        {
+          "id": "NSubstitute",
+          "version": "6.2.0"
+        },
+        {
+          "id": "Hexalith.EventStore.Testing",
+          "version": "5.1.1"
+        }
+      ]
+    },
+    {
+      "project": "tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj",
+      "command": [
+        "dotnet",
+        "msbuild",
+        "tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj",
+        "-nologo",
+        "-noAutoResponse",
+        "-nr:false",
+        "-p:Configuration=Release",
+        "-p:UseNuGetDeps=true",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:HexalithFrontComposerFromSource=false",
+        "-p:HexalithMemoriesFromSource=false",
+        "-getProperty:TargetFramework,HexalithEventStoreVersion,HexalithMcpCliVersion,HexalithMemoriesVersion,HexalithFrontComposerVersion,HexalithTenantsVersion",
+        "-getItem:PackageReference,PackageVersion"
+      ],
+      "properties": {
+        "TargetFramework": "net11.0",
+        "HexalithEventStoreVersion": "5.1.1",
+        "HexalithMcpCliVersion": "2.0.1",
+        "HexalithMemoriesVersion": "4.0.0",
+        "HexalithFrontComposerVersion": "6.0.0",
+        "HexalithTenantsVersion": "8.0.0"
+      },
+      "directPackages": [
+        {
+          "id": "Microsoft.Testing.Extensions.CodeCoverage",
+          "version": "18.12.0"
+        },
+        {
+          "id": "Microsoft.NET.Test.Sdk",
+          "version": "18.12.0"
+        },
+        {
+          "id": "xunit.v3",
+          "version": "4.0.3"
+        },
+        {
+          "id": "xunit.runner.visualstudio",
+          "version": "4.0.1"
+        },
+        {
+          "id": "Shouldly",
+          "version": "4.3.0"
+        },
+        {
+          "id": "NSubstitute",
+          "version": "6.2.0"
+        },
+        {
+          "id": "Hexalith.EventStore.ServiceDefaults",
+          "version": "5.1.1"
+        },
+        {
+          "id": "YamlDotNet",
+          "version": "18.1.0"
+        }
+      ]
+    },
+    {
+      "project": "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+      "command": [
+        "dotnet",
+        "msbuild",
+        "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+        "-nologo",
+        "-noAutoResponse",
+        "-nr:false",
+        "-p:Configuration=Release",
+        "-p:UseNuGetDeps=true",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:HexalithFrontComposerFromSource=false",
+        "-p:HexalithMemoriesFromSource=false",
+        "-getProperty:TargetFramework,HexalithEventStoreVersion,HexalithMcpCliVersion,HexalithMemoriesVersion,HexalithFrontComposerVersion,HexalithTenantsVersion",
+        "-getItem:PackageReference,PackageVersion"
+      ],
+      "properties": {
+        "TargetFramework": "net11.0",
+        "HexalithEventStoreVersion": "5.1.1",
+        "HexalithMcpCliVersion": "2.0.1",
+        "HexalithMemoriesVersion": "4.0.0",
+        "HexalithFrontComposerVersion": "6.0.0",
+        "HexalithTenantsVersion": "8.0.0"
+      },
+      "directPackages": [
+        {
+          "id": "Microsoft.Testing.Extensions.CodeCoverage",
+          "version": "18.12.0"
+        },
+        {
+          "id": "Microsoft.NET.Test.Sdk",
+          "version": "18.12.0"
+        },
+        {
+          "id": "xunit.v3",
+          "version": "4.0.3"
+        },
+        {
+          "id": "xunit.runner.visualstudio",
+          "version": "4.0.1"
+        },
+        {
+          "id": "Shouldly",
+          "version": "4.3.0"
+        },
+        {
+          "id": "NSubstitute",
+          "version": "6.2.0"
+        },
+        {
+          "id": "Hexalith.EventStore.Testing",
+          "version": "5.1.1"
+        },
+        {
+          "id": "Hexalith.EventStore.Testing.Integration",
+          "version": "3.128.4"
+        },
+        {
+          "id": "Aspire.Hosting.Testing",
+          "version": "13.6.5"
+        },
+        {
+          "id": "Microsoft.AspNetCore.Mvc.Testing",
+          "version": "11.0.0"
+        },
+        {
+          "id": "StackExchange.Redis",
+          "version": "3.4.35"
+        }
+      ]
+    },
+    {
+      "project": "tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj",
+      "command": [
+        "dotnet",
+        "msbuild",
+        "tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj",
+        "-nologo",
+        "-noAutoResponse",
+        "-nr:false",
+        "-p:Configuration=Release",
+        "-p:UseNuGetDeps=true",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:HexalithFrontComposerFromSource=false",
+        "-p:HexalithMemoriesFromSource=false",
+        "-getProperty:TargetFramework,HexalithEventStoreVersion,HexalithMcpCliVersion,HexalithMemoriesVersion,HexalithFrontComposerVersion,HexalithTenantsVersion",
+        "-getItem:PackageReference,PackageVersion"
+      ],
+      "properties": {
+        "TargetFramework": "net11.0",
+        "HexalithEventStoreVersion": "5.1.1",
+        "HexalithMcpCliVersion": "2.0.1",
+        "HexalithMemoriesVersion": "4.0.0",
+        "HexalithFrontComposerVersion": "6.0.0",
+        "HexalithTenantsVersion": "8.0.0"
+      },
+      "directPackages": [
+        {
+          "id": "Microsoft.Testing.Extensions.CodeCoverage",
+          "version": "18.12.0"
+        },
+        {
+          "id": "Microsoft.NET.Test.Sdk",
+          "version": "18.12.0"
+        },
+        {
+          "id": "xunit.v3",
+          "version": "4.0.3"
+        },
+        {
+          "id": "xunit.runner.visualstudio",
+          "version": "4.0.1"
+        },
+        {
+          "id": "Shouldly",
+          "version": "4.3.0"
+        },
+        {
+          "id": "NSubstitute",
+          "version": "6.2.0"
+        },
+        {
+          "id": "Hexalith.EventStore.Testing",
+          "version": "5.1.1"
+        },
+        {
+          "id": "YamlDotNet",
+          "version": "18.1.0"
+        }
+      ]
+    },
+    {
+      "project": "tests/Hexalith.Tenants.Testing.Tests/Hexalith.Tenants.Testing.Tests.csproj",
+      "command": [
+        "dotnet",
+        "msbuild",
+        "tests/Hexalith.Tenants.Testing.Tests/Hexalith.Tenants.Testing.Tests.csproj",
+        "-nologo",
+        "-noAutoResponse",
+        "-nr:false",
+        "-p:Configuration=Release",
+        "-p:UseNuGetDeps=true",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:HexalithFrontComposerFromSource=false",
+        "-p:HexalithMemoriesFromSource=false",
+        "-getProperty:TargetFramework,HexalithEventStoreVersion,HexalithMcpCliVersion,HexalithMemoriesVersion,HexalithFrontComposerVersion,HexalithTenantsVersion",
+        "-getItem:PackageReference,PackageVersion"
+      ],
+      "properties": {
+        "TargetFramework": "net11.0",
+        "HexalithEventStoreVersion": "5.1.1",
+        "HexalithMcpCliVersion": "2.0.1",
+        "HexalithMemoriesVersion": "4.0.0",
+        "HexalithFrontComposerVersion": "6.0.0",
+        "HexalithTenantsVersion": "8.0.0"
+      },
+      "directPackages": [
+        {
+          "id": "Microsoft.Testing.Extensions.CodeCoverage",
+          "version": "18.12.0"
+        },
+        {
+          "id": "Microsoft.NET.Test.Sdk",
+          "version": "18.12.0"
+        },
+        {
+          "id": "xunit.v3",
+          "version": "4.0.3"
+        },
+        {
+          "id": "xunit.runner.visualstudio",
+          "version": "4.0.1"
+        },
+        {
+          "id": "Shouldly",
+          "version": "4.3.0"
+        },
+        {
+          "id": "NSubstitute",
+          "version": "6.2.0"
+        }
+      ]
+    },
+    {
+      "project": "tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj",
+      "command": [
+        "dotnet",
+        "msbuild",
+        "tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj",
+        "-nologo",
+        "-noAutoResponse",
+        "-nr:false",
+        "-p:Configuration=Release",
+        "-p:UseNuGetDeps=true",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:HexalithFrontComposerFromSource=false",
+        "-p:HexalithMemoriesFromSource=false",
+        "-getProperty:TargetFramework,HexalithEventStoreVersion,HexalithMcpCliVersion,HexalithMemoriesVersion,HexalithFrontComposerVersion,HexalithTenantsVersion",
+        "-getItem:PackageReference,PackageVersion"
+      ],
+      "properties": {
+        "TargetFramework": "net11.0",
+        "HexalithEventStoreVersion": "5.1.1",
+        "HexalithMcpCliVersion": "2.0.1",
+        "HexalithMemoriesVersion": "4.0.0",
+        "HexalithFrontComposerVersion": "6.0.0",
+        "HexalithTenantsVersion": "8.0.0"
+      },
+      "directPackages": [
+        {
+          "id": "Microsoft.Testing.Extensions.CodeCoverage",
+          "version": "18.12.0"
+        },
+        {
+          "id": "Microsoft.NET.Test.Sdk",
+          "version": "18.12.0"
+        },
+        {
+          "id": "xunit.v3",
+          "version": "4.0.3"
+        },
+        {
+          "id": "xunit.runner.visualstudio",
+          "version": "4.0.1"
+        },
+        {
+          "id": "Shouldly",
+          "version": "4.3.0"
+        },
+        {
+          "id": "NSubstitute",
+          "version": "6.2.0"
+        },
+        {
+          "id": "Hexalith.FrontComposer.Contracts",
+          "version": "6.0.0"
+        },
+        {
+          "id": "Hexalith.FrontComposer.Shell",
+          "version": "6.0.0"
+        },
+        {
+          "id": "Hexalith.FrontComposer.Testing",
+          "version": "6.0.0"
+        },
+        {
+          "id": "bunit",
+          "version": "2.15.2"
+        },
+        {
+          "id": "Microsoft.AspNetCore.Mvc.Testing",
+          "version": "11.0.0"
+        },
+        {
+          "id": "Microsoft.FluentUI.AspNetCore.Components",
+          "version": "5.0.1"
+        }
+      ]
+    }
+  ],
+  "packages": [
+    {
+      "id": "Aspire.Hosting",
+      "latestListedStableAtVerification": "13.6.5",
+      "selected": [
+        {
+          "selectedVersion": "13.6.5",
+          "matchesLatestListedStable": true,
+          "consumers": [
+            "src/Hexalith.Tenants.Aspire/Hexalith.Tenants.Aspire.csproj"
+          ],
+          "compatibilityRationale": "Selected latest listed stable release."
+        }
+      ],
+      "source": "https://api.nuget.org/v3-flatcontainer/aspire.hosting/index.json",
+      "listedMetadata": "https://api.nuget.org/v3/catalog0/data/2026.11.10.17.28.59/aspire.hosting.13.6.5.json"
+    },
+    {
+      "id": "Aspire.Hosting.Testing",
+      "latestListedStableAtVerification": "13.6.5",
+      "selected": [
+        {
+          "selectedVersion": "13.6.5",
+          "matchesLatestListedStable": true,
+          "consumers": [
+            "tests/Hexalith.Tenants.AppHost.Tests/Hexalith.Tenants.AppHost.Tests.csproj",
+            "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj"
+          ],
+          "compatibilityRationale": "Selected latest listed stable release."
+        }
+      ],
+      "source": "https://api.nuget.org/v3-flatcontainer/aspire.hosting.testing/index.json",
+      "listedMetadata": "https://api.nuget.org/v3/catalog0/data/2026.11.10.17.27.05/aspire.hosting.testing.13.6.5.json"
+    },
+    {
+      "id": "Dapr.AspNetCore",
+      "latestListedStableAtVerification": "1.19.1",
+      "selected": [
+        {
+          "selectedVersion": "1.19.1",
+          "matchesLatestListedStable": true,
+          "consumers": [
+            "src/Hexalith.Tenants/Hexalith.Tenants.csproj",
+            "src/Hexalith.Tenants.Client/Hexalith.Tenants.Client.csproj"
+          ],
+          "compatibilityRationale": "Selected latest listed stable release."
+        }
+      ],
+      "source": "https://api.nuget.org/v3-flatcontainer/dapr.aspnetcore/index.json",
+      "listedMetadata": "https://api.nuget.org/v3/catalog0/data/2026.11.10.18.33.06/dapr.aspnetcore.1.19.1.json"
+    },
+    {
+      "id": "Dapr.Client",
+      "latestListedStableAtVerification": "1.19.1",
+      "selected": [
+        {
+          "selectedVersion": "1.19.1",
+          "matchesLatestListedStable": true,
+          "consumers": [
+            "src/Hexalith.Tenants.Server/Hexalith.Tenants.Server.csproj"
+          ],
+          "compatibilityRationale": "Selected latest listed stable release."
+        }
+      ],
+      "source": "https://api.nuget.org/v3-flatcontainer/dapr.client/index.json",
+      "listedMetadata": "https://api.nuget.org/v3/catalog0/data/2026.11.10.18.31.37/dapr.client.1.19.1.json"
+    },
+    {
+      "id": "FluentValidation",
+      "latestListedStableAtVerification": "12.2.0",
+      "selected": [
+        {
+          "selectedVersion": "12.2.0",
+          "matchesLatestListedStable": true,
+          "consumers": [
+            "src/Hexalith.Tenants.Server/Hexalith.Tenants.Server.csproj"
+          ],
+          "compatibilityRationale": "Selected latest listed stable release."
+        }
+      ],
+      "source": "https://api.nuget.org/v3-flatcontainer/fluentvalidation/index.json",
+      "listedMetadata": "https://api.nuget.org/v3/catalog0/data/2026.10.10.15.01.03/fluentvalidation.12.2.0.json"
+    },
+    {
+      "id": "FluentValidation.DependencyInjectionExtensions",
+      "latestListedStableAtVerification": "12.2.0",
+      "selected": [
+        {
+          "selectedVersion": "12.2.0",
+          "matchesLatestListedStable": true,
+          "consumers": [
+            "src/Hexalith.Tenants/Hexalith.Tenants.csproj"
+          ],
+          "compatibilityRationale": "Selected latest listed stable release."
+        }
+      ],
+      "source": "https://api.nuget.org/v3-flatcontainer/fluentvalidation.dependencyinjectionextensions/index.json",
+      "listedMetadata": "https://api.nuget.org/v3/catalog0/data/2026.10.10.15.01.03/fluentvalidation.dependencyinjectionextensions.12.2.0.json"
+    },
+    {
+      "id": "Hexalith.Commons.Aspire",
+      "latestListedStableAtVerification": "3.0.0",
+      "selected": [
+        {
+          "selectedVersion": "3.0.0",
+          "matchesLatestListedStable": true,
+          "consumers": [
+            "src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj"
+          ],
+          "compatibilityRationale": "Selected latest listed stable release."
+        }
+      ],
+      "source": "https://api.nuget.org/v3-flatcontainer/hexalith.commons.aspire/index.json",
+      "listedMetadata": "https://api.nuget.org/v3/catalog0/data/2026.11.12.11.55.04/hexalith.commons.aspire.3.0.0.json"
+    },
+    {
+      "id": "Hexalith.EventStore.Aspire",
+      "latestListedStableAtVerification": "5.1.1",
+      "selected": [
+        {
+          "selectedVersion": "5.1.1",
+          "matchesLatestListedStable": true,
+          "consumers": [
+            "src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj",
+            "src/Hexalith.Tenants.Aspire/Hexalith.Tenants.Aspire.csproj"
+          ],
+          "compatibilityRationale": "Selected latest listed stable release."
+        }
+      ],
+      "source": "https://api.nuget.org/v3-flatcontainer/hexalith.eventstore.aspire/index.json",
+      "listedMetadata": "https://api.nuget.org/v3/catalog0/data/2026.11.15.14.37.53/hexalith.eventstore.aspire.5.1.1.json"
+    },
+    {
+      "id": "Hexalith.EventStore.Client",
+      "latestListedStableAtVerification": "5.1.1",
+      "selected": [
+        {
+          "selectedVersion": "5.1.1",
+          "matchesLatestListedStable": true,
+          "consumers": [
+            "src/Hexalith.Tenants.Api/Hexalith.Tenants.Api.csproj",
+            "src/Hexalith.Tenants.Client/Hexalith.Tenants.Client.csproj"
+          ],
+          "compatibilityRationale": "Selected latest listed stable release."
+        }
+      ],
+      "source": "https://api.nuget.org/v3-flatcontainer/hexalith.eventstore.client/index.json",
+      "listedMetadata": "https://api.nuget.org/v3/catalog0/data/2026.11.15.14.33.42/hexalith.eventstore.client.5.1.1.json"
+    },
+    {
+      "id": "Hexalith.EventStore.Contracts",
+      "latestListedStableAtVerification": "5.1.1",
+      "selected": [
+        {
+          "selectedVersion": "5.1.1",
+          "matchesLatestListedStable": true,
+          "consumers": [
+            "src/Hexalith.Tenants.Contracts/Hexalith.Tenants.Contracts.csproj"
+          ],
+          "compatibilityRationale": "Selected latest listed stable release."
+        }
+      ],
+      "source": "https://api.nuget.org/v3-flatcontainer/hexalith.eventstore.contracts/index.json",
+      "listedMetadata": "https://api.nuget.org/v3/catalog0/data/2026.11.15.14.33.42/hexalith.eventstore.contracts.5.1.1.json"
+    },
+    {
+      "id": "Hexalith.EventStore.DomainService",
+      "latestListedStableAtVerification": "5.1.1",
+      "selected": [
+        {
+          "selectedVersion": "5.1.1",
+          "matchesLatestListedStable": true,
+          "consumers": [
+            "samples/Hexalith.Tenants.Sample/Hexalith.Tenants.Sample.csproj",
+            "src/Hexalith.Tenants/Hexalith.Tenants.csproj"
+          ],
+          "compatibilityRationale": "Selected latest listed stable release."
+        }
+      ],
+      "source": "https://api.nuget.org/v3-flatcontainer/hexalith.eventstore.domainservice/index.json",
+      "listedMetadata": "https://api.nuget.org/v3/catalog0/data/2026.11.15.14.35.31/hexalith.eventstore.domainservice.5.1.1.json"
+    },
+    {
+      "id": "Hexalith.EventStore.Gateway",
+      "latestListedStableAtVerification": "5.1.1",
+      "selected": [
+        {
+          "selectedVersion": "5.1.1",
+          "matchesLatestListedStable": true,
+          "consumers": [
+            "src/Hexalith.Tenants/Hexalith.Tenants.csproj"
+          ],
+          "compatibilityRationale": "Selected latest listed stable release."
+        }
+      ],
+      "source": "https://api.nuget.org/v3-flatcontainer/hexalith.eventstore.gateway/index.json",
+      "listedMetadata": "https://api.nuget.org/v3/catalog0/data/2026.11.15.14.33.05/hexalith.eventstore.gateway.5.1.1.json"
+    },
+    {
+      "id": "Hexalith.EventStore.RestApi.Generators",
+      "latestListedStableAtVerification": "5.1.1",
+      "selected": [
+        {
+          "selectedVersion": "5.1.1",
+          "matchesLatestListedStable": true,
+          "consumers": [
+            "src/Hexalith.Tenants.Api/Hexalith.Tenants.Api.csproj"
+          ],
+          "compatibilityRationale": "Selected latest listed stable release."
+        }
+      ],
+      "source": "https://api.nuget.org/v3-flatcontainer/hexalith.eventstore.restapi.generators/index.json",
+      "listedMetadata": "https://api.nuget.org/v3/catalog0/data/2026.11.15.14.33.05/hexalith.eventstore.restapi.generators.5.1.1.json"
+    },
+    {
+      "id": "Hexalith.EventStore.Server",
+      "latestListedStableAtVerification": "5.1.1",
+      "selected": [
+        {
+          "selectedVersion": "5.1.1",
+          "matchesLatestListedStable": true,
+          "consumers": [
+            "src/Hexalith.Tenants.Server/Hexalith.Tenants.Server.csproj"
+          ],
+          "compatibilityRationale": "Selected latest listed stable release."
+        }
+      ],
+      "source": "https://api.nuget.org/v3-flatcontainer/hexalith.eventstore.server/index.json",
+      "listedMetadata": "https://api.nuget.org/v3/catalog0/data/2026.11.15.14.31.13/hexalith.eventstore.server.5.1.1.json"
+    },
+    {
+      "id": "Hexalith.EventStore.ServiceDefaults",
+      "latestListedStableAtVerification": "5.1.1",
+      "selected": [
+        {
+          "selectedVersion": "5.1.1",
+          "matchesLatestListedStable": true,
+          "consumers": [
+            "src/Hexalith.Tenants.Api/Hexalith.Tenants.Api.csproj",
+            "src/Hexalith.Tenants.Testing/Hexalith.Tenants.Testing.csproj",
+            "tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj"
+          ],
+          "compatibilityRationale": "Selected latest listed stable release."
+        }
+      ],
+      "source": "https://api.nuget.org/v3-flatcontainer/hexalith.eventstore.servicedefaults/index.json",
+      "listedMetadata": "https://api.nuget.org/v3/catalog0/data/2026.11.15.14.30.38/hexalith.eventstore.servicedefaults.5.1.1.json"
+    },
+    {
+      "id": "Hexalith.EventStore.Testing",
+      "latestListedStableAtVerification": "5.1.1",
+      "selected": [
+        {
+          "selectedVersion": "5.1.1",
+          "matchesLatestListedStable": true,
+          "consumers": [
+            "tests/Hexalith.Tenants.Client.Tests/Hexalith.Tenants.Client.Tests.csproj",
+            "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+            "tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj"
+          ],
+          "compatibilityRationale": "Selected latest listed stable release."
+        }
+      ],
+      "source": "https://api.nuget.org/v3-flatcontainer/hexalith.eventstore.testing/index.json",
+      "listedMetadata": "https://api.nuget.org/v3/catalog0/data/2026.11.15.14.32.26/hexalith.eventstore.testing.5.1.1.json"
+    },
+    {
+      "id": "Hexalith.EventStore.Testing.Integration",
+      "latestListedStableAtVerification": "5.1.1",
+      "selected": [
+        {
+          "selectedVersion": "3.128.4",
+          "matchesLatestListedStable": false,
+          "consumers": [
+            "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj"
+          ],
+          "compatibilityRationale": "Explicit frozen 3.128.4 integration bootstrap harness, pinned by Directory.Build.props and documented in README.md. This version is not admitted for current package production or new native SDK acceptance.",
+          "rationaleSource": [
+            "Directory.Build.props:108",
+            "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj:15",
+            "README.md:175"
+          ]
+        }
+      ],
+      "source": "https://api.nuget.org/v3-flatcontainer/hexalith.eventstore.testing.integration/index.json",
+      "listedMetadata": "https://api.nuget.org/v3/catalog0/data/2026.11.15.14.33.05/hexalith.eventstore.testing.integration.5.1.1.json"
+    },
+    {
+      "id": "Hexalith.FrontComposer.Contracts",
+      "latestListedStableAtVerification": "6.0.0",
+      "selected": [
+        {
+          "selectedVersion": "6.0.0",
+          "matchesLatestListedStable": true,
+          "consumers": [
+            "src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj",
+            "tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj"
+          ],
+          "compatibilityRationale": "Selected latest listed stable release."
+        }
+      ],
+      "source": "https://api.nuget.org/v3-flatcontainer/hexalith.frontcomposer.contracts/index.json",
+      "listedMetadata": "https://api.nuget.org/v3/catalog0/data/2026.11.14.10.59.07/hexalith.frontcomposer.contracts.6.0.0.json"
+    },
+    {
+      "id": "Hexalith.FrontComposer.Shell",
+      "latestListedStableAtVerification": "6.0.0",
+      "selected": [
+        {
+          "selectedVersion": "6.0.0",
+          "matchesLatestListedStable": true,
+          "consumers": [
+            "src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj",
+            "tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj"
+          ],
+          "compatibilityRationale": "Selected latest listed stable release."
+        }
+      ],
+      "source": "https://api.nuget.org/v3-flatcontainer/hexalith.frontcomposer.shell/index.json",
+      "listedMetadata": "https://api.nuget.org/v3/catalog0/data/2026.11.14.10.59.07/hexalith.frontcomposer.shell.6.0.0.json"
+    },
+    {
+      "id": "Hexalith.FrontComposer.SourceTools",
+      "latestListedStableAtVerification": "6.0.0",
+      "selected": [
+        {
+          "selectedVersion": "6.0.0",
+          "matchesLatestListedStable": true,
+          "consumers": [
+            "src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj"
+          ],
+          "compatibilityRationale": "Selected latest listed stable release."
+        }
+      ],
+      "source": "https://api.nuget.org/v3-flatcontainer/hexalith.frontcomposer.sourcetools/index.json",
+      "listedMetadata": "https://api.nuget.org/v3/catalog0/data/2026.11.14.10.59.07/hexalith.frontcomposer.sourcetools.6.0.0.json"
+    },
+    {
+      "id": "Hexalith.FrontComposer.Testing",
+      "latestListedStableAtVerification": "6.0.0",
+      "selected": [
+        {
+          "selectedVersion": "6.0.0",
+          "matchesLatestListedStable": true,
+          "consumers": [
+            "tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj"
+          ],
+          "compatibilityRationale": "Selected latest listed stable release."
+        }
+      ],
+      "source": "https://api.nuget.org/v3-flatcontainer/hexalith.frontcomposer.testing/index.json",
+      "listedMetadata": "https://api.nuget.org/v3/catalog0/data/2026.11.14.10.58.32/hexalith.frontcomposer.testing.6.0.0.json"
+    },
+    {
+      "id": "Hexalith.McpCli.Abstractions",
+      "latestListedStableAtVerification": "3.0.0",
+      "selected": [
+        {
+          "selectedVersion": "2.0.1",
+          "matchesLatestListedStable": false,
+          "consumers": [
+            "src/Hexalith.Tenants.Contracts/Hexalith.Tenants.Contracts.csproj"
+          ],
+          "compatibilityRationale": "Retained exact admitted McpCli contract cohort. A new major native enrollment needs separate exact authority and qualification; existing native receipts do not transfer."
+        }
+      ],
+      "source": "https://api.nuget.org/v3-flatcontainer/hexalith.mcpcli.abstractions/index.json",
+      "listedMetadata": "https://api.nuget.org/v3/catalog0/data/2026.11.15.02.45.30/hexalith.mcpcli.abstractions.3.0.0.json"
+    },
+    {
+      "id": "Hexalith.Memories.Aspire",
+      "latestListedStableAtVerification": "4.0.0",
+      "selected": [
+        {
+          "selectedVersion": "4.0.0",
+          "matchesLatestListedStable": true,
+          "consumers": [
+            "src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj"
+          ],
+          "compatibilityRationale": "Selected latest listed stable release."
+        }
+      ],
+      "source": "https://api.nuget.org/v3-flatcontainer/hexalith.memories.aspire/index.json",
+      "listedMetadata": "https://api.nuget.org/v3/catalog0/data/2026.11.13.13.30.13/hexalith.memories.aspire.4.0.0.json"
+    },
+    {
+      "id": "Hexalith.Memories.Client.Rest",
+      "latestListedStableAtVerification": "4.0.0",
+      "selected": [
+        {
+          "selectedVersion": "4.0.0",
+          "matchesLatestListedStable": true,
+          "consumers": [
+            "src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj"
+          ],
+          "compatibilityRationale": "Selected latest listed stable release."
+        }
+      ],
+      "source": "https://api.nuget.org/v3-flatcontainer/hexalith.memories.client.rest/index.json",
+      "listedMetadata": "https://api.nuget.org/v3/catalog0/data/2026.11.13.13.29.03/hexalith.memories.client.rest.4.0.0.json"
+    },
+    {
+      "id": "Hexalith.Memories.Contracts",
+      "latestListedStableAtVerification": "4.0.0",
+      "selected": [
+        {
+          "selectedVersion": "4.0.0",
+          "matchesLatestListedStable": true,
+          "consumers": [
+            "samples/Hexalith.Tenants.Sample/Hexalith.Tenants.Sample.csproj",
+            "src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj"
+          ],
+          "compatibilityRationale": "Selected latest listed stable release."
+        }
+      ],
+      "source": "https://api.nuget.org/v3-flatcontainer/hexalith.memories.contracts/index.json",
+      "listedMetadata": "https://api.nuget.org/v3/catalog0/data/2026.11.13.13.31.28/hexalith.memories.contracts.4.0.0.json"
+    },
+    {
+      "id": "MediatR",
+      "latestListedStableAtVerification": "15.0.0",
+      "selected": [
+        {
+          "selectedVersion": "15.0.0",
+          "matchesLatestListedStable": true,
+          "consumers": [
+            "src/Hexalith.Tenants/Hexalith.Tenants.csproj",
+            "src/Hexalith.Tenants.Server/Hexalith.Tenants.Server.csproj"
+          ],
+          "compatibilityRationale": "Selected latest listed stable release."
+        }
+      ],
+      "source": "https://api.nuget.org/v3-flatcontainer/mediatr/index.json",
+      "listedMetadata": "https://api.nuget.org/v3/catalog0/data/2026.11.12.13.25.12/mediatr.15.0.0.json"
+    },
+    {
+      "id": "Microsoft.AspNetCore.Authentication.JwtBearer",
+      "latestListedStableAtVerification": "11.0.0",
+      "selected": [
+        {
+          "selectedVersion": "11.0.0",
+          "matchesLatestListedStable": true,
+          "consumers": [
+            "src/Hexalith.Tenants/Hexalith.Tenants.csproj",
+            "src/Hexalith.Tenants.Api/Hexalith.Tenants.Api.csproj"
+          ],
+          "compatibilityRationale": "Selected latest listed stable release."
+        }
+      ],
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.aspnetcore.authentication.jwtbearer/index.json",
+      "listedMetadata": "https://api.nuget.org/v3/catalog0/data/2026.11.10.14.51.32/microsoft.aspnetcore.authentication.jwtbearer.11.0.0.json"
+    },
+    {
+      "id": "Microsoft.AspNetCore.Mvc.Testing",
+      "latestListedStableAtVerification": "11.0.0",
+      "selected": [
+        {
+          "selectedVersion": "11.0.0",
+          "matchesLatestListedStable": true,
+          "consumers": [
+            "samples/Hexalith.Tenants.Sample.Tests/Hexalith.Tenants.Sample.Tests.csproj",
+            "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+            "tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj"
+          ],
+          "compatibilityRationale": "Selected latest listed stable release."
+        }
+      ],
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.aspnetcore.mvc.testing/index.json",
+      "listedMetadata": "https://api.nuget.org/v3/catalog0/data/2026.11.10.13.41.18/microsoft.aspnetcore.mvc.testing.11.0.0.json"
+    },
+    {
+      "id": "Microsoft.AspNetCore.OpenApi",
+      "latestListedStableAtVerification": "11.0.0",
+      "selected": [
+        {
+          "selectedVersion": "11.0.0",
+          "matchesLatestListedStable": true,
+          "consumers": [
+            "src/Hexalith.Tenants/Hexalith.Tenants.csproj"
+          ],
+          "compatibilityRationale": "Selected latest listed stable release."
+        }
+      ],
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.aspnetcore.openapi/index.json",
+      "listedMetadata": "https://api.nuget.org/v3/catalog0/data/2026.11.10.15.05.20/microsoft.aspnetcore.openapi.11.0.0.json"
+    },
+    {
+      "id": "Microsoft.FluentUI.AspNetCore.Components",
+      "latestListedStableAtVerification": "5.0.1",
+      "selected": [
+        {
+          "selectedVersion": "5.0.1",
+          "matchesLatestListedStable": true,
+          "consumers": [
+            "src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj",
+            "tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj"
+          ],
+          "compatibilityRationale": "Selected latest listed stable release."
+        }
+      ],
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.fluentui.aspnetcore.components/index.json",
+      "listedMetadata": "https://api.nuget.org/v3/catalog0/data/2026.10.14.14.24.13/microsoft.fluentui.aspnetcore.components.5.0.1.json"
+    },
+    {
+      "id": "Microsoft.NET.Test.Sdk",
+      "latestListedStableAtVerification": "18.12.0",
+      "selected": [
+        {
+          "selectedVersion": "18.12.0",
+          "matchesLatestListedStable": true,
+          "consumers": [
+            "samples/Hexalith.Tenants.Sample.Tests/Hexalith.Tenants.Sample.Tests.csproj",
+            "tests/Hexalith.Tenants.AppHost.Tests/Hexalith.Tenants.AppHost.Tests.csproj",
+            "tests/Hexalith.Tenants.Client.Tests/Hexalith.Tenants.Client.Tests.csproj",
+            "tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj",
+            "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+            "tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj",
+            "tests/Hexalith.Tenants.Testing.Tests/Hexalith.Tenants.Testing.Tests.csproj",
+            "tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj"
+          ],
+          "compatibilityRationale": "Selected latest listed stable release."
+        }
+      ],
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.net.test.sdk/index.json",
+      "listedMetadata": "https://api.nuget.org/v3/catalog0/data/2026.11.11.14.54.33/microsoft.net.test.sdk.18.12.0.json"
+    },
+    {
+      "id": "Microsoft.Testing.Extensions.CodeCoverage",
+      "latestListedStableAtVerification": "18.12.0",
+      "selected": [
+        {
+          "selectedVersion": "18.12.0",
+          "matchesLatestListedStable": true,
+          "consumers": [
+            "samples/Hexalith.Tenants.Sample.Tests/Hexalith.Tenants.Sample.Tests.csproj",
+            "tests/Hexalith.Tenants.AppHost.Tests/Hexalith.Tenants.AppHost.Tests.csproj",
+            "tests/Hexalith.Tenants.Client.Tests/Hexalith.Tenants.Client.Tests.csproj",
+            "tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj",
+            "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+            "tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj",
+            "tests/Hexalith.Tenants.Testing.Tests/Hexalith.Tenants.Testing.Tests.csproj",
+            "tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj"
+          ],
+          "compatibilityRationale": "Selected latest listed stable release."
+        }
+      ],
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.testing.extensions.codecoverage/index.json",
+      "listedMetadata": "https://api.nuget.org/v3/catalog0/data/2026.10.06.14.46.28/microsoft.testing.extensions.codecoverage.18.12.0.json"
+    },
+    {
+      "id": "NSubstitute",
+      "latestListedStableAtVerification": "6.2.0",
+      "selected": [
+        {
+          "selectedVersion": "6.2.0",
+          "matchesLatestListedStable": true,
+          "consumers": [
+            "samples/Hexalith.Tenants.Sample.Tests/Hexalith.Tenants.Sample.Tests.csproj",
+            "tests/Hexalith.Tenants.AppHost.Tests/Hexalith.Tenants.AppHost.Tests.csproj",
+            "tests/Hexalith.Tenants.Client.Tests/Hexalith.Tenants.Client.Tests.csproj",
+            "tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj",
+            "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+            "tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj",
+            "tests/Hexalith.Tenants.Testing.Tests/Hexalith.Tenants.Testing.Tests.csproj",
+            "tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj"
+          ],
+          "compatibilityRationale": "Selected latest listed stable release."
+        }
+      ],
+      "source": "https://api.nuget.org/v3-flatcontainer/nsubstitute/index.json",
+      "listedMetadata": "https://api.nuget.org/v3/catalog0/data/2026.08.11.11.01.56/nsubstitute.6.2.0.json"
+    },
+    {
+      "id": "NUlid",
+      "latestListedStableAtVerification": "1.7.3",
+      "selected": [
+        {
+          "selectedVersion": "1.7.3",
+          "matchesLatestListedStable": true,
+          "consumers": [
+            "src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj"
+          ],
+          "compatibilityRationale": "Selected latest listed stable release."
+        }
+      ],
+      "source": "https://api.nuget.org/v3-flatcontainer/nulid/index.json",
+      "listedMetadata": "https://api.nuget.org/v3/catalog0/data/2025.05.16.16.38.00/nulid.1.7.3.json"
+    },
+    {
+      "id": "Shouldly",
+      "latestListedStableAtVerification": "4.3.0",
+      "selected": [
+        {
+          "selectedVersion": "4.3.0",
+          "matchesLatestListedStable": true,
+          "consumers": [
+            "samples/Hexalith.Tenants.Sample.Tests/Hexalith.Tenants.Sample.Tests.csproj",
+            "src/Hexalith.Tenants.Testing/Hexalith.Tenants.Testing.csproj",
+            "tests/Hexalith.Tenants.AppHost.Tests/Hexalith.Tenants.AppHost.Tests.csproj",
+            "tests/Hexalith.Tenants.Client.Tests/Hexalith.Tenants.Client.Tests.csproj",
+            "tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj",
+            "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+            "tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj",
+            "tests/Hexalith.Tenants.Testing.Tests/Hexalith.Tenants.Testing.Tests.csproj",
+            "tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj"
+          ],
+          "compatibilityRationale": "Selected latest listed stable release."
+        }
+      ],
+      "source": "https://api.nuget.org/v3-flatcontainer/shouldly/index.json",
+      "listedMetadata": "https://api.nuget.org/v3/catalog0/data/2026.04.10.00.45.49/shouldly.4.3.0.json"
+    },
+    {
+      "id": "StackExchange.Redis",
+      "latestListedStableAtVerification": "3.4.35",
+      "selected": [
+        {
+          "selectedVersion": "3.4.35",
+          "matchesLatestListedStable": true,
+          "consumers": [
+            "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj"
+          ],
+          "compatibilityRationale": "Selected latest listed stable release."
+        }
+      ],
+      "source": "https://api.nuget.org/v3-flatcontainer/stackexchange.redis/index.json",
+      "listedMetadata": "https://api.nuget.org/v3/catalog0/data/2026.11.12.14.18.21/stackexchange.redis.3.4.35.json"
+    },
+    {
+      "id": "Swashbuckle.AspNetCore.SwaggerUI",
+      "latestListedStableAtVerification": "11.0.1",
+      "selected": [
+        {
+          "selectedVersion": "11.0.1",
+          "matchesLatestListedStable": true,
+          "consumers": [
+            "src/Hexalith.Tenants/Hexalith.Tenants.csproj"
+          ],
+          "compatibilityRationale": "Selected latest listed stable release."
+        }
+      ],
+      "source": "https://api.nuget.org/v3-flatcontainer/swashbuckle.aspnetcore.swaggerui/index.json",
+      "listedMetadata": "https://api.nuget.org/v3/catalog0/data/2026.11.12.12.23.50/swashbuckle.aspnetcore.swaggerui.11.0.1.json"
+    },
+    {
+      "id": "YamlDotNet",
+      "latestListedStableAtVerification": "18.1.0",
+      "selected": [
+        {
+          "selectedVersion": "18.1.0",
+          "matchesLatestListedStable": true,
+          "consumers": [
+            "tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj",
+            "tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj"
+          ],
+          "compatibilityRationale": "Selected latest listed stable release."
+        }
+      ],
+      "source": "https://api.nuget.org/v3-flatcontainer/yamldotnet/index.json",
+      "listedMetadata": "https://api.nuget.org/v3/catalog0/data/2026.06.26.22.55.40/yamldotnet.18.1.0.json"
+    },
+    {
+      "id": "bunit",
+      "latestListedStableAtVerification": "2.15.2",
+      "selected": [
+        {
+          "selectedVersion": "2.15.2",
+          "matchesLatestListedStable": true,
+          "consumers": [
+            "tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj"
+          ],
+          "compatibilityRationale": "Selected latest listed stable release."
+        }
+      ],
+      "source": "https://api.nuget.org/v3-flatcontainer/bunit/index.json",
+      "listedMetadata": "https://api.nuget.org/v3/catalog0/data/2026.11.10.18.20.49/bunit.2.15.2.json"
+    },
+    {
+      "id": "xunit.runner.visualstudio",
+      "latestListedStableAtVerification": "4.0.1",
+      "selected": [
+        {
+          "selectedVersion": "4.0.1",
+          "matchesLatestListedStable": true,
+          "consumers": [
+            "samples/Hexalith.Tenants.Sample.Tests/Hexalith.Tenants.Sample.Tests.csproj",
+            "tests/Hexalith.Tenants.AppHost.Tests/Hexalith.Tenants.AppHost.Tests.csproj",
+            "tests/Hexalith.Tenants.Client.Tests/Hexalith.Tenants.Client.Tests.csproj",
+            "tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj",
+            "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+            "tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj",
+            "tests/Hexalith.Tenants.Testing.Tests/Hexalith.Tenants.Testing.Tests.csproj",
+            "tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj"
+          ],
+          "compatibilityRationale": "Selected latest listed stable release."
+        }
+      ],
+      "source": "https://api.nuget.org/v3-flatcontainer/xunit.runner.visualstudio/index.json",
+      "listedMetadata": "https://api.nuget.org/v3/catalog0/data/2026.10.09.17.17.25/xunit.runner.visualstudio.4.0.1.json"
+    },
+    {
+      "id": "xunit.v3",
+      "latestListedStableAtVerification": "4.0.3",
+      "selected": [
+        {
+          "selectedVersion": "4.0.3",
+          "matchesLatestListedStable": true,
+          "consumers": [
+            "samples/Hexalith.Tenants.Sample.Tests/Hexalith.Tenants.Sample.Tests.csproj",
+            "tests/Hexalith.Tenants.AppHost.Tests/Hexalith.Tenants.AppHost.Tests.csproj",
+            "tests/Hexalith.Tenants.Client.Tests/Hexalith.Tenants.Client.Tests.csproj",
+            "tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj",
+            "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+            "tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj",
+            "tests/Hexalith.Tenants.Testing.Tests/Hexalith.Tenants.Testing.Tests.csproj",
+            "tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj"
+          ],
+          "compatibilityRationale": "Selected latest listed stable release."
+        }
+      ],
+      "source": "https://api.nuget.org/v3-flatcontainer/xunit.v3/index.json",
+      "listedMetadata": "https://api.nuget.org/v3/catalog0/data/2026.11.09.00.44.52/xunit.v3.4.0.3.json"
+    },
+    {
+      "id": "xunit.v3.assert",
+      "latestListedStableAtVerification": "4.0.3",
+      "selected": [
+        {
+          "selectedVersion": "4.0.3",
+          "matchesLatestListedStable": true,
+          "consumers": [
+            "src/Hexalith.Tenants.Testing/Hexalith.Tenants.Testing.csproj"
+          ],
+          "compatibilityRationale": "Selected latest listed stable release."
+        }
+      ],
+      "source": "https://api.nuget.org/v3-flatcontainer/xunit.v3.assert/index.json",
+      "listedMetadata": "https://api.nuget.org/v3/catalog0/data/2026.11.09.00.47.18/xunit.v3.assert.4.0.3.json"
+    }
+  ],
+  "temporaryWorkspace": "/dev/shm/hexalith-job.MrsE6mBa",
+  "disposable": true
+}

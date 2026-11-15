@@ -1,0 +1,33 @@
+{
+  "source": "38856d023dedd7c49da69b1cdb2fc54396f22f38",
+  "changes": {
+    "owner_commit": {
+      "before": "9ccbd4c7f8f3b6143e7b4f7b20a0e192de932ac1",
+      "after": "f6f85032598865b9123f16364448bfd02c0ff5b0"
+    },
+    "inventory_sha256": {
+      "before": "e858e0eb42cdb086ed24c4550828d076cd1171f01179600d4703ca5cc7f050fb",
+      "after": "874d7ff434413ef9e11324fd4ecfae1bd9dda527f8cc405e89ffa5a0e5502fd0"
+    },
+    "builds_commit": {
+      "before": "99f7c86072ca7b35e3fbbaee4606a559a847805a",
+      "after": "73e60af8a1fcdf3f06726d5d1b6e1199cce778ee"
+    },
+    "root_selectors_sha256": {
+      "before": "20ca6341e45b43c848fec62a7934047225050a56b8b4892280d36eadceee18e0",
+      "after": "5632f8e8b96f16d6274597b9c38bdec0aa14fbfa824b7457f99235ab1d7eaeaf"
+    }
+  },
+  "preserved": [
+    "gitmodules_sha256",
+    "inventory_only_identities",
+    "source_files",
+    "consumer_repository",
+    "consumer_project",
+    "source_root_property",
+    "compile_links",
+    "builds_project",
+    "consumer_configuration_sha256"
+  ],
+  "note": "No policy edit or new evaluator authorization yet."
+}

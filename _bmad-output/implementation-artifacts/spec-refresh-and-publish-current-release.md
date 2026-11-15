@@ -2,11 +2,15 @@
 title: 'Refresh dependencies and publish the current Tenants release'
 type: 'chore'
 created: '2026-11-03'
-status: 'in-review'
+status: 'done'
+resolution: 'superseded'
+closed: '2026-11-15'
+superseded_by: 'spec-synchronize-update-release-2026-11-14.md'
 route: 'dispatch'
 review_loop_iteration: 0
 context: []
 baseline_commit: '2aa3f04014d9188fc59114113e3a6b0a2eb3964b'
+gitlink_audit_ref: 'ae40c9657175ae5567cdd182384d3840af64d8a2'
 ---
 
 <frozen-after-approval reason="User explicitly authorized updates, synchronization, fixes, publication, and bypass of human validation">
@@ -85,6 +89,9 @@ baseline_commit: '2aa3f04014d9188fc59114113e3a6b0a2eb3964b'
 - `references/Hexalith.FrontComposer`
 - `references/Hexalith.Platform`
 
+- `references/Hexalith.McpCli`
+- `references/Hexalith.Memories`
+
 ## Completion Notes List
 
 - `references/Hexalith.Builds` moved to the committed shared catalog revision required for this release, including its fixture follow-up.
@@ -93,6 +100,17 @@ baseline_commit: '2aa3f04014d9188fc59114113e3a6b0a2eb3964b'
 
 - Builds fixture/audit repair committed as `70850b18e0d0b80facd2df0809974020dd935732` after locked commitlint validation. Independent root comparison read all 106 schema/fixture files and proved byte changes were only the selected SDK literal and SHA-256 replacements; unrelated audit package rows remained intact. Full Module.Tests: 2733 total, zero failures/errors, 3 existing environment skips. G4 package contracts with required controls passed; the separate source-fixture spec records detailed evidence and review triage. One pre-existing synthetic Source readiness metadata/binding follow-up is recorded in deferred-work.md; no current CI failure is deferred.
 - Parallel work advanced root main through `f2995d98`, `daa1a601`, and `be43b928ce700ae7433b1d078eec356ccd6079f8` while this task ran. These commits and their native-read timeout/diagnostic fixes are preserved; final source gates and publication must use the resulting current main, not the earlier local dependency-refresh SHA.
+
+Historical audit reconciliation (2026-11-15): `ae40c9657175ae5567cdd182384d3840af64d8a2` is the latest committed story-associated pointer event before the current documentation-only repair. The unchanged baseline is `2aa3f04014d9188fc59114113e3a6b0a2eb3964b`. The complete baseline-to-endpoint inventory below includes incidental workspace dependency movement; it records historical range contents and grants no runtime, publication, enrollment or maintainer approval. Original implementation notes, checklists and source-specific receipts retain their original attribution.
+
+| Dependency | Historical baseline | Historical audit endpoint |
+| --- | --- | --- |
+| `references/Hexalith.Builds` | `6585f5860e87c146c26aa066d3a52b94eb56f271` | `725754075e1d6369430a3adf94d46fb71e6eaf9e` |
+| `references/Hexalith.EventStore` | `f06abada8dc3aab4a5fd240847fd680d515c98a5` | `16dff1f018e8a68a9d244975e8228d96429eb61c` |
+| `references/Hexalith.FrontComposer` | `25139b7f59e5ae5465d1665825e24c638928ccb2` | `b105c846c31844441f1cff84b5c187da0eff3546` |
+| `references/Hexalith.McpCli` | `edaecb04b1a8edf78f6ad28e5bf253db594003f4` | `58afd4766849e33e75471c9047ee945025ca3b6e` |
+| `references/Hexalith.Memories` | `d9d61d8a95c7dc8827acf68ae723859711703729` | `d959bdae5af9c22f53573eda71c091cb5c0aae4c` |
+| `references/Hexalith.Platform` | `28737966f2ec0cdbfc16e89a31c348f03a8058d2` | `8432397c66ebc0fd22e5671ce620a7d2139f7453` |
 
 ## Spec Change Log
 
@@ -146,3 +164,13 @@ Edge-case layer returned no findings. Review fixes must preserve already passing
 - Publication coordination: e1667d7cd2042c947fe80906ba5349991f99da58 is an intermediate producer candidate. Automated review found its physical HttpClient100-second limit undercuts newly supported larger validated query settings; the implementation handoff is repairing that with targeted controls. Wait for the final producer SHA and its exact-source green gates before dispatching producer Release. Tenants publication likewise remains pending all required current work and actual live/package gates; do not publish an earlier passing snapshot while these necessary fixes remain uncommitted.
 
 - Corrected producer-review evidence: the alleged physical HttpClient100 cutoff was disproved by actual standard-resilience factory behavior (physical timeout alreadyInfinite, finite named policy authoritative). No production follow-up is needed for that claim; remove that attempted change. The pending producer follow-up now retains only useful configured-budget tests. Still publish from the final committed/tested source so all authorized changes are included.
+
+## Historical Closure — 2026-11-15
+
+Closed as superseded under the user’s instruction, "close obsolete specs". The active successor is [Synchronize dependencies and publish the .NET 11 release](spec-synchronize-update-release-2026-11-14.md). The original intent, checklist, review findings, baselines and verification notes above remain historical. The `done` status records administrative closure of this superseded plan; unchecked historical tasks are not asserted to have passed.
+
+The November 3 Memories 3.0.18/EventStore 4.0.2 refresh and publication handoff has been replaced by the November 14 .NET 11 release goal. The successor explicitly includes existing changes, all nine root-declared dependencies, current compatible packages, source CI and all five release archives.
+
+Remaining qualification: The successor’s unchecked exact-source CI and publication tasks remain open; closing this old release attempt does not claim a new release or reuse old producer acceptance.
+
+This closure grants no new technical acceptance, policy exception, source classification, Git operation or publication authority. Existing deferred records remain unchanged. [Closure validation](evidence/obsolete-spec-closure-2026-11-15/validation.json) retains the pre-existing historical gitlink-audit failures separately from the documentation checks; no baseline or gitlink audit metadata is rewritten.

@@ -2,8 +2,12 @@
 title: 'Qualify the published EventStore 4.0.3 consumer cohort'
 type: 'bugfix'
 created: '2026-11-03'
-status: 'in-review'
+status: 'done'
+resolution: 'superseded'
+closed: '2026-11-15'
+superseded_by: 'spec-synchronize-update-release-2026-11-14.md'
 baseline_commit: 'bcd923781e97cf7ea6391f73eb0b3d5469c254c4'
+gitlink_audit_ref: 'ae40c9657175ae5567cdd182384d3840af64d8a2'
 route: 'dispatch'
 context:
   - '/home/administrator/projects/hexalith/tenants/AGENTS.md'
@@ -55,3 +59,30 @@ Preserve concurrent work, every compatibility exception, source-mode behavior, a
 - `references/Hexalith.Builds`
 - `references/Hexalith.EventStore`
 - `references/Hexalith.Platform`
+
+- `references/Hexalith.FrontComposer`
+- `references/Hexalith.McpCli`
+- `references/Hexalith.Memories`
+
+## Historical Closure — 2026-11-15
+
+Closed as superseded under the user’s instruction, "close obsolete specs". The active successor is [Synchronize dependencies and publish the .NET 11 release](spec-synchronize-update-release-2026-11-14.md). The original intent, checklist, review findings, baselines and verification notes above remain historical. The `done` status records administrative closure of this superseded plan; unchecked historical tasks are not asserted to have passed.
+
+The exact EventStore 4.0.3 package qualification handoff is historical. The successor has independently recorded the later public EventStore 5.1.0 cohort, and spec-qualify-sdk-3-130-catalog-selection.md is done for the latest-SDK local qualification. This closure does not revoke a deliberately retained compatibility profile.
+
+Remaining qualification: Keep current public-archive/source verification, catalog/refusal checks and exact-source CI separate from every historical compatibility receipt.
+
+This closure grants no new technical acceptance, policy exception, source classification, Git operation or publication authority. Existing deferred records remain unchanged. [Closure validation](evidence/obsolete-spec-closure-2026-11-15/validation.json) retains the pre-existing historical gitlink-audit failures separately from the documentation checks; no baseline or gitlink audit metadata is rewritten.
+
+## Completion Notes List
+
+Historical audit reconciliation (2026-11-15): `ae40c9657175ae5567cdd182384d3840af64d8a2` is the latest committed story-associated pointer event before the current documentation-only repair. The unchanged baseline is `bcd923781e97cf7ea6391f73eb0b3d5469c254c4`. The complete baseline-to-endpoint inventory below includes incidental workspace dependency movement; it records historical range contents and grants no runtime, publication, enrollment or maintainer approval. Original implementation notes, checklists and source-specific receipts retain their original attribution.
+
+| Dependency | Historical baseline | Historical audit endpoint |
+| --- | --- | --- |
+| `references/Hexalith.Builds` | `70850b18e0d0b80facd2df0809974020dd935732` | `725754075e1d6369430a3adf94d46fb71e6eaf9e` |
+| `references/Hexalith.EventStore` | `f06abada8dc3aab4a5fd240847fd680d515c98a5` | `16dff1f018e8a68a9d244975e8228d96429eb61c` |
+| `references/Hexalith.FrontComposer` | `f842711d67004200e3248b3c42b7d9bcb2146907` | `b105c846c31844441f1cff84b5c187da0eff3546` |
+| `references/Hexalith.McpCli` | `edaecb04b1a8edf78f6ad28e5bf253db594003f4` | `58afd4766849e33e75471c9047ee945025ca3b6e` |
+| `references/Hexalith.Memories` | `d9d61d8a95c7dc8827acf68ae723859711703729` | `d959bdae5af9c22f53573eda71c091cb5c0aae4c` |
+| `references/Hexalith.Platform` | `1f5958e24d1b414d8956d079270f89556e23415d` | `8432397c66ebc0fd22e5671ce620a7d2139f7453` |

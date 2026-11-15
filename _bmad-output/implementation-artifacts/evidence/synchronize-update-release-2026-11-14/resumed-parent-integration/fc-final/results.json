@@ -1,0 +1,58 @@
+[
+  {
+    "command": [
+      "python3",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "tests/eng",
+      "-p",
+      "test_dependency_graph.py"
+    ],
+    "exit_code": 0,
+    "seconds": 37.87,
+    "fc_source": "d654bb412bfc54635b356527a89988a99f91992e",
+    "fc_working_patch_sha256": "d63780bbf6d14390b62b206458c6b0511d6f54ee6c28e100d013a52cff230e74",
+    "builds_source": "73e60af8a1fcdf3f06726d5d1b6e1199cce778ee",
+    "catalog_checkout_sha256": "253c5d1d7530ee9f6b17ecdfa0f4e49c1f30356e075e1111c2c3c803623ef683",
+    "log": "/dev/shm/tenants-release-resume-2026-11-15/fc-final/command-0.log"
+  },
+  {
+    "command": [
+      "dotnet",
+      "build",
+      "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+      "-c",
+      "Release",
+      "-m:1",
+      "-p:UseNuGetDeps=true",
+      "-p:MinVerVersionOverride=6.0.1",
+      "-warnaserror"
+    ],
+    "exit_code": 0,
+    "seconds": 8.99,
+    "fc_source": "d654bb412bfc54635b356527a89988a99f91992e",
+    "fc_working_patch_sha256": "d63780bbf6d14390b62b206458c6b0511d6f54ee6c28e100d013a52cff230e74",
+    "builds_source": "73e60af8a1fcdf3f06726d5d1b6e1199cce778ee",
+    "catalog_checkout_sha256": "253c5d1d7530ee9f6b17ecdfa0f4e49c1f30356e075e1111c2c3c803623ef683",
+    "log": "/dev/shm/tenants-release-resume-2026-11-15/fc-final/command-1.log"
+  },
+  {
+    "command": [
+      "dotnet",
+      "tests/Hexalith.FrontComposer.SourceTools.Tests/bin/Release/net11.0/Hexalith.FrontComposer.SourceTools.Tests.dll",
+      "-class",
+      "*CommandFormEmitterTests",
+      "-parallelMode",
+      "none"
+    ],
+    "exit_code": 0,
+    "seconds": 4.31,
+    "fc_source": "d654bb412bfc54635b356527a89988a99f91992e",
+    "fc_working_patch_sha256": "d63780bbf6d14390b62b206458c6b0511d6f54ee6c28e100d013a52cff230e74",
+    "builds_source": "73e60af8a1fcdf3f06726d5d1b6e1199cce778ee",
+    "catalog_checkout_sha256": "253c5d1d7530ee9f6b17ecdfa0f4e49c1f30356e075e1111c2c3c803623ef683",
+    "log": "/dev/shm/tenants-release-resume-2026-11-15/fc-final/command-2.log"
+  }
+]

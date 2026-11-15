@@ -1,0 +1,1 @@
+test(tuple): retain frozen package-reader inputs for synchronized release tooling

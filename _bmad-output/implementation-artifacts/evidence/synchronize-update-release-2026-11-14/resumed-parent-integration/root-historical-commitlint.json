@@ -1,0 +1,14 @@
+{
+  "command": [
+    "node",
+    "node_modules/@commitlint/cli/cli.js",
+    "--edit",
+    "/dev/shm/tenants-release-resume-2026-11-15/root-historical-message.txt"
+  ],
+  "message": "docs: reconcile historical release evidence endpoints\n",
+  "pinned_cli": "21.2.4",
+  "installed_cli": "21.2.4",
+  "exit_code": 0,
+  "stdout": "",
+  "stderr": ""
+}

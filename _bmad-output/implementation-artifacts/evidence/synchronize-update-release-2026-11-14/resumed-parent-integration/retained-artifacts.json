@@ -1,0 +1,465 @@
+{
+  "scope": "Preserved original parent integration receipts; embedded original log paths and source attribution are unchanged. Failed attempts retain their real outcomes.",
+  "files": [
+    {
+      "path": "story-endpoints.json",
+      "sha256": "d968ca6cd8eb6e8ff03c38d39f36070351a7c47c43f16dc551f1c199b760c9da",
+      "size": 13658
+    },
+    {
+      "path": "platform-prepare-historical-reader.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size": 0
+    },
+    {
+      "path": "fetch.json",
+      "sha256": "8b78161d17de985ab133b97875c99f3d237755e3bd16aa287d5fc1c938b67745",
+      "size": 2128
+    },
+    {
+      "path": "superseded-local-fc-seal-note.md",
+      "sha256": "402a208f90176973a2440e4659c5440eddb9e70a3a7c51c5f41f722f0fcad1d7",
+      "size": 1839
+    },
+    {
+      "path": "fc-container-commitlint.json",
+      "sha256": "61befb329fa056d2ffe236dfa00d58f76fef3bed74833f90af4069c7e994e208",
+      "size": 215
+    },
+    {
+      "path": "current-sdk-package-audit.json",
+      "sha256": "604bf8f4c38bc4176cfd2bf7bbce70607b41b67e2b11d7e3f4e063f5d1090354",
+      "size": 62455
+    },
+    {
+      "path": "platform-npm-ci.log",
+      "sha256": "cc6d70c8e1139d044eacac6ead32b9a2407bb4929c86ee018c600cd36558fd11",
+      "size": 478
+    },
+    {
+      "path": "fc-commitlint.json",
+      "sha256": "3f2907cb5b1c01de6fb78de4dfbcc02f7a8b24ae8640264ffa23c036b5d9e238",
+      "size": 231
+    },
+    {
+      "path": "fc-container-commit.txt",
+      "sha256": "21a03433d233973f5f667e15af1b2c9c1d8503d0d8370e5e271b01d8fc010791",
+      "size": 53
+    },
+    {
+      "path": "builds-commitlint.json",
+      "sha256": "0905233175455834133d99207a1666fee39e8f0f6509adb385833a18fd58f55e",
+      "size": 317
+    },
+    {
+      "path": "builds-commit.txt",
+      "sha256": "2730220ef10d782d6310f857442b27479895859611e587c085923b132151234e",
+      "size": 66
+    },
+    {
+      "path": "fc-seal-proposal.json",
+      "sha256": "eeac0ab116f1ae4b58a288decad9755035a0fc55deb755caf732e080db934646",
+      "size": 1098
+    },
+    {
+      "path": "owner-fast-forwards.json",
+      "sha256": "eea755e22371e3af38deec7d9e1add3f113a8361689ac61b7a7416a6c934fe9a",
+      "size": 11174
+    },
+    {
+      "path": "owner-repair-pushes.json",
+      "sha256": "503bb515a5106ed7da7143cf0645cc1eb467c990c77f5b66ac7a832c22864e44",
+      "size": 810
+    },
+    {
+      "path": "latest-owner-read.json",
+      "sha256": "0f02ca6e15560bf9362ae082dba7625e2457e0534ed4b9f608f12e18e32f9fd0",
+      "size": 2176
+    },
+    {
+      "path": "platform-source-controls.log",
+      "sha256": "86c8de1df74d505b4271905302942dc13a6a6e4b24fb8b8eb249c06511f8f3c6",
+      "size": 146
+    },
+    {
+      "path": "concurrent-owner-integration.json",
+      "sha256": "72509dd1b1e15a772713c96051c0692cd3a9a63c58352fd3a5f8916fee71a43f",
+      "size": 8650
+    },
+    {
+      "path": "fc-container-push.json",
+      "sha256": "ec301ec347d3358ceede52324494fe53b9b0af58f79b5de21834b4d3087e0c9e",
+      "size": 217
+    },
+    {
+      "path": "fc-container-git-control.json",
+      "sha256": "43d86b6e535a0709f119da832f81f8848408d67351538851878bf984375c62fa",
+      "size": 401
+    },
+    {
+      "path": "platform-reader-controls.log",
+      "sha256": "e74245acedd60441274983a88f482c9d32c605da70754ef7d014a9a42c611b03",
+      "size": 103
+    },
+    {
+      "path": "fc-commit.txt",
+      "sha256": "3ef28945edb93f5b9dd8e326a6145b47a4d1d91baddddd91636f6343ad480105",
+      "size": 211
+    },
+    {
+      "path": "story-reconciliation.json",
+      "sha256": "a4bf710eaee9fc2eb13d449df6860bbf6c4df75d39bcf00dec10ff2114b21832",
+      "size": 23700
+    },
+    {
+      "path": "builds-evaluated-catalog.log",
+      "sha256": "8484c75de3c50b90d5f2e118a5bd2c8e2a8d3d6fa0ab3ba2f800f68f8b73320f",
+      "size": 102
+    },
+    {
+      "path": "fc-qualified/command-0.log",
+      "sha256": "d342df3cfdfe9fe0fe45fd13626ee658f747434d81d61133374f105bd3832edc",
+      "size": 2228
+    },
+    {
+      "path": "fc-qualified/results.json",
+      "sha256": "10790834281a86e730654457f9639d5cc16936736b1fb58362015b284035952a",
+      "size": 367
+    },
+    {
+      "path": "fc-local-complete/command-0.log",
+      "sha256": "de3c3b5a191e003165574d3c003ae73c715f74d49b82bf67a3399ae0f636feb4",
+      "size": 352
+    },
+    {
+      "path": "fc-local-complete/results.json",
+      "sha256": "eea22c881d34af8ba8246b992d61e1499a6a46da2af983d9347ea4e63133357b",
+      "size": 1365
+    },
+    {
+      "path": "fc-local-complete/command-1.log",
+      "sha256": "65f6861089caacef9dc15276a33b355c6b3b7a82a50acde8d302b79a5de707ab",
+      "size": 4176
+    },
+    {
+      "path": "fc-local-complete/command-3.log",
+      "sha256": "a72d00a4b0f53401dc0d4a3e5b018691670b73f43425e7246d9a1fb838766d4d",
+      "size": 6942
+    },
+    {
+      "path": "fc-local-complete/command-2.log",
+      "sha256": "1f8b18fa33ad17d695327a1592bbed3c05e23f0c74a3babfa723ed371a3344a5",
+      "size": 486
+    },
+    {
+      "path": "platform-companions/pre-extension-commitlint.json",
+      "sha256": "c8a3838637fdcc2d621a959e6b65775d9dc54c6f72cf92c49fa8aa6937ec4223",
+      "size": 442
+    },
+    {
+      "path": "platform-companions/created.json",
+      "sha256": "191f46a38414b3e58b7453a381064e5fa456a270181969903cd0647df219f0f3",
+      "size": 1596
+    },
+    {
+      "path": "platform-companions/main-commitlint.json",
+      "sha256": "8cbe449d44c4ffcc9b107dfc9ebb8f4d0efc34ff9b7faac4b3e555a8958d2fdf",
+      "size": 228
+    },
+    {
+      "path": "platform-companions/legacy-message.txt",
+      "sha256": "69a4140f86082393b6b3f29a702b1ae9c97a18a38d225fc5a40e627b23bf4f00",
+      "size": 68
+    },
+    {
+      "path": "platform-companions/package-reader-commitlint.json",
+      "sha256": "02037e3a392ef8e7c3dec8e2ea03460332751117f9b797391e3a9e15bf420427",
+      "size": 444
+    },
+    {
+      "path": "platform-companions/push.json",
+      "sha256": "3c9e95baced854d5f45e992ad264f7853941031f6d2a09c4a8217281ae82cdad",
+      "size": 784
+    },
+    {
+      "path": "platform-companions/pre-extension-message.txt",
+      "sha256": "45c643fcb9dd7dda05824dbb7f7ce1945dd38c9a6590eca9dd43f4307cd88c95",
+      "size": 69
+    },
+    {
+      "path": "platform-companions/package-reader-message.txt",
+      "sha256": "44fe1ede72a676c087d1917e10b05881146482748d4af4da2fe38e81fe318547",
+      "size": 76
+    },
+    {
+      "path": "platform-companions/exact-source-equivalence.json",
+      "sha256": "06b0096d4bd5c474ee3a918b7e50209aefd8ac1cac37181e849145e4bded8a4e",
+      "size": 2190
+    },
+    {
+      "path": "platform-companions/main-message.txt",
+      "sha256": "67dee735fdb079e9fabbfc9fbc4b36f760c1c2dc27f1088b779daf008f6ab97f",
+      "size": 52
+    },
+    {
+      "path": "platform-companions/legacy-commitlint.json",
+      "sha256": "46a1f339500aa4d08e647799b330c80e9823f725830426e6bb100a82da0a8527",
+      "size": 428
+    },
+    {
+      "path": "fc-locked/command-0.log",
+      "sha256": "85a857ff672d16283b867035570c87ece001a6b4dbb007c6057041e26a6724d8",
+      "size": 3679
+    },
+    {
+      "path": "fc-locked/results.json",
+      "sha256": "5c9eac84e46bb1c14094351cbceca286ec36e3eb75c061b85da8fc4998c73890",
+      "size": 364
+    },
+    {
+      "path": "fc-quality-corrections/command-0.log",
+      "sha256": "cbf45c1e1499e9c93e82e0232153439eb2fb52efef8d4dc82ecff8119e846768",
+      "size": 3504
+    },
+    {
+      "path": "fc-quality-corrections/results.json",
+      "sha256": "ffcff417063e47d45d10b74b916b34532d14b317992d533b079eae059219862e",
+      "size": 1365
+    },
+    {
+      "path": "fc-quality-corrections/command-1.log",
+      "sha256": "b2ec91528d3f1dafe249188a2d163ca675a50627b5530d6be572699151bdf1ee",
+      "size": 1549
+    },
+    {
+      "path": "committed-story-preflight/commitlint.json",
+      "sha256": "1a3fbdab365b7b876f57244235efe94911628c5cf25ae03902ccea4e585000e2",
+      "size": 229
+    },
+    {
+      "path": "committed-story-preflight/result.json",
+      "sha256": "eeaed6c0a10f1d9511dc318117995be28acf75fc86ed1b772eff0151acd26cde",
+      "size": 392
+    },
+    {
+      "path": "committed-story-preflight/audit.log",
+      "sha256": "417dccb976ccc01887a4e55aef6ae6b5ff373c1bf9c7e9ece410ee22cd3e6050",
+      "size": 22318
+    },
+    {
+      "path": "committed-story-preflight/message.txt",
+      "sha256": "c3a308370e727b0b012c1f92b9f983c79936e4f9dea9262002b3b8c505bc2c49",
+      "size": 47
+    },
+    {
+      "path": "platform-companions-d386e360/pre-extension-commitlint.json",
+      "sha256": "1203be106e216f49875c6b6fba07bd7c3c3c04a99a1a8a281c1cfeb725c5ab2d",
+      "size": 451
+    },
+    {
+      "path": "platform-companions-d386e360/release-controls.log",
+      "sha256": "9b47d3ae19995e6e0d1f0bad720c681b064cd685005df0b643bce027cda32bc4",
+      "size": 8783
+    },
+    {
+      "path": "platform-companions-d386e360/created.json",
+      "sha256": "74c466a9fbb568286bb37c8771d493ac2576c186e4329af16d10f1977a223f83",
+      "size": 1623
+    },
+    {
+      "path": "platform-companions-d386e360/main-commitlint.json",
+      "sha256": "c6526bd3f6f450dd3c77e7b734806fbd18ff67472d536dd769783f3dbdac3d98",
+      "size": 237
+    },
+    {
+      "path": "platform-companions-d386e360/legacy-message.txt",
+      "sha256": "b9d9ca767a4407a689677d5bdd6dd9643de0b3e2385709161bf2933c7d0dfd88",
+      "size": 74
+    },
+    {
+      "path": "platform-companions-d386e360/package-reader-commitlint.json",
+      "sha256": "2648c6f417c192e937ed3e6bd421a92a141c3ad47a32ddd9dc7a85526bd80a6a",
+      "size": 453
+    },
+    {
+      "path": "platform-companions-d386e360/push.json",
+      "sha256": "a014d33f6ade98ea5dcba2ac9be8059747f49d41f94b8d0ad984696764e4b2d9",
+      "size": 784
+    },
+    {
+      "path": "platform-companions-d386e360/pre-extension-message.txt",
+      "sha256": "4c7d46fdc8617417a03785e6f468b756dbb0847893045225d06cccc1d08efe55",
+      "size": 81
+    },
+    {
+      "path": "platform-companions-d386e360/package-reader-message.txt",
+      "sha256": "5c4a3032cf4b7084f546feb9d25e01d84a98553a0e8bc7f8422396f1902db8a5",
+      "size": 82
+    },
+    {
+      "path": "platform-companions-d386e360/exact-source-equivalence.json",
+      "sha256": "d07a848dbb57d3d9af2a4933c61fe2b524b645cd838c5142033fdcddeccb11be",
+      "size": 2190
+    },
+    {
+      "path": "platform-companions-d386e360/reader-controls.log",
+      "sha256": "569ba1e263269327911174c3ab33fcb68b884b04548bd331a4a6a7e7dd8ed000",
+      "size": 103
+    },
+    {
+      "path": "platform-companions-d386e360/main-message.txt",
+      "sha256": "70eb662b52f713c11580c96efb66fdfc78ad619b5173e54feef4a993b4c3df90",
+      "size": 60
+    },
+    {
+      "path": "platform-companions-d386e360/source-controls.log",
+      "sha256": "d1ad82f704dfb8ebd186b9fa3571254971f16f1d6e20f7b3253c6ea7ff50c5ba",
+      "size": 146
+    },
+    {
+      "path": "platform-companions-d386e360/legacy-commitlint.json",
+      "sha256": "c586eb7f246b28c7421b55228e44f16fa47a7e537c63efbefd48cc3850b4a7b9",
+      "size": 437
+    },
+    {
+      "path": "fc-local/command-0.log",
+      "sha256": "edd8f962addaed795f47cf5e5a116eceac1bcdf23a04311357c7437c3d790aee",
+      "size": 4178
+    },
+    {
+      "path": "fc-local/results.json",
+      "sha256": "de205f3bfdaefdaac515ef96921e362b584e781e4d04acf71c0d3db5aa902029",
+      "size": 827
+    },
+    {
+      "path": "fc-local/command-1.log",
+      "sha256": "58d32d65aac04305dc7e04158fd21444ac8a36feeb191fc3fac2613cafd026aa",
+      "size": 2569
+    },
+    {
+      "path": "fc-final/command-0.log",
+      "sha256": "05a356a696ca25b6585c84172664177a3a3d01aa74d668fc0388503590206cf0",
+      "size": 283
+    },
+    {
+      "path": "fc-final/results.json",
+      "sha256": "402a0c5294c280c731a28cef956b577a3da0a9a4bda8ad6812a9fc47f52742f4",
+      "size": 2068
+    },
+    {
+      "path": "fc-final/command-1.log",
+      "sha256": "8de0c6f5c0cd226772dd287993d2d1d6fb4fb51d1e0873bc84a8bb753b0e962b",
+      "size": 2712
+    },
+    {
+      "path": "fc-final/command-2.log",
+      "sha256": "593ab3999f138fa1cc4cdffc008f4abc707d4e5deda5c9b7eeb57672c68c2901",
+      "size": 514
+    },
+    {
+      "path": "story-preflight/spec-publish-compiled-catalog-inputs.log",
+      "sha256": "bec6020de36a3e8b7358e468c5756a04ee3e6bc3e9db0dc768329d2cab66f6eb",
+      "size": 1832
+    },
+    {
+      "path": "story-preflight/spec-native-request-compatibility-follow-up.log",
+      "sha256": "aec8fdd724f02e0bc6fd270b3b82209f16f72433dcd239fb1006ba285a4ea2db",
+      "size": 1374
+    },
+    {
+      "path": "story-preflight/spec-fix-native-removal-production-transport.log",
+      "sha256": "122e7a62d75062543ba14e9e092dfe5aaf349fbbf45c4c1f9af1c97cea483240",
+      "size": 1654
+    },
+    {
+      "path": "story-preflight/results.json",
+      "sha256": "236eb2f00fc119b2e2c4aabb8164fc8d6ba36154572661f9872f5d271e95735d",
+      "size": 30525
+    },
+    {
+      "path": "story-preflight/spec-scope-live-corpus-read-tokens.log",
+      "sha256": "27ac4bfb9f397ee945e163e4d7aa8cba3be86bc3561435cd560a362061185d17",
+      "size": 1552
+    },
+    {
+      "path": "story-preflight/spec-synchronize-update-release-2026-11-14.log",
+      "sha256": "1ed81bc3a666a5c1ddf19887463d399f4e9709b68e3b3aac472cc0f70fa7acc4",
+      "size": 608
+    },
+    {
+      "path": "story-preflight/spec-native-query-selector-compatibility-cohort.log",
+      "sha256": "4df04261241d21564f15d93c289c7bf8fc8770deaccc59c90abcc759cf48b1fd",
+      "size": 1378
+    },
+    {
+      "path": "story-preflight/spec-preserve-sample-background-ci.log",
+      "sha256": "ecdf6e679562464bad1cd357dcebe7ac4d10d9380e4b73b7b281fd741895d0fc",
+      "size": 1644
+    },
+    {
+      "path": "story-preflight/spec-qualify-published-eventstore-4.0.3-cohort.log",
+      "sha256": "fddfb0d4b06f5916bffb09bdc06350f97bd62ba01b6f6f14b780f42b4f1a1a77",
+      "size": 1656
+    },
+    {
+      "path": "story-preflight/spec-repair-current-mcpcli-published-cohort-ci.log",
+      "sha256": "2717a1ed9e2f398d6bd51ebaf823475c113be09fab98e838164e09e3472dcb48",
+      "size": 1592
+    },
+    {
+      "path": "story-preflight/spec-native-mcpcli-runtime-cohort.log",
+      "sha256": "91a6b76b6803158fceaffbb2c519f68e7973f7a6ee7afecdafe35ad9c99b9bf3",
+      "size": 1364
+    },
+    {
+      "path": "story-preflight/spec-align-native-read-timeout-budgets.log",
+      "sha256": "8a7463d3e95b2d47b5efdcefbd40d8a9809e1893dc57195a04c3a736c510d0d5",
+      "size": 1369
+    },
+    {
+      "path": "story-preflight/spec-qualify-published-mcpcli-7.0.0-enrollment.log",
+      "sha256": "27bf8853ad8644bd5ba93073bf3cbd281bed301a54108060a80fe36ef5680c00",
+      "size": 1377
+    },
+    {
+      "path": "story-preflight/spec-refresh-and-publish-current-release.log",
+      "sha256": "a3a6ace4d283471ae32c2df5c67a92a2033a4fe0d0efec5f200efae5ce38edf4",
+      "size": 1553
+    },
+    {
+      "path": "story-preflight/spec-fix-firefox-route-focus-ci.log",
+      "sha256": "3314fc42c6a928b97ca1d89837b34b1950ee38074dc6c95535fb5278f2d12f78",
+      "size": 2061
+    },
+    {
+      "path": "story-preflight/spec-fix-builds-sdk-cohort-fixtures.log",
+      "sha256": "3494fdaf71bd30751aa37817b27b6d32893898ca59db7a17c9139d407163ee37",
+      "size": 2065
+    },
+    {
+      "path": "story-preflight/spec-eventstore-secret-scanner-ci-repair.log",
+      "sha256": "4108194be946b3926cbfc73e84eb92c8697aafdf0d1e5576b30361bd05454c9d",
+      "size": 1371
+    },
+    {
+      "path": "committed-story-preflight/attempt2/commitlint.json",
+      "sha256": "b683f4a1f30ec81aeb558c21e7156bc66a3a2dee5aa107c505a83f18becc043b",
+      "size": 238
+    },
+    {
+      "path": "committed-story-preflight/attempt2/result.json",
+      "sha256": "ae5e5003755878c41adb973cd05cc32e550209325d2875a55c6acb3a56741aa7",
+      "size": 392
+    },
+    {
+      "path": "committed-story-preflight/attempt2/audit.log",
+      "sha256": "172f39ba9bf43a66f94b61ce4107a9263a96f3da686af8ac811f4090147f6c88",
+      "size": 10470
+    },
+    {
+      "path": "committed-story-preflight/attempt2/message.txt",
+      "sha256": "92c016bfd19e14f92b156f9ebc63eb4fe865fec7a8e6baf754d675a35f0ec753",
+      "size": 50
+    }
+  ]
+}

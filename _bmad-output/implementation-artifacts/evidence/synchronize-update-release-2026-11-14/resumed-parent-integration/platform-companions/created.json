@@ -1,0 +1,56 @@
+[
+  {
+    "kind": "legacy",
+    "source": "ddb1c0b141372a66d4a9d9c231d0041afbb7cd0c",
+    "tree": "872d8ff97f764f82aef1a56bfd78b0c2ba44f182",
+    "commitlint": {
+      "command": [
+        "node",
+        "node_modules/@commitlint/cli/cli.js",
+        "--edit",
+        "/dev/shm/tenants-release-resume-2026-11-15/platform-companions/legacy-message.txt"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "",
+      "pinned_cli": "21.2.4"
+    },
+    "commit": "f033657929f83b1f9180f5d4959103b399e4d976"
+  },
+  {
+    "kind": "pre-extension",
+    "source": "ddb1c0b141372a66d4a9d9c231d0041afbb7cd0c",
+    "tree": "9afd1752a3d048a9212d137c7b5b8ed1e672198f",
+    "commitlint": {
+      "command": [
+        "node",
+        "node_modules/@commitlint/cli/cli.js",
+        "--edit",
+        "/dev/shm/tenants-release-resume-2026-11-15/platform-companions/pre-extension-message.txt"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "",
+      "pinned_cli": "21.2.4"
+    },
+    "commit": "da6b34e7a93f61d3af1a3e1993f6b45a59d01d49"
+  },
+  {
+    "kind": "package-reader",
+    "source": "ddb1c0b141372a66d4a9d9c231d0041afbb7cd0c",
+    "tree": "a3889c80e8d43983ad47358b3ae56efd2490093c",
+    "commitlint": {
+      "command": [
+        "node",
+        "node_modules/@commitlint/cli/cli.js",
+        "--edit",
+        "/dev/shm/tenants-release-resume-2026-11-15/platform-companions/package-reader-message.txt"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "",
+      "pinned_cli": "21.2.4"
+    },
+    "commit": "e5f740997c96b5a9bc48ef2341436c0812df07f9"
+  }
+]

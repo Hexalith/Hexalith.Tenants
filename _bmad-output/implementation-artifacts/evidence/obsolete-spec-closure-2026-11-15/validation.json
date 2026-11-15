@@ -1,0 +1,546 @@
+{
+  "date": "2026-11-15",
+  "kind": "administrative-supersession",
+  "request": "close obsolete specs",
+  "root_head": "d73267fdbe84d09ccddf0a6492390e32d8938405",
+  "initial_git_status": "## main...origin/main\n M _bmad-output/implementation-artifacts/deferred-work.md\n M _bmad-output/implementation-artifacts/spec-align-native-read-timeout-budgets.md\n M _bmad-output/implementation-artifacts/spec-fix-builds-sdk-cohort-fixtures.md\n M _bmad-output/implementation-artifacts/spec-fix-firefox-route-focus-ci.md\n m references/Hexalith.FrontComposer\n?? _bmad-output/implementation-artifacts/evidence/fix-builds-sdk-cohort-fixtures-2026-11-15/\n?? _bmad-output/implementation-artifacts/evidence/fix-firefox-route-focus-ci-2026-11-15/\n?? _bmad-output/implementation-artifacts/evidence/native-read-timeout-review-2026-11-15/",
+  "closed_count": 12,
+  "closed_specs": [
+    {
+      "file": "spec-eventstore-secret-scanner-ci-repair.md",
+      "status_before": "in-review",
+      "status_after": "done",
+      "resolution": "superseded",
+      "superseded_by": "spec-synchronize-update-release-2026-11-14.md",
+      "reason": "The November 3 scanner/diagnostic repair and EventStore 4.0.4/Tenants 7.0.0 default-cohort handoff have been overtaken by the successor’s published EventStore 5.1.0 and current dependency qualification. The successor records later owning EventStore hosted CI. The exact historical diagnostic exception and its separate real-Azure conformance boundary remain unchanged.",
+      "remaining_gate": "Current owning-source security/unit CI and any separately required Azure conformance remain distinct; historical unit or scanner results do not grant live-Azure acceptance.",
+      "sha256_before": "0cb1272fdaa4837359bd0cb05f59501f71381e4d2acb3cb3afbf7ec0aa74d784",
+      "sha256_after": "a77024fcb4e8e5a5c6828485f015f01a21b677e5982e5aefad4a9e3eacf2db81",
+      "historical_body_preserved": true,
+      "original_frontmatter_except_status_preserved": true,
+      "checklist_preserved": true,
+      "closure_links_resolve": true
+    },
+    {
+      "file": "spec-fix-native-removal-production-transport.md",
+      "status_before": "in-review",
+      "status_after": "done",
+      "resolution": "superseded",
+      "superseded_by": "spec-synchronize-update-release-2026-11-14.md",
+      "reason": "The EventStore 4.0.3 native-removal fixture implementation is retained, while its pending root live qualification is now part of the current release’s authenticated/native lanes. The later timeout work is recorded separately in spec-align-native-read-timeout-budgets.md; replaying this old package-specific handoff would select an obsolete cohort.",
+      "remaining_gate": "Current-source authenticated native removal, persisted owner authority, revocation/refusal behavior and owned cleanup remain required in the release qualification.",
+      "sha256_before": "c76c6c603f29b9243ed12652c04849433b6f2e18723417c83342aa736742cbf9",
+      "sha256_after": "7104ac31c53769d9b577d60c700e935ca3dac17e2381e3712fc0f3b961561822",
+      "historical_body_preserved": true,
+      "original_frontmatter_except_status_preserved": true,
+      "checklist_preserved": true,
+      "closure_links_resolve": true
+    },
+    {
+      "file": "spec-native-mcpcli-runtime-cohort.md",
+      "status_before": "in-review",
+      "status_after": "done",
+      "resolution": "superseded",
+      "superseded_by": "spec-synchronize-update-release-2026-11-14.md",
+      "reason": "The EventStore 4.0.4/Tenants 7.0.0 runtime handoff was followed by request/selector repairs and the later McpCli cohort repair. The successor records subsequent hosted McpCli native results and explicitly limits them to their selected frozen profiles; the current release is the remaining coordination scope.",
+      "remaining_gate": "Retain exact package/source binding, every required vector plus smoke, persisted effects, independent authorization refusal and owned cleanup. Historical native results do not enroll new recovery operations or a different SDK cohort.",
+      "sha256_before": "b4ace3d45f5a02b642f82a3ae524fdfbff33c91a713071e8fae0fffee60c7933",
+      "sha256_after": "8969a237021d6505a4f1ee3db661acab8118634859c33f88e07b5b09db8cabe7",
+      "historical_body_preserved": true,
+      "original_frontmatter_except_status_preserved": true,
+      "checklist_preserved": true,
+      "closure_links_resolve": true
+    },
+    {
+      "file": "spec-native-query-selector-compatibility-cohort.md",
+      "status_before": "in-review",
+      "status_after": "done",
+      "resolution": "superseded",
+      "superseded_by": "spec-synchronize-update-release-2026-11-14.md",
+      "reason": "This November 3 SDK compatibility-selector/publication handoff has been overtaken by later published SDK cohorts and McpCli qualification recorded in the successor. The current root catalog selection is EventStore 5.1.0; the completed latest-SDK qualification is recorded in spec-qualify-sdk-3-130-catalog-selection.md.",
+      "remaining_gate": "Preserve frozen wire/vector contracts, digest-bound selectors and exact receiver/scope/permission authority; qualify each actual native consumer cohort rather than transferring old acceptance.",
+      "sha256_before": "5b935ea9f14ee3958bb4cdedf64534405766be2d6450dae8b14925897a124da5",
+      "sha256_after": "19a146e03e87582cf2570ebf1c8671f8cc7df805475ab5ac5e557c57df5efe17",
+      "historical_body_preserved": true,
+      "original_frontmatter_except_status_preserved": true,
+      "checklist_preserved": true,
+      "closure_links_resolve": true
+    },
+    {
+      "file": "spec-native-request-compatibility-follow-up.md",
+      "status_before": "in-review",
+      "status_after": "done",
+      "resolution": "superseded",
+      "superseded_by": "spec-synchronize-update-release-2026-11-14.md",
+      "reason": "The spec itself records that its original transport-omission approach was superseded by spec-native-query-selector-compatibility-cohort.md. Later SDK/McpCli work and hosted qualification are recorded in the current release spec; this intermediate repair is no longer a separate implementation entry point.",
+      "remaining_gate": "Retain pre-build exact-byte audit coverage, signed nonmember/unavailable-owner refusal, unchanged vectors, persisted behavior and owned cleanup under the current qualification scope.",
+      "sha256_before": "608752d98ee4044eacb95bc2eb8969b038e6a2d8bf7ea2ee006c1e01cc45cdfb",
+      "sha256_after": "e91f2e29f299dc5cf9580c1617edf2707b531c32566a8bc2758c6e8808e6782c",
+      "historical_body_preserved": true,
+      "original_frontmatter_except_status_preserved": true,
+      "checklist_preserved": true,
+      "closure_links_resolve": true
+    },
+    {
+      "file": "spec-preserve-sample-background-ci.md",
+      "status_before": "in-review",
+      "status_after": "done",
+      "resolution": "superseded",
+      "superseded_by": "spec-synchronize-update-release-2026-11-14.md",
+      "reason": "The Sample opt-in, worker settings and owner-bootstrap changes were already implemented in the retained historical source. Their remaining hosted acceptance belongs to the successor’s complete persisted/topology CI lanes rather than a new EventStore 4.0.3 repair.",
+      "remaining_gate": "Keep the complete Sample/background topology coverage, real grant/revoke and pub/sub persisted behavior, authentication and skip refusals in the current release gates.",
+      "sha256_before": "a784dffaa72372d63b09664e9941f0ba47cd64b8ea2e6a5170612c25c2393de7",
+      "sha256_after": "9b08043a1aa5d296b16c1d5ebe0ca9abe916009d28aaf7188bfda9e76c6e65f1",
+      "historical_body_preserved": true,
+      "original_frontmatter_except_status_preserved": true,
+      "checklist_preserved": true,
+      "closure_links_resolve": true
+    },
+    {
+      "file": "spec-publish-compiled-catalog-inputs.md",
+      "status_before": "in-review",
+      "status_after": "done",
+      "resolution": "superseded",
+      "superseded_by": "spec-synchronize-update-release-2026-11-14.md",
+      "reason": "The original SDK 3.129.0 compiled-enrollment/publication plan predates the existing Tenants 6/7 releases and the current EventStore 5.1.0 catalog. The successor records current packed-consumer checks and the newer 24-route/24-operation/13-adapter inventory; the completed latest-SDK qualification separately retains the older catalog history.",
+      "remaining_gate": "Require current compiled catalog/actual-PE package-consumer verification, all five package identities, exact source/archive provenance and final intended-source publication.",
+      "sha256_before": "dcd6e74f77f4372ed06e73d9d083711ef1679457b7ad52c9d89dc5bb20fae9aa",
+      "sha256_after": "7d07a25848b6df7d6785c67ff7d1c98541e7777caa38462afaea20e906bfd684",
+      "historical_body_preserved": true,
+      "original_frontmatter_except_status_preserved": true,
+      "checklist_preserved": true,
+      "closure_links_resolve": true
+    },
+    {
+      "file": "spec-qualify-published-eventstore-4.0.3-cohort.md",
+      "status_before": "in-review",
+      "status_after": "done",
+      "resolution": "superseded",
+      "superseded_by": "spec-synchronize-update-release-2026-11-14.md",
+      "reason": "The exact EventStore 4.0.3 package qualification handoff is historical. The successor has independently recorded the later public EventStore 5.1.0 cohort, and spec-qualify-sdk-3-130-catalog-selection.md is done for the latest-SDK local qualification. This closure does not revoke a deliberately retained compatibility profile.",
+      "remaining_gate": "Keep current public-archive/source verification, catalog/refusal checks and exact-source CI separate from every historical compatibility receipt.",
+      "sha256_before": "6a68570f8c50713fa9c11bdc9ca7e4ec3049d2ac461f46bbf642ed6202c5c864",
+      "sha256_after": "e9d6bd0b399a69fc58a6a775d2d69103a4ef063c0a3f2b6d0319cb46853b151d",
+      "historical_body_preserved": true,
+      "original_frontmatter_except_status_preserved": true,
+      "checklist_preserved": true,
+      "closure_links_resolve": true
+    },
+    {
+      "file": "spec-qualify-published-mcpcli-7.0.0-enrollment.md",
+      "status_before": "in-review",
+      "status_after": "done",
+      "resolution": "superseded",
+      "superseded_by": "spec-synchronize-update-release-2026-11-14.md",
+      "reason": "The authentic Tenants 7.0.0 enrollment was delivered and is explicitly described as superseded in spec-repair-current-mcpcli-published-cohort-ci.md. That later spec selects Tenants 7.0.7/EventStore 4.2.0; the current release now coordinates subsequent McpCli integration and qualification.",
+      "remaining_gate": "Preserve authentic published-artifact approvals and frozen vectors; current enrollment, replay, native behavior and publication require their own exact-source evidence.",
+      "sha256_before": "a8cb96949fc0f34d6cbc396ec5ed46cad898b9da40e7431ad33a8bbceb641677",
+      "sha256_after": "98396dcc4f8c0ba08d8f1d1583f7d04bcbeaf91e58f122f45ebd2986f38ada9d",
+      "historical_body_preserved": true,
+      "original_frontmatter_except_status_preserved": true,
+      "checklist_preserved": true,
+      "closure_links_resolve": true
+    },
+    {
+      "file": "spec-refresh-and-publish-current-release.md",
+      "status_before": "in-review",
+      "status_after": "done",
+      "resolution": "superseded",
+      "superseded_by": "spec-synchronize-update-release-2026-11-14.md",
+      "reason": "The November 3 Memories 3.0.18/EventStore 4.0.2 refresh and publication handoff has been replaced by the November 14 .NET 11 release goal. The successor explicitly includes existing changes, all nine root-declared dependencies, current compatible packages, source CI and all five release archives.",
+      "remaining_gate": "The successor’s unchecked exact-source CI and publication tasks remain open; closing this old release attempt does not claim a new release or reuse old producer acceptance.",
+      "sha256_before": "ba71d043f873c26fb72dddccc3dedc41841f2a307701836ceb90bd5edffa7f30",
+      "sha256_after": "bbfce2f6712d49ee9279da2d92b2f503ee8c54af754679e10bb28f14382e742b",
+      "historical_body_preserved": true,
+      "original_frontmatter_except_status_preserved": true,
+      "checklist_preserved": true,
+      "closure_links_resolve": true
+    },
+    {
+      "file": "spec-repair-current-mcpcli-published-cohort-ci.md",
+      "status_before": "in-review",
+      "status_after": "done",
+      "resolution": "superseded",
+      "superseded_by": "spec-synchronize-update-release-2026-11-14.md",
+      "reason": "This local repair explicitly preserved the former .NET 10 product target. The successor explicitly incorporates its reviewed compatibility/evidence work and later McpCli hosted results, while subsequent owning McpCli history records the .NET 11/current-gateway migration. The old local handoff is superseded as an execution plan; its exact two approved classifications and all retained evidence remain historical.",
+      "remaining_gate": "The existing remaining-census follow-up in deferred-work.md stays open and unchanged. No additional source renewal, classification, exclusion or approval follows from this closure; current committed-source census/hosted/native and publication acceptance remain separately scoped.",
+      "sha256_before": "b851cd3136f99f313bd0fddced8eb52e7ce893eaece7b1e414b8d7a07c99b2ba",
+      "sha256_after": "02c6c5c26ef9ef3c759d65b622cd5ec4918cc35663a2d526b6c82f79a9ec43e1",
+      "historical_body_preserved": true,
+      "original_frontmatter_except_status_preserved": true,
+      "checklist_preserved": true,
+      "closure_links_resolve": true
+    },
+    {
+      "file": "spec-scope-live-corpus-read-tokens.md",
+      "status_before": "in-review",
+      "status_after": "done",
+      "resolution": "superseded",
+      "superseded_by": "spec-synchronize-update-release-2026-11-14.md",
+      "reason": "The exact-corpus token and bounded CI-envelope repairs are already implemented in the retained November 3 handoff. Its pending live/browser/current-source qualification has been overtaken by the successor’s later authenticated, persisted and browser lanes; the current release retains those gates against the actual selected sources.",
+      "remaining_gate": "Preserve exact-corpus least-privilege tokens, malformed/incomplete corpus refusals, cancellation, all maintained browser cases and admission windows; require current-source hosted acceptance.",
+      "sha256_before": "fcd321f98f2d7343c1384bbe55fcda92428d8c9bcff5cb757c44e1196d5785a6",
+      "sha256_after": "ae2f4895a9cbcc1f7e0c41e17c402a492642632526556a8ea03ca244a526733f",
+      "historical_body_preserved": true,
+      "original_frontmatter_except_status_preserved": true,
+      "checklist_preserved": true,
+      "closure_links_resolve": true
+    }
+  ],
+  "active_specs_before": {
+    "spec-fix-native-removal-production-transport.md": "in-review",
+    "spec-preserve-sample-background-ci.md": "in-review",
+    "spec-eventstore-secret-scanner-ci-repair.md": "in-review",
+    "spec-native-mcpcli-runtime-cohort.md": "in-review",
+    "spec-native-request-compatibility-follow-up.md": "in-review",
+    "spec-repair-current-mcpcli-published-cohort-ci.md": "in-review",
+    "spec-publish-compiled-catalog-inputs.md": "in-review",
+    "spec-qualify-published-eventstore-4.0.3-cohort.md": "in-review",
+    "spec-native-query-selector-compatibility-cohort.md": "in-review",
+    "spec-scope-live-corpus-read-tokens.md": "in-review",
+    "spec-qualify-published-mcpcli-7.0.0-enrollment.md": "in-review",
+    "spec-refresh-and-publish-current-release.md": "in-review",
+    "spec-synchronize-update-release-2026-11-14.md": "in-review"
+  },
+  "active_specs_after": {
+    "spec-synchronize-update-release-2026-11-14.md": "in-review"
+  },
+  "successor_original_body_preserved": true,
+  "successor_sha256_before": "64c57a5a6c2f0d66ceb71eff03e02bc9653e8efb94c953272d96ab0827bd72fe",
+  "successor_sha256_after": "5c2a167cbe0f8820acd6f2a95598e5266cb3cce80c2c3ecd828773a63f0c241f",
+  "documentation_checks": "passed",
+  "whitespace": {
+    "command": [
+      "git",
+      "diff",
+      "--check",
+      "--",
+      "_bmad-output/implementation-artifacts/spec-eventstore-secret-scanner-ci-repair.md",
+      "_bmad-output/implementation-artifacts/spec-fix-native-removal-production-transport.md",
+      "_bmad-output/implementation-artifacts/spec-native-mcpcli-runtime-cohort.md",
+      "_bmad-output/implementation-artifacts/spec-native-query-selector-compatibility-cohort.md",
+      "_bmad-output/implementation-artifacts/spec-native-request-compatibility-follow-up.md",
+      "_bmad-output/implementation-artifacts/spec-preserve-sample-background-ci.md",
+      "_bmad-output/implementation-artifacts/spec-publish-compiled-catalog-inputs.md",
+      "_bmad-output/implementation-artifacts/spec-qualify-published-eventstore-4.0.3-cohort.md",
+      "_bmad-output/implementation-artifacts/spec-qualify-published-mcpcli-7.0.0-enrollment.md",
+      "_bmad-output/implementation-artifacts/spec-refresh-and-publish-current-release.md",
+      "_bmad-output/implementation-artifacts/spec-repair-current-mcpcli-published-cohort-ci.md",
+      "_bmad-output/implementation-artifacts/spec-scope-live-corpus-read-tokens.md",
+      "_bmad-output/implementation-artifacts/spec-synchronize-update-release-2026-11-14.md"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "historical_gitlink_audits_before": {
+    "spec-eventstore-secret-scanner-ci-repair.md": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/validate-story-gitlinks.py",
+        "_bmad-output/implementation-artifacts/spec-eventstore-secret-scanner-ci-repair.md"
+      ],
+      "exit_code": 1,
+      "stdout": "Story:    spec-eventstore-secret-scanner-ci-repair.md\nBaseline: 33835a0\nCompared: HEAD (d73267f) + working tree\n\n9 references/ pointer change(s) in range:\n  [UNDECLARED] references/Hexalith.AI.Tools  1745b66 -> 17a37d8\n  [declared] references/Hexalith.Builds  89f6205 -> e2bbbd0\n  [UNDECLARED] references/Hexalith.Commons  11555ac -> fbf4e94\n  [declared] references/Hexalith.EventStore  e97582b -> 9d715d4\n  [declared] references/Hexalith.FrontComposer  fbe01c9 -> b22be84\n  [declared] references/Hexalith.McpCli  56a57c5 -> 0795509\n  [declared] references/Hexalith.Memories  d959bda -> 1306a0f\n  [declared] references/Hexalith.Platform  bf101b9 -> ddb1c0b\n  [UNDECLARED] references/Hexalith.PolymorphicSerializations  bce4eb9 -> e97b569\n\nRESULT: FAIL\n\nEvery submodule pointer this story moves must be a deliberate, stated change.\nFor each UNDECLARED entry above, do one of:\n  DECLARE — add the path to the story's File List and say in the Completion Notes\n            why the bump belongs to this story.\n  REVERT  — restore the baseline pointer, then commit the bump separately:\n\n    git checkout 1745b6663ad32bb1288167135ed0f979366c53a0 -- references/Hexalith.AI.Tools\n    git checkout 11555ace9efcae2928a00122dcba91243e5a8a1a -- references/Hexalith.Commons\n    git checkout bce4eb9f45c6b131b960ab4fa39e50ff01e51960 -- references/Hexalith.PolymorphicSerializations\n",
+      "stderr": ""
+    },
+    "spec-fix-native-removal-production-transport.md": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/validate-story-gitlinks.py",
+        "_bmad-output/implementation-artifacts/spec-fix-native-removal-production-transport.md"
+      ],
+      "exit_code": 1,
+      "stdout": "Story:    spec-fix-native-removal-production-transport.md\nBaseline: bcd9237\nCompared: HEAD (d73267f) + working tree\n\n9 references/ pointer change(s) in range:\n  [UNDECLARED] references/Hexalith.AI.Tools  1745b66 -> 17a37d8\n  [declared] references/Hexalith.Builds  70850b1 -> e2bbbd0\n  [UNDECLARED] references/Hexalith.Commons  11555ac -> fbf4e94\n  [declared] references/Hexalith.EventStore  f06abad -> 9d715d4\n  [UNDECLARED] references/Hexalith.FrontComposer  f842711 -> b22be84\n  [UNDECLARED] references/Hexalith.McpCli  edaecb0 -> 0795509\n  [UNDECLARED] references/Hexalith.Memories  d9d61d8 -> 1306a0f\n  [declared] references/Hexalith.Platform  1f5958e -> ddb1c0b\n  [UNDECLARED] references/Hexalith.PolymorphicSerializations  bce4eb9 -> e97b569\n\nRESULT: FAIL\n\nEvery submodule pointer this story moves must be a deliberate, stated change.\nFor each UNDECLARED entry above, do one of:\n  DECLARE — add the path to the story's File List and say in the Completion Notes\n            why the bump belongs to this story.\n  REVERT  — restore the baseline pointer, then commit the bump separately:\n\n    git checkout 1745b6663ad32bb1288167135ed0f979366c53a0 -- references/Hexalith.AI.Tools\n    git checkout 11555ace9efcae2928a00122dcba91243e5a8a1a -- references/Hexalith.Commons\n    git checkout f842711d67004200e3248b3c42b7d9bcb2146907 -- references/Hexalith.FrontComposer\n    git checkout edaecb04b1a8edf78f6ad28e5bf253db594003f4 -- references/Hexalith.McpCli\n    git checkout d9d61d8a95c7dc8827acf68ae723859711703729 -- references/Hexalith.Memories\n    git checkout bce4eb9f45c6b131b960ab4fa39e50ff01e51960 -- references/Hexalith.PolymorphicSerializations\n",
+      "stderr": ""
+    },
+    "spec-native-mcpcli-runtime-cohort.md": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/validate-story-gitlinks.py",
+        "_bmad-output/implementation-artifacts/spec-native-mcpcli-runtime-cohort.md"
+      ],
+      "exit_code": 1,
+      "stdout": "Story:    spec-native-mcpcli-runtime-cohort.md\nBaseline: 31aa26c\nCompared: HEAD (d73267f) + working tree\n\n9 references/ pointer change(s) in range:\n  [UNDECLARED] references/Hexalith.AI.Tools  1745b66 -> 17a37d8\n  [declared] references/Hexalith.Builds  fc74371 -> e2bbbd0\n  [UNDECLARED] references/Hexalith.Commons  11555ac -> fbf4e94\n  [declared] references/Hexalith.EventStore  326bfef -> 9d715d4\n  [declared] references/Hexalith.FrontComposer  f842711 -> b22be84\n  [declared] references/Hexalith.McpCli  edaecb0 -> 0795509\n  [declared] references/Hexalith.Memories  d9d61d8 -> 1306a0f\n  [declared] references/Hexalith.Platform  ee6f477 -> ddb1c0b\n  [UNDECLARED] references/Hexalith.PolymorphicSerializations  bce4eb9 -> e97b569\n\nRESULT: FAIL\n\nEvery submodule pointer this story moves must be a deliberate, stated change.\nFor each UNDECLARED entry above, do one of:\n  DECLARE — add the path to the story's File List and say in the Completion Notes\n            why the bump belongs to this story.\n  REVERT  — restore the baseline pointer, then commit the bump separately:\n\n    git checkout 1745b6663ad32bb1288167135ed0f979366c53a0 -- references/Hexalith.AI.Tools\n    git checkout 11555ace9efcae2928a00122dcba91243e5a8a1a -- references/Hexalith.Commons\n    git checkout bce4eb9f45c6b131b960ab4fa39e50ff01e51960 -- references/Hexalith.PolymorphicSerializations\n",
+      "stderr": ""
+    },
+    "spec-native-query-selector-compatibility-cohort.md": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/validate-story-gitlinks.py",
+        "_bmad-output/implementation-artifacts/spec-native-query-selector-compatibility-cohort.md"
+      ],
+      "exit_code": 1,
+      "stdout": "Story:    spec-native-query-selector-compatibility-cohort.md\nBaseline: 33835a0\nCompared: HEAD (d73267f) + working tree\n\n9 references/ pointer change(s) in range:\n  [UNDECLARED] references/Hexalith.AI.Tools  1745b66 -> 17a37d8\n  [declared] references/Hexalith.Builds  89f6205 -> e2bbbd0\n  [UNDECLARED] references/Hexalith.Commons  11555ac -> fbf4e94\n  [declared] references/Hexalith.EventStore  e97582b -> 9d715d4\n  [declared] references/Hexalith.FrontComposer  fbe01c9 -> b22be84\n  [declared] references/Hexalith.McpCli  56a57c5 -> 0795509\n  [declared] references/Hexalith.Memories  d959bda -> 1306a0f\n  [declared] references/Hexalith.Platform  bf101b9 -> ddb1c0b\n  [UNDECLARED] references/Hexalith.PolymorphicSerializations  bce4eb9 -> e97b569\n\nRESULT: FAIL\n\nEvery submodule pointer this story moves must be a deliberate, stated change.\nFor each UNDECLARED entry above, do one of:\n  DECLARE — add the path to the story's File List and say in the Completion Notes\n            why the bump belongs to this story.\n  REVERT  — restore the baseline pointer, then commit the bump separately:\n\n    git checkout 1745b6663ad32bb1288167135ed0f979366c53a0 -- references/Hexalith.AI.Tools\n    git checkout 11555ace9efcae2928a00122dcba91243e5a8a1a -- references/Hexalith.Commons\n    git checkout bce4eb9f45c6b131b960ab4fa39e50ff01e51960 -- references/Hexalith.PolymorphicSerializations\n",
+      "stderr": ""
+    },
+    "spec-native-request-compatibility-follow-up.md": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/validate-story-gitlinks.py",
+        "_bmad-output/implementation-artifacts/spec-native-request-compatibility-follow-up.md"
+      ],
+      "exit_code": 1,
+      "stdout": "Story:    spec-native-request-compatibility-follow-up.md\nBaseline: 60daa51\nCompared: HEAD (d73267f) + working tree\n\n9 references/ pointer change(s) in range:\n  [UNDECLARED] references/Hexalith.AI.Tools  1745b66 -> 17a37d8\n  [declared] references/Hexalith.Builds  89f6205 -> e2bbbd0\n  [UNDECLARED] references/Hexalith.Commons  11555ac -> fbf4e94\n  [declared] references/Hexalith.EventStore  e97582b -> 9d715d4\n  [declared] references/Hexalith.FrontComposer  fbe01c9 -> b22be84\n  [declared] references/Hexalith.McpCli  56a57c5 -> 0795509\n  [declared] references/Hexalith.Memories  d959bda -> 1306a0f\n  [declared] references/Hexalith.Platform  bf101b9 -> ddb1c0b\n  [UNDECLARED] references/Hexalith.PolymorphicSerializations  bce4eb9 -> e97b569\n\nRESULT: FAIL\n\nEvery submodule pointer this story moves must be a deliberate, stated change.\nFor each UNDECLARED entry above, do one of:\n  DECLARE — add the path to the story's File List and say in the Completion Notes\n            why the bump belongs to this story.\n  REVERT  — restore the baseline pointer, then commit the bump separately:\n\n    git checkout 1745b6663ad32bb1288167135ed0f979366c53a0 -- references/Hexalith.AI.Tools\n    git checkout 11555ace9efcae2928a00122dcba91243e5a8a1a -- references/Hexalith.Commons\n    git checkout bce4eb9f45c6b131b960ab4fa39e50ff01e51960 -- references/Hexalith.PolymorphicSerializations\n",
+      "stderr": ""
+    },
+    "spec-preserve-sample-background-ci.md": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/validate-story-gitlinks.py",
+        "_bmad-output/implementation-artifacts/spec-preserve-sample-background-ci.md"
+      ],
+      "exit_code": 1,
+      "stdout": "Story:    spec-preserve-sample-background-ci.md\nBaseline: bcd9237\nCompared: HEAD (d73267f) + working tree\n\n9 references/ pointer change(s) in range:\n  [UNDECLARED] references/Hexalith.AI.Tools  1745b66 -> 17a37d8\n  [declared] references/Hexalith.Builds  70850b1 -> e2bbbd0\n  [UNDECLARED] references/Hexalith.Commons  11555ac -> fbf4e94\n  [declared] references/Hexalith.EventStore  f06abad -> 9d715d4\n  [UNDECLARED] references/Hexalith.FrontComposer  f842711 -> b22be84\n  [UNDECLARED] references/Hexalith.McpCli  edaecb0 -> 0795509\n  [UNDECLARED] references/Hexalith.Memories  d9d61d8 -> 1306a0f\n  [declared] references/Hexalith.Platform  1f5958e -> ddb1c0b\n  [UNDECLARED] references/Hexalith.PolymorphicSerializations  bce4eb9 -> e97b569\n\nRESULT: FAIL\n\nEvery submodule pointer this story moves must be a deliberate, stated change.\nFor each UNDECLARED entry above, do one of:\n  DECLARE — add the path to the story's File List and say in the Completion Notes\n            why the bump belongs to this story.\n  REVERT  — restore the baseline pointer, then commit the bump separately:\n\n    git checkout 1745b6663ad32bb1288167135ed0f979366c53a0 -- references/Hexalith.AI.Tools\n    git checkout 11555ace9efcae2928a00122dcba91243e5a8a1a -- references/Hexalith.Commons\n    git checkout f842711d67004200e3248b3c42b7d9bcb2146907 -- references/Hexalith.FrontComposer\n    git checkout edaecb04b1a8edf78f6ad28e5bf253db594003f4 -- references/Hexalith.McpCli\n    git checkout d9d61d8a95c7dc8827acf68ae723859711703729 -- references/Hexalith.Memories\n    git checkout bce4eb9f45c6b131b960ab4fa39e50ff01e51960 -- references/Hexalith.PolymorphicSerializations\n",
+      "stderr": ""
+    },
+    "spec-publish-compiled-catalog-inputs.md": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/validate-story-gitlinks.py",
+        "_bmad-output/implementation-artifacts/spec-publish-compiled-catalog-inputs.md"
+      ],
+      "exit_code": 1,
+      "stdout": "Story:    spec-publish-compiled-catalog-inputs.md\nBaseline: fff6a5c\nCompared: HEAD (d73267f) + working tree\n\n9 references/ pointer change(s) in range:\n  [UNDECLARED] references/Hexalith.AI.Tools  9b78aa0 -> 17a37d8\n  [declared] references/Hexalith.Builds  2186b9a -> e2bbbd0\n  [UNDECLARED] references/Hexalith.Commons  0604bcf -> fbf4e94\n  [UNDECLARED] references/Hexalith.EventStore  e014af6 -> 9d715d4\n  [UNDECLARED] references/Hexalith.FrontComposer  61a8afb -> b22be84\n  [UNDECLARED] references/Hexalith.McpCli  7538bee -> 0795509\n  [UNDECLARED] references/Hexalith.Memories  71a721a -> 1306a0f\n  [UNDECLARED] references/Hexalith.Platform  667e5a0 -> ddb1c0b\n  [UNDECLARED] references/Hexalith.PolymorphicSerializations  92ede24 -> e97b569\n\nRESULT: FAIL\n\nEvery submodule pointer this story moves must be a deliberate, stated change.\nFor each UNDECLARED entry above, do one of:\n  DECLARE — add the path to the story's File List and say in the Completion Notes\n            why the bump belongs to this story.\n  REVERT  — restore the baseline pointer, then commit the bump separately:\n\n    git checkout 9b78aa008cfc62cd88ad0ea4b39b1f07311956ce -- references/Hexalith.AI.Tools\n    git checkout 0604bcf5304fc09a569f7abbd8e5d1b9049c02b7 -- references/Hexalith.Commons\n    git checkout e014af6c3f1c67732485f24012cdbe528a12b0f6 -- references/Hexalith.EventStore\n    git checkout 61a8afbb85c7e25b2eb97acb1cac262ef3e1e33d -- references/Hexalith.FrontComposer\n    git checkout 7538bee529ab3a62c2d359fd498c9d60fca77621 -- references/Hexalith.McpCli\n    git checkout 71a721a87ebbb34c557c08517b5c39884a7417da -- references/Hexalith.Memories\n    git checkout 667e5a02a523cf8764ca54d6aa1b4b75db5dca64 -- references/Hexalith.Platform\n    git checkout 92ede24cc11129379efe52cfe7fd2c820c567f7f -- references/Hexalith.PolymorphicSerializations\n",
+      "stderr": ""
+    },
+    "spec-qualify-published-eventstore-4.0.3-cohort.md": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/validate-story-gitlinks.py",
+        "_bmad-output/implementation-artifacts/spec-qualify-published-eventstore-4.0.3-cohort.md"
+      ],
+      "exit_code": 1,
+      "stdout": "Story:    spec-qualify-published-eventstore-4.0.3-cohort.md\nBaseline: bcd9237\nCompared: HEAD (d73267f) + working tree\n\n9 references/ pointer change(s) in range:\n  [UNDECLARED] references/Hexalith.AI.Tools  1745b66 -> 17a37d8\n  [declared] references/Hexalith.Builds  70850b1 -> e2bbbd0\n  [UNDECLARED] references/Hexalith.Commons  11555ac -> fbf4e94\n  [declared] references/Hexalith.EventStore  f06abad -> 9d715d4\n  [UNDECLARED] references/Hexalith.FrontComposer  f842711 -> b22be84\n  [UNDECLARED] references/Hexalith.McpCli  edaecb0 -> 0795509\n  [UNDECLARED] references/Hexalith.Memories  d9d61d8 -> 1306a0f\n  [declared] references/Hexalith.Platform  1f5958e -> ddb1c0b\n  [UNDECLARED] references/Hexalith.PolymorphicSerializations  bce4eb9 -> e97b569\n\nRESULT: FAIL\n\nEvery submodule pointer this story moves must be a deliberate, stated change.\nFor each UNDECLARED entry above, do one of:\n  DECLARE — add the path to the story's File List and say in the Completion Notes\n            why the bump belongs to this story.\n  REVERT  — restore the baseline pointer, then commit the bump separately:\n\n    git checkout 1745b6663ad32bb1288167135ed0f979366c53a0 -- references/Hexalith.AI.Tools\n    git checkout 11555ace9efcae2928a00122dcba91243e5a8a1a -- references/Hexalith.Commons\n    git checkout f842711d67004200e3248b3c42b7d9bcb2146907 -- references/Hexalith.FrontComposer\n    git checkout edaecb04b1a8edf78f6ad28e5bf253db594003f4 -- references/Hexalith.McpCli\n    git checkout d9d61d8a95c7dc8827acf68ae723859711703729 -- references/Hexalith.Memories\n    git checkout bce4eb9f45c6b131b960ab4fa39e50ff01e51960 -- references/Hexalith.PolymorphicSerializations\n",
+      "stderr": ""
+    },
+    "spec-qualify-published-mcpcli-7.0.0-enrollment.md": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/validate-story-gitlinks.py",
+        "_bmad-output/implementation-artifacts/spec-qualify-published-mcpcli-7.0.0-enrollment.md"
+      ],
+      "exit_code": 1,
+      "stdout": "Story:    spec-qualify-published-mcpcli-7.0.0-enrollment.md\nBaseline: f5f65fc\nCompared: HEAD (d73267f) + working tree\n\n9 references/ pointer change(s) in range:\n  [UNDECLARED] references/Hexalith.AI.Tools  1745b66 -> 17a37d8\n  [declared] references/Hexalith.Builds  66a1b2f -> e2bbbd0\n  [UNDECLARED] references/Hexalith.Commons  11555ac -> fbf4e94\n  [declared] references/Hexalith.EventStore  9aa4e5d -> 9d715d4\n  [declared] references/Hexalith.FrontComposer  f842711 -> b22be84\n  [declared] references/Hexalith.McpCli  edaecb0 -> 0795509\n  [declared] references/Hexalith.Memories  d9d61d8 -> 1306a0f\n  [declared] references/Hexalith.Platform  5d74c40 -> ddb1c0b\n  [UNDECLARED] references/Hexalith.PolymorphicSerializations  bce4eb9 -> e97b569\n\nRESULT: FAIL\n\nEvery submodule pointer this story moves must be a deliberate, stated change.\nFor each UNDECLARED entry above, do one of:\n  DECLARE — add the path to the story's File List and say in the Completion Notes\n            why the bump belongs to this story.\n  REVERT  — restore the baseline pointer, then commit the bump separately:\n\n    git checkout 1745b6663ad32bb1288167135ed0f979366c53a0 -- references/Hexalith.AI.Tools\n    git checkout 11555ace9efcae2928a00122dcba91243e5a8a1a -- references/Hexalith.Commons\n    git checkout bce4eb9f45c6b131b960ab4fa39e50ff01e51960 -- references/Hexalith.PolymorphicSerializations\n",
+      "stderr": ""
+    },
+    "spec-refresh-and-publish-current-release.md": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/validate-story-gitlinks.py",
+        "_bmad-output/implementation-artifacts/spec-refresh-and-publish-current-release.md"
+      ],
+      "exit_code": 1,
+      "stdout": "Story:    spec-refresh-and-publish-current-release.md\nBaseline: 2aa3f04\nCompared: HEAD (d73267f) + working tree\n\n9 references/ pointer change(s) in range:\n  [UNDECLARED] references/Hexalith.AI.Tools  1745b66 -> 17a37d8\n  [declared] references/Hexalith.Builds  6585f58 -> e2bbbd0\n  [UNDECLARED] references/Hexalith.Commons  11555ac -> fbf4e94\n  [declared] references/Hexalith.EventStore  f06abad -> 9d715d4\n  [declared] references/Hexalith.FrontComposer  25139b7 -> b22be84\n  [UNDECLARED] references/Hexalith.McpCli  edaecb0 -> 0795509\n  [UNDECLARED] references/Hexalith.Memories  d9d61d8 -> 1306a0f\n  [declared] references/Hexalith.Platform  2873796 -> ddb1c0b\n  [UNDECLARED] references/Hexalith.PolymorphicSerializations  bce4eb9 -> e97b569\n\nRESULT: FAIL\n\nEvery submodule pointer this story moves must be a deliberate, stated change.\nFor each UNDECLARED entry above, do one of:\n  DECLARE — add the path to the story's File List and say in the Completion Notes\n            why the bump belongs to this story.\n  REVERT  — restore the baseline pointer, then commit the bump separately:\n\n    git checkout 1745b6663ad32bb1288167135ed0f979366c53a0 -- references/Hexalith.AI.Tools\n    git checkout 11555ace9efcae2928a00122dcba91243e5a8a1a -- references/Hexalith.Commons\n    git checkout edaecb04b1a8edf78f6ad28e5bf253db594003f4 -- references/Hexalith.McpCli\n    git checkout d9d61d8a95c7dc8827acf68ae723859711703729 -- references/Hexalith.Memories\n    git checkout bce4eb9f45c6b131b960ab4fa39e50ff01e51960 -- references/Hexalith.PolymorphicSerializations\n",
+      "stderr": ""
+    },
+    "spec-repair-current-mcpcli-published-cohort-ci.md": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/validate-story-gitlinks.py",
+        "_bmad-output/implementation-artifacts/spec-repair-current-mcpcli-published-cohort-ci.md"
+      ],
+      "exit_code": 1,
+      "stdout": "Story:    spec-repair-current-mcpcli-published-cohort-ci.md\nBaseline: 401d926\nCompared: HEAD (d73267f) + working tree\n\n7 references/ pointer change(s) in range:\n  [UNDECLARED] references/Hexalith.AI.Tools  10b709b -> 17a37d8\n  [UNDECLARED] references/Hexalith.Builds  05a75b6 -> e2bbbd0\n  [UNDECLARED] references/Hexalith.EventStore  639c9d5 -> 9d715d4\n  [UNDECLARED] references/Hexalith.FrontComposer  19418a0 -> b22be84\n  [UNDECLARED] references/Hexalith.McpCli  42d3c2f -> 0795509\n  [UNDECLARED] references/Hexalith.Memories  a3f0b3a -> 1306a0f\n  [UNDECLARED] references/Hexalith.Platform  1cece24 -> ddb1c0b\n\nRESULT: FAIL\n\nEvery submodule pointer this story moves must be a deliberate, stated change.\nFor each UNDECLARED entry above, do one of:\n  DECLARE — add the path to the story's File List and say in the Completion Notes\n            why the bump belongs to this story.\n  REVERT  — restore the baseline pointer, then commit the bump separately:\n\n    git checkout 10b709b86f9c9148e5a18177e8d11fad79ae2c0b -- references/Hexalith.AI.Tools\n    git checkout 05a75b626fb73c6e386d16c41e885f193d3cff16 -- references/Hexalith.Builds\n    git checkout 639c9d5c0c8c8fba14aaec536dd1c2e3ceaccc13 -- references/Hexalith.EventStore\n    git checkout 19418a0c29daf38eef03b0891958cd8aa93c59bf -- references/Hexalith.FrontComposer\n    git checkout 42d3c2fd48405e0f2c27f9b61f6d7025e4246934 -- references/Hexalith.McpCli\n    git checkout a3f0b3a4a0f0905f6b88da039491ceb286103207 -- references/Hexalith.Memories\n    git checkout 1cece242bd4a82c517bb92447c6d6799f6313b6f -- references/Hexalith.Platform\n",
+      "stderr": ""
+    },
+    "spec-scope-live-corpus-read-tokens.md": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/validate-story-gitlinks.py",
+        "_bmad-output/implementation-artifacts/spec-scope-live-corpus-read-tokens.md"
+      ],
+      "exit_code": 1,
+      "stdout": "Story:    spec-scope-live-corpus-read-tokens.md\nBaseline: f5f65fc\nCompared: HEAD (d73267f) + working tree\n\n9 references/ pointer change(s) in range:\n  [UNDECLARED] references/Hexalith.AI.Tools  1745b66 -> 17a37d8\n  [declared] references/Hexalith.Builds  66a1b2f -> e2bbbd0\n  [UNDECLARED] references/Hexalith.Commons  11555ac -> fbf4e94\n  [declared] references/Hexalith.EventStore  9aa4e5d -> 9d715d4\n  [UNDECLARED] references/Hexalith.FrontComposer  f842711 -> b22be84\n  [UNDECLARED] references/Hexalith.McpCli  edaecb0 -> 0795509\n  [declared] references/Hexalith.Memories  d9d61d8 -> 1306a0f\n  [declared] references/Hexalith.Platform  5d74c40 -> ddb1c0b\n  [UNDECLARED] references/Hexalith.PolymorphicSerializations  bce4eb9 -> e97b569\n\nRESULT: FAIL\n\nEvery submodule pointer this story moves must be a deliberate, stated change.\nFor each UNDECLARED entry above, do one of:\n  DECLARE — add the path to the story's File List and say in the Completion Notes\n            why the bump belongs to this story.\n  REVERT  — restore the baseline pointer, then commit the bump separately:\n\n    git checkout 1745b6663ad32bb1288167135ed0f979366c53a0 -- references/Hexalith.AI.Tools\n    git checkout 11555ace9efcae2928a00122dcba91243e5a8a1a -- references/Hexalith.Commons\n    git checkout f842711d67004200e3248b3c42b7d9bcb2146907 -- references/Hexalith.FrontComposer\n    git checkout edaecb04b1a8edf78f6ad28e5bf253db594003f4 -- references/Hexalith.McpCli\n    git checkout bce4eb9f45c6b131b960ab4fa39e50ff01e51960 -- references/Hexalith.PolymorphicSerializations\n",
+      "stderr": ""
+    },
+    "spec-synchronize-update-release-2026-11-14.md": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/validate-story-gitlinks.py",
+        "_bmad-output/implementation-artifacts/spec-synchronize-update-release-2026-11-14.md"
+      ],
+      "exit_code": 0,
+      "stdout": "Story:    spec-synchronize-update-release-2026-11-14.md\nBaseline: 401d926\nCompared: HEAD (d73267f) + working tree\n\n7 references/ pointer change(s) in range:\n  [declared] references/Hexalith.AI.Tools  10b709b -> 17a37d8\n  [declared] references/Hexalith.Builds  05a75b6 -> e2bbbd0\n  [declared] references/Hexalith.EventStore  639c9d5 -> 9d715d4\n  [declared] references/Hexalith.FrontComposer  19418a0 -> b22be84\n  [declared] references/Hexalith.McpCli  42d3c2f -> 0795509\n  [declared] references/Hexalith.Memories  a3f0b3a -> 1306a0f\n  [declared] references/Hexalith.Platform  1cece24 -> ddb1c0b\n\nRESULT: PASS\n",
+      "stderr": ""
+    }
+  },
+  "historical_gitlink_audits_after": {
+    "spec-eventstore-secret-scanner-ci-repair.md": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/validate-story-gitlinks.py",
+        "_bmad-output/implementation-artifacts/spec-eventstore-secret-scanner-ci-repair.md"
+      ],
+      "exit_code": 1,
+      "stdout": "Story:    spec-eventstore-secret-scanner-ci-repair.md\nBaseline: 33835a0\nCompared: HEAD (d73267f) + working tree\n\n9 references/ pointer change(s) in range:\n  [UNDECLARED] references/Hexalith.AI.Tools  1745b66 -> 17a37d8\n  [declared] references/Hexalith.Builds  89f6205 -> e2bbbd0\n  [UNDECLARED] references/Hexalith.Commons  11555ac -> fbf4e94\n  [declared] references/Hexalith.EventStore  e97582b -> 9d715d4\n  [declared] references/Hexalith.FrontComposer  fbe01c9 -> b22be84\n  [declared] references/Hexalith.McpCli  56a57c5 -> 0795509\n  [declared] references/Hexalith.Memories  d959bda -> 1306a0f\n  [declared] references/Hexalith.Platform  bf101b9 -> ddb1c0b\n  [UNDECLARED] references/Hexalith.PolymorphicSerializations  bce4eb9 -> e97b569\n\nRESULT: FAIL\n\nEvery submodule pointer this story moves must be a deliberate, stated change.\nFor each UNDECLARED entry above, do one of:\n  DECLARE — add the path to the story's File List and say in the Completion Notes\n            why the bump belongs to this story.\n  REVERT  — restore the baseline pointer, then commit the bump separately:\n\n    git checkout 1745b6663ad32bb1288167135ed0f979366c53a0 -- references/Hexalith.AI.Tools\n    git checkout 11555ace9efcae2928a00122dcba91243e5a8a1a -- references/Hexalith.Commons\n    git checkout bce4eb9f45c6b131b960ab4fa39e50ff01e51960 -- references/Hexalith.PolymorphicSerializations\n",
+      "stderr": ""
+    },
+    "spec-fix-native-removal-production-transport.md": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/validate-story-gitlinks.py",
+        "_bmad-output/implementation-artifacts/spec-fix-native-removal-production-transport.md"
+      ],
+      "exit_code": 1,
+      "stdout": "Story:    spec-fix-native-removal-production-transport.md\nBaseline: bcd9237\nCompared: HEAD (d73267f) + working tree\n\n9 references/ pointer change(s) in range:\n  [UNDECLARED] references/Hexalith.AI.Tools  1745b66 -> 17a37d8\n  [declared] references/Hexalith.Builds  70850b1 -> e2bbbd0\n  [UNDECLARED] references/Hexalith.Commons  11555ac -> fbf4e94\n  [declared] references/Hexalith.EventStore  f06abad -> 9d715d4\n  [UNDECLARED] references/Hexalith.FrontComposer  f842711 -> b22be84\n  [UNDECLARED] references/Hexalith.McpCli  edaecb0 -> 0795509\n  [UNDECLARED] references/Hexalith.Memories  d9d61d8 -> 1306a0f\n  [declared] references/Hexalith.Platform  1f5958e -> ddb1c0b\n  [UNDECLARED] references/Hexalith.PolymorphicSerializations  bce4eb9 -> e97b569\n\nRESULT: FAIL\n\nEvery submodule pointer this story moves must be a deliberate, stated change.\nFor each UNDECLARED entry above, do one of:\n  DECLARE — add the path to the story's File List and say in the Completion Notes\n            why the bump belongs to this story.\n  REVERT  — restore the baseline pointer, then commit the bump separately:\n\n    git checkout 1745b6663ad32bb1288167135ed0f979366c53a0 -- references/Hexalith.AI.Tools\n    git checkout 11555ace9efcae2928a00122dcba91243e5a8a1a -- references/Hexalith.Commons\n    git checkout f842711d67004200e3248b3c42b7d9bcb2146907 -- references/Hexalith.FrontComposer\n    git checkout edaecb04b1a8edf78f6ad28e5bf253db594003f4 -- references/Hexalith.McpCli\n    git checkout d9d61d8a95c7dc8827acf68ae723859711703729 -- references/Hexalith.Memories\n    git checkout bce4eb9f45c6b131b960ab4fa39e50ff01e51960 -- references/Hexalith.PolymorphicSerializations\n",
+      "stderr": ""
+    },
+    "spec-native-mcpcli-runtime-cohort.md": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/validate-story-gitlinks.py",
+        "_bmad-output/implementation-artifacts/spec-native-mcpcli-runtime-cohort.md"
+      ],
+      "exit_code": 1,
+      "stdout": "Story:    spec-native-mcpcli-runtime-cohort.md\nBaseline: 31aa26c\nCompared: HEAD (d73267f) + working tree\n\n9 references/ pointer change(s) in range:\n  [UNDECLARED] references/Hexalith.AI.Tools  1745b66 -> 17a37d8\n  [declared] references/Hexalith.Builds  fc74371 -> e2bbbd0\n  [UNDECLARED] references/Hexalith.Commons  11555ac -> fbf4e94\n  [declared] references/Hexalith.EventStore  326bfef -> 9d715d4\n  [declared] references/Hexalith.FrontComposer  f842711 -> b22be84\n  [declared] references/Hexalith.McpCli  edaecb0 -> 0795509\n  [declared] references/Hexalith.Memories  d9d61d8 -> 1306a0f\n  [declared] references/Hexalith.Platform  ee6f477 -> ddb1c0b\n  [UNDECLARED] references/Hexalith.PolymorphicSerializations  bce4eb9 -> e97b569\n\nRESULT: FAIL\n\nEvery submodule pointer this story moves must be a deliberate, stated change.\nFor each UNDECLARED entry above, do one of:\n  DECLARE — add the path to the story's File List and say in the Completion Notes\n            why the bump belongs to this story.\n  REVERT  — restore the baseline pointer, then commit the bump separately:\n\n    git checkout 1745b6663ad32bb1288167135ed0f979366c53a0 -- references/Hexalith.AI.Tools\n    git checkout 11555ace9efcae2928a00122dcba91243e5a8a1a -- references/Hexalith.Commons\n    git checkout bce4eb9f45c6b131b960ab4fa39e50ff01e51960 -- references/Hexalith.PolymorphicSerializations\n",
+      "stderr": ""
+    },
+    "spec-native-query-selector-compatibility-cohort.md": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/validate-story-gitlinks.py",
+        "_bmad-output/implementation-artifacts/spec-native-query-selector-compatibility-cohort.md"
+      ],
+      "exit_code": 1,
+      "stdout": "Story:    spec-native-query-selector-compatibility-cohort.md\nBaseline: 33835a0\nCompared: HEAD (d73267f) + working tree\n\n9 references/ pointer change(s) in range:\n  [UNDECLARED] references/Hexalith.AI.Tools  1745b66 -> 17a37d8\n  [declared] references/Hexalith.Builds  89f6205 -> e2bbbd0\n  [UNDECLARED] references/Hexalith.Commons  11555ac -> fbf4e94\n  [declared] references/Hexalith.EventStore  e97582b -> 9d715d4\n  [declared] references/Hexalith.FrontComposer  fbe01c9 -> b22be84\n  [declared] references/Hexalith.McpCli  56a57c5 -> 0795509\n  [declared] references/Hexalith.Memories  d959bda -> 1306a0f\n  [declared] references/Hexalith.Platform  bf101b9 -> ddb1c0b\n  [UNDECLARED] references/Hexalith.PolymorphicSerializations  bce4eb9 -> e97b569\n\nRESULT: FAIL\n\nEvery submodule pointer this story moves must be a deliberate, stated change.\nFor each UNDECLARED entry above, do one of:\n  DECLARE — add the path to the story's File List and say in the Completion Notes\n            why the bump belongs to this story.\n  REVERT  — restore the baseline pointer, then commit the bump separately:\n\n    git checkout 1745b6663ad32bb1288167135ed0f979366c53a0 -- references/Hexalith.AI.Tools\n    git checkout 11555ace9efcae2928a00122dcba91243e5a8a1a -- references/Hexalith.Commons\n    git checkout bce4eb9f45c6b131b960ab4fa39e50ff01e51960 -- references/Hexalith.PolymorphicSerializations\n",
+      "stderr": ""
+    },
+    "spec-native-request-compatibility-follow-up.md": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/validate-story-gitlinks.py",
+        "_bmad-output/implementation-artifacts/spec-native-request-compatibility-follow-up.md"
+      ],
+      "exit_code": 1,
+      "stdout": "Story:    spec-native-request-compatibility-follow-up.md\nBaseline: 60daa51\nCompared: HEAD (d73267f) + working tree\n\n9 references/ pointer change(s) in range:\n  [UNDECLARED] references/Hexalith.AI.Tools  1745b66 -> 17a37d8\n  [declared] references/Hexalith.Builds  89f6205 -> e2bbbd0\n  [UNDECLARED] references/Hexalith.Commons  11555ac -> fbf4e94\n  [declared] references/Hexalith.EventStore  e97582b -> 9d715d4\n  [declared] references/Hexalith.FrontComposer  fbe01c9 -> b22be84\n  [declared] references/Hexalith.McpCli  56a57c5 -> 0795509\n  [declared] references/Hexalith.Memories  d959bda -> 1306a0f\n  [declared] references/Hexalith.Platform  bf101b9 -> ddb1c0b\n  [UNDECLARED] references/Hexalith.PolymorphicSerializations  bce4eb9 -> e97b569\n\nRESULT: FAIL\n\nEvery submodule pointer this story moves must be a deliberate, stated change.\nFor each UNDECLARED entry above, do one of:\n  DECLARE — add the path to the story's File List and say in the Completion Notes\n            why the bump belongs to this story.\n  REVERT  — restore the baseline pointer, then commit the bump separately:\n\n    git checkout 1745b6663ad32bb1288167135ed0f979366c53a0 -- references/Hexalith.AI.Tools\n    git checkout 11555ace9efcae2928a00122dcba91243e5a8a1a -- references/Hexalith.Commons\n    git checkout bce4eb9f45c6b131b960ab4fa39e50ff01e51960 -- references/Hexalith.PolymorphicSerializations\n",
+      "stderr": ""
+    },
+    "spec-preserve-sample-background-ci.md": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/validate-story-gitlinks.py",
+        "_bmad-output/implementation-artifacts/spec-preserve-sample-background-ci.md"
+      ],
+      "exit_code": 1,
+      "stdout": "Story:    spec-preserve-sample-background-ci.md\nBaseline: bcd9237\nCompared: HEAD (d73267f) + working tree\n\n9 references/ pointer change(s) in range:\n  [UNDECLARED] references/Hexalith.AI.Tools  1745b66 -> 17a37d8\n  [declared] references/Hexalith.Builds  70850b1 -> e2bbbd0\n  [UNDECLARED] references/Hexalith.Commons  11555ac -> fbf4e94\n  [declared] references/Hexalith.EventStore  f06abad -> 9d715d4\n  [UNDECLARED] references/Hexalith.FrontComposer  f842711 -> b22be84\n  [UNDECLARED] references/Hexalith.McpCli  edaecb0 -> 0795509\n  [UNDECLARED] references/Hexalith.Memories  d9d61d8 -> 1306a0f\n  [declared] references/Hexalith.Platform  1f5958e -> ddb1c0b\n  [UNDECLARED] references/Hexalith.PolymorphicSerializations  bce4eb9 -> e97b569\n\nRESULT: FAIL\n\nEvery submodule pointer this story moves must be a deliberate, stated change.\nFor each UNDECLARED entry above, do one of:\n  DECLARE — add the path to the story's File List and say in the Completion Notes\n            why the bump belongs to this story.\n  REVERT  — restore the baseline pointer, then commit the bump separately:\n\n    git checkout 1745b6663ad32bb1288167135ed0f979366c53a0 -- references/Hexalith.AI.Tools\n    git checkout 11555ace9efcae2928a00122dcba91243e5a8a1a -- references/Hexalith.Commons\n    git checkout f842711d67004200e3248b3c42b7d9bcb2146907 -- references/Hexalith.FrontComposer\n    git checkout edaecb04b1a8edf78f6ad28e5bf253db594003f4 -- references/Hexalith.McpCli\n    git checkout d9d61d8a95c7dc8827acf68ae723859711703729 -- references/Hexalith.Memories\n    git checkout bce4eb9f45c6b131b960ab4fa39e50ff01e51960 -- references/Hexalith.PolymorphicSerializations\n",
+      "stderr": ""
+    },
+    "spec-publish-compiled-catalog-inputs.md": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/validate-story-gitlinks.py",
+        "_bmad-output/implementation-artifacts/spec-publish-compiled-catalog-inputs.md"
+      ],
+      "exit_code": 1,
+      "stdout": "Story:    spec-publish-compiled-catalog-inputs.md\nBaseline: fff6a5c\nCompared: HEAD (d73267f) + working tree\n\n9 references/ pointer change(s) in range:\n  [UNDECLARED] references/Hexalith.AI.Tools  9b78aa0 -> 17a37d8\n  [declared] references/Hexalith.Builds  2186b9a -> e2bbbd0\n  [UNDECLARED] references/Hexalith.Commons  0604bcf -> fbf4e94\n  [UNDECLARED] references/Hexalith.EventStore  e014af6 -> 9d715d4\n  [UNDECLARED] references/Hexalith.FrontComposer  61a8afb -> b22be84\n  [UNDECLARED] references/Hexalith.McpCli  7538bee -> 0795509\n  [UNDECLARED] references/Hexalith.Memories  71a721a -> 1306a0f\n  [UNDECLARED] references/Hexalith.Platform  667e5a0 -> ddb1c0b\n  [UNDECLARED] references/Hexalith.PolymorphicSerializations  92ede24 -> e97b569\n\nRESULT: FAIL\n\nEvery submodule pointer this story moves must be a deliberate, stated change.\nFor each UNDECLARED entry above, do one of:\n  DECLARE — add the path to the story's File List and say in the Completion Notes\n            why the bump belongs to this story.\n  REVERT  — restore the baseline pointer, then commit the bump separately:\n\n    git checkout 9b78aa008cfc62cd88ad0ea4b39b1f07311956ce -- references/Hexalith.AI.Tools\n    git checkout 0604bcf5304fc09a569f7abbd8e5d1b9049c02b7 -- references/Hexalith.Commons\n    git checkout e014af6c3f1c67732485f24012cdbe528a12b0f6 -- references/Hexalith.EventStore\n    git checkout 61a8afbb85c7e25b2eb97acb1cac262ef3e1e33d -- references/Hexalith.FrontComposer\n    git checkout 7538bee529ab3a62c2d359fd498c9d60fca77621 -- references/Hexalith.McpCli\n    git checkout 71a721a87ebbb34c557c08517b5c39884a7417da -- references/Hexalith.Memories\n    git checkout 667e5a02a523cf8764ca54d6aa1b4b75db5dca64 -- references/Hexalith.Platform\n    git checkout 92ede24cc11129379efe52cfe7fd2c820c567f7f -- references/Hexalith.PolymorphicSerializations\n",
+      "stderr": ""
+    },
+    "spec-qualify-published-eventstore-4.0.3-cohort.md": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/validate-story-gitlinks.py",
+        "_bmad-output/implementation-artifacts/spec-qualify-published-eventstore-4.0.3-cohort.md"
+      ],
+      "exit_code": 1,
+      "stdout": "Story:    spec-qualify-published-eventstore-4.0.3-cohort.md\nBaseline: bcd9237\nCompared: HEAD (d73267f) + working tree\n\n9 references/ pointer change(s) in range:\n  [UNDECLARED] references/Hexalith.AI.Tools  1745b66 -> 17a37d8\n  [declared] references/Hexalith.Builds  70850b1 -> e2bbbd0\n  [UNDECLARED] references/Hexalith.Commons  11555ac -> fbf4e94\n  [declared] references/Hexalith.EventStore  f06abad -> 9d715d4\n  [UNDECLARED] references/Hexalith.FrontComposer  f842711 -> b22be84\n  [UNDECLARED] references/Hexalith.McpCli  edaecb0 -> 0795509\n  [UNDECLARED] references/Hexalith.Memories  d9d61d8 -> 1306a0f\n  [declared] references/Hexalith.Platform  1f5958e -> ddb1c0b\n  [UNDECLARED] references/Hexalith.PolymorphicSerializations  bce4eb9 -> e97b569\n\nRESULT: FAIL\n\nEvery submodule pointer this story moves must be a deliberate, stated change.\nFor each UNDECLARED entry above, do one of:\n  DECLARE — add the path to the story's File List and say in the Completion Notes\n            why the bump belongs to this story.\n  REVERT  — restore the baseline pointer, then commit the bump separately:\n\n    git checkout 1745b6663ad32bb1288167135ed0f979366c53a0 -- references/Hexalith.AI.Tools\n    git checkout 11555ace9efcae2928a00122dcba91243e5a8a1a -- references/Hexalith.Commons\n    git checkout f842711d67004200e3248b3c42b7d9bcb2146907 -- references/Hexalith.FrontComposer\n    git checkout edaecb04b1a8edf78f6ad28e5bf253db594003f4 -- references/Hexalith.McpCli\n    git checkout d9d61d8a95c7dc8827acf68ae723859711703729 -- references/Hexalith.Memories\n    git checkout bce4eb9f45c6b131b960ab4fa39e50ff01e51960 -- references/Hexalith.PolymorphicSerializations\n",
+      "stderr": ""
+    },
+    "spec-qualify-published-mcpcli-7.0.0-enrollment.md": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/validate-story-gitlinks.py",
+        "_bmad-output/implementation-artifacts/spec-qualify-published-mcpcli-7.0.0-enrollment.md"
+      ],
+      "exit_code": 1,
+      "stdout": "Story:    spec-qualify-published-mcpcli-7.0.0-enrollment.md\nBaseline: f5f65fc\nCompared: HEAD (d73267f) + working tree\n\n9 references/ pointer change(s) in range:\n  [UNDECLARED] references/Hexalith.AI.Tools  1745b66 -> 17a37d8\n  [declared] references/Hexalith.Builds  66a1b2f -> e2bbbd0\n  [UNDECLARED] references/Hexalith.Commons  11555ac -> fbf4e94\n  [declared] references/Hexalith.EventStore  9aa4e5d -> 9d715d4\n  [declared] references/Hexalith.FrontComposer  f842711 -> b22be84\n  [declared] references/Hexalith.McpCli  edaecb0 -> 0795509\n  [declared] references/Hexalith.Memories  d9d61d8 -> 1306a0f\n  [declared] references/Hexalith.Platform  5d74c40 -> ddb1c0b\n  [UNDECLARED] references/Hexalith.PolymorphicSerializations  bce4eb9 -> e97b569\n\nRESULT: FAIL\n\nEvery submodule pointer this story moves must be a deliberate, stated change.\nFor each UNDECLARED entry above, do one of:\n  DECLARE — add the path to the story's File List and say in the Completion Notes\n            why the bump belongs to this story.\n  REVERT  — restore the baseline pointer, then commit the bump separately:\n\n    git checkout 1745b6663ad32bb1288167135ed0f979366c53a0 -- references/Hexalith.AI.Tools\n    git checkout 11555ace9efcae2928a00122dcba91243e5a8a1a -- references/Hexalith.Commons\n    git checkout bce4eb9f45c6b131b960ab4fa39e50ff01e51960 -- references/Hexalith.PolymorphicSerializations\n",
+      "stderr": ""
+    },
+    "spec-refresh-and-publish-current-release.md": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/validate-story-gitlinks.py",
+        "_bmad-output/implementation-artifacts/spec-refresh-and-publish-current-release.md"
+      ],
+      "exit_code": 1,
+      "stdout": "Story:    spec-refresh-and-publish-current-release.md\nBaseline: 2aa3f04\nCompared: HEAD (d73267f) + working tree\n\n9 references/ pointer change(s) in range:\n  [UNDECLARED] references/Hexalith.AI.Tools  1745b66 -> 17a37d8\n  [declared] references/Hexalith.Builds  6585f58 -> e2bbbd0\n  [UNDECLARED] references/Hexalith.Commons  11555ac -> fbf4e94\n  [declared] references/Hexalith.EventStore  f06abad -> 9d715d4\n  [declared] references/Hexalith.FrontComposer  25139b7 -> b22be84\n  [UNDECLARED] references/Hexalith.McpCli  edaecb0 -> 0795509\n  [UNDECLARED] references/Hexalith.Memories  d9d61d8 -> 1306a0f\n  [declared] references/Hexalith.Platform  2873796 -> ddb1c0b\n  [UNDECLARED] references/Hexalith.PolymorphicSerializations  bce4eb9 -> e97b569\n\nRESULT: FAIL\n\nEvery submodule pointer this story moves must be a deliberate, stated change.\nFor each UNDECLARED entry above, do one of:\n  DECLARE — add the path to the story's File List and say in the Completion Notes\n            why the bump belongs to this story.\n  REVERT  — restore the baseline pointer, then commit the bump separately:\n\n    git checkout 1745b6663ad32bb1288167135ed0f979366c53a0 -- references/Hexalith.AI.Tools\n    git checkout 11555ace9efcae2928a00122dcba91243e5a8a1a -- references/Hexalith.Commons\n    git checkout edaecb04b1a8edf78f6ad28e5bf253db594003f4 -- references/Hexalith.McpCli\n    git checkout d9d61d8a95c7dc8827acf68ae723859711703729 -- references/Hexalith.Memories\n    git checkout bce4eb9f45c6b131b960ab4fa39e50ff01e51960 -- references/Hexalith.PolymorphicSerializations\n",
+      "stderr": ""
+    },
+    "spec-repair-current-mcpcli-published-cohort-ci.md": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/validate-story-gitlinks.py",
+        "_bmad-output/implementation-artifacts/spec-repair-current-mcpcli-published-cohort-ci.md"
+      ],
+      "exit_code": 1,
+      "stdout": "Story:    spec-repair-current-mcpcli-published-cohort-ci.md\nBaseline: 401d926\nCompared: HEAD (d73267f) + working tree\n\n7 references/ pointer change(s) in range:\n  [UNDECLARED] references/Hexalith.AI.Tools  10b709b -> 17a37d8\n  [UNDECLARED] references/Hexalith.Builds  05a75b6 -> e2bbbd0\n  [UNDECLARED] references/Hexalith.EventStore  639c9d5 -> 9d715d4\n  [UNDECLARED] references/Hexalith.FrontComposer  19418a0 -> b22be84\n  [UNDECLARED] references/Hexalith.McpCli  42d3c2f -> 0795509\n  [UNDECLARED] references/Hexalith.Memories  a3f0b3a -> 1306a0f\n  [UNDECLARED] references/Hexalith.Platform  1cece24 -> ddb1c0b\n\nRESULT: FAIL\n\nEvery submodule pointer this story moves must be a deliberate, stated change.\nFor each UNDECLARED entry above, do one of:\n  DECLARE — add the path to the story's File List and say in the Completion Notes\n            why the bump belongs to this story.\n  REVERT  — restore the baseline pointer, then commit the bump separately:\n\n    git checkout 10b709b86f9c9148e5a18177e8d11fad79ae2c0b -- references/Hexalith.AI.Tools\n    git checkout 05a75b626fb73c6e386d16c41e885f193d3cff16 -- references/Hexalith.Builds\n    git checkout 639c9d5c0c8c8fba14aaec536dd1c2e3ceaccc13 -- references/Hexalith.EventStore\n    git checkout 19418a0c29daf38eef03b0891958cd8aa93c59bf -- references/Hexalith.FrontComposer\n    git checkout 42d3c2fd48405e0f2c27f9b61f6d7025e4246934 -- references/Hexalith.McpCli\n    git checkout a3f0b3a4a0f0905f6b88da039491ceb286103207 -- references/Hexalith.Memories\n    git checkout 1cece242bd4a82c517bb92447c6d6799f6313b6f -- references/Hexalith.Platform\n",
+      "stderr": ""
+    },
+    "spec-scope-live-corpus-read-tokens.md": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/validate-story-gitlinks.py",
+        "_bmad-output/implementation-artifacts/spec-scope-live-corpus-read-tokens.md"
+      ],
+      "exit_code": 1,
+      "stdout": "Story:    spec-scope-live-corpus-read-tokens.md\nBaseline: f5f65fc\nCompared: HEAD (d73267f) + working tree\n\n9 references/ pointer change(s) in range:\n  [UNDECLARED] references/Hexalith.AI.Tools  1745b66 -> 17a37d8\n  [declared] references/Hexalith.Builds  66a1b2f -> e2bbbd0\n  [UNDECLARED] references/Hexalith.Commons  11555ac -> fbf4e94\n  [declared] references/Hexalith.EventStore  9aa4e5d -> 9d715d4\n  [UNDECLARED] references/Hexalith.FrontComposer  f842711 -> b22be84\n  [UNDECLARED] references/Hexalith.McpCli  edaecb0 -> 0795509\n  [declared] references/Hexalith.Memories  d9d61d8 -> 1306a0f\n  [declared] references/Hexalith.Platform  5d74c40 -> ddb1c0b\n  [UNDECLARED] references/Hexalith.PolymorphicSerializations  bce4eb9 -> e97b569\n\nRESULT: FAIL\n\nEvery submodule pointer this story moves must be a deliberate, stated change.\nFor each UNDECLARED entry above, do one of:\n  DECLARE — add the path to the story's File List and say in the Completion Notes\n            why the bump belongs to this story.\n  REVERT  — restore the baseline pointer, then commit the bump separately:\n\n    git checkout 1745b6663ad32bb1288167135ed0f979366c53a0 -- references/Hexalith.AI.Tools\n    git checkout 11555ace9efcae2928a00122dcba91243e5a8a1a -- references/Hexalith.Commons\n    git checkout f842711d67004200e3248b3c42b7d9bcb2146907 -- references/Hexalith.FrontComposer\n    git checkout edaecb04b1a8edf78f6ad28e5bf253db594003f4 -- references/Hexalith.McpCli\n    git checkout bce4eb9f45c6b131b960ab4fa39e50ff01e51960 -- references/Hexalith.PolymorphicSerializations\n",
+      "stderr": ""
+    },
+    "spec-synchronize-update-release-2026-11-14.md": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/validate-story-gitlinks.py",
+        "_bmad-output/implementation-artifacts/spec-synchronize-update-release-2026-11-14.md"
+      ],
+      "exit_code": 0,
+      "stdout": "Story:    spec-synchronize-update-release-2026-11-14.md\nBaseline: 401d926\nCompared: HEAD (d73267f) + working tree\n\n7 references/ pointer change(s) in range:\n  [declared] references/Hexalith.AI.Tools  10b709b -> 17a37d8\n  [declared] references/Hexalith.Builds  05a75b6 -> e2bbbd0\n  [declared] references/Hexalith.EventStore  639c9d5 -> 9d715d4\n  [declared] references/Hexalith.FrontComposer  19418a0 -> b22be84\n  [declared] references/Hexalith.McpCli  42d3c2f -> 0795509\n  [declared] references/Hexalith.Memories  a3f0b3a -> 1306a0f\n  [declared] references/Hexalith.Platform  1cece24 -> ddb1c0b\n\nRESULT: PASS\n",
+      "stderr": ""
+    }
+  },
+  "historical_gitlink_blockers": [
+    "spec-eventstore-secret-scanner-ci-repair.md",
+    "spec-fix-native-removal-production-transport.md",
+    "spec-native-mcpcli-runtime-cohort.md",
+    "spec-native-query-selector-compatibility-cohort.md",
+    "spec-native-request-compatibility-follow-up.md",
+    "spec-preserve-sample-background-ci.md",
+    "spec-publish-compiled-catalog-inputs.md",
+    "spec-qualify-published-eventstore-4.0.3-cohort.md",
+    "spec-qualify-published-mcpcli-7.0.0-enrollment.md",
+    "spec-refresh-and-publish-current-release.md",
+    "spec-repair-current-mcpcli-published-cohort-ci.md",
+    "spec-scope-live-corpus-read-tokens.md"
+  ],
+  "limitations": [
+    "Administrative closure does not establish new runtime, package, live-Azure, census or publication acceptance.",
+    "All twelve historical specs already fail the current-tree gitlink validator before closure because later dependency-pointer movements are undeclared in those historical plans.",
+    "Original baselines and audit metadata are preserved; historical-range reconciliation is separate work.",
+    "No commit, stage, push, source modification or dependency-pointer update was performed."
+  ]
+}

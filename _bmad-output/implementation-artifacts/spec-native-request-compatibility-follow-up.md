@@ -2,8 +2,12 @@
 title: 'Repair native catalog request compatibility and audited offline preparation'
 type: 'bugfix'
 created: '2026-11-03'
-status: 'in-review'
+status: 'done'
+resolution: 'superseded'
+closed: '2026-11-15'
+superseded_by: 'spec-synchronize-update-release-2026-11-14.md'
 baseline_commit: '60daa5198169f093b11abd1bafca5a45afe254fe'
+gitlink_audit_ref: 'ae40c9657175ae5567cdd182384d3840af64d8a2'
 owning_repository_baseline_commit: '56a57c5ecc590bbea56567f1a0daa9dc512c56bc'
 ---
 
@@ -72,3 +76,25 @@ All three context-free layers reviewed the frozen49,119-byte follow-up diff. Eac
 | Verification1: actual GenerateAsync path never tests unaudited refusal | medium | Pre-verified mutation gap: removing the call leaves helper tests passing. Patch: controlled dotnet/private-directory test supplies an uncovered or changed restored graph, proves GenerateAsync refuses before build/catalog execution and retains ownership cleanup. |
 
 Survivors group into pre-build exact package coverage (Blind1,Blind2,Edge1,Edge2,Verification1), complete explicit audit policy (Blind4,Blind5), and signed nonmember persisted-owner refusal (Blind7). All are existing demonstrated states with no public API addition and route to the original native implementer as focused patches. No deferred finding or frozen-intent change is required.
+
+## Historical Closure — 2026-11-15
+
+Closed as superseded under the user’s instruction, "close obsolete specs". The active successor is [Synchronize dependencies and publish the .NET 11 release](spec-synchronize-update-release-2026-11-14.md). The original intent, checklist, review findings, baselines and verification notes above remain historical. The `done` status records administrative closure of this superseded plan; unchecked historical tasks are not asserted to have passed.
+
+The spec itself records that its original transport-omission approach was superseded by spec-native-query-selector-compatibility-cohort.md. Later SDK/McpCli work and hosted qualification are recorded in the current release spec; this intermediate repair is no longer a separate implementation entry point.
+
+Remaining qualification: Retain pre-build exact-byte audit coverage, signed nonmember/unavailable-owner refusal, unchanged vectors, persisted behavior and owned cleanup under the current qualification scope.
+
+This closure grants no new technical acceptance, policy exception, source classification, Git operation or publication authority. Existing deferred records remain unchanged. [Closure validation](evidence/obsolete-spec-closure-2026-11-15/validation.json) retains the pre-existing historical gitlink-audit failures separately from the documentation checks; no baseline or gitlink audit metadata is rewritten.
+
+## Completion Notes List
+
+Historical audit reconciliation (2026-11-15): `ae40c9657175ae5567cdd182384d3840af64d8a2` is the latest committed story-associated pointer event before the current documentation-only repair. The unchanged baseline is `60daa5198169f093b11abd1bafca5a45afe254fe`. The complete baseline-to-endpoint inventory below includes incidental workspace dependency movement; it records historical range contents and grants no runtime, publication, enrollment or maintainer approval. Original implementation notes, checklists and source-specific receipts retain their original attribution.
+
+| Dependency | Historical baseline | Historical audit endpoint |
+| --- | --- | --- |
+| `references/Hexalith.Builds` | `89f62052c932d054bda2b435bdfef60d96e77612` | `725754075e1d6369430a3adf94d46fb71e6eaf9e` |
+| `references/Hexalith.EventStore` | `e97582bf43ffe8c2f7d958dd470a242c21bd4908` | `16dff1f018e8a68a9d244975e8228d96429eb61c` |
+| `references/Hexalith.FrontComposer` | `fbe01c913cb863abb0fd4a317d370d36fff593b3` | `b105c846c31844441f1cff84b5c187da0eff3546` |
+| `references/Hexalith.McpCli` | `56a57c5ecc590bbea56567f1a0daa9dc512c56bc` | `58afd4766849e33e75471c9047ee945025ca3b6e` |
+| `references/Hexalith.Platform` | `bf101b9d5f19ba741852b0230e526d1f01422022` | `8432397c66ebc0fd22e5671ce620a7d2139f7453` |

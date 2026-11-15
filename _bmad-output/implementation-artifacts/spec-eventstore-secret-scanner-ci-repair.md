@@ -2,8 +2,12 @@
 title: 'Repair EventStore Azure fixture scanning and apply the approved diagnostic exception'
 type: 'bugfix'
 created: '2026-11-03'
-status: 'in-review'
+status: 'done'
+resolution: 'superseded'
+closed: '2026-11-15'
+superseded_by: 'spec-synchronize-update-release-2026-11-14.md'
 baseline_commit: '33835a03e92579a26400e7cb7cf68d666c715b3e'
+gitlink_audit_ref: 'ae40c9657175ae5567cdd182384d3840af64d8a2'
 owning_repository_baseline_commit: 'e97582bf43ffe8c2f7d958dd470a242c21bd4908'
 ---
 
@@ -103,3 +107,25 @@ Final fixture isolation: EventStore main `55cef161a6755560826cd55b12e6b07ac6efa9
 Direct-root catalog CLI follow-up: exact SDK55 main CI passes all20 unit projects and the other five jobs, then the runner-owned package integration refuses before allocation with HXP020 because Builds4.43.5 resolves the released EventStore declaration's catalog through Platform's uninitialized nested Builds path. The diagnostic archive SHA256 is16f391ee87249d786a88b4157e6031bf537896ad18a4a0aff20ee3384af85ca5. Public Builds4.43.6 contains the owning7257540 direct-root catalog correction and its strict positive/negative tests. Adopt the concurrent SDK21d8b7a tool-manifest/exact-pin update unchanged only after independent official archive/source/signature proof and Platform8ea's declared compatibility-range check. Keep the immutable26991 CI executor, existing profile, root-only dependency boundary, release tuple and every source/hash refusal unchanged; qualify only the existing SDK pin contract and focused Builds direct-catalog tests. No nested initialization, business runtime or new upstream source change is authorized by this repair.
 
 Direct-root CLI verification: official NuGet Module.Cli4.43.6 identifies producer725754075e1d6369430a3adf94d46fb71e6eaf9e; archiveSHA25656bb8ec20f02e964dd9f44b7125bf05ada3cafee3c2ac7048f41d36bc8f1c6fe passes `dotnet nuget verify --all`, and both packaged Tooling DLLs match1f98729def5105818eaf464e46d1c12b1bcd0607c3752c6e3842b2f201630cb1. The actual packaged CLI reports4.43.6. Its packaged NuGet version library accepts4.43.6 under exact Platform8ea's `[4.43.5, 5.0.0-0)` range; the original4.43.5 tuple is unchanged. Builds direct-catalog positives and strict invalid-authority/changed-hash/unknown-version controls pass8/8, and the SDK exact-pin/profile contract passes1/1, all without skips. Both focused Release builds have zero warnings/errors. Immutable26991's integration helper is byte-identical to current725 and selects the SDK's local exact tool manifest, so no executor change is needed. Hosted integration acceptance remains separate. Evidence: `/tmp/tenants-release-20261103-07JciR/builds4436-public-proof/verification.json` and `eventstore-builds4436-direct-catalog-handoff.json`.
+
+## Historical Closure — 2026-11-15
+
+Closed as superseded under the user’s instruction, "close obsolete specs". The active successor is [Synchronize dependencies and publish the .NET 11 release](spec-synchronize-update-release-2026-11-14.md). The original intent, checklist, review findings, baselines and verification notes above remain historical. The `done` status records administrative closure of this superseded plan; unchecked historical tasks are not asserted to have passed.
+
+The November 3 scanner/diagnostic repair and EventStore 4.0.4/Tenants 7.0.0 default-cohort handoff have been overtaken by the successor’s published EventStore 5.1.0 and current dependency qualification. The successor records later owning EventStore hosted CI. The exact historical diagnostic exception and its separate real-Azure conformance boundary remain unchanged.
+
+Remaining qualification: Current owning-source security/unit CI and any separately required Azure conformance remain distinct; historical unit or scanner results do not grant live-Azure acceptance.
+
+This closure grants no new technical acceptance, policy exception, source classification, Git operation or publication authority. Existing deferred records remain unchanged. [Closure validation](evidence/obsolete-spec-closure-2026-11-15/validation.json) retains the pre-existing historical gitlink-audit failures separately from the documentation checks; no baseline or gitlink audit metadata is rewritten.
+
+## Completion Notes List
+
+Historical audit reconciliation (2026-11-15): `ae40c9657175ae5567cdd182384d3840af64d8a2` is the latest committed story-associated pointer event before the current documentation-only repair. The unchanged baseline is `33835a03e92579a26400e7cb7cf68d666c715b3e`. The complete baseline-to-endpoint inventory below includes incidental workspace dependency movement; it records historical range contents and grants no runtime, publication, enrollment or maintainer approval. Original implementation notes, checklists and source-specific receipts retain their original attribution.
+
+| Dependency | Historical baseline | Historical audit endpoint |
+| --- | --- | --- |
+| `references/Hexalith.Builds` | `89f62052c932d054bda2b435bdfef60d96e77612` | `725754075e1d6369430a3adf94d46fb71e6eaf9e` |
+| `references/Hexalith.EventStore` | `e97582bf43ffe8c2f7d958dd470a242c21bd4908` | `16dff1f018e8a68a9d244975e8228d96429eb61c` |
+| `references/Hexalith.FrontComposer` | `fbe01c913cb863abb0fd4a317d370d36fff593b3` | `b105c846c31844441f1cff84b5c187da0eff3546` |
+| `references/Hexalith.McpCli` | `56a57c5ecc590bbea56567f1a0daa9dc512c56bc` | `58afd4766849e33e75471c9047ee945025ca3b6e` |
+| `references/Hexalith.Platform` | `bf101b9d5f19ba741852b0230e526d1f01422022` | `8432397c66ebc0fd22e5671ce620a7d2139f7453` |

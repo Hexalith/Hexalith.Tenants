@@ -1,0 +1,33 @@
+[
+  {
+    "command": [
+      "dotnet",
+      "build",
+      "tests/Hexalith.FrontComposer.Shell.Tests/Hexalith.FrontComposer.Shell.Tests.csproj",
+      "-c",
+      "Release",
+      "-m:1",
+      "-p:UseNuGetDeps=true",
+      "-p:MinVerVersionOverride=6.0.1",
+      "-warnaserror"
+    ],
+    "exit_code": 0,
+    "seconds": 36.34,
+    "log": "/dev/shm/tenants-release-resume-2026-11-15/fc-local/command-0.log"
+  },
+  {
+    "command": [
+      "dotnet",
+      "tests/Hexalith.FrontComposer.Shell.Tests/bin/Release/net11.0/Hexalith.FrontComposer.Shell.Tests.dll",
+      "-class",
+      "*AsyncCommandFormValidationTests",
+      "-class",
+      "*CiGovernanceTests",
+      "-parallel",
+      "none"
+    ],
+    "exit_code": 1,
+    "seconds": 61.84,
+    "log": "/dev/shm/tenants-release-resume-2026-11-15/fc-local/command-1.log"
+  }
+]

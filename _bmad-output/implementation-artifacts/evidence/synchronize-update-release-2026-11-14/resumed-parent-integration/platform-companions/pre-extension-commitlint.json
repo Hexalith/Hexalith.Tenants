@@ -1,0 +1,17 @@
+{
+  "kind": "pre-extension",
+  "source": "ddb1c0b141372a66d4a9d9c231d0041afbb7cd0c",
+  "tree": "9afd1752a3d048a9212d137c7b5b8ed1e672198f",
+  "commitlint": {
+    "command": [
+      "node",
+      "node_modules/@commitlint/cli/cli.js",
+      "--edit",
+      "/dev/shm/tenants-release-resume-2026-11-15/platform-companions/pre-extension-message.txt"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "",
+    "pinned_cli": "21.2.4"
+  }
+}

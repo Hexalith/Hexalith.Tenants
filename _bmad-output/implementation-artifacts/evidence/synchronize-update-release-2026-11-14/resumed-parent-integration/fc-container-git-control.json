@@ -1,0 +1,16 @@
+{
+  "workflow": ".github/workflows/mutation-property-nightly.yml",
+  "command": "git config --global --add safe.directory \"$GITHUB_WORKSPACE\"",
+  "git": "git version 2.53.0",
+  "simulated_different_owner": true,
+  "before_exit_codes": [
+    128,
+    128
+  ],
+  "after_exit_codes": [
+    0,
+    128
+  ],
+  "unrelated_repository_still_refused": true,
+  "only_disposable_global_config_changed": true
+}

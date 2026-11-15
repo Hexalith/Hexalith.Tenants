@@ -1,0 +1,60 @@
+[
+  {
+    "command": [
+      "dotnet",
+      "build",
+      "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+      "-c",
+      "Release",
+      "-m:1",
+      "-p:UseNuGetDeps=true",
+      "-p:MinVerVersionOverride=6.0.1",
+      "-p:RestoreFallbackFolders=/home/administrator/.nuget/packages",
+      "-warnaserror"
+    ],
+    "exit_code": 0,
+    "seconds": 24.54,
+    "fc_source": "8ce46cfc1293925459c8b6af15ef7719cf0fc071",
+    "fc_working_patch_sha256": "50622221d8aeae26451b32c22dafa7efe3a73b99282f36bb4e86b5929e36db25",
+    "builds_source": "73e60af8a1fcdf3f06726d5d1b6e1199cce778ee",
+    "log": "/dev/shm/tenants-release-resume-2026-11-15/fc-quality-corrections-attempt2/command-0.log"
+  },
+  {
+    "command": [
+      "dotnet",
+      "tests/Hexalith.FrontComposer.SourceTools.Tests/bin/Release/net11.0/Hexalith.FrontComposer.SourceTools.Tests.dll",
+      "-class",
+      "*CommandFormValidationCompilationTests",
+      "-class",
+      "*CommandFormEmitterTests",
+      "-parallelMode",
+      "none"
+    ],
+    "exit_code": 0,
+    "seconds": 3.87,
+    "fc_source": "8ce46cfc1293925459c8b6af15ef7719cf0fc071",
+    "fc_working_patch_sha256": "50622221d8aeae26451b32c22dafa7efe3a73b99282f36bb4e86b5929e36db25",
+    "builds_source": "73e60af8a1fcdf3f06726d5d1b6e1199cce778ee",
+    "log": "/dev/shm/tenants-release-resume-2026-11-15/fc-quality-corrections-attempt2/command-1.log"
+  },
+  {
+    "command": [
+      "dotnet",
+      "build",
+      "tests/Hexalith.FrontComposer.Shell.Tests/Hexalith.FrontComposer.Shell.Tests.csproj",
+      "-c",
+      "Release",
+      "-m:1",
+      "-p:UseNuGetDeps=true",
+      "-p:MinVerVersionOverride=6.0.1",
+      "-p:RestoreFallbackFolders=/home/administrator/.nuget/packages",
+      "-warnaserror"
+    ],
+    "exit_code": 1,
+    "seconds": 32.41,
+    "fc_source": "8ce46cfc1293925459c8b6af15ef7719cf0fc071",
+    "fc_working_patch_sha256": "50622221d8aeae26451b32c22dafa7efe3a73b99282f36bb4e86b5929e36db25",
+    "builds_source": "73e60af8a1fcdf3f06726d5d1b6e1199cce778ee",
+    "log": "/dev/shm/tenants-release-resume-2026-11-15/fc-quality-corrections-attempt2/command-2.log"
+  }
+]

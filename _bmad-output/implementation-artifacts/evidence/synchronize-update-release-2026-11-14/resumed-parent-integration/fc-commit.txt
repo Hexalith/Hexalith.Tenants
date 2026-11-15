@@ -1,0 +1,3 @@
+fix(forms): refuse models changed after asynchronous validation
+
+Retain the existing generated-form and portable fixture repairs, with a fresh validation attempt after authorization or host confirmation yields.

@@ -4,7 +4,7 @@ type: 'chore'
 created: '2026-11-14'
 status: 'in-review'
 route: 'dispatch'
-review_loop_iteration: 0
+review_loop_iteration: 1
 baseline_commit: '401d926eb7d51bdf332696ed3f0fe39a812b3501'
 context:
   - '/home/administrator/projects/hexalith/tenants/AGENTS.md'
@@ -44,6 +44,10 @@ Preserve existing work and historical evidence. Work in each owning repository; 
 - [x] Existing owner migrations and publication -- validate and deliver the FrontComposer generator required by package consumers.
 - [x] Root package/source builds and failing guards -- repair observed compatibility/CI failures and run relevant individual suites.
 - [x] Final diff -- independently review correctness, edge cases and verification gaps, apply bounded corrections.
+- [x] Review corrections -- enforce a current Server dependency floor separate from historical archive admission, including no-build packing; qualify actual public EventStore5.1.1 before adopting the new shared catalog.
+- [x] Recovery verification -- rejection-only state must remain not-found; prove exact snapshot budgets, registered durable delivery/checkpoint/gap recovery, and repeated versus fresh operation-ID behavior using existing production harnesses.
+- [x] Testing/documentation parity -- add the ordinary fake recovery overload and clarify that contract decoration does not qualify current native McpCli enrollment.
+- [x] Verification receipts -- refuse cross-revision evidence reuse and dirty source attribution in the Builds fixture verifier; make the Firefox host probe obey its stated elapsed-time deadline.
 - [ ] Root main -- validate commit message, push synchronized work, obtain successful latest exact-source required CI.
 - [ ] Release workflow and NuGet -- publish intended source, verify GitHub Release plus all five NuGet package versions and retained provenance.
 
@@ -280,3 +284,118 @@ The FC WebKit failure is an existing product entry-focus readiness defect, also 
 
 
 Platform `d77f741d` subsequently passes both exact source workflows, including the complete tuple verdict and all six catalog consumers. Its authenticated current artifact proves 478 current SDK 4.2 cases, 97 base cases and 9 extensions, all passing without failures or skips; historical 349/412 replays also pass. Current .NET 11 / Builds 6.0.2 collectors remain distinct from the retained .NET 10 / 4.47 reader. The receipt supplies its stated package-mode source/consumer regression scope and does not infer a new image, OCI or release identity.
+
+## Superseded Spec Register — 2026-11-15
+
+The user requested "close obsolete specs". The following twelve historical plans are administratively closed as superseded by this current release goal. Their original frozen intent, checklists, reviews, evidence and baselines remain intact. This register consolidates tracking; it does not expand the approved release scope or claim that an unchecked historical gate passed.
+
+| Superseded spec | Qualification retained in current tracking |
+| --- | --- |
+| [spec-eventstore-secret-scanner-ci-repair.md](spec-eventstore-secret-scanner-ci-repair.md) | Current owning-source security/unit CI and any separately required Azure conformance remain distinct; historical unit or scanner results do not grant live-Azure acceptance. |
+| [spec-fix-native-removal-production-transport.md](spec-fix-native-removal-production-transport.md) | Current-source authenticated native removal, persisted owner authority, revocation/refusal behavior and owned cleanup remain required in the release qualification. |
+| [spec-native-mcpcli-runtime-cohort.md](spec-native-mcpcli-runtime-cohort.md) | Retain exact package/source binding, every required vector plus smoke, persisted effects, independent authorization refusal and owned cleanup. Historical native results do not enroll new recovery operations or a different SDK cohort. |
+| [spec-native-query-selector-compatibility-cohort.md](spec-native-query-selector-compatibility-cohort.md) | Preserve frozen wire/vector contracts, digest-bound selectors and exact receiver/scope/permission authority; qualify each actual native consumer cohort rather than transferring old acceptance. |
+| [spec-native-request-compatibility-follow-up.md](spec-native-request-compatibility-follow-up.md) | Retain pre-build exact-byte audit coverage, signed nonmember/unavailable-owner refusal, unchanged vectors, persisted behavior and owned cleanup under the current qualification scope. |
+| [spec-preserve-sample-background-ci.md](spec-preserve-sample-background-ci.md) | Keep the complete Sample/background topology coverage, real grant/revoke and pub/sub persisted behavior, authentication and skip refusals in the current release gates. |
+| [spec-publish-compiled-catalog-inputs.md](spec-publish-compiled-catalog-inputs.md) | Require current compiled catalog/actual-PE package-consumer verification, all five package identities, exact source/archive provenance and final intended-source publication. |
+| [spec-qualify-published-eventstore-4.0.3-cohort.md](spec-qualify-published-eventstore-4.0.3-cohort.md) | Keep current public-archive/source verification, catalog/refusal checks and exact-source CI separate from every historical compatibility receipt. |
+| [spec-qualify-published-mcpcli-7.0.0-enrollment.md](spec-qualify-published-mcpcli-7.0.0-enrollment.md) | Preserve authentic published-artifact approvals and frozen vectors; current enrollment, replay, native behavior and publication require their own exact-source evidence. |
+| [spec-refresh-and-publish-current-release.md](spec-refresh-and-publish-current-release.md) | The successor’s unchecked exact-source CI and publication tasks remain open; closing this old release attempt does not claim a new release or reuse old producer acceptance. |
+| [spec-repair-current-mcpcli-published-cohort-ci.md](spec-repair-current-mcpcli-published-cohort-ci.md) | The existing remaining-census follow-up in deferred-work.md stays open and unchanged. No additional source renewal, classification, exclusion or approval follows from this closure; current committed-source census/hosted/native and publication acceptance remain separately scoped. |
+| [spec-scope-live-corpus-read-tokens.md](spec-scope-live-corpus-read-tokens.md) | Preserve exact-corpus least-privilege tokens, malformed/incomplete corpus refusals, cancellation, all maintained browser cases and admission windows; require current-source hosted acceptance. |
+
+This spec stays `in-review`; its exact-source CI and final five-package publication tasks remain unchecked. Historical native results remain limited to their recorded source/package/profile. In particular, the [remaining McpCli census follow-up](deferred-work.md) still requires its specifically scoped authority and qualification; this closure neither approves the proposed source renewals nor infers acceptance for a new SDK or recovery operation. The separate real-Azure conformance boundary also remains unchanged.
+
+[Closure validation](evidence/obsolete-spec-closure-2026-11-15/validation.json) records preserved historical bodies/checklists, successor links, status conservation and whitespace checks. Historical gitlink-audit failures were present before this documentation edit and are retained as separate blockers; no source, dependency pointer or audit baseline was changed.
+
+
+## Resumed Review Triage — 2026-11-15
+
+All three reviewers completed before this triage. B1–B10 below are the resumed blind layer; E1–E2 are edge findings; V1 is the pre-verified durable-delivery gap.
+
+| Finding | Verdict | Route and evidence |
+| --- | --- | --- |
+| B1: old SDK current-source packing | high | Bad spec: current aggregate references5.1 snapshot types while the canonical package target admits4.x/5.0.1, including GenerateNuspec without a build. Separate current package production from historical archive verification and qualify the observed5.1.1 patch explicitly. |
+| B2: rejection-only aggregate history | medium | Patch: TenantState.Apply(TenantNotFoundRejection) leaves an empty TenantId; refresh checks that empty identity before the null/not-found branch. Preserve payload target substitution refusal and return not-found for the uncreated state. |
+| B3: exact snapshot budget boundaries absent | medium | Patch: oversized cases cover both budgets but no exact threshold. Add below/equal/above tests through the aggregate using the actual SDK limits and serialization. |
+| B4: durable refresh not exercised | high | Patch with V1: handler and registration changed, while registered durable tests deliver only prior event types. Prove persisted revocation recovery, checkpoint continuity and a subsequent business event. |
+| B5: recovery operation-ID behavior not exercised | medium | Patch: the decorated command promises same-ID retry/fresh-ID recovery; existing static intent rows alone cannot establish persisted event counts and snapshot contents. Cover it through the existing runtime command harness rather than introducing idempotency infrastructure. |
+| B6: ordinary fake API lacks recovery overload | medium | Bad spec: ProcessTenantCommand supports recovery but the ordinary typed ProcessCommand API lacks the parallel operation. Add the same thin Handle/Apply delegation and parity checks as the other tenant commands. |
+| B7: native enrollment wording overstates decoration | medium | Patch: reference says exposes ten commands while the current release retains a frozen native cohort without recovery enrollment. Clarify decorated metadata, supported REST/SDK invocation and separate enrollment prerequisites. |
+| B8: evidence-only revision substitution | medium | Patch: verify-current.py copies prior successful module rows into a receipt naming ambient Builds HEAD without comparing revisions. Refuse the mismatch and preserve original attribution. |
+| B9: dirty copied files labeled by HEAD alone | medium | Patch: verify-current.py copies working-tree bytes but records only HEAD. Require a clean tracked source selection and bind copied inputs or verify the source remains unchanged before writing success. |
+| B10: Firefox readiness limit overruns | low | Patch:120 requests each allow1 second plus quarter-second pauses, despite the claimed30-second deadline. Use monotonic time and bound each wait by remaining time. |
+| E1: no-build packing admits old SDK metadata | high | Bad spec with B1: GenerateNuspec checks the permissive canonical cohort even when existing binaries require5.1. Historical archive admission remains separate. |
+| E2: evidence-only reuse after head moves | medium | Patch with B8: the previous revision is read but never compared before importing checks. |
+| V1: registered durable recovery gap | high | Patch with B4: the verification reviewer traced the production registered processor and existing durable harness; no refresh case proves a withheld revocation is replayed or checkpoint4 is persisted. |
+
+## Resumed Implementation Instructions
+
+The new review corrections above are the local implementation agent's remaining root source scope. Parent owns all Git integration, dependency source selection, remote CI and publication. Do not stage, commit, push, change any submodule, or re-run this Build skill. Preserve all pre-existing working-tree edits and evidence. Do not reimplement platform idempotency or snapshot infrastructure. Use `run-with-temp` for disposable builds/tests; create copies, feeds, caches and outputs beneath its TMPDIR, and retain useful logs outside it.
+
+Investigate actual current files, not historical Code Map coordinates. Root remains at d73267fdbe84d09ccddf0a6492390e32d8938405 before these corrections. The parent observed public EventStore5.1.1 and upstream Builds afeee370137aaf961451e4f6881a61251273e674, which selects that patch. Parent has not yet advanced the shared catalog checkout. Add precise5.1.1 admission/refusal controls and update current lane expectations coherently; retain explicit historical archive/profile cases and finite refusal of unknown versions. Do not silently label5.1.0 or another earlier command as5.1.1 evidence. The parent will select and remotely verify the new catalog before final exact-source CI.
+
+Resumed review modifies the non-frozen tasks to resolve package-production and fake-API omissions. KEEP every existing user change, historical baseline/review/receipt, frozen archive cohort, exact authority and refusal check, and all current-source recovery behavior except the demonstrated rejection-only-history defect. Higher-priority preservation instructions prohibit reverting accumulated user/upstream work; re-derivation is therefore limited to these bounded corrections. Frozen intent and baseline_commit remain unchanged.
+
+
+## Resumed Root Corrections Verified — 2026-11-15
+
+The bounded resumed corrections B1–B10, E1–E2 and V1 are implemented and locally verified. Current package production now requires the snapshot-capable exact EventStore5.1.0 or5.1.1 cohort before restore, build and GenerateNuspec; historical archive admission and the frozen3.128.4 harness remain separate. The ordinary default and live lane now select5.1.1, with finite neighboring-version, prerelease, revision and malformed-metadata refusal controls.
+
+All14 listed official5.1.1 NuGet archives match immutable release source `f792bba6c0564d3c36dda6ad1c2fc55b0b0a6331`, official catalog SHA512 and successful repository-signature verification. Byte-bound private package-mode builds pass without warnings/errors. All1896 Server,103 Client,197 Testing and574 package-governance/catalog cases pass with no failures/skips. They include rejection-only not-found behavior, below/equal/above entry and actual serialized-byte budgets, ordinary fake API parity, and registered durable refresh delivery with contiguous/withheld-revocation histories, persisted checkpoint4, restart and subsequent business-event checkpoint5. The actual Dapr actor suite passes all20 cases, including original-operation retry without another event and fresh-operation snapshot contents after a persisted revocation. Existing platform idempotency and snapshot machinery are reused unchanged.
+
+All five actual local packages pack and validate, and the public5.1.1 package-only consumer discovers24 routes,24 operations and13 adapters. These scratch packages use a local-only version and starting-HEAD metadata; their input manifest identifies the modified working-tree bytes. They supply API/behavior compatibility evidence, not final committed-source or publication provenance. The clean Builds input is `264e17d3185c87b72b0757dd66a13040793756bb`; other copied owner inputs retain their own exact identities and hashes.
+
+All34 Python guard cases pass, including actual old-SDK restore/build/no-build pack refusals across all five packages, revision/manifest and dirty-input receipt controls, source-change-during-child refusal, and the elapsed-time Firefox readiness deadline. The real evidence-only invocation refuses the changed Builds revision and leaves the historical receipt byte-identical. Contract documentation now distinguishes decoration and authenticated REST/SDK recovery support from separately qualified native McpCli enrollment. No frozen vector or enrollment authority changes.
+
+[Completion receipt](evidence/synchronize-update-release-2026-11-14/resumed-root-corrections/completion.json), [current source checks](evidence/synchronize-update-release-2026-11-14/resumed-root-corrections/verification.json), [live actor checks](evidence/synchronize-update-release-2026-11-14/resumed-root-corrections/integration-verification.json), [actual packing](evidence/synchronize-update-release-2026-11-14/resumed-root-corrections/packed-verification.json) and [public SDK archive verification](evidence/synchronize-update-release-2026-11-14/resumed-root-corrections/public-sdk-5.1.1.json) retain commands, input hashes, raw results and initial verification-copy corrections. Wrapper-owned sources, feeds, caches and outputs are removed after every completed child; no owned Dapr sidecar remains. Whitespace checks pass. Parent-owned Git integration, final dependency selection, complete exact-source hosted CI and final five-package publication remain required and unchecked.
+
+
+## Resumed Parent Integration — 2026-11-15
+
+The local review corrections qualify the actual public EventStore5.1.1 archives at immutable source `f792bba6c0564d3c36dda6ad1c2fc55b0b0a6331`. All 2790 selected C# cases and 34 Python controls pass, including actual persisted Dapr retry/fresh-operation recovery, exact snapshot thresholds, registered durable checkpoint recovery and all five real packs/catalog consumer. Private build snapshots and original receipts retain their own source attribution; final committed-source CI and publication remain required.
+
+Builds' two stale current-catalog SDK expectations were independently repaired upstream at `264e17d3185c87b72b0757dd66a13040793756bb`. Its actual catalog is unchanged from `afeee370137aaf961451e4f6881a61251273e674`; the duplicate local test-only commit was dropped through rebase. FrontComposer's four-field source reseal and three package expectation renewals landed independently as `50def1fe238787e9365c93991e3dc83af8c2e299` and activated at `d654bb412bfc54635b356527a89988a99f91992e`. The parent integrated them without changing any evaluator authorization. Its existing seven local form/fixture changes were preserved and committed as `923988d855cd6131b4287e3da763f12baf60ab22` after 117 Shell/governance, 182 graph and 71 generator cases passed. Initial private graph fixture omissions and successive stale package expectations remain failed attempts, not green qualification.
+
+FrontComposer's first actual current-source mutation run43743363373 fails before mutations because the SDK container's Git refuses its mounted workspace ownership. A one-line exact-workspace safe.directory setup passes a real Git different-owner control: both repositories initially refuse; only the intended checkout succeeds afterward, while the unrelated repository remains refused. The `8ce46cfc1293925459c8b6af15ef7719cf0fc071` source repair needs its own fresh hosted qualification; no mutation score is inferred from either attempt.
+
+Platform source `217889d7830553c9a8c5340f02f9ec5fe87c8001` renews only the three immutable companion selectors after synchronized documentation changed the compared tree. The existing preparation function preserves every frozen metadata hash/gitlink and all production, controls and helpers. All 47 source controls, 5 reader controls and three real committed-source equivalence checks pass; the52 tests and comparison receipts grant no runtime/candidate acceptance. Three immutable companion refs and main were pushed and remotely verified. GitHub reported its actual PR-only rule bypass for the authorized maintainer main push. Fresh tuple/catalog gates remain required; later concurrent owner descendants must retain their own selection and evidence.
+
+A simulated committed event first exposed 14 historical audit failures in the pre-existing documentation edits. The supported historical-audit protocol now binds each to the latest actual story-associated pointer event, preserves every original baseline, frozen intent and checklist, and records the complete historical range inventory without claiming runtime ownership. Two already-landed creation corrections retain their original IDs in prose while advancing to their later committed, already-corrected baseline endpoint. The second real committed-event replay passes all 16 selected stories with zero failures and no pointer movement. Historical documentation must therefore land in a separate push from current gitlinks, as the unchanged guard requires. Earlier closure validation remains historical and is supplemented by the new reconciliation receipt.
+
+The prepared Root release43735886034 was cancelled before publication because it selects the older `d73267fdbe84d09ccddf0a6492390e32d8938405` source. Its successful preparation remains historical; a fresh final-source CI/preparation/publication is required. No publisher approval or package release is claimed by these integration notes.
+
+
+## Final Independent Review Triage — 2026-11-15
+
+All three final layers completed before triage. The edge layer returned no findings. FB1–FB10 are the blind layer; FV1 is the verification layer's traced Other finding. Parent verified the non-gap findings against the actual caller/guard code.
+
+| Finding | Verdict | Route and evidence |
+| --- | --- | --- |
+| FB1: recovery audit row rejected by UI | high | Patch with FV1: TenantAuditReadModel emits the administrative recovery row, while TenantQueryGateway's explicit supported-event switch rejects its whole page. Receipt outcome handling and EN/FR resources also omit the event. Add the existing row to those mappings and prove projected-row gateway/receipt behavior. |
+| FB2: tenant-isolation helper drops recovery | medium | Patch: GetTenantId's success-event switch omits TenantAccessRefreshed, so both public selector helpers filter it out. Add the existing event and cover tenant separation. |
+| FB3: malformed snapshots gain complete audit certificate | medium | Patch: IsCompleteAuditPayload validates old role events and scalar presence but accepts null snapshot collections and unvalidated nested roles/budgets. Extend only the new snapshot contract's checks using the existing SDK limits; malformed controls must not gain a tenant-sequence certificate, while valid snapshots remain complete. |
+| FB4: current inventory verifier advertises old inventory support | low | Patch: the current compiled consumer deliberately requires the exact24-route/13-adapter inventory, but the net10 help text and archive wording imply full qualification of older23-route archives. Clarify that current discovery is strict and historical end-to-end qualification uses its recorded source verifier. Preserve old metadata admission and historical evidence; never let a current archive omit recovery by accepting either count. |
+| FB5: composed authenticated recovery not exercised | medium | Patch: static gateway/controller and direct persisted actor cases do not prove the new command crosses the authenticated gateway boundary. Use existing live infrastructure for owner success, permission refusal and disabled-tenant recovery, asserting actual persisted events/state and owned cleanup. Do not add or bypass transport/authentication infrastructure. |
+| FB6: upgrade guide default remains5.1.0 | low | Patch: its current-default statement conflicts with the actual5.1.1 property and fresh public qualification. Correct the default while retaining5.1.0 as an admitted recovery minimum where applicable. |
+| FB7: verification owner path hardcoded | low | Patch: the new evidence verifier embeds this workstation's absolute checkout path. Derive the owner from its existing repository-relative artifact location; no additional public interface is needed. |
+| FB8: failed attempt overwrites prior phase logs | medium | Patch: run opens a shared phase log before checking source stability. A changed-source refusal preserves the previous JSON but truncates its associated log. Write attempt-specific logs and bind each new check to them, preserving previous receipt and log bytes on refusal. |
+| FB9: readiness can accept late200 | medium | Patch: urllib's socket timeout is per operation, so slow headers/redirects may finish after the elapsed deadline; the current200 branch does not recheck time. Use a bounded overall request, recheck elapsed time before acceptance, and exercise slow headers/redirect behavior rather than only mocked timeouts. |
+| FB10: final CI/publication unchecked | false | No premature closure is claimed: status remains in-review and both parent-owned tasks are explicitly pending. The unchanged Release admission requires the latest exact-source workflows before publication. Their actual execution remains required operational follow-through, not a missing code guard. |
+| FV1: new audit page becomes Error | high | Patch with FB1: verified GetTenantAuditAsync returns an Error snapshot with zero rows at its invalid-payload branch. Existing event/localization matrices cover only the preceding eleven event names. |
+
+### Remaining bounded patch tasks
+
+- [ ] UI audit support — add TenantAccessRefreshed to the existing administrative event, receipt and EN/FR mappings, with a projected-row-to-gateway/receipt regression. Keep unknown events/category mismatches fail-closed.
+- [ ] Projection/testing support — reject malformed new recovery snapshots for completeness certification with existing SDK limits; include the successful recovery event in tenant-isolation helpers and cover both behaviors.
+- [ ] Authenticated recovery proof — exercise the existing composed live gateway and persisted backend for a current owner, denied permission and disabled tenant, with real stored event assertions and owned cleanup.
+- [ ] Verification/docs corrections — preserve phase logs on source drift with attempt-specific paths, make the evidence script portable, enforce the readiness request's real deadline, clarify the strict current versus frozen historical consumer inventories and correct the upgrade guide default.
+
+These are direct corrections within the approved current-source release intent. Preserve every prior successful change, source-specific receipt, baseline, immutable historical inventory, authority boundary and refusal control. Read the ordinary shared state instructions before projection/persistence work and UX instructions before UI work. Parent owns integration and complete verification after the implementation subagent returns; it continues to own all Git, remote CI and publication.
+
+
+## Renewed Parent Source Comparisons — 2026-11-15
+
+Concurrent Platform d386e36005214f925b391a34684748e6c56728e6 updates documentation and release tooling; its strict same-code companions therefore require a fresh source binding. Commit5b44f2d058f9221d8b54782c377e09fec5786b65 updates only the two selector descriptors to three newly pushed immutable companions. All47 source,5 reader and82 release controls pass, followed by all three actual committed-source equivalence checks. Main and companion refs are pushed and remotely verified. Their exact frozen metadata and349/412 counts are preserved, with no runtime/candidate acceptance inferred. GitHub again reports the authorized maintainer's actual PR-only main-push bypass; persistent protection is unchanged. Fresh hosted gates remain required.
+
+The original parent command receipts and failed attempts are preserved under evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/; their embedded original source identities/log paths remain unchanged. Historical documentation is integrated separately from pointer movement so the unchanged committed-event guard can authenticate its explicit endpoints.
