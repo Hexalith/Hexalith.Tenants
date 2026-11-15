@@ -1,0 +1,138 @@
+{
+  "finished": "2026-11-15T10:35:31.472153+00:00",
+  "sourceBase": "2ec938397c5b330cf1e694e8cc442cb4ad022f2b",
+  "workingTreeQualification": true,
+  "sdk": "5.1.0",
+  "failedCommands": [],
+  "allCommandsPassed": true,
+  "submodulesUnchanged": true,
+  "limits": [
+    "Local qualification only; no exact-source remote CI, publication or live Production qualification.",
+    "The five pre-existing moved gitlinks are inputs and are excluded from implementation changes."
+  ],
+  "builds": [
+    {
+      "name": "build-IntegrationTests",
+      "warnings": 0,
+      "errors": 0,
+      "exitCode": 0,
+      "log": "build-IntegrationTests.log"
+    },
+    {
+      "name": "build-Contracts.Tests",
+      "warnings": 0,
+      "errors": 0,
+      "exitCode": 0,
+      "log": "build-Contracts.Tests.log"
+    }
+  ],
+  "dotnetCases": [
+    {
+      "name": "PackageGovernanceTests",
+      "total": 556,
+      "failed": 0,
+      "succeeded": 556,
+      "skipped": 0,
+      "exitCode": 0,
+      "log": "PackageGovernanceTests.log"
+    },
+    {
+      "name": "PublishedTenantCatalogTests",
+      "total": 1,
+      "failed": 0,
+      "succeeded": 1,
+      "skipped": 0,
+      "exitCode": 0,
+      "log": "PublishedTenantCatalogTests.log"
+    },
+    {
+      "name": "TenantCatalogTests",
+      "total": 2,
+      "failed": 0,
+      "succeeded": 2,
+      "skipped": 0,
+      "exitCode": 0,
+      "log": "TenantCatalogTests.log"
+    },
+    {
+      "name": "TenantsApiGeneratedControllerTests",
+      "total": 67,
+      "failed": 0,
+      "succeeded": 67,
+      "skipped": 0,
+      "exitCode": 0,
+      "log": "TenantsApiGeneratedControllerTests.log"
+    },
+    {
+      "name": "TenantOwnerSourceGatewayTests",
+      "total": 27,
+      "failed": 0,
+      "succeeded": 27,
+      "skipped": 0,
+      "exitCode": 0,
+      "log": "TenantOwnerSourceGatewayTests.log"
+    },
+    {
+      "name": "bootstrap-BoundBootstrapall",
+      "total": 15,
+      "failed": 0,
+      "succeeded": 15,
+      "skipped": 0,
+      "exitCode": 0,
+      "log": "bootstrap-BoundBootstrapall.log"
+    },
+    {
+      "name": "bootstrap-AuthenticatedBootstrapCannotAssignDifferentTarget",
+      "total": 2,
+      "failed": 0,
+      "succeeded": 2,
+      "skipped": 0,
+      "exitCode": 0,
+      "log": "bootstrap-AuthenticatedBootstrapCannotAssignDifferentTarget.log"
+    },
+    {
+      "name": "bootstrap-Commands_endpoint_returns_problem_details_for_domain_rejection",
+      "total": 1,
+      "failed": 0,
+      "succeeded": 1,
+      "skipped": 0,
+      "exitCode": 0,
+      "log": "bootstrap-Commands_endpoint_returns_problem_details_for_domain_rejection.log"
+    }
+  ],
+  "dotnetTotal": 671,
+  "pythonControls": [
+    {
+      "name": "test_hosted_package_profile",
+      "passed": 2,
+      "exitCode": 0,
+      "log": "test_hosted_package_profile.log"
+    },
+    {
+      "name": "test_catalog_package_consumer",
+      "passed": 14,
+      "exitCode": 0,
+      "log": "test_catalog_package_consumer.log"
+    },
+    {
+      "name": "test_catalog_artifact_guards",
+      "passed": 2,
+      "exitCode": 0,
+      "log": "test_catalog_artifact_guards.log"
+    }
+  ],
+  "pythonTotal": 18,
+  "freshConsumer": {
+    "receipt": "catalog-package-consumer.json",
+    "routes": 24,
+    "operations": 24,
+    "adapters": 13
+  },
+  "historicalStoryAudit": {
+    "command": "run-with-temp python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-qualify-sdk-3-130-catalog-selection.md",
+    "exitCode": 1,
+    "log": "story-gitlinks.log",
+    "reason": "Original historical baseline finds 9 prior pointer differences, 8 undeclared; the guard does not use resume_baseline_commit. Original baseline, historical declarations and all gitlinks were preserved."
+  },
+  "scratchRemoved": true
+}

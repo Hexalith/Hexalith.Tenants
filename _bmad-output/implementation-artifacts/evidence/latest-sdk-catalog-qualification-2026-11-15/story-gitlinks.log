@@ -1,0 +1,31 @@
+Story:    spec-qualify-sdk-3-130-catalog-selection.md
+Baseline: 9e5a991
+Compared: HEAD (2ec9383) + working tree
+
+9 references/ pointer change(s) in range:
+  [UNDECLARED] references/Hexalith.AI.Tools  9b78aa0 -> 17a37d8
+  [UNDECLARED] references/Hexalith.Builds  a22b55f -> 73e60af
+  [UNDECLARED] references/Hexalith.Commons  0604bcf -> fbf4e94
+  [declared] references/Hexalith.EventStore  e014af6 -> fdb5989
+  [UNDECLARED] references/Hexalith.FrontComposer  61a8afb -> bca9dff
+  [UNDECLARED] references/Hexalith.McpCli  7538bee -> 23072f0
+  [UNDECLARED] references/Hexalith.Memories  71a721a -> b7e1950
+  [UNDECLARED] references/Hexalith.Platform  667e5a0 -> f6f8503
+  [UNDECLARED] references/Hexalith.PolymorphicSerializations  92ede24 -> e97b569
+
+RESULT: FAIL
+
+Every submodule pointer this story moves must be a deliberate, stated change.
+For each UNDECLARED entry above, do one of:
+  DECLARE — add the path to the story's File List and say in the Completion Notes
+            why the bump belongs to this story.
+  REVERT  — restore the baseline pointer, then commit the bump separately:
+
+    git checkout 9b78aa008cfc62cd88ad0ea4b39b1f07311956ce -- references/Hexalith.AI.Tools
+    git checkout a22b55f0a4f6d2aaa3a5ccc505896064ac595364 -- references/Hexalith.Builds
+    git checkout 0604bcf5304fc09a569f7abbd8e5d1b9049c02b7 -- references/Hexalith.Commons
+    git checkout 61a8afbb85c7e25b2eb97acb1cac262ef3e1e33d -- references/Hexalith.FrontComposer
+    git checkout 7538bee529ab3a62c2d359fd498c9d60fca77621 -- references/Hexalith.McpCli
+    git checkout 71a721a87ebbb34c557c08517b5c39884a7417da -- references/Hexalith.Memories
+    git checkout 667e5a02a523cf8764ca54d6aa1b4b75db5dca64 -- references/Hexalith.Platform
+    git checkout 92ede24cc11129379efe52cfe7fd2c820c567f7f -- references/Hexalith.PolymorphicSerializations

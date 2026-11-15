@@ -1,0 +1,148 @@
+{
+  "checked": "2026-11-15T10:35:25.975528+00:00",
+  "packages": [
+    {
+      "id": "Hexalith.EventStore.Admin.Abstractions",
+      "version": "5.1.0",
+      "sha256": "7a7bc645794e96124d8a2bc7a8e3bba490520e7204258946b546e32eb2e45879",
+      "publicArchive": "https://api.nuget.org/v3-flatcontainer/hexalith.eventstore.admin.abstractions/5.1.0/hexalith.eventstore.admin.abstractions.5.1.0.nupkg",
+      "publicBytesMatch": true,
+      "producerRepository": {
+        "type": "git",
+        "url": "https://github.com/Hexalith/Hexalith.EventStore",
+        "commit": "49084f66f8d6545cae442875355a7066d5f5e73d"
+      },
+      "legacyHarness": false
+    },
+    {
+      "id": "Hexalith.EventStore.Aspire",
+      "version": "5.1.0",
+      "sha256": "0797330d5b0376284bc316c797e97c62cdd128cb548c91d9e6d8de60263b999a",
+      "publicArchive": "https://api.nuget.org/v3-flatcontainer/hexalith.eventstore.aspire/5.1.0/hexalith.eventstore.aspire.5.1.0.nupkg",
+      "publicBytesMatch": true,
+      "producerRepository": {
+        "type": "git",
+        "url": "https://github.com/Hexalith/Hexalith.EventStore",
+        "commit": "49084f66f8d6545cae442875355a7066d5f5e73d"
+      },
+      "legacyHarness": false
+    },
+    {
+      "id": "Hexalith.EventStore.Client",
+      "version": "5.1.0",
+      "sha256": "a3d0de6ff9f9d8eaafaa39a5faa9798ee9dd87c8721b9a9445a3a17c2abbdb40",
+      "publicArchive": "https://api.nuget.org/v3-flatcontainer/hexalith.eventstore.client/5.1.0/hexalith.eventstore.client.5.1.0.nupkg",
+      "publicBytesMatch": true,
+      "producerRepository": {
+        "type": "git",
+        "url": "https://github.com/Hexalith/Hexalith.EventStore",
+        "commit": "49084f66f8d6545cae442875355a7066d5f5e73d"
+      },
+      "legacyHarness": false
+    },
+    {
+      "id": "Hexalith.EventStore.Contracts",
+      "version": "5.1.0",
+      "sha256": "f5edf8e8bea1ac6477eae165dddb27b178236be4437d7e9f3bd2a6c384dc11b0",
+      "publicArchive": "https://api.nuget.org/v3-flatcontainer/hexalith.eventstore.contracts/5.1.0/hexalith.eventstore.contracts.5.1.0.nupkg",
+      "publicBytesMatch": true,
+      "producerRepository": {
+        "type": "git",
+        "url": "https://github.com/Hexalith/Hexalith.EventStore",
+        "commit": "49084f66f8d6545cae442875355a7066d5f5e73d"
+      },
+      "legacyHarness": false
+    },
+    {
+      "id": "Hexalith.EventStore.DomainService",
+      "version": "5.1.0",
+      "sha256": "bb4d7dfb5146c1ede107651bd5d657ef2ea2cdddb0d752d6f3f3b8864cf8a8c5",
+      "publicArchive": "https://api.nuget.org/v3-flatcontainer/hexalith.eventstore.domainservice/5.1.0/hexalith.eventstore.domainservice.5.1.0.nupkg",
+      "publicBytesMatch": true,
+      "producerRepository": {
+        "type": "git",
+        "url": "https://github.com/Hexalith/Hexalith.EventStore",
+        "commit": "49084f66f8d6545cae442875355a7066d5f5e73d"
+      },
+      "legacyHarness": false
+    },
+    {
+      "id": "Hexalith.EventStore.Gateway",
+      "version": "5.1.0",
+      "sha256": "f1ae250c00ab63e5e5450a54189f1ae56c5117cda8d98512596657c52b73697c",
+      "publicArchive": "https://api.nuget.org/v3-flatcontainer/hexalith.eventstore.gateway/5.1.0/hexalith.eventstore.gateway.5.1.0.nupkg",
+      "publicBytesMatch": true,
+      "producerRepository": {
+        "type": "git",
+        "url": "https://github.com/Hexalith/Hexalith.EventStore",
+        "commit": "49084f66f8d6545cae442875355a7066d5f5e73d"
+      },
+      "legacyHarness": false
+    },
+    {
+      "id": "Hexalith.EventStore.RestApi.Generators",
+      "version": "5.1.0",
+      "sha256": "503a592492dcb67d7fef223a5c79f03a18200f6ae8cbe209ce36f980ed2fc930",
+      "publicArchive": "https://api.nuget.org/v3-flatcontainer/hexalith.eventstore.restapi.generators/5.1.0/hexalith.eventstore.restapi.generators.5.1.0.nupkg",
+      "publicBytesMatch": true,
+      "producerRepository": {
+        "type": "git",
+        "url": "https://github.com/Hexalith/Hexalith.EventStore",
+        "commit": "49084f66f8d6545cae442875355a7066d5f5e73d"
+      },
+      "legacyHarness": false
+    },
+    {
+      "id": "Hexalith.EventStore.Server",
+      "version": "5.1.0",
+      "sha256": "b1377b02198e0a0e3c16b93f5dfff094e2500239c78c9efef37a34a97bc1e5f3",
+      "publicArchive": "https://api.nuget.org/v3-flatcontainer/hexalith.eventstore.server/5.1.0/hexalith.eventstore.server.5.1.0.nupkg",
+      "publicBytesMatch": true,
+      "producerRepository": {
+        "type": "git",
+        "url": "https://github.com/Hexalith/Hexalith.EventStore",
+        "commit": "49084f66f8d6545cae442875355a7066d5f5e73d"
+      },
+      "legacyHarness": false
+    },
+    {
+      "id": "Hexalith.EventStore.ServiceDefaults",
+      "version": "5.1.0",
+      "sha256": "15167177bb56b305fd9fff459688cd5ffd934794b846672c6286ed7d5f097f62",
+      "publicArchive": "https://api.nuget.org/v3-flatcontainer/hexalith.eventstore.servicedefaults/5.1.0/hexalith.eventstore.servicedefaults.5.1.0.nupkg",
+      "publicBytesMatch": true,
+      "producerRepository": {
+        "type": "git",
+        "url": "https://github.com/Hexalith/Hexalith.EventStore",
+        "commit": "49084f66f8d6545cae442875355a7066d5f5e73d"
+      },
+      "legacyHarness": false
+    },
+    {
+      "id": "Hexalith.EventStore.Testing.Integration",
+      "version": "3.128.4",
+      "sha256": "481e5de4a3bd3e17ffa9b527a329f626ce546405ce4c6d34fdaab9efbf8941fa",
+      "publicArchive": "https://api.nuget.org/v3-flatcontainer/hexalith.eventstore.testing.integration/3.128.4/hexalith.eventstore.testing.integration.3.128.4.nupkg",
+      "publicBytesMatch": true,
+      "producerRepository": {
+        "type": "git",
+        "url": "https://github.com/Hexalith/Hexalith.EventStore",
+        "commit": "717a06e16c3afd81b904eaf4de646b74b13262d2"
+      },
+      "legacyHarness": true
+    },
+    {
+      "id": "Hexalith.EventStore.Testing",
+      "version": "5.1.0",
+      "sha256": "c04a8f8c61beb32f2b103532ef2a773bfecd21aef47f424dadf800968ea32ff0",
+      "publicArchive": "https://api.nuget.org/v3-flatcontainer/hexalith.eventstore.testing/5.1.0/hexalith.eventstore.testing.5.1.0.nupkg",
+      "publicBytesMatch": true,
+      "producerRepository": {
+        "type": "git",
+        "url": "https://github.com/Hexalith/Hexalith.EventStore",
+        "commit": "49084f66f8d6545cae442875355a7066d5f5e73d"
+      },
+      "legacyHarness": false
+    }
+  ]
+}

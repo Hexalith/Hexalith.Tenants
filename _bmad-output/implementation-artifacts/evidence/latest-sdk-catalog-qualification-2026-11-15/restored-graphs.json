@@ -1,0 +1,136 @@
+{
+  "references/Hexalith.Builds/src/libraries/Hexalith.Builds.Tooling/obj/project.assets.json": {
+    "sdkPackages": [],
+    "packageSources": [
+      "https://api.nuget.org/v3/index.json"
+    ]
+  },
+  "src/Hexalith.Tenants/obj/project.assets.json": {
+    "sdkPackages": [
+      "Hexalith.EventStore.Admin.Abstractions/5.1.0",
+      "Hexalith.EventStore.Client/5.1.0",
+      "Hexalith.EventStore.Contracts/5.1.0",
+      "Hexalith.EventStore.DomainService/5.1.0",
+      "Hexalith.EventStore.Gateway/5.1.0",
+      "Hexalith.EventStore.Server/5.1.0",
+      "Hexalith.EventStore.ServiceDefaults/5.1.0"
+    ],
+    "packageSources": [
+      "https://api.nuget.org/v3/index.json"
+    ]
+  },
+  "src/Hexalith.Tenants.Api/obj/project.assets.json": {
+    "sdkPackages": [
+      "Hexalith.EventStore.Client/5.1.0",
+      "Hexalith.EventStore.Contracts/5.1.0",
+      "Hexalith.EventStore.RestApi.Generators/5.1.0",
+      "Hexalith.EventStore.ServiceDefaults/5.1.0"
+    ],
+    "packageSources": [
+      "https://api.nuget.org/v3/index.json"
+    ]
+  },
+  "src/Hexalith.Tenants.AppHost/obj/project.assets.json": {
+    "sdkPackages": [
+      "Hexalith.EventStore.Aspire/5.1.0",
+      "Hexalith.EventStore.Client/5.1.0",
+      "Hexalith.EventStore.Contracts/5.1.0",
+      "Hexalith.EventStore.DomainService/5.1.0",
+      "Hexalith.EventStore.Server/5.1.0",
+      "Hexalith.EventStore.ServiceDefaults/5.1.0"
+    ],
+    "packageSources": [
+      "https://api.nuget.org/v3/index.json"
+    ]
+  },
+  "src/Hexalith.Tenants.Aspire/obj/project.assets.json": {
+    "sdkPackages": [
+      "Hexalith.EventStore.Aspire/5.1.0",
+      "Hexalith.EventStore.Client/5.1.0",
+      "Hexalith.EventStore.Contracts/5.1.0",
+      "Hexalith.EventStore.ServiceDefaults/5.1.0"
+    ],
+    "packageSources": [
+      "https://api.nuget.org/v3/index.json"
+    ]
+  },
+  "src/Hexalith.Tenants.Client/obj/project.assets.json": {
+    "sdkPackages": [
+      "Hexalith.EventStore.Client/5.1.0",
+      "Hexalith.EventStore.Contracts/5.1.0"
+    ],
+    "packageSources": [
+      "https://api.nuget.org/v3/index.json"
+    ]
+  },
+  "src/Hexalith.Tenants.Contracts/obj/project.assets.json": {
+    "sdkPackages": [
+      "Hexalith.EventStore.Contracts/5.1.0"
+    ],
+    "packageSources": [
+      "https://api.nuget.org/v3/index.json"
+    ]
+  },
+  "src/Hexalith.Tenants.Server/obj/project.assets.json": {
+    "sdkPackages": [
+      "Hexalith.EventStore.Client/5.1.0",
+      "Hexalith.EventStore.Contracts/5.1.0",
+      "Hexalith.EventStore.DomainService/5.1.0",
+      "Hexalith.EventStore.Server/5.1.0",
+      "Hexalith.EventStore.ServiceDefaults/5.1.0"
+    ],
+    "packageSources": [
+      "https://api.nuget.org/v3/index.json"
+    ]
+  },
+  "src/Hexalith.Tenants.Testing/obj/project.assets.json": {
+    "sdkPackages": [
+      "Hexalith.EventStore.Client/5.1.0",
+      "Hexalith.EventStore.Contracts/5.1.0",
+      "Hexalith.EventStore.DomainService/5.1.0",
+      "Hexalith.EventStore.Server/5.1.0",
+      "Hexalith.EventStore.ServiceDefaults/5.1.0"
+    ],
+    "packageSources": [
+      "https://api.nuget.org/v3/index.json"
+    ]
+  },
+  "src/Hexalith.Tenants.UI/obj/project.assets.json": {
+    "sdkPackages": [
+      "Hexalith.EventStore.Client/5.1.0",
+      "Hexalith.EventStore.Contracts/5.1.0"
+    ],
+    "packageSources": [
+      "https://api.nuget.org/v3/index.json"
+    ]
+  },
+  "tests/Hexalith.Tenants.Contracts.Tests/obj/project.assets.json": {
+    "sdkPackages": [
+      "Hexalith.EventStore.Client/5.1.0",
+      "Hexalith.EventStore.Contracts/5.1.0",
+      "Hexalith.EventStore.DomainService/5.1.0",
+      "Hexalith.EventStore.Server/5.1.0",
+      "Hexalith.EventStore.ServiceDefaults/5.1.0"
+    ],
+    "packageSources": [
+      "https://api.nuget.org/v3/index.json"
+    ]
+  },
+  "tests/Hexalith.Tenants.IntegrationTests/obj/project.assets.json": {
+    "sdkPackages": [
+      "Hexalith.EventStore.Admin.Abstractions/5.1.0",
+      "Hexalith.EventStore.Aspire/5.1.0",
+      "Hexalith.EventStore.Client/5.1.0",
+      "Hexalith.EventStore.Contracts/5.1.0",
+      "Hexalith.EventStore.DomainService/5.1.0",
+      "Hexalith.EventStore.Gateway/5.1.0",
+      "Hexalith.EventStore.Server/5.1.0",
+      "Hexalith.EventStore.ServiceDefaults/5.1.0",
+      "Hexalith.EventStore.Testing/5.1.0",
+      "Hexalith.EventStore.Testing.Integration/3.128.4"
+    ],
+    "packageSources": [
+      "https://api.nuget.org/v3/index.json"
+    ]
+  }
+}

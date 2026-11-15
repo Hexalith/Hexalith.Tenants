@@ -1,0 +1,6 @@
+$ python3 tests/scripts/test_catalog_package_consumer.py
+..............
+----------------------------------------------------------------------
+Ran 14 tests in 0.204s
+
+OK

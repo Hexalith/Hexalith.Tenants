@@ -1,0 +1,26 @@
+{
+  "baseline": "2ec938397c5b330cf1e694e8cc442cb4ad022f2b",
+  "sdk": "5.1.0",
+  "reviewLayers": [
+    "blind-hunter",
+    "edge-case-hunter",
+    "verification-gap"
+  ],
+  "reviewPatchGroupsResolved": 4,
+  "deferredFindings": 0,
+  "parentReplaySafeguards": {
+    "command": "run-with-temp python3 -B _bmad-output/implementation-artifacts/evidence/latest-sdk-catalog-qualification-2026-11-15/test_qualify.py",
+    "passed": 4,
+    "failed": 0
+  },
+  "retainedLogsIncluded": 19,
+  "submoduleInputsUnchanged": true,
+  "qualificationDotnetCases": 671,
+  "qualificationPythonControls": 18,
+  "historicalStoryAuditExitCode": 1,
+  "commitCreated": false,
+  "limits": [
+    "Local qualification; no remote CI, publication, native distributed execution or Production trust claim.",
+    "Original toolchain observation was not captured as a contemporaneous dotnet-info receipt; future replays retain measured toolchain."
+  ]
+}

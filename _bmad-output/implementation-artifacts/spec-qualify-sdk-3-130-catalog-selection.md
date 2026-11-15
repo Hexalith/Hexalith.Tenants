@@ -1,10 +1,268 @@
 ---
-status: in-progress
+status: done
 date: '2026-10-31'
 baseline_commit: 9e5a991d0ba304bac7b1a5809cd71797b47d78ed
+resume_baseline_commit: 2ec938397c5b330cf1e694e8cc442cb4ad022f2b
+sdk_version: '5.1.0'
+context:
+  - AGENTS.md
+  - references/Hexalith.AI.Tools/hexalith-llm-instructions.md
+  - _bmad-output/project-context.md
+  - .editorconfig
+  - .gitattributes
+  - global.json
+  - Directory.Build.props
+  - Directory.Build.targets
+  - Directory.Packages.props
+  - docs/development-route-catalog.md
 ---
 
-# Qualify the exact SDK 3.130 catalog selections
+# Qualify the latest stable SDK catalog selection
+
+## Current Resume Scope — 2026-11-15
+
+The user resumed this spec with **use latest SDK**. This section supersedes the
+historical 3.130 implementation instructions and old branch/publication plans
+below. Preserve those records as historical evidence. The original
+`baseline_commit` remains unchanged; `resume_baseline_commit` identifies the
+starting source for this invocation's changes and review.
+
+NuGet.org currently lists `Hexalith.EventStore.Client` at stable **5.1.0**
+(`https://www.nuget.org/packages/Hexalith.EventStore.Client`). The repository's
+`Directory.Build.props` already defaults to 5.1.0, and `Directory.Build.targets`,
+`PackageGovernanceTests.cs`, and the ordinary `published-catalog-http` CI job
+already enroll that exact finite selection. The task is to qualify this current
+selection, repair any actual gap, and leave durable local evidence. Do not
+downgrade to 3.130 or make speculative future versions admissible.
+
+### Constraints and Code Map
+
+- Work in the Tenants superproject. Preserve the existing moved gitlinks for
+  Builds, EventStore, FrontComposer, Memories, and Platform; do not modify their
+  source, initialize nested submodules, stage, commit, branch, push, or dispatch
+  remote workflows. Do not change historical release/source claims.
+- Use `run-with-temp COMMAND [ARGUMENT ...]` for disposable verification jobs.
+  Temporary repository copies, package caches/feeds and build output belong
+  beneath its `$TMPDIR`. Keep useful logs and receipts outside that directory,
+  under `_bmad-output/implementation-artifacts/evidence/latest-sdk-catalog-qualification-2026-11-15/`.
+  Wait for all children before returning. Run jobs sequentially.
+- Follow the `published-catalog-http` job in `.github/workflows/ci.yml`: actual
+  package-mode Release builds of Contracts.Tests and IntegrationTests, normal
+  public NuGet restore, compiled owner enrollment/catalog discovery, generated
+  HTTP contracts, and fresh Contracts/Server pack-and-consume verification.
+  Local package-mode Release qualification is explicitly within this task.
+- `tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs` owns the
+  finite selectors, legacy floor, source-owner boundaries and publish guards.
+  Test actual evaluated MSBuild behavior, including ordinary/native selections.
+- `tests/scripts/test_catalog_package_consumer.py`,
+  `tests/scripts/test_catalog_artifact_guards.py`, and
+  `tests/scripts/test_hosted_package_profile.py` own provenance, stale actual-PE
+  packing and hosted-profile refusals. Use the real maintained tools and tests;
+  do not substitute a local feed for published SDK archives or weaken gates.
+- `scripts/verify-catalog-package-consumer.py` verifies actual freshly packed
+  Tenants Contracts/Server archives and their loaded compiled declarations.
+  A scratch feed containing those local Tenants candidates is permitted by this
+  existing tool; all SDK dependencies must come from public NuGet.org.
+- Allowed changes are this spec, the durable evidence directory, and the
+  existing selector/configuration/governance files only if current qualification
+  exposes a real defect. Existing coverage may prove correct behavior without
+  redundant production edits or new tests. Runtime enrollment/trust, routing,
+  authorization, activation and legacy compatibility policy stay unchanged.
+
+## Tasks & Acceptance
+
+- [x] Verify the current stable SDK from official public NuGet metadata; record
+  package identities, exact selected versions, embedded producer source and
+  archive hashes for the restored EventStore SDK cohort in a durable receipt.
+  Given normal public restore, when the current default graph is evaluated,
+  then its current runtime SDK packages select 5.1.0 with no SDK candidate feed.
+  The explicitly frozen Testing.Integration 3.128.4 harness remains separate.
+- [x] Build `tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj`
+  and `tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj`
+  in isolated package-mode Release with warnings as errors. Given the actual
+  current published binaries, when both graphs compile, then there are zero
+  warnings/errors; report exact commands and any genuine blocker separately.
+- [x] Run the complete affected selector/floor/native/publication controls and
+  maintained Python provenance/stale-pack/profile controls. Given qualified
+  stable 5.1.0 and supported aliases, when evaluated, then they are accepted;
+  prereleases, nonzero revisions, malformed metadata and future unknown cohorts
+  are refused, while legacy/source ownership boundaries remain enforced.
+- [x] Run `PublishedTenantCatalogTests`, `TenantCatalogTests`, and all
+  `TenantsApiGeneratedControllerTests` cases through the maintained project-level
+  test runner with fail-skips/minimum counts from CI. Pack and consume actual
+  Contracts/Server archives through `scripts/verify-catalog-package-consumer.py`.
+  Given current 5.1.0 binaries, when discovery and HTTP tests execute, then all
+  expected cases pass without skips and candidate archive/DLL identity agrees.
+- [x] Record exact commands, counts, results, source identifiers, changes and
+  remaining limits here and in durable credential-free receipts. Given the
+  pre-existing five moved gitlinks, when reviewing this invocation, then they
+  remain untouched and are excluded from its claimed implementation changes.
+  Local evidence does not claim exact-source remote CI, publication or live
+  Production qualification.
+
+## Current Local Qualification — 2026-11-15
+
+The complete current package qualification passed. The existing 5.1.0 default,
+finite selectors, aliases, publication guards and maintained tests required no
+production, configuration or test edits. This invocation changes only the
+current task checklist, this qualification record and the durable evidence
+directory. Historical records below are retained unchanged.
+
+Official public [Client metadata](https://api.nuget.org/v3-flatcontainer/hexalith.eventstore.client/index.json)
+and the [NuGet gallery](https://www.nuget.org/packages/Hexalith.EventStore.Client)
+confirm stable 5.1.0. The two actual Release graphs restored ten current
+EventStore SDK package identities at exactly 5.1.0. Each restored archive was
+independently compared with its public NuGet download and has an exact SHA256,
+package ID/version and embedded repository/source receipt. All ten name producer
+`49084f66f8d6545cae442875355a7066d5f5e73d`. The frozen
+`Hexalith.EventStore.Testing.Integration` 3.128.4 harness remains separate, with
+producer `717a06e16c3afd81b904eaf4de646b74b13262d2`; its public archive also
+matches. No SDK candidate feed, cache injection or gate waiver was used.
+
+The actual qualification ran once, sequentially, under:
+
+```bash
+run-with-temp python3 _bmad-output/implementation-artifacts/evidence/latest-sdk-catalog-qualification-2026-11-15/qualify.py > _bmad-output/implementation-artifacts/evidence/latest-sdk-catalog-qualification-2026-11-15/qualification.log 2>&1
+```
+
+The reproducible driver copies tracked superproject files and only the existing
+root-declared Builds/Platform inputs into its private `$TMPDIR`, creates an
+empty private NuGet package/HTTP cache, and restricts restore to
+`https://api.nuget.org/v3/index.json`. It sets `RepositoryCommit` to
+`2ec938397c5b330cf1e694e8cc442cb4ad022f2b` and uses the pinned .NET 11.0.100
+SDK. Both project builds use the ordinary default without an SDK version
+override:
+
+```bash
+catalog_args=(-p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true
+  -p:HexalithEventStoreFromSource=false -p:HexalithFrontComposerFromSource=false
+  -p:HexalithMemoriesFromSource=false)
+for catalog_suite in IntegrationTests Contracts.Tests; do
+  dotnet build "tests/Hexalith.Tenants.${catalog_suite}/Hexalith.Tenants.${catalog_suite}.csproj" \
+    --configuration Release -warnaserror -m:1 -nr:false "${catalog_args[@]}" \
+    --source https://api.nuget.org/v3/index.json
+done
+```
+
+Each build reports **0 warnings and 0 errors**. All tests use the maintained
+project-level Microsoft.Testing.Platform runner, with `--fail-skips on` and the
+CI minimum counts for catalog, HTTP, owner-source and bootstrap selections.
+The complete `PackageGovernanceTests` class also passes, including the real
+MSBuild floor, source-owner, ordinary/native selection and publication controls.
+
+| Verification | Passed | Failed | Skipped |
+| --- | ---: | ---: | ---: |
+| PackageGovernanceTests (complete class) | 556 | 0 | 0 |
+| PublishedTenantCatalogTests | 1 | 0 | 0 |
+| TenantCatalogTests | 2 | 0 | 0 |
+| TenantsApiGeneratedControllerTests (minimum 66) | 67 | 0 | 0 |
+| TenantOwnerSourceGatewayTests (minimum 25) | 27 | 0 | 0 |
+| BoundBootstrap* (minimum 13) | 15 | 0 | 0 |
+| AuthenticatedBootstrapCannotAssignDifferentTarget | 2 | 0 | 0 |
+| Commands_endpoint_returns_problem_details_for_domain_rejection | 1 | 0 | 0 |
+| Python archive provenance/consumer controls | 14 | 0 | 0 |
+| Python stale actual-PE/foreign-owner pack controls | 2 | 0 | 0 |
+| Python hosted package profile controls | 2 | 0 | 0 |
+
+All **671 .NET cases and 18 Python controls** pass. Fresh Contracts and Server
+archives at candidate `0.0.0-catalog-qualification.20261115` pass ordinary pack
+validation and `scripts/verify-catalog-package-consumer.py`. Its separate
+package-only restore uses only the two local Tenants archives plus public SDK
+dependencies, verifies candidate source/archive/DLL identity, and discovers
+**24 routes, 24 operations and 13 adapters**. No candidate was published.
+
+Durable credential-free evidence is under
+[`evidence/latest-sdk-catalog-qualification-2026-11-15/`](evidence/latest-sdk-catalog-qualification-2026-11-15/).
+`commands.json` records every expanded command, working directory, UTC start/end
+and exit code beside the individual logs. `public-archive-provenance.json`
+records all eleven restored archives; `restored-graphs.json` records exact
+graph selections and public restore sources; `catalog-package-consumer.json`
+records fresh candidate hashes and compiled discovery. `source-before.json`,
+`source-after.json` and `source-input-sha256.json` bind the actual source inputs.
+All children finished, the wrapper exited successfully, and its scratch tree,
+package caches and build outputs were removed.
+
+The required historical story audit was also run exactly as follows:
+
+```bash
+run-with-temp python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-qualify-sdk-3-130-catalog-selection.md
+```
+
+It returns **1**, recorded in `story-gitlinks.log`: its unchanged historical
+`baseline_commit` 9e5a991-to-current comparison finds nine pointer differences,
+eight undeclared in the historical File List. That audit does not use
+`resume_baseline_commit`. This pre-existing historical mismatch is retained as
+a separate audit limitation; no historical pointer ownership was invented and
+no historical declarations, baseline or gitlinks were changed to make it pass.
+The before/after receipts independently prove all nine original submodule
+indices, checked-out HEADs and working-tree statuses remained identical.
+In particular, the five pre-existing moved Builds, EventStore, FrontComposer,
+Memories and Platform gitlinks are preserved and excluded from this invocation's
+implementation changes. Builds `73e60af8a1fcdf3f06726d5d1b6e1199cce778ee` and
+Platform `f6f85032598865b9123f16364448bfd02c0ff5b0` are qualification inputs.
+
+This is local working-tree qualification against the recorded source base and
+existing dependency inputs. It does not establish exact-source remote CI,
+release/publication acceptance, native distributed execution or live Production
+trust. No branch, stage, commit, push, remote dispatch or nested initialization
+was performed.
+
+## Review Triage Log
+
+Review covers this invocation against `resume_baseline_commit`; the complete
+original-baseline diff is retained separately because it includes 42,193 lines
+of intervening work. No review layer was skipped. All three independent layers
+returned before triage. Findings below are graded individually before grouping.
+
+| ID | Layer | Verdict | Evidence and route |
+| --- | --- | --- | --- |
+| B1 | Blind | medium | Root `.gitignore:110` excludes every retained `.log`, so logs would be missing from a recorded change. Patch: add an evidence-directory exception. |
+| B2 | Blind | medium | The driver overwrites source/command receipts before network and process operations that may throw, leaving old success files beside a partial replay. Patch with B3/E1/V1: isolate each replay from the original results. |
+| B3 | Blind | medium | The driver does not regenerate the original manually retained summary or cleanup assertion. Reusing its directory can mix that summary with new results. Patch with B2/E1/V1: separate invocation output and document the original snapshot versus replay receipts. |
+| B4 | Blind | false | The historical audit is explicitly a separate command in Current Local Qualification, and its failure is separate from successful SDK qualification in the README and summary. The driver does not claim to automate that independent audit. |
+| B5 | Blind | low | Commands record the package graph but not the actual CLI selection; the consumer's separate scratch directory lacks the repository's SDK policy. Patch: retain observed toolchain output and provide the same existing global.json policy above both scratch projects. This directly closes a provenance omission. |
+| B6 | Blind | false | The receipt describes hashes of copied tracked source before the explicitly generated public-only NuGet configuration. Every build also carries `--source https://api.nuget.org/v3/index.json`, and all retained restored graphs record only that source. It does not claim the generated config was a tracked source input. |
+| B7 | Blind | false | The Builds manifest digest includes every tracked file, including root properties, schemas and Tools inputs. The additional individual-hash map is selective; changing an omitted individual row's source still changes the complete manifest digest. |
+| B8 | Blind | false | The command filters only by the complete class, with fail-skips enabled; the actual retained run executes all 556 cases. A minimum count of one prevents an empty discovery and does not truncate discovery. No removed or unexecuted current case was identified. |
+| B9 | Blind | low | The driver has no outer process timeout, but it is a foreground manual reproduction under run-with-temp, whose signal handler terminates the job group, waits and cleans its workspace. No hanging current job exists. Reject: an additional timeout policy adds complexity for a hypothetical manual-run failure. |
+| B10 | Blind | medium | `git -C` in an uninitialized submodule directory can discover the enclosing repository, falsely recording its HEAD/status as the module's. Patch: distinguish uninitialized paths using the actual repository root. |
+| B11 | Blind | false | Both required default-path assets receipts are present, include their current 5.1.0 SDK identities, and follow successful builds and nonempty project-level tests. No alternate output path is passed and no file deletion occurs between those commands and scanning; no reachable false certification was shown. |
+| E1 | Edge | medium | Metadata, archive or process-start failure can leave previous successful outcomes beside partial overwritten files. Same defect as B2/B3/V1; patch by writing replays to a new invocation directory. |
+| V1 | Verification | medium | The manually retained successful summary is never invalidated by the old replay driver. Same defect as B2/B3/E1; isolate replay receipts and clarify the README links. |
+
+The surviving findings form four patch groups: retain logs (B1), isolate replay
+evidence (B2/B3/E1/V1), record actual toolchain policy (B5), and identify module
+boundaries (B10). They add no product surface and do not alter SDK admission.
+
+### Review Resolution
+
+All four patch groups are resolved. A directory-local `.gitignore` retains the
+credential-free logs without changing root ignore policy. Each replay now writes
+to a fresh invocation directory with its own incomplete/failed/passed result;
+the original successful receipts and manually assembled summary remain immutable.
+Replay measurements record the actual toolchain, while the shared scratch parent
+provides the same existing global.json policy to both project ancestry paths.
+Optional module records check the actual Git repository root before reading HEAD
+or status, and identify uninitialized paths explicitly.
+
+The implementation agent and parent independently ran:
+
+```bash
+run-with-temp python3 -B _bmad-output/implementation-artifacts/evidence/latest-sdk-catalog-qualification-2026-11-15/test_qualify.py
+```
+
+All four focused safeguards pass. They cover failed/successful replay isolation,
+interruption, measured policy inheritance and optional-module boundary handling.
+The SDK graph was not rerun for evidence-only patches; its original build/test
+inputs and receipts are unchanged. The README distinguishes that original
+qualification snapshot from future replay output and does not retroactively
+claim toolchain measurements during the original run. No finding was deferred;
+the separately documented pre-existing historical gitlink audit still returns 1.
+
+This invocation completes the current local latest-SDK qualification. No commit
+or remote operation was made; the five pre-existing moved gitlinks remain intact.
+
+## Historical Qualification Record
 
 ## Intent
 

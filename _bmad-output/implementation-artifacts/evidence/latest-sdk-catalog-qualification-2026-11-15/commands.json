@@ -1,0 +1,146 @@
+[
+  {
+    "name": "test_hosted_package_profile",
+    "command": "python3 tests/scripts/test_hosted_package_profile.py",
+    "cwd": "/tmp/hexalith-job.yxMJLX0Z/Hexalith.Tenants",
+    "started": "2026-11-15T10:32:19.718433+00:00",
+    "finished": "2026-11-15T10:32:22.216969+00:00",
+    "exitCode": 0,
+    "log": "test_hosted_package_profile.log"
+  },
+  {
+    "name": "test_catalog_package_consumer",
+    "command": "python3 tests/scripts/test_catalog_package_consumer.py",
+    "cwd": "/tmp/hexalith-job.yxMJLX0Z/Hexalith.Tenants",
+    "started": "2026-11-15T10:32:22.217196+00:00",
+    "finished": "2026-11-15T10:32:22.486223+00:00",
+    "exitCode": 0,
+    "log": "test_catalog_package_consumer.log"
+  },
+  {
+    "name": "test_catalog_artifact_guards",
+    "command": "python3 tests/scripts/test_catalog_artifact_guards.py",
+    "cwd": "/tmp/hexalith-job.yxMJLX0Z/Hexalith.Tenants",
+    "started": "2026-11-15T10:32:22.486483+00:00",
+    "finished": "2026-11-15T10:33:03.682656+00:00",
+    "exitCode": 0,
+    "log": "test_catalog_artifact_guards.log"
+  },
+  {
+    "name": "build-IntegrationTests",
+    "command": "dotnet build tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Release -warnaserror -m:1 -nr:false -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true -p:HexalithEventStoreFromSource=false -p:HexalithFrontComposerFromSource=false -p:HexalithMemoriesFromSource=false --source https://api.nuget.org/v3/index.json",
+    "cwd": "/tmp/hexalith-job.yxMJLX0Z/Hexalith.Tenants",
+    "started": "2026-11-15T10:33:03.682944+00:00",
+    "finished": "2026-11-15T10:33:17.643655+00:00",
+    "exitCode": 0,
+    "log": "build-IntegrationTests.log"
+  },
+  {
+    "name": "build-Contracts.Tests",
+    "command": "dotnet build tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj --configuration Release -warnaserror -m:1 -nr:false -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true -p:HexalithEventStoreFromSource=false -p:HexalithFrontComposerFromSource=false -p:HexalithMemoriesFromSource=false --source https://api.nuget.org/v3/index.json",
+    "cwd": "/tmp/hexalith-job.yxMJLX0Z/Hexalith.Tenants",
+    "started": "2026-11-15T10:33:17.643912+00:00",
+    "finished": "2026-11-15T10:33:19.972007+00:00",
+    "exitCode": 0,
+    "log": "build-Contracts.Tests.log"
+  },
+  {
+    "name": "PackageGovernanceTests",
+    "command": "dotnet test tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj --configuration Release --no-build -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true -p:HexalithEventStoreFromSource=false -p:HexalithFrontComposerFromSource=false -p:HexalithMemoriesFromSource=false --filter-class Hexalith.Tenants.Contracts.Tests.PackageGovernanceTests --minimum-expected-tests 1 --fail-skips on",
+    "cwd": "/tmp/hexalith-job.yxMJLX0Z/Hexalith.Tenants",
+    "started": "2026-11-15T10:33:19.972421+00:00",
+    "finished": "2026-11-15T10:34:06.078342+00:00",
+    "exitCode": 0,
+    "log": "PackageGovernanceTests.log"
+  },
+  {
+    "name": "PublishedTenantCatalogTests",
+    "command": "dotnet test tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj --configuration Release --no-build -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true -p:HexalithEventStoreFromSource=false -p:HexalithFrontComposerFromSource=false -p:HexalithMemoriesFromSource=false --filter-class Hexalith.Tenants.Contracts.Tests.PublishedTenantCatalogTests --minimum-expected-tests 1 --fail-skips on",
+    "cwd": "/tmp/hexalith-job.yxMJLX0Z/Hexalith.Tenants",
+    "started": "2026-11-15T10:34:06.078803+00:00",
+    "finished": "2026-11-15T10:34:06.967210+00:00",
+    "exitCode": 0,
+    "log": "PublishedTenantCatalogTests.log"
+  },
+  {
+    "name": "TenantCatalogTests",
+    "command": "dotnet test tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj --configuration Release --no-build -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true -p:HexalithEventStoreFromSource=false -p:HexalithFrontComposerFromSource=false -p:HexalithMemoriesFromSource=false --filter-class Hexalith.Tenants.Contracts.Tests.TenantCatalogTests --minimum-expected-tests 2 --fail-skips on",
+    "cwd": "/tmp/hexalith-job.yxMJLX0Z/Hexalith.Tenants",
+    "started": "2026-11-15T10:34:06.967485+00:00",
+    "finished": "2026-11-15T10:34:07.838050+00:00",
+    "exitCode": 0,
+    "log": "TenantCatalogTests.log"
+  },
+  {
+    "name": "TenantsApiGeneratedControllerTests",
+    "command": "dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Release --no-build -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true -p:HexalithEventStoreFromSource=false -p:HexalithFrontComposerFromSource=false -p:HexalithMemoriesFromSource=false --filter-class Hexalith.Tenants.IntegrationTests.TenantsApiGeneratedControllerTests --minimum-expected-tests 66 --fail-skips on",
+    "cwd": "/tmp/hexalith-job.yxMJLX0Z/Hexalith.Tenants",
+    "started": "2026-11-15T10:34:07.838372+00:00",
+    "finished": "2026-11-15T10:34:27.981419+00:00",
+    "exitCode": 0,
+    "log": "TenantsApiGeneratedControllerTests.log"
+  },
+  {
+    "name": "TenantOwnerSourceGatewayTests",
+    "command": "dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Release --no-build -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true -p:HexalithEventStoreFromSource=false -p:HexalithFrontComposerFromSource=false -p:HexalithMemoriesFromSource=false --filter-class Hexalith.Tenants.IntegrationTests.TenantOwnerSourceGatewayTests --minimum-expected-tests 25 --fail-skips on",
+    "cwd": "/tmp/hexalith-job.yxMJLX0Z/Hexalith.Tenants",
+    "started": "2026-11-15T10:34:27.981703+00:00",
+    "finished": "2026-11-15T10:35:17.530107+00:00",
+    "exitCode": 0,
+    "log": "TenantOwnerSourceGatewayTests.log"
+  },
+  {
+    "name": "bootstrap-BoundBootstrapall",
+    "command": "dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Release --no-build -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true -p:HexalithEventStoreFromSource=false -p:HexalithFrontComposerFromSource=false -p:HexalithMemoriesFromSource=false --filter-method 'Hexalith.Tenants.IntegrationTests.CommandApiRuntimeIntegrationTests.BoundBootstrap*' --minimum-expected-tests 13 --fail-skips on",
+    "cwd": "/tmp/hexalith-job.yxMJLX0Z/Hexalith.Tenants",
+    "started": "2026-11-15T10:35:17.530501+00:00",
+    "finished": "2026-11-15T10:35:21.672269+00:00",
+    "exitCode": 0,
+    "log": "bootstrap-BoundBootstrapall.log"
+  },
+  {
+    "name": "bootstrap-AuthenticatedBootstrapCannotAssignDifferentTarget",
+    "command": "dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Release --no-build -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true -p:HexalithEventStoreFromSource=false -p:HexalithFrontComposerFromSource=false -p:HexalithMemoriesFromSource=false --filter-method Hexalith.Tenants.IntegrationTests.CommandApiRuntimeIntegrationTests.AuthenticatedBootstrapCannotAssignDifferentTarget --minimum-expected-tests 2 --fail-skips on",
+    "cwd": "/tmp/hexalith-job.yxMJLX0Z/Hexalith.Tenants",
+    "started": "2026-11-15T10:35:21.672525+00:00",
+    "finished": "2026-11-15T10:35:23.497063+00:00",
+    "exitCode": 0,
+    "log": "bootstrap-AuthenticatedBootstrapCannotAssignDifferentTarget.log"
+  },
+  {
+    "name": "bootstrap-Commands_endpoint_returns_problem_details_for_domain_rejection",
+    "command": "dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Release --no-build -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true -p:HexalithEventStoreFromSource=false -p:HexalithFrontComposerFromSource=false -p:HexalithMemoriesFromSource=false --filter-method Hexalith.Tenants.IntegrationTests.CommandApiRuntimeIntegrationTests.Commands_endpoint_returns_problem_details_for_domain_rejection --minimum-expected-tests 1 --fail-skips on",
+    "cwd": "/tmp/hexalith-job.yxMJLX0Z/Hexalith.Tenants",
+    "started": "2026-11-15T10:35:23.497327+00:00",
+    "finished": "2026-11-15T10:35:25.113011+00:00",
+    "exitCode": 0,
+    "log": "bootstrap-Commands_endpoint_returns_problem_details_for_domain_rejection.log"
+  },
+  {
+    "name": "pack-Contracts",
+    "command": "dotnet pack src/Hexalith.Tenants.Contracts/Hexalith.Tenants.Contracts.csproj --configuration Release --no-build --output /tmp/hexalith-job.yxMJLX0Z/catalog-packages -p:Version=0.0.0-catalog-qualification.20261115 -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true -p:HexalithEventStoreFromSource=false -p:HexalithFrontComposerFromSource=false -p:HexalithMemoriesFromSource=false",
+    "cwd": "/tmp/hexalith-job.yxMJLX0Z/Hexalith.Tenants",
+    "started": "2026-11-15T10:35:25.975981+00:00",
+    "finished": "2026-11-15T10:35:27.415082+00:00",
+    "exitCode": 0,
+    "log": "pack-Contracts.log"
+  },
+  {
+    "name": "pack-Server",
+    "command": "dotnet pack src/Hexalith.Tenants.Server/Hexalith.Tenants.Server.csproj --configuration Release --no-build --output /tmp/hexalith-job.yxMJLX0Z/catalog-packages -p:Version=0.0.0-catalog-qualification.20261115 -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true -p:HexalithEventStoreFromSource=false -p:HexalithFrontComposerFromSource=false -p:HexalithMemoriesFromSource=false",
+    "cwd": "/tmp/hexalith-job.yxMJLX0Z/Hexalith.Tenants",
+    "started": "2026-11-15T10:35:27.415362+00:00",
+    "finished": "2026-11-15T10:35:28.745491+00:00",
+    "exitCode": 0,
+    "log": "pack-Server.log"
+  },
+  {
+    "name": "catalog-package-consumer",
+    "command": "python3 scripts/verify-catalog-package-consumer.py /tmp/hexalith-job.yxMJLX0Z/catalog-packages --expected-source-sha 2ec938397c5b330cf1e694e8cc442cb4ad022f2b --output /home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/latest-sdk-catalog-qualification-2026-11-15/catalog-package-consumer.json",
+    "cwd": "/tmp/hexalith-job.yxMJLX0Z/Hexalith.Tenants",
+    "started": "2026-11-15T10:35:28.745793+00:00",
+    "finished": "2026-11-15T10:35:31.133539+00:00",
+    "exitCode": 0,
+    "log": "catalog-package-consumer.log"
+  }
+]

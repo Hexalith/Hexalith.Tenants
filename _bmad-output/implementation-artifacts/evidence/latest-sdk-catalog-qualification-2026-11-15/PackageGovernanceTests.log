@@ -1,0 +1,10 @@
+$ dotnet test tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj --configuration Release --no-build -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true -p:HexalithEventStoreFromSource=false -p:HexalithFrontComposerFromSource=false -p:HexalithMemoriesFromSource=false --filter-class Hexalith.Tenants.Contracts.Tests.PackageGovernanceTests --minimum-expected-tests 1 --fail-skips on
+Running tests from /tmp/hexalith-job.yxMJLX0Z/Hexalith.Tenants/tests/Hexalith.Tenants.Contracts.Tests/bin/Release/net11.0/Hexalith.Tenants.Contracts.Tests.dll (net11.0|x64)
+/tmp/hexalith-job.yxMJLX0Z/Hexalith.Tenants/tests/Hexalith.Tenants.Contracts.Tests/bin/Release/net11.0/Hexalith.Tenants.Contracts.Tests.dll (net11.0|x64) passed [+556/x0/?0] (45s 531ms)
+
+Test run summary: Passed!
+  total: 556
+  failed: 0
+  succeeded: 556
+  skipped: 0
+  duration: 45s 662ms

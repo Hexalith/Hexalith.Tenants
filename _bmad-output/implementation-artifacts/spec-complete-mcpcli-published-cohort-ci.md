@@ -2,7 +2,10 @@
 title: 'Complete McpCli CI with the authentic published Tenants cohort'
 type: 'bugfix'
 created: '2026-11-03'
-status: 'draft'
+status: 'done'
+resolution: 'superseded'
+closed: '2026-11-15'
+superseded_by: 'spec-qualify-published-mcpcli-7.0.0-enrollment.md'
 route: 'dispatch'
 baseline_commit: 'be43b928ce700ae7433b1d078eec356ccd6079f8'
 owning_repository_baseline_commit: 'edaecb04b1a8edf78f6ad28e5bf253db594003f4'
@@ -60,3 +63,11 @@ Wait for the root agent to verify authentic published Tenants 7.0.0 before imple
 - Baseline McpCli CI run 41515759839 fails NU1102 for Tenants 7.0.0 and refuses candidate approval. EventStore 4.0.2 is now published and independently verified. No McpCli files have been edited yet.
 
 - Follow-up producer repair for the actual Tenants runtime failure selects EventStore 4.0.3 from 9aa4e5d690db3cce734ae38942b05c23c8380bac. Keep the original 4.0.2 publication facts historical; use the final published 4.0.3 dependency closure during this later McpCli handoff.
+
+## Historical Closure
+
+Closed on 2026-11-15 following the user's explicit instruction, "close". This operational draft was superseded by [the published-enrollment qualification spec](spec-qualify-published-mcpcli-7.0.0-enrollment.md). The original frozen intent, checklist, gitlink audit endpoints and coordination notes remain historical; the unchecked items above do not represent pending work in this closed draft.
+
+McpCli implementation commit `bdea9dc808cb12c06a2db69d71165026d3454f43` delivered the published Tenants 7.0.0 / EventStore 4.0.4 enrollment, approval evidence, dependency policy and documentation while preserving Parties.Contracts 1.5.1 and the legacy Integration 3.128.4 fixture. Commit `08b0829809b137a57c36a1974ed13158529a7263` added independent official NuGet v3 publication verification.
+
+Closure verification matched all fourteen historical vector hashes at the implementation revision and the retained verification/enrollment receipt hashes against [the original published-artifact approval](../../references/Hexalith.McpCli/_bmad-output/implementation-artifacts/evidence/story-4-18/tenants7-public-artifact/approval.json). Both retained receipts record `passed`; the enrollment receipt records `fullV1Accepted: true` for its historical offline gate. This audit does not assert fresh package validation, current hosted/live CI acceptance or actual operator-client validation. Current-cohort CI remains separate successor work.

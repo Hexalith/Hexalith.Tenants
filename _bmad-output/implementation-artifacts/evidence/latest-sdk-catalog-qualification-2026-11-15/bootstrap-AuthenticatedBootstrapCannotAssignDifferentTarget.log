@@ -1,0 +1,72 @@
+$ dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Release --no-build -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true -p:HexalithEventStoreFromSource=false -p:HexalithFrontComposerFromSource=false -p:HexalithMemoriesFromSource=false --filter-method Hexalith.Tenants.IntegrationTests.CommandApiRuntimeIntegrationTests.AuthenticatedBootstrapCannotAssignDifferentTarget --minimum-expected-tests 2 --fail-skips on
+Running tests from /tmp/hexalith-job.yxMJLX0Z/Hexalith.Tenants/tests/Hexalith.Tenants.IntegrationTests/bin/Release/net11.0/Hexalith.Tenants.IntegrationTests.dll (net11.0|x64)
+info: Microsoft.AspNetCore.DataProtection.KeyManagement.XmlKeyManager[62]
+      User profile is available. Using '/home/administrator/.aspnet/DataProtection-Keys' as key repository; keys will not be encrypted at rest.
+warn: Hexalith.EventStore.Configuration.DaprRateLimitConfigSync[0]
+      DAPR config store unavailable for rate limit sync. Falling back to appsettings.json values.
+      System.NullReferenceException: Object reference not set to an instance of an object.
+         at Hexalith.EventStore.Configuration.DaprRateLimitConfigSync.LoadTenantIdsAsync(DaprClient daprClient, CancellationToken cancellationToken)
+         at Hexalith.EventStore.Configuration.DaprRateLimitConfigSync.SyncTenantOverridesAsync(DaprClient daprClient, CancellationToken cancellationToken)
+warn: Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware[9]
+      A request body size limit could not be applied. This server does not support the IHttpMaxRequestBodySizeFeature.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'Hexalith.EventStore.Controllers.CommandsController.SubmitBoundWorkload (Hexalith.EventStore.Gateway)'
+info: Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker[102]
+      Route matched with {action = "SubmitBoundWorkload", controller = "Commands"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] SubmitBoundWorkload(Hexalith.EventStore.Contracts.Commands.BoundWorkloadCommandRequest, System.Threading.CancellationToken) on controller Hexalith.EventStore.Controllers.CommandsController (Hexalith.EventStore.Gateway).
+warn: Microsoft.AspNetCore.Mvc.Filters.RequestSizeLimitFilter[1]
+      A request body size limit could not be applied. This server does not support the IHttpRequestBodySizeFeature.
+warn: LuckyPennySoftware.MediatR.License[0]
+      You do not have a valid license key for the Lucky Penny software MediatR. This is allowed for development and testing scenarios. If you are running in production you are required to have a licensed version. Please visit https://luckypennysoftware.com to obtain a valid license.
+info: Hexalith.EventStore.Pipeline.LoggingBehavior[1000]
+      MediatR pipeline entry: CorrelationId=01M7FCD9FK881CDCMN5C0052GM, CausationId=01M7FCD9FK881CDCMN5C0052GM, CommandType=BootstrapGlobalAdmin, Tenant=system, Domain=global-administrators, AggregateId=global-administrators, SourceIp=(null), Endpoint=/api/v1/commands/bound/workload, UserId=(null), ReceivedAtUtc=11/15/2026 10:35:23 +00:00, Stage=PipelineEntry
+info: Hexalith.EventStore.Server.Pipeline.SubmitCommandHandler[1100]
+      Command received: CorrelationId=01M7FCD9DXFEX8GSNF20JHS6YC, CausationId=01M7FCD9DXFEX8GSNF20JHS6YC, CommandType=BootstrapGlobalAdmin, TenantId=system, Domain=global-administrators, AggregateId=global-administrators, Stage=CommandReceived
+warn: Hexalith.EventStore.Commands.DaprCommandActivityTracker[0]
+      Failed to track command activity after 3 optimistic-concurrency attempts: CorrelationId=01M7FCD9DXFEX8GSNF20JHS6YC
+warn: Hexalith.EventStore.Pipeline.LoggingBehavior[1003]
+      MediatR pipeline rejection: CorrelationId=01M7FCD9FK881CDCMN5C0052GM, CausationId=01M7FCD9FK881CDCMN5C0052GM, CommandType=BootstrapGlobalAdmin, Tenant=system, Domain=global-administrators, AggregateId=global-administrators, RejectionType=Hexalith.Tenants.Contracts.Events.Rejections.InsufficientPermissionsRejection, DurationMs=52.6845, Stage=PipelineRejection
+info: Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker[105]
+      Executed action Hexalith.EventStore.Controllers.CommandsController.SubmitBoundWorkload (Hexalith.EventStore.Gateway) in 147.5028ms
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'Hexalith.EventStore.Controllers.CommandsController.SubmitBoundWorkload (Hexalith.EventStore.Gateway)'
+info: Hexalith.EventStore.ErrorHandling.DomainCommandRejectedExceptionHandler[0]
+      Domain rejection returned to caller: CorrelationId=01M7FCD9FK881CDCMN5C0052GM, TenantId=system, RejectionType=Hexalith.Tenants.Contracts.Events.Rejections.InsufficientPermissionsRejection
+info: Microsoft.AspNetCore.DataProtection.KeyManagement.XmlKeyManager[62]
+      User profile is available. Using '/home/administrator/.aspnet/DataProtection-Keys' as key repository; keys will not be encrypted at rest.
+warn: Hexalith.EventStore.Configuration.DaprRateLimitConfigSync[0]
+      DAPR config store unavailable for rate limit sync. Falling back to appsettings.json values.
+      System.NullReferenceException: Object reference not set to an instance of an object.
+         at Hexalith.EventStore.Configuration.DaprRateLimitConfigSync.LoadTenantIdsAsync(DaprClient daprClient, CancellationToken cancellationToken)
+         at Hexalith.EventStore.Configuration.DaprRateLimitConfigSync.SyncTenantOverridesAsync(DaprClient daprClient, CancellationToken cancellationToken)
+warn: Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware[9]
+      A request body size limit could not be applied. This server does not support the IHttpMaxRequestBodySizeFeature.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'Hexalith.EventStore.Controllers.CommandsController.SubmitBoundWorkload (Hexalith.EventStore.Gateway)'
+info: Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker[102]
+      Route matched with {action = "SubmitBoundWorkload", controller = "Commands"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] SubmitBoundWorkload(Hexalith.EventStore.Contracts.Commands.BoundWorkloadCommandRequest, System.Threading.CancellationToken) on controller Hexalith.EventStore.Controllers.CommandsController (Hexalith.EventStore.Gateway).
+warn: Microsoft.AspNetCore.Mvc.Filters.RequestSizeLimitFilter[1]
+      A request body size limit could not be applied. This server does not support the IHttpRequestBodySizeFeature.
+warn: LuckyPennySoftware.MediatR.License[0]
+      You do not have a valid license key for the Lucky Penny software MediatR. This is allowed for development and testing scenarios. If you are running in production you are required to have a licensed version. Please visit https://luckypennysoftware.com to obtain a valid license.
+info: Hexalith.EventStore.Pipeline.LoggingBehavior[1000]
+      MediatR pipeline entry: CorrelationId=01M7FCD9VQW6MH3CKM4VGF617E, CausationId=01M7FCD9VQW6MH3CKM4VGF617E, CommandType=BootstrapGlobalAdmin, Tenant=system, Domain=global-administrators, AggregateId=global-administrators, SourceIp=(null), Endpoint=/api/v1/commands/bound/workload, UserId=(null), ReceivedAtUtc=11/15/2026 10:35:23 +00:00, Stage=PipelineEntry
+info: Hexalith.EventStore.Server.Pipeline.SubmitCommandHandler[1100]
+      Command received: CorrelationId=01M7FCD9VMVJ2VDDM10ZRNQ066, CausationId=01M7FCD9VMVJ2VDDM10ZRNQ066, CommandType=BootstrapGlobalAdmin, TenantId=system, Domain=global-administrators, AggregateId=global-administrators, Stage=CommandReceived
+warn: Hexalith.EventStore.Commands.DaprCommandActivityTracker[0]
+      Failed to track command activity after 3 optimistic-concurrency attempts: CorrelationId=01M7FCD9VMVJ2VDDM10ZRNQ066
+warn: Hexalith.EventStore.Pipeline.LoggingBehavior[1003]
+      MediatR pipeline rejection: CorrelationId=01M7FCD9VQW6MH3CKM4VGF617E, CausationId=01M7FCD9VQW6MH3CKM4VGF617E, CommandType=BootstrapGlobalAdmin, Tenant=system, Domain=global-administrators, AggregateId=global-administrators, RejectionType=Hexalith.Tenants.Contracts.Events.Rejections.InsufficientPermissionsRejection, DurationMs=11.8321, Stage=PipelineRejection
+info: Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker[105]
+      Executed action Hexalith.EventStore.Controllers.CommandsController.SubmitBoundWorkload (Hexalith.EventStore.Gateway) in 37.4385ms
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'Hexalith.EventStore.Controllers.CommandsController.SubmitBoundWorkload (Hexalith.EventStore.Gateway)'
+info: Hexalith.EventStore.ErrorHandling.DomainCommandRejectedExceptionHandler[0]
+      Domain rejection returned to caller: CorrelationId=01M7FCD9VQW6MH3CKM4VGF617E, TenantId=system, RejectionType=Hexalith.Tenants.Contracts.Events.Rejections.InsufficientPermissionsRejection
+/tmp/hexalith-job.yxMJLX0Z/Hexalith.Tenants/tests/Hexalith.Tenants.IntegrationTests/bin/Release/net11.0/Hexalith.Tenants.IntegrationTests.dll (net11.0|x64) passed [+2/x0/?0] (1s 297ms)
+
+Test run summary: Passed!
+  total: 2
+  failed: 0
+  succeeded: 2
+  skipped: 0
+  duration: 1s 430ms

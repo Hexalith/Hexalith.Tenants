@@ -1,0 +1,61 @@
+{
+  "head": "2ec938397c5b330cf1e694e8cc442cb4ad022f2b",
+  "branch": "main",
+  "status": "M _bmad-output/implementation-artifacts/spec-qualify-sdk-3-130-catalog-selection.md\n M references/Hexalith.Builds\n M references/Hexalith.EventStore\n M references/Hexalith.FrontComposer\n M references/Hexalith.Memories\n M references/Hexalith.Platform\n?? _bmad-output/implementation-artifacts/evidence/latest-sdk-catalog-qualification-2026-11-15/",
+  "submodules": [
+    {
+      "path": "references/Hexalith.AI.Tools",
+      "index": "17a37d83db193f0b7494c1b931fd1e82a67c1424",
+      "head": "17a37d83db193f0b7494c1b931fd1e82a67c1424",
+      "status": ""
+    },
+    {
+      "path": "references/Hexalith.Builds",
+      "index": "99f7c86072ca7b35e3fbbaee4606a559a847805a",
+      "head": "73e60af8a1fcdf3f06726d5d1b6e1199cce778ee",
+      "status": ""
+    },
+    {
+      "path": "references/Hexalith.Commons",
+      "index": "fbf4e94233821f6ca336af91a06feaaeb7a16855",
+      "head": "fbf4e94233821f6ca336af91a06feaaeb7a16855",
+      "status": ""
+    },
+    {
+      "path": "references/Hexalith.EventStore",
+      "index": "5c5c0cce54541f18ec4f290f085d8678d517e8f8",
+      "head": "fdb59895975e86a1e234325a01237f259cdbd53b",
+      "status": ""
+    },
+    {
+      "path": "references/Hexalith.FrontComposer",
+      "index": "bfc8f8ae74e3ff0baa2d1d4abf083b0b47e6dca3",
+      "head": "bca9dff291ce42c57516598732340a80703dfb6d",
+      "status": ""
+    },
+    {
+      "path": "references/Hexalith.McpCli",
+      "index": "23072f04f423eea3f30456fe5af13d2d382624fe",
+      "head": "23072f04f423eea3f30456fe5af13d2d382624fe",
+      "status": ""
+    },
+    {
+      "path": "references/Hexalith.Memories",
+      "index": "2c2e9b58990638ededf22e8e67ff5c12de75b434",
+      "head": "b7e195031cab96b38949b90317ea8033797027b8",
+      "status": ""
+    },
+    {
+      "path": "references/Hexalith.Platform",
+      "index": "9a1cf867b931d93451a2e2cf5749b1b444f7bb7a",
+      "head": "f6f85032598865b9123f16364448bfd02c0ff5b0",
+      "status": ""
+    },
+    {
+      "path": "references/Hexalith.PolymorphicSerializations",
+      "index": "e97b56930e213f674b64c157551f499b0473ec43",
+      "head": "e97b56930e213f674b64c157551f499b0473ec43",
+      "status": ""
+    }
+  ]
+}

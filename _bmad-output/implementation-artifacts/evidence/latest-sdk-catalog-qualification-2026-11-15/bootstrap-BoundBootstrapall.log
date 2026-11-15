@@ -1,0 +1,316 @@
+$ dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Release --no-build -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true -p:HexalithEventStoreFromSource=false -p:HexalithFrontComposerFromSource=false -p:HexalithMemoriesFromSource=false --filter-method 'Hexalith.Tenants.IntegrationTests.CommandApiRuntimeIntegrationTests.BoundBootstrap*' --minimum-expected-tests 13 --fail-skips on
+Running tests from /tmp/hexalith-job.yxMJLX0Z/Hexalith.Tenants/tests/Hexalith.Tenants.IntegrationTests/bin/Release/net11.0/Hexalith.Tenants.IntegrationTests.dll (net11.0|x64)
+info: Microsoft.AspNetCore.DataProtection.KeyManagement.XmlKeyManager[62]
+      User profile is available. Using '/home/administrator/.aspnet/DataProtection-Keys' as key repository; keys will not be encrypted at rest.
+warn: Hexalith.EventStore.Configuration.DaprRateLimitConfigSync[0]
+      DAPR config store unavailable for rate limit sync. Falling back to appsettings.json values.
+      System.NullReferenceException: Object reference not set to an instance of an object.
+         at Hexalith.EventStore.Configuration.DaprRateLimitConfigSync.LoadTenantIdsAsync(DaprClient daprClient, CancellationToken cancellationToken)
+         at Hexalith.EventStore.Configuration.DaprRateLimitConfigSync.SyncTenantOverridesAsync(DaprClient daprClient, CancellationToken cancellationToken)
+info: Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerHandler[1]
+      Failed to validate the token.
+      Microsoft.IdentityModel.Tokens.SecurityTokenSignatureKeyNotFoundException: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'FxdVn2XwwWAFds3REakN-UvC7DZfk7AHWj-5IyCv_lw'. , KeyId: \n'.
+      Number of keys in TokenValidationParameters: '1'. 
+      Number of keys in Configuration: '0'.
+      Exceptions caught:
+       '[PII of type 'System.String' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+      token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+         at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignature(JsonWebToken jwtToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+         at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateSignatureAndIssuerSecurityKey(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+         at Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler.ValidateJWSAsync(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters, BaseConfiguration configuration)
+warn: Hexalith.EventStore.Authentication.ConfigureJwtBearerOptions[0]
+      Authentication failed: SecurityEvent=AuthenticationFailed, CorrelationId=unknown, SourceIp=unknown, Path=, Tenant=unknown, CommandType=unknown, Reason=InvalidSignature, FailureLayer=JwtValidation
+info: Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerHandler[7]
+      Bearer was not authenticated. Failure message: IDX10517: Signature validation failed. The token's kid is missing. Keys tried: 'Microsoft.IdentityModel.Tokens.SymmetricSecurityKey, KeyId: '', InternalId: 'FxdVn2XwwWAFds3REakN-UvC7DZfk7AHWj-5IyCv_lw'. , KeyId: \n'.
+      Number of keys in TokenValidationParameters: '1'. 
+      Number of keys in Configuration: '0'.
+      Exceptions caught:
+       '[PII of type 'System.String' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'.
+      token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details.
+info: Microsoft.AspNetCore.DataProtection.KeyManagement.XmlKeyManager[62]
+      User profile is available. Using '/home/administrator/.aspnet/DataProtection-Keys' as key repository; keys will not be encrypted at rest.
+warn: Hexalith.EventStore.Configuration.DaprRateLimitConfigSync[0]
+      DAPR config store unavailable for rate limit sync. Falling back to appsettings.json values.
+      System.NullReferenceException: Object reference not set to an instance of an object.
+         at Hexalith.EventStore.Configuration.DaprRateLimitConfigSync.LoadTenantIdsAsync(DaprClient daprClient, CancellationToken cancellationToken)
+         at Hexalith.EventStore.Configuration.DaprRateLimitConfigSync.SyncTenantOverridesAsync(DaprClient daprClient, CancellationToken cancellationToken)
+info: Microsoft.AspNetCore.DataProtection.KeyManagement.XmlKeyManager[62]
+      User profile is available. Using '/home/administrator/.aspnet/DataProtection-Keys' as key repository; keys will not be encrypted at rest.
+warn: Hexalith.EventStore.Configuration.DaprRateLimitConfigSync[0]
+      DAPR config store unavailable for rate limit sync. Falling back to appsettings.json values.
+      System.NullReferenceException: Object reference not set to an instance of an object.
+         at Hexalith.EventStore.Configuration.DaprRateLimitConfigSync.LoadTenantIdsAsync(DaprClient daprClient, CancellationToken cancellationToken)
+         at Hexalith.EventStore.Configuration.DaprRateLimitConfigSync.SyncTenantOverridesAsync(DaprClient daprClient, CancellationToken cancellationToken)
+warn: Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware[9]
+      A request body size limit could not be applied. This server does not support the IHttpMaxRequestBodySizeFeature.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'Hexalith.EventStore.Controllers.CommandsController.Submit (Hexalith.EventStore.Gateway)'
+info: Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker[102]
+      Route matched with {action = "Submit", controller = "Commands"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] Submit(Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest, System.Threading.CancellationToken) on controller Hexalith.EventStore.Controllers.CommandsController (Hexalith.EventStore.Gateway).
+warn: Microsoft.AspNetCore.Mvc.Filters.RequestSizeLimitFilter[1]
+      A request body size limit could not be applied. This server does not support the IHttpRequestBodySizeFeature.
+warn: LuckyPennySoftware.MediatR.License[0]
+      You do not have a valid license key for the Lucky Penny software MediatR. This is allowed for development and testing scenarios. If you are running in production you are required to have a licensed version. Please visit https://luckypennysoftware.com to obtain a valid license.
+info: Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker[105]
+      Executed action Hexalith.EventStore.Controllers.CommandsController.Submit (Hexalith.EventStore.Gateway) in 97.4888ms
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'Hexalith.EventStore.Controllers.CommandsController.Submit (Hexalith.EventStore.Gateway)'
+warn: Hexalith.EventStore.ErrorHandling.AuthorizationExceptionHandler[0]
+      Security event: SecurityEvent=AuthorizationDenied, CorrelationId=01M7FCD5S4QZKAWCQC5XEKAMBK, Tenant=system, Domain=global-administrators, MessageType=BootstrapGlobalAdmin, Reason=The authenticated surface cannot invoke this operation.
+{"EventId":100,"LogLevel":"Information","Category":"System.Net.Http.HttpClient.TenantBootstrapCommands.LogicalHandler","Message":"Start processing HTTP request GET http://127.0.0.1:39751/v1.0/invoke/tenants-physical-17/method/alive","State":{"HttpMethod":"GET","Uri":"http://127.0.0.1:39751/v1.0/invoke/tenants-physical-17/method/alive","{OriginalFormat}":"Start processing HTTP request {HttpMethod} {Uri}"}}
+{"EventId":100,"LogLevel":"Information","Category":"System.Net.Http.HttpClient.TenantBootstrapCommands.ClientHandler","Message":"Sending HTTP request GET http://127.0.0.1:39751/v1.0/invoke/tenants-physical-17/method/alive","State":{"HttpMethod":"GET","Uri":"http://127.0.0.1:39751/v1.0/invoke/tenants-physical-17/method/alive","{OriginalFormat}":"Sending HTTP request {HttpMethod} {Uri}"}}
+{"EventId":100,"LogLevel":"Information","Category":"System.Net.Http.HttpClient.TenantBootstrapCommands.LogicalHandler","Message":"Start processing HTTP request POST http://127.0.0.1:39751/v1.0/invoke/tenants-physical-17/method/unlisted-bootstrap-command","State":{"HttpMethod":"POST","Uri":"http://127.0.0.1:39751/v1.0/invoke/tenants-physical-17/method/unlisted-bootstrap-command","{OriginalFormat}":"Start processing HTTP request {HttpMethod} {Uri}"}}
+{"EventId":100,"LogLevel":"Information","Category":"System.Net.Http.HttpClient.TenantBootstrapCommands.ClientHandler","Message":"Sending HTTP request POST http://127.0.0.1:39751/v1.0/invoke/tenants-physical-17/method/unlisted-bootstrap-command","State":{"HttpMethod":"POST","Uri":"http://127.0.0.1:39751/v1.0/invoke/tenants-physical-17/method/unlisted-bootstrap-command","{OriginalFormat}":"Sending HTTP request {HttpMethod} {Uri}"}}
+{"EventId":100,"LogLevel":"Information","Category":"System.Net.Http.HttpClient.TenantBootstrapCommands.LogicalHandler","Message":"Start processing HTTP request GET http://127.0.0.1:44005/v1.0/invoke/tenants-physical-17/method/alive","State":{"HttpMethod":"GET","Uri":"http://127.0.0.1:44005/v1.0/invoke/tenants-physical-17/method/alive","{OriginalFormat}":"Start processing HTTP request {HttpMethod} {Uri}"}}
+{"EventId":100,"LogLevel":"Information","Category":"System.Net.Http.HttpClient.TenantBootstrapCommands.ClientHandler","Message":"Sending HTTP request GET http://127.0.0.1:44005/v1.0/invoke/tenants-physical-17/method/alive","State":{"HttpMethod":"GET","Uri":"http://127.0.0.1:44005/v1.0/invoke/tenants-physical-17/method/alive","{OriginalFormat}":"Sending HTTP request {HttpMethod} {Uri}"}}
+{"EventId":100,"LogLevel":"Information","Category":"System.Net.Http.HttpClient.TenantBootstrapCommands.LogicalHandler","Message":"Start processing HTTP request POST http://127.0.0.1:44005/v1.0/invoke/tenants-physical-17/method/unlisted-bootstrap-command","State":{"HttpMethod":"POST","Uri":"http://127.0.0.1:44005/v1.0/invoke/tenants-physical-17/method/unlisted-bootstrap-command","{OriginalFormat}":"Start processing HTTP request {HttpMethod} {Uri}"}}
+{"EventId":100,"LogLevel":"Information","Category":"System.Net.Http.HttpClient.TenantBootstrapCommands.ClientHandler","Message":"Sending HTTP request POST http://127.0.0.1:44005/v1.0/invoke/tenants-physical-17/method/unlisted-bootstrap-command","State":{"HttpMethod":"POST","Uri":"http://127.0.0.1:44005/v1.0/invoke/tenants-physical-17/method/unlisted-bootstrap-command","{OriginalFormat}":"Sending HTTP request {HttpMethod} {Uri}"}}
+info: Microsoft.AspNetCore.DataProtection.KeyManagement.XmlKeyManager[62]
+      User profile is available. Using '/home/administrator/.aspnet/DataProtection-Keys' as key repository; keys will not be encrypted at rest.
+warn: Hexalith.EventStore.Configuration.DaprRateLimitConfigSync[0]
+      DAPR config store unavailable for rate limit sync. Falling back to appsettings.json values.
+      System.NullReferenceException: Object reference not set to an instance of an object.
+         at Hexalith.EventStore.Configuration.DaprRateLimitConfigSync.LoadTenantIdsAsync(DaprClient daprClient, CancellationToken cancellationToken)
+         at Hexalith.EventStore.Configuration.DaprRateLimitConfigSync.SyncTenantOverridesAsync(DaprClient daprClient, CancellationToken cancellationToken)
+warn: Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware[9]
+      A request body size limit could not be applied. This server does not support the IHttpMaxRequestBodySizeFeature.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'Hexalith.EventStore.Controllers.CommandsController.SubmitBoundWorkload (Hexalith.EventStore.Gateway)'
+info: Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker[102]
+      Route matched with {action = "SubmitBoundWorkload", controller = "Commands"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] SubmitBoundWorkload(Hexalith.EventStore.Contracts.Commands.BoundWorkloadCommandRequest, System.Threading.CancellationToken) on controller Hexalith.EventStore.Controllers.CommandsController (Hexalith.EventStore.Gateway).
+warn: Microsoft.AspNetCore.Mvc.Filters.RequestSizeLimitFilter[1]
+      A request body size limit could not be applied. This server does not support the IHttpRequestBodySizeFeature.
+warn: LuckyPennySoftware.MediatR.License[0]
+      You do not have a valid license key for the Lucky Penny software MediatR. This is allowed for development and testing scenarios. If you are running in production you are required to have a licensed version. Please visit https://luckypennysoftware.com to obtain a valid license.
+info: Hexalith.EventStore.Pipeline.LoggingBehavior[1000]
+      MediatR pipeline entry: CorrelationId=01M7FCD6KVQWSEJV8BS30R933J, CausationId=01M7FCD6KVQWSEJV8BS30R933J, CommandType=BootstrapGlobalAdmin, Tenant=system, Domain=global-administrators, AggregateId=global-administrators, SourceIp=(null), Endpoint=/api/v1/commands/bound/workload, UserId=(null), ReceivedAtUtc=11/15/2026 10:35:20 +00:00, Stage=PipelineEntry
+info: Hexalith.EventStore.Server.Pipeline.SubmitCommandHandler[1100]
+      Command received: CorrelationId=01M7FCD6KDAEC9T3HRZEVBKWKY, CausationId=01M7FCD6KDAEC9T3HRZEVBKWKY, CommandType=BootstrapGlobalAdmin, TenantId=system, Domain=global-administrators, AggregateId=global-administrators, Stage=CommandReceived
+warn: Hexalith.EventStore.Commands.DaprCommandActivityTracker[0]
+      Failed to track command activity after 3 optimistic-concurrency attempts: CorrelationId=01M7FCD6KDAEC9T3HRZEVBKWKY
+warn: Hexalith.EventStore.Commands.DaprStreamActivityTracker[0]
+      Failed to track stream activity after 3 optimistic-concurrency attempts: TenantId=system, Domain=global-administrators, AggregateId=global-administrators
+info: Hexalith.EventStore.Pipeline.LoggingBehavior[1001]
+      MediatR pipeline exit: CorrelationId=01M7FCD6KVQWSEJV8BS30R933J, CausationId=01M7FCD6KVQWSEJV8BS30R933J, CommandType=BootstrapGlobalAdmin, Tenant=system, Domain=global-administrators, AggregateId=global-administrators, DurationMs=56.1281, Stage=PipelineExit
+info: Microsoft.AspNetCore.Mvc.Infrastructure.ObjectResultExecutor[1]
+      Executing AcceptedResult, writing value of type 'Hexalith.EventStore.Contracts.Commands.SubmitCommandResponse'.
+info: Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker[105]
+      Executed action Hexalith.EventStore.Controllers.CommandsController.SubmitBoundWorkload (Hexalith.EventStore.Gateway) in 99.1808ms
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'Hexalith.EventStore.Controllers.CommandsController.SubmitBoundWorkload (Hexalith.EventStore.Gateway)'
+info: Microsoft.AspNetCore.DataProtection.KeyManagement.XmlKeyManager[62]
+      User profile is available. Using '/home/administrator/.aspnet/DataProtection-Keys' as key repository; keys will not be encrypted at rest.
+warn: Hexalith.EventStore.Configuration.DaprRateLimitConfigSync[0]
+      DAPR config store unavailable for rate limit sync. Falling back to appsettings.json values.
+      System.NullReferenceException: Object reference not set to an instance of an object.
+         at Hexalith.EventStore.Configuration.DaprRateLimitConfigSync.LoadTenantIdsAsync(DaprClient daprClient, CancellationToken cancellationToken)
+         at Hexalith.EventStore.Configuration.DaprRateLimitConfigSync.SyncTenantOverridesAsync(DaprClient daprClient, CancellationToken cancellationToken)
+warn: Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware[9]
+      A request body size limit could not be applied. This server does not support the IHttpMaxRequestBodySizeFeature.
+info: Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerHandler[7]
+      DaprInternal was not authenticated. Failure message: channel-token-invalid
+info: Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerHandler[7]
+      DaprInternal was not authenticated. Failure message: channel-token-invalid
+info: Microsoft.AspNetCore.Authorization.DefaultAuthorizationService[2]
+      Authorization failed. These requirements were not met:
+      DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+      ClaimsAuthorizationRequirement:Claim.Type=eventstore:workload
+      ClaimsAuthorizationRequirement:Claim.Type=eventstore:operation and Claim.Value is one of the following values: (eventstore:command-submit)
+warn: Hexalith.EventStore.ServiceDefaults.Authentication.WorkloadJwtBearerEvents[5501]
+      Internal credential denied: SecurityEvent=InternalAuthenticationDenied, Scheme=DaprInternal, Reason=channel-token-invalid, StatusCode=401, Path=/api/v1/commands/bound/workload, CorrelationId=89d7696b71b2469a83070c4540ffb348
+info: Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerHandler[12]
+      AuthenticationScheme: DaprInternal was challenged.
+info: Microsoft.AspNetCore.DataProtection.KeyManagement.XmlKeyManager[62]
+      User profile is available. Using '/home/administrator/.aspnet/DataProtection-Keys' as key repository; keys will not be encrypted at rest.
+warn: Hexalith.EventStore.Configuration.DaprRateLimitConfigSync[0]
+      DAPR config store unavailable for rate limit sync. Falling back to appsettings.json values.
+      System.NullReferenceException: Object reference not set to an instance of an object.
+         at Hexalith.EventStore.Configuration.DaprRateLimitConfigSync.LoadTenantIdsAsync(DaprClient daprClient, CancellationToken cancellationToken)
+         at Hexalith.EventStore.Configuration.DaprRateLimitConfigSync.SyncTenantOverridesAsync(DaprClient daprClient, CancellationToken cancellationToken)
+warn: Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware[9]
+      A request body size limit could not be applied. This server does not support the IHttpMaxRequestBodySizeFeature.
+info: Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerHandler[7]
+      DaprInternal was not authenticated. Failure message: caller-conflict
+info: Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerHandler[7]
+      DaprInternal was not authenticated. Failure message: caller-conflict
+info: Microsoft.AspNetCore.Authorization.DefaultAuthorizationService[2]
+      Authorization failed. These requirements were not met:
+      DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+      ClaimsAuthorizationRequirement:Claim.Type=eventstore:workload
+      ClaimsAuthorizationRequirement:Claim.Type=eventstore:operation and Claim.Value is one of the following values: (eventstore:command-submit)
+warn: Hexalith.EventStore.ServiceDefaults.Authentication.WorkloadJwtBearerEvents[5501]
+      Internal credential denied: SecurityEvent=InternalAuthenticationDenied, Scheme=DaprInternal, Reason=caller-conflict, StatusCode=401, Path=/api/v1/commands/bound/workload, CorrelationId=8284eadedb2017fe3d5368d5d53f512d
+info: Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerHandler[12]
+      AuthenticationScheme: DaprInternal was challenged.
+info: Microsoft.AspNetCore.DataProtection.KeyManagement.XmlKeyManager[62]
+      User profile is available. Using '/home/administrator/.aspnet/DataProtection-Keys' as key repository; keys will not be encrypted at rest.
+warn: Hexalith.EventStore.Configuration.DaprRateLimitConfigSync[0]
+      DAPR config store unavailable for rate limit sync. Falling back to appsettings.json values.
+      System.NullReferenceException: Object reference not set to an instance of an object.
+         at Hexalith.EventStore.Configuration.DaprRateLimitConfigSync.LoadTenantIdsAsync(DaprClient daprClient, CancellationToken cancellationToken)
+         at Hexalith.EventStore.Configuration.DaprRateLimitConfigSync.SyncTenantOverridesAsync(DaprClient daprClient, CancellationToken cancellationToken)
+warn: Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware[9]
+      A request body size limit could not be applied. This server does not support the IHttpMaxRequestBodySizeFeature.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'Hexalith.EventStore.Controllers.CommandsController.SubmitBoundWorkload (Hexalith.EventStore.Gateway)'
+info: Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker[102]
+      Route matched with {action = "SubmitBoundWorkload", controller = "Commands"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] SubmitBoundWorkload(Hexalith.EventStore.Contracts.Commands.BoundWorkloadCommandRequest, System.Threading.CancellationToken) on controller Hexalith.EventStore.Controllers.CommandsController (Hexalith.EventStore.Gateway).
+warn: Microsoft.AspNetCore.Mvc.Filters.RequestSizeLimitFilter[1]
+      A request body size limit could not be applied. This server does not support the IHttpRequestBodySizeFeature.
+warn: LuckyPennySoftware.MediatR.License[0]
+      You do not have a valid license key for the Lucky Penny software MediatR. This is allowed for development and testing scenarios. If you are running in production you are required to have a licensed version. Please visit https://luckypennysoftware.com to obtain a valid license.
+info: Microsoft.AspNetCore.Mvc.ForbidResult[1]
+      Executing ForbidResult with authentication schemes ().
+info: Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerHandler[13]
+      AuthenticationScheme: Bearer was forbidden.
+info: Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker[105]
+      Executed action Hexalith.EventStore.Controllers.CommandsController.SubmitBoundWorkload (Hexalith.EventStore.Gateway) in 4.9568ms
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'Hexalith.EventStore.Controllers.CommandsController.SubmitBoundWorkload (Hexalith.EventStore.Gateway)'
+info: Microsoft.AspNetCore.DataProtection.KeyManagement.XmlKeyManager[62]
+      User profile is available. Using '/home/administrator/.aspnet/DataProtection-Keys' as key repository; keys will not be encrypted at rest.
+warn: Hexalith.EventStore.Configuration.DaprRateLimitConfigSync[0]
+      DAPR config store unavailable for rate limit sync. Falling back to appsettings.json values.
+      System.NullReferenceException: Object reference not set to an instance of an object.
+         at Hexalith.EventStore.Configuration.DaprRateLimitConfigSync.LoadTenantIdsAsync(DaprClient daprClient, CancellationToken cancellationToken)
+         at Hexalith.EventStore.Configuration.DaprRateLimitConfigSync.SyncTenantOverridesAsync(DaprClient daprClient, CancellationToken cancellationToken)
+warn: Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware[9]
+      A request body size limit could not be applied. This server does not support the IHttpMaxRequestBodySizeFeature.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'Hexalith.EventStore.Controllers.CommandsController.SubmitBoundWorkload (Hexalith.EventStore.Gateway)'
+info: Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker[102]
+      Route matched with {action = "SubmitBoundWorkload", controller = "Commands"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] SubmitBoundWorkload(Hexalith.EventStore.Contracts.Commands.BoundWorkloadCommandRequest, System.Threading.CancellationToken) on controller Hexalith.EventStore.Controllers.CommandsController (Hexalith.EventStore.Gateway).
+warn: Microsoft.AspNetCore.Mvc.Filters.RequestSizeLimitFilter[1]
+      A request body size limit could not be applied. This server does not support the IHttpRequestBodySizeFeature.
+warn: LuckyPennySoftware.MediatR.License[0]
+      You do not have a valid license key for the Lucky Penny software MediatR. This is allowed for development and testing scenarios. If you are running in production you are required to have a licensed version. Please visit https://luckypennysoftware.com to obtain a valid license.
+info: Microsoft.AspNetCore.Mvc.ForbidResult[1]
+      Executing ForbidResult with authentication schemes ().
+info: Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerHandler[13]
+      AuthenticationScheme: Bearer was forbidden.
+info: Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker[105]
+      Executed action Hexalith.EventStore.Controllers.CommandsController.SubmitBoundWorkload (Hexalith.EventStore.Gateway) in 4.2627ms
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'Hexalith.EventStore.Controllers.CommandsController.SubmitBoundWorkload (Hexalith.EventStore.Gateway)'
+info: Microsoft.AspNetCore.DataProtection.KeyManagement.XmlKeyManager[62]
+      User profile is available. Using '/home/administrator/.aspnet/DataProtection-Keys' as key repository; keys will not be encrypted at rest.
+warn: Hexalith.EventStore.Configuration.DaprRateLimitConfigSync[0]
+      DAPR config store unavailable for rate limit sync. Falling back to appsettings.json values.
+      System.NullReferenceException: Object reference not set to an instance of an object.
+         at Hexalith.EventStore.Configuration.DaprRateLimitConfigSync.LoadTenantIdsAsync(DaprClient daprClient, CancellationToken cancellationToken)
+         at Hexalith.EventStore.Configuration.DaprRateLimitConfigSync.SyncTenantOverridesAsync(DaprClient daprClient, CancellationToken cancellationToken)
+warn: Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware[9]
+      A request body size limit could not be applied. This server does not support the IHttpMaxRequestBodySizeFeature.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'Hexalith.EventStore.Controllers.CommandsController.SubmitBoundWorkload (Hexalith.EventStore.Gateway)'
+info: Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker[102]
+      Route matched with {action = "SubmitBoundWorkload", controller = "Commands"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] SubmitBoundWorkload(Hexalith.EventStore.Contracts.Commands.BoundWorkloadCommandRequest, System.Threading.CancellationToken) on controller Hexalith.EventStore.Controllers.CommandsController (Hexalith.EventStore.Gateway).
+warn: Microsoft.AspNetCore.Mvc.Filters.RequestSizeLimitFilter[1]
+      A request body size limit could not be applied. This server does not support the IHttpRequestBodySizeFeature.
+warn: LuckyPennySoftware.MediatR.License[0]
+      You do not have a valid license key for the Lucky Penny software MediatR. This is allowed for development and testing scenarios. If you are running in production you are required to have a licensed version. Please visit https://luckypennysoftware.com to obtain a valid license.
+info: Microsoft.AspNetCore.Mvc.ForbidResult[1]
+      Executing ForbidResult with authentication schemes ().
+info: Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerHandler[13]
+      AuthenticationScheme: Bearer was forbidden.
+info: Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker[105]
+      Executed action Hexalith.EventStore.Controllers.CommandsController.SubmitBoundWorkload (Hexalith.EventStore.Gateway) in 3.1589ms
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'Hexalith.EventStore.Controllers.CommandsController.SubmitBoundWorkload (Hexalith.EventStore.Gateway)'
+info: Microsoft.AspNetCore.DataProtection.KeyManagement.XmlKeyManager[62]
+      User profile is available. Using '/home/administrator/.aspnet/DataProtection-Keys' as key repository; keys will not be encrypted at rest.
+warn: Hexalith.EventStore.Configuration.DaprRateLimitConfigSync[0]
+      DAPR config store unavailable for rate limit sync. Falling back to appsettings.json values.
+      System.NullReferenceException: Object reference not set to an instance of an object.
+         at Hexalith.EventStore.Configuration.DaprRateLimitConfigSync.LoadTenantIdsAsync(DaprClient daprClient, CancellationToken cancellationToken)
+         at Hexalith.EventStore.Configuration.DaprRateLimitConfigSync.SyncTenantOverridesAsync(DaprClient daprClient, CancellationToken cancellationToken)
+warn: Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware[9]
+      A request body size limit could not be applied. This server does not support the IHttpMaxRequestBodySizeFeature.
+info: Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerHandler[7]
+      DaprInternal was not authenticated. Failure message: assertion-missing
+info: Microsoft.AspNetCore.Authorization.DefaultAuthorizationService[2]
+      Authorization failed. These requirements were not met:
+      DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+      ClaimsAuthorizationRequirement:Claim.Type=eventstore:workload
+      ClaimsAuthorizationRequirement:Claim.Type=eventstore:operation and Claim.Value is one of the following values: (eventstore:command-submit)
+warn: Hexalith.EventStore.ServiceDefaults.Authentication.WorkloadJwtBearerEvents[5501]
+      Internal credential denied: SecurityEvent=InternalAuthenticationDenied, Scheme=DaprInternal, Reason=assertion-missing, StatusCode=401, Path=/api/v1/commands/bound/workload, CorrelationId=62892cc7a4fe08faeb826283124fc348
+info: Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerHandler[12]
+      AuthenticationScheme: DaprInternal was challenged.
+info: Microsoft.AspNetCore.DataProtection.KeyManagement.XmlKeyManager[62]
+      User profile is available. Using '/home/administrator/.aspnet/DataProtection-Keys' as key repository; keys will not be encrypted at rest.
+warn: Hexalith.EventStore.Configuration.DaprRateLimitConfigSync[0]
+      DAPR config store unavailable for rate limit sync. Falling back to appsettings.json values.
+      System.NullReferenceException: Object reference not set to an instance of an object.
+         at Hexalith.EventStore.Configuration.DaprRateLimitConfigSync.LoadTenantIdsAsync(DaprClient daprClient, CancellationToken cancellationToken)
+         at Hexalith.EventStore.Configuration.DaprRateLimitConfigSync.SyncTenantOverridesAsync(DaprClient daprClient, CancellationToken cancellationToken)
+warn: Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware[9]
+      A request body size limit could not be applied. This server does not support the IHttpMaxRequestBodySizeFeature.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'Hexalith.EventStore.Controllers.CommandsController.SubmitBoundWorkload (Hexalith.EventStore.Gateway)'
+info: Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker[102]
+      Route matched with {action = "SubmitBoundWorkload", controller = "Commands"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] SubmitBoundWorkload(Hexalith.EventStore.Contracts.Commands.BoundWorkloadCommandRequest, System.Threading.CancellationToken) on controller Hexalith.EventStore.Controllers.CommandsController (Hexalith.EventStore.Gateway).
+warn: Microsoft.AspNetCore.Mvc.Filters.RequestSizeLimitFilter[1]
+      A request body size limit could not be applied. This server does not support the IHttpRequestBodySizeFeature.
+warn: LuckyPennySoftware.MediatR.License[0]
+      You do not have a valid license key for the Lucky Penny software MediatR. This is allowed for development and testing scenarios. If you are running in production you are required to have a licensed version. Please visit https://luckypennysoftware.com to obtain a valid license.
+info: Microsoft.AspNetCore.Mvc.ForbidResult[1]
+      Executing ForbidResult with authentication schemes ().
+info: Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerHandler[13]
+      AuthenticationScheme: Bearer was forbidden.
+info: Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker[105]
+      Executed action Hexalith.EventStore.Controllers.CommandsController.SubmitBoundWorkload (Hexalith.EventStore.Gateway) in 3.8101ms
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'Hexalith.EventStore.Controllers.CommandsController.SubmitBoundWorkload (Hexalith.EventStore.Gateway)'
+info: Microsoft.AspNetCore.DataProtection.KeyManagement.XmlKeyManager[62]
+      User profile is available. Using '/home/administrator/.aspnet/DataProtection-Keys' as key repository; keys will not be encrypted at rest.
+warn: Hexalith.EventStore.Configuration.DaprRateLimitConfigSync[0]
+      DAPR config store unavailable for rate limit sync. Falling back to appsettings.json values.
+      System.NullReferenceException: Object reference not set to an instance of an object.
+         at Hexalith.EventStore.Configuration.DaprRateLimitConfigSync.LoadTenantIdsAsync(DaprClient daprClient, CancellationToken cancellationToken)
+         at Hexalith.EventStore.Configuration.DaprRateLimitConfigSync.SyncTenantOverridesAsync(DaprClient daprClient, CancellationToken cancellationToken)
+warn: Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware[9]
+      A request body size limit could not be applied. This server does not support the IHttpMaxRequestBodySizeFeature.
+info: Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerHandler[7]
+      DaprInternal was not authenticated. Failure message: caller-not-allowed
+info: Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerHandler[7]
+      DaprInternal was not authenticated. Failure message: caller-not-allowed
+info: Microsoft.AspNetCore.Authorization.DefaultAuthorizationService[2]
+      Authorization failed. These requirements were not met:
+      DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+      ClaimsAuthorizationRequirement:Claim.Type=eventstore:workload
+      ClaimsAuthorizationRequirement:Claim.Type=eventstore:operation and Claim.Value is one of the following values: (eventstore:command-submit)
+warn: Hexalith.EventStore.ServiceDefaults.Authentication.WorkloadJwtBearerEvents[5501]
+      Internal credential denied: SecurityEvent=InternalAuthenticationDenied, Scheme=DaprInternal, Reason=caller-not-allowed, StatusCode=401, Path=/api/v1/commands/bound/workload, CorrelationId=1cb6fbf4f048c6ba9e33fb2ee57a694f
+info: Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerHandler[12]
+      AuthenticationScheme: DaprInternal was challenged.
+info: Microsoft.AspNetCore.DataProtection.KeyManagement.XmlKeyManager[62]
+      User profile is available. Using '/home/administrator/.aspnet/DataProtection-Keys' as key repository; keys will not be encrypted at rest.
+warn: Hexalith.EventStore.Configuration.DaprRateLimitConfigSync[0]
+      DAPR config store unavailable for rate limit sync. Falling back to appsettings.json values.
+      System.NullReferenceException: Object reference not set to an instance of an object.
+         at Hexalith.EventStore.Configuration.DaprRateLimitConfigSync.LoadTenantIdsAsync(DaprClient daprClient, CancellationToken cancellationToken)
+         at Hexalith.EventStore.Configuration.DaprRateLimitConfigSync.SyncTenantOverridesAsync(DaprClient daprClient, CancellationToken cancellationToken)
+warn: Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware[9]
+      A request body size limit could not be applied. This server does not support the IHttpMaxRequestBodySizeFeature.
+info: Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerHandler[7]
+      DaprInternal was not authenticated. Failure message: channel-token-missing
+info: Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerHandler[7]
+      DaprInternal was not authenticated. Failure message: channel-token-missing
+info: Microsoft.AspNetCore.Authorization.DefaultAuthorizationService[2]
+      Authorization failed. These requirements were not met:
+      DenyAnonymousAuthorizationRequirement: Requires an authenticated user.
+      ClaimsAuthorizationRequirement:Claim.Type=eventstore:workload
+      ClaimsAuthorizationRequirement:Claim.Type=eventstore:operation and Claim.Value is one of the following values: (eventstore:command-submit)
+warn: Hexalith.EventStore.ServiceDefaults.Authentication.WorkloadJwtBearerEvents[5501]
+      Internal credential denied: SecurityEvent=InternalAuthenticationDenied, Scheme=DaprInternal, Reason=channel-token-missing, StatusCode=401, Path=/api/v1/commands/bound/workload, CorrelationId=276fd5f59f15418a9885206b87ef3806
+info: Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerHandler[12]
+      AuthenticationScheme: DaprInternal was challenged.
+/tmp/hexalith-job.yxMJLX0Z/Hexalith.Tenants/tests/Hexalith.Tenants.IntegrationTests/bin/Release/net11.0/Hexalith.Tenants.IntegrationTests.dll (net11.0|x64) passed [+15/x0/?0] (3s 619ms)
+
+Test run summary: Passed!
+  total: 15
+  failed: 0
+  succeeded: 15
+  skipped: 0
+  duration: 3s 750ms
