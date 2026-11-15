@@ -1,0 +1,94 @@
+[
+  {
+    "name": "owner-sourcetools-source-build",
+    "command": [
+      "dotnet",
+      "build",
+      "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+      "-c",
+      "Debug",
+      "-m:1",
+      "-warnaserror",
+      "-p:UseHexalithProjectReferences=true",
+      "-p:NuGetAudit=false",
+      "-p:MinVerVersionOverride=1.0.0",
+      "--nologo"
+    ],
+    "cwd": "/tmp/hexalith-job.N1qHl7gI/workspace/references/Hexalith.FrontComposer",
+    "exit_code": 0,
+    "elapsed_seconds": 7.99,
+    "log": "_bmad-output/implementation-artifacts/evidence/dotnet-11-source-graph-resume-2026-11-15/owner-sourcetools-source-build.log",
+    "sha256": "5174d242411a52ef486fbd4a43965707a284a60a25ad6f2a86580c065096e7ec"
+  },
+  {
+    "name": "owner-shell-source-build",
+    "command": [
+      "dotnet",
+      "build",
+      "tests/Hexalith.FrontComposer.Shell.Tests/Hexalith.FrontComposer.Shell.Tests.csproj",
+      "-c",
+      "Debug",
+      "-m:1",
+      "-warnaserror",
+      "-p:UseHexalithProjectReferences=true",
+      "-p:NuGetAudit=false",
+      "-p:MinVerVersionOverride=1.0.0",
+      "--nologo"
+    ],
+    "cwd": "/tmp/hexalith-job.N1qHl7gI/workspace/references/Hexalith.FrontComposer",
+    "exit_code": 0,
+    "elapsed_seconds": 11.46,
+    "log": "_bmad-output/implementation-artifacts/evidence/dotnet-11-source-graph-resume-2026-11-15/owner-shell-source-build.log",
+    "sha256": "febf43e9003b615a7421f10f31230e6a67e68e1b739027b208a581d0ebe35a70"
+  },
+  {
+    "name": "owner-governance-before",
+    "command": [
+      "dotnet",
+      "test",
+      "--project",
+      "tests/Hexalith.FrontComposer.Shell.Tests/Hexalith.FrontComposer.Shell.Tests.csproj",
+      "-c",
+      "Debug",
+      "--no-build",
+      "--no-restore",
+      "--filter-class",
+      "Hexalith.FrontComposer.Shell.Tests.Governance.CiGovernanceTests",
+      "--results-directory",
+      "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/dotnet-11-source-graph-resume-2026-11-15/owner-results",
+      "--report-xunit-trx",
+      "--report-xunit-trx-filename",
+      "governance-before.trx"
+    ],
+    "cwd": "/tmp/hexalith-job.N1qHl7gI/workspace/references/Hexalith.FrontComposer",
+    "exit_code": 2,
+    "elapsed_seconds": 52.71,
+    "log": "_bmad-output/implementation-artifacts/evidence/dotnet-11-source-graph-resume-2026-11-15/owner-governance-before.log",
+    "sha256": "1174d4943deb193f5494c83fd3e1c073d974300aab5faa4cf60a22a9c43e24d6"
+  },
+  {
+    "name": "owner-commandform-tests",
+    "command": [
+      "dotnet",
+      "test",
+      "--project",
+      "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+      "-c",
+      "Debug",
+      "--no-build",
+      "--no-restore",
+      "--filter-class",
+      "*CommandFormEmitter*",
+      "--results-directory",
+      "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/dotnet-11-source-graph-resume-2026-11-15/owner-results",
+      "--report-xunit-trx",
+      "--report-xunit-trx-filename",
+      "commandform.trx"
+    ],
+    "cwd": "/tmp/hexalith-job.N1qHl7gI/workspace/references/Hexalith.FrontComposer",
+    "exit_code": 0,
+    "elapsed_seconds": 4.32,
+    "log": "_bmad-output/implementation-artifacts/evidence/dotnet-11-source-graph-resume-2026-11-15/owner-commandform-tests.log",
+    "sha256": "31746f438e2dd0e110435eef859e2e8f76d7d944fea784a6d4709c4696917e0d"
+  }
+]

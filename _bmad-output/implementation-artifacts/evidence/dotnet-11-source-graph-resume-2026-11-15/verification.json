@@ -1,0 +1,85 @@
+{
+  "status": "complete",
+  "scope": "Debug .NET 11 source graph; project references; warnings as errors",
+  "sdk": "11.0.100",
+  "runtimes": [
+    "Microsoft.AspNetCore.App 10.0.10 [/home/administrator/.dotnet/shared/Microsoft.AspNetCore.App]",
+    "Microsoft.AspNetCore.App 10.0.11 [/home/administrator/.dotnet/shared/Microsoft.AspNetCore.App]",
+    "Microsoft.AspNetCore.App 10.0.12 [/home/administrator/.dotnet/shared/Microsoft.AspNetCore.App]",
+    "Microsoft.AspNetCore.App 10.0.13 [/home/administrator/.dotnet/shared/Microsoft.AspNetCore.App]",
+    "Microsoft.AspNetCore.App 10.0.14 [/home/administrator/.dotnet/shared/Microsoft.AspNetCore.App]",
+    "Microsoft.AspNetCore.App 10.0.15 [/home/administrator/.dotnet/shared/Microsoft.AspNetCore.App]",
+    "Microsoft.AspNetCore.App 11.0.0 [/home/administrator/.dotnet/shared/Microsoft.AspNetCore.App]",
+    "Microsoft.NETCore.App 10.0.10 [/home/administrator/.dotnet/shared/Microsoft.NETCore.App]",
+    "Microsoft.NETCore.App 10.0.11 [/home/administrator/.dotnet/shared/Microsoft.NETCore.App]",
+    "Microsoft.NETCore.App 10.0.12 [/home/administrator/.dotnet/shared/Microsoft.NETCore.App]",
+    "Microsoft.NETCore.App 10.0.13 [/home/administrator/.dotnet/shared/Microsoft.NETCore.App]",
+    "Microsoft.NETCore.App 10.0.14 [/home/administrator/.dotnet/shared/Microsoft.NETCore.App]",
+    "Microsoft.NETCore.App 10.0.15 [/home/administrator/.dotnet/shared/Microsoft.NETCore.App]",
+    "Microsoft.NETCore.App 11.0.0 [/home/administrator/.dotnet/shared/Microsoft.NETCore.App]"
+  ],
+  "test_suites": {
+    "Tenants UI": {
+      "passed": 8082,
+      "failed": 0,
+      "skipped": 0,
+      "command_record": "completion-ui-tests"
+    },
+    "FrontComposer generated forms": {
+      "passed": 428,
+      "failed": 0,
+      "skipped": 0,
+      "command_record": "final-generated-tests"
+    },
+    "FrontComposer CI governance": {
+      "passed": 105,
+      "failed": 0,
+      "skipped": 0,
+      "command_record": "final-governance-tests"
+    },
+    "FrontComposer emitter/snapshots": {
+      "passed": 71,
+      "failed": 0,
+      "skipped": 0,
+      "command_record": "final-emitter-tests"
+    }
+  },
+  "distinct_passing_tests": 8686,
+  "overlapping_focused_controls": {
+    "GlobalAdministratorsPageTests": 355
+  },
+  "negative_control": {
+    "regression-control-tests": {
+      "total": 3,
+      "failed": 3,
+      "expected_exit_code": 2,
+      "subject": "earlier generated behavior dispatches values edited during first authorization, confirmation and second authorization"
+    }
+  },
+  "browser": "completion-status-label-browser: exit 0, actual rebuilt net11 executable and Chromium; stale-label mutation rejected",
+  "validator_syntax_checks": 7,
+  "independent_review_layers": {
+    "blind_hunter": "ten findings triaged",
+    "edge_case_hunter": "no findings",
+    "verification_gap": "no verification gaps"
+  },
+  "review_dispositions": {
+    "patched": 1,
+    "rejected": 2,
+    "independent_followups": 7,
+    "additional_verification_fixes": 3
+  },
+  "build_records": [
+    "final-shell-build",
+    "final-sourcetools-build",
+    "completion-ui-source-build",
+    "final-integration-source-build"
+  ],
+  "sources": "completion-source-revisions.json and changed-source-hashes.json",
+  "proof_limits": [
+    "No fresh Release/package archive or clean package-consumer qualification",
+    "No business topology or full isolated readiness launch",
+    "Earlier 35 native/API controls are retained historical evidence, not fresh executions"
+  ],
+  "vcs": "Agent performed no staging, commits, pushes or gitlink updates; concurrent external synchronization is preserved and source revisions are recorded"
+}

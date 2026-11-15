@@ -1,0 +1,42 @@
+{
+  ".": {
+    "commit": "dc0124faad78b34d2fc67a471f1f2085e8646be2",
+    "patch_sha256": "33ff6f177ba3666cd5042fc3c4d3011c848e4cb02fb81db4c30474715f9ef3f6"
+  },
+  "references/Hexalith.EventStore": {
+    "commit": "cbb3a867c773a0857001468062c1779ad9755b8d",
+    "patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "references/Hexalith.Commons": {
+    "commit": "fbf4e94233821f6ca336af91a06feaaeb7a16855",
+    "patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "references/Hexalith.AI.Tools": {
+    "commit": "17a37d83db193f0b7494c1b931fd1e82a67c1424",
+    "patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "references/Hexalith.FrontComposer": {
+    "commit": "b22be84bdbb23d9263a8835496ad0c95adf1843f",
+    "patch_sha256": "f1a1c656d665a65ca75e07baefcf5b75455ca8dc11b92413af89b734c8dd24e6"
+  },
+  "references/Hexalith.Builds": {
+    "commit": "e2bbbd0893f586e4d447ef8358ff747ea3d34435",
+    "patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "references/Hexalith.PolymorphicSerializations": {
+    "commit": "e97b56930e213f674b64c157551f499b0473ec43",
+    "patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "references/Hexalith.Memories": {
+    "commit": "7a5c892508700b2e5c71c921cdaeedf68de5f03d",
+    "patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "references/Hexalith.McpCli": {
+    "commit": "55f8a02435c7faa7c4073bf22c78a5d04c466929",
+    "patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "references/Hexalith.Platform": {
+    "commit": "00ed06074f5b67522eff81dc8dae6ebd28161c36",
+    "patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

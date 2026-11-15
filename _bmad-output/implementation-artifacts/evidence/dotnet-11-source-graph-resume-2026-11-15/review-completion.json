@@ -1,0 +1,12 @@
+{
+  "original_baseline": "401d926eb7d51bdf332696ed3f0fe39a812b3501",
+  "final_patch_bytes": 24511375,
+  "final_patch_sha256": "91d682adb6f790245128e98fd96d4c78e9abcf84e7892c344d320be43e9c572f",
+  "layers": [
+    "blind_hunter",
+    "edge_case_hunter",
+    "verification_gap"
+  ],
+  "phase": "all layers complete; triage complete; final patch regenerated after verified corrections",
+  "notes": "Full cumulative diff includes independent later changes; each finding was triaged against owning source and the original migration intent. No Git index staging occurred."
+}

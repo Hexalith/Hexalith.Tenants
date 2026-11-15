@@ -1,0 +1,78 @@
+[
+  {
+    "command": [
+      "node",
+      "--check",
+      "tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-live-routes.mjs"
+    ],
+    "exit_code": 0,
+    "output": ""
+  },
+  {
+    "command": [
+      "node",
+      "--check",
+      "tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-administrator-dialogs.mjs"
+    ],
+    "exit_code": 0,
+    "output": ""
+  },
+  {
+    "command": [
+      "node",
+      "--check",
+      "tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-navigation-focus.mjs"
+    ],
+    "exit_code": 0,
+    "output": ""
+  },
+  {
+    "command": [
+      "node",
+      "--check",
+      "tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-detail-audit-return.mjs"
+    ],
+    "exit_code": 0,
+    "output": ""
+  },
+  {
+    "command": [
+      "node",
+      "--check",
+      "tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-audit-layout.mjs"
+    ],
+    "exit_code": 0,
+    "output": ""
+  },
+  {
+    "command": [
+      "node",
+      "--check",
+      "tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-workspace-focus.mjs"
+    ],
+    "exit_code": 0,
+    "output": ""
+  },
+  {
+    "command": [
+      "node",
+      "--check",
+      "tests/Hexalith.Tenants.UI.Tests/Browser/validate-status-filter-label-browser.mjs"
+    ],
+    "exit_code": 0,
+    "output": ""
+  },
+  {
+    "command": [
+      "node",
+      "tests/Hexalith.Tenants.UI.Tests/Browser/validate-status-filter-label-browser.mjs",
+      "Debug",
+      "/usr/bin/google-chrome-stable",
+      "60"
+    ],
+    "cwd": "/tmp/hexalith-job.90ClwRrK/workspace",
+    "exit_code": 0,
+    "log": "_bmad-output/implementation-artifacts/evidence/dotnet-11-source-graph-resume-2026-11-15/final-status-label-browser.log",
+    "sha256": "ff38eb798d4c59433510e96e7a6eab151efc76e6ae7d115fef8458892bd2bc25"
+  }
+]

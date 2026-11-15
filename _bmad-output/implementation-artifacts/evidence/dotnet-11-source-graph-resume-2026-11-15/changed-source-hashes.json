@@ -1,0 +1,9 @@
+{
+  "tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs": "83632fff5fe2b45c69b1cbf693f8faa78fc8aea16150bb2d183dc1b0560c02f6",
+  "references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.SourceTools/Emitters/CommandFormEmitter.cs": "308414c3e7e23545e4a3b832602acacbf72043e2b17e7a8df189c1f356e35c0f",
+  "references/Hexalith.FrontComposer/tests/Hexalith.FrontComposer.Shell.Tests/Generated/AsyncCommandFormValidationTests.cs": "f1d03e57ece4ca0480da6c30410d45fb9ef9e6d6ffb5a7cb0e638a3db964e8c3",
+  "references/Hexalith.FrontComposer/tests/Hexalith.FrontComposer.Shell.Tests/Governance/CiGovernanceTests.cs": "7544c076df208d6f455ec90f2260ecc409810e7d31b69481e65b82588355ce05",
+  "references/Hexalith.FrontComposer/tests/Hexalith.FrontComposer.SourceTools.Tests/Emitters/CommandFormEmitterTests.CommandForm_DerivableFieldsHidden_OmitsHiddenFieldsOnly.verified.txt": "bc3c3a219cb625c4bb0bdc5d7c5979910078c6657a870268be1f68007a2ea3bd",
+  "references/Hexalith.FrontComposer/tests/Hexalith.FrontComposer.SourceTools.Tests/Emitters/CommandFormEmitterTests.CommandForm_ShowFieldsOnly_RendersOnlyNamedFields.verified.txt": "2a62fbf1d68402dd4ff5cee0bf888d2d1106abc0b0a4cd0026a24b6149210b85",
+  "references/Hexalith.FrontComposer/tests/ci-governance/stage_release_state.py": "eb4e88810b4002fecb8b5f0a330059baf1f5efd5831b5a0d0514d0c2add95631"
+}
