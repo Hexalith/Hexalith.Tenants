@@ -1,0 +1,40 @@
+{
+  "previousSource": "695d23149c56a6104e81d23a54116b4fb914df95",
+  "source": "b34be9245443d21b72a6076cf205bbbc8a8c521f",
+  "paths": [
+    "_bmad-output/implementation-artifacts/deferred-work.md",
+    "_bmad-output/implementation-artifacts/epic-16-context.md",
+    "_bmad-output/implementation-artifacts/spec-16-3-approve-or-reject-the-exact-runtime-migration.md",
+    "_bmad-output/implementation-artifacts/sprint-status.yaml",
+    "_bmad-output/planning-artifacts/architecture.md",
+    "_bmad-output/planning-artifacts/epics.md",
+    "_bmad-output/planning-artifacts/prd.md",
+    "_bmad-output/planning-artifacts/sprint-change-proposal-2026-11-15-epic-16-approval-lineage.md",
+    "_bmad-output/planning-artifacts/sprint-change-proposal-2026-11-15-epic-16-tuple-freeze.md"
+  ],
+  "unchangedObjects": {
+    "src": "040b5f1774d642801807a819a7854e76e6c4ec41",
+    "tests": "d4ec689dad8ea9e8bfb619cde519dd34104460b5",
+    "eng": "a0ae4a09e9fdbfd9af5234a3b91e76466a41c6ba",
+    ".github/workflows": "95ffbfd6dba2b2cb5930a378cf48922bdc6964b2",
+    ".config": "8dd5ae42f38ecdf69913ff58b585f04b7e6993c4",
+    "global.json": "701104b3d54283ad578b7e1e71aca01d1a59d523",
+    "Directory.Build.props": "21792983e2bc64c1bdeac3e7e9951721861262e7",
+    "Directory.Packages.props": "5faad82479aac6f2e6fe943ef83309d288034f1e",
+    ".gitmodules": "f6c6dea31d7e0c163b2b50200d79035f45635450"
+  },
+  "pinnedCommitlintVersion": "21.2.4",
+  "commitlintCommand": [
+    "/home/administrator/projects/hexalith/tenants/node_modules/.bin/commitlint",
+    "--cwd",
+    "/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer",
+    "--config",
+    "/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/commitlint.config.mjs",
+    "--verbose"
+  ],
+  "exactFullMessage": "fix: story 16.3\n\n",
+  "commitlintExitCode": 0,
+  "commitlintLogSha256": "a5f9c005d2ca0df30c620830a312225e752d3afc0b36f51026e491cc74cf6b2a",
+  "scope": "Preserve concurrent9-file documentation/planning/status work. Existing G3 remains open, current-source captures/operative receipts are not inferred. No runtime or policy/workflow byte transfer qualification.",
+  "observedUtc": "2026-11-15T23:36:05.538531+00:00"
+}

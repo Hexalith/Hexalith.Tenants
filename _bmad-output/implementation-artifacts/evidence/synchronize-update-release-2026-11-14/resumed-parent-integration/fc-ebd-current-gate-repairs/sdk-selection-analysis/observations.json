@@ -1,0 +1,298 @@
+{
+  "scope": "Read-only proposal evidence, no owner code/profile/catalog/selector edits or runtime qualification.",
+  "selected_builds": "65fd22f37b9fad64b595841923cdbe050563ab99",
+  "source_sha256": {
+    "Props/Directory.Packages.props": "7b3512e303cceb7d24a3e123cdeffc27394d94d72371d078790588ff982941aa",
+    "Props/Logging.Build.targets": "7e01de7239cfaaa7840863b82540d2f5d6cd6623a9a0107d4e1b275f3748ca6e",
+    "Tools/evaluated_catalog.py": "bf6b3f030f416954a3e9ba1debb0fab9439c45480a60ed325c8b8acffe685487"
+  },
+  "graph_sha256": "0f731cb7dd659af1c371798367b2909e9876153d8d71ad5d761a9ddeadf9985b",
+  "rows": {
+    "HexalithEventStoreVersion": [
+      {
+        "value": "4.2.0",
+        "attributes": {
+          "Condition": "'$(HexalithEventStoreVersion)' == '' and ('$(UseHexalithProjectReferences)' != 'true' or '$(HexalithEventStoreFromSource)' == 'false') and ('$(HexalithPartiesSdk42CatalogView)' == 'true' or '$(HexalithPlatformSdk42CatalogView)' == 'true' or '$(HexalithBuildsPackagedHostSdk42CatalogView)' == 'true')"
+        }
+      },
+      {
+        "value": "5.1.1",
+        "attributes": {
+          "Condition": "'$(HexalithEventStoreVersion)' == ''"
+        }
+      }
+    ],
+    "HexalithMemoriesVersion": [
+      {
+        "value": "3.0.27",
+        "attributes": {
+          "Condition": "'$(HexalithMemoriesVersion)' == '' and '$(HexalithEventStoreVersion)' == '4.2.0' and ('$(HexalithPartiesSdk42CatalogView)' == 'true' or '$(HexalithPlatformSdk42CatalogView)' == 'true' or '$(HexalithBuildsPackagedHostSdk42CatalogView)' == 'true')"
+        }
+      },
+      {
+        "value": "4.0.0",
+        "attributes": {
+          "Condition": "'$(HexalithMemoriesVersion)' == ''"
+        }
+      }
+    ],
+    "HexalithTenantsVersion": [
+      {
+        "value": "8.0.0",
+        "attributes": {
+          "Condition": "'$(HexalithTenantsVersion)' == '' and ('$(HexalithEventStoreVersion)' != '4.2.0' or ('$(HexalithPartiesSdk42CatalogView)' != 'true' and '$(HexalithPlatformSdk42CatalogView)' != 'true' and '$(HexalithBuildsPackagedHostSdk42CatalogView)' != 'true'))"
+        }
+      },
+      {
+        "value": "7.0.7",
+        "attributes": {
+          "Condition": "'$(HexalithTenantsVersion)' == '' and '$(HexalithEventStoreVersion)' == '4.2.0' and ('$(HexalithPartiesSdk42CatalogView)' == 'true' or '$(HexalithPlatformSdk42CatalogView)' == 'true' or '$(HexalithBuildsPackagedHostSdk42CatalogView)' == 'true')"
+        }
+      }
+    ],
+    "HexalithMcpCliVersion": [
+      {
+        "value": "2.0.1",
+        "attributes": {
+          "Condition": "'$(HexalithMcpCliVersion)' == '' and '$(HexalithEventStoreVersion)' == '4.2.0' and ('$(UseHexalithProjectReferences)' != 'true' or '$(HexalithMcpCliFromSource)' == 'false') and ('$(HexalithPartiesSdk42CatalogView)' == 'true' or '$(HexalithPlatformSdk42CatalogView)' == 'true' or '$(HexalithBuildsPackagedHostSdk42CatalogView)' == 'true')"
+        }
+      },
+      {
+        "value": "3.0.0",
+        "attributes": {
+          "Condition": "'$(HexalithMcpCliVersion)' == ''"
+        }
+      }
+    ],
+    "HexalithOpenApiVersion": [
+      {
+        "value": "3.11.0",
+        "attributes": {}
+      },
+      {
+        "value": "2.13.0",
+        "attributes": {
+          "Condition": "('$(UseHexalithProjectReferences)' != 'true' or '$(HexalithEventStoreFromSource)' == 'false') and '$(HexalithEventStoreVersion)' == '4.2.0' and ('$(HexalithPartiesSdk42CatalogView)' == 'true' or '$(HexalithPlatformSdk42CatalogView)' == 'true' or '$(HexalithBuildsPackagedHostSdk42CatalogView)' == 'true')"
+        }
+      }
+    ],
+    "HexalithAspNetCoreOpenApiVersion": [
+      {
+        "value": "11.0.0",
+        "attributes": {}
+      },
+      {
+        "value": "10.0.15",
+        "attributes": {
+          "Condition": "('$(UseHexalithProjectReferences)' != 'true' or '$(HexalithEventStoreFromSource)' == 'false') and '$(HexalithEventStoreVersion)' == '4.2.0' and ('$(HexalithPartiesSdk42CatalogView)' == 'true' or '$(HexalithPlatformSdk42CatalogView)' == 'true' or '$(HexalithBuildsPackagedHostSdk42CatalogView)' == 'true')"
+        }
+      }
+    ]
+  },
+  "selectors": {
+    "HexalithPartiesSdk42CatalogView": {
+      "count": 40,
+      "subjects": [
+        "Hexalith.Parties",
+        "Hexalith.Parties.AdminPortal",
+        "Hexalith.Parties.AdminPortal.Tests",
+        "Hexalith.Parties.AppHost",
+        "Hexalith.Parties.Aspire",
+        "Hexalith.Parties.Aspire.Tests",
+        "Hexalith.Parties.Authentication",
+        "Hexalith.Parties.Authentication.Tests",
+        "Hexalith.Parties.Catalog.Tests",
+        "Hexalith.Parties.Ci.Tests",
+        "Hexalith.Parties.Client",
+        "Hexalith.Parties.Client.Tests",
+        "Hexalith.Parties.ConsumerPortal",
+        "Hexalith.Parties.ConsumerPortal.Tests",
+        "Hexalith.Parties.Contracts",
+        "Hexalith.Parties.Contracts.Tests",
+        "Hexalith.Parties.EventStoreAdminUI.TestHost",
+        "Hexalith.Parties.EventStoreExtensions",
+        "Hexalith.Parties.EventStoreGateway.TestHost",
+        "Hexalith.Parties.EventStoreSample.Contracts.TestArtifact",
+        "Hexalith.Parties.EventStoreSample.TestHost",
+        "Hexalith.Parties.IntegrationTests",
+        "Hexalith.Parties.Mcp",
+        "Hexalith.Parties.Mcp.Tests",
+        "Hexalith.Parties.Picker",
+        "Hexalith.Parties.Picker.Tests",
+        "Hexalith.Parties.Platform.AttachedLifecycleTests",
+        "Hexalith.Parties.Platform.IntegrationTests",
+        "Hexalith.Parties.Platform.LifecycleTests",
+        "Hexalith.Parties.Projections",
+        "Hexalith.Parties.Projections.Tests",
+        "Hexalith.Parties.Sample",
+        "Hexalith.Parties.Sample.Tests",
+        "Hexalith.Parties.Security",
+        "Hexalith.Parties.Security.Tests",
+        "Hexalith.Parties.Server.Tests",
+        "Hexalith.Parties.Testing",
+        "Hexalith.Parties.Tests",
+        "Hexalith.Parties.UI",
+        "Hexalith.Parties.UI.Tests"
+      ],
+      "matches_existing_frozen_subjects": true
+    },
+    "HexalithPlatformSdk42CatalogView": {
+      "count": 33,
+      "subjects": [
+        "Hexalith.Platform.CatalogBuilder",
+        "Hexalith.Platform.Composition",
+        "Hexalith.Platform.Composition.Tests",
+        "Hexalith.Platform.Custody",
+        "Hexalith.Platform.Custody.Component",
+        "Hexalith.Platform.Custody.Component.Tests",
+        "Hexalith.Platform.Custody.Tests",
+        "Hexalith.Platform.EventStoreHost",
+        "Hexalith.Platform.Identity",
+        "Hexalith.Platform.Identity.Tests",
+        "Hexalith.Platform.OwnerServices.Tests",
+        "Hexalith.Platform.Protection",
+        "Hexalith.Platform.Protection.Qualification.Enrollment",
+        "Hexalith.Platform.Protection.Qualification.Executor",
+        "Hexalith.Platform.Protection.Qualification.Observer",
+        "Hexalith.Platform.Protection.Tests",
+        "Hexalith.Platform.Secrets.ArchiveProcessFixture",
+        "Hexalith.Platform.Secrets.Authority",
+        "Hexalith.Platform.Secrets.Authority.Tests",
+        "Hexalith.Platform.Secrets.Custody",
+        "Hexalith.Platform.Secrets.Custody.Tests",
+        "Hexalith.Platform.Secrets.Inventory",
+        "Hexalith.Platform.Secrets.Inventory.Tests",
+        "Hexalith.Platform.Secrets.Qualification.Enrollment",
+        "Hexalith.Platform.Secrets.Qualification.Executor",
+        "Hexalith.Platform.Secrets.Qualification.Observer",
+        "Hexalith.Platform.Secrets.Runtime",
+        "Hexalith.Platform.Secrets.Runtime.Tests",
+        "Hexalith.Platform.TenantRegistry.Host",
+        "Hexalith.Platform.TestExtension",
+        "Hexalith.Platform.TestExtension.Qualification.Tests",
+        "Hexalith.Platform.Works.Runtime",
+        "Hexalith.Platform.Works.Tests"
+      ],
+      "matches_existing_frozen_subjects": true
+    },
+    "HexalithBuildsPackagedHostSdk42CatalogView": {
+      "count": 3,
+      "subjects": [
+        "Hexalith.Builds.Module.AppHost",
+        "Hexalith.Builds.Module.EventStoreHost",
+        "Hexalith.Builds.Module.UiHost"
+      ],
+      "matches_existing_frozen_subjects": true
+    }
+  },
+  "observed_selections": [
+    {
+      "project": "Hexalith.FrontComposer.Shell",
+      "mode": "package",
+      "selected": {
+        "HexalithEventStoreVersion": "5.1.1",
+        "HexalithMemoriesVersion": "4.0.0",
+        "HexalithTenantsVersion": "8.0.0",
+        "HexalithMcpCliVersion": "3.0.0",
+        "HexalithOpenApiVersion": "3.11.0",
+        "HexalithAspNetCoreOpenApiVersion": "11.0.0"
+      }
+    },
+    {
+      "project": "Hexalith.Platform.Protection",
+      "mode": "package",
+      "selected": {
+        "HexalithEventStoreVersion": "4.2.0",
+        "HexalithMemoriesVersion": "3.0.27",
+        "HexalithTenantsVersion": "7.0.7",
+        "HexalithMcpCliVersion": "2.0.1",
+        "HexalithOpenApiVersion": "2.13.0",
+        "HexalithAspNetCoreOpenApiVersion": "10.0.15"
+      }
+    },
+    {
+      "project": "Hexalith.Parties",
+      "mode": "package",
+      "selected": {
+        "HexalithEventStoreVersion": "4.2.0",
+        "HexalithMemoriesVersion": "3.0.27",
+        "HexalithTenantsVersion": "7.0.7",
+        "HexalithMcpCliVersion": "2.0.1",
+        "HexalithOpenApiVersion": "2.13.0",
+        "HexalithAspNetCoreOpenApiVersion": "10.0.15"
+      }
+    },
+    {
+      "project": "Hexalith.Builds.Module.AppHost",
+      "mode": "package",
+      "selected": {
+        "HexalithEventStoreVersion": "4.2.0",
+        "HexalithMemoriesVersion": "3.0.27",
+        "HexalithTenantsVersion": "7.0.7",
+        "HexalithMcpCliVersion": "2.0.1",
+        "HexalithOpenApiVersion": "2.13.0",
+        "HexalithAspNetCoreOpenApiVersion": "10.0.15"
+      }
+    },
+    {
+      "project": "Hexalith.Platform.Protection",
+      "mode": "source",
+      "selected": {
+        "HexalithEventStoreVersion": "5.1.1",
+        "HexalithMemoriesVersion": "4.0.0",
+        "HexalithTenantsVersion": "8.0.0",
+        "HexalithMcpCliVersion": "3.0.0",
+        "HexalithOpenApiVersion": "3.11.0",
+        "HexalithAspNetCoreOpenApiVersion": "11.0.0"
+      }
+    },
+    {
+      "project": "Hexalith.Platform.Protection",
+      "mode": "source-with-explicit-package-optouts",
+      "selected": {
+        "HexalithEventStoreVersion": "4.2.0",
+        "HexalithMemoriesVersion": "3.0.27",
+        "HexalithTenantsVersion": "7.0.7",
+        "HexalithMcpCliVersion": "2.0.1",
+        "HexalithOpenApiVersion": "2.13.0",
+        "HexalithAspNetCoreOpenApiVersion": "10.0.15"
+      }
+    }
+  ],
+  "existing_refusals": [
+    {
+      "property": "HexalithEventStoreVersion",
+      "refusal": "exact selected65fd: HexalithEventStoreVersion must define exactly one version property, found 2 values ['4.2.0', '5.1.1']"
+    },
+    {
+      "property": "HexalithMemoriesVersion",
+      "refusal": "exact selected65fd: current SDK4.2/Memories3.0.27 qualification HexalithEventStoreVersion retained row must have its exact literal condition and version"
+    },
+    {
+      "property": "HexalithTenantsVersion",
+      "refusal": "exact selected65fd: current SDK4.2/Memories3.0.27 qualification HexalithEventStoreVersion retained row must have its exact literal condition and version"
+    },
+    {
+      "property": "literal-policy-configuration",
+      "refusal": "existing literal-policy path: HexalithEventStoreVersion expected exactly one value '5.1.1', found 2 values ['4.2.0', '5.1.1']"
+    }
+  ],
+  "existing_profile_keys": [
+    "owner_checks",
+    "selected_catalog_required_package_names",
+    "selected_catalog_required_packages",
+    "selected_catalog_required_properties",
+    "selected_catalog_required_property_names"
+  ],
+  "existing_owner_check_keys": [
+    "bom_crlf_on_selected_catalog",
+    "canonical_source_files",
+    "guarded_imports",
+    "no_inline_versions_in_tracked_files",
+    "no_local_override_for_selected_catalog_packages",
+    "no_minver",
+    "no_package_version_rows",
+    "override_not_enabled",
+    "well_formed_project_root"
+  ]
+}

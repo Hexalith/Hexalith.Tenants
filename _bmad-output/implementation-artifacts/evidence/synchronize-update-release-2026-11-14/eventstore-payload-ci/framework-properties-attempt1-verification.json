@@ -1,0 +1,55 @@
+{
+  "source": "2dcf708cbab0d4ad0cf72f947d0b0a1444e251a1",
+  "platform": "00ed06074f5b67522eff81dc8dae6ebd28161c36",
+  "builds": "e2bbbd0893f586e4d447ef8358ff747ea3d34435",
+  "scope": "Local disposable source-component qualification; frozen package cohort remains separate from current SDK/native or installed acceptance.",
+  "workspace": "/dev/shm/hexalith-job.4PiPu6L8/EventStore",
+  "commands": [
+    {
+      "name": "package-view",
+      "command": [
+        "dotnet",
+        "msbuild",
+        "tests/Hexalith.Platform.Protection.Tests/Hexalith.Platform.Protection.Tests.csproj",
+        "-p:Configuration=Release",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:TargetFramework=net11.0",
+        "-p:HexalithEventStoreRoot=/dev/shm/hexalith-job.4PiPu6L8/EventStore",
+        "-getProperty:TargetFramework,HexalithEventStoreVersion,HexalithMemoriesVersion,UseHexalithProjectReferences",
+        "-getItem:PackageVersion"
+      ],
+      "cwd": "/dev/shm/hexalith-job.4PiPu6L8/EventStore/references/Hexalith.Platform",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "log": "framework-properties-attempt1-package-view.log",
+      "log_sha256": "9a37638761810405586c11f00f29e504873848f8dbb38e9d59bd223a32af2e21"
+    },
+    {
+      "name": "framework-probe",
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.Platform.Protection.Tests/Hexalith.Platform.Protection.Tests.csproj",
+        "-c",
+        "Release",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:TargetFramework=net11.0",
+        "-p:TargetFrameworks=net11.0",
+        "-p:HexalithEventStoreRoot=/dev/shm/hexalith-job.4PiPu6L8/EventStore",
+        "-p:GeneratePackageOnBuild=false",
+        "-p:RunAnalyzers=false",
+        "-m:1",
+        "-nodeReuse:false"
+      ],
+      "cwd": "/dev/shm/hexalith-job.4PiPu6L8/EventStore/references/Hexalith.Platform",
+      "exit_code": 1,
+      "expected_exit_code": 0,
+      "log": "framework-properties-attempt1-framework-probe.log",
+      "log_sha256": "1830dba82f6c17262d233ebd2124df8b67c2fae7c05f24f3dde65d58aea5109f"
+    }
+  ],
+  "input_manifest": "framework-properties-attempt1-input-manifest.json",
+  "input_manifest_sha256": "e350d7ac4b90c6697817194c9d987cb3af2c294b4de3c111b507a6f17bc362cb",
+  "input_file_count": 41211,
+  "runner_sha256": "46a1b50d43bef6fc29c11c517159666eafa1ecd78be12e0c50ad7702f22bc0cf"
+}

@@ -1,0 +1,16 @@
+{
+  "source": "695d23149c56a6104e81d23a54116b4fb914df95",
+  "remoteMain": "695d23149c56a6104e81d23a54116b4fb914df95",
+  "clean": true,
+  "integration": "fast-forward preserved9 upstream documentation/planning/status files",
+  "previousSource": "e0eef14ddbbcd03823863a4f417a4b07f6f5bafc",
+  "runtimeTestsWorkflowsToolsCatalogGitlinksUnchanged": true,
+  "pinnedCommitlintVersion": "21.2.4",
+  "commitlintExitCode": 0,
+  "commitlintLogSha256": "962988eb097871cce628f56b9d91550229597e9d2fe8131c9ca6b96c560978da",
+  "ciRun": 43759663625,
+  "qualityRun": 43759663406,
+  "ciAndQualityConclusion": "success",
+  "scope": "Imported tuple records keep their own5.1.0/Builds73 source and explicit migration-approval/sign-off exclusions; no Root5.1.1 or recovery native acceptance inferred.",
+  "observedUtc": "2026-11-15T21:38:54.683998+00:00"
+}

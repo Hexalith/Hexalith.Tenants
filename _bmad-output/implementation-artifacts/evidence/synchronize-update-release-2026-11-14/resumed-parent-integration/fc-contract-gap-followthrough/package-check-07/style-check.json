@@ -1,0 +1,30 @@
+[
+  {
+    "file": "AliasSignatureContractTests.cs",
+    "oneType": true,
+    "publicDocumentation": true,
+    "memberAttributeIndentation": 4,
+    "cases": 4
+  },
+  {
+    "file": "CommandContractBoundaryTests.cs",
+    "oneType": true,
+    "publicDocumentation": true,
+    "memberAttributeIndentation": 4,
+    "cases": 11
+  },
+  {
+    "file": "ModelDefaultComparisonContractTests.cs",
+    "oneType": true,
+    "publicDocumentation": true,
+    "memberAttributeIndentation": 4,
+    "cases": 2
+  },
+  {
+    "file": "TemplateContractBoundaryTests.cs",
+    "oneType": true,
+    "publicDocumentation": true,
+    "memberAttributeIndentation": 4,
+    "cases": 8
+  }
+]

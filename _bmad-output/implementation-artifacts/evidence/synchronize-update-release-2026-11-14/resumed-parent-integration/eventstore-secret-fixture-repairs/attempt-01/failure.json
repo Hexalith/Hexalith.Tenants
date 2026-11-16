@@ -1,0 +1,13 @@
+{
+  "observedAtUtc": "2026-11-16T10:54:39.162478+00:00",
+  "driverSha256": "45de124d4695b2b33da25cf3591570c89d8e1c6db221a254b4c70ed10757511d",
+  "command": [
+    "python3",
+    "tools/tests/test_phase_4_transition.py"
+  ],
+  "exit": "setup/verification timeout after240seconds, no result claimed",
+  "partialProgress": "16case dots only; no complete result",
+  "logSha256": "3784a47f2cd20fa090fb9a92c7f302fe1b4edcdf7b0246f46157490e703f56e2",
+  "reasonForRetry": "Use the existing directly affected redirect test and one existing authenticated CLI entry-point test instead of the unrelated full transition matrix. Preserve all assertions and full required hosted CI.",
+  "cleanup": "Original run-with-temp session34481 exited after subprocess timeout; no Python/.NET descendants with its private eventstore script paths remain."
+}

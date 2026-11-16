@@ -1,0 +1,49 @@
+{
+  "source": "981fabaa3cf44fc2a71eed73549f4fb0d847e2a6",
+  "runId": 43757392176,
+  "conclusion": "success",
+  "jobs": [
+    {
+      "id": 132944366722,
+      "name": "ci / folded-snapshot-compatibility",
+      "conclusion": "success"
+    },
+    {
+      "id": 132944366998,
+      "name": "ci / checkpointed process packages",
+      "conclusion": "success"
+    },
+    {
+      "id": 132944367017,
+      "name": "ci / build-and-test",
+      "conclusion": "success"
+    },
+    {
+      "id": 132944367063,
+      "name": "ci / tenants-source-mode",
+      "conclusion": "success"
+    },
+    {
+      "id": 132944367083,
+      "name": "ci / semantic-release-governance",
+      "conclusion": "success"
+    },
+    {
+      "id": 132944367126,
+      "name": "ci / contracts",
+      "conclusion": "success"
+    },
+    {
+      "id": 132956516416,
+      "name": "ci / performance-tests",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 132956516671,
+      "name": "ci / aspire-tests",
+      "conclusion": "skipped"
+    }
+  ],
+  "observedUtc": "2026-11-15T21:05:58.967604+00:00",
+  "scope": "actual981 owner main source only; separate integration workflow remains pending"
+}

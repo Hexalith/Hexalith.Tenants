@@ -1,0 +1,49 @@
+{
+  "scope": "Exact previously sealed executed77-case overlay recovered from matching still-retained original file captures; matches all original hashes; no current source attribution",
+  "files": {
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/AliasSignatureContractTests.cs": {
+      "sourceCapture": "_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-review-publication-and-recovery/pre-fix/tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/AliasSignatureContractTests.cs",
+      "sha256": "4d9553bc86ca646537226a8473561f0aa5b997a072e3fcdbfecc87d489478a31"
+    },
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/ColumnFilterContractTests.cs": {
+      "sourceCapture": "references/Hexalith.FrontComposer/tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/ColumnFilterContractTests.cs",
+      "sha256": "0e971bab5f02a836f242fdc059916821d60be9579b93e06fcc8e68171d61bc4b"
+    },
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/CommandContractBoundaryTests.cs": {
+      "sourceCapture": "_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-review-publication-and-recovery/pre-fix/tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/CommandContractBoundaryTests.cs",
+      "sha256": "efe32181aeec0762344924751085593dc997ef113a9c45a75279b47448242011"
+    },
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/ErrorFollowthroughBehaviorTests.cs": {
+      "sourceCapture": "_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-review-publication-and-recovery/pre-fix/tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/ErrorFollowthroughBehaviorTests.cs",
+      "sha256": "b104b8433a7de4fc0487283d7e6fb8b03c97be2174485824dea2d637d10b4a53"
+    },
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/ModelDefaultComparisonContractTests.cs": {
+      "sourceCapture": "references/Hexalith.FrontComposer/tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/ModelDefaultComparisonContractTests.cs",
+      "sha256": "a873739f4f6ac344bb381e5c6d11c18b1ad41bcfb7a0a9f23731aec505a82fe3"
+    },
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/OtherAttributeGenerator.cs": {
+      "sourceCapture": "references/Hexalith.FrontComposer/tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/OtherAttributeGenerator.cs",
+      "sha256": "1ee8dfc941d994f3ff2da588c9a23afb2d079abf90fe3959cddff909ad309ce3"
+    },
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/ProjectionParserSurvivorRegressionTests.cs": {
+      "sourceCapture": "references/Hexalith.FrontComposer/tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/ProjectionParserSurvivorRegressionTests.cs",
+      "sha256": "cca95b425e01560c9f9d21859439569ace047c2b1c0cab1a03fb2d7233ab04d2"
+    },
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/RazorRoleRecoveryContractTests.cs": {
+      "sourceCapture": "_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-review-publication-and-recovery/pre-fix/tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/RazorRoleRecoveryContractTests.cs",
+      "sha256": "1cc1f789cf55fb98eab7d96f8819c3374bd3ffba1f74370f9fcdbe38faf26de3"
+    },
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/RelativeTimeHashParticipationTests.cs": {
+      "sourceCapture": "references/Hexalith.FrontComposer/tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/RelativeTimeHashParticipationTests.cs",
+      "sha256": "7c04cc05e322965d1558cf2bc41ecaf6f166ce6a749426e96c3f353258c8125d"
+    },
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/TemplateContractBoundaryTests.cs": {
+      "sourceCapture": "_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-review-publication-and-recovery/pre-fix/tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/TemplateContractBoundaryTests.cs",
+      "sha256": "02cc2e509b2caf21431a726982fcb442fbbbe55a299c3636ad0fe9898b084fb2"
+    },
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/TemplateParserProviderBoundaryTests.cs": {
+      "sourceCapture": "references/Hexalith.FrontComposer/tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/TemplateParserProviderBoundaryTests.cs",
+      "sha256": "19ad13025d8d5632f5a39554e46d0205cd930279d551b71af937c1a1ef959583"
+    }
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "source": "e0eef14ddbbcd03823863a4f417a4b07f6f5bafc",
+  "workspace": "/dev/shm/hexalith-job.CK5U5cNm/FrontComposer",
+  "input_report_sha256": "44079e6dd90db8bf8370b59dd90e0049fb12a9ef5643f403e738ab15172e23bc",
+  "scanner_sha256": "cce64f931ceab6a7d547a297a00f1213d54cbb0dabea542788b61e787d4e5ae2",
+  "commands": [
+    {
+      "command": [
+        "dotnet",
+        "build",
+        "/dev/shm/hexalith-job.CK5U5cNm/scan/Scan.csproj",
+        "-c",
+        "Release",
+        "-m:1",
+        "-nodeReuse:false"
+      ],
+      "exit_code": 0,
+      "output": "scan-build.log",
+      "sha256": "299c216cb99de1606f78fb44680e8e8a9d91c92a0840fd01a59859756d12e11e"
+    },
+    {
+      "command": [
+        "dotnet",
+        "/dev/shm/hexalith-job.CK5U5cNm/scan/bin/Release/net11.0/Scan.dll",
+        "/dev/shm/hexalith-job.CK5U5cNm/FrontComposer",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-error-local-diagnostic/attempt-01/original-error-artifacts/reports/source-tools-error-handling.json",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-error-local-diagnostic/attempt-01/problem-mutants.json"
+      ],
+      "exit_code": 0,
+      "output": "source-index.json",
+      "sha256": "ef540ea452c3a6534142790bff1aae3c778f38bdc09d98c2ba21daef4720db04"
+    }
+  ]
+}

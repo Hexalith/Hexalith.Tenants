@@ -1,0 +1,141 @@
+diff --git a/eng/dependency-graph-policy.json b/eng/dependency-graph-policy.json
+index 59e35be5..2d41dfb7 100644
+--- a/eng/dependency-graph-policy.json
++++ b/eng/dependency-graph-policy.json
+@@ -3527,9 +3527,9 @@
+   },
+   "consumer_source_projections": {
+     "github.com/hexalith/hexalith.platform": {
+-      "owner_commit": "f6f85032598865b9123f16364448bfd02c0ff5b0",
++      "owner_commit": "ead9ff0d4268efaa7054b3a14b45956b647f6171",
+       "gitmodules_sha256": "6da4f5297d79bfa54afcb8daacda70670af11868ba1738cc185f584db8eb6ab7",
+-      "inventory_sha256": "874d7ff434413ef9e11324fd4ecfae1bd9dda527f8cc405e89ffa5a0e5502fd0",
++      "inventory_sha256": "9293b66ffcda6828027ebfe2abfcec9695582baf8fd4433b46271c9fd96e5e7d",
+       "inventory_only_identities": [
+         "github.com/hexalith/hexalith.agents",
+         "github.com/hexalith/hexalith.chatbot",
+@@ -3550,9 +3550,9 @@
+         "DaprSelfHostedMtls.cs": "Platform/DaprSelfHostedMtls.cs",
+         "DaprSelfHostedMtlsSubscriber.cs": "Platform/DaprSelfHostedMtlsSubscriber.cs"
+       },
+-      "builds_commit": "73e60af8a1fcdf3f06726d5d1b6e1199cce778ee",
++      "builds_commit": "65fd22f37b9fad64b595841923cdbe050563ab99",
+       "builds_project": "src/libraries/Hexalith.Builds.Tooling/Hexalith.Builds.Tooling.csproj",
+-      "root_selectors_sha256": "5632f8e8b96f16d6274597b9c38bdec0aa14fbfa824b7457f99235ab1d7eaeaf",
++      "root_selectors_sha256": "4963cd37098b2296339139a17900c95a90a598f76f16a782d57d9791e8156efe",
+       "consumer_configuration_sha256": "6b784fc0091868af62a756ff7b29a7696213c796dd7a31de6960ac385b91b76a"
+     }
+   }
+diff --git a/tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/mutation-target-manifest.json b/tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/mutation-target-manifest.json
+index e9c11254..fee24041 100644
+--- a/tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/mutation-target-manifest.json
++++ b/tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/mutation-target-manifest.json
+@@ -36,6 +36,21 @@
+       "path": "src/Hexalith.FrontComposer.SourceTools/**/*.g.cs",
+       "reason": "Generated source must not be mutated.",
+       "owner": "Story 10-4"
++    },
++    {
++      "path": "src/Hexalith.FrontComposer.SourceTools/Transforms/FormFieldTypeCategory.cs",
++      "reason": "Enum declarations with implicit ordinals only; no executable expressions or Stryker mutation sites. Native reports contain no active mutants for this inventory file. Executable uses remain in the unchanged mutation targets.",
++      "owner": "Story 10-4 SourceTools quality/release-automation"
++    },
++    {
++      "path": "src/Hexalith.FrontComposer.SourceTools/Transforms/ProjectionRenderStrategy.cs",
++      "reason": "Enum declarations with implicit ordinals only; no executable expressions or Stryker mutation sites. Native reports contain no active mutants for this inventory file. Executable uses remain in the unchanged mutation targets.",
++      "owner": "Story 10-4 SourceTools quality/release-automation"
++    },
++    {
++      "path": "src/Hexalith.FrontComposer.SourceTools/Transforms/TypeCategory.cs",
++      "reason": "Enum declarations with implicit ordinals only; no executable expressions or Stryker mutation sites. Native reports contain no active mutants for this inventory file. Executable uses remain in the unchanged mutation targets.",
++      "owner": "Story 10-4 SourceTools quality/release-automation"
+     }
+   ],
+   "triageActions": [
+diff --git a/tests/eng/test_mutation_triage.py b/tests/eng/test_mutation_triage.py
+index 9fdbd2c5..4322d1c2 100644
+--- a/tests/eng/test_mutation_triage.py
++++ b/tests/eng/test_mutation_triage.py
+@@ -298,4 +298,82 @@ class FiniteTriageTests(unittest.TestCase):
+         self.assertIn("if: always() && steps.publication.outcome == 'success'",workflow)
+         self.assertNotIn('continue-on-error',workflow)
+ 
++class MutationInventoryTests(unittest.TestCase):
++    """Exact enum inventory accounting without excluding executable mutation targets."""
++
++    ENUM_ROOT='src/Hexalith.FrontComposer.SourceTools/Transforms/'
++    ENUM_NAMES=('FormFieldTypeCategory','ProjectionRenderStrategy','TypeCategory')
++
++    @staticmethod
++    def implicit_enum(source):
++        source=re.sub(r'//[^\r\n]*|/\*.*?\*/','',source,flags=re.S)
++        return re.fullmatch(r'\s*namespace\s+[\w.]+;\s*public\s+enum\s+\w+\s*\{\s*(?:\w+\s*,\s*)+\}\s*',source) is not None
++
++    def testOnlyTheThreeImplicitEnumFilesReceiveFiniteInventoryAccounting(self):
++        manifest=json.loads((OWNER/(check.REL+'mutation-target-manifest.json')).read_text())
++        expected={self.ENUM_ROOT+name+'.cs' for name in self.ENUM_NAMES}
++        actual={entry['path'] for entry in manifest['explicitExclusions'] if entry['path'].startswith(self.ENUM_ROOT)}
++        self.assertEqual(actual,expected)
++        for entry in manifest['explicitExclusions']:
++            if entry['path'] in expected:
++                self.assertEqual(entry['owner'],'Story 10-4 SourceTools quality/release-automation')
++                self.assertIn('implicit ordinals only',entry['reason'])
++                self.assertTrue(self.implicit_enum((OWNER/entry['path']).read_text()),entry['path'])
++        self.assertFalse(self.implicit_enum('namespace Fixture; public enum E { One = 1, Two, }'))
++        self.assertFalse(self.implicit_enum('namespace Fixture; public enum E { One, } class C { int M() => 1; }'))
++
++    def fixture(self,root,remove_enums=False,extra_executable=False):
++        for relative in ('eng/validate-stryker-reports.ps1','eng/mutation-artifact-policy.ps1','.config/dotnet-tools.json'):
++            target=root/relative;target.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(OWNER/relative,target)
++        manifest=json.loads((OWNER/(check.REL+'mutation-target-manifest.json')).read_text())
++        if remove_enums:
++            manifest['explicitExclusions']=[entry for entry in manifest['explicitExclusions'] if entry['path'] not in {self.ENUM_ROOT+name+'.cs' for name in self.ENUM_NAMES}]
++        for name in self.ENUM_NAMES:
++            relative=self.ENUM_ROOT+name+'.cs';target=root/relative;target.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(OWNER/relative,target)
++        files={}
++        for index,target_root in enumerate(manifest['approvedTargetRoots']):
++            relative=target_root+'/LiveFixture.cs';target=root/relative;target.parent.mkdir(parents=True,exist_ok=True)
++            source='namespace Fixture; class Live'+str(index)+' { int Value() => 1; }\n'
++            target.write_text(source)
++            files[relative]={'language':'cs','source':source,'mutants':[{'id':str(index),'status':'Killed','location':{}}]}
++        for name in self.ENUM_NAMES:
++            relative=self.ENUM_ROOT+name+'.cs'
++            files[relative]={'language':'cs','source':(root/relative).read_text(),'mutants':[]}
++        if extra_executable:
++            (root/self.ENUM_ROOT/'FutureExecutable.cs').write_text('namespace Fixture; class FutureExecutable { int Value() => 2; }\n')
++        reports=root/'reports';reports.mkdir()
++        for segment in manifest['segments']:
++            target=root/segment['config'];target.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(OWNER/segment['config'],target)
++            (reports/(segment['artifactPrefix']+'.json')).write_text(json.dumps({'files':files}))
++        (root/'manifest.json').write_text(json.dumps(manifest))
++
++    def validate(self,root):
++        result=subprocess.run(['pwsh','-NoProfile','-File',str(root/'eng/validate-stryker-reports.ps1'),
++            '-ManifestPath','manifest.json','-ReportRoot','reports','-OutputPath','reports/job-summary.md'],cwd=root,capture_output=True,text=True)
++        refusal=root/'reports/mutation-validation-errors.txt'
++        return result,refusal.read_text() if refusal.exists() else ''
++
++    def testNativeValidatorRetainsTheOriginalThreeTargetDriftRefusals(self):
++        with tempfile.TemporaryDirectory() as temporary:
++            root=Path(temporary);self.fixture(root,remove_enums=True)
++            result,refusal=self.validate(root)
++            self.assertNotEqual(result.returncode,0,result.stdout+result.stderr)
++            self.assertEqual(refusal.count('Target drift:'),3,refusal)
++            for name in self.ENUM_NAMES:self.assertIn(self.ENUM_ROOT+name+'.cs',refusal)
++
++    def testNativeValidatorAcceptsTheseExactNonMutatableInventoryOmissions(self):
++        with tempfile.TemporaryDirectory() as temporary:
++            root=Path(temporary);self.fixture(root)
++            result,refusal=self.validate(root)
++            self.assertEqual(result.returncode,0,result.stdout+result.stderr+refusal)
++
++    def testNativeValidatorStillRefusesAnUnreportedExecutableTarget(self):
++        with tempfile.TemporaryDirectory() as temporary:
++            root=Path(temporary);self.fixture(root,extra_executable=True)
++            result,refusal=self.validate(root)
++            self.assertNotEqual(result.returncode,0,result.stdout+result.stderr)
++            self.assertEqual(refusal.count('Target drift:'),1,refusal)
++            self.assertIn(self.ENUM_ROOT+'FutureExecutable.cs',refusal)
++
++
+ if __name__=='__main__':unittest.main(verbosity=2)

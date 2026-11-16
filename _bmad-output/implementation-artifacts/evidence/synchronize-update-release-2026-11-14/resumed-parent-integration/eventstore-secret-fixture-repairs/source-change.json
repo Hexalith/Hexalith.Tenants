@@ -1,0 +1,22 @@
+{
+  "startedAtUtc": "2026-11-16T10:16:17.740730+00:00",
+  "source": "97c02f7bf99a694528a2b15f0b3b0a6e5fb10e9d",
+  "scope": "Repair only three newly introduced test-fixture credentials reported by actual97c CI security guard; preserve sanitizer and whole tracked-content guard. No production or security-check exclusions.",
+  "inputs": {
+    "tests/Hexalith.EventStore.Testing.Integration.Tests/GeneratedApiSmokePreflightDiagnosticsTests.cs": {
+      "sha256": "e4579f7c5e7652916c683ccfbe317e59600914c1a096a499eec5f12e904851a0",
+      "gitBlob": "69e6b9d8e0911f1c12f3e31966ac3d5ec06d4241",
+      "afterSha256": "802aefaf43ec9d795d3f5bae4c7d30b4a6c61e528d8d8b812e3bc686abd035c4"
+    },
+    "tools/tests/test_phase_4_gate_decision.py": {
+      "sha256": "4817b2d2065113f10d645408861071b4a7e078b7ae9f72363bbf65620b4245d6",
+      "gitBlob": "5aac8d33daa3e9974293d0318dc63d5521ada92f",
+      "afterSha256": "d2072f8dbfc269aaffdfb3defc28fbe090decfc683e73f7f3f2a1dbd2f7aadaa"
+    },
+    "tools/tests/test_phase_4_transition.py": {
+      "sha256": "75eaa886349bbdad249fa66435bb1332020c16d0afb4dbe7d05a6a333b7c1a62",
+      "gitBlob": "3285fbdd1cfad9baf3dd3e4c41b402eb4cc33d8b",
+      "afterSha256": "32638ed460ea02542de626b68a3dc02c73081fabd46fda65b1b90f5c25bea85f"
+    }
+  }
+}

@@ -1,0 +1,117 @@
+{
+  "scope": "Isolated follow-up after retained CS8602 strict compilation refusal. Only the private12207 mutant build leaves CS8602 as a warning to execute its exact runtime branch; owner policy unchanged. Not a Stryker qualification.",
+  "source": "e0eef14ddbbcd03823863a4f417a4b07f6f5bafc",
+  "builds": "73e60af8a1fcdf3f06726d5d1b6e1199cce778ee",
+  "commands": [
+    {
+      "name": "baseline-nullable-control-build",
+      "command": [
+        "dotnet",
+        "build",
+        "/dev/shm/hexalith-job.o9I2XYLh/FrontComposer/tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "-c",
+        "Release",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true",
+        "-p:GeneratePackageOnBuild=false",
+        "-p:RunAnalyzers=false",
+        "-p:UseSharedCompilation=false",
+        "-m:1",
+        "-nodeReuse:false"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "log": "baseline-nullable-control-build.log",
+      "sha256": "fd16df47ed75fc2bd07b3d5973f7d50c4261f050013089febc9928fb247324e6"
+    },
+    {
+      "name": "baseline-nullable-control-run",
+      "command": [
+        "dotnet",
+        "test",
+        "--project",
+        "/dev/shm/hexalith-job.o9I2XYLh/FrontComposer/tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "--no-build",
+        "--configuration",
+        "Release",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.ProjectionParserSurvivorRegressionTests",
+        "--minimum-expected-tests",
+        "13",
+        "--fail-skips",
+        "on",
+        "--results-directory",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-partial-mutation-analysis/baseline-nullable-control-trx",
+        "--report-xunit-trx",
+        "--report-xunit-trx-filename",
+        "tests.trx",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "log": "baseline-nullable-control-run.log",
+      "sha256": "e08215392064c141c5789d8865a47e5f7e529dc08b32a362108b0d5bad09ca2f"
+    },
+    {
+      "name": "12207-nullable-control-build",
+      "command": [
+        "dotnet",
+        "build",
+        "/dev/shm/hexalith-job.o9I2XYLh/FrontComposer/tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "-c",
+        "Release",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true",
+        "-p:GeneratePackageOnBuild=false",
+        "-p:RunAnalyzers=false",
+        "-p:UseSharedCompilation=false",
+        "-m:1",
+        "-nodeReuse:false",
+        "-p:WarningsNotAsErrors=CS8602"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "log": "12207-nullable-control-build.log",
+      "sha256": "bde0590eb9c754f788ac1353b4f5b63aaeb3dd0c682d8ae076b3fe2863daa183"
+    },
+    {
+      "name": "12207-nullable-control-run",
+      "command": [
+        "dotnet",
+        "test",
+        "--project",
+        "/dev/shm/hexalith-job.o9I2XYLh/FrontComposer/tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "--no-build",
+        "--configuration",
+        "Release",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.ProjectionParserSurvivorRegressionTests",
+        "--minimum-expected-tests",
+        "13",
+        "--fail-skips",
+        "on",
+        "--results-directory",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-partial-mutation-analysis/12207-nullable-control-trx",
+        "--report-xunit-trx",
+        "--report-xunit-trx-filename",
+        "tests.trx",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true"
+      ],
+      "exit_code": 2,
+      "expected_exit_code": 2,
+      "log": "12207-nullable-control-run.log",
+      "sha256": "cc682f4cd01f4ef2160adf7715fba81a444d984e61ebdf0102a90183ece72ccb"
+    }
+  ],
+  "workspace": "/dev/shm/hexalith-job.o9I2XYLh/FrontComposer",
+  "parser_git_bytes_sha256": "de4f342c3311d02662f3753d19bb902ae67cc3b3d66af260f67fa434ee1b2eed",
+  "probe_sha256": "1b6fe6c083176a462d17b01ce9c171895b4304a102cbfd6d47d8bd1427ba4158",
+  "runner_sha256": "2a381df83bcebeea6e8451251caa643641838904ce5362e0b9603791d5d2c9cb",
+  "proposed_test_source_sha256": "712a401e2b520cf45bff60a1c35651875232f79d5dc85012cc95bde37e85c087",
+  "private_variants": {
+    "baseline": "3a6391822550ab5789af9b15433cdba849d45cb231bc392fa2c7cba4b882d64b",
+    "12207": "69b8873313c16e30d10ad95e1d26c0ca775d3d2a2379eb3e50cf6ab54ab4d21c"
+  }
+}

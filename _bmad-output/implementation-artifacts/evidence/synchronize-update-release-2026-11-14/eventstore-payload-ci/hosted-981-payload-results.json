@@ -1,0 +1,56 @@
+{
+  "source": "981fabaa3cf44fc2a71eed73549f4fb0d847e2a6",
+  "runId": 43757391741,
+  "jobId": 132944365636,
+  "artifactId": 14178324672,
+  "artifactSha256": "06636321019927004223dce6eb529a420e38ded896c5ee07b0a379340db94df0",
+  "jobConclusion": "success",
+  "results": [
+    {
+      "entry": "payload-protection-invariant-globalization-results.trx",
+      "retained": "hosted-981-payload-protection-invariant-globalization-results.xml",
+      "sha256": "5810093237b6bd523fe3972fafcf95bcca077406a687f043124a76cbbc83cf3c",
+      "counters": {
+        "total": "1",
+        "executed": "1",
+        "passed": "1",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    {
+      "entry": "payload-protection-results.trx",
+      "retained": "hosted-981-payload-protection-results.xml",
+      "sha256": "64ef9a48c18fcbdd0f5d883208eae7ac51e4314cfc68874b66896d75c5899a60",
+      "counters": {
+        "total": "1245",
+        "executed": "1245",
+        "passed": "1245",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    }
+  ]
+}

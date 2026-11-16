@@ -1,0 +1,199 @@
+{
+  "scope": "Exact e0 complete Happy-only local diagnostic, with unmodified authenticated private tool.",
+  "source": "e0eef14ddbbcd03823863a4f417a4b07f6f5bafc",
+  "builds": "73e60af8a1fcdf3f06726d5d1b6e1199cce778ee",
+  "workspace": "/dev/shm/hexalith-job.FTGxRU1F/FrontComposer",
+  "started_utc": "2026-11-15T23:11:08Z",
+  "runner_sha256": "de41a328dde099528725d924932d63f0fd955686b5da7f7bc33aec49f60a38d2",
+  "commands": [
+    {
+      "name": "clone-exact-input",
+      "command": [
+        "git",
+        "clone",
+        "--no-checkout",
+        "--no-hardlinks",
+        "/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer",
+        "/dev/shm/hexalith-job.FTGxRU1F/FrontComposer"
+      ],
+      "cwd": "/dev/shm/hexalith-job.FTGxRU1F",
+      "exit_code": 0,
+      "elapsed_seconds": 1.94,
+      "log": "clone-exact-input.log",
+      "log_sha256": "6490a9f29d2d7e0961ee8f7ff2504126179c2dabcdcf27a9bf204e4b27b192fa"
+    },
+    {
+      "name": "checkout-e0",
+      "command": [
+        "git",
+        "checkout",
+        "--detach",
+        "e0eef14ddbbcd03823863a4f417a4b07f6f5bafc"
+      ],
+      "cwd": "/dev/shm/hexalith-job.FTGxRU1F/FrontComposer",
+      "exit_code": 0,
+      "elapsed_seconds": 0.381,
+      "log": "checkout-e0.log",
+      "log_sha256": "406084dd5a0bfd4cbd0eb94c9b7f5266809a2428b9b55d38550f21593ae6b144"
+    },
+    {
+      "name": "source-clean-preflight",
+      "command": [
+        "git",
+        "status",
+        "--porcelain"
+      ],
+      "cwd": "/dev/shm/hexalith-job.FTGxRU1F/FrontComposer",
+      "exit_code": 0,
+      "elapsed_seconds": 0.308,
+      "log": "source-clean-preflight.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "installed-dotnet",
+      "command": [
+        "dotnet",
+        "--info"
+      ],
+      "cwd": "/dev/shm/hexalith-job.FTGxRU1F/FrontComposer",
+      "exit_code": 0,
+      "elapsed_seconds": 0.017,
+      "log": "installed-dotnet.log",
+      "log_sha256": "358c6a323881b35b97fd33d4a102f829bff79147a57616c1c22a5a09103d3f73",
+      "owned_children_cleaned": []
+    },
+    {
+      "name": "tool-restore",
+      "command": [
+        "dotnet",
+        "tool",
+        "restore"
+      ],
+      "cwd": "/dev/shm/hexalith-job.FTGxRU1F/FrontComposer",
+      "exit_code": 0,
+      "elapsed_seconds": 5.963,
+      "log": "tool-restore.log",
+      "log_sha256": "4c5e61c789049ee3ad90ce6029587458977b991ef9c16ea3a243672e57d53f25",
+      "owned_children_cleaned": []
+    },
+    {
+      "name": "solution-restore",
+      "command": [
+        "dotnet",
+        "restore",
+        "Hexalith.FrontComposer.slnx",
+        "-p:Configuration=Release",
+        "-m:1",
+        "-nodeReuse:false"
+      ],
+      "cwd": "/dev/shm/hexalith-job.FTGxRU1F/FrontComposer",
+      "exit_code": 0,
+      "elapsed_seconds": 4.712,
+      "log": "solution-restore.log",
+      "log_sha256": "c4a69bb3b6beacac3b4196662bd6ef684201f7929236b6b9caeba8265701673c",
+      "owned_children_cleaned": []
+    },
+    {
+      "name": "authenticated-tool-prepare",
+      "command": [
+        "python3",
+        "eng/stryker_compat.py",
+        "prepare"
+      ],
+      "cwd": "/dev/shm/hexalith-job.FTGxRU1F/FrontComposer",
+      "exit_code": 0,
+      "elapsed_seconds": 28.381,
+      "log": "authenticated-tool-prepare.log",
+      "log_sha256": "e47f77338f79dd119b551d0777f420ca3a6211b0e6105f9696ddd206980d6839",
+      "owned_children_cleaned": []
+    },
+    {
+      "name": "source-tools-test-build",
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "--configuration",
+        "Release",
+        "--no-restore",
+        "-m:1",
+        "-nodeReuse:false"
+      ],
+      "cwd": "/dev/shm/hexalith-job.FTGxRU1F/FrontComposer",
+      "exit_code": 0,
+      "elapsed_seconds": 38.761,
+      "log": "source-tools-test-build.log",
+      "log_sha256": "b6cd8ac93d21500504b909684bd2d8209d05f950e3a3be5f984c9c0d52148197",
+      "owned_children_cleaned": []
+    },
+    {
+      "name": "unmutated-docs-baseline",
+      "command": [
+        "dotnet",
+        "test",
+        "--project",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "--no-build",
+        "--configuration",
+        "Release",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.Docs.DocsSiteValidationTests",
+        "--minimum-expected-tests",
+        "1",
+        "--fail-skips",
+        "on",
+        "--results-directory",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-happy-local-diagnostic/attempt-02/docs-baseline",
+        "--report-xunit-trx",
+        "--report-xunit-trx-filename",
+        "tests.xml",
+        "-p:UseMicrosoftTestingPlatformRunner=true"
+      ],
+      "cwd": "/dev/shm/hexalith-job.FTGxRU1F/FrontComposer",
+      "exit_code": 2,
+      "elapsed_seconds": 80.9,
+      "log": "unmutated-docs-baseline.log",
+      "log_sha256": "047119042e700f3f7972b6fa72fb19122f470159b70d9caf1c428dc80f2705f4",
+      "owned_children_cleaned": []
+    }
+  ],
+  "private_regression_proposal_applied": false,
+  "qualification": false,
+  "github_context_supplied": false,
+  "read_only_external_builds_object_store": "/home/administrator/projects/hexalith/tenants/.git/modules/Hexalith.Builds/objects",
+  "builds_archive_sha256": "9b92ae56444da9b4bff1b2527011d061a37aa4ad925ac5c507bb55ef78ada9c5",
+  "bound_inputs": {
+    "eng/stryker-compat/definition.json": {
+      "sha256": "7ec98bbddc20c05ca93eeac57889e71ffe422483461d7fe358ab24400d63851c",
+      "git_blob": "89522c4d0eb150c8f6dedc9dd951284daab255ef"
+    },
+    "eng/stryker-compat/static-reset-compatibility.patch": {
+      "sha256": "5ab4d73d5d4bd69bdc2428d4ad23cf5a1e3a9b613a761521e5cd885c7f6ae66a",
+      "git_blob": "5042985e09f257e03c21f4afc7be6f09a34bd487"
+    },
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/stryker-happy-path.json": {
+      "sha256": "1ab1f072bc2d7719f15916a4643669fef8fc203798cd4c3efbe60490be5150e0",
+      "git_blob": "916aa387f69547f9c5292045c965f9e9d764934d"
+    },
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/mutation-target-manifest.json": {
+      "sha256": "0c7a17f4d32b1e91b25574a687c03bbcd32c075b8dfe533a2eb03ac9f799e179",
+      "git_blob": "ef6be521cebb0569378bdff6a49a1109fa745119"
+    }
+  },
+  "environment": {
+    "UseMicrosoftTestingPlatformRunner": "true",
+    "DOTNET_PROCESSOR_COUNT": "2",
+    "MSBUILDDISABLENODEREUSE": "1",
+    "DOTNET_CLI_USE_MSBUILD_SERVER": "0",
+    "UseSharedCompilation": "false",
+    "NUGET_PACKAGES": "/dev/shm/hexalith-job.FTGxRU1F/packages",
+    "NUGET_HTTP_CACHE_PATH": "/dev/shm/hexalith-job.FTGxRU1F/http-cache",
+    "DOTNET_CLI_HOME": "/dev/shm/hexalith-job.FTGxRU1F/dotnet-home"
+  },
+  "blocker": {
+    "type": "RuntimeError",
+    "message": "unmutated-docs-baseline refused: exit 2"
+  },
+  "final_owned_children_cleaned": [],
+  "finished_utc": "2026-11-15T23:13:50Z"
+}

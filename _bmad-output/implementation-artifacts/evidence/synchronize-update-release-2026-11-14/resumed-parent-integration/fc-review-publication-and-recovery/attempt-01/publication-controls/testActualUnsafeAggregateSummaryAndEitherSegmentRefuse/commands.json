@@ -1,0 +1,46 @@
+[
+  {
+    "command": [
+      "pwsh",
+      "-NoProfile",
+      "-NonInteractive",
+      "-File",
+      "/dev/shm/hexalith-job.WuHUxYWo/tmpul6y_fkm/eng/prepare-mutation-artifacts.ps1"
+    ],
+    "exitCode": 1,
+    "logSha256": "e1c1aca2e5671ee8a58d752bef7e1b5e7b146ffcddd4ab1f114418912b9b11b2"
+  },
+  {
+    "command": [
+      "pwsh",
+      "-NoProfile",
+      "-NonInteractive",
+      "-File",
+      "/dev/shm/hexalith-job.WuHUxYWo/tmpul6y_fkm/eng/prepare-mutation-artifacts.ps1"
+    ],
+    "exitCode": 1,
+    "logSha256": "0aa4e927263910c0382c061d55aaf7fff2e2b09ba5442ba121467ae0342e9b20"
+  },
+  {
+    "command": [
+      "pwsh",
+      "-NoProfile",
+      "-NonInteractive",
+      "-File",
+      "/dev/shm/hexalith-job.WuHUxYWo/tmpul6y_fkm/eng/prepare-mutation-artifacts.ps1"
+    ],
+    "exitCode": 1,
+    "logSha256": "0aa4e927263910c0382c061d55aaf7fff2e2b09ba5442ba121467ae0342e9b20"
+  },
+  {
+    "command": [
+      "pwsh",
+      "-NoProfile",
+      "-NonInteractive",
+      "-File",
+      "/dev/shm/hexalith-job.WuHUxYWo/tmpul6y_fkm/eng/prepare-mutation-artifacts.ps1"
+    ],
+    "exitCode": 1,
+    "logSha256": "0aa4e927263910c0382c061d55aaf7fff2e2b09ba5442ba121467ae0342e9b20"
+  }
+]

@@ -1,0 +1,1070 @@
+{
+  "source_base_commit": "b34be9245443d21b72a6076cf205bbbc8a8c521f",
+  "files": [
+    {
+      "path": "AliasSignatureContractTests.cs",
+      "bytes": 8946,
+      "sha256": "c7f8c8334ce91ae31bfc7fd0287e5dc6cf23f728f84c97429e2bf51c6300cc74"
+    },
+    {
+      "path": "CommandContractBoundaryTests.cs",
+      "bytes": 14686,
+      "sha256": "ec8ff6d06b47e7b463bfc6f1e9c8b37c3b0d161278575f4b76795d181f069fc8"
+    },
+    {
+      "path": "ModelDefaultComparisonContractTests.cs",
+      "bytes": 2000,
+      "sha256": "8440f91d277754b94f11eeff59f3081f9c21080fe64a0a619a42cdc041747364"
+    },
+    {
+      "path": "PackageStyleInspector.cs",
+      "bytes": 2333,
+      "sha256": "45a1c4e61425dbb298687073d0beda023078b20b803d0f90ec3ed517b89cd357"
+    },
+    {
+      "path": "README.md",
+      "bytes": 9482,
+      "sha256": "9887da0ba2d038591400f4ccc4c4299829679b0f5448cf3ee3d4903c8b275253"
+    },
+    {
+      "path": "TemplateContractBoundaryTests.cs",
+      "bytes": 10608,
+      "sha256": "d2161c15b16034d132c5c61753234f7097da418ff63224453146a8e8e7f11e38"
+    },
+    {
+      "path": "additional-caller-bindings.json",
+      "bytes": 1144,
+      "sha256": "42e8ac9ad2df342ffa0239141ff04d09ad7258503e7795d311a4466951569f7f"
+    },
+    {
+      "path": "attempt-01/baseline-build.log",
+      "bytes": 2569,
+      "sha256": "4e37a88f276f487e9000134c18a9eb842789954fa2cac0c037ebffc3589d36a3"
+    },
+    {
+      "path": "attempt-01/baseline-results/tests.trx",
+      "bytes": 31513,
+      "sha256": "c2e58096377e02fa7933c5bffe93d531a1ea355ee0d85461770dbd02a345a8be"
+    },
+    {
+      "path": "attempt-01/baseline-tests.log",
+      "bytes": 2220,
+      "sha256": "1aa4a58ace86996bfb596a53f8d75bd5532db98e0b18a9759c95ff45a5c35de0"
+    },
+    {
+      "path": "attempt-01/private-inputs/AliasSignatureContractTests.cs",
+      "bytes": 3719,
+      "sha256": "9014d1e673aeb6f3df2a6bf4fe2a2665cf1e959be3f632b2990b788ecae19cd4"
+    },
+    {
+      "path": "attempt-01/private-inputs/CommandContractBoundaryTests.cs",
+      "bytes": 7384,
+      "sha256": "afd45152b1d5d77c57f835c124fe57c2cbcfc2d4ae6a8363e3681b87ccb6dd99"
+    },
+    {
+      "path": "attempt-01/private-inputs/ModelDefaultComparisonContractTests.cs",
+      "bytes": 1905,
+      "sha256": "1e798280070f73c2b2e9a141b615c7ebcc2ce0effbc57903e65691bd4b45230e"
+    },
+    {
+      "path": "attempt-01/private-inputs/TemplateContractBoundaryTests.cs",
+      "bytes": 6072,
+      "sha256": "10c4ad4f61bb1ba175c25e1ece72532e2fb7372208e925e26cf42c20b366e992"
+    },
+    {
+      "path": "attempt-01/run-controls.py",
+      "bytes": 7198,
+      "sha256": "e8e4dd8ec7469293ca66cbe5641d5d0e6c08384fe37bf91172347a55a2da38b6"
+    },
+    {
+      "path": "attempt-01/verification.json",
+      "bytes": 3461,
+      "sha256": "80bcef23977577b403a287e210a863132d3f3963b23cca6598a692e11fd0ad86"
+    },
+    {
+      "path": "attempt-02/12767/src/Hexalith.FrontComposer.SourceTools/Parsing/CommandParser.cs",
+      "bytes": 41513,
+      "sha256": "6b5ac3c099202d87b726ed1202971cb49c0d73da2dfafe1828abd14b7c80b962"
+    },
+    {
+      "path": "attempt-02/12767-build.log",
+      "bytes": 1588,
+      "sha256": "70021be2682ce5ae943d5fc07672c3b6f9225248260e5d17f45e2125b34dad2f"
+    },
+    {
+      "path": "attempt-02/12767-results/tests.trx",
+      "bytes": 15729,
+      "sha256": "ed567cdb674ddf715d78cce675de2dde31b8cc9d4633d2afc1bfdcc1209697f9"
+    },
+    {
+      "path": "attempt-02/12767-tests.log",
+      "bytes": 2763,
+      "sha256": "925bab137ecc3d217eb86bd52574b3bdcae66bfd7697ac1a22d1dcc013387b47"
+    },
+    {
+      "path": "attempt-02/12841/src/Hexalith.FrontComposer.SourceTools/Parsing/CommandParser.cs",
+      "bytes": 41426,
+      "sha256": "8b1286f01c5cefefb4b96f6b30efdef4b9eedd01b488fe4957bbdb1b4c4ef60f"
+    },
+    {
+      "path": "attempt-02/12841-build.log",
+      "bytes": 1588,
+      "sha256": "a8045ec2e1759e05a2ad295d5b4e149b4cbe74c1ade3ca2549b1bab01f2e4f9c"
+    },
+    {
+      "path": "attempt-02/12841-results/tests.trx",
+      "bytes": 14907,
+      "sha256": "45ce6c7a3b6f6f81a9b9481447a2443a5b2c5611e2b4e476812fcce994ddefb0"
+    },
+    {
+      "path": "attempt-02/12841-tests.log",
+      "bytes": 2050,
+      "sha256": "3587b9280a6c912fda196b1555b3630bcb133ba2ec4c8c37cf9fb1a162f8645e"
+    },
+    {
+      "path": "attempt-02/12845/src/Hexalith.FrontComposer.SourceTools/Parsing/CommandParser.cs",
+      "bytes": 41194,
+      "sha256": "7d6a0f0d6d1dcc30083720caac53f8960cc479a15a692a38a4ebc8db8aba1571"
+    },
+    {
+      "path": "attempt-02/12845-build.log",
+      "bytes": 1588,
+      "sha256": "a2e7e08b9f4b80b10cbd3305a7feb5311db2b1ce2bd14d2a02bc4a1da9b62894"
+    },
+    {
+      "path": "attempt-02/12845-results/tests.trx",
+      "bytes": 15003,
+      "sha256": "6b40625879c6179a3073d3c32e3b3402fcf0291e7a301ece77f4ac07a028f021"
+    },
+    {
+      "path": "attempt-02/12845-tests.log",
+      "bytes": 2186,
+      "sha256": "777fbcb0276d72e72d34e515f14e70bf5279a6b9e5ea3af52f0ce869ca1c4903"
+    },
+    {
+      "path": "attempt-02/12915/src/Hexalith.FrontComposer.SourceTools/Parsing/CommandParser.cs",
+      "bytes": 41507,
+      "sha256": "0f103c24aed93686cb88e0d6b044f78192f4e1a99fd9408889488c487054f27d"
+    },
+    {
+      "path": "attempt-02/12915-build.log",
+      "bytes": 1588,
+      "sha256": "117a0f0ece1218a1334b1421bc772821350069431d29f83b790c17ba079cd47c"
+    },
+    {
+      "path": "attempt-02/12915-results/tests.trx",
+      "bytes": 14908,
+      "sha256": "1caf510287e2742e9285c08b5aacfe086b2fb51832731f8ab2be7a722d130e08"
+    },
+    {
+      "path": "attempt-02/12915-tests.log",
+      "bytes": 1955,
+      "sha256": "0d2dbea76448317bd52d2a0536471c0ee69ac16b0e4e8bcd972baaa798fc43c3"
+    },
+    {
+      "path": "attempt-02/13013/src/Hexalith.FrontComposer.SourceTools/Parsing/CommandParser.cs",
+      "bytes": 41507,
+      "sha256": "64cea2f66518880f72674d8c0dcadc784e85768f09cab2d85708a8b33d56c0c7"
+    },
+    {
+      "path": "attempt-02/13013-build.log",
+      "bytes": 1588,
+      "sha256": "3d9287c9eba9a67c82275f3e3e3347674a5f5ccf7c474a922bd6df5c02bfa213"
+    },
+    {
+      "path": "attempt-02/13013-results/tests.trx",
+      "bytes": 14900,
+      "sha256": "96d2aef4415304fe3d257fdb2ca8f704b2f2b9f15ad84c1e21a3e48f5416a488"
+    },
+    {
+      "path": "attempt-02/13013-tests.log",
+      "bytes": 1939,
+      "sha256": "754f07f04fe222ac140f7044e6d4255bbc21365d5c366eb534991fc352f3916a"
+    },
+    {
+      "path": "attempt-02/13068/src/Hexalith.FrontComposer.SourceTools/Parsing/CommandParser.cs",
+      "bytes": 41507,
+      "sha256": "533a2c5c4248c041258719cfb886e3f1b949b4f2319818b713292a7071a380be"
+    },
+    {
+      "path": "attempt-02/13068-build.log",
+      "bytes": 1588,
+      "sha256": "3d9287c9eba9a67c82275f3e3e3347674a5f5ccf7c474a922bd6df5c02bfa213"
+    },
+    {
+      "path": "attempt-02/13068-results/tests.trx",
+      "bytes": 14894,
+      "sha256": "49b6a65bb2a1c20ebc0e6540873eb8e7a83914c4bb1c6796f7fba25a15d4e488"
+    },
+    {
+      "path": "attempt-02/13068-tests.log",
+      "bytes": 1977,
+      "sha256": "a5a3e6e9e74e108a198c6165c05b565d76f2b19fc9cf20f76fe4e50a210293c5"
+    },
+    {
+      "path": "attempt-02/13075/src/Hexalith.FrontComposer.SourceTools/Parsing/CommandParser.cs",
+      "bytes": 41507,
+      "sha256": "74f59adc15e2a489ea24003a82b74c3726a2d7faa793cb568a8fd5f7ed35fd07"
+    },
+    {
+      "path": "attempt-02/13075-build.log",
+      "bytes": 1588,
+      "sha256": "8b1a67689a8a251f3df7a97afb1421145c083bbe4059f1adca502dd57b8f5ece"
+    },
+    {
+      "path": "attempt-02/13075-results/tests.trx",
+      "bytes": 14928,
+      "sha256": "93336d895bc79698b8211aa60f7fbb66c3976297d1081d0f1efd394f9a7973e8"
+    },
+    {
+      "path": "attempt-02/13075-tests.log",
+      "bytes": 2011,
+      "sha256": "f2f67330aa136a9f0fb9c465da5adee8005f6e5694e7a71c54d4dab73c09bfb4"
+    },
+    {
+      "path": "attempt-02/13089/src/Hexalith.FrontComposer.SourceTools/Parsing/CommandParser.cs",
+      "bytes": 41507,
+      "sha256": "d64a3d95d1e7aa5f5e4991f73808e93a406ed8343922cc83bbba9f7f7e67c3d9"
+    },
+    {
+      "path": "attempt-02/13089-build.log",
+      "bytes": 1588,
+      "sha256": "fd5a752835bef57aefa1c22ac013df03f04f779474997ee812062e048e953747"
+    },
+    {
+      "path": "attempt-02/13089-results/tests.trx",
+      "bytes": 14104,
+      "sha256": "4c793493a5614182fb850d7b586cbf21fe797e2e57012e3453ebd74efb78b17c"
+    },
+    {
+      "path": "attempt-02/13089-tests.log",
+      "bytes": 754,
+      "sha256": "1921a716d91a45565af321ef87dfc994ea04074c6b0fdedda58886cfcecd1183"
+    },
+    {
+      "path": "attempt-02/13143/src/Hexalith.FrontComposer.SourceTools/Parsing/DomainModel.cs",
+      "bytes": 30011,
+      "sha256": "31439f9bf0e9d874c1c2eec75969d304e65eae9892d03286cd0c1c0b42a351e9"
+    },
+    {
+      "path": "attempt-02/13143-build.log",
+      "bytes": 1588,
+      "sha256": "0ab81fd36039b08d832426f95fb5b5e8f8fc1e4c95a0e8b57bc58a76956afeff"
+    },
+    {
+      "path": "attempt-02/13143-results/tests.trx",
+      "bytes": 5361,
+      "sha256": "1b2aaf1b59ab8c9557550dae7690d7afdba72b45b28ce1d652f38b725bb35c7b"
+    },
+    {
+      "path": "attempt-02/13143-tests.log",
+      "bytes": 2300,
+      "sha256": "8c3fbcb9566076a067aabe2f6d0bc695ed000c55a3df0a75c516d22d173a7784"
+    },
+    {
+      "path": "attempt-02/13216/src/Hexalith.FrontComposer.SourceTools/Parsing/DomainModel.cs",
+      "bytes": 30011,
+      "sha256": "6eb29398de671c7170fc0ad40965d129c0b728bee8f81bf93d85ea25639f6d6f"
+    },
+    {
+      "path": "attempt-02/13216-build.log",
+      "bytes": 1588,
+      "sha256": "8f7d9c782d6e1ce7ec30e78bd41ef11c5d56d07e0ba3047fcb2366776bcef3bb"
+    },
+    {
+      "path": "attempt-02/13216-results/tests.trx",
+      "bytes": 4220,
+      "sha256": "e988da15e98acbd4908b2853b0d66e4387bf6874b62c663e54a6c5aed965d368"
+    },
+    {
+      "path": "attempt-02/13216-tests.log",
+      "bytes": 751,
+      "sha256": "0e6fa23efd6f60316fe7060b89d738c2bfc47a3835cc00773975ec7738c4900d"
+    },
+    {
+      "path": "attempt-02/13730/src/Hexalith.FrontComposer.SourceTools/Parsing/ProjectionTemplateMarkerParser.cs",
+      "bytes": 20923,
+      "sha256": "03b39cc44ae11690629c9e54f739f3fd5cedb42c70ade05b793f2bcf42ff861f"
+    },
+    {
+      "path": "attempt-02/13730-build.log",
+      "bytes": 1588,
+      "sha256": "08072409563f462d57f032c83e1ed3cb7fe70628491c77df231fa87d6305b7fd"
+    },
+    {
+      "path": "attempt-02/13730-results/tests.trx",
+      "bytes": 11764,
+      "sha256": "5a1c52f66dc3fa9609e02f27b66cc863f8a1290170113a5b29e90fcbb1703e57"
+    },
+    {
+      "path": "attempt-02/13730-tests.log",
+      "bytes": 1877,
+      "sha256": "5b6ec34eace611bd0e6a8d3b03dcf4bab3e79be66664f82b29d4dbdb7487614d"
+    },
+    {
+      "path": "attempt-02/13870/src/Hexalith.FrontComposer.SourceTools/Parsing/ProjectionTemplateMarkerParser.cs",
+      "bytes": 21013,
+      "sha256": "b49460b898d6404feab85aebb9fc46d6f93730c8f4d531ea7a8cec3ce86c4370"
+    },
+    {
+      "path": "attempt-02/13870-build.log",
+      "bytes": 1588,
+      "sha256": "70021be2682ce5ae943d5fc07672c3b6f9225248260e5d17f45e2125b34dad2f"
+    },
+    {
+      "path": "attempt-02/13870-results/tests.trx",
+      "bytes": 11927,
+      "sha256": "7ad73a9dea1bb8a4935e26ab60102142aa812cd20c583a0e4432568f03d00163"
+    },
+    {
+      "path": "attempt-02/13870-tests.log",
+      "bytes": 2148,
+      "sha256": "a356335678717e0ba19f033670c52aa624a91c12640e231386540b1351d45d77"
+    },
+    {
+      "path": "attempt-02/13887/src/Hexalith.FrontComposer.SourceTools/Parsing/ProjectionTemplateMarkerParser.cs",
+      "bytes": 21343,
+      "sha256": "53ab1983d288411edaf4cf3a7cfe93ddda70ba07723d8993e2814cd0bd7784d9"
+    },
+    {
+      "path": "attempt-02/13887-build.log",
+      "bytes": 1588,
+      "sha256": "86b0ac7458b4d440f6f6614bf36206eee654892e8c924bdc6a8b3d3070f3f0c4"
+    },
+    {
+      "path": "attempt-02/13887-results/tests.trx",
+      "bytes": 11938,
+      "sha256": "6ae09250b5a3ca2028b4d49693635cb7333171f9693f24c979f71ac9a5329dfc"
+    },
+    {
+      "path": "attempt-02/13887-tests.log",
+      "bytes": 2123,
+      "sha256": "a1512df46f5daebb04de852d0b31159d9f3b26997b912541a62ddda91b74e36f"
+    },
+    {
+      "path": "attempt-02/13888/src/Hexalith.FrontComposer.SourceTools/Parsing/ProjectionTemplateMarkerParser.cs",
+      "bytes": 21343,
+      "sha256": "7e7f9b87fef36e24b5b359621f8bf86f4e2efb4c013d16520d3dd7b366c39d4a"
+    },
+    {
+      "path": "attempt-02/13888-build.log",
+      "bytes": 1588,
+      "sha256": "20b64ff085d3b64caac720f07e75f2a8d33269c03b96be0ca0cbe20fe6db12b3"
+    },
+    {
+      "path": "attempt-02/13888-results/tests.trx",
+      "bytes": 11882,
+      "sha256": "a9db5a39ff98dff8dc9a747ae5189d2649aba54b8b7f7b05055b3abdd3332417"
+    },
+    {
+      "path": "attempt-02/13888-tests.log",
+      "bytes": 2067,
+      "sha256": "9280310ecbdd5a4bea2dd72c785a396f055fd7811d374a21698e00035d990db3"
+    },
+    {
+      "path": "attempt-02/13890/src/Hexalith.FrontComposer.SourceTools/Parsing/ProjectionTemplateMarkerParser.cs",
+      "bytes": 21344,
+      "sha256": "d6714f2163310b8070e78b8f577b29d152483f26c833060278d65facfce173ee"
+    },
+    {
+      "path": "attempt-02/13890-build.log",
+      "bytes": 1588,
+      "sha256": "f944657bc74bf7c6526082330ffc5f91a2a7f3c2799e52028e830dfd31f1cd58"
+    },
+    {
+      "path": "attempt-02/13890-results/tests.trx",
+      "bytes": 12030,
+      "sha256": "eea44e889d8198f1f2b76ef3a928c3546e6a381eebe42c2f8be55d8f841eb382"
+    },
+    {
+      "path": "attempt-02/13890-tests.log",
+      "bytes": 2251,
+      "sha256": "1a3623c6ded09f713bb65ef03e6c5098c9cba209849684f9102d7998685a99c6"
+    },
+    {
+      "path": "attempt-02/13892/src/Hexalith.FrontComposer.SourceTools/Parsing/ProjectionTemplateMarkerParser.cs",
+      "bytes": 21344,
+      "sha256": "0ffca1daa78b24af58e6150343fdf9c5b8199a6132806e25eb089fe9c86f722a"
+    },
+    {
+      "path": "attempt-02/13892-build.log",
+      "bytes": 1588,
+      "sha256": "058a4d7604e2d6fdd8c5284b50e5e3b5c9326023b0c7b9625ef50c1700ab36b8"
+    },
+    {
+      "path": "attempt-02/13892-results/tests.trx",
+      "bytes": 12030,
+      "sha256": "3b85a28ef93d4075e3f142f8e72438da732bc6ffd6884cf5413c8ab249170ef7"
+    },
+    {
+      "path": "attempt-02/13892-tests.log",
+      "bytes": 2251,
+      "sha256": "3a5773d548d8d4267277793e58d4c9bd66d9f99a366ef0581cc7a0ba9db11f09"
+    },
+    {
+      "path": "attempt-02/13996/src/Hexalith.FrontComposer.SourceTools/Parsing/SourceTypeNameFormatter.cs",
+      "bytes": 8764,
+      "sha256": "6524208042ce77b1784bde43ceead1032efc5b573cace4531609ad9e4ff8dc94"
+    },
+    {
+      "path": "attempt-02/13996-build.log",
+      "bytes": 1588,
+      "sha256": "593c01c0f88cb9c040e9c908bdd17f1f6b8405a5d2164917575bdfdffda4f7a2"
+    },
+    {
+      "path": "attempt-02/13996-results/tests.trx",
+      "bytes": 4877,
+      "sha256": "ade34e7d85bed68ef76d76932bbaeb8496212a2bad8474f49fe5fc8bb45d5943"
+    },
+    {
+      "path": "attempt-02/13996-tests.log",
+      "bytes": 1889,
+      "sha256": "80f86b9f02dc464a7ad095da7fa551f1647954773d77e2974eb4544975b1ccd1"
+    },
+    {
+      "path": "attempt-02/14004/src/Hexalith.FrontComposer.SourceTools/Parsing/SourceTypeNameFormatter.cs",
+      "bytes": 8823,
+      "sha256": "bbde741f9d366c942bfdda0c814825cc8d9c8733aa54ced70e56b7ac4ee0edae"
+    },
+    {
+      "path": "attempt-02/14004-build.log",
+      "bytes": 1588,
+      "sha256": "d7c2c1f014369d81e6f45d2a1797be0f9a6c61b93ade360869b0b86f0514b907"
+    },
+    {
+      "path": "attempt-02/14004-results/tests.trx",
+      "bytes": 6824,
+      "sha256": "847d9d9c767570de6983cb117a8ec6a14cdb2e396a1e9f1b6b40d27a6988f72d"
+    },
+    {
+      "path": "attempt-02/14004-tests.log",
+      "bytes": 3825,
+      "sha256": "4e5f4a1a6582069d9cfc915021f273d8c051e631dbae693fa31e69f0a5d462d7"
+    },
+    {
+      "path": "attempt-02/14031/src/Hexalith.FrontComposer.SourceTools/Parsing/SourceTypeNameFormatter.cs",
+      "bytes": 8824,
+      "sha256": "9d88c3d3fd920d9457c2138fa058a6d32f1280011d78ed59f96f3b0e7a99cd94"
+    },
+    {
+      "path": "attempt-02/14031-build.log",
+      "bytes": 1588,
+      "sha256": "70021be2682ce5ae943d5fc07672c3b6f9225248260e5d17f45e2125b34dad2f"
+    },
+    {
+      "path": "attempt-02/14031-results/tests.trx",
+      "bytes": 7620,
+      "sha256": "5be5f4de4f48c56837e4e52cb12e6b7e8455ede8050f9b9b7571c38b3865d4b2"
+    },
+    {
+      "path": "attempt-02/14031-tests.log",
+      "bytes": 4899,
+      "sha256": "c0150aba614b15a841d3b808d07e989f950b3ba46ddbc4b33af210b4fc3fd8a0"
+    },
+    {
+      "path": "attempt-02/baseline-build.log",
+      "bytes": 2569,
+      "sha256": "b45541ad299fc769e3306a5cafac7fd8986cdaab6d6addb6f059cd70f09c653f"
+    },
+    {
+      "path": "attempt-02/baseline-results/tests.trx",
+      "bytes": 30461,
+      "sha256": "520632d5217e5ef9bb21e4bc7f4500e67e9c17c24983af16c41056659f1fe8ed"
+    },
+    {
+      "path": "attempt-02/baseline-tests.log",
+      "bytes": 763,
+      "sha256": "fc7b075d45bc75bce249bbe189be1f9e414a4ef3e1ba173f1a7e2e29dc9869ca"
+    },
+    {
+      "path": "attempt-02/private-inputs/AliasSignatureContractTests.cs",
+      "bytes": 3719,
+      "sha256": "9014d1e673aeb6f3df2a6bf4fe2a2665cf1e959be3f632b2990b788ecae19cd4"
+    },
+    {
+      "path": "attempt-02/private-inputs/CommandContractBoundaryTests.cs",
+      "bytes": 7384,
+      "sha256": "afd45152b1d5d77c57f835c124fe57c2cbcfc2d4ae6a8363e3681b87ccb6dd99"
+    },
+    {
+      "path": "attempt-02/private-inputs/ModelDefaultComparisonContractTests.cs",
+      "bytes": 2000,
+      "sha256": "8440f91d277754b94f11eeff59f3081f9c21080fe64a0a619a42cdc041747364"
+    },
+    {
+      "path": "attempt-02/private-inputs/TemplateContractBoundaryTests.cs",
+      "bytes": 6072,
+      "sha256": "10c4ad4f61bb1ba175c25e1ece72532e2fb7372208e925e26cf42c20b366e992"
+    },
+    {
+      "path": "attempt-02/run-controls.py",
+      "bytes": 7198,
+      "sha256": "8ccaf9c9fd39170d5c79d962360f9ec9fb670a691aaec99180c0281b40b9273f"
+    },
+    {
+      "path": "attempt-02/verification.json",
+      "bytes": 52630,
+      "sha256": "0ce219e9300f4c327d5e397dfb7fc9aa0ff3a3153fbcb2d0af25e0c9e4d29fdf"
+    },
+    {
+      "path": "attempt-03/12935/src/Hexalith.FrontComposer.SourceTools/Parsing/CommandParser.cs",
+      "bytes": 41505,
+      "sha256": "f25729a54fe26aecacdf001f3b7ea3a7fd0120900d15ded5eff519cb4fb3ec75"
+    },
+    {
+      "path": "attempt-03/12935-build.log",
+      "bytes": 1588,
+      "sha256": "4a6c60d3717b4fca4d986e89c86b955cd90827e6dac56c89abbe442f6ff807b6"
+    },
+    {
+      "path": "attempt-03/12935-results/tests.trx",
+      "bytes": 15747,
+      "sha256": "52be0b74f7e873e60101058cd573a6a1f04063c7136073af022c1d96ca724fd1"
+    },
+    {
+      "path": "attempt-03/12935-tests.log",
+      "bytes": 754,
+      "sha256": "cb1a44742ae13e8d827eff876aa29da9bb44ca295caecce9943c06a719ace6eb"
+    },
+    {
+      "path": "attempt-03/13089/src/Hexalith.FrontComposer.SourceTools/Parsing/CommandParser.cs",
+      "bytes": 41507,
+      "sha256": "d64a3d95d1e7aa5f5e4991f73808e93a406ed8343922cc83bbba9f7f7e67c3d9"
+    },
+    {
+      "path": "attempt-03/13089-build.log",
+      "bytes": 1588,
+      "sha256": "90f2b7891999b50ee5167e81c1ab31952d41a1f4a69538694743b16ef4cb55f0"
+    },
+    {
+      "path": "attempt-03/13089-results/tests.trx",
+      "bytes": 16571,
+      "sha256": "fd400b966cce5675aad8981ae46bc8685a26b0cd3b6698127954ac4a4301f838"
+    },
+    {
+      "path": "attempt-03/13089-tests.log",
+      "bytes": 2015,
+      "sha256": "3a60e60ae5d2d411604828ac0d206f9548b72e226cb8ef3be0124b0629206f74"
+    },
+    {
+      "path": "attempt-03/13109/src/Hexalith.FrontComposer.SourceTools/Parsing/CommandParser.cs",
+      "bytes": 41507,
+      "sha256": "72b3c0b00dd8e058fccf14d10e54f2d5a24b5aa74517721fcf3332c8e24f1104"
+    },
+    {
+      "path": "attempt-03/13109-build.log",
+      "bytes": 1588,
+      "sha256": "35f046f494745cee100f4ece3dffa2d907a23a228fe95a990f0ce086e7ecc785"
+    },
+    {
+      "path": "attempt-03/13109-results/tests.trx",
+      "bytes": 16571,
+      "sha256": "f831853ed9a0c79a827211f0c5a3b59309e86a4bfdc12662c83787955e09f829"
+    },
+    {
+      "path": "attempt-03/13109-tests.log",
+      "bytes": 2011,
+      "sha256": "1013c3c9321b3ec935cf0034a12d095027a7aaa80c9e7e1d96dddfa9bf12a57c"
+    },
+    {
+      "path": "attempt-03/14003/src/Hexalith.FrontComposer.SourceTools/Parsing/SourceTypeNameFormatter.cs",
+      "bytes": 8825,
+      "sha256": "62c7f0f607bf8b91b39c8ba0a44f10c728486b82ce60f6141f65342995e69096"
+    },
+    {
+      "path": "attempt-03/14003-build.log",
+      "bytes": 1588,
+      "sha256": "6734d2a18522d47b5601c2856c91c0d349e6dd20597f3dbf6e305bc6e84f18b3"
+    },
+    {
+      "path": "attempt-03/14003-results/tests.trx",
+      "bytes": 4164,
+      "sha256": "b8ddc787ad528def73cf92c0196b4d770023b9e5421d3be12c4086deb7d65424"
+    },
+    {
+      "path": "attempt-03/14003-tests.log",
+      "bytes": 757,
+      "sha256": "48d6f22ab56612ab0c8c90bd807e6790e79e586c98bc5bdfbabadd166f9bf828"
+    },
+    {
+      "path": "attempt-03/baseline-build.log",
+      "bytes": 2566,
+      "sha256": "9dae477d9ccec8714b62ea8e83cfcdb7fe8c4eb54c8232566b3311c8c9785ffe"
+    },
+    {
+      "path": "attempt-03/baseline-results/tests.trx",
+      "bytes": 32104,
+      "sha256": "7c33b4d07a0fc7ebafab6ca96e1f89c4fdc40e30b4f312b5f777668be704d85e"
+    },
+    {
+      "path": "attempt-03/baseline-tests.log",
+      "bytes": 763,
+      "sha256": "abc1c548ebe7847c2e59067699cb3e8c878608ddc09241ca0f44a9ebfb408695"
+    },
+    {
+      "path": "attempt-03/verification.json",
+      "bytes": 13657,
+      "sha256": "4ec502e28b09240b6a1ca812621e4977d86d73cce16c76edd6cad11df1f1e47c"
+    },
+    {
+      "path": "attempt-05/baseline-build.log",
+      "bytes": 2569,
+      "sha256": "0c1afcfa7eef23c9d0dae0928a77e131cb30e71f04d05787534c9981e00751d0"
+    },
+    {
+      "path": "attempt-05/baseline-results/tests.trx",
+      "bytes": 46201,
+      "sha256": "46cc41a3b28ba92a413a7c70d05002cd9a8166b39e7bfce01022a30be1263d4b"
+    },
+    {
+      "path": "attempt-05/baseline-tests.log",
+      "bytes": 6710,
+      "sha256": "ffde9cd6142687b127032637592c2da3eea38a377b9ef3aeadc76d01bc4586b5"
+    },
+    {
+      "path": "attempt-05/private-inputs/AliasSignatureContractTests.cs",
+      "bytes": 8954,
+      "sha256": "a7c5c3511e4e339e6c1195ed6b62b76f1a13685888218da9f253ca5873afd11c"
+    },
+    {
+      "path": "attempt-05/private-inputs/CommandContractBoundaryTests.cs",
+      "bytes": 14686,
+      "sha256": "ec8ff6d06b47e7b463bfc6f1e9c8b37c3b0d161278575f4b76795d181f069fc8"
+    },
+    {
+      "path": "attempt-05/private-inputs/ModelDefaultComparisonContractTests.cs",
+      "bytes": 2000,
+      "sha256": "8440f91d277754b94f11eeff59f3081f9c21080fe64a0a619a42cdc041747364"
+    },
+    {
+      "path": "attempt-05/private-inputs/TemplateContractBoundaryTests.cs",
+      "bytes": 10608,
+      "sha256": "d2161c15b16034d132c5c61753234f7097da418ff63224453146a8e8e7f11e38"
+    },
+    {
+      "path": "attempt-05/run-controls.py",
+      "bytes": 6942,
+      "sha256": "24508bd0a64d9a0a4df6932e1e32c88315dcd73babdb3dbc42ae990d30da2960"
+    },
+    {
+      "path": "attempt-05/verification.json",
+      "bytes": 3463,
+      "sha256": "9d45a923ff166580709b22702447bc135667f3d8049265ef6cdbb094414b54e8"
+    },
+    {
+      "path": "attempt-06/12915/src/Hexalith.FrontComposer.SourceTools/Parsing/CommandParser.cs",
+      "bytes": 41507,
+      "sha256": "0f103c24aed93686cb88e0d6b044f78192f4e1a99fd9408889488c487054f27d"
+    },
+    {
+      "path": "attempt-06/12915-build.log",
+      "bytes": 1588,
+      "sha256": "ebdbdd9189f700b9782437dbdd28e88e2b3d346a9d1454d39942eefc41b292a9"
+    },
+    {
+      "path": "attempt-06/12915-results/tests.trx",
+      "bytes": 19596,
+      "sha256": "0bd7c78f54f92fa053d2a81ffe49345cb691eb0c62cd167081ce3efc5fd4d6e3"
+    },
+    {
+      "path": "attempt-06/12915-tests.log",
+      "bytes": 1962,
+      "sha256": "13615758cc6edd9457df3da4741e71f2ec4d7399efebf30b81f2d5f1b58371c0"
+    },
+    {
+      "path": "attempt-06/13013/src/Hexalith.FrontComposer.SourceTools/Parsing/CommandParser.cs",
+      "bytes": 41507,
+      "sha256": "64cea2f66518880f72674d8c0dcadc784e85768f09cab2d85708a8b33d56c0c7"
+    },
+    {
+      "path": "attempt-06/13013-build.log",
+      "bytes": 1588,
+      "sha256": "4359bdc1f1fcbc8c18ddcb87e3ccb74fb4aa0dc1847d5487acb797c0da27797c"
+    },
+    {
+      "path": "attempt-06/13013-results/tests.trx",
+      "bytes": 19588,
+      "sha256": "9b37d5077a5ad9f30a298cce631fc1bb5ad6dc885140a6bf5eb459544008d155"
+    },
+    {
+      "path": "attempt-06/13013-tests.log",
+      "bytes": 1945,
+      "sha256": "7155fc673bc1e762a6f2f2c9f8fa8622619183a72535a9531cadeb61d7c5fa0a"
+    },
+    {
+      "path": "attempt-06/13027/src/Hexalith.FrontComposer.SourceTools/Parsing/CommandParser.cs",
+      "bytes": 41498,
+      "sha256": "5fd37c02a3279ecf4899037cdd821ef22fa282ced13e12e6a15efff8b26464aa"
+    },
+    {
+      "path": "attempt-06/13027-build.log",
+      "bytes": 1588,
+      "sha256": "a6717a7c3ba370ab75d51e36fb68c74e61c75982ebf78ad2d2e87ef6ffb31b9f"
+    },
+    {
+      "path": "attempt-06/13027-results/tests.trx",
+      "bytes": 19594,
+      "sha256": "696adc8192e7620f47f1ff409e21524e33a5fb86153c19a983508f437cdebf84"
+    },
+    {
+      "path": "attempt-06/13027-tests.log",
+      "bytes": 1956,
+      "sha256": "cbdd129f43a1178375398278247b93427f56be0cdfda946f193d7e48a377c1ed"
+    },
+    {
+      "path": "attempt-06/13047/src/Hexalith.FrontComposer.SourceTools/Parsing/CommandParser.cs",
+      "bytes": 41498,
+      "sha256": "da0fceef4afff89c4d20b8e82b631448aed7bd278e9570343fed7f2050bb7789"
+    },
+    {
+      "path": "attempt-06/13047-build.log",
+      "bytes": 1588,
+      "sha256": "b3bb310eff89232d9e8d2cf7137682c52a6c787b78022b981229b13273fa6e34"
+    },
+    {
+      "path": "attempt-06/13047-results/tests.trx",
+      "bytes": 19989,
+      "sha256": "8a69963c299178ed65d65848240ae6fa73d5f376e1b109a815c74998127eb0b5"
+    },
+    {
+      "path": "attempt-06/13047-tests.log",
+      "bytes": 2337,
+      "sha256": "893fc58ffcb9f9e0fd3651248a72014de30e154dda00024680601c04734c0062"
+    },
+    {
+      "path": "attempt-06/13089/src/Hexalith.FrontComposer.SourceTools/Parsing/CommandParser.cs",
+      "bytes": 41507,
+      "sha256": "d64a3d95d1e7aa5f5e4991f73808e93a406ed8343922cc83bbba9f7f7e67c3d9"
+    },
+    {
+      "path": "attempt-06/13089-build.log",
+      "bytes": 1588,
+      "sha256": "876e47efa8db3ecc3136b9a59d5466d0c8c8412293ab6107a0d03a7bc44c7e29"
+    },
+    {
+      "path": "attempt-06/13089-results/tests.trx",
+      "bytes": 20064,
+      "sha256": "9261afa2f8f9c2e9da199c9eb95ac42aed0aeda3ea418d06d868259399cba358"
+    },
+    {
+      "path": "attempt-06/13089-tests.log",
+      "bytes": 2464,
+      "sha256": "eb7c60f5cbbf0e990409295b9770fc0a23d89cfa22498f805ed5ebaea4975940"
+    },
+    {
+      "path": "attempt-06/13143/src/Hexalith.FrontComposer.SourceTools/Parsing/DomainModel.cs",
+      "bytes": 30011,
+      "sha256": "31439f9bf0e9d874c1c2eec75969d304e65eae9892d03286cd0c1c0b42a351e9"
+    },
+    {
+      "path": "attempt-06/13143-build.log",
+      "bytes": 1588,
+      "sha256": "876e47efa8db3ecc3136b9a59d5466d0c8c8412293ab6107a0d03a7bc44c7e29"
+    },
+    {
+      "path": "attempt-06/13143-results/tests.trx",
+      "bytes": 5304,
+      "sha256": "ff542fff65617ff4da0a97fc9b6d059f895e8fe278af2a33e5cd943c079ab443"
+    },
+    {
+      "path": "attempt-06/13143-tests.log",
+      "bytes": 2243,
+      "sha256": "41afd9484d05432b0a4e271d276985abfdc90c7d9bcc6c0131995bb1a7c91579"
+    },
+    {
+      "path": "attempt-06/13730/src/Hexalith.FrontComposer.SourceTools/Parsing/ProjectionTemplateMarkerParser.cs",
+      "bytes": 20923,
+      "sha256": "03b39cc44ae11690629c9e54f739f3fd5cedb42c70ade05b793f2bcf42ff861f"
+    },
+    {
+      "path": "attempt-06/13730-build.log",
+      "bytes": 1588,
+      "sha256": "ba039e1fe84dc42883fc8f064e2b1d15d826920f0406bfcf8d1f550722d1ba04"
+    },
+    {
+      "path": "attempt-06/13730-results/tests.trx",
+      "bytes": 14785,
+      "sha256": "cea2c06899527ceca5887c46db849eba0f2fd6142f29292641b94f0c462d2a1c"
+    },
+    {
+      "path": "attempt-06/13730-tests.log",
+      "bytes": 1881,
+      "sha256": "fe7f996121185f1287a698b6861187264f315cffe0984baa2573c79889fe8658"
+    },
+    {
+      "path": "attempt-06/13736/src/Hexalith.FrontComposer.SourceTools/Parsing/ProjectionTemplateMarkerParser.cs",
+      "bytes": 20717,
+      "sha256": "c01eab91aee8bc5d0058eedc22991dc27333e48014dbb569d0b38b1340adf13a"
+    },
+    {
+      "path": "attempt-06/13736-build.log",
+      "bytes": 1588,
+      "sha256": "dbe25a51dca1dc183da2b40ed35374d1679bd8ed8980a88ff97e3c2229f2d684"
+    },
+    {
+      "path": "attempt-06/13736-results/tests.trx",
+      "bytes": 14917,
+      "sha256": "32402568e315a00ad25718812c01885c9bb7887b1395234ace317fca2dc63f7c"
+    },
+    {
+      "path": "attempt-06/13736-tests.log",
+      "bytes": 2060,
+      "sha256": "a9f4e06a04cfc44e3b27e780a48cbf9c3717d2f4aa8eb30cd172b2388d915c69"
+    },
+    {
+      "path": "attempt-06/13748/src/Hexalith.FrontComposer.SourceTools/Parsing/ProjectionTemplateMarkerParser.cs",
+      "bytes": 20628,
+      "sha256": "f33266a902fbcf6b952000218e96de33da60ef5c5432422e1549e008b437d1e3"
+    },
+    {
+      "path": "attempt-06/13748-build.log",
+      "bytes": 1588,
+      "sha256": "0bb69d15a99c5358b29a3ac8cf444c8e68dd2e86c48ec02c72e9687ea247cd93"
+    },
+    {
+      "path": "attempt-06/13748-results/tests.trx",
+      "bytes": 14907,
+      "sha256": "65b02ce91e885b655fce23b39181f3c4e932484305a43cf31c139d1d2b06e444"
+    },
+    {
+      "path": "attempt-06/13748-tests.log",
+      "bytes": 2038,
+      "sha256": "c4fdbf5e7df7ce075bc0d2d78e30ccb903d6edc3477312e78ba74bb1abfc0c0a"
+    },
+    {
+      "path": "attempt-06/13870/src/Hexalith.FrontComposer.SourceTools/Parsing/ProjectionTemplateMarkerParser.cs",
+      "bytes": 21013,
+      "sha256": "b49460b898d6404feab85aebb9fc46d6f93730c8f4d531ea7a8cec3ce86c4370"
+    },
+    {
+      "path": "attempt-06/13870-build.log",
+      "bytes": 1588,
+      "sha256": "dbe25a51dca1dc183da2b40ed35374d1679bd8ed8980a88ff97e3c2229f2d684"
+    },
+    {
+      "path": "attempt-06/13870-results/tests.trx",
+      "bytes": 14892,
+      "sha256": "3bc297f7d740f80e3184acd215957d557b84de39d417c2a3154130dae068c4ce"
+    },
+    {
+      "path": "attempt-06/13870-tests.log",
+      "bytes": 2093,
+      "sha256": "be38165e1c49ef0dd09410cb111c153595287a3c0aa7220247832b94ed2643a1"
+    },
+    {
+      "path": "attempt-06/13939/src/Hexalith.FrontComposer.SourceTools/Parsing/SourceTypeNameFormatter.cs",
+      "bytes": 8771,
+      "sha256": "3763b7ab09c8cbd33ed86fcdfca99bd9aae902e4ae94bfb4910732bd721ae3c6"
+    },
+    {
+      "path": "attempt-06/13939-build.log",
+      "bytes": 1588,
+      "sha256": "199791c5c7ed600c7b3605515a7bbf3e3946b0ddfa0dfe3e8f326dbdee576a7d"
+    },
+    {
+      "path": "attempt-06/13939-results/tests.trx",
+      "bytes": 8278,
+      "sha256": "92cea132c1ba81ad6e6c2b618fa2dd688a6547f606679e5910cf9ec8c92ddb0f"
+    },
+    {
+      "path": "attempt-06/13939-tests.log",
+      "bytes": 1990,
+      "sha256": "1d977dbbe2aaba5593e101a472e4810dbee3f688a81583195a49a55685bb48bc"
+    },
+    {
+      "path": "attempt-06/13973/src/Hexalith.FrontComposer.SourceTools/Parsing/SourceTypeNameFormatter.cs",
+      "bytes": 8823,
+      "sha256": "c77bc0e0a50e2c08567bed501788bb4b0aa5ef0bd9ee1dc12d69503a2c199923"
+    },
+    {
+      "path": "attempt-06/13973-build.log",
+      "bytes": 1588,
+      "sha256": "3d93d148efecfef473e14521ae3e59e71c49912e87ebb50bffa84350d7e2eaa4"
+    },
+    {
+      "path": "attempt-06/13973-results/tests.trx",
+      "bytes": 9673,
+      "sha256": "2acf58babcbf140021e5ceb5c671684d064aefb18b7495a1de13950b8d615e6e"
+    },
+    {
+      "path": "attempt-06/13973-tests.log",
+      "bytes": 3396,
+      "sha256": "979b20167a44c10010aa46529dedd96e2eb7c35a325b0378673f87c43d257bbe"
+    },
+    {
+      "path": "attempt-06/13996/src/Hexalith.FrontComposer.SourceTools/Parsing/SourceTypeNameFormatter.cs",
+      "bytes": 8764,
+      "sha256": "6524208042ce77b1784bde43ceead1032efc5b573cace4531609ad9e4ff8dc94"
+    },
+    {
+      "path": "attempt-06/13996-build.log",
+      "bytes": 1588,
+      "sha256": "a6717a7c3ba370ab75d51e36fb68c74e61c75982ebf78ad2d2e87ef6ffb31b9f"
+    },
+    {
+      "path": "attempt-06/13996-results/tests.trx",
+      "bytes": 8181,
+      "sha256": "55774cd4dbeaecbedf27e66577ea4262266ce51ea8518bdfa94ff8eac8bf2a89"
+    },
+    {
+      "path": "attempt-06/13996-tests.log",
+      "bytes": 1889,
+      "sha256": "85d27443bae42e7bb73fe62c5616c7e46c74ecb569418ac50127835089a9d54b"
+    },
+    {
+      "path": "attempt-06/14003/src/Hexalith.FrontComposer.SourceTools/Parsing/SourceTypeNameFormatter.cs",
+      "bytes": 8825,
+      "sha256": "62c7f0f607bf8b91b39c8ba0a44f10c728486b82ce60f6141f65342995e69096"
+    },
+    {
+      "path": "attempt-06/14003-build.log",
+      "bytes": 1588,
+      "sha256": "a6717a7c3ba370ab75d51e36fb68c74e61c75982ebf78ad2d2e87ef6ffb31b9f"
+    },
+    {
+      "path": "attempt-06/14003-results/tests.trx",
+      "bytes": 7468,
+      "sha256": "aea7dbc0eb397518deb63373401d46b8ad293e0f7f64b2164c0c2c296a01ccf3"
+    },
+    {
+      "path": "attempt-06/14003-tests.log",
+      "bytes": 757,
+      "sha256": "cffe8729b0c238dc70f0e7729fc284e02024961769181e460214b127829095de"
+    },
+    {
+      "path": "attempt-06/baseline-build.log",
+      "bytes": 2570,
+      "sha256": "b28e581554f0f4826bffd0f87a0dd7b04dd9aad90eefd45b08aa1bdc2ffe54e2"
+    },
+    {
+      "path": "attempt-06/baseline-results/tests.trx",
+      "bytes": 41471,
+      "sha256": "22ae1b49fc4af7f14d97c258396225f5b8ed761e828e5fd8855f2066a38b0eef"
+    },
+    {
+      "path": "attempt-06/baseline-tests.log",
+      "bytes": 763,
+      "sha256": "33366a22bd33b8eebfb2e3751cbf8cec44c7c4cec78bcf5674e0848dd064862d"
+    },
+    {
+      "path": "attempt-06/verification.json",
+      "bytes": 40846,
+      "sha256": "c54ba3b3a595f84eb885c15453dc93d41a0c7e17d08670917781011c0a5a950e"
+    },
+    {
+      "path": "final-audit.py",
+      "bytes": 12803,
+      "sha256": "cb56cd55542e78ef97ab265a574600d39e304d96f349432d814634c7324b5dbd"
+    },
+    {
+      "path": "package-check-04/apply-check.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "package-check-04/build.log",
+      "bytes": 328,
+      "sha256": "1d6eab16d826b5bd446aa19738d0e34861ead5e4d567034203e6e14fef79a577"
+    },
+    {
+      "path": "package-check-04/style-check.json",
+      "bytes": 658,
+      "sha256": "bb189f92d27dc873db900e033f3a1e685855bb720de07ba599c9a334abbd0535"
+    },
+    {
+      "path": "package-check-04/verification.json",
+      "bytes": 2350,
+      "sha256": "c25e753ba030724636dd55cc71fdea55623f3ecabff8a42be234cb8e33cff48d"
+    },
+    {
+      "path": "package-check-07/apply-check.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "package-check-07/build.log",
+      "bytes": 328,
+      "sha256": "bed64194c19ef77e89b2dad878ae5e92ee1e251c21922daa19c6875a9cba608e"
+    },
+    {
+      "path": "package-check-07/style-check.json",
+      "bytes": 659,
+      "sha256": "a053066799832b6a798d7a019cb40a8455ca1596220493425e412d17d1c977a4"
+    },
+    {
+      "path": "package-check-07/verification.json",
+      "bytes": 2350,
+      "sha256": "d67e35426f7686693048cfc2c197ab3f322274edfc98c63bac83023d6eba3218"
+    },
+    {
+      "path": "package-proposal.py",
+      "bytes": 3066,
+      "sha256": "20093680a82d4198c11045c000af2242aeaa86cd5ff2b5150f9ba8e71848cb81"
+    },
+    {
+      "path": "package-recovery-proposal.py",
+      "bytes": 3066,
+      "sha256": "1766ec8b539d80f2004aca55992f2135e824ce13209f6b13f2225095a38e3f53"
+    },
+    {
+      "path": "partial-happy-followup-observations.json",
+      "bytes": 954,
+      "sha256": "26f0e21f4266b87de395fbb39616ecb5f555fed025abdffda4101a94bb76cc40"
+    },
+    {
+      "path": "partial-happy-matching-observations.json",
+      "bytes": 3349,
+      "sha256": "86312e1b7f54dda3ba6aba03e94623c9d45da4098a7a2928873c5ef051a96dd3"
+    },
+    {
+      "path": "per-control-findings.json",
+      "bytes": 79364,
+      "sha256": "8ca415bd2960b68acfa1a2c32d816bb4ab89042dccc9a7ae693c8184e86f9733"
+    },
+    {
+      "path": "private-contract-gap-proposal.patch",
+      "bytes": 38156,
+      "sha256": "c3bc3951367fe50ffc430d1daace7bd2402d32792480256cf092aa418daf1a22"
+    },
+    {
+      "path": "remaining-error-nocoverage-review.json",
+      "bytes": 175774,
+      "sha256": "3e9a5054f76d5ad0127bdb63303141bb96a2c7c382695a6e0e2727902d9f2bfb"
+    },
+    {
+      "path": "run-controls-retry.py",
+      "bytes": 7198,
+      "sha256": "8ccaf9c9fd39170d5c79d962360f9ec9fb670a691aaec99180c0281b40b9273f"
+    },
+    {
+      "path": "run-controls.py",
+      "bytes": 7198,
+      "sha256": "e8e4dd8ec7469293ca66cbe5641d5d0e6c08384fe37bf91172347a55a2da38b6"
+    },
+    {
+      "path": "run-followup-controls.py",
+      "bytes": 6503,
+      "sha256": "31ec04b455d21e31d23aa00404a94f5de83682634d635a91583428546939bf30"
+    },
+    {
+      "path": "run-recovery-controls-final.py",
+      "bytes": 6942,
+      "sha256": "db2a0d97c2f9671dab32b069b2700363d49a4313f7439cfd407821d7472e2158"
+    },
+    {
+      "path": "run-recovery-controls.py",
+      "bytes": 6942,
+      "sha256": "24508bd0a64d9a0a4df6932e1e32c88315dcd73babdb3dbc42ae990d30da2960"
+    },
+    {
+      "path": "source-bindings.json",
+      "bytes": 5618,
+      "sha256": "af3c6942ffea86563ce1f7b6897f987aa285f153d1ea8f77eb75d68f88c95ec8"
+    },
+    {
+      "path": "summary.json",
+      "bytes": 26776,
+      "sha256": "d159a0e89d7ecb8a9457e61275f62b643f5a5dfd2ef7a66ec9d8e7b13cd3ac8c"
+    }
+  ]
+}

@@ -1,0 +1,259 @@
+{
+  "recipeSha256": "b33f0d6647f194a42970cd6d35858370c2d132d8d79b5ecffee81c042d0a6201",
+  "observedAtUtc": "2026-11-16T03:13:31.663Z",
+  "localRuntime": "v26.4.0",
+  "ciRuntime": {
+    "version": "v24.22.3",
+    "date": "2026-11-10",
+    "source": "https://nodejs.org/dist/index.json",
+    "indexSha256": "ecbf1d9f49532daf606cd495537d2ff7ab28f441e877ae40821738d56e2a0a80"
+  },
+  "policies": [
+    "CI uses the latest official Node24 branch; local Node26 is not substituted for that compatibility requirement.",
+    "@types/node intentionally remains in24 for the CI family, irrespective of newer major typings.",
+    "Registry engine compatibility is a metadata check; candidate upgrade peer/dependency/build checks remain necessary.",
+    "The semantic-release npm-to-error override remains a separately intentional no-npm-publication shim."
+  ],
+  "rows": [
+    {
+      "file": "package.json",
+      "name": "@commitlint/cli",
+      "spec": "^21.2.4",
+      "selected": "21.2.4",
+      "latestWithinDeclaredRange": "21.2.4",
+      "latestWithinCurrentMajor": "21.2.4",
+      "latestCompatible": "21.2.4",
+      "absoluteLatest": "21.2.4",
+      "latestCompatibleNodeEngine": ">=22.12.0",
+      "absoluteLatestNodeEngine": ">=22.12.0",
+      "selectedIsLatestWithinDeclaredRange": true,
+      "selectedIsLatestCompatible": true,
+      "source": {
+        "url": "https://registry.npmjs.org/%40commitlint%2Fcli",
+        "sha256": "7cf4cc5a8098d47c925e633b429a171fd7e63389da305fa8799b1384f642ebb0",
+        "etag": "W/\"8e9f96b5f6299c7dbd2ec34b6d7f02c6\"",
+        "lastModified": "Sun, 18 Oct 2026 12:52:06 GMT"
+      }
+    },
+    {
+      "file": "package.json",
+      "name": "@commitlint/config-conventional",
+      "spec": "^21.2.4",
+      "selected": "21.2.4",
+      "latestWithinDeclaredRange": "21.2.4",
+      "latestWithinCurrentMajor": "21.2.4",
+      "latestCompatible": "21.2.4",
+      "absoluteLatest": "21.2.4",
+      "latestCompatibleNodeEngine": ">=22.12.0",
+      "absoluteLatestNodeEngine": ">=22.12.0",
+      "selectedIsLatestWithinDeclaredRange": true,
+      "selectedIsLatestCompatible": true,
+      "source": {
+        "url": "https://registry.npmjs.org/%40commitlint%2Fconfig-conventional",
+        "sha256": "35a921f26074a12ea7f2f6246e36d4ef5ba292a773491fdc9fbc021248a0ebe8",
+        "etag": "W/\"4630066f8b395fa9524125b9d3361cce\"",
+        "lastModified": "Sun, 18 Oct 2026 12:51:44 GMT"
+      }
+    },
+    {
+      "file": "package.json",
+      "name": "@semantic-release/changelog",
+      "spec": "^7.0.0",
+      "selected": "7.0.0",
+      "latestWithinDeclaredRange": "7.0.0",
+      "latestWithinCurrentMajor": "7.0.0",
+      "latestCompatible": "7.0.0",
+      "absoluteLatest": "7.0.0",
+      "latestCompatibleNodeEngine": "^22.22.2 || >=24.15",
+      "absoluteLatestNodeEngine": "^22.22.2 || >=24.15",
+      "selectedIsLatestWithinDeclaredRange": true,
+      "selectedIsLatestCompatible": true,
+      "source": {
+        "url": "https://registry.npmjs.org/%40semantic-release%2Fchangelog",
+        "sha256": "403c9be79ba246ebdda542c725ee66ff725bd13a640821145735872605e39421",
+        "etag": "W/\"372973d27cbb9108fa0c3838932d04be\"",
+        "lastModified": "Fri, 23 Oct 2026 17:32:36 GMT"
+      }
+    },
+    {
+      "file": "package.json",
+      "name": "@semantic-release/commit-analyzer",
+      "spec": "^13.0.1",
+      "selected": "13.0.1",
+      "latestWithinDeclaredRange": "13.0.1",
+      "latestWithinCurrentMajor": "13.0.1",
+      "latestCompatible": "13.0.1",
+      "absoluteLatest": "13.0.1",
+      "latestCompatibleNodeEngine": ">=20.8.1",
+      "absoluteLatestNodeEngine": ">=20.8.1",
+      "selectedIsLatestWithinDeclaredRange": true,
+      "selectedIsLatestCompatible": true,
+      "source": {
+        "url": "https://registry.npmjs.org/%40semantic-release%2Fcommit-analyzer",
+        "sha256": "13c33a741b350136d6e514e5640ebe889db025ede2663250d771caa151b9ed56",
+        "etag": "W/\"7a1455108f59e5481d0c32cf6f1f3ebf\"",
+        "lastModified": "Fri, 23 Oct 2026 17:35:08 GMT"
+      }
+    },
+    {
+      "file": "package.json",
+      "name": "@semantic-release/exec",
+      "spec": "^7.1.0",
+      "selected": "7.1.0",
+      "latestWithinDeclaredRange": "7.1.0",
+      "latestWithinCurrentMajor": "7.1.0",
+      "latestCompatible": "7.1.0",
+      "absoluteLatest": "7.1.0",
+      "latestCompatibleNodeEngine": ">=20.8.1",
+      "absoluteLatestNodeEngine": ">=20.8.1",
+      "selectedIsLatestWithinDeclaredRange": true,
+      "selectedIsLatestCompatible": true,
+      "source": {
+        "url": "https://registry.npmjs.org/%40semantic-release%2Fexec",
+        "sha256": "16ad87e39997f3eadce9781098179b4937c177d9be846430200a67a56216f2ef",
+        "etag": "W/\"13418c2cecdcad5cd244696a407a4ec7\"",
+        "lastModified": "Fri, 23 Oct 2026 17:32:41 GMT"
+      }
+    },
+    {
+      "file": "package.json",
+      "name": "@semantic-release/git",
+      "spec": "^11.0.1",
+      "selected": "11.0.1",
+      "latestWithinDeclaredRange": "11.0.1",
+      "latestWithinCurrentMajor": "11.0.1",
+      "latestCompatible": "11.0.1",
+      "absoluteLatest": "11.0.1",
+      "latestCompatibleNodeEngine": "^22.22.2 || >=24.15",
+      "absoluteLatestNodeEngine": "^22.22.2 || >=24.15",
+      "selectedIsLatestWithinDeclaredRange": true,
+      "selectedIsLatestCompatible": true,
+      "source": {
+        "url": "https://registry.npmjs.org/%40semantic-release%2Fgit",
+        "sha256": "c93efc4cbe3de44b39bf077d8a37f925bd8e6c70721a07cc6fea19af35b04036",
+        "etag": "W/\"961ac834a7088cf55ddb40f14d256c3a\"",
+        "lastModified": "Fri, 23 Oct 2026 17:35:09 GMT"
+      }
+    },
+    {
+      "file": "package.json",
+      "name": "@semantic-release/github",
+      "spec": "^12.0.11",
+      "selected": "12.0.11",
+      "latestWithinDeclaredRange": "12.0.11",
+      "latestWithinCurrentMajor": "12.0.11",
+      "latestCompatible": "12.0.11",
+      "absoluteLatest": "12.0.11",
+      "latestCompatibleNodeEngine": "^22.14.0 || >= 24.10.0",
+      "absoluteLatestNodeEngine": "^22.14.0 || >= 24.10.0",
+      "selectedIsLatestWithinDeclaredRange": true,
+      "selectedIsLatestCompatible": true,
+      "source": {
+        "url": "https://registry.npmjs.org/%40semantic-release%2Fgithub",
+        "sha256": "0db80f85df6a74e00dc017d4e571461cfc9c3c8cdabd469bd3aaf0740edbf76a",
+        "etag": "W/\"e2a8ff82530bf39574718b0376b99c96\"",
+        "lastModified": "Thu, 12 Nov 2026 17:55:50 GMT"
+      }
+    },
+    {
+      "file": "package.json",
+      "name": "@semantic-release/release-notes-generator",
+      "spec": "^14.1.1",
+      "selected": "14.1.1",
+      "latestWithinDeclaredRange": "14.1.1",
+      "latestWithinCurrentMajor": "14.1.1",
+      "latestCompatible": "14.1.1",
+      "absoluteLatest": "14.1.1",
+      "latestCompatibleNodeEngine": ">=20.8.1",
+      "absoluteLatestNodeEngine": ">=20.8.1",
+      "selectedIsLatestWithinDeclaredRange": true,
+      "selectedIsLatestCompatible": true,
+      "source": {
+        "url": "https://registry.npmjs.org/%40semantic-release%2Frelease-notes-generator",
+        "sha256": "3877e38981d85ac93b211a9dc6d046ced0ba2a8132167bcccb8ba1f3ec851129",
+        "etag": "W/\"0b06feaefe6e3291a4fe673fd5458462\"",
+        "lastModified": "Fri, 23 Oct 2026 17:35:15 GMT"
+      }
+    },
+    {
+      "file": "package.json",
+      "name": "semantic-release",
+      "spec": "^25.0.9",
+      "selected": "25.0.9",
+      "latestWithinDeclaredRange": "25.0.9",
+      "latestWithinCurrentMajor": "25.0.9",
+      "latestCompatible": "25.0.9",
+      "absoluteLatest": "25.0.9",
+      "latestCompatibleNodeEngine": "^22.14.0 || >= 24.10.0",
+      "absoluteLatestNodeEngine": "^22.14.0 || >= 24.10.0",
+      "selectedIsLatestWithinDeclaredRange": true,
+      "selectedIsLatestCompatible": true,
+      "source": {
+        "url": "https://registry.npmjs.org/semantic-release",
+        "sha256": "cbcfae5614f61c89cbc3b909570e11ead47f7b62a508fb21cc7f3fe39d05687a",
+        "etag": "W/\"0951315151a37bd6f0011b8ad44cee73\"",
+        "lastModified": "Fri, 13 Nov 2026 09:18:48 GMT"
+      }
+    },
+    {
+      "file": "tests/performance/tenant-audit/package.json",
+      "name": "@playwright/test",
+      "spec": "1.65.1",
+      "selected": "1.65.1",
+      "latestWithinDeclaredRange": "1.65.1",
+      "latestWithinCurrentMajor": "1.65.1",
+      "latestCompatible": "1.65.1",
+      "absoluteLatest": "1.65.1",
+      "latestCompatibleNodeEngine": ">=20",
+      "absoluteLatestNodeEngine": ">=20",
+      "selectedIsLatestWithinDeclaredRange": true,
+      "selectedIsLatestCompatible": true,
+      "source": {
+        "url": "https://registry.npmjs.org/%40playwright%2Ftest",
+        "sha256": "f06e6d373b2cb11d84367a61bf6b77abeb0d651ae3757fef2a38160eeb1c61a2",
+        "etag": "W/\"604712540adac14be7eea4187bbf9dea\"",
+        "lastModified": "Sun, 15 Nov 2026 06:44:39 GMT"
+      }
+    },
+    {
+      "file": "tests/performance/tenant-audit/package.json",
+      "name": "@types/node",
+      "spec": "24.19.2",
+      "selected": "24.19.2",
+      "latestWithinDeclaredRange": "24.19.2",
+      "latestWithinCurrentMajor": "24.19.2",
+      "latestCompatible": "26.6.6",
+      "absoluteLatest": "26.6.6",
+      "latestCompatibleNodeEngine": null,
+      "absoluteLatestNodeEngine": null,
+      "selectedIsLatestWithinDeclaredRange": true,
+      "selectedIsLatestCompatible": false,
+      "source": {
+        "url": "https://registry.npmjs.org/%40types%2Fnode",
+        "sha256": "5ae26f5df775df3faccd44a5e97093e8b5633be610c6b0282b19392b13682494",
+        "etag": "W/\"2a33b8b499826bbcbf826bdfe7001eb8\"",
+        "lastModified": "Wed, 28 Oct 2026 18:36:45 GMT"
+      }
+    },
+    {
+      "file": "tests/performance/tenant-audit/package.json",
+      "name": "typescript",
+      "spec": "7.0.2",
+      "selected": "7.0.2",
+      "latestWithinDeclaredRange": "7.0.2",
+      "latestWithinCurrentMajor": "7.0.2",
+      "latestCompatible": "7.0.2",
+      "absoluteLatest": "7.0.2",
+      "latestCompatibleNodeEngine": ">=16.20.0",
+      "absoluteLatestNodeEngine": ">=16.20.0",
+      "selectedIsLatestWithinDeclaredRange": true,
+      "selectedIsLatestCompatible": true,
+      "source": {
+        "url": "https://registry.npmjs.org/typescript",
+        "sha256": "97fb33e9c98c24c36aa04488f96f93860d22008ab838f8763a087f4bd8ddd5cd",
+        "etag": "W/\"6f37502e654bc04053b450ac39647053\"",
+        "lastModified": "Sun, 15 Nov 2026 08:24:07 GMT"
+      }
+    }
+  ]
+}

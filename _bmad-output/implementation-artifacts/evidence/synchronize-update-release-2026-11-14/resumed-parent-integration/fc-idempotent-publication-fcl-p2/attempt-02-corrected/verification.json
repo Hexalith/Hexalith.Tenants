@@ -1,0 +1,17 @@
+{
+  "scope": "FCL-P2 focused full publication class after idempotent I/O correction",
+  "command": [
+    "python3",
+    "-B",
+    "tests/eng/test_mutation_artifact_publication.py"
+  ],
+  "exitCode": 0,
+  "scratch": "/dev/shm/hexalith-job.WzWO3Qf3",
+  "logSha256": "de432eeb290f40d40709ad30566915d5984492dd7c572c4f209114d763ba0d21",
+  "inputs": {
+    "eng/prepare-mutation-artifacts.ps1": "8862b64a1fda54bc2a8e7fd17a13597d05a327ce348a0423db28a9d75d71efee",
+    "tests/eng/test_mutation_artifact_publication.py": "c9c80ec39de0a43c78c7e13aed837c45540725d1407fa1b2daa5dd2385357f41",
+    "eng/mutation-artifact-policy.ps1": "e42c7a3e7aca1798d72522505d39c5a205b673ffccb14e3bff22dee7e1e19bca",
+    "eng/validate-stryker-reports.ps1": "16d44b70d1b0069174a663a934a2630d4d6cd399c1587ed6a39495f853e16091"
+  }
+}

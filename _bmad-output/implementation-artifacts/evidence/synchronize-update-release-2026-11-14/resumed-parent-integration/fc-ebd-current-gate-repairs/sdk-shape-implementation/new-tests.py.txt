@@ -1,0 +1,180 @@
+    def _package_sdk511_catalog(self) -> bytes:
+        root = ET.fromstring(self._current_tenants8_catalog())
+        properties = root.find("PropertyGroup")
+        fixture = ET.fromstring((ROOT / "tests/ci-governance/fixtures/builds-sdk42-package-511-qualification.xml").read_bytes())
+        names = {element.tag for element in fixture.find("PropertyGroup")}
+        for element in list(properties):
+            if element.tag in names:
+                properties.remove(element)
+        for index, element in enumerate(fixture.find("PropertyGroup")):
+            properties.insert(index, copy.deepcopy(element))
+        ET.indent(root)
+        return self._catalog_xml_bytes(root)
+
+    def test_package_sdk511_accepts_only_the_exact_frontcomposer_cohort(self) -> None:
+        catalog = self._package_sdk511_catalog()
+        self.assertEqual(1, self._evaluate_frontcomposer_profile(catalog)["selectors_validated"])
+        root = ET.fromstring(catalog)
+        for name, values in (("HexalithEventStoreVersion", ["4.2.0", "5.1.1"]),
+                             ("HexalithMemoriesVersion", ["3.0.27", "4.0.0"]),
+                             ("HexalithTenantsVersion", ["8.0.0", "7.0.7"])):
+            self.assertEqual(values, [element.text for element in root.iter(name)])
+            with self.subTest(property=name), self.assertRaises(dg.GraphError):
+                dg.assert_selected_catalog_property_shape(root, name, "strict helper")
+        with self.assertRaises(dg.GraphError):
+            self._evaluate_frontcomposer_profile(catalog, profile_name="strict-catalog-v1")
+        ET.SubElement(root.find("PropertyGroup"), "HexalithCommonsVersion").text = "3.0.0"
+        self._assert_frontcomposer_profile_failure(self._catalog_xml_bytes(root), "HexalithCommonsVersion must define exactly one")
+
+    def test_package_sdk511_rejects_unknown_defaults_and_mixed_guard_shapes(self) -> None:
+        for value in ("5.1.0", "5.1.2", "5.2.0", "5.1.*", "$(OtherVersion)", ""):
+            with self.subTest(default=value), self.assertRaises(dg.GraphError):
+                root = ET.fromstring(self._package_sdk511_catalog())
+                list(root.iter("HexalithEventStoreVersion"))[1].text = value
+                self._evaluate_frontcomposer_profile(self._catalog_xml_bytes(root))
+        for change in ("old-guard", "wrong-mode", "wrong-optout", "unknown-property", "missing-mode",
+                       "mode-and-optout", "broaden", "unset", "attribute-case"):
+            with self.subTest(guard=change), self.assertRaises(dg.GraphError):
+                root = ET.fromstring(self._package_sdk511_catalog())
+                row = list(root.iter("HexalithEventStoreVersion"))[0]
+                condition = row.get("Condition")
+                if change == "old-guard":
+                    condition = dg._SDK42_CURRENT_CONDITION
+                elif change == "wrong-mode":
+                    condition = condition.replace("'$(UseHexalithProjectReferences)' != 'true'", "'$(UseHexalithProjectReferences)' == 'true'")
+                elif change == "wrong-optout":
+                    condition = condition.replace("'$(HexalithEventStoreFromSource)' == 'false'", "'$(HexalithEventStoreFromSource)' != 'true'")
+                elif change == "unknown-property":
+                    condition = condition.replace("HexalithEventStoreFromSource", "UnreviewedFromSource")
+                elif change == "missing-mode":
+                    condition = condition.replace("'$(UseHexalithProjectReferences)' != 'true' or ", "")
+                elif change == "mode-and-optout":
+                    condition = condition.replace("'true' or '$(HexalithEventStoreFromSource)'", "'true' and '$(HexalithEventStoreFromSource)'")
+                elif change == "broaden":
+                    condition += " or true"
+                elif change == "unset":
+                    condition = condition.replace("== ''", "!= ''", 1)
+                if change == "attribute-case":
+                    row.attrib = {"condition": condition}
+                else:
+                    row.set("Condition", condition)
+                self._evaluate_frontcomposer_profile(self._catalog_xml_bytes(root))
+
+    def test_package_sdk511_rejects_missing_duplicate_aliased_or_nested_rows(self) -> None:
+        for name in ("HexalithEventStoreVersion", "HexalithMemoriesVersion", "HexalithTenantsVersion"):
+            for ordinal in (0, 1):
+                for change in ("missing", "duplicate", "alias", "child", "attribute", "conditional", "choose", "target"):
+                    with self.subTest(property=name, row=ordinal, change=change), self.assertRaises(dg.GraphError):
+                        root = ET.fromstring(self._package_sdk511_catalog())
+                        group = root.find("PropertyGroup")
+                        row = list(root.iter(name))[ordinal]
+                        if change == "missing":
+                            group.remove(row)
+                        elif change == "duplicate":
+                            group.append(copy.deepcopy(row))
+                        elif change == "alias":
+                            row.tag = name.lower()
+                        elif change == "child":
+                            ET.SubElement(row, "HiddenValue")
+                        elif change == "attribute":
+                            row.set("Label", "unreviewed")
+                        else:
+                            group.remove(row)
+                            if change == "conditional":
+                                holder = ET.SubElement(root, "PropertyGroup", {"Condition": "true"})
+                            elif change == "choose":
+                                holder = ET.SubElement(ET.SubElement(ET.SubElement(root, "Choose"), "When", {"Condition": "true"}), "PropertyGroup")
+                            else:
+                                holder = ET.SubElement(ET.SubElement(root, "Target", {"Name": "RewriteVersion"}), "PropertyGroup")
+                            holder.append(row)
+                        self._evaluate_frontcomposer_profile(self._catalog_xml_bytes(root))
+
+    def test_package_sdk511_rejects_changed_declaration_order(self) -> None:
+        for name, ordinal in (("HexalithEventStoreVersion", 1), ("HexalithMemoriesVersion", 1),
+                              ("HexalithTenantsVersion", 0), ("HexalithTenantsVersion", 1),
+                              ("HexalithPartiesSdk42CatalogView", 1), ("HexalithPlatformSdk42CatalogView", 1),
+                              ("HexalithBuildsPackagedHostSdk42CatalogView", 1)):
+            with self.subTest(property=name, row=ordinal), self.assertRaises(dg.GraphError):
+                root = ET.fromstring(self._package_sdk511_catalog())
+                group = root.find("PropertyGroup")
+                row = list(root.iter(name))[ordinal]
+                group.remove(row)
+                group.insert(0, row)
+                self._evaluate_frontcomposer_profile(self._catalog_xml_bytes(root))
+
+    def test_package_sdk511_rejects_changed_frozen_role_subjects_and_writers(self) -> None:
+        for name in ("HexalithPartiesSdk42CatalogView", "HexalithPlatformSdk42CatalogView", "HexalithBuildsPackagedHostSdk42CatalogView"):
+            for change in ("future", "duplicate", "dynamic", "frontcomposer", "lowercase", "remove", "prefix", "constant",
+                           "true-default", "conditional-default", "extra-attribute", "missing-true", "duplicate-false"):
+                with self.subTest(selector=name, change=change), self.assertRaises(dg.GraphError):
+                    root = ET.fromstring(self._package_sdk511_catalog())
+                    group = root.find("PropertyGroup")
+                    default, enabled = list(root.iter(name))
+                    clauses = re.split(r"\s+or\s+", enabled.attrib["Condition"].strip())
+                    if change == "future":
+                        clauses.append("$(MSBuildProjectName.Equals('Hexalith.Platform.Future'))")
+                    elif change == "duplicate":
+                        clauses.append(clauses[0])
+                    elif change == "dynamic":
+                        clauses[0] = "$(MSBuildProjectName.Equals('$(SelectedProject)'))"
+                    elif change == "frontcomposer":
+                        clauses[0] = "$(MSBuildProjectName.Equals('Hexalith.FrontComposer.Shell'))"
+                    elif change == "lowercase":
+                        clauses[0] = clauses[0].lower()
+                    elif change == "remove":
+                        clauses.pop()
+                    elif change == "prefix":
+                        clauses = ["$(MSBuildProjectName.StartsWith('Hexalith.Platform'))"]
+                    elif change == "constant":
+                        clauses = ["true"]
+                    elif change == "true-default":
+                        default.text = "true"
+                    elif change == "conditional-default":
+                        default.set("Condition", "true")
+                    elif change == "extra-attribute":
+                        enabled.set("Label", "unreviewed")
+                    elif change == "missing-true":
+                        group.remove(enabled)
+                    else:
+                        group.append(copy.deepcopy(default))
+                    enabled.set("Condition", " or ".join(clauses))
+                    self._evaluate_frontcomposer_profile(self._catalog_xml_bytes(root))
+
+    def test_package_sdk511_rejects_changed_retained_cohorts(self) -> None:
+        for name in ("HexalithEventStoreVersion", "HexalithMemoriesVersion", "HexalithTenantsVersion"):
+            for ordinal in (0, 1):
+                for change in ("version", "dynamic", "condition"):
+                    with self.subTest(property=name, row=ordinal, change=change), self.assertRaises(dg.GraphError):
+                        root = ET.fromstring(self._package_sdk511_catalog())
+                        row = list(root.iter(name))[ordinal]
+                        if change == "version":
+                            row.text = "99.0.0"
+                        elif change == "dynamic":
+                            row.text = "$(UnreviewedVersion)"
+                        else:
+                            row.set("Condition", row.get("Condition") + " or true")
+                        self._evaluate_frontcomposer_profile(self._catalog_xml_bytes(root))
+
+    def test_package_sdk511_rejects_hidden_imports_outputs_and_root_overrides(self) -> None:
+        for change in ("root-condition", "local-property", "import", "grouped-import", "target", "using-task", "output-alias"):
+            with self.subTest(change=change), self.assertRaises(dg.GraphError):
+                root = ET.fromstring(self._package_sdk511_catalog())
+                if change == "root-condition":
+                    root.set("Condition", "true")
+                elif change == "local-property":
+                    root.set("TreatAsLocalProperty", "HexalithEventStoreVersion")
+                elif change == "import":
+                    ET.SubElement(root, "Import", {"Project": "unreviewed.props"})
+                elif change == "grouped-import":
+                    ET.SubElement(ET.SubElement(root, "ImportGroup"), "Import", {"Project": "unreviewed.props"})
+                else:
+                    tag = {"target": "Target", "using-task": "UsingTask", "output-alias": "output"}[change]
+                    ET.SubElement(root, tag, {"Name": "Unreviewed"})
+                self._evaluate_frontcomposer_profile(self._catalog_xml_bytes(root))
+
+    def test_package_sdk511_standalone_memories_proof_requires_the_complete_pair(self) -> None:
+        root = ET.fromstring(self._package_sdk511_catalog())
+        root.find("PropertyGroup").remove(list(root.iter("HexalithMemoriesVersion"))[0])
+        with self.assertRaisesRegex(dg.GraphError, "requires exactly two canonical declarations"):
+            dg.assert_selected_catalog_property_shape(root, "HexalithMemoriesVersion", "standalone current proof", allow_eventstore_qualification=True)
+

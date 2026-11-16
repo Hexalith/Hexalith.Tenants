@@ -1,0 +1,303 @@
+xUnit.net v3 In-Process Runner v4.0.3+384aa7f0b4 (64-bit .NET 11.0.0)
+  Discovering: Hexalith.EventStore.Testing.Integration.Tests
+  Discovered:  Hexalith.EventStore.Testing.Integration.Tests
+  Starting:    Hexalith.EventStore.Testing.Integration.Tests
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 6.8708ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.2283ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.1016ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.1118ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.0988ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.0873ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.1903ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.1782ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.2077ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.3325ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.1177ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.1478ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.2706ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.1564ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.1282ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.1317ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.1206ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.0909ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.1440ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.1413ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.0963ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.1514ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.1511ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.1483ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.1219ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.1068ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.0803ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.0804ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.0811ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.1298ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.0504ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.1921ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.0873ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.0725ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.1433ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.2119ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.1526ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.1033ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.1234ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.0833ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.1185ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.0833ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.1324ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.1566ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.1354ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.1166ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.1500ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.1452ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.1129ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.1019ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.0877ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.0858ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.1149ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.1260ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.1292ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.1325ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.1291ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.1196ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.1302ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.1174ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.0935ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.0815ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.1164ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.1312ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.1104ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.1173ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.1829ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.1442ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.1448ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.1404ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/health?token=A2903EADAFAD07835918D1325870728F1653353E7D13DB88 - 503 - - 0.1229ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/alive - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/alive - 200 - - 1.2176ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/alive - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/alive - 503 - - 0.2760ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://localhost/alive - - -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost/alive - 200 - - 0.0672ms
+  Finished:    Hexalith.EventStore.Testing.Integration.Tests (ID = 'd2f314209a71bf0807aca425d12a53fdc84b559bac100406289a511228ee8b09')
+=== TEST EXECUTION SUMMARY ===
+   Hexalith.EventStore.Testing.Integration.Tests  Total: 25, Errors: 0, Failed: 0, Skipped: 0, Not Run: 0, Time: 4.352s

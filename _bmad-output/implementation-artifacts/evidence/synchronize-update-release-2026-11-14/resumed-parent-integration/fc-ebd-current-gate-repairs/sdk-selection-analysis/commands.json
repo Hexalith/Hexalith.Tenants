@@ -1,0 +1,170 @@
+[
+  {
+    "command": [
+      "dotnet",
+      "msbuild",
+      "/dev/shm/hexalith-job.bknFtpjv/hexalith-evaluated-catalog-0693stco/Hexalith.FrontComposer.Shell.proj",
+      "-nologo",
+      "-p:Configuration=Release",
+      "-p:TargetFramework=net11.0",
+      "-p:UseHexalithProjectReferences=true",
+      "-p:UseHexalithProjectReferences=false",
+      "-preprocess:/dev/shm/hexalith-job.bknFtpjv/hexalith-evaluated-catalog-0693stco/catalog.xml"
+    ],
+    "exit_code": 0,
+    "log": "msbuild-01.log",
+    "log_sha256": "c235d14e91cb647afe6922fafe7becccb367f9d9d36fcf2c2f55c1217d8a12bb"
+  },
+  {
+    "command": [
+      "dotnet",
+      "msbuild",
+      "/dev/shm/hexalith-job.bknFtpjv/hexalith-evaluated-catalog-0693stco/Hexalith.FrontComposer.Shell.proj",
+      "-nologo",
+      "-p:Configuration=Release",
+      "-p:TargetFramework=net11.0",
+      "-p:UseHexalithProjectReferences=true",
+      "-p:UseHexalithProjectReferences=false",
+      "-getItem:PackageVersion",
+      "-getProperty:CentralPackageVersionOverrideEnabled,HexalithAspNetCoreOpenApiVersion,HexalithAspNetCoreOpenIdConnectVersion,HexalithAspireAppHostSdkVersion,HexalithAspireHostingDaprVersion,HexalithBuildsPackagedHostSdk42CatalogView,HexalithChatbotVersion,HexalithCommonsVersion,HexalithConversationsVersion,HexalithDaprCliVersion,HexalithDaprRuntimeVersion,HexalithEventStoreVersion,HexalithFoldersVersion,HexalithFrontComposerImmutable10CatalogView,HexalithFrontComposerNet10CatalogView,HexalithFrontComposerVersion,HexalithImmutableVersion,HexalithMcpCliVersion,HexalithMemoriesVersion,HexalithOpenApiVersion,HexalithPartiesAspireVersion,HexalithPartiesSdk42CatalogView,HexalithPartiesVersion,HexalithPlatformEventStoreHostCatalogView,HexalithPlatformSdk42CatalogView,HexalithPolymorphicSerializationsVersion,HexalithProjectsVersion,HexalithRedisImage,HexalithRedisImageDigest,HexalithRedisImageTag,HexalithTenantsVersion,HexalithVersionsLoaded,ManagePackageVersionsCentrally,_HexalithNearestPackageOwner,_HexalithNearestPackageProps,_HexalithSelectedPackageProps,_HexalithWorksOwnsMSBuildPackageVersions"
+    ],
+    "exit_code": 0,
+    "log": "msbuild-02.log",
+    "log_sha256": "24f5178694477f691d512826f998f8f350f9b305eaff9d6afc1744bc354fcb61"
+  },
+  {
+    "command": [
+      "dotnet",
+      "msbuild",
+      "/dev/shm/hexalith-job.bknFtpjv/hexalith-evaluated-catalog-vy52b683/Hexalith.Platform.Protection.proj",
+      "-nologo",
+      "-p:Configuration=Release",
+      "-p:TargetFramework=net11.0",
+      "-p:UseHexalithProjectReferences=true",
+      "-p:UseHexalithProjectReferences=false",
+      "-preprocess:/dev/shm/hexalith-job.bknFtpjv/hexalith-evaluated-catalog-vy52b683/catalog.xml"
+    ],
+    "exit_code": 0,
+    "log": "msbuild-03.log",
+    "log_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+  },
+  {
+    "command": [
+      "dotnet",
+      "msbuild",
+      "/dev/shm/hexalith-job.bknFtpjv/hexalith-evaluated-catalog-vy52b683/Hexalith.Platform.Protection.proj",
+      "-nologo",
+      "-p:Configuration=Release",
+      "-p:TargetFramework=net11.0",
+      "-p:UseHexalithProjectReferences=true",
+      "-p:UseHexalithProjectReferences=false",
+      "-getItem:PackageVersion",
+      "-getProperty:CentralPackageVersionOverrideEnabled,HexalithAspNetCoreOpenApiVersion,HexalithAspNetCoreOpenIdConnectVersion,HexalithAspireAppHostSdkVersion,HexalithAspireHostingDaprVersion,HexalithBuildsPackagedHostSdk42CatalogView,HexalithChatbotVersion,HexalithCommonsVersion,HexalithConversationsVersion,HexalithDaprCliVersion,HexalithDaprRuntimeVersion,HexalithEventStoreVersion,HexalithFoldersVersion,HexalithFrontComposerImmutable10CatalogView,HexalithFrontComposerNet10CatalogView,HexalithFrontComposerVersion,HexalithImmutableVersion,HexalithMcpCliVersion,HexalithMemoriesVersion,HexalithOpenApiVersion,HexalithPartiesAspireVersion,HexalithPartiesSdk42CatalogView,HexalithPartiesVersion,HexalithPlatformEventStoreHostCatalogView,HexalithPlatformSdk42CatalogView,HexalithPolymorphicSerializationsVersion,HexalithProjectsVersion,HexalithRedisImage,HexalithRedisImageDigest,HexalithRedisImageTag,HexalithTenantsVersion,HexalithVersionsLoaded,ManagePackageVersionsCentrally,_HexalithNearestPackageOwner,_HexalithNearestPackageProps,_HexalithSelectedPackageProps,_HexalithWorksOwnsMSBuildPackageVersions"
+    ],
+    "exit_code": 0,
+    "log": "msbuild-04.log",
+    "log_sha256": "67c3be5120f0267f31d28c1822c91961e8e3ea09478de7e879c3eae3b606dd29"
+  },
+  {
+    "command": [
+      "dotnet",
+      "msbuild",
+      "/dev/shm/hexalith-job.bknFtpjv/hexalith-evaluated-catalog-x76bpz4d/Hexalith.Parties.proj",
+      "-nologo",
+      "-p:Configuration=Release",
+      "-p:TargetFramework=net11.0",
+      "-p:UseHexalithProjectReferences=true",
+      "-p:UseHexalithProjectReferences=false",
+      "-preprocess:/dev/shm/hexalith-job.bknFtpjv/hexalith-evaluated-catalog-x76bpz4d/catalog.xml"
+    ],
+    "exit_code": 0,
+    "log": "msbuild-05.log",
+    "log_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+  },
+  {
+    "command": [
+      "dotnet",
+      "msbuild",
+      "/dev/shm/hexalith-job.bknFtpjv/hexalith-evaluated-catalog-x76bpz4d/Hexalith.Parties.proj",
+      "-nologo",
+      "-p:Configuration=Release",
+      "-p:TargetFramework=net11.0",
+      "-p:UseHexalithProjectReferences=true",
+      "-p:UseHexalithProjectReferences=false",
+      "-getItem:PackageVersion",
+      "-getProperty:CentralPackageVersionOverrideEnabled,HexalithAspNetCoreOpenApiVersion,HexalithAspNetCoreOpenIdConnectVersion,HexalithAspireAppHostSdkVersion,HexalithAspireHostingDaprVersion,HexalithBuildsPackagedHostSdk42CatalogView,HexalithChatbotVersion,HexalithCommonsVersion,HexalithConversationsVersion,HexalithDaprCliVersion,HexalithDaprRuntimeVersion,HexalithEventStoreVersion,HexalithFoldersVersion,HexalithFrontComposerImmutable10CatalogView,HexalithFrontComposerNet10CatalogView,HexalithFrontComposerVersion,HexalithImmutableVersion,HexalithMcpCliVersion,HexalithMemoriesVersion,HexalithOpenApiVersion,HexalithPartiesAspireVersion,HexalithPartiesSdk42CatalogView,HexalithPartiesVersion,HexalithPlatformEventStoreHostCatalogView,HexalithPlatformSdk42CatalogView,HexalithPolymorphicSerializationsVersion,HexalithProjectsVersion,HexalithRedisImage,HexalithRedisImageDigest,HexalithRedisImageTag,HexalithTenantsVersion,HexalithVersionsLoaded,ManagePackageVersionsCentrally,_HexalithNearestPackageOwner,_HexalithNearestPackageProps,_HexalithSelectedPackageProps,_HexalithWorksOwnsMSBuildPackageVersions"
+    ],
+    "exit_code": 0,
+    "log": "msbuild-06.log",
+    "log_sha256": "6fff039eecaf29e61290208312288c1397f7d4a381b4da316cd5ac75732d1b9f"
+  },
+  {
+    "command": [
+      "dotnet",
+      "msbuild",
+      "/dev/shm/hexalith-job.bknFtpjv/hexalith-evaluated-catalog-mpluo171/Hexalith.Builds.Module.AppHost.proj",
+      "-nologo",
+      "-p:Configuration=Release",
+      "-p:TargetFramework=net11.0",
+      "-p:UseHexalithProjectReferences=true",
+      "-p:UseHexalithProjectReferences=false",
+      "-preprocess:/dev/shm/hexalith-job.bknFtpjv/hexalith-evaluated-catalog-mpluo171/catalog.xml"
+    ],
+    "exit_code": 0,
+    "log": "msbuild-07.log",
+    "log_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+  },
+  {
+    "command": [
+      "dotnet",
+      "msbuild",
+      "/dev/shm/hexalith-job.bknFtpjv/hexalith-evaluated-catalog-mpluo171/Hexalith.Builds.Module.AppHost.proj",
+      "-nologo",
+      "-p:Configuration=Release",
+      "-p:TargetFramework=net11.0",
+      "-p:UseHexalithProjectReferences=true",
+      "-p:UseHexalithProjectReferences=false",
+      "-getItem:PackageVersion",
+      "-getProperty:CentralPackageVersionOverrideEnabled,HexalithAspNetCoreOpenApiVersion,HexalithAspNetCoreOpenIdConnectVersion,HexalithAspireAppHostSdkVersion,HexalithAspireHostingDaprVersion,HexalithBuildsPackagedHostSdk42CatalogView,HexalithChatbotVersion,HexalithCommonsVersion,HexalithConversationsVersion,HexalithDaprCliVersion,HexalithDaprRuntimeVersion,HexalithEventStoreVersion,HexalithFoldersVersion,HexalithFrontComposerImmutable10CatalogView,HexalithFrontComposerNet10CatalogView,HexalithFrontComposerVersion,HexalithImmutableVersion,HexalithMcpCliVersion,HexalithMemoriesVersion,HexalithOpenApiVersion,HexalithPartiesAspireVersion,HexalithPartiesSdk42CatalogView,HexalithPartiesVersion,HexalithPlatformEventStoreHostCatalogView,HexalithPlatformSdk42CatalogView,HexalithPolymorphicSerializationsVersion,HexalithProjectsVersion,HexalithRedisImage,HexalithRedisImageDigest,HexalithRedisImageTag,HexalithTenantsVersion,HexalithVersionsLoaded,ManagePackageVersionsCentrally,_HexalithNearestPackageOwner,_HexalithNearestPackageProps,_HexalithSelectedPackageProps,_HexalithWorksOwnsMSBuildPackageVersions"
+    ],
+    "exit_code": 0,
+    "log": "msbuild-08.log",
+    "log_sha256": "572b457e573112a048752d8544b2b412b5dc2d554d230b5436d6adee3fe86443"
+  },
+  {
+    "command": [
+      "dotnet",
+      "msbuild",
+      "/dev/shm/hexalith-job.bknFtpjv/catalog/Hexalith.Platform.Protection.proj",
+      "-nologo",
+      "-p:Configuration=Release",
+      "-p:TargetFramework=net11.0",
+      "-p:UseHexalithProjectReferences=true",
+      "-p:UseHexalithProjectReferences=true",
+      "-getProperty:HexalithEventStoreVersion,HexalithMemoriesVersion,HexalithTenantsVersion,HexalithMcpCliVersion,HexalithOpenApiVersion,HexalithAspNetCoreOpenApiVersion"
+    ],
+    "exit_code": 0,
+    "log": "msbuild-09.log",
+    "log_sha256": "7cec558b349d9d68c0ac2e322991d23ff9cd976e23f83ea1dab240e8ab2776b3"
+  },
+  {
+    "command": [
+      "dotnet",
+      "msbuild",
+      "/dev/shm/hexalith-job.bknFtpjv/catalog/Hexalith.Platform.Protection.proj",
+      "-nologo",
+      "-p:Configuration=Release",
+      "-p:TargetFramework=net11.0",
+      "-p:UseHexalithProjectReferences=true",
+      "-p:UseHexalithProjectReferences=true",
+      "-p:HexalithEventStoreFromSource=false",
+      "-p:HexalithMemoriesFromSource=false",
+      "-p:HexalithTenantsFromSource=false",
+      "-p:HexalithMcpCliFromSource=false",
+      "-getProperty:HexalithEventStoreVersion,HexalithMemoriesVersion,HexalithTenantsVersion,HexalithMcpCliVersion,HexalithOpenApiVersion,HexalithAspNetCoreOpenApiVersion"
+    ],
+    "exit_code": 0,
+    "log": "msbuild-10.log",
+    "log_sha256": "683dda0821810cce5d500128a78319848866a84576466be97a492dada15c6b0c"
+  }
+]

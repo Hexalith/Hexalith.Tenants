@@ -1,0 +1,10 @@
+{
+  "scope": "Actual parent focused verification of existing Shell fixture closure after shared policy extraction",
+  "owningTest": "tests/Hexalith.FrontComposer.Shell.Tests/Governance/MutationReportValidationTests.cs:64",
+  "command": "TMPDIR=/dev/shm run-with-temp bash -c mkdir/copy only actual validator into fixture/eng, then pwsh -NoProfile -NonInteractive -File fixture/eng/validate-stryker-reports.ps1",
+  "exit": 1,
+  "actualDiagnostic": "validate-stryker-reports.ps1:13 dot-source mutation-artifact-policy.ps1: term /dev/shm/hexalith-job.LuC0IqW1/fixture/eng/mutation-artifact-policy.ps1 is not recognized",
+  "cause": "Existing45-scenario C# fixture copies only the validator, so its new shared policy dependency is absent",
+  "requiredFix": "Copy exact sibling module in that existing native fixture and run the actual existing45-case class, not only module/function source equivalence",
+  "freshQualification": false
+}

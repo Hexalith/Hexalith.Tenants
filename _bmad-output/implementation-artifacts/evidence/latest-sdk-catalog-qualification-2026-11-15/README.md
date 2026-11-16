@@ -19,7 +19,15 @@ run did not retain a `dotnet --info`/`--version` measurement; its SDK statement
 records the repository policy and the contemporaneous observation, not a newly
 measured replay toolchain.
 
-Replay from the Tenants superproject:
+The driver copies the **current** repository/dependency inputs; it does not restore
+the historical source snapshot. Its historical freshness precondition requires
+EventStore **5.1.0 still to be the latest stable public version**. Now that 5.1.1 is
+public, the command below intentionally refuses that precondition and cannot
+reproduce the old successful qualification. This refusal does not invalidate or
+replace the retained historical results. No freshness bypass is offered.
+
+Historical driver invocation from the Tenants superproject (expected to refuse
+when a later stable SDK is public):
 
 ```bash
 run-with-temp python3 _bmad-output/implementation-artifacts/evidence/latest-sdk-catalog-qualification-2026-11-15/qualify.py

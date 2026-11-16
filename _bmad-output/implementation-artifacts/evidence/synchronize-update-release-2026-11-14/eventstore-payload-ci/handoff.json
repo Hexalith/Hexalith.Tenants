@@ -1,0 +1,135 @@
+{
+  "source": "2dcf708cbab0d4ad0cf72f947d0b0a1444e251a1",
+  "platform": "00ed06074f5b67522eff81dc8dae6ebd28161c36",
+  "builds": "e2bbbd0893f586e4d447ef8358ff747ea3d34435",
+  "scope": "Offline component/role closure with retained EventStore4.2 package cohort rebuilt at net11; separate standalone current-source PayloadProtection checks. No native provider/installed acceptance or Phase4 authority established.",
+  "owner_source_sha256": {
+    "tools/tests/test_ext_protection_1_loop7_installation.py": "e7c1a6e12da0f1548ae3c9aef33c0bd39bdff9a7a1f25f3c5a43a31ecc55c8f7",
+    "tools/tests/test_ext_protection_1_loop7_recovery.py": "24851f66a44a30acd46cd88fd82c84d80425ba2740515542e5a634e1e3805748",
+    "tools/tests/test_ext_protection_1_producer_originals.py": "a07d65f3fd22833290c60a867cc8c6c3b0fdf7d8a3eac8b2ad4ed0e42d0b48bb",
+    "tools/tests/test_ext_protection_1_source_p13.py": "37e8ec11107165019ec9a7b48a77aa4f539f261d9be5a1c67a589bdc1d530984",
+    "tools/tests/test_ext_protection_1_source_p34.py": "060f1b6e02d59abf6b07f69e40c07e1e0d795cd269a39bb0a45c0b8d054fba78",
+    "tools/tests/test_ext_protection_1_source_snapshot.py": "0b750b459ac43c7f2793eafb3d6618bcbd9b90704f42cbf487d28b72edca225d",
+    "tools/tests/ext_protection_component_runtime.props": "1e71f853760c2d425f234ebf9d9459caecd9f0cdfc7c187cca0b5fe72ae5bfd1",
+    "tools/tests/test_ext_protection_1_build_policy.py": "d744e3e0a713830f161525523f7d4cdc33920affd967c253997e1d43e836437a"
+  },
+  "receipt": {
+    "path": "repair-import-attempt1-verification.json",
+    "sha256": "e9e36ea0ca59aba825a532352b70bd99f00c10eddc3d5347b641a2f62c63ef29"
+  },
+  "python_discovery": {
+    "total": 139,
+    "passed": 138,
+    "skipped": 1,
+    "existing_skip": "Configured-copy case requires an independently hash-pinned assembly; executed by producer-pinned-component follow-up."
+  },
+  "pinned_producer_followup": {
+    "total": 6,
+    "passed": 6,
+    "skipped": 0,
+    "overlap": "Five passes repeat discovery; the configured-copy case executes its existing skipped path."
+  },
+  "actual_csharp_component_cases": {
+    "repair-import-attempt1-copies-xunit.xml": {
+      "passed": 18,
+      "failed": 0,
+      "skipped": 0
+    },
+    "repair-import-attempt1-recovery-xunit.xml": {
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0
+    },
+    "repair-import-attempt1-producer-xunit.xml": {
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0
+    },
+    "repair-import-attempt1-p34-xunit.xml": {
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0
+    },
+    "repair-import-attempt1-p33-xunit.xml": {
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0
+    },
+    "repair-import-attempt1-snapshot-xunit.xml": {
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0
+    },
+    "repair-import-attempt1-p13-xunit.xml": {
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "actual_csharp_total": 34,
+  "standalone_payload_protection": {
+    "payload-core-invariant.trx": {
+      "total": 1,
+      "executed": 1,
+      "passed": 1,
+      "failed": 0,
+      "notExecuted": 0
+    },
+    "payload-core-vectors.trx": {
+      "total": 1245,
+      "executed": 1245,
+      "passed": 1245,
+      "failed": 0,
+      "notExecuted": 0
+    }
+  },
+  "cleanup": [
+    {
+      "receipt": "repair-net11-attempt1-verification.json",
+      "workspace": "/dev/shm/hexalith-job.Jpxsqyku/EventStore",
+      "workspace_exists": false,
+      "wrapper_exists": false
+    },
+    {
+      "receipt": "framework-properties-attempt1-verification.json",
+      "workspace": "/dev/shm/hexalith-job.4PiPu6L8/EventStore",
+      "workspace_exists": false,
+      "wrapper_exists": false
+    },
+    {
+      "receipt": "baseline-verification.json",
+      "workspace": "/dev/shm/hexalith-job.N7hUAs1T/EventStore",
+      "workspace_exists": false,
+      "wrapper_exists": false
+    },
+    {
+      "receipt": "framework-import-attempt1-verification.json",
+      "workspace": "/dev/shm/hexalith-job.Jmav9ju4/EventStore",
+      "workspace_exists": false,
+      "wrapper_exists": false
+    },
+    {
+      "receipt": "repair-verification.json",
+      "workspace": "/dev/shm/hexalith-job.uxvIx7hO/EventStore",
+      "workspace_exists": false,
+      "wrapper_exists": false
+    },
+    {
+      "receipt": "repair-import-attempt1-verification.json",
+      "workspace": "/dev/shm/hexalith-job.uW4WcBLg/EventStore",
+      "workspace_exists": false,
+      "wrapper_exists": false
+    }
+  ],
+  "owned_process_matches": [],
+  "working_tree_staged_files": [],
+  "nested_reference_changes": [],
+  "all_recorded_log_artifact_and_current_source_hashes_verified": true,
+  "retained_failure_receipts": [
+    "baseline-verification.json",
+    "repair-verification.json",
+    "repair-net11-attempt1-verification.json",
+    "framework-properties-attempt1-verification.json"
+  ],
+  "retained_successful_probe": "framework-import-attempt1-verification.json"
+}

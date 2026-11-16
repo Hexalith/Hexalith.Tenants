@@ -1,0 +1,42 @@
+[
+  {
+    "segment": "happy",
+    "source": "11c8377a858a756c4e4069bf08e62db1f58e1733",
+    "artifact_sha256": "ad3c7e17d18d7c31929e43c5daaa5a6858ead2bbaf70e4240e75d172e92c49c3",
+    "report_member": "reports/source-tools-happy-path.json",
+    "report_sha256": "bd517da978106fb29b64678786b980ba9bdbab5f7be0adf6a0584fa13292bf35",
+    "raw_status_counts": {
+      "Ignored": 562,
+      "CompileError": 717,
+      "Killed": 2006,
+      "Survived": 400,
+      "NoCoverage": 57,
+      "Timeout": 1
+    },
+    "enum_source_entries_with_empty_mutants": [
+      "src/Hexalith.FrontComposer.SourceTools/Transforms/FormFieldTypeCategory.cs",
+      "src/Hexalith.FrontComposer.SourceTools/Transforms/ProjectionRenderStrategy.cs",
+      "src/Hexalith.FrontComposer.SourceTools/Transforms/TypeCategory.cs"
+    ]
+  },
+  {
+    "segment": "error",
+    "source": "11c8377a858a756c4e4069bf08e62db1f58e1733",
+    "artifact_sha256": "a32d201263365aeaab137c766b12a0fdb91140866fb3dd2714faa90fd84b4f6d",
+    "report_member": "reports/source-tools-error-handling.json",
+    "report_sha256": "a22af3a7473c736fd6e559303e5bb5fa27d17713c8ef2683141f6d68d5069d00",
+    "raw_status_counts": {
+      "Ignored": 562,
+      "CompileError": 717,
+      "Killed": 1909,
+      "Survived": 465,
+      "NoCoverage": 89,
+      "Timeout": 1
+    },
+    "enum_source_entries_with_empty_mutants": [
+      "src/Hexalith.FrontComposer.SourceTools/Transforms/FormFieldTypeCategory.cs",
+      "src/Hexalith.FrontComposer.SourceTools/Transforms/ProjectionRenderStrategy.cs",
+      "src/Hexalith.FrontComposer.SourceTools/Transforms/TypeCategory.cs"
+    ]
+  }
+]

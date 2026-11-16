@@ -1,0 +1,146 @@
+{
+  "observedUtc": "2026-11-15T19:53:31.861364+00:00",
+  "scope": "exact8aa source only; later dependency selection requires fresh CI",
+  "runs": [
+    {
+      "id": 43752423731,
+      "name": "CI",
+      "source": "8aa6f169b3e27f0a831ad6425c4bc1278ca2c445",
+      "event": "push",
+      "conclusion": "success",
+      "htmlUrl": "https://github.com/Hexalith/Hexalith.Tenants/actions/runs/43752423731",
+      "jobs": [
+        {
+          "id": 132929102403,
+          "name": "Blocking HTTP contracts",
+          "conclusion": "success"
+        },
+        {
+          "id": 132929102557,
+          "name": "Blocking authenticated live routes (authenticated-ui)",
+          "conclusion": "success"
+        },
+        {
+          "id": 132929102558,
+          "name": "Blocking authenticated live routes (persisted)",
+          "conclusion": "success"
+        },
+        {
+          "id": 132929102559,
+          "name": "Published catalog HTTP (canonical scope 5.1.1)",
+          "conclusion": "success"
+        },
+        {
+          "id": 132929102569,
+          "name": "Blocking authenticated live routes (rest)",
+          "conclusion": "success"
+        },
+        {
+          "id": 132929102576,
+          "name": "Server profile boundary (canonical scope 5.1.1)",
+          "conclusion": "success"
+        },
+        {
+          "id": 132929102621,
+          "name": "ci / build-and-test",
+          "conclusion": "success"
+        },
+        {
+          "id": 132929102637,
+          "name": "Blocking authenticated live routes (anonymous-ui)",
+          "conclusion": "success"
+        },
+        {
+          "id": 132933210614,
+          "name": "ci / aspire-tests",
+          "conclusion": "success"
+        },
+        {
+          "id": 132933211645,
+          "name": "ci / performance-tests",
+          "conclusion": "skipped"
+        }
+      ]
+    },
+    {
+      "id": 43752423311,
+      "name": "Source-reference integration",
+      "source": "8aa6f169b3e27f0a831ad6425c4bc1278ca2c445",
+      "event": "push",
+      "conclusion": "success",
+      "htmlUrl": "https://github.com/Hexalith/Hexalith.Tenants/actions/runs/43752423311",
+      "jobs": [
+        {
+          "id": 132929101394,
+          "name": "Actual source catalog owner profile",
+          "conclusion": "success"
+        },
+        {
+          "id": 132929101557,
+          "name": "Projection provenance",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": 43752423270,
+      "name": "Story Guards",
+      "source": "8aa6f169b3e27f0a831ad6425c4bc1278ca2c445",
+      "event": "push",
+      "conclusion": "success",
+      "htmlUrl": "https://github.com/Hexalith/Hexalith.Tenants/actions/runs/43752423270",
+      "jobs": [
+        {
+          "id": 132929101094,
+          "name": "validate-story-gitlinks",
+          "conclusion": "success"
+        },
+        {
+          "id": 132929101330,
+          "name": "validate-read-only-release-version",
+          "conclusion": "success"
+        },
+        {
+          "id": 132929101392,
+          "name": "validate-release-artifacts",
+          "conclusion": "success"
+        },
+        {
+          "id": 132929101407,
+          "name": "validate-remove-focus-in-chromium",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": 43752423711,
+      "name": "Commitlint",
+      "source": "8aa6f169b3e27f0a831ad6425c4bc1278ca2c445",
+      "event": "push",
+      "conclusion": "success",
+      "htmlUrl": "https://github.com/Hexalith/Hexalith.Tenants/actions/runs/43752423711",
+      "jobs": [
+        {
+          "id": 132929102108,
+          "name": "commitlint / commitlint",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": 43752423721,
+      "name": "CodeQL",
+      "source": "8aa6f169b3e27f0a831ad6425c4bc1278ca2c445",
+      "event": "push",
+      "conclusion": "success",
+      "htmlUrl": "https://github.com/Hexalith/Hexalith.Tenants/actions/runs/43752423721",
+      "jobs": [
+        {
+          "id": 132929102449,
+          "name": "codeql / analyze",
+          "conclusion": "success"
+        }
+      ]
+    }
+  ]
+}

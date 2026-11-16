@@ -1,0 +1,15 @@
+{
+  "functionBodies": [
+    {
+      "function": "Normalize-ArtifactText",
+      "canonicalFunctionSha256": "cbc75c46b760017454787b73878d9c57ec356479adcce0bad05b2753a580c203",
+      "identical": true
+    },
+    {
+      "function": "Test-UnsafeText",
+      "canonicalFunctionSha256": "2b73c234752c1c3edc13c8325bc97f773be67f68ec2ba89fefaf469d350457ef",
+      "identical": true
+    }
+  ],
+  "allOtherValidatorBytesCanonicalUnchanged": true
+}

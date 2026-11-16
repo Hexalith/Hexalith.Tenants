@@ -1,0 +1,14 @@
+{
+  "scope": "Read-only CI structure proposal based on actual4h44m Happy and63m local Error, within existing6h job ceiling; no owner workflow edit yet",
+  "existingPrivateToolUnchanged": true,
+  "existingProvenanceUnchanged": true,
+  "noRuntimeArtifactDistribution": true,
+  "proof": "fc-private-tool-rebuild-proof/verification.json",
+  "proposed": [
+    "Two fixed segment jobs (matrix fail-fast false), each retains existing pinned container/resources/SDK/tool source/config/full predicate/threshold and360minute bound; native verify its own complete report and upload allowed report/provenance artifacts only.",
+    "Aggregate job keeps original source-tools-mutation required-check identity; check out exact same source/container/environment, independently prepare the identical authenticated job-private tool, download both same-run segment artifacts and run unchanged strict BOTH validator with RequireCompatibilityProvenance.",
+    "Aggregate additionally requires both segment job results success, preserves failed reports and uploads the original aggregate artifact name. Lifecycle job and workflow triggers/concurrency/protections remain intact.",
+    "Independent tool rebuild/digest equality was empirically proved at one local clean path; actual aggregate strict equality must still pass on real hosted jobs; never rewrite receipts or forge GitHub context."
+  ],
+  "reason": "Avoid serial complete cohorts competing for one hosted6h lifetime; parallel execution preserves each complete technical gate without distributing the private runtime."
+}

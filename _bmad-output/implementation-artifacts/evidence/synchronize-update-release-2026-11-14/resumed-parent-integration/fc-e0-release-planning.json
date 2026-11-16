@@ -1,0 +1,14 @@
+{
+  "source": "e0eef14ddbbcd03823863a4f417a4b07f6f5bafc",
+  "runId": 43757692983,
+  "verifySourceJobId": 132945287094,
+  "planJobId": 132945751156,
+  "plan": "6.0.1",
+  "mode": "existing isolated semantic-release dry-run; proposal only",
+  "productionPreparationJobId": 132946154003,
+  "productionPreparationStatus": "waiting; no approval until current mutation gate passes",
+  "planEvidence": [
+    "2026-11-15T20:25:16.7418069Z [8:25:16 PM] [semantic-release] \u203a \u2139  The next release version is 6.0.1",
+    "2026-11-15T20:25:16.7634854Z [8:25:16 PM] [semantic-release] \u203a \u26a0  Skip v6.0.1 tag creation in dry-run mode"
+  ]
+}

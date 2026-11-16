@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Reproduce this local public-SDK qualification under run-with-temp."""
+"""Historical current-input qualification driver under run-with-temp.
+
+Copies current sources, not the original historical snapshot. It intentionally
+requires 5.1.0 still to be latest stable and refuses now 5.1.1 is public; retained
+historical results are not replay results and remain unchanged.
+"""
 
 import datetime
 import hashlib

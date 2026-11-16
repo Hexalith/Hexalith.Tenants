@@ -1,0 +1,87 @@
+{
+  "scope": "Focused current b34 working-input verification of the two corrected test classes; not mutation qualification.",
+  "source_base_commit": "b34be9245443d21b72a6076cf205bbbc8a8c521f",
+  "builds_commit": "73e60af8a1fcdf3f06726d5d1b6e1199cce778ee",
+  "workspace": "/dev/shm/hexalith-job.3JCkYy7R/FrontComposer",
+  "commands": [
+    {
+      "name": "prospective-patch-check",
+      "command": [
+        "git",
+        "apply",
+        "--check",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-error-followthrough-analysis/private-test-proposal.patch"
+      ],
+      "exit_code": 0,
+      "log": "prospective-patch-check.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "focused-build",
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "-c",
+        "Release",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true",
+        "-p:GeneratePackageOnBuild=false",
+        "-p:RunAnalyzers=false",
+        "-m:1",
+        "-nodeReuse:false"
+      ],
+      "exit_code": 0,
+      "log": "focused-build.log",
+      "sha256": "b59a7e149cbad9d9c729abb3dbaec8c4e90a960617007cd7721ac9c21a803e9d"
+    },
+    {
+      "name": "focused-tests",
+      "command": [
+        "dotnet",
+        "test",
+        "--project",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "--no-build",
+        "--configuration",
+        "Release",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.ErrorFollowthroughBehaviorTests",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.ProjectionParserSurvivorRegressionTests",
+        "--minimum-expected-tests",
+        "38",
+        "--fail-skips",
+        "on",
+        "--results-directory",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-error-followthrough-analysis/b34-assertion-corrections-08/results",
+        "--report-xunit-trx",
+        "--report-xunit-trx-filename",
+        "tests.trx",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true"
+      ],
+      "exit_code": 2,
+      "log": "focused-tests.log",
+      "sha256": "a86c3559532162c0b5040258f5166bef546f651af9f43c18d1ed03ba192db2b4"
+    }
+  ],
+  "test_overlay_sha256": {
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/ErrorFollowthroughBehaviorTests.cs": "d3173d4d18912398337fb81fb4d93cb1f94a6029e39ddbe18bafefbefbaad2a1",
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/OtherAttributeGenerator.cs": "1ee8dfc941d994f3ff2da588c9a23afb2d079abf90fe3959cddff909ad309ce3",
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/ProjectionParserSurvivorRegressionTests.cs": "e4b2137a1cff85539af33b54a251091b8240397b6e2af7a8ae3ba916305462db",
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/TemplateParserProviderBoundaryTests.cs": "19ad13025d8d5632f5a39554e46d0205cd930279d551b71af937c1a1ef959583"
+  },
+  "archives": {
+    ".": {
+      "revision": "b34be9245443d21b72a6076cf205bbbc8a8c521f",
+      "tar_sha256": "6cb2fd629f781af3d677fbeff9d7752f7a6101e494660d4f32ff72edda534516"
+    },
+    "references/Hexalith.Builds": {
+      "revision": "73e60af8a1fcdf3f06726d5d1b6e1199cce778ee",
+      "tar_sha256": "9b92ae56444da9b4bff1b2527011d061a37aa4ad925ac5c507bb55ef78ada9c5"
+    }
+  },
+  "owner_status_before": "?? tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/ErrorFollowthroughBehaviorTests.cs\n?? tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/OtherAttributeGenerator.cs\n?? tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/ProjectionParserSurvivorRegressionTests.cs\n?? tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/TemplateParserProviderBoundaryTests.cs\n",
+  "patch_sha256": "292d5ee17ae77987550bc256108e1aa6f8687f718082608476fdc436e55909e9"
+}

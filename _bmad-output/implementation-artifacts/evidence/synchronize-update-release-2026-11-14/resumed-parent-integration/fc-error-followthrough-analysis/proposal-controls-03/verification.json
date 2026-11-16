@@ -1,0 +1,178 @@
+{
+  "source": "e0eef14ddbbcd03823863a4f417a4b07f6f5bafc",
+  "builds": "73e60af8a1fcdf3f06726d5d1b6e1199cce778ee",
+  "workspace": "/dev/shm/hexalith-job.4kToTQ5r/FrontComposer",
+  "scope": "Focused private behavioral controls only; never a full mutation/gate result.",
+  "test_source_sha256": {
+    "ProjectionParserSurvivorRegressionTests.cs": "4446c7c3938bcd1b06f1197129cf87a7b47b753ab2835eb809750d23939a0602",
+    "TemplateParserProviderBoundaryTests.cs": "ae707096243ec9a9eb986b0c4a2d63f04208232f893490dd4f188a7ae70f7a54",
+    "ErrorFollowthroughBehaviorTests.cs": "d55b606faa5303ee2c540e8d897b9af8cda412ea986523f716facf9d98dbea8f"
+  },
+  "commands": [
+    {
+      "name": "baseline-build",
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "-c",
+        "Release",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true",
+        "-p:GeneratePackageOnBuild=false",
+        "-p:RunAnalyzers=false",
+        "-m:1",
+        "-nodeReuse:false"
+      ],
+      "exit_code": 0,
+      "log": "baseline-build.log",
+      "sha256": "d93748fec7caaafc07645520e66b869f700418ab623c5482bf255a2e1753ca84"
+    },
+    {
+      "name": "baseline-tests",
+      "command": [
+        "dotnet",
+        "test",
+        "--project",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "--no-build",
+        "--configuration",
+        "Release",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.ErrorFollowthroughBehaviorTests",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.ProjectionParserSurvivorRegressionTests",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.TemplateParserProviderBoundaryTests",
+        "--minimum-expected-tests",
+        "39",
+        "--fail-skips",
+        "on",
+        "--results-directory",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-error-followthrough-analysis/proposal-controls-03/baseline-results",
+        "--report-xunit-trx",
+        "--report-xunit-trx-filename",
+        "tests.trx",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true"
+      ],
+      "exit_code": 0,
+      "log": "baseline-tests.log",
+      "sha256": "5f3c4cd341f8f6e71140eb5c05231e05b043f48b967e8b8d3ddee5985f4ed672"
+    },
+    {
+      "name": "13689-build",
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "-c",
+        "Release",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true",
+        "-p:GeneratePackageOnBuild=false",
+        "-p:RunAnalyzers=false",
+        "-m:1",
+        "-nodeReuse:false"
+      ],
+      "exit_code": 0,
+      "log": "13689-build.log",
+      "sha256": "1332237c325eaf6285ac9f57c916bbc693f25eb80a393d9b98da1b762dab3d4f"
+    },
+    {
+      "name": "13689-tests",
+      "command": [
+        "dotnet",
+        "test",
+        "--project",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "--no-build",
+        "--configuration",
+        "Release",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.ErrorFollowthroughBehaviorTests",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.ProjectionParserSurvivorRegressionTests",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.TemplateParserProviderBoundaryTests",
+        "--minimum-expected-tests",
+        "39",
+        "--fail-skips",
+        "on",
+        "--results-directory",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-error-followthrough-analysis/proposal-controls-03/13689-results",
+        "--report-xunit-trx",
+        "--report-xunit-trx-filename",
+        "tests.trx",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true"
+      ],
+      "exit_code": 2,
+      "log": "13689-tests.log",
+      "sha256": "0faa78df64991ea0ac7c7018c34d5a3a99c727e65d52c6e75a590ffc5466a4f1"
+    },
+    {
+      "name": "13690-build",
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "-c",
+        "Release",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true",
+        "-p:GeneratePackageOnBuild=false",
+        "-p:RunAnalyzers=false",
+        "-m:1",
+        "-nodeReuse:false"
+      ],
+      "exit_code": 0,
+      "log": "13690-build.log",
+      "sha256": "fe3548c03bfaf765170eeeb39644091f430b214ebe6de559d25b6da6bdf43204"
+    },
+    {
+      "name": "13690-tests",
+      "command": [
+        "dotnet",
+        "test",
+        "--project",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "--no-build",
+        "--configuration",
+        "Release",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.ErrorFollowthroughBehaviorTests",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.ProjectionParserSurvivorRegressionTests",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.TemplateParserProviderBoundaryTests",
+        "--minimum-expected-tests",
+        "39",
+        "--fail-skips",
+        "on",
+        "--results-directory",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-error-followthrough-analysis/proposal-controls-03/13690-results",
+        "--report-xunit-trx",
+        "--report-xunit-trx-filename",
+        "tests.trx",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true"
+      ],
+      "exit_code": 2,
+      "log": "13690-tests.log",
+      "sha256": "f15d3c6008d58807223116088510b781f8441c13d413dbc3da2de5f4013f8c06"
+    }
+  ],
+  "variants": {
+    "13689": {
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/ProjectionTemplateMarkerParser.cs",
+      "baseline_source_sha256": "917ac5d67f329f23a32aa6cc4e2dff026dc3ec3873bd7e2da27e6ed5713f6031",
+      "mutated_source_sha256": "eb2460ca3adc15623691ca66d17908914f46702a784f617757017e3d9e9d09e8"
+    },
+    "13690": {
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/ProjectionTemplateMarkerParser.cs",
+      "baseline_source_sha256": "917ac5d67f329f23a32aa6cc4e2dff026dc3ec3873bd7e2da27e6ed5713f6031",
+      "mutated_source_sha256": "3cec7448f7d37afbac7f1ae83698e304c5c23b5e3c5b7edb348ea40ac1c2d19b"
+    }
+  }
+}

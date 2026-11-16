@@ -1,0 +1,104 @@
+{
+  "scope": "Bounded review corrections: publication policy and five edited classes; no full mutation.",
+  "sourceBase": "b34be9245443d21b72a6076cf205bbbc8a8c521f",
+  "scratch": "/dev/shm/hexalith-job.UhVJ4T4k",
+  "commands": [
+    {
+      "name": "publication-controls",
+      "command": [
+        "python3",
+        "-B",
+        "tests/eng/test_mutation_artifact_publication.py"
+      ],
+      "cwd": "/dev/shm/hexalith-job.UhVJ4T4k/FrontComposer",
+      "exitCode": 0,
+      "seconds": 8.91,
+      "logSha256": "626cc39acf163f773747b4ab1e83b034143a019f27eff43747fd493c0df8ba4a"
+    },
+    {
+      "name": "edited-tests-build",
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "-c",
+        "Release",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true",
+        "-p:GeneratePackageOnBuild=false",
+        "-m:1",
+        "-nodeReuse:false"
+      ],
+      "cwd": "/dev/shm/hexalith-job.UhVJ4T4k/FrontComposer",
+      "exitCode": 0,
+      "seconds": 32.735,
+      "logSha256": "32d874fb91803b607cd8d8fbe4b9e53894114b6ddb427d8b21c02099c0de2b6e"
+    },
+    {
+      "name": "edited-tests",
+      "command": [
+        "dotnet",
+        "test",
+        "--project",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "--no-build",
+        "--configuration",
+        "Release",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.RazorRoleRecoveryContractTests",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.TemplateContractBoundaryTests",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.AliasSignatureContractTests",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.CommandContractBoundaryTests",
+        "--minimum-expected-tests",
+        "28",
+        "--fail-skips",
+        "on",
+        "--results-directory",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-review-publication-and-recovery/attempt-02/test-results",
+        "--report-xunit-trx",
+        "--report-xunit-trx-filename",
+        "tests.trx",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true"
+      ],
+      "cwd": "/dev/shm/hexalith-job.UhVJ4T4k/FrontComposer",
+      "exitCode": 0,
+      "seconds": 10.046,
+      "logSha256": "0143ca42cab31c5e583f11ce72c18fcce27575598a3db90a4b7b6d1afa9157d7"
+    }
+  ],
+  "overlays": {
+    ".github/workflows/mutation-property-nightly.yml": "1d4c3ffdfc29302d0215dfc9e962d098a18e15f97581964145b19d6de5bdec5a",
+    "eng/mutation-artifact-policy.ps1": "e42c7a3e7aca1798d72522505d39c5a205b673ffccb14e3bff22dee7e1e19bca",
+    "eng/prepare-mutation-artifacts.ps1": "4a39464ecdc75ca6ba343efd85a80052af7c0ad59eeab31040fc4b1a4172be36",
+    "eng/validate-stryker-reports.ps1": "16d44b70d1b0069174a663a934a2630d4d6cd399c1587ed6a39495f853e16091",
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/AliasSignatureContractTests.cs": "09cc726195de02fa9c6fc25e90d9fcefe4eaf5eb42dbba947e8d74d04bfff954",
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/ColumnFilterContractTests.cs": "0e971bab5f02a836f242fdc059916821d60be9579b93e06fcc8e68171d61bc4b",
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/CommandContractBoundaryTests.cs": "ef19ed57bb1ee71814e0d1a526dd3b2e3fe214923fb94d009275666ac6d0af51",
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/ErrorFollowthroughBehaviorTests.cs": "c6e8acd6d3ab7ca88a2255e6e3ebc3c55c793a344e4a84f9bac3b171e4cbf6cd",
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/MetadataDiagnosticContractTests.cs": "c5da80758632a0731dbe72b51fd29531c758ab967d23cf4d31420a38e1545c0d",
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/ModelDefaultComparisonContractTests.cs": "a873739f4f6ac344bb381e5c6d11c18b1ad41bcfb7a0a9f23731aec505a82fe3",
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/OtherAttributeGenerator.cs": "1ee8dfc941d994f3ff2da588c9a23afb2d079abf90fe3959cddff909ad309ce3",
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/ProjectionParserSurvivorRegressionTests.cs": "cca95b425e01560c9f9d21859439569ace047c2b1c0cab1a03fb2d7233ab04d2",
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/RazorRoleRecoveryContractTests.cs": "e754a769a548c19cf006cac4421903d0c42063c74fe71814e15e9d5b217ec2f9",
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/RelativeTimeHashParticipationTests.cs": "7c04cc05e322965d1558cf2bc41ecaf6f166ce6a749426e96c3f353258c8125d",
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/TemplateContractBoundaryTests.cs": "41e8c5a0d4f4516515fc2d599d4a09d3d125bc001f766b785e015a884272cb70",
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/TemplateParserProviderBoundaryTests.cs": "19ad13025d8d5632f5a39554e46d0205cd930279d551b71af937c1a1ef959583",
+    "tests/eng/test_mutation_artifact_publication.py": "637ef6c14e20bde779a956a02634e7de83e2024c733b23d366e57351475e44a4"
+  },
+  "archives": [
+    {
+      "revision": "b34be9245443d21b72a6076cf205bbbc8a8c521f",
+      "sha256": "6cb2fd629f781af3d677fbeff9d7752f7a6101e494660d4f32ff72edda534516"
+    },
+    {
+      "revision": "73e60af8a1fcdf3f06726d5d1b6e1199cce778ee",
+      "sha256": "9b92ae56444da9b4bff1b2527011d061a37aa4ad925ac5c507bb55ef78ada9c5"
+    }
+  ],
+  "allChecksPassed": true,
+  "finishedUtc": "2026-11-16T02:43:17Z"
+}

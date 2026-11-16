@@ -1,0 +1,18 @@
+{
+  "source": "981fabaa3cf44fc2a71eed73549f4fb0d847e2a6",
+  "runId": 43757391734,
+  "conclusion": "success",
+  "jobs": [
+    {
+      "id": 132944365344,
+      "name": "published-compatibility",
+      "conclusion": "success"
+    },
+    {
+      "id": 132944365683,
+      "name": "live-sidecar",
+      "conclusion": "success"
+    }
+  ],
+  "observedUtc": "2026-11-15T21:28:09.532314+00:00"
+}

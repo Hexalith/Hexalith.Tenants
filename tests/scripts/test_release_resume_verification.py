@@ -18,20 +18,84 @@ PROBE = ROOT / '_bmad-output/implementation-artifacts/evidence/fix-firefox-route
 
 
 class ReleaseResumeVerificationTests(unittest.TestCase):
+    def retained_success(self, module, evidence):
+        checks = []
+        for name in ('module-build', 'manifest-contracts'):
+            log = evidence / (name + '.log')
+            log.write_text(name + ' original success\n')
+            checks.append({'name': name, 'exit_code': 0, 'command': list(module['COMMANDS'][name]),
+                           'log': log.name, 'log_sha256': hashlib.sha256(log.read_bytes()).hexdigest()})
+        return {'revision': 'a' * 40, 'source_manifest_sha256': 'digest', 'configuration': 'Debug',
+                'verification_recipe_sha256': module['recipe_identity'](), 'checks': checks}
+
     def test_prior_success_is_reused_only_at_its_exact_revision(self):
-        reuse = runpy.run_path(str(VERIFIER))['reuse']
-        prior = {'revision': 'a' * 40, 'source_manifest_sha256': 'digest', 'checks': [
-            {'name': 'module-build', 'exit_code': 0}, {'name': 'manifest-contracts', 'exit_code': 0}]}
-        original = json.dumps(prior)
-        self.assertEqual(reuse(prior, 'a' * 40, 'digest'), prior['checks'])
-        with self.assertRaisesRegex(ValueError, 'exact previous Builds revision'):
-            reuse(prior, 'b' * 40, 'digest')
-        self.assertEqual(json.dumps(prior), original)
-        with self.assertRaisesRegex(ValueError, 'same byte-bound source manifest'):
-            reuse(prior, 'a' * 40, 'different')
-        prior['checks'][1]['exit_code'] = 1
-        with self.assertRaisesRegex(ValueError, 'both successful module checks'):
-            reuse(prior, 'a' * 40, 'digest')
+        module = runpy.run_path(str(VERIFIER))
+        with tempfile.TemporaryDirectory() as temporary:
+            evidence = Path(temporary)
+            prior = self.retained_success(module, evidence)
+            original = json.dumps(prior)
+            reuse = lambda record, revision='a' * 40, digest='digest': module['reuse'](record, revision, digest, evidence)
+            self.assertEqual(reuse(prior), prior['checks'])
+            with self.assertRaisesRegex(ValueError, 'exact previous Builds revision'):
+                reuse(prior, revision='b' * 40)
+            with self.assertRaisesRegex(ValueError, 'same byte-bound source manifest'):
+                reuse(prior, digest='different')
+            self.assertEqual(json.dumps(prior), original)
+            prior['checks'][1]['exit_code'] = 1
+            with self.assertRaisesRegex(ValueError, 'both successful module checks'):
+                reuse(prior)
+
+    def test_reuse_requires_exact_debug_recipe_and_module_commands(self):
+        module = runpy.run_path(str(VERIFIER))
+        with tempfile.TemporaryDirectory() as temporary:
+            evidence = Path(temporary)
+            prior = self.retained_success(module, evidence)
+            changes = [('configuration', 'Release', 'Debug configuration'),
+                       ('verification_recipe_sha256', 'old-recipe', 'recipe identity')]
+            for field, value, message in changes:
+                with self.subTest(field=field):
+                    changed = json.loads(json.dumps(prior))
+                    changed[field] = value
+                    with self.assertRaisesRegex(ValueError, message):
+                        module['reuse'](changed, 'a' * 40, 'digest', evidence)
+            for name in ('module-build', 'manifest-contracts'):
+                changed = json.loads(json.dumps(prior))
+                next(check for check in changed['checks'] if check['name'] == name)['command'].append('--different')
+                with self.subTest(name=name), self.assertRaisesRegex(ValueError, 'exact expected module commands'):
+                    module['reuse'](changed, 'a' * 40, 'digest', evidence)
+            del prior['verification_recipe_sha256']
+            with self.assertRaisesRegex(ValueError, 'old incomplete records are refused'):
+                module['reuse'](prior, 'a' * 40, 'digest', evidence)
+
+    def test_reuse_refuses_missing_changed_external_linked_and_duplicate_logs(self):
+        module = runpy.run_path(str(VERIFIER))
+        with tempfile.TemporaryDirectory() as temporary:
+            evidence = Path(temporary) / 'evidence'
+            evidence.mkdir()
+            prior = self.retained_success(module, evidence)
+            originals = {path.name: path.read_bytes() for path in evidence.iterdir()}
+            outside = evidence.parent / 'outside.log'
+            outside.write_bytes(b'outside')
+            (evidence / 'linked.log').symlink_to(evidence / 'module-build.log')
+            (evidence / 'linked-dir').symlink_to(evidence, target_is_directory=True)
+            for value in (None, 'missing.log', '../outside.log', str(outside), 'linked.log', 'linked-dir/module-build.log'):
+                changed = json.loads(json.dumps(prior))
+                changed['checks'][0]['log'] = value
+                with self.subTest(log=value), self.assertRaisesRegex(ValueError, 'contained real retained log'):
+                    module['reuse'](changed, 'a' * 40, 'digest', evidence)
+            changed = json.loads(json.dumps(prior))
+            changed['checks'][0]['log_sha256'] = 'wrong'
+            with self.assertRaisesRegex(ValueError, 'matching retained log hashes'):
+                module['reuse'](changed, 'a' * 40, 'digest', evidence)
+            changed = json.loads(json.dumps(prior))
+            changed['checks'][1].update({key: changed['checks'][0][key] for key in ('log', 'log_sha256')})
+            with self.assertRaisesRegex(ValueError, 'distinct retained logs'):
+                module['reuse'](changed, 'a' * 40, 'digest', evidence)
+            for name, content in originals.items():
+                self.assertEqual((evidence / name).read_bytes(), content)
+            (evidence / 'module-build.log').write_bytes(b'tampered actual log')
+            with self.assertRaisesRegex(ValueError, 'matching retained log hashes'):
+                module['reuse'](prior, 'a' * 40, 'digest', evidence)
 
     def test_selection_binds_bytes_and_refuses_staged_and_unstaged_changes(self):
         selection = runpy.run_path(str(VERIFIER))['selection']
@@ -103,6 +167,8 @@ class ReleaseResumeVerificationTests(unittest.TestCase):
             evidence.mkdir()
             old_log = evidence / 'module-build.log'
             old_log.write_text('historical successful output')
+            original_receipt = b'{"historical":"successful original receipt"}\n'
+            (evidence / 'current-verification.json').write_bytes(original_receipt)
             selected = ('a' * 40, {'input.txt': hashlib.sha256(b'original').hexdigest()})
             def child(arguments, **kwargs):
                 kwargs['stdout'].write('new check output\n')
@@ -112,6 +178,9 @@ class ReleaseResumeVerificationTests(unittest.TestCase):
                  patch('sys.argv', [str(VERIFIER)]):
                 self.assertEqual(main(), 0)
             self.assertEqual(old_log.read_text(), 'historical successful output')
+            archives = list((evidence / 'attempts').glob('*/prior-verification.json'))
+            self.assertEqual(len(archives), 1)
+            self.assertEqual(archives[0].read_bytes(), original_receipt)
             receipt = json.loads((evidence / 'current-verification.json').read_text())
             self.assertEqual(len(receipt['checks']), 4)
             for check in receipt['checks']:

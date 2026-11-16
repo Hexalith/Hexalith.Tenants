@@ -136,7 +136,7 @@ jobs:
           -p:HexalithEventStoreFromSource=false ${{ matrix.sdk-argument }}
           -p:HexalithFrontComposerFromSource=false -p:HexalithMemoriesFromSource=false
           --filter-class Hexalith.Tenants.IntegrationTests.TenantsApiGeneratedControllerTests
-          --minimum-expected-tests 66 --fail-skips on
+          --minimum-expected-tests 67 --fail-skips on
       - name: Require bound bootstrap authority and original actor and conflict outcomes
         shell: bash
         run: |

@@ -1,0 +1,82 @@
+{
+  "scope": "Read-only final source, focused-case and scratch-cleanup audit for review corrections.",
+  "ownerHead": "b34be9245443d21b72a6076cf205bbbc8a8c521f",
+  "changedOrNewOwnerFiles": {
+    ".github/workflows/mutation-property-nightly.yml": "1d4c3ffdfc29302d0215dfc9e962d098a18e15f97581964145b19d6de5bdec5a",
+    "eng/validate-stryker-reports.ps1": "16d44b70d1b0069174a663a934a2630d4d6cd399c1587ed6a39495f853e16091",
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/ErrorFollowthroughBehaviorTests.cs": "c6e8acd6d3ab7ca88a2255e6e3ebc3c55c793a344e4a84f9bac3b171e4cbf6cd",
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/RazorRoleRecoveryContractTests.cs": "e754a769a548c19cf006cac4421903d0c42063c74fe71814e15e9d5b217ec2f9",
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/TemplateContractBoundaryTests.cs": "41e8c5a0d4f4516515fc2d599d4a09d3d125bc001f766b785e015a884272cb70",
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/AliasSignatureContractTests.cs": "09cc726195de02fa9c6fc25e90d9fcefe4eaf5eb42dbba947e8d74d04bfff954",
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/CommandContractBoundaryTests.cs": "ef19ed57bb1ee71814e0d1a526dd3b2e3fe214923fb94d009275666ac6d0af51",
+    "eng/mutation-artifact-policy.ps1": "e42c7a3e7aca1798d72522505d39c5a205b673ffccb14e3bff22dee7e1e19bca",
+    "eng/prepare-mutation-artifacts.ps1": "12c94afe1963f40ec2c60ff4331c2e6cdc02901c8b9d98d354c332e65a00cb78",
+    "tests/eng/test_mutation_artifact_publication.py": "87522f7a6466741c9a5a4139f3150098d12d51c453c1790976894d0a6a602c99"
+  },
+  "preservation": {
+    "otherOwnerInputFilesByteIdentical": 6461,
+    "priorLifetimeEvidenceFilesUnchanged": 21,
+    "nativeToolConfigPredicatesThresholdsManifestUnchanged": true
+  },
+  "verification": {
+    "uniqueEditedClassCasesPassing": 53,
+    "rendererCases": {
+      "attempt": "attempt-01",
+      "passed": 25,
+      "currentClassBytesIdentical": true
+    },
+    "fourRecoveryClasses": {
+      "attempt": "attempt-02",
+      "passed": 28,
+      "failed": 0,
+      "skipped": 0
+    },
+    "normalAnalyzerBuilds": {
+      "attempt-01": {
+        "warnings": 0,
+        "errors": 0
+      },
+      "attempt-02": {
+        "warnings": 0,
+        "errors": 0
+      }
+    },
+    "publication": {
+      "attempt": "attempt-05-publication",
+      "testMethodsPassed": 9,
+      "actualPowerShellInvocations": 18,
+      "safeFailedReportPublicationsEligible": 2,
+      "actualRefusals": 16
+    },
+    "actionlint": {
+      "attempt": "attempt-01",
+      "exitCode": 0,
+      "currentWorkflowBytesIdentical": true
+    },
+    "exactPolicyPreservation": "policy-preservation.json"
+  },
+  "retainedAttempts": {
+    "attempt-01": "53 C# cases:50pass/3assumption failures; publication expected refusals occurred but3 assertions failed on PowerShell line wrapping; raw inputs/logs/TRX retained",
+    "attempt-02": "28 corrected recovery cases and7 publication tests pass; source inputs retained",
+    "attempt-03-shape-control": "Two actual pre-fix guard admissions (linked directory and allowed filename directory) demonstrate missing shape refusals; actual child tests exit1 retained",
+    "attempt-04-publication": "Fail-closed StrictMode Directory property error after expanding enumeration; raw refusal retained",
+    "attempt-05-publication": "Corrected enumeration getter; all9 publication tests pass"
+  },
+  "cleanup": {
+    "allFiveScratchRootsGone": [
+      "/dev/shm/hexalith-job.WuHUxYWo",
+      "/dev/shm/hexalith-job.UhVJ4T4k",
+      "/dev/shm/hexalith-job.6jc24LpO",
+      "/dev/shm/hexalith-job.gz41AR2D",
+      "/dev/shm/hexalith-job.mpSC4jxZ"
+    ],
+    "processesRetainingOwnedTMPDIR": [],
+    "allChildCommandsWaited": true
+  },
+  "limits": [
+    "Local publication controls invoke actual PowerShell guards; no GitHub artifact upload/download service was executed.",
+    "Focused case evidence is25 unchanged renderer cases plus28 current recovery cases across retained attempts, not one combined53-case current-source suite.",
+    "No full mutation score, hosted/current-source qualification, accepted triage, Git/remote or authority change is claimed."
+  ],
+  "finishedUtc": "2026-11-16T02:51:56Z"
+}

@@ -1,0 +1,36 @@
+{
+  "scope": "Narrow actual owner finite-triage CLI/contracts, guarded publication paths and workflow syntax only",
+  "scratch": "/dev/shm/hexalith-job.2aHOK3W0",
+  "commands": [
+    {
+      "name": "owner-triage-contracts",
+      "command": [
+        "python3",
+        "-B",
+        "tests/eng/test_mutation_triage.py"
+      ],
+      "exitCode": 0,
+      "logSha256": "d1b5a7cb2850239446a2064534e2bf1797089800e5d25d1c76e6156ebfc9d70a"
+    },
+    {
+      "name": "publication-contracts",
+      "command": [
+        "python3",
+        "-B",
+        "tests/eng/test_mutation_artifact_publication.py"
+      ],
+      "exitCode": 0,
+      "logSha256": "e15b2cdae5b9a5f4a9e91312ee54efb5853a1d756bb6e10d5c5f123fdd02a5e2"
+    },
+    {
+      "name": "actionlint",
+      "command": [
+        "actionlint",
+        "-no-color",
+        ".github/workflows/mutation-property-nightly.yml"
+      ],
+      "exitCode": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}

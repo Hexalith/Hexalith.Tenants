@@ -1,0 +1,10 @@
+{
+  "scope": "Full Root baseline-to-working-tree unified diff, including every untracked nonignored file and current root gitlinks. Later release receipt/catalog pointer updates will require final diff refresh; published future state is not claimed.",
+  "createdAtUtc": "2026-11-16T05:40:57.055269+00:00",
+  "baseline": "401d926eb7d51bdf332696ed3f0fe39a812b3501",
+  "rootHead": "8aa6f169b3e27f0a831ad6425c4bc1278ca2c445",
+  "diffPath": "/tmp/hexalith-job.AwUtYK0p/release-review.diff",
+  "bytes": 274570964,
+  "sha256": "f1c44f149ae3fad418462a150c5832fd852d4ce8d754c2038c1ae4c438fa8fd9",
+  "untrackedFiles": 1548
+}

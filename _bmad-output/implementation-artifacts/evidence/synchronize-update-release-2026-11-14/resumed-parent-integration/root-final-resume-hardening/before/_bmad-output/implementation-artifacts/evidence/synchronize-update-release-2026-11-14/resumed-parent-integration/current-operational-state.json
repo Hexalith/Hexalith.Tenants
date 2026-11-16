@@ -1,0 +1,390 @@
+{
+  "status": "in-review; publication pending",
+  "rootSource": "8aa6f169b3e27f0a831ad6425c4bc1278ca2c445",
+  "rootCi": {
+    "run": 43752423731,
+    "conclusion": "success",
+    "requiredWorkflowJobs": {
+      "success": 17,
+      "configuredPerformanceSkip": 1
+    }
+  },
+  "frontComposer": {
+    "source": "11c8377a858a756c4e4069bf08e62db1f58e1733",
+    "ci": 43807620376,
+    "pushQuality": 43807619578,
+    "manualQuality": 43755164106,
+    "ciAndBothQuality": "FreshpushCI/Qualityinprogress; oldmanualQualitye0historical",
+    "mutationRun": 43807658283,
+    "mutationJob": 132939666243,
+    "lifecycleJob": 132939666488,
+    "lifecycleConclusion": "success",
+    "mutation": "Fresh11c run43807658283started;2complete segment jobs,separate360m lifetimes,independentstrictaggregate;nofreshscoreyet",
+    "releaseRun": 43757692983,
+    "releaseStatus": "cancelled before preparation/publication because current main advanced; never approve old43757692983",
+    "productionEnvironmentId": 19155294005,
+    "currentMaintainerCanApprove": true,
+    "approvalHold": "Do not approve production until actual current-source mutation gate passes; this preserves all automatic gates.",
+    "plannedPatch": "6.0.1; actual plan job must confirm",
+    "currentlyPublic": "6.0.0/source d7e8f57808b610f7cddf95ecd06db178dfd7592f",
+    "ownerWorktreeHead": "11c8377a858a756c4e4069bf08e62db1f58e1733",
+    "latestRemoteMain": "11c8377a858a756c4e4069bf08e62db1f58e1733",
+    "pendingUpstreamIntegration": [],
+    "pendingUpstreamScope": "b34 actual current owner/remote equal; parent11newtestfiles remain uncommitted; native original diagnostic stays e0",
+    "latestRemoteCi": 43807620376,
+    "latestRemoteQuality": 43807619578,
+    "latestRemoteCiAndQuality": "in_progress; fresh11c",
+    "mutationPurpose": "Complete e0 reports for full diagnostics; they cannot qualify newer main. Empty problemMutantTriage rejects observed survivors. Do not cancel current run solely for doc drift; full reports needed for meaningful follow-through.",
+    "privateInvestigation": {
+      "agent": "/root/release_root_corrections",
+      "scope": "read-only owner; private actual parser controls only",
+      "observedPartial": "378 completed IDs:337 failed tests/detected mutations and41 success/survivor candidates; no final score",
+      "privateProposal": "13 focused cases pass original parser and detect15 literal variants; no current owner source/triage edits; final12207 runtime control permits CS8602 only for the private mutant compilation",
+      "location": "resumed-parent-integration/fc-partial-mutation-analysis/",
+      "status": "complete; original handoff/findings/private-tests.patch retained",
+      "acceptance": "No equivalent/deferred/approved rows created; First/cancellation broader equivalence unaccepted."
+    },
+    "localErrorDiagnostic": {
+      "agent": "/root/release_root_corrections",
+      "source": "e0eef14ddbbcd03823863a4f417a4b07f6f5bafc",
+      "path": "resumed-parent-integration/fc-error-local-diagnostic/attempt-01",
+      "status": "complete; wrapper removed and no owned processes",
+      "cohort": "original303 cases;2278 live mutants planned; no private13-case proposal",
+      "lastObservedCompletedIds": 1311,
+      "qualification": "diagnostic only; does not qualify695d or a full dual gate",
+      "durationSeconds": 3812.328,
+      "errorToolExit": 0,
+      "provenanceVerificationExit": 0,
+      "errorOnlyScore": 66.88,
+      "finalCounts": {
+        "Killed": 1647,
+        "Survived": 630,
+        "NoCoverage": 186,
+        "Timeout": 1,
+        "CompileError": 717,
+        "Ignored": 562
+      },
+      "strictBothValidatorExit": 1,
+      "strictRefusals": [
+        "missing Happy report/provenance",
+        "untriaged Survived630/NoCoverage186/Timeout1"
+      ],
+      "finalReportSupersedesPartialCounters": true,
+      "summary": "fc-error-local-diagnostic/attempt-01/summary.json",
+      "originalReportSha256": "44079e6dd90db8bf8370b59dd90e0049fb12a9ef5643f403e738ab15172e23bc",
+      "timeout14021": "SourceTypeNameFormatter while(parts.Count>0) body removal removes Pop and causes an infinite loop; final JSON Timeout overrides raw console success."
+    },
+    "fullErrorFollowthrough": {
+      "agent": "/root/release_root_corrections",
+      "status": "all817/225 mapped; four new owner test files ready; three reviews complete and five individually logged oracle patches verified by parent",
+      "path": "resumed-parent-integration/fc-error-followthrough-analysis/",
+      "constraints": "No accepted owner record, blanket equivalence/defer, changed cohorts/thresholds/tool/provenance or owner source/Git/remote mutation. Fresh full source-bound qualification remains necessary after any later changes.",
+      "parentIdentityReview": "fc-error-followthrough-analysis/parent-ledger-identity-review-attempt1.json",
+      "acceptedOwnerActions": 0,
+      "publicProviderCorrection": "13689/13690 original returns empty for another valid provider context; both literal variants throw IndexOutOfRangeException; no equivalence accepted.",
+      "boundedEquivalenceCandidates": 10,
+      "latestFocusedProof": "38/38 changed-class cases pass b34 plus exact working overlay; original39-case/provider proof retained, no final HEAD qualification",
+      "parentReview": "fc-error-followthrough-analysis/parent-b34-assertion-corrections-review.json",
+      "retainedOriginalResults": "retained-focused-trx/manifest.json;53 byte-identical original TRX captures retained as XML",
+      "retainedCompleteErrorReports": "fc-error-local-diagnostic/retained-original-reports/manifest.json; original JSON/HTML preserved beyond copied output ignore rule"
+    },
+    "hostedLastObserved": {
+      "observedAtUtc": "2026-11-16T01:58:56.833771+00:00",
+      "jobStatus": "in_progress",
+      "activeStep": "Error-handling mutation segment",
+      "jobHardDeadlineApproxUtc": "2026-11-16T02:03:29Z",
+      "happyConcluded": "failure;72.36%below80"
+    },
+    "localHappyDiagnostic": {
+      "status": "complete; source e0 tool2; nativeprovenance0; BOTHvalidator1; source clean and wrapper gone",
+      "path": "resumed-parent-integration/fc-happy-local-diagnostic/attempt-03",
+      "parentSession": null,
+      "source": "e0eef14ddbbcd03823863a4f417a4b07f6f5bafc",
+      "purpose": "Obtain complete original reports while hosted log snapshot is stale; no hosted/newer-source credit.",
+      "predicate": "original Happy;1482case baseline expected;80percent;two workers;unchanged authenticated tool",
+      "setupControls": {
+        "attempt01": "unmutated refusal; missing private catalog Git objects plus local launcher child-reaping difference; no score; cleanup complete",
+        "attempt02": "read-only external object store fixes12 docs cases;65/66 docs pass; native global-tool extra process makes child-reaping assertion fail; cleanup complete",
+        "attempt03": "same installed PowerShell DLL directly launched through temporary exec launcher; actual PID identity proved; all66 original Docs cases pass and1482-case whole baseline passes; no test expectation change"
+      },
+      "qualified": false,
+      "reportSha256": "91144b286ea92cf254d0e4039384f99d2eeaaf84aac4fb1dcd7c0b41743abb71",
+      "counts": {
+        "Killed": 1783,
+        "Survived": 549,
+        "Timeout": 1,
+        "NoCoverage": 131,
+        "CompileError": 717,
+        "Ignored": 562
+      },
+      "retainedOriginalReports": "fc-happy-local-diagnostic/retained-original-reports/manifest.json",
+      "inventory": "fc-happy-local-diagnostic/complete-local-problem-inventory.json",
+      "limits": "Local differs from hosted at12812; never relabel as hosted or newer-source qualification. A historical redundant pre-validator alias path named Error; unchanged original report inputs are in the complete post-validator tree and separately retained. Corrected future attempt04 recipe is not executed."
+    },
+    "ownerWorkingChanges": "All27 reviewed files committed/pushed11c; owner clean and remotely verified. Exact-source CI/Quality/CodeQL/Commitlint successful; full native mutation remains in progress.",
+    "partialHappyConcern": {
+      "scope": "Partial debug event counts only; original final JSON still required",
+      "completedIdsObserved": 2015,
+      "rawSuccessEvents": 520,
+      "rawFailedEvents": 1495,
+      "rawSuccessAmongMappedHashIds": 373,
+      "originalCoverageCaptureNoCoverage": 131,
+      "originalPlannedExecutions": 2333,
+      "action": "Investigate actual existing hash/equality quality contract and meaningful private controls; no threshold/cohort/tool/provenance change or final score inference."
+    },
+    "hashQualityFollowthrough": {
+      "agent": "/root/release_root_corrections",
+      "status": "complete;18 test executions17pass plus1 expected literal failure; four workspaces removed; no owner changes",
+      "path": "resumed-parent-integration/fc-hash-quality-followthrough",
+      "constraints": "No invented hash distribution requirement, exact numeric hash pins, accepted records, exclusions, qualification or owner edits. Parent decides after source/NFR/caller proof.",
+      "singleCandidate": "Doc-backed RelativeTimeWindow contribution13419; baseline pass and literal fails",
+      "bound": "Real bounded Roslyn5.12 cache scenario calls8array Equals and0of19 model hashes; external constant/division array collisions observed, not an existing generator budget violation or global equivalence."
+    },
+    "upstreamGovernanceLimits": "New b34 documentation preserves G3 open; old C migration approvals are nonoperative and never transfer. New exact four-tuple technical capture and actual source gates remain separate; no human attestation/coordination is fabricated.",
+    "completedOriginalHappy": {
+      "source": "e0eef14ddbbcd03823863a4f417a4b07f6f5bafc",
+      "run": 43755375617,
+      "job": 132939666243,
+      "completedAtUtc": "2026-11-16T00:51:16Z",
+      "durationSeconds": 17080.2303498,
+      "score": 72.36,
+      "threshold": 80,
+      "exitCode": 2,
+      "countsFromCompletedConsole": {
+        "Killed": 1782,
+        "Survived": 550,
+        "Timeout": 1,
+        "NoCoverage": 131
+      },
+      "originalJsonPending": "Artifact upload after Error; console is complete but original JSON remains authoritative.",
+      "completedConsoleTail": "/dev/shm/tenants-release-resume-2026-11-15/fc-e0-happy-completed-range-1794790420.txt",
+      "tailSha256": "8327653bd307190242bb829946720684f9eaf239007409f9340e6c7b42ed6d20"
+    },
+    "contractGapFollowthrough": {
+      "agent": "/root/release_root_corrections",
+      "status": "complete25baselinepass; parent verified/applied4classes; analyzer fixes and combined verification pending",
+      "path": "resumed-parent-integration/fc-contract-gap-followthrough",
+      "initialProposals": "19cases;22literal controls completed; latest recovery extension pending;13216 internal command source path not predeclared a defect",
+      "firstPatch": "fc-contract-gap-followthrough/private-contract-gap-proposal.patch",
+      "extraHappyIds": [
+        "14143",
+        "14921",
+        "14923",
+        "14943",
+        "14945",
+        "14946",
+        "14947",
+        "14948",
+        "15029",
+        "15037",
+        "15043"
+      ],
+      "hostedOnlyDifference": "12812 rawsuccess in complete hosted console vs localKilled"
+    },
+    "privateToolRebuildProof": {
+      "path": "resumed-parent-integration/fc-private-tool-rebuild-proof/verification.json",
+      "status": "complete; exact same-path native rebuilt receipts/runtime files/build digests identical; source clean and wrapper removed",
+      "scope": "Feasibility evidence for independent pinned-context builds, not mutation/source qualification"
+    },
+    "hostedCompletedConsole": "fc-happy-local-diagnostic/hosted-e0-complete-happy-step.txt.gz; raw32,109,011bytes/SHA25604ff5a46bbc8529946f8dd6653f7bce62477d2dc12dc5180a3de495731a1fb81",
+    "columnContractFollowthrough": {
+      "path": "fc-column-filter-contract",
+      "baseline": 7,
+      "literalControlsDetected": 5,
+      "ownerApplied": true,
+      "bound": "Actual public ColumnModel XML promises category mapping; no generated UI effect asserted"
+    },
+    "ciLifetimeCorrection": {
+      "agent": "/root/release_root_corrections",
+      "path": "fc-segment-job-lifetimes",
+      "status": "firstpatchpassed actionlint+6workflowchecks+18nativecontractchecks; now guard publication before all uploads after3layerreview",
+      "contract": "fixed complete segment jobs, original required aggregate identity, independently rebuilt private tool, unchanged strict BOTH provenance validator; no runtime distribution"
+    },
+    "originalHostedTerminal": {
+      "path": "fc-original-hosted-terminal/summary.json",
+      "conclusion": "cancelled",
+      "completedAtUtc": "2026-11-16T02:08:29Z",
+      "artifacts": [
+        "lifecycle-property-artifacts"
+      ],
+      "logsScope": "Archive returned by the terminal run-logs API, exact members listed. It contains lifecycle logs only; cancelled source-tools mutation step logs are absent. Original Happy completed console is separately retained; no complete hosted mutation JSON is available."
+    },
+    "combinedRegressions": {
+      "fullAnalyzerBuild": "77baseline cases pass;0warnings/errors; shared hashes retained",
+      "metadata": "16/16 current cases pass after correcting invalid-policy expectedModel to actual refusal/null",
+      "earlierFailure": "Initial combined93cases87pass/6incorrect expectedpolicyModels; exact failure retained",
+      "paths": [
+        "fc-combined-regressions-attempt2",
+        "fc-combined-regressions-attempt3",
+        "fc-metadata-regressions-attempt4"
+      ],
+      "scope": "Evidence before current review patches; no newsource qualification"
+    },
+    "latestReview": {
+      "path": "fc-complete-review-triage.json",
+      "layers": "all3completed",
+      "findings": 12,
+      "deferredPreExisting": 3,
+      "patchGroups": 7,
+      "agent": "/root/release_root_corrections",
+      "status": "all7groups corrected; original policy function bodies preserved exactly; parent found/verified/fixed existing Shell fixture closure and actual45cases pass. New2file collection-quality addition has private proof and owner1case0warning pass; final complete review pending."
+    },
+    "literalCensus": {
+      "path": "fc-current-regression-literal-census",
+      "session": 12255,
+      "scope": "private first77regression overlay, original252nonhashHappy problem IDs; original e0 report and unchanged b34 product; no native score/current owner qualification",
+      "expectedConcurrentOwnerDrift": "Review patches change some owner files after immutable private snapshot; final ownerhash assertion may truthfully refuse; private controls retain original sealed input identity.",
+      "status": "complete252controls:92detected/150survived/10privatecompile-refusals;finalauditrefusedconcurrentownerhashdrift;executed11fileoverlayretainedbyoriginalcaptureSHA;wrappergone"
+    },
+    "collectionFieldParticipation": {
+      "path": "fc-hash-field-participation-proposal",
+      "fields": 112,
+      "types": 15,
+      "privateControls": "Original passes; actual13180/13382/13419 fielddrops fail; arithmetic13178/13179 pass",
+      "ownerVerification": "fc-owner-hash-quality-verification;1casepasses;normalanalyzerbuild0warnings/errors;wrappergone",
+      "scope": "New bounded internal field-participation regression allows hash collisions and fixes no numerical hash value. Public DTO constructor samples are not all claimed parser-emitted. No current generator budget defect is asserted."
+    },
+    "finiteTechnicalTriage": {
+      "agent": "/root/release_root_corrections",
+      "status": "Complete95test-added/329boundednonactionable/405deferred829records214followups; original828identities1498observations unchanged +supp12812; ownerCI exactguard mandatory; allnarrowchecks passed before finalreview",
+      "constraints": "No blanket counts/blanket equivalence/changed native scope/score or futurestatus fabricated; original observed per-status maxima remain bounded; actualfreshremainingID/span/status supplementalcheck must fail unknowns"
+    },
+    "current94CaseControl": {
+      "path": "fc-12812-current-control-attempt3",
+      "baseline": "94/94pass;normalanalyzers0warnings/errors;all14C#hashesunchanged",
+      "literal12812": "94/94pass;one controlled coveragegap, no freshStrykerstatus",
+      "parentAction": "Specificcase assigneddeferred-with-owner toexistingStory10-4releaseautomation;originalLocalKilled/hostedrawSuccess keptseparate;unreviewedactualIDs stillblocked",
+      "cleanup": "Wrappergone;first2setuprefusalsbeforetestsretained"
+    },
+    "publicationIdempotence": {
+      "path": "fc-idempotent-publication-fcl-p2",
+      "result": "ActualvalidatorOutputSha regression failsbefore/passesafter;10publication methods/21PowerShellprocessespass,16refusalsretained",
+      "source": "Sharedpolicy/validatorunchanged;guard skipsalready-normalizedbytes"
+    },
+    "finalOwnerReview": {
+      "diff": "/tmp/hexalith-job.AwUtYK0p/fc-final-source-and-triage-review.diff",
+      "bytes": 1241086,
+      "sha256": "2999a6f48c20a396b12df27917a901577c706c3c8f18324ab2d8e620e1b9c956",
+      "layers": "all3completed;12findingsindividuallylogged",
+      "triage": "fc-final-review-triage.json",
+      "patchAgent": "/root/release_root_corrections",
+      "status": "All12finalfindingsfixed;15publication+18triage+45Shell+currentfieldbaseline/literalcontrols+bothactionlintpass;allsource/cleanupverified;committed27filesafterpinnedlint/filepolicy"
+    },
+    "preparedCommit": {
+      "path": "fc-commit-message-validation",
+      "message": "test: strengthen mutation contracts and evidence checks",
+      "pinnedCli": "21.2.4",
+      "result": "Committed and pushed11c after successful pinned CLI21.2.4 validation:0 problems/0 warnings; exact message/source evidence retained."
+    },
+    "nativeDispatch": {
+      "run": 43807658283,
+      "source": "11c8377a858a756c4e4069bf08e62db1f58e1733",
+      "event": "workflow_dispatch",
+      "status": "in_progress",
+      "oldE0": "cancelled6h5withoutmutationartifact;noacceptancecredit",
+      "jobs": [
+        {
+          "id": 133102010473,
+          "name": "lifecycle-properties",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-16T05:02:25Z",
+          "completed_at": "2026-11-16T05:05:35Z"
+        },
+        {
+          "id": 133102010688,
+          "name": "SourceTools mutation (happy-path)",
+          "status": "in_progress",
+          "conclusion": null,
+          "started_at": "2026-11-16T05:02:25Z",
+          "completed_at": null
+        },
+        {
+          "id": 133102010838,
+          "name": "SourceTools mutation (error-handling)",
+          "status": "in_progress",
+          "conclusion": null,
+          "started_at": "2026-11-16T05:02:26Z",
+          "completed_at": null
+        }
+      ]
+    },
+    "currentHostedCi": {
+      "source": "11c8377a858a756c4e4069bf08e62db1f58e1733",
+      "ci": 43807620376,
+      "quality": 43807619578,
+      "codeql": 43807620044,
+      "commitlint": 43807620102,
+      "result": "All four workflows success; all8Quality jobs pass. Configured skips recorded separately in complete hosted receipts.",
+      "receipt": "fc-11c-complete-hosted-ci.json"
+    },
+    "releasePlanning": {
+      "source": "11c8377a858a756c4e4069bf08e62db1f58e1733",
+      "run": 43810326251,
+      "version": "6.0.1",
+      "verifySource": "success",
+      "planRelease": "success",
+      "prepareCandidate": "waiting on existing production environment19155294005",
+      "approval": "not performed; hold pending full current-source native qualification",
+      "receipt": "fc-11c-workflows-progress-02.json",
+      "dryRunIsPublication": false
+    }
+  },
+  "eventStore": {
+    "source": "981fabaa3cf44fc2a71eed73549f4fb0d847e2a6",
+    "payloadRun": 43757391741,
+    "payloadJob": 132944365636,
+    "payloadConclusion": "success; official artifact14178324672 yields1245+1 actual passes",
+    "mainCi": 43757392176,
+    "integration": 43757391734,
+    "phase4": "expected truthful unbound/seal/attestation failure per owning Story9.2; no fake authority",
+    "mainCiConclusion": "success; hosted-981-main-ci.json retained",
+    "integrationStatus": "success; both published-compatibility and live-sidecar",
+    "requiredContexts": "7 push-applicable configured contexts succeeded;1 existing PR-only dependency-review context not generated/unclaimed. Intentional Phase4 evidence-only live failure remains."
+  },
+  "mcpCli": {
+    "source": "4cf120c410a668d08c6ba70d59962c3a2c031952",
+    "ci": 43752669619,
+    "conclusion": "success including complete17-root census and live retained cohorts; no Root5.1.1 recovery native enrollment inferred"
+  },
+  "next": [
+    "Monitor current11c fullmutation43807658283. Current CI/Quality/CodeQL/Commitlint passed. Authenticate both raw segment reports and strict aggregate/digests/ID admission; repair actual failures without changing80/60/predicates/tool/provenance. Record exact source.",
+    "Approve existing FC protected preparation through authenticated maintainer permission after mutation passes. Derive fresh fallback v2 digest only from real sealed candidate if expired unsupported-attestation record refuses; never fabricate manifest or human review.",
+    "Publish/verify actual FC6.0.1 all8 listed signed official archives and prepared payloads.",
+    "Advance only current Builds FC default/test literal to6.0.1, commit exact pinned-commitlint validated source, run revision-bound FC-family incremental audit preserving156 other families, commit audit separately, verify owning gates/consumer checks.",
+    "Synchronize root pointers only after owner commits pushed/remotely verified, update current evidence/metadata, obtain fresh exact-source RootCI/StoryGuards/SourceReference.",
+    "Dispatch existing Root release; authenticate maintainer protected approval, verify immutable GitHub release, all5 NuGet archives/source/hashes/signatures and prepared payloads plus existing OCI publication gates.",
+    "Mark spec done only when achieved; final evidence/docs commit preserves published source identity. Close review holder95076 with newline and wait all child cleanup.",
+    "Final package metadata audit must also verify both direct npm manifests/lockfiles against compatible stable registry releases; preserve intentional Node24 family."
+  ],
+  "publicVerifierRecipe": "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/verify-public-release.py",
+  "reviewDiff": {
+    "path": "/tmp/hexalith-job.AwUtYK0p/release-review.diff",
+    "bytes": 89819583,
+    "sha256": "78c41482fbdb256a6fecc7201fc77f0996bfc8165fe3015fe639ee163bbd08e4",
+    "state": "rewrite again after further changes; all untracked included"
+  },
+  "requiredFinalBypassReport": [
+    "Platform maintainer main pushes returned PR-only rule bypass.",
+    "EventStore981 push returned PR-only plus8 expected checks bypass; fresh checks remain required for publication."
+  ],
+  "baselineMustRemain": "401d926eb7d51bdf332696ed3f0fe39a812b3501",
+  "updatedUtc": "2026-11-16T05:39:59.079486+00:00",
+  "localOwnedWork": "Onlyparentreviewholder95076active;allimplementation/focusedworkerscompleted/cleaned;nochildagentworkactive. Hosted11c workflowsrunning.",
+  "publicVerifierPolicies": {
+    "FrontComposer": "Existing immutable GitHub Release policy is enforced.",
+    "Tenants": "Existing tag/source/prepared payload/official NuGet hashes/native signatures are enforced; actual GitHub release immutable metadata is recorded, not fabricated. Existing OCI checks remain separate mandatory hosted gates."
+  },
+  "npmAudit": {
+    "path": "current-compatible-npm-audit-attempt2.json",
+    "ciNode": "official24.22.3",
+    "result": "All12direct selections currentlatest in intended compatiblemajor; @types/node24 intentionalCI family, currentlatest24.19.2. LocalNode26 not substituted forCI engine metadata."
+  },
+  "nugetAudit": {
+    "path": "pre-fc-patch-stable-package-audit.json",
+    "sdk": "11.0.100",
+    "projects": 18,
+    "packages": 42,
+    "result": "OnlyexistingSDKTesting.Integration3.128.4bootstrapandMcpCli2.0.1authoritycompatibleholds differ from latest;finalFC601/catalogauditstillpending"
+  }
+}

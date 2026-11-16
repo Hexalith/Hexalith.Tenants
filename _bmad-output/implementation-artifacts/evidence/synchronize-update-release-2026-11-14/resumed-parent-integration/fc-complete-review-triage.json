@@ -1,0 +1,66 @@
+{
+  "observedAtUtc": "2026-11-16T02:30:16.968502+00:00",
+  "diffSha256": "6a367debcdb107ca6e2f742155b31a924fc11fe0542e040485884463d8b8a24c",
+  "findings": [
+    {
+      "id": "FCL-B1: segment artifacts precede sanitization",
+      "verdict": "high",
+      "routeAndEvidence": "Patch: new immutable per-segment uploads precede existing Normalize-ArtifactText/Test-UnsafeText. The later aggregate operates on copies and cannot repair already uploaded data; reuse the exact policy and require a successful publication guard before segment/aggregate uploads."
+    },
+    {
+      "id": "FCL-B2: nested projection generated references",
+      "verdict": "medium",
+      "routeAndEvidence": "Defer, pre-existing: unchanged b34 AttributeParser stores typeSymbol.Name without containing-type qualification; emitters consume that model, matching the reviewed CS0246 probe. The new test promises parser acceptance only. Track full nested generation/compilation separately; no production nested-type support change is included."
+    },
+    {
+      "id": "FCL-B3: delimiter-ambiguous skill sets",
+      "verdict": "medium",
+      "routeAndEvidence": "Defer, pre-existing: unchanged CreateSkillCorpusResourcePayload joins sorted element strings with a pipe before whole-value canonical escaping, so the two reviewed partitions collide. The public helper has no tracked production call site beyond these tests; fixing its versioned canonical representation needs a separate compatibility decision."
+    },
+    {
+      "id": "FCL-B4: default diagnostic cross-file location",
+      "verdict": "medium",
+      "routeAndEvidence": "Defer, pre-existing: unchanged ValidateDefaultValueType takes line/column from ApplicationSyntaxReference but passes the root command filePath. A partial member in another syntax tree therefore gets the wrong path; this new single-file fixture does not introduce it."
+    },
+    {
+      "id": "FCL-B5: renderer identity/header assertions missing",
+      "verdict": "medium",
+      "routeAndEvidence": "Patch: the new complete-contract assertion omits contractId/protocol/schemaVersion and never independently changes renderer ID. Assert those actual canonical rows and the ID-sensitive fingerprint."
+    },
+    {
+      "id": "FCL-B6: badge member-to-slot pairing unchecked",
+      "verdict": "medium",
+      "routeAndEvidence": "Patch: independent presence of enum member names and slot constants misses a swap. Bind each actual emitted member case to its slot and verify initial unannotated cases use plain-text fallback."
+    },
+    {
+      "id": "FCL-B7: missing-date fallback assertion vacuous",
+      "verdict": "medium",
+      "routeAndEvidence": "Patch: absence of Timestamp-based ordering is vacuous for a fixture without Timestamp. Assert its actual declaration-order iteration and compile the valid initial generated output."
+    },
+    {
+      "id": "FCL-B8: packed template version not asserted",
+      "verdict": "medium",
+      "routeAndEvidence": "Patch: descriptor inclusion alone permits build-compatible packed version1000007 to be rewritten1000000. Inspect each included descriptor and preserve its actual original packed value."
+    },
+    {
+      "id": "FCL-B9: healthy shared descriptor only checked by name",
+      "verdict": "medium",
+      "routeAndEvidence": "Patch: typeof(HealthyT) presence does not protect its projection/role/version/count. Compare the complete unaffected descriptor across the real edit on the same driver."
+    },
+    {
+      "id": "FCL-B10: reverse generator invalidation missing",
+      "verdict": "medium",
+      "routeAndEvidence": "Patch: each new recovery helper performs only damaged-to-repaired generation; the same demonstrated source edit can reverse. Reuse that same driver to restore the original source and assert the original diagnostic/fallback/descriptor state returns."
+    },
+    {
+      "id": "FCL-E1: pre-normalization segment publication",
+      "verdict": "high",
+      "routeAndEvidence": "Patch with FCL-B1 after independent verdict: the concrete new upload occurs before existing path normalization, leaving raw machine-local paths in immutable artifacts even if the later aggregate normalizes its copies."
+    },
+    {
+      "id": "FCL-V1: publication scan bypass",
+      "verdict": "high",
+      "routeAndEvidence": "Patch with FCL-B1 after independent verdict: filed verified evidence traces the new uploads and MutationReportValidationTests privacy fixtures. Segment/aggregate publication must use the existing policy before uploading; unsafe content must refuse publication while ordinary failed-but-safe reports remain retainable."
+    }
+  ]
+}

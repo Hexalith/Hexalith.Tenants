@@ -1,0 +1,420 @@
+{
+  "source": "2dcf708cbab0d4ad0cf72f947d0b0a1444e251a1",
+  "platform": "00ed06074f5b67522eff81dc8dae6ebd28161c36",
+  "builds": "e2bbbd0893f586e4d447ef8358ff747ea3d34435",
+  "scope": "Local disposable source-component qualification; frozen package cohort remains separate from current SDK/native or installed acceptance.",
+  "workspace": "/dev/shm/hexalith-job.uW4WcBLg/EventStore",
+  "commands": [
+    {
+      "name": "package-view",
+      "command": [
+        "dotnet",
+        "msbuild",
+        "tests/Hexalith.Platform.Protection.Tests/Hexalith.Platform.Protection.Tests.csproj",
+        "-p:Configuration=Release",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:CustomAfterMicrosoftCommonProps=/dev/shm/hexalith-job.uW4WcBLg/EventStore/tools/tests/ext_protection_component_runtime.props",
+        "-p:HexalithEventStoreRoot=/dev/shm/hexalith-job.uW4WcBLg/EventStore",
+        "-getProperty:TargetFramework,HexalithEventStoreVersion,HexalithMemoriesVersion,UseHexalithProjectReferences",
+        "-getItem:PackageVersion"
+      ],
+      "cwd": "/dev/shm/hexalith-job.uW4WcBLg/EventStore/references/Hexalith.Platform",
+      "environment_overrides": {},
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "log": "repair-import-attempt1-package-view.log",
+      "log_sha256": "d568d2b628a3778573ec4a22bf6d9effe4209ac419f81f214c310858f1545678"
+    },
+    {
+      "name": "npm-ci",
+      "command": [
+        "npm",
+        "ci",
+        "--ignore-scripts",
+        "--no-audit"
+      ],
+      "cwd": "/dev/shm/hexalith-job.uW4WcBLg/EventStore",
+      "environment_overrides": {},
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "log": "repair-import-attempt1-npm-ci.log",
+      "log_sha256": "6409d09dde432715586bd86f8cc621b6131e20966d2baed871142e9ad11e4b39"
+    },
+    {
+      "name": "python-owner-qualification",
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tools/tests",
+        "-p",
+        "test_ext_protection_1*.py",
+        "-v"
+      ],
+      "cwd": "/dev/shm/hexalith-job.uW4WcBLg/EventStore",
+      "environment_overrides": {},
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "log": "repair-import-attempt1-python-owner-qualification.log",
+      "log_sha256": "103ce434d42a424f3a566581dcdd436bd93f336d23c1fd98539692cee70ed117"
+    },
+    {
+      "name": "component-build",
+      "command": [
+        "dotnet",
+        "build",
+        "/dev/shm/hexalith-job.uW4WcBLg/EventStore/references/Hexalith.Platform/tests/Hexalith.Platform.Protection.Tests/Hexalith.Platform.Protection.Tests.csproj",
+        "-c",
+        "Release",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:CustomAfterMicrosoftCommonProps=/dev/shm/hexalith-job.uW4WcBLg/EventStore/tools/tests/ext_protection_component_runtime.props",
+        "-p:HexalithEventStoreRoot=/dev/shm/hexalith-job.uW4WcBLg/EventStore",
+        "-p:GeneratePackageOnBuild=false",
+        "-p:RunAnalyzers=false",
+        "-m:1",
+        "-nodeReuse:false"
+      ],
+      "cwd": "/dev/shm/hexalith-job.uW4WcBLg/EventStore/references/Hexalith.Platform",
+      "environment_overrides": {},
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "log": "repair-import-attempt1-component-build.log",
+      "log_sha256": "0fe1d4905b2c78f283d4878940cd33a8dfa0cdd1db5e74b83959a9186fe03655"
+    },
+    {
+      "name": "actual-csharp-p13",
+      "command": [
+        "dotnet",
+        "/dev/shm/hexalith-job.uW4WcBLg/EventStore/references/Hexalith.Platform/tests/Hexalith.Platform.Protection.Tests/bin/Release/net11.0/Hexalith.Platform.Protection.Tests.dll",
+        "-class",
+        "Hexalith.Platform.Protection.Tests.ProtectionQualificationPreparationTests",
+        "-method",
+        "*.TwoExpectedContainmentTargetsUseDistinctRealControlRootAndEmitCompleteVerifierEvidence",
+        "-noColor",
+        "-xml",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/eventstore-payload-ci/repair-import-attempt1-p13-xunit.xml"
+      ],
+      "cwd": "/dev/shm/hexalith-job.uW4WcBLg/EventStore",
+      "environment_overrides": {
+        "EXT_PROTECTION_P13_VECTOR": "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/eventstore-payload-ci/repair-import-attempt1-p13-vector.json"
+      },
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "log": "repair-import-attempt1-actual-csharp-p13.log",
+      "log_sha256": "1ead45a7c9571a89092e43985142207a0c934ddd5cde53613eeb33cdbfce02ce"
+    },
+    {
+      "name": "actual-csharp-p34",
+      "command": [
+        "dotnet",
+        "/dev/shm/hexalith-job.uW4WcBLg/EventStore/references/Hexalith.Platform/tests/Hexalith.Platform.Protection.Tests/bin/Release/net11.0/Hexalith.Platform.Protection.Tests.dll",
+        "-class",
+        "Hexalith.Platform.Protection.Tests.ErasureRootLoop2OwnerTests",
+        "-method",
+        "*.CompiledP34ActivatesBeforeReplacementCompromiseAndEmitsActualVerifierObservation",
+        "-noColor",
+        "-xml",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/eventstore-payload-ci/repair-import-attempt1-p34-xunit.xml"
+      ],
+      "cwd": "/dev/shm/hexalith-job.uW4WcBLg/EventStore",
+      "environment_overrides": {
+        "EXT_PROTECTION_P34_VECTOR": "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/eventstore-payload-ci/repair-import-attempt1-p34-vector.json"
+      },
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "log": "repair-import-attempt1-actual-csharp-p34.log",
+      "log_sha256": "8c488c4cbf12824ca3ee97e18d7d3a65e671f164dae1bb2feceb85faed91731b"
+    },
+    {
+      "name": "actual-csharp-p33",
+      "command": [
+        "dotnet",
+        "/dev/shm/hexalith-job.uW4WcBLg/EventStore/references/Hexalith.Platform/tests/Hexalith.Platform.Protection.Tests/bin/Release/net11.0/Hexalith.Platform.Protection.Tests.dll",
+        "-class",
+        "Hexalith.Platform.Protection.Tests.ErasureRootLoop2OwnerTests",
+        "-method",
+        "*.CompiledP33RacesBothActualOwnerOrderingsAndEmitsExactVerifierObservation",
+        "-noColor",
+        "-xml",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/eventstore-payload-ci/repair-import-attempt1-p33-xunit.xml"
+      ],
+      "cwd": "/dev/shm/hexalith-job.uW4WcBLg/EventStore",
+      "environment_overrides": {
+        "EXT_PROTECTION_P33_VECTOR_DIRECTORY": "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/eventstore-payload-ci/repair-import-attempt1-p33-vectors"
+      },
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "log": "repair-import-attempt1-actual-csharp-p33.log",
+      "log_sha256": "86e45cda7d207294f6e98a2218cc2f0988363b6d557be00962cc90d6783551ce"
+    },
+    {
+      "name": "actual-csharp-snapshot",
+      "command": [
+        "dotnet",
+        "/dev/shm/hexalith-job.uW4WcBLg/EventStore/references/Hexalith.Platform/tests/Hexalith.Platform.Protection.Tests/bin/Release/net11.0/Hexalith.Platform.Protection.Tests.dll",
+        "-class",
+        "Hexalith.Platform.Protection.Tests.ErasureRootLoop2SnapshotObservationTests",
+        "-method",
+        "*.ActualSingleAndMixedObserverEmissionsKeepLegacyEnvelopesAndStrictFragmentOriginals",
+        "-noColor",
+        "-xml",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/eventstore-payload-ci/repair-import-attempt1-snapshot-xunit.xml"
+      ],
+      "cwd": "/dev/shm/hexalith-job.uW4WcBLg/EventStore",
+      "environment_overrides": {
+        "EXT_PROTECTION_SNAPSHOT_VECTOR": "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/eventstore-payload-ci/repair-import-attempt1-snapshot-vector.json"
+      },
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "log": "repair-import-attempt1-actual-csharp-snapshot.log",
+      "log_sha256": "41685af63aa06f773837899d4b0ef846a034f1d40089ed05608a9167a4ae29f4"
+    },
+    {
+      "name": "actual-csharp-producer",
+      "command": [
+        "dotnet",
+        "/dev/shm/hexalith-job.uW4WcBLg/EventStore/references/Hexalith.Platform/tests/Hexalith.Platform.Protection.Tests/bin/Release/net11.0/Hexalith.Platform.Protection.Tests.dll",
+        "-class",
+        "Hexalith.Platform.Protection.Tests.ProtectionQualificationLoop3SealingTests",
+        "-noColor",
+        "-xml",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/eventstore-payload-ci/repair-import-attempt1-producer-xunit.xml"
+      ],
+      "cwd": "/dev/shm/hexalith-job.uW4WcBLg/EventStore",
+      "environment_overrides": {
+        "EXT_PROTECTION_LOOP3_SEAL_VECTORS": "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/eventstore-payload-ci/repair-import-attempt1-producer-vectors"
+      },
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "log": "repair-import-attempt1-actual-csharp-producer.log",
+      "log_sha256": "c7b9584918ab0590854ebb917833d4fbf5045481f5adeea278454865c711d956"
+    },
+    {
+      "name": "actual-csharp-recovery",
+      "command": [
+        "dotnet",
+        "/dev/shm/hexalith-job.uW4WcBLg/EventStore/references/Hexalith.Platform/tests/Hexalith.Platform.Protection.Tests/bin/Release/net11.0/Hexalith.Platform.Protection.Tests.dll",
+        "-class",
+        "Hexalith.Platform.Protection.Tests.ProtectionQualificationLoop7RecoveryTests",
+        "-noColor",
+        "-xml",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/eventstore-payload-ci/repair-import-attempt1-recovery-xunit.xml"
+      ],
+      "cwd": "/dev/shm/hexalith-job.uW4WcBLg/EventStore",
+      "environment_overrides": {
+        "EXT_PROTECTION_LOOP7_VECTOR_DIRECTORY": "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/eventstore-payload-ci/repair-import-attempt1-recovery-vectors"
+      },
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "log": "repair-import-attempt1-actual-csharp-recovery.log",
+      "log_sha256": "0123ef4ce02ad2e0e932011fa0de4e569d5fa4b1eb7806fb6b04ea99a198a248"
+    },
+    {
+      "name": "actual-csharp-copies",
+      "command": [
+        "dotnet",
+        "/dev/shm/hexalith-job.uW4WcBLg/EventStore/references/Hexalith.Platform/tests/Hexalith.Platform.Protection.Tests/bin/Release/net11.0/Hexalith.Platform.Protection.Tests.dll",
+        "-class",
+        "Hexalith.Platform.Protection.Tests.ErasureRootLoop5ConfiguredSealTests",
+        "-noColor",
+        "-xml",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/eventstore-payload-ci/repair-import-attempt1-copies-xunit.xml"
+      ],
+      "cwd": "/dev/shm/hexalith-job.uW4WcBLg/EventStore",
+      "environment_overrides": {
+        "EXT_PROTECTION_COPY_VECTOR": "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/eventstore-payload-ci/repair-import-attempt1-copies-vector.json"
+      },
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "log": "repair-import-attempt1-actual-csharp-copies.log",
+      "log_sha256": "6d760a8042fe72b75392bbbe5102969a918cc17dbbef28cdfba659c4cef208e6"
+    },
+    {
+      "name": "producer-pinned-component",
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tools/tests",
+        "-p",
+        "test_ext_protection_1_producer_originals.py",
+        "-v"
+      ],
+      "cwd": "/dev/shm/hexalith-job.uW4WcBLg/EventStore",
+      "environment_overrides": {
+        "EXT_PROTECTION_SNAPSHOT_COMPONENT_ASSEMBLY": "/dev/shm/hexalith-job.uW4WcBLg/EventStore/references/Hexalith.Platform/tests/Hexalith.Platform.Protection.Tests/bin/Release/net11.0/Hexalith.Platform.Protection.Tests.dll",
+        "EXT_PROTECTION_SNAPSHOT_COMPONENT_SHA256": "95656f2d3592d76d468627e01f38646fde9e6c444c327f6a3d6f6e619e3d2ded"
+      },
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "log": "repair-import-attempt1-producer-pinned-component.log",
+      "log_sha256": "f7ff01765dde6b16f39b16e42bcd6ba85bcaba624ce2c31a520ab627a104245c"
+    },
+    {
+      "name": "payload-core-build",
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.EventStore.PayloadProtection.Tests/Hexalith.EventStore.PayloadProtection.Tests.csproj",
+        "-c",
+        "Release",
+        "-warnaserror",
+        "-m:1",
+        "-nodeReuse:false",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:GeneratePackageOnBuild=false"
+      ],
+      "cwd": "/dev/shm/hexalith-job.uW4WcBLg/EventStore",
+      "environment_overrides": {},
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "log": "repair-import-attempt1-payload-core-build.log",
+      "log_sha256": "4ccc6072e0ca2a03237a6790e235912c1d61838a0ad4d4b892f7b25b88291285"
+    },
+    {
+      "name": "payload-core-vectors",
+      "command": [
+        "dotnet",
+        "test",
+        "--project",
+        "tests/Hexalith.EventStore.PayloadProtection.Tests/Hexalith.EventStore.PayloadProtection.Tests.csproj",
+        "--no-build",
+        "--configuration",
+        "Release",
+        "--minimum-expected-tests",
+        "324",
+        "--fail-skips",
+        "on",
+        "--results-directory",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/eventstore-payload-ci/repair-import-attempt1-core-results",
+        "--report-xunit-trx",
+        "--report-xunit-trx-filename",
+        "payload-core-vectors.trx",
+        "-p:UseHexalithProjectReferences=false"
+      ],
+      "cwd": "/dev/shm/hexalith-job.uW4WcBLg/EventStore",
+      "environment_overrides": {},
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "log": "repair-import-attempt1-payload-core-vectors.log",
+      "log_sha256": "f37a7fc6fbc82ee95ba162926efd5d283b6bba55624f02bafb495c358fe876d9"
+    },
+    {
+      "name": "payload-core-invariant",
+      "command": [
+        "dotnet",
+        "test",
+        "--project",
+        "tests/Hexalith.EventStore.PayloadProtection.Tests/Hexalith.EventStore.PayloadProtection.Tests.csproj",
+        "--no-build",
+        "--configuration",
+        "Release",
+        "--minimum-expected-tests",
+        "1",
+        "--fail-skips",
+        "on",
+        "--results-directory",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/eventstore-payload-ci/repair-import-attempt1-core-results",
+        "--report-xunit-trx",
+        "--report-xunit-trx-filename",
+        "payload-core-invariant.trx",
+        "-p:UseHexalithProjectReferences=false",
+        "--filter-method",
+        "Hexalith.EventStore.PayloadProtection.Tests.AadPathTests.V029_InertPlatformNormalizer_FailsClosedThroughCoreWriteSeams"
+      ],
+      "cwd": "/dev/shm/hexalith-job.uW4WcBLg/EventStore",
+      "environment_overrides": {
+        "DOTNET_SYSTEM_GLOBALIZATION_INVARIANT": "1"
+      },
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "log": "repair-import-attempt1-payload-core-invariant.log",
+      "log_sha256": "ea928473d20964c178636e43a5861ed7830c8d91a651f96825af3d49622a693a"
+    }
+  ],
+  "input_manifest": "repair-import-attempt1-input-manifest.json",
+  "input_manifest_sha256": "0acfc705b5f0084f3f88843fc453fc3c3107dbb5c84079c1438dcf844d6599f5",
+  "input_file_count": 41212,
+  "runner_sha256": "ef27c37e09af755fdc04d933882f8464b92fa45c019353c065177811dd13e8c2",
+  "package_component_runtime": {
+    "assembly_sha256": "95656f2d3592d76d468627e01f38646fde9e6c444c327f6a3d6f6e619e3d2ded",
+    "assets_sha256": "91081261d55f84f9b78ad41be9ede475be69d0637a85bc0cccc08ce1a6c90539",
+    "runtimeconfig": {
+      "runtimeOptions": {
+        "tfm": "net11.0",
+        "frameworks": [
+          {
+            "name": "Microsoft.NETCore.App",
+            "version": "11.0.0"
+          },
+          {
+            "name": "Microsoft.AspNetCore.App",
+            "version": "11.0.0"
+          }
+        ],
+        "configProperties": {
+          "MSTest.EnableParentProcessQuery": true,
+          "System.Reflection.Metadata.MetadataUpdater.IsSupported": false,
+          "System.Runtime.Serialization.EnableUnsafeBinaryFormatterSerialization": false
+        }
+      }
+    },
+    "runtimeconfig_sha256": "7a0492ba58957f75c7c30c43200f2d844ddf164235ba0df015ae0ffda7e55561",
+    "package_versions": [
+      "Hexalith.Commons.UniqueIds/3.0.0",
+      "Hexalith.EventStore.Client/4.2.0",
+      "Hexalith.EventStore.Contracts/4.2.0",
+      "Hexalith.EventStore.DomainService/4.2.0",
+      "Hexalith.EventStore.Server/4.2.0",
+      "Hexalith.EventStore.ServiceDefaults/4.2.0"
+    ]
+  },
+  "artifacts": {
+    "repair-import-attempt1-producer-pinned-component.log": "f7ff01765dde6b16f39b16e42bcd6ba85bcaba624ce2c31a520ab627a104245c",
+    "repair-import-attempt1-p34-vector.json": "905bbf38181663695abe3fed31b832e2c3906d24f264dc7e45a0c715ad61c1cc",
+    "repair-import-attempt1-component-build.log": "0fe1d4905b2c78f283d4878940cd33a8dfa0cdd1db5e74b83959a9186fe03655",
+    "repair-import-attempt1-payload-core-invariant.log": "ea928473d20964c178636e43a5861ed7830c8d91a651f96825af3d49622a693a",
+    "repair-import-attempt1-package-view.log": "d568d2b628a3778573ec4a22bf6d9effe4209ac419f81f214c310858f1545678",
+    "repair-import-attempt1-p13-vector.json": "735bf4feabdcd46396e0accb604978f1ef141c3d586130754998be3d88b811d8",
+    "repair-import-attempt1-copies-xunit.xml": "2dd8df1ee71388a2582a63d62e1d7a52f61c764b2937ca1c7c593394a04d30ab",
+    "repair-import-attempt1-recovery-xunit.xml": "59de5c2a2c961627ef72e844aedbbcc076eed10c7604c5f40518a97595ffa925",
+    "repair-import-attempt1-payload-core-build.log": "4ccc6072e0ca2a03237a6790e235912c1d61838a0ad4d4b892f7b25b88291285",
+    "repair-import-attempt1-input-manifest.json": "0acfc705b5f0084f3f88843fc453fc3c3107dbb5c84079c1438dcf844d6599f5",
+    "repair-import-attempt1-actual-csharp-p34.log": "8c488c4cbf12824ca3ee97e18d7d3a65e671f164dae1bb2feceb85faed91731b",
+    "repair-import-attempt1-copies-vector.json": "1101e251133afb9a4b488987dc93b0031fa00b6a7891f80cfe70713fc2ea34c4",
+    "repair-import-attempt1-python-owner-qualification.log": "103ce434d42a424f3a566581dcdd436bd93f336d23c1fd98539692cee70ed117",
+    "repair-import-attempt1-producer-xunit.xml": "0198b0d5347755bcc4f78495beb82747929af752ac2ec52be07988294a04ae0d",
+    "repair-import-attempt1-actual-csharp-producer.log": "c7b9584918ab0590854ebb917833d4fbf5045481f5adeea278454865c711d956",
+    "repair-import-attempt1-actual-csharp-copies.log": "6d760a8042fe72b75392bbbe5102969a918cc17dbbef28cdfba659c4cef208e6",
+    "repair-import-attempt1-actual-csharp-p33.log": "86e45cda7d207294f6e98a2218cc2f0988363b6d557be00962cc90d6783551ce",
+    "repair-import-attempt1-actual-csharp-snapshot.log": "41685af63aa06f773837899d4b0ef846a034f1d40089ed05608a9167a4ae29f4",
+    "repair-import-attempt1-payload-core-vectors.log": "f37a7fc6fbc82ee95ba162926efd5d283b6bba55624f02bafb495c358fe876d9",
+    "repair-import-attempt1-p34-xunit.xml": "ea0f75cb7735c23d2d7a2c54c4a155c7d38fb4ed3aad075a5a0d3ea50c93a160",
+    "repair-import-attempt1-p33-xunit.xml": "a704975dfb1b36b367c0fcd61824076cd94e0fd07a52c6ab67764f9bc3596b86",
+    "repair-import-attempt1-snapshot-xunit.xml": "03a187352bcff0cf716866ac2d287de63e53b24641ee2c33800b3b4f9cc943a1",
+    "repair-import-attempt1-p13-xunit.xml": "46639602472253d0b6dc3363b5b9a6422166429016886f0585f6d3d18f59c144",
+    "repair-import-attempt1-npm-ci.log": "6409d09dde432715586bd86f8cc621b6131e20966d2baed871142e9ad11e4b39",
+    "repair-import-attempt1-snapshot-vector.json": "a9ee7265a392b965a7c9e9ddb6667b5ea71b7e8a20772fd5e99b851f1a5e19f2",
+    "repair-import-attempt1-actual-csharp-recovery.log": "0123ef4ce02ad2e0e932011fa0de4e569d5fa4b1eb7806fb6b04ea99a198a248",
+    "repair-import-attempt1-actual-csharp-p13.log": "1ead45a7c9571a89092e43985142207a0c934ddd5cde53613eeb33cdbfce02ce",
+    "repair-import-attempt1-core-results/payload-core-invariant.trx": "d635cebfc9ea13fd51cc0988aba38dcb944901c7d2d128f90d63d9a43ea014fc",
+    "repair-import-attempt1-core-results/payload-core-vectors.trx": "e521711f59ef9eda405800995cec58f31c7e6fb9dec32132cbaee2b05b836763",
+    "repair-import-attempt1-recovery-vectors/P06.json": "748cb3ae1d22703034dfab8f1407fea51985098cc3a9e565354fa2b0895cc113",
+    "repair-import-attempt1-recovery-vectors/P35.json": "e6f73d39976fed525ea6400cefe39ce9e0e41111c1d1f78e275edcd242c6d59f",
+    "repair-import-attempt1-recovery-vectors/P25.json": "d5575e61bf2b84795d105782789b23e6924eede26ec721ad95bb508f659761c2",
+    "repair-import-attempt1-recovery-vectors/P28.json": "c4f4f1a8f84970082f68e164b60ff640630ac439efee15e93ee67674690caf99",
+    "repair-import-attempt1-recovery-vectors/P36.json": "b90b0607757a33aeac239b4f60f9a6ecbd3ec104613e4f48a8eb02a96d8fa414",
+    "repair-import-attempt1-producer-vectors/snapshot-seed.json": "0f5f672173799591be598b03d888570560412e1330d94b22455d932f131410b2",
+    "repair-import-attempt1-producer-vectors/snapshot-lowercase.json": "34cb1b0443edbfc7f2d8d646dfc471865fea4607fadf84c87c4b8b7546d895ba",
+    "repair-import-attempt1-producer-vectors/producer-retention-loss.json": "0be85fa9690369c2a670f51d78974f217991a7abc7876801a4c146810aa0ff07",
+    "repair-import-attempt1-producer-vectors/snapshot-pascal.json": "58be376c188004982292e26320a166fb246a3dad2e35f8c0a712ed8ae76f8069",
+    "repair-import-attempt1-producer-vectors/snapshot-producer-retention-loss.json": "580094c38b7068d2f9a73b2bb7c537c0d36bf39cc326804bd54a765134710e67",
+    "repair-import-attempt1-producer-vectors/seed-retention-loss.json": "84872b63087b1c59c3d313099b751d3eadf55f12cf1ec65326470071ce7bc93e",
+    "repair-import-attempt1-p33-vectors/activation-first.json": "6279eb3ea63825743c02fd63714f87bcafe0a2e6b7f216bc2e03df1aecd4f8a8",
+    "repair-import-attempt1-p33-vectors/compromise-first.json": "bf4af9b150d6c3dc03daa086718bff2d60e671203b45cb509a0529d8561c0a61"
+  }
+}

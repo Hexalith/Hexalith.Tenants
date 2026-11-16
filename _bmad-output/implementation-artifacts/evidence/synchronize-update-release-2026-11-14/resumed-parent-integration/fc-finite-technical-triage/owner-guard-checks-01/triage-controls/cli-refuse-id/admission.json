@@ -1,0 +1,42 @@
+{
+  "scope": "Finite source/identity/status admission only; native scores/BOTH/private provenance remain mandatory.",
+  "acceptedByThisFiniteCheck": false,
+  "segments": [
+    {
+      "scope": "Finite source/identity/status admission only; native scores/BOTH/private provenance remain mandatory.",
+      "segment": "happy-path",
+      "remainingProblemsAdmitted": [
+        {
+          "id": "13126",
+          "status": "NoCoverage",
+          "action": "equivalent-accepted",
+          "identitySha256": "cb2fb11d36d3ea0141c702e3da6c2fbe336575c2c28f2e465176015cd8c90ee0"
+        }
+      ],
+      "conditionalInvalidCompilerCandidates": 0,
+      "failures": [],
+      "acceptedByThisFiniteCheck": true,
+      "nativeScoresBothCohortsPrivateProvenanceStillRequired": true,
+      "actualReportSha256": "8fbe13bbe59edb6e605fe131298710be001bd39be7cb1d4d14a5c7d9c665fb87",
+      "report": "artifacts/mutation/happy-path/reports/source-tools-happy-path.json"
+    },
+    {
+      "scope": "Finite source/identity/status admission only; native scores/BOTH/private provenance remain mandatory.",
+      "segment": "error-handling",
+      "remainingProblemsAdmitted": [],
+      "conditionalInvalidCompilerCandidates": 0,
+      "failures": [
+        {
+          "id": "99999999",
+          "reason": "Unknown/unreviewed fresh problem identity"
+        }
+      ],
+      "acceptedByThisFiniteCheck": false,
+      "nativeScoresBothCohortsPrivateProvenanceStillRequired": true,
+      "actualReportSha256": "f31dba39d01622f46784cd72e4f84010f7da36f4900562f4ef86b153594a41ce",
+      "report": "artifacts/mutation/error-handling/reports/source-tools-error-handling.json"
+    }
+  ],
+  "nativeScoresBothCohortsPrivateProvenanceStillRequired": true,
+  "finiteLedgerSha256": "f9841c302310cc8ac337e9bcc5a46f0a484aa29e9cb0519a5041a0021f52751a"
+}

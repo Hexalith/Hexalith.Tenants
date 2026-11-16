@@ -1,0 +1,83 @@
+{
+  "scope": "Finite private non-hash contract controls on byte-bound b34 inputs; never full mutation qualification.",
+  "source_base_commit": "b34be9245443d21b72a6076cf205bbbc8a8c521f",
+  "builds_commit": "73e60af8a1fcdf3f06726d5d1b6e1199cce778ee",
+  "workspace": "/dev/shm/hexalith-job.1tYMqn7Z/FrontComposer",
+  "private_test_sha256": {
+    "CommandContractBoundaryTests.cs": "ec8ff6d06b47e7b463bfc6f1e9c8b37c3b0d161278575f4b76795d181f069fc8",
+    "TemplateContractBoundaryTests.cs": "d2161c15b16034d132c5c61753234f7097da418ff63224453146a8e8e7f11e38",
+    "ModelDefaultComparisonContractTests.cs": "8440f91d277754b94f11eeff59f3081f9c21080fe64a0a619a42cdc041747364",
+    "AliasSignatureContractTests.cs": "a7c5c3511e4e339e6c1195ed6b62b76f1a13685888218da9f253ca5873afd11c"
+  },
+  "commands": [
+    {
+      "name": "baseline-build",
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "-c",
+        "Release",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true",
+        "-p:GeneratePackageOnBuild=false",
+        "-p:RunAnalyzers=false",
+        "-m:1",
+        "-nodeReuse:false"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 21.386700919996656,
+      "children_maxrss_kib": 538244,
+      "log": "baseline-build.log",
+      "sha256": "0c1afcfa7eef23c9d0dae0928a77e131cb30e71f04d05787534c9981e00751d0"
+    },
+    {
+      "name": "baseline-tests",
+      "command": [
+        "dotnet",
+        "test",
+        "--project",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "--no-build",
+        "--configuration",
+        "Release",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.CommandContractBoundaryTests",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.TemplateContractBoundaryTests",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.AliasSignatureContractTests",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.ModelDefaultComparisonContractTests",
+        "--minimum-expected-tests",
+        "25",
+        "--fail-skips",
+        "on",
+        "--results-directory",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-contract-gap-followthrough/attempt-05/baseline-results",
+        "--report-xunit-trx",
+        "--report-xunit-trx-filename",
+        "tests.trx",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true"
+      ],
+      "exit_code": 2,
+      "elapsed_seconds": 7.2255042450051405,
+      "children_maxrss_kib": 538244,
+      "log": "baseline-tests.log",
+      "sha256": "ffde9cd6142687b127032637592c2da3eea38a377b9ef3aeadc76d01bc4586b5"
+    }
+  ],
+  "variants": {},
+  "archives": [
+    {
+      "revision": "b34be9245443d21b72a6076cf205bbbc8a8c521f",
+      "sha256": "6cb2fd629f781af3d677fbeff9d7752f7a6101e494660d4f32ff72edda534516"
+    },
+    {
+      "revision": "73e60af8a1fcdf3f06726d5d1b6e1199cce778ee",
+      "sha256": "9b92ae56444da9b4bff1b2527011d061a37aa4ad925ac5c507bb55ef78ada9c5"
+    }
+  ],
+  "runner_sha256": "24508bd0a64d9a0a4df6932e1e32c88315dcd73babdb3dbc42ae990d30da2960"
+}

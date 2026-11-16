@@ -1,0 +1,26 @@
+{
+  "startedAtUtc": "2026-11-16T06:10:04.574124+00:00",
+  "helperSha256": "2695956b616081c46d1d3ea6542e6fafc7fdefae36996c2f9cd5b4d60e126c5a",
+  "scope": "Positive real historical candidate replay of the hardened verifier only; no new package publication or11c qualification.",
+  "command": [
+    "python3",
+    "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/verify-public-release.py",
+    "--owner",
+    "FrontComposer",
+    "--version",
+    "6.0.0",
+    "--source",
+    "d7e8f57808b610f7cddf95ecd06db178dfd7592f",
+    "--artifact-id",
+    "14109303333",
+    "--artifact-zip",
+    "/dev/shm/hexalith-job.hJfpDaEs/candidate.zip",
+    "--output",
+    "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-6.0.0-verifier-replay-hardened"
+  ],
+  "artifactZipSha256": "52738f729894f27e70e3299a5edb1c6c6a6fede1375586e80945e99afec81f58",
+  "exitCode": 0,
+  "logSha256": "36f0e95ce6f91fcffa1c6cb35af9c3ea2d9296d6996c4b02573ca822bbd53187",
+  "helperUnchanged": true,
+  "completedAtUtc": "2026-11-16T06:10:18.490709+00:00"
+}

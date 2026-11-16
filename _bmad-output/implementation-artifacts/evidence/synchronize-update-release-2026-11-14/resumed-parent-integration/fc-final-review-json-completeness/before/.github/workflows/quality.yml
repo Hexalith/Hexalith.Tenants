@@ -1,0 +1,1078 @@
+name: Quality
+
+# REL-2 (2026-07-13): supplemental FrontComposer-specific quality gates. The shared
+# reusable `domain-ci.yml` (called from ci.yml) runs only build + consumer validation +
+# Tier 1 unit tests + coverage. It does NOT run the FrontComposer-only gates required by
+# PRD NFR-11: the Contracts netstandard2.0 isolation build (Gate 1), the CLI tool smoke
+# (Gate 2a), Governance tests (Gate 2b), Contract pacts + artifact validation + the
+# stale-pact-diff guard (Gate 2c), the story artifact validator suite (Gate 2b, invoked
+# in module form as `eng.tests.test_validate_story_artifacts` because that suite imports
+# the validator by path from its own package directory; the sibling `tests/eng/` suites
+# use the path form and the exact module string is pinned by
+# CiGovernanceTests.StoryArtifactValidatorGate_IsBlockingAndExact), docs validation (Gate 2d), the trait-filtered default
+# unit/bUnit lane plus advisory palette/perf/quarantine lanes (Gate 3), quarantine +
+# CI-duration telemetry, the Playwright a11y/visual lane, and the committed-files guard
+# (no evidence/ folder and no file over 1 MiB may be tracked). Those gates live here and
+# THIS WORKFLOW IS CI-AUTHORITATIVE for them. Every `dotnet test` step uses
+# Microsoft.Testing.Platform's native xUnit filters and reporter and keeps
+# `DiffEngine_Disabled: true` (belt-and-suspenders alongside the repo-level
+# DiffEngine ModuleInitializer) so a Verify snapshot mismatch cannot hang the runner.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  # Manual main diagnostics must finish even while automatic main runs are superseded.
+  group: ${{ github.event_name == 'workflow_dispatch' && format('quality-manual-{0}', github.run_id) || format('quality-{0}', github.ref) }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  ASPIRE_CLI_INSTALL: dotnet tool install --global Aspire.Cli --version 13.6.5
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          # Root-declared references submodules only; no recursive nested submodule checkout.
+          # GOV-1 exact base/candidate object proof requires complete root history.
+          fetch-depth: 0
+          persist-credentials: false
+          submodules: false
+
+      - name: Initialize build submodules
+        uses: Hexalith/Hexalith.Builds/Github/initialize-build@main
+
+      - uses: Hexalith/Hexalith.Builds/Github/initialize-dotnet@6e77e79e8914a375b0c43b0af3bd142405675ecd
+        with:
+          dotnet-version: '11.0.100'
+
+      - name: Install .NET 11 runtimes
+        shell: pwsh
+        run: ./eng/install-net11-runtime.ps1
+
+      - name: Record full CI lane start
+        shell: bash
+        run: echo "FC_FULL_CI_STARTED_AT=$(date -u +%s)" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: '24.10.0'
+          cache: 'npm'
+
+      - name: Validate npm lockfile
+        env:
+          HUSKY: 0
+        run: npm ci
+
+      - name: Cache NuGet packages
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ hashFiles('Directory.Packages.props', 'references/Hexalith.Builds/Props/Directory.Packages.props') }}
+          restore-keys: nuget-
+
+      # Gate 1: Contracts builds in isolation targeting netstandard2.0
+      - name: 'Gate 1: Contracts Build (netstandard2.0)'
+        run: |
+          dotnet restore Hexalith.FrontComposer.slnx -p:Configuration=Release -p:EnableFrontComposerPackageValidation=true
+          dotnet build src/Hexalith.FrontComposer.Contracts/Hexalith.FrontComposer.Contracts.csproj -f netstandard2.0 --configuration Release --no-restore
+
+      # Gate 2: Full solution builds
+      - name: 'Gate 2: Solution Build'
+        run: dotnet build Hexalith.FrontComposer.slnx --configuration Release --no-restore
+
+      # Gate 2a: CLI tool packaging and local-tool smoke. This pack is PackAsTool, and the SDK
+      # disables EnablePackageValidation for tool layouts, so the ApiCompat baseline gate for the
+      # packable libraries lives in Gate 4 below.
+      - name: 'Gate 2a: CLI Tool Package Smoke'
+        shell: bash
+        run: |
+          dotnet pack src/Hexalith.FrontComposer.Cli/Hexalith.FrontComposer.Cli.csproj --configuration Release --no-build --output ./nupkgs -p:PackageVersion=0.0.0-ci -p:EnableFrontComposerPackageValidation=true -p:FrontComposerPackageValidationBaselineVersion=5.0.0 -p:FrontComposerPackageValidationSkipBaseline=false
+
+          tool_home="$(mktemp -d)"
+          fixture="$(mktemp -d)"
+
+          dotnet new tool-manifest --force --output "$tool_home"
+          (
+            cd "$tool_home"
+            dotnet tool install Hexalith.FrontComposer.Cli --add-source "$GITHUB_WORKSPACE/nupkgs" --version 0.0.0-ci --ignore-failed-sources
+          )
+
+          mkdir -p "$fixture/Acme.App/obj/Debug/net11.0/generated/HexalithFrontComposer"
+          cat > "$fixture/Acme.App/Acme.App.csproj" <<'EOF'
+          <Project Sdk="Microsoft.NET.Sdk">
+            <PropertyGroup>
+              <TargetFramework>net11.0</TargetFramework>
+            </PropertyGroup>
+          </Project>
+          EOF
+          cat > "$fixture/Acme.App/Program.cs" <<'EOF'
+          services.AddFrontComposerDebugOverlay();
+          EOF
+          cat > "$fixture/Acme.App/obj/Debug/net11.0/generated/HexalithFrontComposer/Acme.Shipping.ShipmentProjection.g.razor.cs" <<'EOF'
+          namespace Acme.Shipping { }
+          EOF
+
+          (
+            cd "$tool_home"
+            dotnet tool run frontcomposer --help
+            dotnet tool run frontcomposer inspect --project "$fixture/Acme.App/Acme.App.csproj" --configuration Debug --framework net11.0 --format json
+            dotnet tool run frontcomposer migrate --project "$fixture/Acme.App/Acme.App.csproj" --from 9.1.0 --to 9.2.0 --dry-run --format json
+            dotnet tool run frontcomposer migrate --project "$fixture/Acme.App/Acme.App.csproj" --from 9.1.0 --to 9.2.0 --apply --format json
+          )
+
+      # Governance publication tests use the pinned DocFX glob matcher, even with -SkipDocFx.
+      - name: Restore local .NET tools
+        run: dotnet tool restore
+
+      # Root-only initialization does not acquire off-main depth-two catalog commits.
+      # Prepare only exact catalog objects; ordinary validation stays offline/fail-closed.
+      - name: Prepare exact governance catalog objects
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PULL_REQUEST_BASE: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+          CANDIDATE: ${{ github.sha }}
+          SELECTED_REF: ${{ github.ref }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            event_base="$PULL_REQUEST_BASE"
+          elif [ "$EVENT_NAME" = "push" ]; then
+            event_base="$PUSH_BEFORE"
+          elif [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            # Manual diagnostics use the selected commit's already-landed policy.
+            if [ "$SELECTED_REF" != "refs/heads/main" ]; then
+              echo "::error::manual catalog acquisition requires the main ref"
+              exit 1
+            fi
+            event_base="$CANDIDATE"
+          else
+            echo "::error::unsupported catalog acquisition event: $EVENT_NAME"
+            exit 1
+          fi
+          python3 eng/dependency_graph.py --root . acquire-catalogs --event-base "$event_base" --candidate "$CANDIDATE"
+
+      # Gate 2b: Infrastructure governance and telemetry contracts
+      - name: 'Gate 2b: Infrastructure governance and telemetry contracts'
+        env:
+          DiffEngine_Disabled: true
+        run: dotnet test Hexalith.FrontComposer.slnx --configuration Release --no-build --filter-trait "Category=Governance" --filter-not-trait "Category=GovernanceBuild" --ignore-exit-code 8 --results-directory ./TestResults/governance --report-xunit-trx
+
+      - name: 'Gate 2b: Verify Governance MTP evidence'
+        run: >-
+          python3 .github/scripts/ci_governance.py validate-mtp-evidence
+          --results-dir ./TestResults/governance
+          --minimum-trx-files 1
+          --require-tests
+
+      # Live no-incremental solution builds must never overlap solution-wide test modules. This
+      # Shell-only lane runs the two cached analyzer-policy builds and hidden-control project probes
+      # once, authenticating nonzero MTP evidence independently of Governance/default result trees.
+      - name: 'Gate 2b: Analyzer governance build proofs'
+        env:
+          DiffEngine_Disabled: true
+        run: dotnet test --project tests/Hexalith.FrontComposer.Shell.Tests/Hexalith.FrontComposer.Shell.Tests.csproj --configuration Release --no-build --filter-trait "Category=GovernanceBuild" --results-directory ./TestResults/governance-build --report-xunit-trx
+
+      - name: 'Gate 2b: Verify analyzer governance build MTP evidence'
+        run: >-
+          python3 .github/scripts/ci_governance.py validate-mtp-evidence
+          --results-dir ./TestResults/governance-build
+          --expected-trx-files 1
+          --require-tests
+          --expected-test Hexalith.FrontComposer.Shell.Tests.Governance.AnalyzerPolicyGovernanceTests.AnalyzerPolicy_ActivatedReleaseBuild_MatchesForcedRecommendedCandidate
+          --expected-test Hexalith.FrontComposer.Shell.Tests.Governance.AnalyzerPolicyGovernanceTests.AnalyzerPolicy_Story1122RecordedProjects_RemainRecommendedClean
+          --expected-test Hexalith.FrontComposer.Shell.Tests.Governance.AnalyzerPolicyGovernanceTests.AnalyzerPolicy_Story1122HiddenControlNegativeProbes_RemainClean
+
+      - name: 'Gate 2b: Release suppression lifecycle tests'
+        run: python3 -m unittest tests/eng/test_pack_release_packages.py tests/eng/test_release_prepublish.py
+
+      - name: 'Gate 2b: Story artifact validator tests'
+        run: python3 -m unittest eng.tests.test_validate_story_artifacts
+
+      - name: 'Gate 2b: Adopter proof runner tests'
+        run: python3 -m unittest tests/eng/test_adopter_proof.py
+
+      # The two catalog-compatibility Governance facts above shell out to
+      # eng/dependency_graph.py, whose own semantic rules are covered only by this suite.
+      # Without this step the required-property and required-package checks could be
+      # deleted or silenced with every lane still green.
+      - name: 'Gate 2b: Dependency graph semantic policy tests'
+        run: |
+          python3 -m unittest tests/eng/test_dependency_graph.py
+          python3 -m unittest tests/eng/test_workflow_source_closure.py
+          python3 -m unittest tests/eng/test_dependency_handoff.py
+          python3 -m unittest tests/eng/test_publication_candidate.py
+          python3 -m unittest tests/eng/test_release_contract.py
+          python3 -m unittest tests/eng/test_release_disposition.py
+          python3 -m unittest tests/eng/test_stryker_compat.py
+          python3 -m unittest tests/eng/test_trace_mutation_run.py
+          python3 -m unittest tests/eng/test_release_evidence_v2.py
+          python3 -m unittest tests/eng/test_validate_contract_artifacts.py
+
+      - name: 'Gate 2b: AppHost Memories dependency modes'
+        run: python3 -m unittest discover -s tests/eng -p test_apphost_dependency_modes.py -v
+
+      # Gate 2c: File-based consumer pacts for the FrontComposer/EventStore REST boundary.
+      # This lane intentionally uses explicit root-declared submodule initialization above and
+      # does not run recursive nested submodule initialization.
+      - name: 'Gate 2c: Contract pacts'
+        env:
+          DiffEngine_Disabled: true
+        run: dotnet test tests/Hexalith.FrontComposer.Shell.Tests/Hexalith.FrontComposer.Shell.Tests.csproj --configuration Release --no-build --filter-trait "Category=Contract" --results-directory ./TestResults/contract --report-xunit-trx --report-xunit-trx-filename test-results-contract.trx
+
+      # EventStore owns provider execution over real loopback TCP. The pinned EventStore tests
+      # resolve the accepted Pact corpus through the EventStore submodule's FrontComposer gitlink:
+      # never initialize that nested checkout; stage the current, already-gated JSON inputs into
+      # its empty worktree. The provider application exits nonzero on any failed interaction,
+      # unsafe host, or incomplete cleanup; its report is a CI artifact, never a committed file.
+      - name: 'Gate 2c: Live EventStore provider verification'
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet restore references/Hexalith.EventStore/tests/Hexalith.EventStore.ProviderVerification.Tests/Hexalith.EventStore.ProviderVerification.Tests.csproj -p:Configuration=Release -p:NuGetAudit=false
+          dotnet build references/Hexalith.EventStore/tests/Hexalith.EventStore.ProviderVerification.Tests/Hexalith.EventStore.ProviderVerification.Tests.csproj --configuration Release --no-restore -m:1 -p:NuGetAudit=false
+          provider_test_framework="$(dotnet msbuild references/Hexalith.EventStore/tests/Hexalith.EventStore.ProviderVerification.Tests/Hexalith.EventStore.ProviderVerification.Tests.csproj -p:Configuration=Release -getProperty:TargetFramework -nologo)"
+          provider_framework="$(dotnet msbuild references/Hexalith.EventStore/tests/Hexalith.EventStore.ProviderVerification/Hexalith.EventStore.ProviderVerification.csproj -p:Configuration=Release -getProperty:TargetFramework -nologo)"
+          provider_test_pact_dir="$GITHUB_WORKSPACE/references/Hexalith.EventStore/references/Hexalith.FrontComposer/tests/Hexalith.FrontComposer.Shell.Tests/Pact"
+          mkdir -p "$provider_test_pact_dir"
+          find "$GITHUB_WORKSPACE/tests/Hexalith.FrontComposer.Shell.Tests/Pact" \
+            -maxdepth 1 -type f -name '*.json' -exec install -m 0644 {} "$provider_test_pact_dir/" \;
+          test "$(find "$provider_test_pact_dir" -maxdepth 1 -type f -name '*.json' | wc -l)" -eq 6
+          (
+            cd references/Hexalith.EventStore &&
+            dotnet "tests/Hexalith.EventStore.ProviderVerification.Tests/bin/Release/$provider_test_framework/Hexalith.EventStore.ProviderVerification.Tests.dll"
+          )
+          mkdir -p "$GITHUB_WORKSPACE/artifacts/contracts"
+          rm -f "$GITHUB_WORKSPACE/artifacts/contracts/provider-verification.json"
+          # The tool derives its own repository root by walking up from the process CWD looking for
+          # Hexalith.EventStore.slnx, so it runs inside the EventStore submodule with absolute paths.
+          (
+            cd references/Hexalith.EventStore &&
+            dotnet "$GITHUB_WORKSPACE/references/Hexalith.EventStore/tests/Hexalith.EventStore.ProviderVerification/bin/Release/$provider_framework/Hexalith.EventStore.ProviderVerification.dll" \
+              --verification-mode live-compatibility \
+              --pact-directory "$GITHUB_WORKSPACE/tests/Hexalith.FrontComposer.Shell.Tests/Pact" \
+              --manifest "$GITHUB_WORKSPACE/tests/Hexalith.FrontComposer.Shell.Tests/Pact/interaction-manifest.json" \
+              --provider-state-catalog "$GITHUB_WORKSPACE/tests/Hexalith.FrontComposer.Shell.Tests/Pact/provider-state-catalog.json" \
+              --report-output "$GITHUB_WORKSPACE/artifacts/contracts/provider-verification.json"
+          )
+          test -s "$GITHUB_WORKSPACE/artifacts/contracts/provider-verification.json"
+
+      - name: 'Gate 2c: Validate contract artifacts'
+        shell: pwsh
+        run: ./eng/validate-contract-artifacts.ps1 -RequireProviderVerification
+
+      - name: 'Gate 2c: Fail on stale pact diff'
+        shell: bash
+        run: |
+          mkdir -p artifacts/contracts
+          if git diff --exit-code -- tests/Hexalith.FrontComposer.Shell.Tests/Pact; then
+            echo "No stale pact diff detected." > artifacts/contracts/stale-pact-check.txt
+          else
+            echo "Stale pact diff detected; regenerate and commit intentional contract changes." > artifacts/contracts/stale-pact-check.txt
+            exit 1
+          fi
+
+      - name: Contract Summary
+        if: always()
+        shell: bash
+        run: |
+          if [ -f artifacts/contracts/job-summary.md ]; then
+            cat artifacts/contracts/job-summary.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      # Keeps the provider report and validator output of a failed run for diagnosis.
+      - name: Upload contract diagnostics
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: contract-diagnostics
+          retention-days: 14
+          if-no-files-found: warn
+          path: |
+            artifacts/contracts/**
+
+      - name: Upload contract artifacts
+        # Only a run whose pacts, provider verification and contract validation (including the
+        # provider report redaction scan) all passed.
+        if: success()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: contract-artifacts
+          retention-days: 14
+          if-no-files-found: error
+          path: |
+            artifacts/contracts/**
+            tests/Hexalith.FrontComposer.Shell.Tests/Pact/*.json
+            tests/Hexalith.FrontComposer.Shell.Tests/Pact/provider-verification-handoff.md
+
+      # Gate 2d: DocFX documentation publication and validation
+      - name: 'Gate 2d: Docs Validation'
+        shell: pwsh
+        run: ./eng/validate-docs.ps1
+
+      # Gate 3: All tests pass
+      # DIVERGENCE 4: Solution-level testing -- FrontComposer runs a single `dotnet test` on the
+      # whole solution (all tests are Tier 1, no DAPR/Aspire tiers). The reusable domain-ci.yml
+      # runs the trait-clean Tier 1 projects; this lane runs the trait-filtered default lane so
+      # Shell.Tests / SourceTools.Tests advisory and quarantine traits stay excluded from the
+      # blocking gate.
+      #
+      # Story 3-7 D6: Gate 3 is split into three lanes so Story 3-4 closure can gate on
+      # `e2e-palette` independently of latency/perf variance:
+      #   - Gate 3a (default): excludes GovernanceBuild, Performance, e2e-palette,
+      #     NightlyProperty, and Quarantined traits.
+      #   - Gate 3b (palette): selects the Category=e2e-palette trait (Story 3-7 T1 — bUnit-level flow gate).
+      #   - Gate 3c (perf bench): selects the Category=Performance trait (Story 1-8 + Story 3-7 T2 BDN bench).
+      # Palette/performance lanes remain advisory while Story 3-7 stabilizes browser and latency
+      # variance; governance and default unit/bUnit lanes above are blocking.
+      # Repair pass for an open runner-side defect: since 2026-08-11 the Gate 2 output has
+      # intermittently reached the test lanes with a random copy-local package assembly absent
+      # from a test project's bin (observed: OpenIdConnect, xunit.v3.assert,
+      # TimeProvider.Testing, FsCheck, Http.Connections.Client), which surfaces as
+      # `FileNotFoundException` in whichever tests touch it. It does not reproduce locally and
+      # the mechanism is not yet established. An incremental no-restore build re-copies any
+      # missing reference without recompiling, so it costs seconds and keeps the blocking lanes
+      # honest until the cause is found. Remove this once the copy defect is root-caused.
+      - name: 'Gate 2e: Restore missing copy-local test references'
+        run: dotnet build Hexalith.FrontComposer.slnx --configuration Release --no-restore
+
+      - name: 'Gate 3a: Unit + bUnit (default lane)'
+        env:
+          # DIVERGENCE 2: FrontComposer has 16+ Verify .verified.txt snapshot files.
+          # Without this env var, a snapshot mismatch launches a diff tool and hangs the CI runner.
+          DiffEngine_Disabled: true
+        # SDK 11 adds merged artifacts; retain one complete report per module
+        # for the existing strict TRX and coverage inventory checks.
+        run: dotnet test Hexalith.FrontComposer.slnx --configuration Release --no-build --filter-not-trait "Category=GovernanceBuild" --filter-not-trait "Category=Performance" --filter-not-trait "Category=e2e-palette" --filter-not-trait "Category=NightlyProperty" --filter-not-trait "Category=Quarantined" --results-directory ./TestResults/default --report-xunit-trx --coverage --coverage-output-format cobertura --no-artifact-post-processing
+
+      - name: 'Gate 3a: Verify default MTP evidence'
+        run: >-
+          python3 .github/scripts/ci_governance.py validate-mtp-evidence
+          --results-dir ./TestResults/default
+          --expected-trx-files 8
+          --require-tests
+          --require-distinct-modules
+          --coverage-dir ./TestResults/default
+          --expected-coverage-files 8
+
+      - name: 'Gate 3b: Palette E2E (e2e-palette lane)'
+        continue-on-error: true
+        env:
+          DiffEngine_Disabled: true
+        run: dotnet test Hexalith.FrontComposer.slnx --configuration Release --no-build --filter-trait "Category=e2e-palette" --ignore-exit-code 8 --results-directory ./TestResults/e2e-palette --report-xunit-trx
+
+      - name: 'Gate 3c: Performance bench (Performance lane)'
+        continue-on-error: true
+        env:
+          DiffEngine_Disabled: true
+        run: dotnet test Hexalith.FrontComposer.slnx --configuration Release --no-build --filter-trait "Category=Performance" --ignore-exit-code 8 --results-directory ./TestResults/performance --report-xunit-trx
+
+      - name: 'Gate 3d: Quarantined tests (warning-only)'
+        continue-on-error: true
+        env:
+          DiffEngine_Disabled: true
+        run: dotnet test Hexalith.FrontComposer.slnx --configuration Release --no-build --filter-trait "Category=Quarantined" --ignore-exit-code 8 --results-directory ./TestResults/quarantine --report-xunit-trx
+
+      # Gate 4: ApiCompat/package validation against the published baseline for every packable
+      # library `eng/release-package-inventory.json` declares, minus the documented `pack_as_tool`
+      # row (the SDK disables EnablePackageValidation for a PackAsTool layout, so Gate 2a's CLI
+      # pack proves nothing about binary compatibility).
+      #
+      # Placed after every step that consumes the Gate 2 solution build without rebuilding, and
+      # given an isolated per-project BaseOutputPath so the shared `bin/` that build produced is
+      # left byte-identical -- restamping it mid-job is the known missing-assembly flake. A
+      # rebuild is unavoidable here because the solution build stamps assembly version 1.0.0.0
+      # and ApiCompat's CP0003 identity rule rejects that against the published baseline. The governance
+      # test pins that ordering, so this comment must not contain the flag it searches for.
+      # `BaseIntermediateOutputPath` is deliberately NOT
+      # redirected: `DefaultItemExcludes` is derived from it, so moving it un-excludes the real
+      # `obj/` tree and the checked-in source generator fixtures collide as duplicate compile items.
+      - name: 'Gate 4: Library Package Validation (ApiCompat baseline)'
+        shell: bash
+        run: |
+          set -euo pipefail
+          # One definition of "packable and not pack_as_tool": the policy helper the release
+          # path and the governance tests already use.
+          mapfile -t projects < <(python3 -c "
+          import pathlib, sys
+          sys.path.insert(0, 'eng')
+          from release_compatibility import packable_library_projects
+          root = pathlib.Path('.').resolve()
+          for project in packable_library_projects(root):
+              print(project.relative_to(root).as_posix())
+          ")
+          if [ "${#projects[@]}" -ne 7 ]; then
+            echo "expected 7 packable libraries in eng/release-package-inventory.json; found ${#projects[@]}" >&2
+            exit 1
+          fi
+          for project in "${projects[@]}"; do
+            # Each pack gets its own output tree: one shared BaseOutputPath would let seven
+            # sequential packs (and their ProjectReference graphs) intermingle in a single
+            # bin/Release/<tfm>/, and ApiCompat could then diff a stale sibling assembly.
+            name="$(basename "$project" .csproj)"
+            dotnet pack "$project" --configuration Release --output ./nupkgs-validation -p:Version=6.0.0-ci -p:PackageVersion=6.0.0-ci -p:EnableFrontComposerPackageValidation=true -p:FrontComposerPackageValidationBaselineVersion=5.0.0 -p:FrontComposerPackageValidationSkipBaseline=false -p:BaseOutputPath="$GITHUB_WORKSPACE/artifacts/library-package-validation/$name/bin/"
+          done
+
+      # Story 12.1: the adopter proof kit copies Shell markup, diagnostics, and types that the
+      # mocked runner tests cannot see drift in. Run the real kit against the Gate 4 packages
+      # (Source Link stamps HEAD as their repository commit). Internal CI evidence only; it never
+      # substitutes for the external adopter's dated run (EXT-ADOPTER-1).
+      - name: 'Gate 4a: Adopter proof kit smoke'
+        shell: bash
+        run: |
+          set -euo pipefail
+          runtime="$(dotnet --list-runtimes | awk '$1 == "Microsoft.AspNetCore.App" && $2 ~ /^11[.]0[.][0-9]+$/ { version = $2 } END { print version }')"
+          if [ -z "$runtime" ]; then
+            echo "::error::Adopter proof requires an installed Microsoft.AspNetCore.App 11.0 runtime."
+            exit 1
+          fi
+          python3 eng/adopter_proof.py \
+            --candidate-sha "$(git rev-parse HEAD)" \
+            --package-version 6.0.0-ci \
+            --package-source ./nupkgs-validation \
+            --runtime-version "$runtime" \
+            --eventstore-endpoint http://127.0.0.1:1 \
+            --result "$RUNNER_TEMP/adopter-proof/result.json"
+
+      - name: Quarantine Summary
+        if: always()
+        run: |
+          python3 .github/scripts/ci_governance.py summarize-quarantine \
+            --results-dir ./TestResults/quarantine \
+            --markdown artifacts/quarantine/quarantine-summary.md \
+            --json artifacts/quarantine/quarantine-summary.json \
+            --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+      - name: Upload quarantine artifacts
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: quarantine-artifacts
+          retention-days: 14
+          if-no-files-found: error
+          path: |
+            artifacts/quarantine/**
+            TestResults/quarantine/**/*.trx
+
+      - name: Test Summary
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import glob
+          import os
+          import xml.etree.ElementTree as ET
+
+          summary_path = os.environ['GITHUB_STEP_SUMMARY']
+
+          def parse_trx(path):
+            root = ET.parse(path).getroot()
+            counters = root.find('.//{*}ResultSummary/{*}Counters')
+            if counters is not None:
+              total = int(counters.attrib.get('total', '0'))
+              passed = int(counters.attrib.get('passed', '0'))
+              failed = int(counters.attrib.get('failed', '0'))
+              return passed, failed, total
+            results = root.findall('.//{*}UnitTestResult')
+            total = len(results)
+            passed = sum(1 for r in results if r.attrib.get('outcome') == 'Passed')
+            failed = sum(1 for r in results if r.attrib.get('outcome') == 'Failed')
+            return passed, failed, total
+
+          with open(summary_path, 'a', encoding='utf-8') as summary:
+            summary.write('## Quality Test Results\n')
+
+            trx_files = glob.glob('./TestResults/default/**/*.trx', recursive=True)
+            if not trx_files:
+              summary.write('No TRX file found.\n')
+            else:
+              try:
+                counters = [parse_trx(trx) for trx in trx_files]
+                passed = sum(item[0] for item in counters)
+                failed = sum(item[1] for item in counters)
+                total = sum(item[2] for item in counters)
+                summary.write(f'**All Tests:** {passed} passed, {failed} failed (total: {total})\n\n')
+              except ET.ParseError as e:
+                summary.write(f'**Warning:** Could not parse a TRX file (likely truncated): {e}\n\n')
+              except Exception as e:
+                summary.write(f'**Warning:** Unexpected error reading default TRX files: {e}\n\n')
+
+            summary.write('### Job Status\n')
+            summary.write('${{ job.status }}\n')
+          PY
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: test-results
+          retention-days: 14
+          if-no-files-found: warn
+          path: 'TestResults/**/*.trx'
+
+      - name: Coverage Summary
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import glob
+          import os
+          import xml.etree.ElementTree as ET
+
+          summary_path = os.environ['GITHUB_STEP_SUMMARY']
+          coverage_files = glob.glob('TestResults/default/**/*.cobertura.xml', recursive=True)
+
+          if not coverage_files:
+            raise SystemExit('No coverage files found.')
+
+          total_lines = 0
+          covered_lines = 0
+          total_branches = 0
+          covered_branches = 0
+          per_report = []
+
+          for report_number, cov_file in enumerate(sorted(coverage_files), start=1):
+            try:
+              tree = ET.parse(cov_file)
+              root = tree.getroot()
+              if root.tag.rsplit('}', 1)[-1] != 'coverage':
+                raise ValueError('root element must be coverage')
+              line_rate = float(root.attrib.get('line-rate', '0'))
+              branch_rate = float(root.attrib.get('branch-rate', '0'))
+              lines_valid = int(root.attrib.get('lines-valid', '0'))
+              lines_covered = int(root.attrib.get('lines-covered', '0'))
+              branches_valid = int(root.attrib.get('branches-valid', '0'))
+              branches_covered = int(root.attrib.get('branches-covered', '0'))
+              if lines_valid <= 0 or not root.findall('.//{*}line'):
+                raise ValueError('report contains no measured lines')
+
+              total_lines += lines_valid
+              covered_lines += lines_covered
+              total_branches += branches_valid
+              covered_branches += branches_covered
+
+              per_report.append((f'Report {report_number}', line_rate * 100, branch_rate * 100, lines_valid))
+            except Exception as e:
+              raise SystemExit(f'Could not parse coverage report {cov_file}: {e}') from e
+
+          overall_line = (covered_lines / total_lines * 100) if total_lines > 0 else 0
+          overall_branch = (covered_branches / total_branches * 100) if total_branches > 0 else 0
+
+          with open(summary_path, 'a', encoding='utf-8') as f:
+            f.write(f'\n### Code Coverage\n')
+            f.write(f'**Overall:** {overall_line:.1f}% line · {overall_branch:.1f}% branch ({covered_lines}/{total_lines} lines)\n\n')
+            f.write('| Report | Line % | Branch % | Lines |\n')
+            f.write('|---------|--------|----------|-------|\n')
+            for name, line_pct, branch_pct, lines in per_report:
+              f.write(f'| {name} | {line_pct:.1f}% | {branch_pct:.1f}% | {lines} |\n')
+          PY
+          # TODO(Epic 2): Add coverage thresholds and enforcement
+
+      - name: Upload coverage reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: coverage-reports
+          path: 'TestResults/default/**/*.cobertura.xml'
+
+      - name: Record CI duration summary
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p artifacts/ci-duration
+          now="$(date -u +%s)"
+          started="${FC_FULL_CI_STARTED_AT:-$now}"
+          duration="$((now - started))"
+          cat > artifacts/ci-duration/full-ci-evidence.json <<JSON
+          {
+            "runs": [
+              {
+                "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+                "run_id": "${{ github.run_id }}",
+                "commit": "${{ github.sha }}",
+                "workflow": "Quality",
+                "lane": "build-and-test",
+                "lane_type": "full-ci",
+                "duration_seconds": ${duration},
+                "conclusion": "${{ job.status }}",
+                "blocking": true,
+                "protected_branch": ${{ github.ref == 'refs/heads/main' }}
+              }
+            ]
+          }
+          JSON
+          python3 .github/scripts/ci_governance.py duration-monitor \
+            --evidence artifacts/ci-duration/full-ci-evidence.json \
+            --output artifacts/ci-duration/full-ci-summary.json \
+            --markdown artifacts/ci-duration/full-ci-summary.md
+          cat artifacts/ci-duration/full-ci-summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload CI duration artifacts
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ci-duration-artifacts
+          retention-days: 14
+          if-no-files-found: error
+          path: artifacts/ci-duration/**
+
+  accessibility-visual:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        env:
+          # Step-scoped Git config lets checkout create long repository paths on Windows.
+          GIT_CONFIG_COUNT: 1
+          GIT_CONFIG_KEY_0: core.longpaths
+          GIT_CONFIG_VALUE_0: 'true'
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          # Root-declared references submodules only; do not use recursive nested submodule checkout.
+          submodules: false
+
+      - name: Initialize build submodules
+        shell: bash
+        env:
+          # Override only this step's Git processes so the runner's global setting is untouched.
+          GIT_CONFIG_COUNT: 2
+          GIT_CONFIG_KEY_0: core.symlinks
+          GIT_CONFIG_VALUE_0: 'false'
+          GIT_CONFIG_KEY_1: core.longpaths
+          GIT_CONFIG_VALUE_1: 'true'
+        # Builds-only: avoid checking out EventStore evidence paths that exceed Windows MAX_PATH.
+        run: git -c submodule.recurse=false submodule update --init references/Hexalith.Builds
+
+      - uses: Hexalith/Hexalith.Builds/Github/initialize-dotnet@6e77e79e8914a375b0c43b0af3bd142405675ecd
+        with:
+          dotnet-version: '11.0.100'
+
+      - name: Install .NET 11 runtimes
+        shell: pwsh
+        run: ./eng/install-net11-runtime.ps1
+
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: '24.10.0'
+          cache: 'npm'
+
+      - name: Install root npm dependencies
+        env:
+          HUSKY: 0
+        run: npm ci
+
+      - name: Install Playwright workspace dependencies
+        working-directory: tests/e2e
+        run: npm ci
+
+      - name: Install legacy Story 2.2 Playwright dependencies
+        id: legacy_deps
+        working-directory: tests/Hexalith.FrontComposer.Shell.Tests/EndToEnd
+        run: npm ci
+
+      - name: Run legacy Story 2.2 result-contract tests
+        id: legacy_contract
+        working-directory: tests/Hexalith.FrontComposer.Shell.Tests/EndToEnd
+        run: npm run test:runner
+
+      - name: Initialize Ubuntu APT for browser dependencies
+        if: runner.os == 'Linux'
+        uses: Hexalith/Hexalith.Builds/Github/initialize-apt@f5a46e8a70a1893bc638fa5f488d57767fafdede
+
+      - name: Use the Ubuntu HTTPS archive for browser dependencies
+        run: bash eng/prepare-browser-package-sources.sh
+
+      - name: Install legacy Story 2.2 Chromium browser
+        id: legacy_chromium
+        working-directory: tests/Hexalith.FrontComposer.Shell.Tests/EndToEnd
+        run: npx playwright install --with-deps chromium
+
+      - name: Install Chromium browser
+        working-directory: tests/e2e
+        run: npx playwright install --with-deps chromium
+
+      - name: Build Counter specimen host
+        id: counter_build
+        run: dotnet build samples/Counter/Counter.Web/Counter.Web.csproj --configuration Release
+
+      - name: Typecheck Playwright accessibility lane
+        working-directory: tests/e2e
+        run: npm run typecheck
+
+      # Browserless FC-NIP contract guards. `typecheck` compiles this spec but never executes it,
+      # so before this step the whole Playwright half of the FC-NIP governance contract — including
+      # every forbidden identity/materiality source — was pinned in a lane no workflow ran. The
+      # spec touches the filesystem only (PLAYWRIGHT_SKIP_WEBSERVER=1), so it needs no host.
+      - name: Run FC-NIP contract guards (browserless)
+        working-directory: tests/e2e
+        run: npm run test:fc-nip
+
+      # Browserless settings-persistence storage-key regression. `typecheck` compiles this spec
+      # but never executed it, so the TypeScript storage-key mirror in settings.page.ts could
+      # drift from FrontComposerStorageKey.CanonicalizeUser while CI stayed green. The selected
+      # test is a pure helper assertion over the frozen Unicode golden vector, so it needs no host.
+      - name: Run settings-persistence storage-key regression (browserless)
+        working-directory: tests/e2e
+        run: npm run test:settings-persistence-storage-key
+
+      - name: Test accessibility evidence negative fixtures
+        working-directory: tests/e2e
+        run: node --test scripts/a11y-state-evidence.test.mjs
+
+      - name: Run accessibility, keyboard, media, zoom, and visual specimen gate
+        working-directory: tests/e2e
+        env:
+          CI: true
+          ASPNETCORE_ENVIRONMENT: Test
+          Hexalith__FrontComposer__Specimens__Enabled: true
+          Hexalith__Shell__ProjectionReconnectedNoticeDurationMs: 30000
+          FC_A11Y_EVIDENCE_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+        run: npm run test:a11y
+
+      - name: Run legacy Story 2.2 live browser gate
+        if: ${{ !cancelled() && steps.legacy_deps.outcome == 'success' && steps.legacy_contract.outcome == 'success' && steps.legacy_chromium.outcome == 'success' && steps.counter_build.outcome == 'success' }}
+        working-directory: tests/Hexalith.FrontComposer.Shell.Tests/EndToEnd
+        env:
+          FC_STORY_2_2_OUTPUT_DIR: artifacts/story-2-2-live
+        run: npm run story2.2:e2e
+
+      - name: Validate visual baseline governance
+        if: always()
+        working-directory: tests/e2e
+        run: npm run validate:visual-governance
+
+      - name: Validate accessibility artifacts
+        if: always()
+        working-directory: tests/e2e
+        env:
+          FC_A11Y_EVIDENCE_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+        run: npm run validate:a11y-artifacts
+
+      - name: Upload accessibility and visual artifacts
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: accessibility-visual-artifacts
+          retention-days: 14
+          if-no-files-found: error
+          path: |
+            tests/e2e/playwright-report/**
+            tests/e2e/test-results/**
+            artifacts/story-2-2-live/**
+
+  browser-regressions-linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: [chromium, firefox, webkit]
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          submodules: false
+
+      - name: Initialize root build submodule
+        run: git -c submodule.recurse=false submodule update --init references/Hexalith.Builds
+
+      - uses: Hexalith/Hexalith.Builds/Github/initialize-dotnet@6e77e79e8914a375b0c43b0af3bd142405675ecd
+        with:
+          dotnet-version: '11.0.100'
+
+      - name: Install .NET 11 runtimes
+        shell: pwsh
+        run: ./eng/install-net11-runtime.ps1
+
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: '24.10.0'
+          cache: 'npm'
+          cache-dependency-path: tests/e2e/package-lock.json
+
+      - name: Install pinned Playwright workspace
+        working-directory: tests/e2e
+        run: npm ci
+
+      - name: Initialize Ubuntu APT for browser dependencies
+        if: runner.os == 'Linux'
+        uses: Hexalith/Hexalith.Builds/Github/initialize-apt@f5a46e8a70a1893bc638fa5f488d57767fafdede
+
+      # The hosted Azure HTTP mirror stalled media-library downloads for over 20 minutes.
+      # Keep Ubuntu's signed package suites and every browser dependency; use the main HTTPS archive.
+      - name: Use the Ubuntu HTTPS archive for browser dependencies
+        run: bash eng/prepare-browser-package-sources.sh
+
+      - name: Install all pinned Playwright browsers
+        working-directory: tests/e2e
+        run: npx playwright install --with-deps chromium firefox webkit
+
+      # Schema negotiation reads the current Release generator manifest during test discovery.
+      - name: Build Counter browser host
+        run: dotnet build samples/Counter/Counter.Web/Counter.Web.csproj --configuration Release -m:1 -p:EmitCompilerGeneratedFiles=true
+
+      - name: Build CLI browser fixture
+        run: dotnet build src/Hexalith.FrontComposer.Cli/Hexalith.FrontComposer.Cli.csproj --configuration Release -m:1
+
+      # Prepare Debug before browser workers so the diagnostic hook only verifies an incremental build.
+      - name: Build Debug Counter diagnostic host
+        run: dotnet build samples/Counter/Counter.Web/Counter.Web.csproj --configuration Debug --disable-build-servers -m:1
+
+      - name: Run browser launch and scroll regressions
+        working-directory: tests/e2e
+        run: node --test scripts/owned-process.test.mjs scripts/expand-in-row.test.mjs scripts/run-epic9-live-proof.test.mjs
+
+      - name: Typecheck browser regressions
+        working-directory: tests/e2e
+        run: npm run typecheck
+
+      - name: Run all specs for selected browser engine
+        working-directory: tests/e2e
+        env:
+          CI: true
+          FC_A11Y_EVIDENCE_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}-linux-${{ matrix.engine }}
+          ASPNETCORE_ENVIRONMENT: Test
+          Hexalith__FrontComposer__Specimens__Enabled: true
+          Hexalith__Shell__ProjectionReconnectedNoticeDurationMs: 30000
+        run: npx playwright test --project=${{ matrix.engine }} --workers 2
+
+      - name: Test accessibility evidence attempt validation
+        working-directory: tests/e2e
+        run: node --test scripts/a11y-state-evidence.test.mjs
+
+      - name: Validate selected Linux accessibility engine and run
+        if: always()
+        working-directory: tests/e2e
+        env:
+          FC_A11Y_EVIDENCE_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}-linux-${{ matrix.engine }}
+          FC_A11Y_EVIDENCE_ENGINE: ${{ matrix.engine }}
+        run: npm run validate:a11y-artifacts
+
+      - name: Validate Linux visual governance
+        if: always()
+        working-directory: tests/e2e
+        run: npm run validate:visual-governance
+
+      - name: Upload Linux browser results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: browser-regressions-linux-results-${{ matrix.engine }}-${{ github.run_attempt }}
+          retention-days: 14
+          if-no-files-found: error
+          path: |
+            tests/e2e/playwright-report/**
+            tests/e2e/test-results/**
+
+  epic9-live-acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          # Root-declared references only; never initialize nested submodules recursively.
+          submodules: false
+
+      - name: Initialize build submodules
+        uses: Hexalith/Hexalith.Builds/Github/initialize-build@main
+
+      - uses: Hexalith/Hexalith.Builds/Github/initialize-dotnet@6e77e79e8914a375b0c43b0af3bd142405675ecd
+        with:
+          dotnet-version: '11.0.100'
+
+      - name: Install .NET 11 runtimes
+        shell: pwsh
+        run: ./eng/install-net11-runtime.ps1
+
+      # The root/default remains 11.0.100. This one live source-resource lane also loads
+      # remote-equal roots that still pin 10.0.302, so install that SDK side-by-side only here.
+      - name: Install source-resource compatibility SDK
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: '10.0.302'
+
+      # Root-selected dependency projects still pin the 10.0.4xx feature band.
+      - name: Install dependency source-resource SDK
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: '10.0.404'
+
+      - name: Verify root and source-resource SDKs
+        shell: bash
+        run: |
+          set -euo pipefail
+          active_sdk="$(dotnet --version)"
+          if [[ ! "$active_sdk" =~ ^11\.0\.([0-9]+)$ ]] || (( 10#${BASH_REMATCH[1]} < 100 || 10#${BASH_REMATCH[1]} >= 200 )); then
+            echo "::error::Active .NET SDK $active_sdk is outside the supported [11.0.100, 11.0.200) range."
+            exit 1
+          fi
+          dotnet --list-sdks | grep -E '^10\.0\.302\s'
+          dotnet --list-sdks | grep -E '^10\.0\.404\s'
+          dotnet --list-sdks | grep -E '^11\.0\.100\s'
+
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: '24.10.0'
+          cache: 'npm'
+          cache-dependency-path: tests/e2e/package-lock.json
+
+      - name: Install Playwright workspace dependencies
+        working-directory: tests/e2e
+        run: npm ci
+
+      - name: Initialize Ubuntu APT for browser dependencies
+        if: runner.os == 'Linux'
+        uses: Hexalith/Hexalith.Builds/Github/initialize-apt@f5a46e8a70a1893bc638fa5f488d57767fafdede
+
+      - name: Use the Ubuntu HTTPS archive for browser dependencies
+        run: bash eng/prepare-browser-package-sources.sh
+
+      - name: Install Chromium browser
+        working-directory: tests/e2e
+        run: npx playwright install --with-deps chromium
+
+      - name: Install Aspire CLI
+        run: |
+          ${{ env.ASPIRE_CLI_INSTALL }}
+          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+
+      - name: Install Dapr CLI
+        uses: dapr/setup-dapr@8d980918fd43a2765c143ce7f687665b2d46a6b9 # v2
+        with:
+          version: '1.18.0'
+
+      - name: Initialize Dapr runtime
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          dapr init --runtime-version 1.18.2
+          dapr --version
+
+      - name: Typecheck Epic 9 browser proof
+        working-directory: tests/e2e
+        run: npm run typecheck
+
+      - name: Test Epic 9 evidence tooling
+        working-directory: tests/e2e
+        run: npm run test:epic-9-evidence
+
+      - name: Run AppHost-discovered Epic 9 live proof
+        env:
+          FC_EPIC9_EXPECTED_COMMIT: ${{ github.sha }}
+          FC_EPIC9_REQUIRE_CLEAN: true
+        run: ./eng/run-epic9-live-proof.sh
+
+      # The Epic 9 proof sends only valid credentials and stops its AppHost on exit. This step
+      # restarts the same prebuilt AppHost and checks that the composed EventStore rejects a bogus
+      # bearer (401/403) on command submit, command status, query and the projection hub
+      # negotiate endpoint. Safe diagnostics from this owned restart are retained separately
+      # from the earlier Counter-Web proof; raw discovery, logs and curl data stay private.
+      - name: AppHost rejects invalid bearer tokens
+        shell: bash
+        env:
+          HexalithFrontComposerFromSource: 'true'
+          FC_INVALID_BEARER_DIAGNOSTICS_DIR: ${{ github.workspace }}/artifacts/invalid-bearer
+        run: ./eng/verify-apphost-invalid-bearer.sh
+
+      - name: Upload Epic 9 acceptance artifacts
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: epic-9-live-acceptance-artifacts
+          retention-days: 14
+          if-no-files-found: error
+          include-hidden-files: true
+          path: |
+            artifacts/epic-9/**
+            artifacts/invalid-bearer/diagnostics.*.json
+
+  # Every other .NET test lane builds Release, which compiles out `#if DEBUG` diagnostic gates and
+  # their test branches. This separate job keeps those branches in CI without depending on the
+  # sequential build-and-test gates; nothing it builds is packaged or published.
+  debug-gated-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          # Root-declared references only; never initialize nested submodules recursively.
+          submodules: false
+
+      - name: Initialize root build submodule
+        run: git -c submodule.recurse=false submodule update --init references/Hexalith.Builds
+
+      - uses: Hexalith/Hexalith.Builds/Github/initialize-dotnet@6e77e79e8914a375b0c43b0af3bd142405675ecd
+        with:
+          dotnet-version: '11.0.100'
+
+      - name: Install .NET 11 runtimes
+        shell: pwsh
+        run: ./eng/install-net11-runtime.ps1
+
+      - name: Build Debug Shell tests
+        run: dotnet build tests/Hexalith.FrontComposer.Shell.Tests/Hexalith.FrontComposer.Shell.Tests.csproj --configuration Debug --disable-build-servers -m:1
+
+      - name: Run DEBUG-gated Shell test classes
+        env:
+          DiffEngine_Disabled: true
+        run: >-
+          dotnet test --project tests/Hexalith.FrontComposer.Shell.Tests/Hexalith.FrontComposer.Shell.Tests.csproj
+          --configuration Debug --no-build
+          --filter-class Hexalith.FrontComposer.Shell.Tests.Components.Layout.FrontComposerShellTests
+          --filter-class Hexalith.FrontComposer.Shell.Tests.Components.Rendering.FcProjectionViewOverrideHostTests
+          --filter-class Hexalith.FrontComposer.Shell.Tests.Components.Rendering.FcProjectionTemplateHostTests
+          --filter-class Hexalith.FrontComposer.Shell.Tests.Components.Rendering.FcFieldSlotHostTests
+          --filter-class Hexalith.FrontComposer.Shell.Tests.Extensions.AddFrontComposerDevModeExtensionsTests
+          --results-directory ./TestResults/debug-gated --report-xunit-trx
+
+      - name: Verify DEBUG-gated MTP evidence
+        run: >-
+          python3 .github/scripts/ci_governance.py validate-mtp-evidence
+          --results-dir ./TestResults/debug-gated
+          --expected-trx-files 1
+          --require-tests
+
+      - name: Upload DEBUG-gated test results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: debug-gated-test-results
+          retention-days: 14
+          if-no-files-found: warn
+          path: 'TestResults/debug-gated/**'
+
+  # Proof is the repository's tests plus CI: a story or spec records the commands run,
+  # pass/fail counts, commit SHA and CI run link, and every evidence/ folder is ignored local
+  # scratch. The Husky pre-commit/pre-merge-commit hooks run the same guard on staged files;
+  # this job checks every tracked file on every push and pull request, so a commit that
+  # bypassed the hooks is detected.
+  committed-files:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+          # Root-declared references are gitlinks the guard skips; no submodule checkout is needed.
+          submodules: false
+
+      - name: Reject committed evidence and oversized files
+        run: bash eng/check-committed-files.sh
+
+      - name: Committed-files guard tests
+        run: python3 -m unittest tests/eng/test_check_committed_files.py

@@ -1,0 +1,9 @@
+{
+  "recordedAtUtc": "2026-11-16T11:19:43.717623+00:00",
+  "source": "a03ee98a8964d56506160bcd9c73de992df56f58",
+  "command": "GH_CONFIG_DIR=\"$HOME/.config/gh\" git push origin main",
+  "exitCode": 0,
+  "stdout": "",
+  "stderr": "To https://github.com/Hexalith/Hexalith.FrontComposer.git\n   ebd3f76d..a03ee98a  main -> main\n",
+  "localCheckerException": "pragmatic-release-user-authorization.json"
+}

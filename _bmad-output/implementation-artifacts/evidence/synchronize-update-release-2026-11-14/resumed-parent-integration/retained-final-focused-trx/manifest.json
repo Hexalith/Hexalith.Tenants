@@ -1,0 +1,15 @@
+{
+  "scope": "Byte-identical native1case owner collection-QC and45case existingShell validator fixture outputs",
+  "entries": [
+    {
+      "original": "fc-owner-hash-quality-verification/results/tests.trx",
+      "sha256": "4f3dbd654c183bd5e8b9f60c28060fa1974ffa713ef933bc0c06c1509c774ebe",
+      "retained": "4f3dbd654c183bd5e8b9f60c28060fa1974ffa713ef933bc0c06c1509c774ebe.xml"
+    },
+    {
+      "original": "fc-shell-validator-fixture-closure/attempt-01/test-results/tests.trx",
+      "sha256": "8b5f7b876eaf429cf6afc9a27789b4a35527ef63dbea788ec68266cfd965527e",
+      "retained": "8b5f7b876eaf429cf6afc9a27789b4a35527ef63dbea788ec68266cfd965527e.xml"
+    }
+  ]
+}

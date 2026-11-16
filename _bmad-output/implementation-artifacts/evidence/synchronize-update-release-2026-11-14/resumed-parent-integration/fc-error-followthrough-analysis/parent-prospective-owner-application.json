@@ -1,0 +1,32 @@
+{
+  "scope": "Parent authenticates complete focused evidence, applies four prospective test files only; no triage, commit, source qualification or publication accepted",
+  "ownerBase": "b34be9245443d21b72a6076cf205bbbc8a8c521f",
+  "privateDiagnosticSource": "e0eef14ddbbcd03823863a4f417a4b07f6f5bafc",
+  "packageManifestFilesVerified": 163,
+  "privateFocusedBaseline": 39,
+  "recordedLiteralControlsVerified": 2,
+  "ownerInputs": {
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/ProjectionParserSurvivorRegressionTests.cs": {
+      "proposalSha256": "30064945105826a3e56f19b590bfb8e296f59bc86980eb8f4a7279a7a46317e4",
+      "ownerWorktreeSha256": "ca7110ca765f6d7db4bafb1a3c6cedb119aed7a9915b067eab54453e3e87566f",
+      "canonicalSha256": "30064945105826a3e56f19b590bfb8e296f59bc86980eb8f4a7279a7a46317e4"
+    },
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/OtherAttributeGenerator.cs": {
+      "proposalSha256": "53687662c4c1bce71b2614621d0b0091690bffb2eef3e2cf7d8012f8b76796fc",
+      "ownerWorktreeSha256": "1ee8dfc941d994f3ff2da588c9a23afb2d079abf90fe3959cddff909ad309ce3",
+      "canonicalSha256": "53687662c4c1bce71b2614621d0b0091690bffb2eef3e2cf7d8012f8b76796fc"
+    },
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/TemplateParserProviderBoundaryTests.cs": {
+      "proposalSha256": "ac68134236787e13defbff08655616e41ae6d5572427bfc3a904355be10e6f4d",
+      "ownerWorktreeSha256": "19ad13025d8d5632f5a39554e46d0205cd930279d551b71af937c1a1ef959583",
+      "canonicalSha256": "ac68134236787e13defbff08655616e41ae6d5572427bfc3a904355be10e6f4d"
+    },
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/ErrorFollowthroughBehaviorTests.cs": {
+      "proposalSha256": "d55b606faa5303ee2c540e8d897b9af8cda412ea986523f716facf9d98dbea8f",
+      "ownerWorktreeSha256": "c9517c04ccb67ffbfc2dbf715a36eeebabe56c470de139449f7c301116d07e8d",
+      "canonicalSha256": "d55b606faa5303ee2c540e8d897b9af8cda412ea986523f716facf9d98dbea8f"
+    }
+  },
+  "cleanupVerified": true,
+  "remaining": "Full source review, actual complete original Happy/Error diagnostics, truthful finite owner dispositions, final committed-source gates and publication."
+}

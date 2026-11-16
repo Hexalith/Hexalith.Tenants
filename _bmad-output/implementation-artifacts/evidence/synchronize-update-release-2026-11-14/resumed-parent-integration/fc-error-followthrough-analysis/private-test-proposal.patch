@@ -1,0 +1,424 @@
+diff --git a/tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/ErrorFollowthroughBehaviorTests.cs b/tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/ErrorFollowthroughBehaviorTests.cs
+new file mode 100644
+--- /dev/null
++++ b/tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/ErrorFollowthroughBehaviorTests.cs
+@@ -0,0 +1,163 @@
++using System.Collections.Immutable;
++
++using Hexalith.FrontComposer.SourceTools.Parsing;
++using Hexalith.FrontComposer.SourceTools.Transforms;
++
++using Shouldly;
++
++namespace Hexalith.FrontComposer.SourceTools.Tests.Mutation;
++
++/// <summary>Protects public mapping, label, schema and equality behavior exposed by the Error inventory.</summary>
++[Trait("Category", "MutationErrorRegression")]
++public sealed class ErrorFollowthroughBehaviorTests
++{
++    /// <summary>Preserves each supported C# primitive alias and its public IR mapping.</summary>
++    /// <param name="alias">The C# primitive alias.</param>
++    /// <param name="expected">The supported public IR type.</param>
++    [Theory]
++    [InlineData("string", "String")]
++    [InlineData("int", "Int32")]
++    [InlineData("long", "Int64")]
++    [InlineData("decimal", "Decimal")]
++    [InlineData("double", "Double")]
++    [InlineData("float", "Single")]
++    [InlineData("bool", "Boolean")]
++    public void PrimitiveAliasesRetainTheirDeclaredMapping(string alias, string expected)
++        => FieldTypeMapper.MapType(alias, isEnum: false).ShouldBe(expected);
++
++    /// <summary>Recognizes supported enumerable forms without accepting a lookalike type prefix.</summary>
++    /// <param name="name">The candidate collection type name.</param>
++    /// <param name="expected">Whether the collection shape is supported.</param>
++    [Theory]
++    [InlineData("System.Collections.Generic.IEnumerable", true)]
++    [InlineData("System.Collections.Generic.IEnumerable<System.String>", true)]
++    [InlineData("System.Collections.Generic.IEnumerableAlias", false)]
++    public void EnumerableRecognitionRespectsTheGenericBoundary(string name, bool expected)
++        => FieldTypeMapper.IsCollectionType(name).ShouldBe(expected);
++
++    /// <summary>Keeps user-facing acronym, ASCII-boundary and digit labels readable.</summary>
++    /// <param name="identifier">The source identifier shown to a user.</param>
++    /// <param name="expected">The visible label.</param>
++    [Theory]
++    [InlineData("ABCd", "AB Cd")]
++    [InlineData("ABc", "ABc")]
++    [InlineData("XYZ", "XYZ")]
++    [InlineData("AZName", "AZ Name")]
++    [InlineData("AABx", "AA Bx")]
++    [InlineData("XMLz", "XM Lz")]
++    [InlineData("xA", "X A")]
++    [InlineData("pAName", "P AName")]
++    [InlineData("Order2Name", "Order2 Name")]
++    public void LabelBoundariesPreserveVisibleWords(string identifier, string expected)
++        => CamelCaseHumanizer.Humanize(identifier).ShouldBe(expected);
++
++    /// <summary>Retains the renderer capability and bounds that a schema consumer negotiates.</summary>
++    [Fact]
++    public void MarkdownPayloadDescribesTheCompleteRendererContract()
++    {
++        GeneratedSchemaPayload payload = SchemaFingerprintTransform.CreateMarkdownRendererPayload("renderer", "Default", 64000, 4096);
++        payload.Json.ShouldContain("family=MarkdownRendererContract\n");
++        payload.Json.ShouldContain("boundedContext=\n");
++        payload.Json.ShouldContain("fqn=\n");
++        payload.Json.ShouldContain("metadata.bounds.maxCharacters=64000\n");
++        payload.Json.ShouldContain("metadata.bounds.maxFieldCharacters=4096\n");
++        payload.Json.ShouldContain("metadata.capability=bounded-markdown\\|sanitized-inert-text\n");
++        payload.Json.ShouldContain("metadata.outputContentType=text/markdown\n");
++        payload.Json.ShouldContain("metadata.renderStrategy=Default\n");
++
++        GeneratedSchemaPayload changedStrategy = SchemaFingerprintTransform.CreateMarkdownRendererPayload("renderer", "ActionQueue", 64000, 4096);
++        GeneratedSchemaPayload changedMaxCharacters = SchemaFingerprintTransform.CreateMarkdownRendererPayload("renderer", "Default", 64001, 4096);
++        GeneratedSchemaPayload changedMaxFieldCharacters = SchemaFingerprintTransform.CreateMarkdownRendererPayload("renderer", "Default", 64000, 4097);
++        payload.Fingerprint.Value.ShouldNotBe(changedStrategy.Fingerprint.Value);
++        payload.Fingerprint.Value.ShouldNotBe(changedMaxCharacters.Fingerprint.Value);
++        payload.Fingerprint.Value.ShouldNotBe(changedMaxFieldCharacters.Fingerprint.Value);
++    }
++
++    /// <summary>Retains skill identity, negotiated metadata and canonical ordering of reference sets.</summary>
++    [Fact]
++    public void SkillPayloadRetainsMetadataAndCanonicalReferenceOrder()
++    {
++        GeneratedSchemaPayload payload = SchemaFingerprintTransform.CreateSkillCorpusResourcePayload("skill", "1.0", "frontcomposer://skill", "Skill title", "text/markdown", 7, ["Z", "A"], ["z.cs", "a.cs"]);
++        payload.Json.ShouldContain("family=SkillCorpusResource\n");
++        payload.Json.ShouldContain("contractId=skill\n");
++        payload.Json.ShouldContain("schemaVersion=frontcomposer.skill-corpus.v1\n");
++        payload.Json.ShouldContain("boundedContext=\n");
++        payload.Json.ShouldContain("fqn=\n");
++        payload.Json.ShouldContain("protocol=frontcomposer\\://skill\n");
++        payload.Json.ShouldContain("metadata.contentType=text/markdown\n");
++        payload.Json.ShouldContain("metadata.order=7\n");
++        payload.Json.ShouldContain("metadata.publicApiReferences=A\\|Z\n");
++        payload.Json.ShouldContain("metadata.samplePaths=a.cs\\|z.cs\n");
++        payload.Json.ShouldContain("metadata.title=Skill title\n");
++        payload.Json.ShouldContain("metadata.version=1.0\n");
++
++        GeneratedSchemaPayload changedId = SchemaFingerprintTransform.CreateSkillCorpusResourcePayload("other-skill", "1.0", "frontcomposer://skill", "Skill title", "text/markdown", 7, ["Z", "A"], ["z.cs", "a.cs"]);
++        GeneratedSchemaPayload changedResourceUri = SchemaFingerprintTransform.CreateSkillCorpusResourcePayload("skill", "1.0", "frontcomposer://other-skill", "Skill title", "text/markdown", 7, ["Z", "A"], ["z.cs", "a.cs"]);
++        payload.Fingerprint.Value.ShouldNotBe(changedId.Fingerprint.Value);
++        payload.Fingerprint.Value.ShouldNotBe(changedResourceUri.Fingerprint.Value);
++    }
++
++    /// <summary>Distinguishes nullable schema fields in both canonical material and negotiated fingerprint.</summary>
++    [Fact]
++    public void FieldNullabilityChangesTheNegotiatedSchemaContract()
++    {
++        McpCommandDescriptorModel Model(bool nullable) => new("test.Execute", "Tests.Command", "Tests", "Test", null, null,
++            [new McpParameterDescriptorModel("Value", "String", "string", false, nullable, "Value", null, [], false)], []);
++        GeneratedSchemaPayload nullable = SchemaFingerprintTransform.CreateCommandPayload(Model(true));
++        GeneratedSchemaPayload required = SchemaFingerprintTransform.CreateCommandPayload(Model(false));
++        nullable.Json.ShouldContain("|optional|nullable|");
++        required.Json.ShouldContain("|optional|not-null|");
++        nullable.Fingerprint.Value.ShouldNotBe(required.Fingerprint.Value);
++    }
++
++    /// <summary>Preserves generic equality comparison between absent and present projection results.</summary>
++    [Fact]
++    public void ProjectionResultComparisonIsReflexiveAndDistinguishesAnAbsentModel()
++    {
++        DomainModel model = new("Projection", "Tests", null, null, null, default);
++        ParseResult present = new(model, default);
++        ParseResult absent = new(null, default);
++        EqualityComparer<ParseResult>.Default.Equals(present, present).ShouldBeTrue();
++        EqualityComparer<ParseResult>.Default.Equals(present, absent).ShouldBeFalse();
++        EqualityComparer<ParseResult>.Default.Equals(absent, present).ShouldBeFalse();
++        present.Equals((ParseResult?)null).ShouldBeFalse();
++    }
++
++    /// <summary>Preserves diagnostic value equality and distinguishes every identity field.</summary>
++    [Fact]
++    public void DiagnosticComparisonIsReflexiveAndRejectsNull()
++    {
++        DiagnosticInfo diagnostic = new("HFC1005", "Invalid attribute", "Warning", "Projection.cs", 2, 3);
++        DiagnosticInfo equal = new("HFC1005", "Invalid attribute", "Warning", "Projection.cs", 2, 3);
++        EqualityComparer<DiagnosticInfo>.Default.Equals(diagnostic, diagnostic).ShouldBeTrue();
++        EqualityComparer<DiagnosticInfo>.Default.Equals(diagnostic, equal).ShouldBeTrue();
++        diagnostic.GetHashCode().ShouldBe(equal.GetHashCode());
++        DiagnosticInfo[] different = [
++            new("HFC1006", "Invalid attribute", "Warning", "Projection.cs", 2, 3),
++            new("HFC1005", "Other attribute", "Warning", "Projection.cs", 2, 3),
++            new("HFC1005", "Invalid attribute", "Error", "Projection.cs", 2, 3),
++            new("HFC1005", "Invalid attribute", "Warning", "Other.cs", 2, 3),
++            new("HFC1005", "Invalid attribute", "Warning", "Projection.cs", 3, 3),
++            new("HFC1005", "Invalid attribute", "Warning", "Projection.cs", 2, 4),
++        ];
++        foreach (DiagnosticInfo changed in different)
++        {
++            EqualityComparer<DiagnosticInfo>.Default.Equals(diagnostic, changed).ShouldBeFalse();
++        }
++        diagnostic.Equals((DiagnosticInfo?)null).ShouldBeFalse();
++    }
++
++    /// <summary>Preserves boxed and operator equality of the public immutable array wrapper.</summary>
++    [Fact]
++    public void ArrayComparisonPreservesValueAndBoxedTypeBoundaries()
++    {
++        EquatableArray<string> first = new(ImmutableArray.Create("A"));
++        EquatableArray<string> equal = new(ImmutableArray.Create("A"));
++        EquatableArray<string> different = new(ImmutableArray.Create("B"));
++        (first != equal).ShouldBeFalse();
++        (first != different).ShouldBeTrue();
++        first.Equals((object)equal).ShouldBeTrue();
++        first.Equals((object)different).ShouldBeFalse();
++        first.Equals((object)"A").ShouldBeFalse();
++    }
++}
+diff --git a/tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/OtherAttributeGenerator.cs b/tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/OtherAttributeGenerator.cs
+new file mode 100644
+--- /dev/null
++++ b/tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/OtherAttributeGenerator.cs
+@@ -0,0 +1,23 @@
++using Hexalith.FrontComposer.SourceTools.Parsing;
++
++using Microsoft.CodeAnalysis;
++
++namespace Hexalith.FrontComposer.SourceTools.Tests.Mutation;
++
++/// <summary>Invokes the public template parser through a legitimate nonmatching attribute provider.</summary>
++internal sealed class OtherAttributeGenerator : IIncrementalGenerator
++{
++    /// <summary>Gets the template parse results delivered by the provider.</summary>
++    internal List<ProjectionTemplateMarkerResult> Results { get; } = [];
++
++    /// <summary>Registers the provider and collects its public parser results.</summary>
++    /// <param name="context">The incremental generator initialization context.</param>
++    public void Initialize(IncrementalGeneratorInitializationContext context)
++    {
++        IncrementalValuesProvider<ProjectionTemplateMarkerResult> parsed = context.SyntaxProvider.ForAttributeWithMetadataName(
++            "System.ObsoleteAttribute",
++            static (_, _) => true,
++            static (attribute, cancellationToken) => ProjectionTemplateMarkerParser.Parse(attribute, cancellationToken));
++        context.RegisterSourceOutput(parsed, (_, result) => Results.Add(result));
++    }
++}
+diff --git a/tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/ProjectionParserSurvivorRegressionTests.cs b/tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/ProjectionParserSurvivorRegressionTests.cs
+new file mode 100644
+--- /dev/null
++++ b/tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/ProjectionParserSurvivorRegressionTests.cs
+@@ -0,0 +1,187 @@
++using Hexalith.FrontComposer.SourceTools.Parsing;
++
++using Microsoft.CodeAnalysis;
++using Microsoft.CodeAnalysis.CSharp;
++
++using Shouldly;
++
++namespace Hexalith.FrontComposer.SourceTools.Tests.Mutation;
++
++/// <summary>Protects observable projection diagnostics and valid/malformed annotation handling.</summary>
++[Trait("Category", "MutationErrorRegression")]
++public sealed class ProjectionParserSurvivorRegressionTests
++{
++    /// <summary>Keeps invalid enum badge diagnostics attached to the declaring source location.</summary>
++    [Fact]
++    public void InvalidBadgeDiagnosticUsesEnumDeclarationFileAndCoordinates()
++    {
++        CSharpCompilation compilation = CompilationHelper.CreateCompilation([
++            Prefix + "[Projection] public partial class P { public State Value { get; set; } }",
++            Prefix + "\npublic enum State {\n [ProjectionBadge((BadgeSlot)999)]\n Bad\n}",
++        ]);
++        AssertValid(compilation);
++        ParseResult result = CompilationHelper.ParseProjection(compilation, "P");
++        DiagnosticInfo diagnostic = result.Diagnostics.Single(item => item.Id == "HFC1005");
++        IFieldSymbol field = compilation.GetTypeByMetadataName("State")!.GetMembers("Bad").OfType<IFieldSymbol>().Single();
++        FileLinePositionSpan expected = field.Locations.Single().GetLineSpan();
++        diagnostic.FilePath.ShouldBe(expected.Path);
++        diagnostic.Line.ShouldBe(expected.StartLinePosition.Line);
++        diagnostic.Column.ShouldBe(expected.StartLinePosition.Character);
++        diagnostic.Message.ShouldContain("enum member 'Bad'");
++        diagnostic.Message.ShouldContain("slot must be a defined BadgeSlot value");
++        diagnostic.Severity.ShouldBe("Warning");
++    }
++
++    /// <summary>Keeps metadata badge reasons and the projection source fallback location.</summary>
++    [Fact]
++    public void InvalidMetadataBadgeKeepsReasonAndProjectionFileFallback()
++    {
++        CSharpCompilation external = CompilationHelper.CreateCompilation(
++            Prefix + "public enum ExternalState { [ProjectionBadge((BadgeSlot)999)] Bad }")
++            .WithAssemblyName("ExternalStates");
++        AssertValid(external);
++        using MemoryStream stream = new();
++        external.Emit(stream, cancellationToken: TestContext.Current.CancellationToken).Success.ShouldBeTrue();
++        CSharpCompilation compilation = CompilationHelper.CreateCompilation(
++            Prefix + "[Projection] public partial class P { public ExternalState Value { get; set; } }")
++            .AddReferences(MetadataReference.CreateFromImage(stream.ToArray()));
++        AssertValid(compilation);
++        ParseResult result = CompilationHelper.ParseProjection(compilation, "P");
++        DiagnosticInfo diagnostic = result.Diagnostics.Single(item => item.Id == "HFC1005");
++        diagnostic.FilePath.ShouldBe(compilation.SyntaxTrees.Single().FilePath);
++        diagnostic.Message.ShouldContain("enum member 'Bad'");
++        diagnostic.Message.ShouldContain("slot must be a defined BadgeSlot value");
++        diagnostic.Severity.ShouldBe("Warning");
++    }
++
++    /// <summary>Accepts a supported public partial containing type.</summary>
++    [Fact]
++    public void PublicPartialOuterTypeDoesNotTriggerUnsupportedTypeDiagnostic()
++    {
++        CSharpCompilation compilation = CompilationHelper.CreateCompilation(
++            Prefix + "public partial class Outer { [Projection] public partial class P { public int Value { get; set; } } }");
++        AssertValid(compilation);
++        ParseResult result = CompilationHelper.ParseProjection(compilation, "Outer+P");
++        result.Model.ShouldNotBeNull();
++        result.Diagnostics.ShouldNotContain(item => item.Id == "HFC1004");
++    }
++
++    /// <summary>Uses the documented first-enum fallback when no enum has badge metadata.</summary>
++    [Fact]
++    public void WhenStateFallsBackToFirstEnumWhenNeitherEnumHasBadges()
++    {
++        CSharpCompilation compilation = CompilationHelper.CreateCompilation(
++            Prefix + "[Projection, ProjectionRole(ProjectionRole.ActionQueue, WhenState = \"Pending\")] public partial class P { public First Z { get; set; } public Second A { get; set; } } public enum First { Pending } public enum Second { Other }");
++        AssertValid(compilation);
++        ParseResult result = CompilationHelper.ParseProjection(compilation, "P");
++        result.Model.ShouldNotBeNull();
++        result.Diagnostics.ShouldNotContain(item => item.Id == "HFC1022");
++
++        CSharpCompilation unknownState = CompilationHelper.CreateCompilation(
++            Prefix + "[Projection, ProjectionRole(ProjectionRole.ActionQueue, WhenState = \"Other\")] public partial class P { public First Z { get; set; } public Second A { get; set; } } public enum First { Pending } public enum Second { Other }");
++        AssertValid(unknownState);
++        DiagnosticInfo diagnostic = CompilationHelper.ParseProjection(unknownState, "P").Diagnostics.Single(item => item.Id == "HFC1022");
++        diagnostic.Message.ShouldContain("unknown enum member 'Other'");
++        diagnostic.Message.ShouldContain("Valid members: Pending.");
++    }
++
++    /// <summary>Lists valid state members with readable separators in the diagnostic.</summary>
++    [Fact]
++    public void UnknownWhenStateListsReadableSeparatedValidMembers()
++    {
++        CSharpCompilation compilation = CompilationHelper.CreateCompilation(
++            Prefix + "[Projection, ProjectionRole(ProjectionRole.ActionQueue, WhenState = \"Missing\")] public partial class P { public State Value { get; set; } } public enum State { Ready, Pending }");
++        AssertValid(compilation);
++        DiagnosticInfo diagnostic = CompilationHelper.ParseProjection(compilation, "P").Diagnostics.Single(item => item.Id == "HFC1022");
++        diagnostic.Message.ShouldContain("Valid members: Pending, Ready.");
++    }
++
++    /// <summary>Accepts the valid parameterless description attribute without inventing description text.</summary>
++    [Fact]
++    public void ParameterlessDescriptionRemainsValidAndHasNoDescriptionText()
++    {
++        CSharpCompilation compilation = CompilationHelper.CreateCompilation(
++            Prefix + "[Projection] public partial class P { [Description] public int Value { get; set; } }");
++        AssertValid(compilation);
++        ParseResult result = CompilationHelper.ParseProjection(compilation, "P");
++        result.Diagnostics.ShouldBeEmpty();
++        result.Model.ShouldNotBeNull().Properties.Single(item => item.Name == "Value").Description.ShouldBeNull();
++    }
++
++    /// <summary>Explains why the selected display format is unsupported for the enum underlying type.</summary>
++    /// <param name="attribute">The display format attribute applied to the enum property.</param>
++    [Theory]
++    [InlineData("RelativeTime")]
++    [InlineData("Currency")]
++    public void InvalidEnumFormatDiagnosticExplainsUnderlyingEnumType(string attribute)
++    {
++        CSharpCompilation compilation = CompilationHelper.CreateCompilation(
++            Prefix + "[Projection] public partial class P { [" + attribute + "] public State Value { get; set; } } public enum State { Ready }");
++        AssertValid(compilation);
++        DiagnosticInfo diagnostic = CompilationHelper.ParseProjection(compilation, "P").Diagnostics.Single(item => item.Id == "HFC1032");
++        diagnostic.Message.ShouldContain("enum underlying type int");
++        diagnostic.Message.ShouldContain("Apply [" + attribute + "] only");
++    }
++
++    /// <summary>Keeps projection parsing available while source attribute arguments are incomplete.</summary>
++    /// <param name="annotation">The incomplete source annotation.</param>
++    /// <param name="onType">Whether the annotation is attached to the projection type.</param>
++    [Theory]
++    [InlineData("ProjectionEmptyStateCta()", true)]
++    [InlineData("ProjectionFieldGroup()", false)]
++    [InlineData("ColumnPriority()", false)]
++    [InlineData("RelativeTime(null)", false)]
++    public void MissingOrUnboundArgumentsKeepProjectionParsingAvailable(string annotation, bool onType)
++    {
++        string propertyType = annotation == "RelativeTime(null)" ? "DateTime" : "int";
++        string source = onType
++            ? Prefix + "[Projection, " + annotation + "] public partial class P { public " + propertyType + " Value { get; set; } }"
++            : Prefix + "[Projection] public partial class P { [" + annotation + "] public " + propertyType + " Value { get; set; } }";
++        CSharpCompilation compilation = CompilationHelper.CreateCompilation(source);
++        compilation.GetDiagnostics(TestContext.Current.CancellationToken).ShouldContain(item => item.Severity == DiagnosticSeverity.Error);
++        ParseResult result = Should.NotThrow(() => CompilationHelper.ParseProjection(compilation, "P"));
++        DomainModel model = result.Model.ShouldNotBeNull();
++        PropertyModel property = model.Properties.Single(item => item.Name == "Value");
++        model.EmptyStateCtaCommandTypeName.ShouldBeNull();
++        property.FieldGroup.ShouldBeNull();
++        property.FieldGroupDescription.ShouldBeNull();
++        property.ColumnPriority.ShouldBeNull();
++        if (annotation == "RelativeTime(null)")
++        {
++            IPropertySymbol propertySymbol = compilation.GetTypeByMetadataName("P")!.GetMembers("Value").OfType<IPropertySymbol>().Single();
++            propertySymbol.GetAttributes().Single().ConstructorArguments.ShouldBeEmpty();
++            property.DisplayFormat.ShouldBe(FieldDisplayFormat.RelativeTime);
++            property.RelativeTimeWindowDays.ShouldBe(7);
++            result.Diagnostics.ShouldNotContain(item => item.Id == "HFC1032");
++        }
++        else
++        {
++            property.DisplayFormat.ShouldBe(FieldDisplayFormat.Default);
++            property.RelativeTimeWindowDays.ShouldBeNull();
++        }
++    }
++
++    /// <summary>Warns about an invalid relative-time constant and retains the default formatter.</summary>
++    [Fact]
++    public void InvalidRelativeTimeConstantWarnsAndKeepsDefaultFormatter()
++    {
++        CSharpCompilation compilation = CompilationHelper.CreateCompilation(
++            Prefix + "[Projection] public partial class P { [RelativeTime(1 / 0)] public DateTime Value { get; set; } }");
++        compilation.GetDiagnostics(TestContext.Current.CancellationToken).ShouldContain(item => item.Severity == DiagnosticSeverity.Error);
++        ParseResult result = Should.NotThrow(() => CompilationHelper.ParseProjection(compilation, "P"));
++        DiagnosticInfo diagnostic = result.Diagnostics.Single(item => item.Id == "HFC1032");
++        diagnostic.Severity.ShouldBe("Warning");
++        diagnostic.Message.ShouldContain("Expected: an int between 1 and 365");
++        diagnostic.Message.ShouldContain("Got: null");
++        diagnostic.Message.ShouldContain("Use [RelativeTime] (default 7)");
++        diagnostic.Message.ShouldContain("Fallback:");
++        PropertyModel property = result.Model.ShouldNotBeNull().Properties.Single(item => item.Name == "Value");
++        property.DisplayFormat.ShouldBe(FieldDisplayFormat.Default);
++        property.RelativeTimeWindowDays.ShouldBeNull();
++    }
++
++    private static void AssertValid(CSharpCompilation compilation) => compilation.GetDiagnostics(TestContext.Current.CancellationToken)
++        .Where(item => item.Severity == DiagnosticSeverity.Error).Select(item => item.ToString()).ShouldBeEmpty();
++
++    private const string Prefix = "using System; using System.ComponentModel; using Hexalith.FrontComposer.Contracts.Attributes; ";
++}
+diff --git a/tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/TemplateParserProviderBoundaryTests.cs b/tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/TemplateParserProviderBoundaryTests.cs
+new file mode 100644
+--- /dev/null
++++ b/tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/TemplateParserProviderBoundaryTests.cs
+@@ -0,0 +1,31 @@
++using Hexalith.FrontComposer.SourceTools.Parsing;
++
++using Microsoft.CodeAnalysis;
++using Microsoft.CodeAnalysis.CSharp;
++
++using Shouldly;
++
++namespace Hexalith.FrontComposer.SourceTools.Tests.Mutation;
++
++/// <summary>Protects the public template parser when another legitimate attribute provider invokes it.</summary>
++[Trait("Category", "MutationErrorRegression")]
++public sealed class TemplateParserProviderBoundaryTests
++{
++    /// <summary>Returns no marker or diagnostics for a nonmatching provider without failing generator execution.</summary>
++    [Fact]
++    public void OtherAttributeProviderReturnsAnEmptyTemplateResult()
++    {
++        CSharpCompilation compilation = CompilationHelper.CreateCompilation("[System.Obsolete] public class Unrelated { }");
++        compilation.GetDiagnostics(TestContext.Current.CancellationToken)
++            .Where(item => item.Severity == DiagnosticSeverity.Error).ShouldBeEmpty();
++        OtherAttributeGenerator generator = new();
++        GeneratorDriver driver = CSharpGeneratorDriver.Create(generator.AsSourceGenerator());
++        GeneratorDriverRunResult result = driver.RunGenerators(compilation, TestContext.Current.CancellationToken).GetRunResult();
++
++        result.Results.Single().Exception.ShouldBeNull();
++        result.Diagnostics.ShouldBeEmpty();
++        ProjectionTemplateMarkerResult parsed = generator.Results.ShouldHaveSingleItem();
++        parsed.Marker.ShouldBeNull();
++        parsed.Diagnostics.ShouldBeEmpty();
++    }
++}

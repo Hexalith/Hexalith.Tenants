@@ -1,0 +1,27 @@
+{
+  "source": "2dcf708cbab0d4ad0cf72f947d0b0a1444e251a1",
+  "runId": 43736791172,
+  "jobId": 132881049642,
+  "conclusion": "failure",
+  "classification": "expected truthful evidence-only failure explicitly required by owning Story9.2",
+  "reason": "12 high-risk gates lack seals/attestations;10 are unbound; no guarded transition authority granted",
+  "fixtures": "successful",
+  "inputs": [
+    {
+      "path": "_bmad-output/implementation-artifacts/spec-9-2-phase-4-high-risk-gate-matrix-and-assurance-control.md",
+      "sha256": "9df9bce5f52c2bf9ada0ff1a3f751bdb369558663f282aa9ce7f6dd733e7560a"
+    },
+    {
+      "path": ".github/workflows/phase-4-gate-risk-matrix.yml",
+      "sha256": "2df57bf30b651d75a5806cf0e2dda7c55066450973712583bc24a40013b6f6e3"
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/phase-4-gate-risk-matrix.json",
+      "sha256": "0b131469d0ff4e1f47503b094b4f8f83d5b6a4140b10e23f259bd1a3f952be88"
+    }
+  ],
+  "preserved": true,
+  "approvalFabricated": false,
+  "persistentProtectionChanged": false,
+  "observedUtc": "2026-11-15T19:49:02.926390+00:00"
+}

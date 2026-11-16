@@ -1,0 +1,3 @@
+Target drift: 'src/Hexalith.FrontComposer.SourceTools/Transforms/FormFieldTypeCategory.cs' did not appear in mutation reports and is not explicitly excluded with rationale.
+Target drift: 'src/Hexalith.FrontComposer.SourceTools/Transforms/ProjectionRenderStrategy.cs' did not appear in mutation reports and is not explicitly excluded with rationale.
+Target drift: 'src/Hexalith.FrontComposer.SourceTools/Transforms/TypeCategory.cs' did not appear in mutation reports and is not explicitly excluded with rationale.

@@ -1,0 +1,54 @@
+{
+  "source": "2dcf708cbab0d4ad0cf72f947d0b0a1444e251a1",
+  "platform": "00ed06074f5b67522eff81dc8dae6ebd28161c36",
+  "builds": "e2bbbd0893f586e4d447ef8358ff747ea3d34435",
+  "scope": "Local disposable source-component qualification; frozen package cohort remains separate from current SDK/native or installed acceptance.",
+  "workspace": "/dev/shm/hexalith-job.Jmav9ju4/EventStore",
+  "commands": [
+    {
+      "name": "package-view",
+      "command": [
+        "dotnet",
+        "msbuild",
+        "tests/Hexalith.Platform.Protection.Tests/Hexalith.Platform.Protection.Tests.csproj",
+        "-p:Configuration=Release",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:CustomAfterMicrosoftCommonProps=/dev/shm/hexalith-job.Jmav9ju4/EventStore/tools/tests/ext_protection_component_runtime.props",
+        "-p:HexalithEventStoreRoot=/dev/shm/hexalith-job.Jmav9ju4/EventStore",
+        "-getProperty:TargetFramework,HexalithEventStoreVersion,HexalithMemoriesVersion,UseHexalithProjectReferences",
+        "-getItem:PackageVersion"
+      ],
+      "cwd": "/dev/shm/hexalith-job.Jmav9ju4/EventStore/references/Hexalith.Platform",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "log": "framework-import-attempt1-package-view.log",
+      "log_sha256": "68f33216ed2356d86a6b8462739a128e0d5666db4b83f72d48cf0f96d2454ccd"
+    },
+    {
+      "name": "framework-probe",
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.Platform.Protection.Tests/Hexalith.Platform.Protection.Tests.csproj",
+        "-c",
+        "Release",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:CustomAfterMicrosoftCommonProps=/dev/shm/hexalith-job.Jmav9ju4/EventStore/tools/tests/ext_protection_component_runtime.props",
+        "-p:HexalithEventStoreRoot=/dev/shm/hexalith-job.Jmav9ju4/EventStore",
+        "-p:GeneratePackageOnBuild=false",
+        "-p:RunAnalyzers=false",
+        "-m:1",
+        "-nodeReuse:false"
+      ],
+      "cwd": "/dev/shm/hexalith-job.Jmav9ju4/EventStore/references/Hexalith.Platform",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "log": "framework-import-attempt1-framework-probe.log",
+      "log_sha256": "29a04f3206e3e0a879bb3063e3c7512b9426cb736e8e6eee974c6f84edb1a6fb"
+    }
+  ],
+  "input_manifest": "framework-import-attempt1-input-manifest.json",
+  "input_manifest_sha256": "0acfc705b5f0084f3f88843fc453fc3c3107dbb5c84079c1438dcf844d6599f5",
+  "input_file_count": 41212,
+  "runner_sha256": "a39fafa0ba2e3e30a44a69d0ad93c2dc9c0f2e7b18fdc8c4903929bdfd41d0db"
+}

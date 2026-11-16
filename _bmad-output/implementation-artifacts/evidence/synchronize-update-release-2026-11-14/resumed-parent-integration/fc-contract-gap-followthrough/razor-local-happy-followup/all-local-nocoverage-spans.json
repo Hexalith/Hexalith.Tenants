@@ -1,0 +1,2889 @@
+{
+  "report_sha256": "91144b286ea92cf254d0e4039384f99d2eeaaf84aac4fb1dcd7c0b41743abb71",
+  "hash_rows": 25,
+  "non_hash_rows": 106,
+  "rows": [
+    {
+      "id": "11861",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/AttributeParser.cs",
+      "location": {
+        "start": {
+          "line": 73,
+          "column": 41
+        },
+        "end": {
+          "line": 75,
+          "column": 10
+        }
+      },
+      "original": "{\r\n            return EmptyParseResult;\r\n        }",
+      "replacement": "{}",
+      "source_sha256": "de4f342c3311d02662f3753d19bb902ae67cc3b3d66af260f67fa434ee1b2eed",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "AttributeParser.Parse",
+      "hash_member": false
+    },
+    {
+      "id": "11868",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/AttributeParser.cs",
+      "location": {
+        "start": {
+          "line": 81,
+          "column": 68
+        },
+        "end": {
+          "line": 81,
+          "column": 80
+        }
+      },
+      "original": "string.Empty",
+      "replacement": "\"Stryker was here!\"",
+      "source_sha256": "de4f342c3311d02662f3753d19bb902ae67cc3b3d66af260f67fa434ee1b2eed",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "AttributeParser.Parse",
+      "hash_member": false
+    },
+    {
+      "id": "11870",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/AttributeParser.cs",
+      "location": {
+        "start": {
+          "line": 89,
+          "column": 41
+        },
+        "end": {
+          "line": 91,
+          "column": 10
+        }
+      },
+      "original": "{\r\n            return EmptyParseResult;\r\n        }",
+      "replacement": "{}",
+      "source_sha256": "de4f342c3311d02662f3753d19bb902ae67cc3b3d66af260f67fa434ee1b2eed",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "AttributeParser.Parse",
+      "hash_member": false
+    },
+    {
+      "id": "11886",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/AttributeParser.cs",
+      "location": {
+        "start": {
+          "line": 111,
+          "column": 45
+        },
+        "end": {
+          "line": 113,
+          "column": 14
+        }
+      },
+      "original": "{\r\n                return EmptyParseResult;\r\n            }",
+      "replacement": "{}",
+      "source_sha256": "de4f342c3311d02662f3753d19bb902ae67cc3b3d66af260f67fa434ee1b2eed",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "AttributeParser.Parse",
+      "hash_member": false
+    },
+    {
+      "id": "12016",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/AttributeParser.cs",
+      "location": {
+        "start": {
+          "line": 373,
+          "column": 13
+        },
+        "end": {
+          "line": 373,
+          "column": 20
+        }
+      },
+      "original": "return;",
+      "replacement": ";",
+      "source_sha256": "de4f342c3311d02662f3753d19bb902ae67cc3b3d66af260f67fa434ee1b2eed",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "AttributeParser.ValidateWhenStateAgainstStatusEnum",
+      "hash_member": false
+    },
+    {
+      "id": "12137",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/AttributeParser.cs",
+      "location": {
+        "start": {
+          "line": 623,
+          "column": 20
+        },
+        "end": {
+          "line": 623,
+          "column": 25
+        }
+      },
+      "original": "false",
+      "replacement": "true",
+      "source_sha256": "de4f342c3311d02662f3753d19bb902ae67cc3b3d66af260f67fa434ee1b2eed",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "AttributeParser.HasErrorObsoleteAttribute",
+      "hash_member": false
+    },
+    {
+      "id": "12157",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/AttributeParser.cs",
+      "location": {
+        "start": {
+          "line": 654,
+          "column": 17
+        },
+        "end": {
+          "line": 655,
+          "column": 115
+        }
+      },
+      "original": "IsSourceNameableType(functionPointerType.Signature.ReturnType)\r\n                && functionPointerType.Signature.Parameters.All(parameter => IsSourceNameableType(parameter.Type))",
+      "replacement": "IsSourceNameableType(functionPointerType.Signature.ReturnType)\r\n                || functionPointerType.Signature.Parameters.All(parameter => IsSourceNameableType(parameter.Type))",
+      "source_sha256": "de4f342c3311d02662f3753d19bb902ae67cc3b3d66af260f67fa434ee1b2eed",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "AttributeParser.IsSourceNameableType",
+      "hash_member": false
+    },
+    {
+      "id": "12158",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/AttributeParser.cs",
+      "location": {
+        "start": {
+          "line": 655,
+          "column": 20
+        },
+        "end": {
+          "line": 655,
+          "column": 64
+        }
+      },
+      "original": "functionPointerType.Signature.Parameters.All",
+      "replacement": "functionPointerType.Signature.Parameters.Any",
+      "source_sha256": "de4f342c3311d02662f3753d19bb902ae67cc3b3d66af260f67fa434ee1b2eed",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "AttributeParser.IsSourceNameableType",
+      "hash_member": false
+    },
+    {
+      "id": "12159",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/AttributeParser.cs",
+      "location": {
+        "start": {
+          "line": 658,
+          "column": 18
+        },
+        "end": {
+          "line": 658,
+          "column": 22
+        }
+      },
+      "original": "true",
+      "replacement": "false",
+      "source_sha256": "de4f342c3311d02662f3753d19bb902ae67cc3b3d66af260f67fa434ee1b2eed",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "AttributeParser.IsSourceNameableType",
+      "hash_member": false
+    },
+    {
+      "id": "12209",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/AttributeParser.cs",
+      "location": {
+        "start": {
+          "line": 730,
+          "column": 31
+        },
+        "end": {
+          "line": 730,
+          "column": 37
+        }
+      },
+      "original": "\"null\"",
+      "replacement": "\"\"",
+      "source_sha256": "de4f342c3311d02662f3753d19bb902ae67cc3b3d66af260f67fa434ee1b2eed",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "AttributeParser.ParseDisplayFormat",
+      "hash_member": false
+    },
+    {
+      "id": "12244",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/AttributeParser.cs",
+      "location": {
+        "start": {
+          "line": 777,
+          "column": 45
+        },
+        "end": {
+          "line": 777,
+          "column": 54
+        }
+      },
+      "original": "\"non-int\"",
+      "replacement": "\"\"",
+      "source_sha256": "de4f342c3311d02662f3753d19bb902ae67cc3b3d66af260f67fa434ee1b2eed",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "AttributeParser.ParseDisplayFormat",
+      "hash_member": false
+    },
+    {
+      "id": "12546",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/AttributeParser.cs",
+      "location": {
+        "start": {
+          "line": 1247,
+          "column": 40
+        },
+        "end": {
+          "line": 1247,
+          "column": 52
+        }
+      },
+      "original": "string.Empty",
+      "replacement": "\"Stryker was here!\"",
+      "source_sha256": "de4f342c3311d02662f3753d19bb902ae67cc3b3d66af260f67fa434ee1b2eed",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "AttributeParser.GetFilePath",
+      "hash_member": false
+    },
+    {
+      "id": "12767",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/CommandParser.cs",
+      "location": {
+        "start": {
+          "line": 445,
+          "column": 15
+        },
+        "end": {
+          "line": 445,
+          "column": 27
+        }
+      },
+      "original": "string.Empty",
+      "replacement": "\"Stryker was here!\"",
+      "source_sha256": "dbd2a79507385a65e76b3fe72968bc26969c96bcf5e5a4c77626a544fa38903b",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "CommandParser.ResolveProjectionViewKey",
+      "hash_member": false
+    },
+    {
+      "id": "12826",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/CommandParser.cs",
+      "location": {
+        "start": {
+          "line": 525,
+          "column": 24
+        },
+        "end": {
+          "line": 525,
+          "column": 88
+        }
+      },
+      "original": "basePropertySymbol.DeclaredAccessibility == Accessibility.Public",
+      "replacement": "basePropertySymbol.DeclaredAccessibility != Accessibility.Public",
+      "source_sha256": "dbd2a79507385a65e76b3fe72968bc26969c96bcf5e5a4c77626a544fa38903b",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "CommandParser.FindShadowedProperty",
+      "hash_member": false
+    },
+    {
+      "id": "12827",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/CommandParser.cs",
+      "location": {
+        "start": {
+          "line": 526,
+          "column": 24
+        },
+        "end": {
+          "line": 526,
+          "column": 52
+        }
+      },
+      "original": "!basePropertySymbol.IsStatic",
+      "replacement": "basePropertySymbol.IsStatic",
+      "source_sha256": "dbd2a79507385a65e76b3fe72968bc26969c96bcf5e5a4c77626a544fa38903b",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "CommandParser.FindShadowedProperty",
+      "hash_member": false
+    },
+    {
+      "id": "12828",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/CommandParser.cs",
+      "location": {
+        "start": {
+          "line": 527,
+          "column": 24
+        },
+        "end": {
+          "line": 527,
+          "column": 53
+        }
+      },
+      "original": "!basePropertySymbol.IsIndexer",
+      "replacement": "basePropertySymbol.IsIndexer",
+      "source_sha256": "dbd2a79507385a65e76b3fe72968bc26969c96bcf5e5a4c77626a544fa38903b",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "CommandParser.FindShadowedProperty",
+      "hash_member": false
+    },
+    {
+      "id": "12839",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/CommandParser.cs",
+      "location": {
+        "start": {
+          "line": 555,
+          "column": 13
+        },
+        "end": {
+          "line": 561,
+          "column": 37
+        }
+      },
+      "original": "diagnostics.Add(new DiagnosticInfo(\r\n                \"HFC1004\",\r\n                string.Format(\"[Command] attribute on '{0}' is not supported: abstract types are not supported.\", typeSymbol.Name),\r\n                \"Warning\",\r\n                filePath,\r\n                linePos.Line,\r\n                linePos.Character));",
+      "replacement": ";",
+      "source_sha256": "dbd2a79507385a65e76b3fe72968bc26969c96bcf5e5a4c77626a544fa38903b",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "CommandParser.ValidateTypeKind",
+      "hash_member": false
+    },
+    {
+      "id": "12840",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/CommandParser.cs",
+      "location": {
+        "start": {
+          "line": 556,
+          "column": 17
+        },
+        "end": {
+          "line": 556,
+          "column": 26
+        }
+      },
+      "original": "\"HFC1004\"",
+      "replacement": "\"\"",
+      "source_sha256": "dbd2a79507385a65e76b3fe72968bc26969c96bcf5e5a4c77626a544fa38903b",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "CommandParser.ValidateTypeKind",
+      "hash_member": false
+    },
+    {
+      "id": "12841",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/CommandParser.cs",
+      "location": {
+        "start": {
+          "line": 557,
+          "column": 31
+        },
+        "end": {
+          "line": 557,
+          "column": 113
+        }
+      },
+      "original": "\"[Command] attribute on '{0}' is not supported: abstract types are not supported.\"",
+      "replacement": "\"\"",
+      "source_sha256": "dbd2a79507385a65e76b3fe72968bc26969c96bcf5e5a4c77626a544fa38903b",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "CommandParser.ValidateTypeKind",
+      "hash_member": false
+    },
+    {
+      "id": "12842",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/CommandParser.cs",
+      "location": {
+        "start": {
+          "line": 558,
+          "column": 17
+        },
+        "end": {
+          "line": 558,
+          "column": 26
+        }
+      },
+      "original": "\"Warning\"",
+      "replacement": "\"\"",
+      "source_sha256": "dbd2a79507385a65e76b3fe72968bc26969c96bcf5e5a4c77626a544fa38903b",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "CommandParser.ValidateTypeKind",
+      "hash_member": false
+    },
+    {
+      "id": "12935",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/CommandParser.cs",
+      "location": {
+        "start": {
+          "line": 697,
+          "column": 20
+        },
+        "end": {
+          "line": 697,
+          "column": 25
+        }
+      },
+      "original": "false",
+      "replacement": "true",
+      "source_sha256": "dbd2a79507385a65e76b3fe72968bc26969c96bcf5e5a4c77626a544fa38903b",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "CommandParser.IsPolicyNameWellFormed",
+      "hash_member": false
+    },
+    {
+      "id": "12956",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/CommandParser.cs",
+      "location": {
+        "start": {
+          "line": 723,
+          "column": 79
+        },
+        "end": {
+          "line": 723,
+          "column": 84
+        }
+      },
+      "original": "\"...\"",
+      "replacement": "\"\"",
+      "source_sha256": "dbd2a79507385a65e76b3fe72968bc26969c96bcf5e5a4c77626a544fa38903b",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "CommandParser.FormatOffendingPolicyValue",
+      "hash_member": false
+    },
+    {
+      "id": "12963",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/CommandParser.cs",
+      "location": {
+        "start": {
+          "line": 731,
+          "column": 42
+        },
+        "end": {
+          "line": 731,
+          "column": 47
+        }
+      },
+      "original": "\"\\\\r\"",
+      "replacement": "\"\"",
+      "source_sha256": "dbd2a79507385a65e76b3fe72968bc26969c96bcf5e5a4c77626a544fa38903b",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "CommandParser.FormatOffendingPolicyValue",
+      "hash_member": false
+    },
+    {
+      "id": "12965",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/CommandParser.cs",
+      "location": {
+        "start": {
+          "line": 732,
+          "column": 42
+        },
+        "end": {
+          "line": 732,
+          "column": 47
+        }
+      },
+      "original": "\"\\\\n\"",
+      "replacement": "\"\"",
+      "source_sha256": "dbd2a79507385a65e76b3fe72968bc26969c96bcf5e5a4c77626a544fa38903b",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "CommandParser.FormatOffendingPolicyValue",
+      "hash_member": false
+    },
+    {
+      "id": "12967",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/CommandParser.cs",
+      "location": {
+        "start": {
+          "line": 733,
+          "column": 42
+        },
+        "end": {
+          "line": 733,
+          "column": 48
+        }
+      },
+      "original": "\"\\\\\\\\\"",
+      "replacement": "\"\"",
+      "source_sha256": "dbd2a79507385a65e76b3fe72968bc26969c96bcf5e5a4c77626a544fa38903b",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "CommandParser.FormatOffendingPolicyValue",
+      "hash_member": false
+    },
+    {
+      "id": "12971",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/CommandParser.cs",
+      "location": {
+        "start": {
+          "line": 736,
+          "column": 39
+        },
+        "end": {
+          "line": 736,
+          "column": 44
+        }
+      },
+      "original": "\"\\\\u\"",
+      "replacement": "\"\"",
+      "source_sha256": "dbd2a79507385a65e76b3fe72968bc26969c96bcf5e5a4c77626a544fa38903b",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "CommandParser.FormatOffendingPolicyValue",
+      "hash_member": false
+    },
+    {
+      "id": "12972",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/CommandParser.cs",
+      "location": {
+        "start": {
+          "line": 736,
+          "column": 71
+        },
+        "end": {
+          "line": 736,
+          "column": 75
+        }
+      },
+      "original": "\"X4\"",
+      "replacement": "\"\"",
+      "source_sha256": "dbd2a79507385a65e76b3fe72968bc26969c96bcf5e5a4c77626a544fa38903b",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "CommandParser.FormatOffendingPolicyValue",
+      "hash_member": false
+    },
+    {
+      "id": "13027",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/CommandParser.cs",
+      "location": {
+        "start": {
+          "line": 814,
+          "column": 17
+        },
+        "end": {
+          "line": 814,
+          "column": 26
+        }
+      },
+      "original": "continue;",
+      "replacement": ";",
+      "source_sha256": "dbd2a79507385a65e76b3fe72968bc26969c96bcf5e5a4c77626a544fa38903b",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "CommandParser.ValidateDefaultValueType",
+      "hash_member": false
+    },
+    {
+      "id": "13047",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/CommandParser.cs",
+      "location": {
+        "start": {
+          "line": 837,
+          "column": 21
+        },
+        "end": {
+          "line": 837,
+          "column": 30
+        }
+      },
+      "original": "continue;",
+      "replacement": ";",
+      "source_sha256": "dbd2a79507385a65e76b3fe72968bc26969c96bcf5e5a4c77626a544fa38903b",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "CommandParser.ValidateDefaultValueType",
+      "hash_member": false
+    },
+    {
+      "id": "13050",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/CommandParser.cs",
+      "location": {
+        "start": {
+          "line": 842,
+          "column": 21
+        },
+        "end": {
+          "line": 842,
+          "column": 30
+        }
+      },
+      "original": "continue;",
+      "replacement": ";",
+      "source_sha256": "dbd2a79507385a65e76b3fe72968bc26969c96bcf5e5a4c77626a544fa38903b",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "CommandParser.ValidateDefaultValueType",
+      "hash_member": false
+    },
+    {
+      "id": "13058",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/CommandParser.cs",
+      "location": {
+        "start": {
+          "line": 856,
+          "column": 64
+        },
+        "end": {
+          "line": 856,
+          "column": 67
+        }
+      },
+      "original": "\"?\"",
+      "replacement": "\"\"",
+      "source_sha256": "dbd2a79507385a65e76b3fe72968bc26969c96bcf5e5a4c77626a544fa38903b",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "CommandParser.ValidateDefaultValueType",
+      "hash_member": false
+    },
+    {
+      "id": "13126",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/CommandTargetModel.cs",
+      "location": {
+        "start": {
+          "line": 60,
+          "column": 20
+        },
+        "end": {
+          "line": 60,
+          "column": 76
+        }
+      },
+      "original": "(hash * 31) + ProjectionFullyQualifiedName.GetHashCode()",
+      "replacement": "(hash * 31) - ProjectionFullyQualifiedName.GetHashCode()",
+      "source_sha256": "b388d5a43624dc4fbdc2235f26d91767de2dd35ccdba316658f47ca987c141b4",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "CommandTargetModel.GetHashCode",
+      "hash_member": true
+    },
+    {
+      "id": "13127",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/CommandTargetModel.cs",
+      "location": {
+        "start": {
+          "line": 60,
+          "column": 21
+        },
+        "end": {
+          "line": 60,
+          "column": 30
+        }
+      },
+      "original": "hash * 31",
+      "replacement": "hash / 31",
+      "source_sha256": "b388d5a43624dc4fbdc2235f26d91767de2dd35ccdba316658f47ca987c141b4",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "CommandTargetModel.GetHashCode",
+      "hash_member": true
+    },
+    {
+      "id": "13128",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/CommandTargetModel.cs",
+      "location": {
+        "start": {
+          "line": 61,
+          "column": 20
+        },
+        "end": {
+          "line": 61,
+          "column": 73
+        }
+      },
+      "original": "(hash * 31) + (ProjectionViewKey?.GetHashCode() ?? 0)",
+      "replacement": "(hash * 31) - (ProjectionViewKey?.GetHashCode() ?? 0)",
+      "source_sha256": "b388d5a43624dc4fbdc2235f26d91767de2dd35ccdba316658f47ca987c141b4",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "CommandTargetModel.GetHashCode",
+      "hash_member": true
+    },
+    {
+      "id": "13129",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/CommandTargetModel.cs",
+      "location": {
+        "start": {
+          "line": 61,
+          "column": 21
+        },
+        "end": {
+          "line": 61,
+          "column": 30
+        }
+      },
+      "original": "hash * 31",
+      "replacement": "hash / 31",
+      "source_sha256": "b388d5a43624dc4fbdc2235f26d91767de2dd35ccdba316658f47ca987c141b4",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "CommandTargetModel.GetHashCode",
+      "hash_member": true
+    },
+    {
+      "id": "13130",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/CommandTargetModel.cs",
+      "location": {
+        "start": {
+          "line": 61,
+          "column": 35
+        },
+        "end": {
+          "line": 61,
+          "column": 72
+        }
+      },
+      "original": "ProjectionViewKey?.GetHashCode() ?? 0",
+      "replacement": "0",
+      "source_sha256": "b388d5a43624dc4fbdc2235f26d91767de2dd35ccdba316658f47ca987c141b4",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "CommandTargetModel.GetHashCode",
+      "hash_member": true
+    },
+    {
+      "id": "13131",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/CommandTargetModel.cs",
+      "location": {
+        "start": {
+          "line": 62,
+          "column": 20
+        },
+        "end": {
+          "line": 62,
+          "column": 62
+        }
+      },
+      "original": "(hash * 31) + ResolutionMode.GetHashCode()",
+      "replacement": "(hash * 31) - ResolutionMode.GetHashCode()",
+      "source_sha256": "b388d5a43624dc4fbdc2235f26d91767de2dd35ccdba316658f47ca987c141b4",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "CommandTargetModel.GetHashCode",
+      "hash_member": true
+    },
+    {
+      "id": "13132",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/CommandTargetModel.cs",
+      "location": {
+        "start": {
+          "line": 62,
+          "column": 21
+        },
+        "end": {
+          "line": 62,
+          "column": 30
+        }
+      },
+      "original": "hash * 31",
+      "replacement": "hash / 31",
+      "source_sha256": "b388d5a43624dc4fbdc2235f26d91767de2dd35ccdba316658f47ca987c141b4",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "CommandTargetModel.GetHashCode",
+      "hash_member": true
+    },
+    {
+      "id": "13133",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/CommandTargetModel.cs",
+      "location": {
+        "start": {
+          "line": 63,
+          "column": 20
+        },
+        "end": {
+          "line": 63,
+          "column": 58
+        }
+      },
+      "original": "(hash * 31) + ChangeKind.GetHashCode()",
+      "replacement": "(hash * 31) - ChangeKind.GetHashCode()",
+      "source_sha256": "b388d5a43624dc4fbdc2235f26d91767de2dd35ccdba316658f47ca987c141b4",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "CommandTargetModel.GetHashCode",
+      "hash_member": true
+    },
+    {
+      "id": "13134",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/CommandTargetModel.cs",
+      "location": {
+        "start": {
+          "line": 63,
+          "column": 21
+        },
+        "end": {
+          "line": 63,
+          "column": 30
+        }
+      },
+      "original": "hash * 31",
+      "replacement": "hash / 31",
+      "source_sha256": "b388d5a43624dc4fbdc2235f26d91767de2dd35ccdba316658f47ca987c141b4",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "CommandTargetModel.GetHashCode",
+      "hash_member": true
+    },
+    {
+      "id": "13135",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/CommandTargetModel.cs",
+      "location": {
+        "start": {
+          "line": 64,
+          "column": 20
+        },
+        "end": {
+          "line": 64,
+          "column": 63
+        }
+      },
+      "original": "(hash * 31) + (ViewKey?.GetHashCode() ?? 0)",
+      "replacement": "(hash * 31) - (ViewKey?.GetHashCode() ?? 0)",
+      "source_sha256": "b388d5a43624dc4fbdc2235f26d91767de2dd35ccdba316658f47ca987c141b4",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "CommandTargetModel.GetHashCode",
+      "hash_member": true
+    },
+    {
+      "id": "13136",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/CommandTargetModel.cs",
+      "location": {
+        "start": {
+          "line": 64,
+          "column": 21
+        },
+        "end": {
+          "line": 64,
+          "column": 30
+        }
+      },
+      "original": "hash * 31",
+      "replacement": "hash / 31",
+      "source_sha256": "b388d5a43624dc4fbdc2235f26d91767de2dd35ccdba316658f47ca987c141b4",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "CommandTargetModel.GetHashCode",
+      "hash_member": true
+    },
+    {
+      "id": "13137",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/CommandTargetModel.cs",
+      "location": {
+        "start": {
+          "line": 64,
+          "column": 35
+        },
+        "end": {
+          "line": 64,
+          "column": 62
+        }
+      },
+      "original": "ViewKey?.GetHashCode() ?? 0",
+      "replacement": "0",
+      "source_sha256": "b388d5a43624dc4fbdc2235f26d91767de2dd35ccdba316658f47ca987c141b4",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "CommandTargetModel.GetHashCode",
+      "hash_member": true
+    },
+    {
+      "id": "13138",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/CommandTargetModel.cs",
+      "location": {
+        "start": {
+          "line": 65,
+          "column": 20
+        },
+        "end": {
+          "line": 65,
+          "column": 70
+        }
+      },
+      "original": "(hash * 31) + (ExpectedStatus?.GetHashCode() ?? 0)",
+      "replacement": "(hash * 31) - (ExpectedStatus?.GetHashCode() ?? 0)",
+      "source_sha256": "b388d5a43624dc4fbdc2235f26d91767de2dd35ccdba316658f47ca987c141b4",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "CommandTargetModel.GetHashCode",
+      "hash_member": true
+    },
+    {
+      "id": "13139",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/CommandTargetModel.cs",
+      "location": {
+        "start": {
+          "line": 65,
+          "column": 21
+        },
+        "end": {
+          "line": 65,
+          "column": 30
+        }
+      },
+      "original": "hash * 31",
+      "replacement": "hash / 31",
+      "source_sha256": "b388d5a43624dc4fbdc2235f26d91767de2dd35ccdba316658f47ca987c141b4",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "CommandTargetModel.GetHashCode",
+      "hash_member": true
+    },
+    {
+      "id": "13140",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/CommandTargetModel.cs",
+      "location": {
+        "start": {
+          "line": 65,
+          "column": 35
+        },
+        "end": {
+          "line": 65,
+          "column": 69
+        }
+      },
+      "original": "ExpectedStatus?.GetHashCode() ?? 0",
+      "replacement": "0",
+      "source_sha256": "b388d5a43624dc4fbdc2235f26d91767de2dd35ccdba316658f47ca987c141b4",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "CommandTargetModel.GetHashCode",
+      "hash_member": true
+    },
+    {
+      "id": "13308",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/DomainModel.cs",
+      "location": {
+        "start": {
+          "line": 361,
+          "column": 20
+        },
+        "end": {
+          "line": 361,
+          "column": 25
+        }
+      },
+      "original": "false",
+      "replacement": "true",
+      "source_sha256": "03797b63cd736daee22c9c1839c388d99e07e6139da10d9586d147c7b91f3aff",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "CommandParseResult.Equals",
+      "hash_member": false
+    },
+    {
+      "id": "13322",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/DomainModel.cs",
+      "location": {
+        "start": {
+          "line": 379,
+          "column": 20
+        },
+        "end": {
+          "line": 379,
+          "column": 61
+        }
+      },
+      "original": "(hash * 31) + (Model?.GetHashCode() ?? 0)",
+      "replacement": "(hash * 31) - (Model?.GetHashCode() ?? 0)",
+      "source_sha256": "03797b63cd736daee22c9c1839c388d99e07e6139da10d9586d147c7b91f3aff",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "CommandParseResult.GetHashCode",
+      "hash_member": true
+    },
+    {
+      "id": "13323",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/DomainModel.cs",
+      "location": {
+        "start": {
+          "line": 379,
+          "column": 21
+        },
+        "end": {
+          "line": 379,
+          "column": 30
+        }
+      },
+      "original": "hash * 31",
+      "replacement": "hash / 31",
+      "source_sha256": "03797b63cd736daee22c9c1839c388d99e07e6139da10d9586d147c7b91f3aff",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "CommandParseResult.GetHashCode",
+      "hash_member": true
+    },
+    {
+      "id": "13324",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/DomainModel.cs",
+      "location": {
+        "start": {
+          "line": 379,
+          "column": 35
+        },
+        "end": {
+          "line": 379,
+          "column": 60
+        }
+      },
+      "original": "Model?.GetHashCode() ?? 0",
+      "replacement": "0",
+      "source_sha256": "03797b63cd736daee22c9c1839c388d99e07e6139da10d9586d147c7b91f3aff",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "CommandParseResult.GetHashCode",
+      "hash_member": true
+    },
+    {
+      "id": "13325",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/DomainModel.cs",
+      "location": {
+        "start": {
+          "line": 380,
+          "column": 20
+        },
+        "end": {
+          "line": 380,
+          "column": 59
+        }
+      },
+      "original": "(hash * 31) + Diagnostics.GetHashCode()",
+      "replacement": "(hash * 31) - Diagnostics.GetHashCode()",
+      "source_sha256": "03797b63cd736daee22c9c1839c388d99e07e6139da10d9586d147c7b91f3aff",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "CommandParseResult.GetHashCode",
+      "hash_member": true
+    },
+    {
+      "id": "13326",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/DomainModel.cs",
+      "location": {
+        "start": {
+          "line": 380,
+          "column": 21
+        },
+        "end": {
+          "line": 380,
+          "column": 30
+        }
+      },
+      "original": "hash * 31",
+      "replacement": "hash / 31",
+      "source_sha256": "03797b63cd736daee22c9c1839c388d99e07e6139da10d9586d147c7b91f3aff",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "CommandParseResult.GetHashCode",
+      "hash_member": true
+    },
+    {
+      "id": "13452",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/DomainModel.cs",
+      "location": {
+        "start": {
+          "line": 687,
+          "column": 20
+        },
+        "end": {
+          "line": 687,
+          "column": 25
+        }
+      },
+      "original": "false",
+      "replacement": "true",
+      "source_sha256": "03797b63cd736daee22c9c1839c388d99e07e6139da10d9586d147c7b91f3aff",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "ParseResult.Equals",
+      "hash_member": false
+    },
+    {
+      "id": "13459",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/DomainModel.cs",
+      "location": {
+        "start": {
+          "line": 694,
+          "column": 46
+        },
+        "end": {
+          "line": 694,
+          "column": 65
+        }
+      },
+      "original": "other.Model is null",
+      "replacement": "other.Model is not null",
+      "source_sha256": "03797b63cd736daee22c9c1839c388d99e07e6139da10d9586d147c7b91f3aff",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "ParseResult.Equals",
+      "hash_member": false
+    },
+    {
+      "id": "13466",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/DomainModel.cs",
+      "location": {
+        "start": {
+          "line": 705,
+          "column": 20
+        },
+        "end": {
+          "line": 705,
+          "column": 61
+        }
+      },
+      "original": "(hash * 31) + (Model?.GetHashCode() ?? 0)",
+      "replacement": "(hash * 31) - (Model?.GetHashCode() ?? 0)",
+      "source_sha256": "03797b63cd736daee22c9c1839c388d99e07e6139da10d9586d147c7b91f3aff",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "ParseResult.GetHashCode",
+      "hash_member": true
+    },
+    {
+      "id": "13467",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/DomainModel.cs",
+      "location": {
+        "start": {
+          "line": 705,
+          "column": 21
+        },
+        "end": {
+          "line": 705,
+          "column": 30
+        }
+      },
+      "original": "hash * 31",
+      "replacement": "hash / 31",
+      "source_sha256": "03797b63cd736daee22c9c1839c388d99e07e6139da10d9586d147c7b91f3aff",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "ParseResult.GetHashCode",
+      "hash_member": true
+    },
+    {
+      "id": "13468",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/DomainModel.cs",
+      "location": {
+        "start": {
+          "line": 705,
+          "column": 35
+        },
+        "end": {
+          "line": 705,
+          "column": 60
+        }
+      },
+      "original": "Model?.GetHashCode() ?? 0",
+      "replacement": "0",
+      "source_sha256": "03797b63cd736daee22c9c1839c388d99e07e6139da10d9586d147c7b91f3aff",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "ParseResult.GetHashCode",
+      "hash_member": true
+    },
+    {
+      "id": "13469",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/DomainModel.cs",
+      "location": {
+        "start": {
+          "line": 706,
+          "column": 20
+        },
+        "end": {
+          "line": 706,
+          "column": 59
+        }
+      },
+      "original": "(hash * 31) + Diagnostics.GetHashCode()",
+      "replacement": "(hash * 31) - Diagnostics.GetHashCode()",
+      "source_sha256": "03797b63cd736daee22c9c1839c388d99e07e6139da10d9586d147c7b91f3aff",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "ParseResult.GetHashCode",
+      "hash_member": true
+    },
+    {
+      "id": "13470",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/DomainModel.cs",
+      "location": {
+        "start": {
+          "line": 706,
+          "column": 21
+        },
+        "end": {
+          "line": 706,
+          "column": 30
+        }
+      },
+      "original": "hash * 31",
+      "replacement": "hash / 31",
+      "source_sha256": "03797b63cd736daee22c9c1839c388d99e07e6139da10d9586d147c7b91f3aff",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "ParseResult.GetHashCode",
+      "hash_member": true
+    },
+    {
+      "id": "13475",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/DomainModel.cs",
+      "location": {
+        "start": {
+          "line": 739,
+          "column": 20
+        },
+        "end": {
+          "line": 739,
+          "column": 25
+        }
+      },
+      "original": "false",
+      "replacement": "true",
+      "source_sha256": "03797b63cd736daee22c9c1839c388d99e07e6139da10d9586d147c7b91f3aff",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "DiagnosticInfo.Equals",
+      "hash_member": false
+    },
+    {
+      "id": "13478",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/DomainModel.cs",
+      "location": {
+        "start": {
+          "line": 743,
+          "column": 20
+        },
+        "end": {
+          "line": 743,
+          "column": 24
+        }
+      },
+      "original": "true",
+      "replacement": "false",
+      "source_sha256": "03797b63cd736daee22c9c1839c388d99e07e6139da10d9586d147c7b91f3aff",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "DiagnosticInfo.Equals",
+      "hash_member": false
+    },
+    {
+      "id": "13524",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/EquatableArray.cs",
+      "location": {
+        "start": {
+          "line": 27,
+          "column": 88
+        },
+        "end": {
+          "line": 27,
+          "column": 107
+        }
+      },
+      "original": "!left.Equals(right)",
+      "replacement": "left.Equals(right)",
+      "source_sha256": "30435a3eeac2d1cf906b545c7dd30da981a4aec8e90a41e50bdfd1775ee0f3ad",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "EquatableArray.operator !=",
+      "hash_member": false
+    },
+    {
+      "id": "13698",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/ProjectionTemplateMarkerParser.cs",
+      "location": {
+        "start": {
+          "line": 58,
+          "column": 61
+        },
+        "end": {
+          "line": 58,
+          "column": 73
+        }
+      },
+      "original": "string.Empty",
+      "replacement": "\"Stryker was here!\"",
+      "source_sha256": "917ac5d67f329f23a32aa6cc4e2dff026dc3ec3873bd7e2da27e6ed5713f6031",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "ProjectionTemplateMarkerParser.Parse",
+      "hash_member": false
+    },
+    {
+      "id": "13719",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/ProjectionTemplateMarkerParser.cs",
+      "location": {
+        "start": {
+          "line": 83,
+          "column": 17
+        },
+        "end": {
+          "line": 83,
+          "column": 26
+        }
+      },
+      "original": "continue;",
+      "replacement": ";",
+      "source_sha256": "917ac5d67f329f23a32aa6cc4e2dff026dc3ec3873bd7e2da27e6ed5713f6031",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "ProjectionTemplateMarkerParser.Parse",
+      "hash_member": false
+    },
+    {
+      "id": "13736",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/ProjectionTemplateMarkerParser.cs",
+      "location": {
+        "start": {
+          "line": 115,
+          "column": 13
+        },
+        "end": {
+          "line": 124,
+          "column": 37
+        }
+      },
+      "original": "diagnostics.Add(new DiagnosticInfo(\r\n                \"HFC1033\",\r\n                string.Format(\r\n                    CultureInfo.InvariantCulture,\r\n                    \"What: [ProjectionTemplate] on '{0}' is missing its projection type argument.\\nExpected: typeof(MyProjection) where MyProjection is a [Projection]-annotated class.\\nGot: null.\\nFix: Pass typeof(MyProjection) as the first argument.\\nDocsLink: https://hexalith.github.io/FrontComposer/diagnostics/HFC1033\",\r\n                    templateSymbol.Name),\r\n                \"Error\",\r\n                filePath,\r\n                linePos.Line,\r\n                linePos.Character));",
+      "replacement": ";",
+      "source_sha256": "917ac5d67f329f23a32aa6cc4e2dff026dc3ec3873bd7e2da27e6ed5713f6031",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "ProjectionTemplateMarkerParser.Parse",
+      "hash_member": false
+    },
+    {
+      "id": "13737",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/ProjectionTemplateMarkerParser.cs",
+      "location": {
+        "start": {
+          "line": 116,
+          "column": 17
+        },
+        "end": {
+          "line": 116,
+          "column": 26
+        }
+      },
+      "original": "\"HFC1033\"",
+      "replacement": "\"\"",
+      "source_sha256": "917ac5d67f329f23a32aa6cc4e2dff026dc3ec3873bd7e2da27e6ed5713f6031",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "ProjectionTemplateMarkerParser.Parse",
+      "hash_member": false
+    },
+    {
+      "id": "13738",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/ProjectionTemplateMarkerParser.cs",
+      "location": {
+        "start": {
+          "line": 119,
+          "column": 21
+        },
+        "end": {
+          "line": 119,
+          "column": 324
+        }
+      },
+      "original": "\"What: [ProjectionTemplate] on '{0}' is missing its projection type argument.\\nExpected: typeof(MyProjection) where MyProjection is a [Projection]-annotated class.\\nGot: null.\\nFix: Pass typeof(MyProjection) as the first argument.\\nDocsLink: https://hexalith.github.io/FrontComposer/diagnostics/HFC1033\"",
+      "replacement": "\"\"",
+      "source_sha256": "917ac5d67f329f23a32aa6cc4e2dff026dc3ec3873bd7e2da27e6ed5713f6031",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "ProjectionTemplateMarkerParser.Parse",
+      "hash_member": false
+    },
+    {
+      "id": "13739",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/ProjectionTemplateMarkerParser.cs",
+      "location": {
+        "start": {
+          "line": 121,
+          "column": 17
+        },
+        "end": {
+          "line": 121,
+          "column": 24
+        }
+      },
+      "original": "\"Error\"",
+      "replacement": "\"\"",
+      "source_sha256": "917ac5d67f329f23a32aa6cc4e2dff026dc3ec3873bd7e2da27e6ed5713f6031",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "ProjectionTemplateMarkerParser.Parse",
+      "hash_member": false
+    },
+    {
+      "id": "13748",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/ProjectionTemplateMarkerParser.cs",
+      "location": {
+        "start": {
+          "line": 147,
+          "column": 13
+        },
+        "end": {
+          "line": 157,
+          "column": 37
+        }
+      },
+      "original": "diagnostics.Add(new DiagnosticInfo(\r\n                \"HFC1034\",\r\n                string.Format(\r\n                    CultureInfo.InvariantCulture,\r\n            \"What: [ProjectionTemplate] component '{0}' is not a valid Level 2 Razor component.\\nExpected: A non-abstract, non-generic Razor component partial type.\\nGot: {1}.\\nFix: Move the marker to the Razor component partial class.\\nFallback: This template is excluded from the generated manifest.\\nDocsLink: https://hexalith.github.io/FrontComposer/diagnostics/HFC1034\",\r\n                    templateSymbol.Name,\r\n                    templateReason),\r\n                \"Warning\",\r\n                filePath,\r\n                linePos.Line,\r\n                linePos.Character));",
+      "replacement": ";",
+      "source_sha256": "917ac5d67f329f23a32aa6cc4e2dff026dc3ec3873bd7e2da27e6ed5713f6031",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "ProjectionTemplateMarkerParser.Parse",
+      "hash_member": false
+    },
+    {
+      "id": "13749",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/ProjectionTemplateMarkerParser.cs",
+      "location": {
+        "start": {
+          "line": 148,
+          "column": 17
+        },
+        "end": {
+          "line": 148,
+          "column": 26
+        }
+      },
+      "original": "\"HFC1034\"",
+      "replacement": "\"\"",
+      "source_sha256": "917ac5d67f329f23a32aa6cc4e2dff026dc3ec3873bd7e2da27e6ed5713f6031",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "ProjectionTemplateMarkerParser.Parse",
+      "hash_member": false
+    },
+    {
+      "id": "13750",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/ProjectionTemplateMarkerParser.cs",
+      "location": {
+        "start": {
+          "line": 151,
+          "column": 13
+        },
+        "end": {
+          "line": 151,
+          "column": 375
+        }
+      },
+      "original": "\"What: [ProjectionTemplate] component '{0}' is not a valid Level 2 Razor component.\\nExpected: A non-abstract, non-generic Razor component partial type.\\nGot: {1}.\\nFix: Move the marker to the Razor component partial class.\\nFallback: This template is excluded from the generated manifest.\\nDocsLink: https://hexalith.github.io/FrontComposer/diagnostics/HFC1034\"",
+      "replacement": "\"\"",
+      "source_sha256": "917ac5d67f329f23a32aa6cc4e2dff026dc3ec3873bd7e2da27e6ed5713f6031",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "ProjectionTemplateMarkerParser.Parse",
+      "hash_member": false
+    },
+    {
+      "id": "13751",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/ProjectionTemplateMarkerParser.cs",
+      "location": {
+        "start": {
+          "line": 154,
+          "column": 17
+        },
+        "end": {
+          "line": 154,
+          "column": 26
+        }
+      },
+      "original": "\"Warning\"",
+      "replacement": "\"\"",
+      "source_sha256": "917ac5d67f329f23a32aa6cc4e2dff026dc3ec3873bd7e2da27e6ed5713f6031",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "ProjectionTemplateMarkerParser.Parse",
+      "hash_member": false
+    },
+    {
+      "id": "13759",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/ProjectionTemplateMarkerParser.cs",
+      "location": {
+        "start": {
+          "line": 172,
+          "column": 15
+        },
+        "end": {
+          "line": 172,
+          "column": 27
+        }
+      },
+      "original": "string.Empty",
+      "replacement": "\"Stryker was here!\"",
+      "source_sha256": "917ac5d67f329f23a32aa6cc4e2dff026dc3ec3873bd7e2da27e6ed5713f6031",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "ProjectionTemplateMarkerParser.Parse",
+      "hash_member": false
+    },
+    {
+      "id": "13761",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/ProjectionTemplateMarkerParser.cs",
+      "location": {
+        "start": {
+          "line": 173,
+          "column": 72
+        },
+        "end": {
+          "line": 173,
+          "column": 84
+        }
+      },
+      "original": "string.Empty",
+      "replacement": "\"Stryker was here!\"",
+      "source_sha256": "917ac5d67f329f23a32aa6cc4e2dff026dc3ec3873bd7e2da27e6ed5713f6031",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "ProjectionTemplateMarkerParser.Parse",
+      "hash_member": false
+    },
+    {
+      "id": "13766",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/ProjectionTemplateMarkerParser.cs",
+      "location": {
+        "start": {
+          "line": 175,
+          "column": 15
+        },
+        "end": {
+          "line": 175,
+          "column": 27
+        }
+      },
+      "original": "string.Empty",
+      "replacement": "\"Stryker was here!\"",
+      "source_sha256": "917ac5d67f329f23a32aa6cc4e2dff026dc3ec3873bd7e2da27e6ed5713f6031",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "ProjectionTemplateMarkerParser.Parse",
+      "hash_member": false
+    },
+    {
+      "id": "13768",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/ProjectionTemplateMarkerParser.cs",
+      "location": {
+        "start": {
+          "line": 176,
+          "column": 74
+        },
+        "end": {
+          "line": 176,
+          "column": 86
+        }
+      },
+      "original": "string.Empty",
+      "replacement": "\"Stryker was here!\"",
+      "source_sha256": "917ac5d67f329f23a32aa6cc4e2dff026dc3ec3873bd7e2da27e6ed5713f6031",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "ProjectionTemplateMarkerParser.Parse",
+      "hash_member": false
+    },
+    {
+      "id": "13772",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/ProjectionTemplateMarkerParser.cs",
+      "location": {
+        "start": {
+          "line": 200,
+          "column": 22
+        },
+        "end": {
+          "line": 200,
+          "column": 49
+        }
+      },
+      "original": "\"the symbol is not a class\"",
+      "replacement": "\"\"",
+      "source_sha256": "917ac5d67f329f23a32aa6cc4e2dff026dc3ec3873bd7e2da27e6ed5713f6031",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "ProjectionTemplateMarkerParser.IsValidTemplateType",
+      "hash_member": false
+    },
+    {
+      "id": "13773",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/ProjectionTemplateMarkerParser.cs",
+      "location": {
+        "start": {
+          "line": 201,
+          "column": 20
+        },
+        "end": {
+          "line": 201,
+          "column": 25
+        }
+      },
+      "original": "false",
+      "replacement": "true",
+      "source_sha256": "917ac5d67f329f23a32aa6cc4e2dff026dc3ec3873bd7e2da27e6ed5713f6031",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "ProjectionTemplateMarkerParser.IsValidTemplateType",
+      "hash_member": false
+    },
+    {
+      "id": "13776",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/ProjectionTemplateMarkerParser.cs",
+      "location": {
+        "start": {
+          "line": 205,
+          "column": 22
+        },
+        "end": {
+          "line": 205,
+          "column": 44
+        }
+      },
+      "original": "\"the symbol is static\"",
+      "replacement": "\"\"",
+      "source_sha256": "917ac5d67f329f23a32aa6cc4e2dff026dc3ec3873bd7e2da27e6ed5713f6031",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "ProjectionTemplateMarkerParser.IsValidTemplateType",
+      "hash_member": false
+    },
+    {
+      "id": "13777",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/ProjectionTemplateMarkerParser.cs",
+      "location": {
+        "start": {
+          "line": 206,
+          "column": 20
+        },
+        "end": {
+          "line": 206,
+          "column": 25
+        }
+      },
+      "original": "false",
+      "replacement": "true",
+      "source_sha256": "917ac5d67f329f23a32aa6cc4e2dff026dc3ec3873bd7e2da27e6ed5713f6031",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "ProjectionTemplateMarkerParser.IsValidTemplateType",
+      "hash_member": false
+    },
+    {
+      "id": "13780",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/ProjectionTemplateMarkerParser.cs",
+      "location": {
+        "start": {
+          "line": 210,
+          "column": 22
+        },
+        "end": {
+          "line": 210,
+          "column": 46
+        }
+      },
+      "original": "\"the symbol is abstract\"",
+      "replacement": "\"\"",
+      "source_sha256": "917ac5d67f329f23a32aa6cc4e2dff026dc3ec3873bd7e2da27e6ed5713f6031",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "ProjectionTemplateMarkerParser.IsValidTemplateType",
+      "hash_member": false
+    },
+    {
+      "id": "13781",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/ProjectionTemplateMarkerParser.cs",
+      "location": {
+        "start": {
+          "line": 211,
+          "column": 20
+        },
+        "end": {
+          "line": 211,
+          "column": 25
+        }
+      },
+      "original": "false",
+      "replacement": "true",
+      "source_sha256": "917ac5d67f329f23a32aa6cc4e2dff026dc3ec3873bd7e2da27e6ed5713f6031",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "ProjectionTemplateMarkerParser.IsValidTemplateType",
+      "hash_member": false
+    },
+    {
+      "id": "13785",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/ProjectionTemplateMarkerParser.cs",
+      "location": {
+        "start": {
+          "line": 215,
+          "column": 22
+        },
+        "end": {
+          "line": 215,
+          "column": 45
+        }
+      },
+      "original": "\"the symbol is generic\"",
+      "replacement": "\"\"",
+      "source_sha256": "917ac5d67f329f23a32aa6cc4e2dff026dc3ec3873bd7e2da27e6ed5713f6031",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "ProjectionTemplateMarkerParser.IsValidTemplateType",
+      "hash_member": false
+    },
+    {
+      "id": "13786",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/ProjectionTemplateMarkerParser.cs",
+      "location": {
+        "start": {
+          "line": 216,
+          "column": 20
+        },
+        "end": {
+          "line": 216,
+          "column": 25
+        }
+      },
+      "original": "false",
+      "replacement": "true",
+      "source_sha256": "917ac5d67f329f23a32aa6cc4e2dff026dc3ec3873bd7e2da27e6ed5713f6031",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "ProjectionTemplateMarkerParser.IsValidTemplateType",
+      "hash_member": false
+    },
+    {
+      "id": "13792",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/ProjectionTemplateMarkerParser.cs",
+      "location": {
+        "start": {
+          "line": 225,
+          "column": 22
+        },
+        "end": {
+          "line": 225,
+          "column": 46
+        }
+      },
+      "original": "\"the symbol is a struct\"",
+      "replacement": "\"\"",
+      "source_sha256": "917ac5d67f329f23a32aa6cc4e2dff026dc3ec3873bd7e2da27e6ed5713f6031",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "ProjectionTemplateMarkerParser.IsValidProjectionType",
+      "hash_member": false
+    },
+    {
+      "id": "13793",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/ProjectionTemplateMarkerParser.cs",
+      "location": {
+        "start": {
+          "line": 226,
+          "column": 20
+        },
+        "end": {
+          "line": 226,
+          "column": 25
+        }
+      },
+      "original": "false",
+      "replacement": "true",
+      "source_sha256": "917ac5d67f329f23a32aa6cc4e2dff026dc3ec3873bd7e2da27e6ed5713f6031",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "ProjectionTemplateMarkerParser.IsValidProjectionType",
+      "hash_member": false
+    },
+    {
+      "id": "13796",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/ProjectionTemplateMarkerParser.cs",
+      "location": {
+        "start": {
+          "line": 230,
+          "column": 22
+        },
+        "end": {
+          "line": 230,
+          "column": 46
+        }
+      },
+      "original": "\"the symbol is abstract\"",
+      "replacement": "\"\"",
+      "source_sha256": "917ac5d67f329f23a32aa6cc4e2dff026dc3ec3873bd7e2da27e6ed5713f6031",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "ProjectionTemplateMarkerParser.IsValidProjectionType",
+      "hash_member": false
+    },
+    {
+      "id": "13797",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/ProjectionTemplateMarkerParser.cs",
+      "location": {
+        "start": {
+          "line": 231,
+          "column": 20
+        },
+        "end": {
+          "line": 231,
+          "column": 25
+        }
+      },
+      "original": "false",
+      "replacement": "true",
+      "source_sha256": "917ac5d67f329f23a32aa6cc4e2dff026dc3ec3873bd7e2da27e6ed5713f6031",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "ProjectionTemplateMarkerParser.IsValidProjectionType",
+      "hash_member": false
+    },
+    {
+      "id": "13800",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/ProjectionTemplateMarkerParser.cs",
+      "location": {
+        "start": {
+          "line": 235,
+          "column": 22
+        },
+        "end": {
+          "line": 235,
+          "column": 67
+        }
+      },
+      "original": "\"the symbol is generic (open or constructed)\"",
+      "replacement": "\"\"",
+      "source_sha256": "917ac5d67f329f23a32aa6cc4e2dff026dc3ec3873bd7e2da27e6ed5713f6031",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "ProjectionTemplateMarkerParser.IsValidProjectionType",
+      "hash_member": false
+    },
+    {
+      "id": "13801",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/ProjectionTemplateMarkerParser.cs",
+      "location": {
+        "start": {
+          "line": 236,
+          "column": 20
+        },
+        "end": {
+          "line": 236,
+          "column": 25
+        }
+      },
+      "original": "false",
+      "replacement": "true",
+      "source_sha256": "917ac5d67f329f23a32aa6cc4e2dff026dc3ec3873bd7e2da27e6ed5713f6031",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "ProjectionTemplateMarkerParser.IsValidProjectionType",
+      "hash_member": false
+    },
+    {
+      "id": "13804",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/ProjectionTemplateMarkerParser.cs",
+      "location": {
+        "start": {
+          "line": 240,
+          "column": 22
+        },
+        "end": {
+          "line": 240,
+          "column": 56
+        }
+      },
+      "original": "\"the symbol is an unbound generic\"",
+      "replacement": "\"\"",
+      "source_sha256": "917ac5d67f329f23a32aa6cc4e2dff026dc3ec3873bd7e2da27e6ed5713f6031",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "ProjectionTemplateMarkerParser.IsValidProjectionType",
+      "hash_member": false
+    },
+    {
+      "id": "13805",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/ProjectionTemplateMarkerParser.cs",
+      "location": {
+        "start": {
+          "line": 241,
+          "column": 20
+        },
+        "end": {
+          "line": 241,
+          "column": 25
+        }
+      },
+      "original": "false",
+      "replacement": "true",
+      "source_sha256": "917ac5d67f329f23a32aa6cc4e2dff026dc3ec3873bd7e2da27e6ed5713f6031",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "ProjectionTemplateMarkerParser.IsValidProjectionType",
+      "hash_member": false
+    },
+    {
+      "id": "13912",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/SourceTypeNameFormatter.cs",
+      "location": {
+        "start": {
+          "line": 27,
+          "column": 13
+        },
+        "end": {
+          "line": 27,
+          "column": 65
+        }
+      },
+      "original": "throw new ArgumentNullException(nameof(typeSymbol));",
+      "replacement": ";",
+      "source_sha256": "b867e4cf543701b4f1a5953387fa96de08d9d4b2ea6d8cd2551b7634fd3cf97a",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "SourceTypeNameFormatter.Format",
+      "hash_member": false
+    },
+    {
+      "id": "13915",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/SourceTypeNameFormatter.cs",
+      "location": {
+        "start": {
+          "line": 31,
+          "column": 13
+        },
+        "end": {
+          "line": 31,
+          "column": 66
+        }
+      },
+      "original": "throw new ArgumentNullException(nameof(compilation));",
+      "replacement": ";",
+      "source_sha256": "b867e4cf543701b4f1a5953387fa96de08d9d4b2ea6d8cd2551b7634fd3cf97a",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "SourceTypeNameFormatter.Format",
+      "hash_member": false
+    },
+    {
+      "id": "13920",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/SourceTypeNameFormatter.cs",
+      "location": {
+        "start": {
+          "line": 57,
+          "column": 61
+        },
+        "end": {
+          "line": 57,
+          "column": 84
+        }
+      },
+      "original": "\"global::System.Object\"",
+      "replacement": "\"\"",
+      "source_sha256": "b867e4cf543701b4f1a5953387fa96de08d9d4b2ea6d8cd2551b7634fd3cf97a",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "SourceTypeNameFormatter.FormatCore",
+      "hash_member": false
+    },
+    {
+      "id": "13995",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/SourceTypeNameFormatter.cs",
+      "location": {
+        "start": {
+          "line": 171,
+          "column": 41
+        },
+        "end": {
+          "line": 171,
+          "column": 45
+        }
+      },
+      "original": "true",
+      "replacement": "false",
+      "source_sha256": "b867e4cf543701b4f1a5953387fa96de08d9d4b2ea6d8cd2551b7634fd3cf97a",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "SourceTypeNameFormatter.GetRootQualifier",
+      "hash_member": false
+    },
+    {
+      "id": "14031",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/SourceTypeNameFormatter.cs",
+      "location": {
+        "start": {
+          "line": 218,
+          "column": 19
+        },
+        "end": {
+          "line": 218,
+          "column": 22
+        }
+      },
+      "original": "\"@\"",
+      "replacement": "\"\"",
+      "source_sha256": "b867e4cf543701b4f1a5953387fa96de08d9d4b2ea6d8cd2551b7634fd3cf97a",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "SourceTypeNameFormatter.EscapeIdentifier",
+      "hash_member": false
+    },
+    {
+      "id": "14139",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Transforms/ColumnModel.cs",
+      "location": {
+        "start": {
+          "line": 95,
+          "column": 30
+        },
+        "end": {
+          "line": 95,
+          "column": 34
+        }
+      },
+      "original": "true",
+      "replacement": "false",
+      "source_sha256": "a321397a2596c89ed0f469afd36c4fd9aabccf44c50a21a20d775f6b6388a738",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "ColumnModel.SupportsFilter",
+      "hash_member": false
+    },
+    {
+      "id": "14140",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Transforms/ColumnModel.cs",
+      "location": {
+        "start": {
+          "line": 96,
+          "column": 33
+        },
+        "end": {
+          "line": 96,
+          "column": 37
+        }
+      },
+      "original": "true",
+      "replacement": "false",
+      "source_sha256": "a321397a2596c89ed0f469afd36c4fd9aabccf44c50a21a20d775f6b6388a738",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "ColumnModel.SupportsFilter",
+      "hash_member": false
+    },
+    {
+      "id": "14141",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Transforms/ColumnModel.cs",
+      "location": {
+        "start": {
+          "line": 97,
+          "column": 30
+        },
+        "end": {
+          "line": 97,
+          "column": 34
+        }
+      },
+      "original": "true",
+      "replacement": "false",
+      "source_sha256": "a321397a2596c89ed0f469afd36c4fd9aabccf44c50a21a20d775f6b6388a738",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "ColumnModel.SupportsFilter",
+      "hash_member": false
+    },
+    {
+      "id": "14142",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Transforms/ColumnModel.cs",
+      "location": {
+        "start": {
+          "line": 98,
+          "column": 34
+        },
+        "end": {
+          "line": 98,
+          "column": 38
+        }
+      },
+      "original": "true",
+      "replacement": "false",
+      "source_sha256": "a321397a2596c89ed0f469afd36c4fd9aabccf44c50a21a20d775f6b6388a738",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "ColumnModel.SupportsFilter",
+      "hash_member": false
+    },
+    {
+      "id": "14143",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Transforms/ColumnModel.cs",
+      "location": {
+        "start": {
+          "line": 99,
+          "column": 14
+        },
+        "end": {
+          "line": 99,
+          "column": 19
+        }
+      },
+      "original": "false",
+      "replacement": "true",
+      "source_sha256": "a321397a2596c89ed0f469afd36c4fd9aabccf44c50a21a20d775f6b6388a738",
+      "existing_error_status": null,
+      "covered_case_ids": [],
+      "member": "ColumnModel.SupportsFilter",
+      "hash_member": false
+    },
+    {
+      "id": "14454",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Transforms/CommandRendererTransform.cs",
+      "location": {
+        "start": {
+          "line": 17,
+          "column": 13
+        },
+        "end": {
+          "line": 17,
+          "column": 60
+        }
+      },
+      "original": "throw new ArgumentNullException(nameof(model));",
+      "replacement": ";",
+      "source_sha256": "f62cf4fbc9435a6011b9d08fb2d4eed77b75857f397c5bc0d1dccbeb9d059999",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "CommandRendererTransform.Transform",
+      "hash_member": false
+    },
+    {
+      "id": "14457",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Transforms/CommandRendererTransform.cs",
+      "location": {
+        "start": {
+          "line": 21,
+          "column": 13
+        },
+        "end": {
+          "line": 21,
+          "column": 61
+        }
+      },
+      "original": "throw new ArgumentNullException(nameof(fluxor));",
+      "replacement": ";",
+      "source_sha256": "f62cf4fbc9435a6011b9d08fb2d4eed77b75857f397c5bc0d1dccbeb9d059999",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "CommandRendererTransform.Transform",
+      "hash_member": false
+    },
+    {
+      "id": "14750",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Transforms/McpManifestTransform.cs",
+      "location": {
+        "start": {
+          "line": 123,
+          "column": 20
+        },
+        "end": {
+          "line": 123,
+          "column": 23
+        }
+      },
+      "original": "\"_\"",
+      "replacement": "\"\"",
+      "source_sha256": "3c38c17fb7ef5047b754c412506fa9dacf1246a2b4ae5b57efe9ff281b82195e",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "McpManifestTransform.SanitizeProtocolSegment",
+      "hash_member": false
+    },
+    {
+      "id": "14762",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Transforms/McpManifestTransform.cs",
+      "location": {
+        "start": {
+          "line": 131,
+          "column": 33
+        },
+        "end": {
+          "line": 131,
+          "column": 36
+        }
+      },
+      "original": "\"_\"",
+      "replacement": "\"\"",
+      "source_sha256": "3c38c17fb7ef5047b754c412506fa9dacf1246a2b4ae5b57efe9ff281b82195e",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "McpManifestTransform.SanitizeProtocolSegment",
+      "hash_member": false
+    },
+    {
+      "id": "14940",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Transforms/RazorModelTransform.cs",
+      "location": {
+        "start": {
+          "line": 218,
+          "column": 44
+        },
+        "end": {
+          "line": 218,
+          "column": 61
+        }
+      },
+      "original": "total - annotated",
+      "replacement": "total + annotated",
+      "source_sha256": "b9854e6ddff02ea27ae09bce8a7e40a925c3da7a5ae9ac541edb2d06b7fae455",
+      "existing_error_status": "Survived",
+      "covered_case_ids": [],
+      "member": "RazorModelTransform.EmitFallbackDiagnostics",
+      "hash_member": false
+    },
+    {
+      "id": "14941",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Transforms/RazorModelTransform.cs",
+      "location": {
+        "start": {
+          "line": 220,
+          "column": 73
+        },
+        "end": {
+          "line": 222,
+          "column": 14
+        }
+      },
+      "original": "{\r\n                _ = annotatedNames.Add(mapping.EnumMemberName);\r\n            }",
+      "replacement": "{}",
+      "source_sha256": "b9854e6ddff02ea27ae09bce8a7e40a925c3da7a5ae9ac541edb2d06b7fae455",
+      "existing_error_status": "Survived",
+      "covered_case_ids": [],
+      "member": "RazorModelTransform.EmitFallbackDiagnostics",
+      "hash_member": false
+    },
+    {
+      "id": "14943",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Transforms/RazorModelTransform.cs",
+      "location": {
+        "start": {
+          "line": 225,
+          "column": 21
+        },
+        "end": {
+          "line": 225,
+          "column": 57
+        }
+      },
+      "original": "!annotatedNames.Contains(memberName)",
+      "replacement": "annotatedNames.Contains(memberName)",
+      "source_sha256": "b9854e6ddff02ea27ae09bce8a7e40a925c3da7a5ae9ac541edb2d06b7fae455",
+      "existing_error_status": null,
+      "covered_case_ids": [],
+      "member": "RazorModelTransform.EmitFallbackDiagnostics",
+      "hash_member": false
+    },
+    {
+      "id": "14945",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Transforms/RazorModelTransform.cs",
+      "location": {
+        "start": {
+          "line": 226,
+          "column": 21
+        },
+        "end": {
+          "line": 226,
+          "column": 49
+        }
+      },
+      "original": "unannotated.Add(memberName);",
+      "replacement": ";",
+      "source_sha256": "b9854e6ddff02ea27ae09bce8a7e40a925c3da7a5ae9ac541edb2d06b7fae455",
+      "existing_error_status": null,
+      "covered_case_ids": [],
+      "member": "RazorModelTransform.EmitFallbackDiagnostics",
+      "hash_member": false
+    },
+    {
+      "id": "14946",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Transforms/RazorModelTransform.cs",
+      "location": {
+        "start": {
+          "line": 230,
+          "column": 13
+        },
+        "end": {
+          "line": 240,
+          "column": 26
+        }
+      },
+      "original": "diagnostics.Add(CreateTransformDiagnostic(\r\n                model,\r\n                \"HFC1025\",\r\n                string.Format(\r\n                    \"Enum property '{0}' on projection {1} has {2} of {3} members annotated with [ProjectionBadge] - unannotated members ({4}) render as plain text. Annotate every member or none for visual consistency.\",\r\n                    column.PropertyName,\r\n                    model.TypeName,\r\n                    annotated,\r\n                    total,\r\n                    string.Join(\", \", unannotated)),\r\n                \"Info\"));",
+      "replacement": ";",
+      "source_sha256": "b9854e6ddff02ea27ae09bce8a7e40a925c3da7a5ae9ac541edb2d06b7fae455",
+      "existing_error_status": null,
+      "covered_case_ids": [],
+      "member": "RazorModelTransform.EmitFallbackDiagnostics",
+      "hash_member": false
+    },
+    {
+      "id": "14947",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Transforms/RazorModelTransform.cs",
+      "location": {
+        "start": {
+          "line": 232,
+          "column": 17
+        },
+        "end": {
+          "line": 232,
+          "column": 26
+        }
+      },
+      "original": "\"HFC1025\"",
+      "replacement": "\"\"",
+      "source_sha256": "b9854e6ddff02ea27ae09bce8a7e40a925c3da7a5ae9ac541edb2d06b7fae455",
+      "existing_error_status": null,
+      "covered_case_ids": [],
+      "member": "RazorModelTransform.EmitFallbackDiagnostics",
+      "hash_member": false
+    },
+    {
+      "id": "14948",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Transforms/RazorModelTransform.cs",
+      "location": {
+        "start": {
+          "line": 234,
+          "column": 21
+        },
+        "end": {
+          "line": 234,
+          "column": 220
+        }
+      },
+      "original": "\"Enum property '{0}' on projection {1} has {2} of {3} members annotated with [ProjectionBadge] - unannotated members ({4}) render as plain text. Annotate every member or none for visual consistency.\"",
+      "replacement": "\"\"",
+      "source_sha256": "b9854e6ddff02ea27ae09bce8a7e40a925c3da7a5ae9ac541edb2d06b7fae455",
+      "existing_error_status": null,
+      "covered_case_ids": [],
+      "member": "RazorModelTransform.EmitFallbackDiagnostics",
+      "hash_member": false
+    },
+    {
+      "id": "14949",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Transforms/RazorModelTransform.cs",
+      "location": {
+        "start": {
+          "line": 239,
+          "column": 33
+        },
+        "end": {
+          "line": 239,
+          "column": 37
+        }
+      },
+      "original": "\", \"",
+      "replacement": "\"\"",
+      "source_sha256": "b9854e6ddff02ea27ae09bce8a7e40a925c3da7a5ae9ac541edb2d06b7fae455",
+      "existing_error_status": "Survived",
+      "covered_case_ids": [],
+      "member": "RazorModelTransform.EmitFallbackDiagnostics",
+      "hash_member": false
+    },
+    {
+      "id": "14950",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Transforms/RazorModelTransform.cs",
+      "location": {
+        "start": {
+          "line": 240,
+          "column": 17
+        },
+        "end": {
+          "line": 240,
+          "column": 23
+        }
+      },
+      "original": "\"Info\"",
+      "replacement": "\"\"",
+      "source_sha256": "b9854e6ddff02ea27ae09bce8a7e40a925c3da7a5ae9ac541edb2d06b7fae455",
+      "existing_error_status": "Survived",
+      "covered_case_ids": [],
+      "member": "RazorModelTransform.EmitFallbackDiagnostics",
+      "hash_member": false
+    },
+    {
+      "id": "15211",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Transforms/SchemaFingerprintTransform.cs",
+      "location": {
+        "start": {
+          "line": 180,
+          "column": 13
+        },
+        "end": {
+          "line": 180,
+          "column": 34
+        }
+      },
+      "original": "\"SkillCorpusResource\"",
+      "replacement": "\"\"",
+      "source_sha256": "12a143587908b65798e2ecb08eed4b29e5a999f4e53cff333d03c7e7fd1549ae",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "SchemaFingerprintTransform.CreateSkillCorpusResourcePayload",
+      "hash_member": false
+    },
+    {
+      "id": "15212",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Transforms/SchemaFingerprintTransform.cs",
+      "location": {
+        "start": {
+          "line": 183,
+          "column": 13
+        },
+        "end": {
+          "line": 183,
+          "column": 15
+        }
+      },
+      "original": "\"\"",
+      "replacement": "\"Stryker was here!\"",
+      "source_sha256": "12a143587908b65798e2ecb08eed4b29e5a999f4e53cff333d03c7e7fd1549ae",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "SchemaFingerprintTransform.CreateSkillCorpusResourcePayload",
+      "hash_member": false
+    },
+    {
+      "id": "15213",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Transforms/SchemaFingerprintTransform.cs",
+      "location": {
+        "start": {
+          "line": 184,
+          "column": 13
+        },
+        "end": {
+          "line": 184,
+          "column": 15
+        }
+      },
+      "original": "\"\"",
+      "replacement": "\"Stryker was here!\"",
+      "source_sha256": "12a143587908b65798e2ecb08eed4b29e5a999f4e53cff333d03c7e7fd1549ae",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "SchemaFingerprintTransform.CreateSkillCorpusResourcePayload",
+      "hash_member": false
+    },
+    {
+      "id": "15214",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Transforms/SchemaFingerprintTransform.cs",
+      "location": {
+        "start": {
+          "line": 187,
+          "column": 13
+        },
+        "end": {
+          "line": 194,
+          "column": 14
+        }
+      },
+      "original": "new Dictionary<string, string>(StringComparer.Ordinal) {\r\n                [\"contentType\"] = contentType,\r\n                [\"order\"] = order.ToString(System.Globalization.CultureInfo.InvariantCulture),\r\n                [\"publicApiReferences\"] = string.Join(\"|\", publicApiReferences.OrderBy(v => v, StringComparer.Ordinal)),\r\n                [\"samplePaths\"] = string.Join(\"|\", samplePaths.OrderBy(v => v, StringComparer.Ordinal)),\r\n                [\"title\"] = title,\r\n                [\"version\"] = version,\r\n            }",
+      "replacement": "new Dictionary<string, string>(StringComparer.Ordinal) {}",
+      "source_sha256": "12a143587908b65798e2ecb08eed4b29e5a999f4e53cff333d03c7e7fd1549ae",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "SchemaFingerprintTransform.CreateSkillCorpusResourcePayload",
+      "hash_member": false
+    },
+    {
+      "id": "15215",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Transforms/SchemaFingerprintTransform.cs",
+      "location": {
+        "start": {
+          "line": 188,
+          "column": 18
+        },
+        "end": {
+          "line": 188,
+          "column": 31
+        }
+      },
+      "original": "\"contentType\"",
+      "replacement": "\"\"",
+      "source_sha256": "12a143587908b65798e2ecb08eed4b29e5a999f4e53cff333d03c7e7fd1549ae",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "SchemaFingerprintTransform.CreateSkillCorpusResourcePayload",
+      "hash_member": false
+    },
+    {
+      "id": "15216",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Transforms/SchemaFingerprintTransform.cs",
+      "location": {
+        "start": {
+          "line": 189,
+          "column": 18
+        },
+        "end": {
+          "line": 189,
+          "column": 25
+        }
+      },
+      "original": "\"order\"",
+      "replacement": "\"\"",
+      "source_sha256": "12a143587908b65798e2ecb08eed4b29e5a999f4e53cff333d03c7e7fd1549ae",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "SchemaFingerprintTransform.CreateSkillCorpusResourcePayload",
+      "hash_member": false
+    },
+    {
+      "id": "15217",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Transforms/SchemaFingerprintTransform.cs",
+      "location": {
+        "start": {
+          "line": 190,
+          "column": 18
+        },
+        "end": {
+          "line": 190,
+          "column": 39
+        }
+      },
+      "original": "\"publicApiReferences\"",
+      "replacement": "\"\"",
+      "source_sha256": "12a143587908b65798e2ecb08eed4b29e5a999f4e53cff333d03c7e7fd1549ae",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "SchemaFingerprintTransform.CreateSkillCorpusResourcePayload",
+      "hash_member": false
+    },
+    {
+      "id": "15218",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Transforms/SchemaFingerprintTransform.cs",
+      "location": {
+        "start": {
+          "line": 190,
+          "column": 55
+        },
+        "end": {
+          "line": 190,
+          "column": 58
+        }
+      },
+      "original": "\"|\"",
+      "replacement": "\"\"",
+      "source_sha256": "12a143587908b65798e2ecb08eed4b29e5a999f4e53cff333d03c7e7fd1549ae",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "SchemaFingerprintTransform.CreateSkillCorpusResourcePayload",
+      "hash_member": false
+    },
+    {
+      "id": "15219",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Transforms/SchemaFingerprintTransform.cs",
+      "location": {
+        "start": {
+          "line": 190,
+          "column": 60
+        },
+        "end": {
+          "line": 190,
+          "column": 87
+        }
+      },
+      "original": "publicApiReferences.OrderBy",
+      "replacement": "publicApiReferences.OrderByDescending",
+      "source_sha256": "12a143587908b65798e2ecb08eed4b29e5a999f4e53cff333d03c7e7fd1549ae",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "SchemaFingerprintTransform.CreateSkillCorpusResourcePayload",
+      "hash_member": false
+    },
+    {
+      "id": "15220",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Transforms/SchemaFingerprintTransform.cs",
+      "location": {
+        "start": {
+          "line": 191,
+          "column": 18
+        },
+        "end": {
+          "line": 191,
+          "column": 31
+        }
+      },
+      "original": "\"samplePaths\"",
+      "replacement": "\"\"",
+      "source_sha256": "12a143587908b65798e2ecb08eed4b29e5a999f4e53cff333d03c7e7fd1549ae",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "SchemaFingerprintTransform.CreateSkillCorpusResourcePayload",
+      "hash_member": false
+    },
+    {
+      "id": "15221",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Transforms/SchemaFingerprintTransform.cs",
+      "location": {
+        "start": {
+          "line": 191,
+          "column": 47
+        },
+        "end": {
+          "line": 191,
+          "column": 50
+        }
+      },
+      "original": "\"|\"",
+      "replacement": "\"\"",
+      "source_sha256": "12a143587908b65798e2ecb08eed4b29e5a999f4e53cff333d03c7e7fd1549ae",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "SchemaFingerprintTransform.CreateSkillCorpusResourcePayload",
+      "hash_member": false
+    },
+    {
+      "id": "15222",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Transforms/SchemaFingerprintTransform.cs",
+      "location": {
+        "start": {
+          "line": 191,
+          "column": 52
+        },
+        "end": {
+          "line": 191,
+          "column": 71
+        }
+      },
+      "original": "samplePaths.OrderBy",
+      "replacement": "samplePaths.OrderByDescending",
+      "source_sha256": "12a143587908b65798e2ecb08eed4b29e5a999f4e53cff333d03c7e7fd1549ae",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "SchemaFingerprintTransform.CreateSkillCorpusResourcePayload",
+      "hash_member": false
+    },
+    {
+      "id": "15223",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Transforms/SchemaFingerprintTransform.cs",
+      "location": {
+        "start": {
+          "line": 192,
+          "column": 18
+        },
+        "end": {
+          "line": 192,
+          "column": 25
+        }
+      },
+      "original": "\"title\"",
+      "replacement": "\"\"",
+      "source_sha256": "12a143587908b65798e2ecb08eed4b29e5a999f4e53cff333d03c7e7fd1549ae",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "SchemaFingerprintTransform.CreateSkillCorpusResourcePayload",
+      "hash_member": false
+    },
+    {
+      "id": "15224",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Transforms/SchemaFingerprintTransform.cs",
+      "location": {
+        "start": {
+          "line": 193,
+          "column": 18
+        },
+        "end": {
+          "line": 193,
+          "column": 27
+        }
+      },
+      "original": "\"version\"",
+      "replacement": "\"\"",
+      "source_sha256": "12a143587908b65798e2ecb08eed4b29e5a999f4e53cff333d03c7e7fd1549ae",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "SchemaFingerprintTransform.CreateSkillCorpusResourcePayload",
+      "hash_member": false
+    },
+    {
+      "id": "15234",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Transforms/SchemaFingerprintTransform.cs",
+      "location": {
+        "start": {
+          "line": 212,
+          "column": 75
+        },
+        "end": {
+          "line": 212,
+          "column": 77
+        }
+      },
+      "original": "\"\"",
+      "replacement": "\"Stryker was here!\"",
+      "source_sha256": "12a143587908b65798e2ecb08eed4b29e5a999f4e53cff333d03c7e7fd1549ae",
+      "existing_error_status": "Survived",
+      "covered_case_ids": [],
+      "member": "SchemaFingerprintTransform.CreateAggregateManifestPayload",
+      "hash_member": false
+    },
+    {
+      "id": "15301",
+      "local_status": "NoCoverage",
+      "path": "src/Hexalith.FrontComposer.SourceTools/Transforms/SchemaFingerprintTransform.cs",
+      "location": {
+        "start": {
+          "line": 290,
+          "column": 22
+        },
+        "end": {
+          "line": 290,
+          "column": 34
+        }
+      },
+      "original": "string.Empty",
+      "replacement": "\"Stryker was here!\"",
+      "source_sha256": "12a143587908b65798e2ecb08eed4b29e5a999f4e53cff333d03c7e7fd1549ae",
+      "existing_error_status": "NoCoverage",
+      "covered_case_ids": [],
+      "member": "SchemaFingerprintTransform.Normalize",
+      "hash_member": false
+    }
+  ]
+}

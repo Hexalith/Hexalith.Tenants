@@ -1,0 +1,105 @@
+{
+  "status": "passed",
+  "base_source": "ebd3f76dc0b320d455917c593ff86526b58d0c77",
+  "incremental_files": [
+    "eng/dependency_graph.py",
+    "tests/eng/test_dependency_graph.py",
+    "tests/ci-governance/fixtures/builds-sdk42-package-511-qualification.xml"
+  ],
+  "source_files": {
+    "eng/dependency-graph-policy.json": {
+      "sha256": "024776b5d6d778f818521c6dbced44b9afcb255d1478ff055a6f181d4f1c28fa",
+      "bytes": 165550
+    },
+    "eng/dependency_graph.py": {
+      "sha256": "b08c7748dab5db847800a13201028abeae1af110d375dcaa377587b32407c425",
+      "bytes": 156960
+    },
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/mutation-target-manifest.json": {
+      "sha256": "58ac5a0ad95a96436cfbb148d269f07aaa68f277e23e5c710429b5d7c7ab1cbb",
+      "bytes": 55526
+    },
+    "tests/ci-governance/fixtures/builds-sdk42-package-511-qualification.xml": {
+      "sha256": "7999f670fa57122a6f7d5a0ab8fd7e24830ef1dae3d273f1636522330de042ad",
+      "bytes": 8285
+    },
+    "tests/eng/test_dependency_graph.py": {
+      "sha256": "cf852ebb6356588b0ee57a5de3e8fc8e6eb1fc7be1dc5754d1898dbc2b8a743a",
+      "bytes": 246241
+    },
+    "tests/eng/test_mutation_triage.py": {
+      "sha256": "cca053061c09909500e5a56ab3da6f0fe7703e78def8d6ecee9946cd3c216c95",
+      "bytes": 25466
+    }
+  },
+  "protected_files_unchanged": {
+    "eng/dependency-graph-policy.json": "024776b5d6d778f818521c6dbced44b9afcb255d1478ff055a6f181d4f1c28fa",
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/mutation-target-manifest.json": "58ac5a0ad95a96436cfbb148d269f07aaa68f277e23e5c710429b5d7c7ab1cbb",
+    "tests/eng/test_mutation_triage.py": "cca053061c09909500e5a56ab3da6f0fe7703e78def8d6ecee9946cd3c216c95",
+    "tests/ci-governance/fixtures/builds-sdk42-current-qualification.props": "653fca15a448a08e7aa48754b61e53f2c6c5e8f7e02c0584a520d3f4ccd5582f",
+    "tests/ci-governance/fixtures/builds-sdk42-tenants8-qualification.props": "fcd6eb9893e165f0e95efc5dcc248bd2381c912da62d14f51c3bdb16a3b830d5"
+  },
+  "existing_policyshape_methods_unchanged": 98,
+  "older_two_selector_path_verbatim": true,
+  "shared_role_order_import_alias_shape_proof_verbatim": true,
+  "frozen_constants_and_role_sets_unchanged": true,
+  "focused": {
+    "methods": [
+      "test_frontcomposer_profile_accepts_exact_inactive_eventstore_qualification",
+      "test_eventstore_qualification_remains_strict_for_other_profiles",
+      "test_frontcomposer_profile_accepts_proven_inactive_sdk42_and_current_or_future_default",
+      "test_sdk42_exception_is_frontcomposer_only",
+      "test_sdk42_selectors_reject_changed_scope_or_nonliteral_conditions",
+      "test_sdk42_selectors_reject_missing_duplicate_or_reassigned_definitions",
+      "test_sdk42_selectors_reject_changed_assignment_shape",
+      "test_sdk42_override_rejects_changed_value_condition_or_content",
+      "test_sdk42_selector_and_override_placement_must_be_global_unconditional_and_ordered",
+      "test_sdk42_selector_proof_rejects_imports_anywhere_in_catalog",
+      "test_sdk42_optional_logging_import_accepts_absence_and_committed_analyzer_target",
+      "test_sdk42_optional_logging_import_rejects_changed_shape_or_placement",
+      "test_sdk42_committed_logging_target_rejects_properties_imports_tasks_or_shape_drift",
+      "test_sdk42_logging_target_modes_and_read_budget_are_enforced",
+      "test_sdk42_logging_target_uses_exact_commit_and_ignores_head_index_and_worktree",
+      "test_sdk42_proof_rejects_case_insensitive_version_aliases",
+      "test_sdk42_mutations_target_unconditional_and_whitespace_self_defaults",
+      "test_sdk42_override_retains_canonical_default_validation_and_mutation_target",
+      "test_current_sdk42_accepts_exact_subjects_and_defaults",
+      "test_current_sdk42_remains_strict_for_other_profiles_and_properties",
+      "test_current_sdk42_rejects_unknown_future_case_or_expression_subjects",
+      "test_current_sdk42_rejects_selector_writer_shape_and_placement_changes",
+      "test_current_sdk42_rejects_partial_cohorts_versions_aliases_and_gates",
+      "test_current_sdk42_rejects_hidden_imports_and_root_overrides",
+      "test_current_tenants8_accepts_exact_complementary_rows_only_in_frontcomposer_profile",
+      "test_current_tenants8_rejects_changed_or_broadened_conditions",
+      "test_current_tenants8_rejects_version_declaration_placement_or_import_drift",
+      "test_current_tenants8_requires_same_closed_sdk42_and_memories_proof",
+      "test_package_sdk511_accepts_only_the_exact_frontcomposer_cohort",
+      "test_package_sdk511_rejects_unknown_defaults_and_mixed_guard_shapes",
+      "test_package_sdk511_rejects_missing_duplicate_aliased_or_nested_rows",
+      "test_package_sdk511_rejects_changed_declaration_order",
+      "test_package_sdk511_rejects_changed_frozen_role_subjects_and_writers",
+      "test_package_sdk511_rejects_changed_retained_cohorts",
+      "test_package_sdk511_rejects_hidden_imports_outputs_and_root_overrides",
+      "test_package_sdk511_standalone_memories_proof_requires_the_complete_pair"
+    ],
+    "tests_run": 36,
+    "subcases": 374,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "success": true
+  },
+  "complete_patch": {
+    "bytes": 33876,
+    "sha256": "5acdc58cec350276ad8098ce661443b2c456918a58186e90a8b5d1bf29a2aae5"
+  },
+  "incremental_patch": {
+    "bytes": 24636,
+    "sha256": "c6ed7c2b2ea0a717129794f34377f7662502ef2934ad0c330c83e8e141187b04"
+  },
+  "selected65fd_before_exit": 1,
+  "selected65fd_after_exit": 0,
+  "retained11c_exit": 0,
+  "cleanup": "Owned run-with-temp session38720 exited0; all validation/test children completed before its private workspace and synthetic test fixtures were removed. Existing owner/sibling Git state was not mutated.",
+  "remaining": "Parent must land the combined source seal, use a separate documentation-only activation push with that seal as actual immediate base, and obtain fresh committed-source normal/native/publication gates."
+}

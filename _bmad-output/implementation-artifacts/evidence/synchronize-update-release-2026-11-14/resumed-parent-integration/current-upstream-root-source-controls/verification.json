@@ -1,0 +1,38 @@
+{
+  "startedAtUtc": "2026-11-16T09:56:36.384511+00:00",
+  "scope": "Focused existing Root source/profile controls after preserving current upstream owner commits; no current-source package build/publication qualification.",
+  "checks": [
+    {
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests",
+        "-p",
+        "test_platform_source_root.py",
+        "-v"
+      ],
+      "exitCode": 0,
+      "log": "00.txt",
+      "logSha256": "8c8b6bedae2322103f9a5e0069e95fb517bfbbd70761bd6a6ab9b73576164c2b"
+    },
+    {
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests",
+        "-p",
+        "test_source_catalog_profile.py",
+        "-v"
+      ],
+      "exitCode": 0,
+      "log": "01.txt",
+      "logSha256": "19bdd8aae0653bb1be42d8ca6f604ec9d8e707e49c328c808966ff9124121f5b"
+    }
+  ]
+}

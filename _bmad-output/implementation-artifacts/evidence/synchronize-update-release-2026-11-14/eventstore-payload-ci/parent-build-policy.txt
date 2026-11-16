@@ -1,0 +1,10 @@
+test_all_components_honor_release_package_policy_without_scrubbing_ci (test_ext_protection_1_build_policy.ComponentBuildPolicyTests.test_all_components_honor_release_package_policy_without_scrubbing_ci) ... ok
+test_invalid_component_policy_fails_before_building (test_ext_protection_1_build_policy.ComponentBuildPolicyTests.test_invalid_component_policy_fails_before_building) ... ok
+test_local_source_debug_defaults_are_preserved (test_ext_protection_1_build_policy.ComponentBuildPolicyTests.test_local_source_debug_defaults_are_preserved) ... ok
+test_package_probe_runtime_matches_current_role_verifier (test_ext_protection_1_build_policy.ComponentBuildPolicyTests.test_package_probe_runtime_matches_current_role_verifier) ... ok
+test_target_path_query_retains_configuration_and_every_effective_build_property (test_ext_protection_1_build_policy.ComponentBuildPolicyTests.test_target_path_query_retains_configuration_and_every_effective_build_property) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.036s
+
+OK

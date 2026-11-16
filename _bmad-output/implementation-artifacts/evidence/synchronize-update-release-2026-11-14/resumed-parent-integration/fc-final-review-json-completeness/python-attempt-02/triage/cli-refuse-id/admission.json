@@ -1,0 +1,50 @@
+{
+  "scope": "Finite source/identity/status admission only; native scores/BOTH/private provenance remain mandatory.",
+  "acceptedByThisFiniteCheck": false,
+  "segments": [
+    {
+      "scope": "Finite source/identity/status admission only; native scores/BOTH/private provenance remain mandatory.",
+      "segment": "happy-path",
+      "expectedReviewedIdentities": 682,
+      "seenReviewedIdentities": 682,
+      "remainingProblemsAdmitted": [
+        {
+          "id": "13126",
+          "status": "NoCoverage",
+          "action": "equivalent-accepted",
+          "identitySha256": "cb2fb11d36d3ea0141c702e3da6c2fbe336575c2c28f2e465176015cd8c90ee0"
+        }
+      ],
+      "conditionalInvalidCompilerCandidates": 0,
+      "failures": [],
+      "acceptedByThisFiniteCheck": true,
+      "nativeScoresBothCohortsPrivateProvenanceStillRequired": true,
+      "actualReportSha256": "433fa6eb5256651aefa831a75b4a9a9255fc7a15eb2d6319407773fa8bd1263b",
+      "report": "artifacts/mutation/happy-path/reports/source-tools-happy-path.json"
+    },
+    {
+      "scope": "Finite source/identity/status admission only; native scores/BOTH/private provenance remain mandatory.",
+      "segment": "error-handling",
+      "expectedReviewedIdentities": 818,
+      "seenReviewedIdentities": 817,
+      "remainingProblemsAdmitted": [],
+      "conditionalInvalidCompilerCandidates": 0,
+      "failures": [
+        {
+          "id": "99999999",
+          "reason": "Unknown/unreviewed fresh problem identity"
+        },
+        {
+          "id": "13126",
+          "reason": "Expected reviewed identity missing from report"
+        }
+      ],
+      "acceptedByThisFiniteCheck": false,
+      "nativeScoresBothCohortsPrivateProvenanceStillRequired": true,
+      "actualReportSha256": "f8ce3d8fee52ca57b3a80f3a29bc533b79b3d2d6efcacd1cbd1d9cf67ad2159c",
+      "report": "artifacts/mutation/error-handling/reports/source-tools-error-handling.json"
+    }
+  ],
+  "nativeScoresBothCohortsPrivateProvenanceStillRequired": true,
+  "finiteLedgerSha256": "0b1f26b7640658a45b2588edf7016dd5eacab18493bdcacfb2fd202d4a6fc6cf"
+}

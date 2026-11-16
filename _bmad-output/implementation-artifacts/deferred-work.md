@@ -5739,3 +5739,35 @@ archived: 2026-10-22
 - source_spec: `_bmad-output/implementation-artifacts/spec-align-native-read-timeout-budgets.md`
   summary: New recovery operation lacks a full delivery/convergence regression.
   evidence: 2026-11-15 resumed review B10, medium; Searches find RefreshTenantAccess in structural/generated-controller and aggregate tests, but no command-gateway live delivery test in the authenticated route suite. Add persisted-event and consumer-convergence coverage in the separate recovery feature from 6fcff842a8e48fc843d7b2df942d369f99f92b6b; this timeout intent excludes business-runtime launches.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-synchronize-update-release-2026-11-14.md`
+  summary: EventStore offline source-mode component fixtures remove CI and can avoid the Platform Release/package guard when a CI caller omits explicit interop settings.
+  evidence: The six pre-existing source-mode setups scrub CI before building; frozen Platform00ed0607 Directory.Build.targets validates only when CI is true. The maintained payload workflow explicitly supplies Release/false and the repaired package branch preserves CI, so this is unchanged source-default debt rather than current hosted acceptance.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-synchronize-update-release-2026-11-14.md`
+  summary: FrontComposer nested projection generation loses the containing type in generated references.
+  evidence: The independent CS0246 probe agrees with unchanged b34 AttributeParser using typeSymbol.Name and emitter consumers; parser acceptance does not qualify generated compilation. Track a source/generator compatibility fix with full nested compilation.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-synchronize-update-release-2026-11-14.md`
+  summary: FrontComposer skill-corpus canonicalization loses collection-element boundaries containing a pipe.
+  evidence: Unchanged CreateSkillCorpusResourcePayload joins sorted values before canonical escaping; the reviewed two distinct partitions collide. No tracked production call site was found; qualify inputs and versioned fingerprint compatibility before a wire-format fix.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-synchronize-update-release-2026-11-14.md`
+  summary: FrontComposer HFC1012 diagnostics use the command file path for default attributes in another partial declaration.
+  evidence: Unchanged ValidateDefaultValueType combines the root filePath with attribute syntax coordinates. The independent two-file probe reports Test0.cs for the Test1.cs attribute; add a focused cross-file diagnostic fix separately.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-synchronize-update-release-2026-11-14.md`
+  summary: Unverified medium concern: determine the supported recovery policy for malformed historical authoritative tenant status, membership roles or configuration keys.
+  evidence: The refresh producer preserves existing authoritative data while audit certification refuses malformed snapshots. Valid current commands initialize Active/Disabled and real assignable roles; cited Unknown-role historical events already fail full-history certification before recovery. A real persisted historical actor-state fixture and owner-selected repair/rejection policy would determine whether refresh creates a new loss of previously valid certification; no production occurrence or new rejection contract is asserted.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-synchronize-update-release-2026-11-14.md`
+  summary: FrontComposer's upstream16.2 reopening procedure must also reopen approved-change EVT-XFER-1 tracking.
+  evidence: Current upstream epic-16-context.md:199 reopens the16.2 story row and requires the full transfer path, but approved-change EVT-XFER-1 remains not-required from its closure. Blind and edge reviewers independently identify this future operator-tracking inconsistency. It predates the current enum/catalog repairs; preserve original decision receipts and let the owning planning work correct its future reopening instruction.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-synchronize-update-release-2026-11-14.md`
+  summary: Fix the upstream EventStore transition fixture test that mistakes a later step's environment expressions for shell interpolation after an earlier run block was added.
+  evidence: Exact source fbed6cd32e0497bf8dd82a2ab7681e15e268234f run43857136989 has37/38passing tests; unchanged test_phase_4_transition.py:793 uses content.split('run: |')[1] across step boundaries. Upstreamceb43c78dca2a0f350eb98efe9f4a376b5de2114 introduced the earlier run block; this release only changed credential fixtures. The optional transition workflow is absent from main required contexts, and the required Phase4 gate risk matrix fixtures job133264190388 succeeded. Keep the failure visible; shared CI instructions direct pipeline defects to report rather than module fixes.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-synchronize-update-release-2026-11-14.md`
+  summary: The EventStore optional transition workflow-test defect recorded above is addressed by its existing owning scanner repair; fresh hosted verification remains pending.
+  evidence: Upstream8b6d5bee5217b3f4bbd8fd689ad887aca863961b replaces content.split('run: |')[1] with workflow_run_bodies and checks every run block, including single-line, later-body, compact-expression and commented-header refusal cases. This release preserves and integrates that existing repair; source and current run IDs are in resumed-parent-integration/eventstore-upstream-scanner-repair-integration.json.

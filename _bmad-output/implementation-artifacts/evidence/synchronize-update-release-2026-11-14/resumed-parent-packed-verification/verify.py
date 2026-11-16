@@ -1,9 +1,14 @@
 """Parent verification of the stable post-review root source snapshot."""
-import datetime,hashlib,json,os,shutil,subprocess,sys,time,xml.etree.ElementTree as ET
+import datetime,hashlib,json,os,shutil,subprocess,sys,time,uuid,xml.etree.ElementTree as ET
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[5]
-OUT=ROOT/"_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-packed-verification"
-OUT.mkdir(exist_ok=True)
+def replay_output(base):
+ stamp=datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+ target=base/"replays"/(stamp+"-"+uuid.uuid4().hex)
+ target.mkdir(parents=True,exist_ok=False)
+ return target
+OUT=replay_output(ROOT/"_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-packed-verification")
+print("Replay output: "+str(OUT),flush=True)
 WORKSPACE=Path(os.environ["TMPDIR"])/"workspace";WORKSPACE.mkdir()
 receipt={"captured_at_utc":datetime.datetime.now(datetime.timezone.utc).isoformat(),"root_head":subprocess.check_output(["git","rev-parse","HEAD"],text=True).strip(),"scope":"Byte-bound modified working-tree package-mode snapshot; public EventStore5.1.1 and FrontComposer6.0.0. This does not supply final committed-source CI or publication provenance.","inputs":{},"dependencies":{},"checks":[]}
 def copy(base,rel,dest):

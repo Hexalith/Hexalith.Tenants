@@ -1,0 +1,64 @@
+[
+  {
+    "name": "selected65fd-before-refusal",
+    "command": [
+      "python3",
+      "eng/dependency_graph.py",
+      "--policy",
+      "/dev/shm/hexalith-job.TAtOSB29/owner/eng/dependency-graph-policy.json",
+      "validate",
+      "--commit",
+      "ebd3f76dc0b320d455917c593ff86526b58d0c77"
+    ],
+    "exit_code": 1,
+    "expected_exit": 1,
+    "log": "selected65fd-before-refusal.log",
+    "log_sha256": "10750703536f703eba2c10a32d21f9591150bb97d146722a8b83d006d6486b1d"
+  },
+  {
+    "name": "selected65fd-after-success",
+    "command": [
+      "python3",
+      "eng/dependency_graph.py",
+      "--policy",
+      "/dev/shm/hexalith-job.TAtOSB29/owner/eng/dependency-graph-policy.json",
+      "validate",
+      "--commit",
+      "ebd3f76dc0b320d455917c593ff86526b58d0c77"
+    ],
+    "exit_code": 0,
+    "expected_exit": 0,
+    "log": "selected65fd-after-success.log",
+    "log_sha256": "9a7e14ce80abc50e427cbff189513843044c281e8ab6ec1e77e7368140edb046"
+  },
+  {
+    "name": "retained11c-old-shape-success",
+    "command": [
+      "python3",
+      "eng/dependency_graph.py",
+      "--policy",
+      "/dev/shm/hexalith-job.TAtOSB29/owner/retained-11c-policy.json",
+      "validate",
+      "--commit",
+      "11c8377a858a756c4e4069bf08e62db1f58e1733"
+    ],
+    "exit_code": 0,
+    "expected_exit": 0,
+    "log": "retained11c-old-shape-success.log",
+    "log_sha256": "df8e6ce00a00b9bca9b445355851a0a4f1fe8cf193dae94375627f379cf175bc"
+  },
+  {
+    "name": "focused-sdk42-tenants-controls",
+    "command": [
+      "python3",
+      "/dev/shm/hexalith-job.TAtOSB29/focused.py",
+      "/dev/shm/hexalith-job.TAtOSB29/owner",
+      "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-ebd-current-gate-repairs/sdk-shape-implementation/attempt-01/focused-counts.json",
+      "[\"test_frontcomposer_profile_accepts_exact_inactive_eventstore_qualification\", \"test_eventstore_qualification_remains_strict_for_other_profiles\", \"test_frontcomposer_profile_accepts_proven_inactive_sdk42_and_current_or_future_default\", \"test_sdk42_exception_is_frontcomposer_only\", \"test_sdk42_selectors_reject_changed_scope_or_nonliteral_conditions\", \"test_sdk42_selectors_reject_missing_duplicate_or_reassigned_definitions\", \"test_sdk42_selectors_reject_changed_assignment_shape\", \"test_sdk42_override_rejects_changed_value_condition_or_content\", \"test_sdk42_selector_and_override_placement_must_be_global_unconditional_and_ordered\", \"test_sdk42_selector_proof_rejects_imports_anywhere_in_catalog\", \"test_sdk42_optional_logging_import_accepts_absence_and_committed_analyzer_target\", \"test_sdk42_optional_logging_import_rejects_changed_shape_or_placement\", \"test_sdk42_committed_logging_target_rejects_properties_imports_tasks_or_shape_drift\", \"test_sdk42_logging_target_modes_and_read_budget_are_enforced\", \"test_sdk42_logging_target_uses_exact_commit_and_ignores_head_index_and_worktree\", \"test_sdk42_proof_rejects_case_insensitive_version_aliases\", \"test_sdk42_mutations_target_unconditional_and_whitespace_self_defaults\", \"test_sdk42_override_retains_canonical_default_validation_and_mutation_target\", \"test_current_sdk42_accepts_exact_subjects_and_defaults\", \"test_current_sdk42_remains_strict_for_other_profiles_and_properties\", \"test_current_sdk42_rejects_unknown_future_case_or_expression_subjects\", \"test_current_sdk42_rejects_selector_writer_shape_and_placement_changes\", \"test_current_sdk42_rejects_partial_cohorts_versions_aliases_and_gates\", \"test_current_sdk42_rejects_hidden_imports_and_root_overrides\", \"test_current_tenants8_accepts_exact_complementary_rows_only_in_frontcomposer_profile\", \"test_current_tenants8_rejects_changed_or_broadened_conditions\", \"test_current_tenants8_rejects_version_declaration_placement_or_import_drift\", \"test_current_tenants8_requires_same_closed_sdk42_and_memories_proof\", \"test_package_sdk511_accepts_only_the_exact_frontcomposer_cohort\", \"test_package_sdk511_rejects_unknown_defaults_and_mixed_guard_shapes\", \"test_package_sdk511_rejects_missing_duplicate_aliased_or_nested_rows\", \"test_package_sdk511_rejects_changed_declaration_order\", \"test_package_sdk511_rejects_changed_frozen_role_subjects_and_writers\", \"test_package_sdk511_rejects_changed_retained_cohorts\", \"test_package_sdk511_rejects_hidden_imports_outputs_and_root_overrides\", \"test_package_sdk511_standalone_memories_proof_requires_the_complete_pair\"]"
+    ],
+    "exit_code": 0,
+    "expected_exit": 0,
+    "log": "focused-sdk42-tenants-controls.log",
+    "log_sha256": "ca69846b5247e72c7fb344d8d288ed12b9a6224a364bf8b85f2f5391d905dd1c"
+  }
+]

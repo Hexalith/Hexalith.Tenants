@@ -1,0 +1,10 @@
+{
+  "createdAtUtc": "2026-11-16T10:31:01.705749+00:00",
+  "scope": "Complete additional FrontComposer owner diff from11c through preserved upstream planning/ninegitlinks and all6current gate repair files, including untracked XML fixture. Prior raw11c80/60successes remain original; no fresh native/current-release credit.",
+  "baseline": "11c8377a858a756c4e4069bf08e62db1f58e1733",
+  "head": "ebd3f76dc0b320d455917c593ff86526b58d0c77",
+  "diffPath": "/tmp/hexalith-job.AwUtYK0p/fc-current-gate-repairs-review.diff",
+  "bytes": 141422,
+  "sha256": "6e3ac0e85526c3ff788fe945d7501f2585fd7c27e86a111570b66e7a0036850a",
+  "status": " M eng/dependency-graph-policy.json\n M eng/dependency_graph.py\n M tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/mutation-target-manifest.json\n M tests/eng/test_dependency_graph.py\n M tests/eng/test_mutation_triage.py\n?? tests/ci-governance/fixtures/builds-sdk42-package-511-qualification.xml\n"
+}

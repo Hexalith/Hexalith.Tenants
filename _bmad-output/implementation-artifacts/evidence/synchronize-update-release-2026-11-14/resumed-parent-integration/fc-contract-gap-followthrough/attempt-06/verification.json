@@ -1,0 +1,1064 @@
+{
+  "scope": "Finite private non-hash contract controls on byte-bound b34 inputs; never full mutation qualification.",
+  "source_base_commit": "b34be9245443d21b72a6076cf205bbbc8a8c521f",
+  "builds_commit": "73e60af8a1fcdf3f06726d5d1b6e1199cce778ee",
+  "workspace": "/dev/shm/hexalith-job.NDn9fhqQ/FrontComposer",
+  "private_test_sha256": {
+    "CommandContractBoundaryTests.cs": "ec8ff6d06b47e7b463bfc6f1e9c8b37c3b0d161278575f4b76795d181f069fc8",
+    "TemplateContractBoundaryTests.cs": "d2161c15b16034d132c5c61753234f7097da418ff63224453146a8e8e7f11e38",
+    "ModelDefaultComparisonContractTests.cs": "8440f91d277754b94f11eeff59f3081f9c21080fe64a0a619a42cdc041747364",
+    "AliasSignatureContractTests.cs": "c7f8c8334ce91ae31bfc7fd0287e5dc6cf23f728f84c97429e2bf51c6300cc74"
+  },
+  "commands": [
+    {
+      "name": "baseline-build",
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "-c",
+        "Release",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true",
+        "-p:GeneratePackageOnBuild=false",
+        "-p:RunAnalyzers=false",
+        "-m:1",
+        "-nodeReuse:false"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 23.29559586299729,
+      "children_maxrss_kib": 531592,
+      "log": "baseline-build.log",
+      "sha256": "b28e581554f0f4826bffd0f87a0dd7b04dd9aad90eefd45b08aa1bdc2ffe54e2"
+    },
+    {
+      "name": "baseline-tests",
+      "command": [
+        "dotnet",
+        "test",
+        "--project",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "--no-build",
+        "--configuration",
+        "Release",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.CommandContractBoundaryTests",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.TemplateContractBoundaryTests",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.AliasSignatureContractTests",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.ModelDefaultComparisonContractTests",
+        "--minimum-expected-tests",
+        "25",
+        "--fail-skips",
+        "on",
+        "--results-directory",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-contract-gap-followthrough/attempt-06/baseline-results",
+        "--report-xunit-trx",
+        "--report-xunit-trx-filename",
+        "tests.trx",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 7.075683209004637,
+      "children_maxrss_kib": 531592,
+      "log": "baseline-tests.log",
+      "sha256": "33366a22bd33b8eebfb2e3751cbf8cec44c7c4cec78bcf5674e0848dd064862d"
+    },
+    {
+      "name": "12915-build",
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "-c",
+        "Release",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true",
+        "-p:GeneratePackageOnBuild=false",
+        "-p:RunAnalyzers=false",
+        "-m:1",
+        "-nodeReuse:false"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 6.2905802719978965,
+      "children_maxrss_kib": 531592,
+      "log": "12915-build.log",
+      "sha256": "ebdbdd9189f700b9782437dbdd28e88e2b3d346a9d1454d39942eefc41b292a9"
+    },
+    {
+      "name": "12915-tests",
+      "command": [
+        "dotnet",
+        "test",
+        "--project",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "--no-build",
+        "--configuration",
+        "Release",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.CommandContractBoundaryTests",
+        "--minimum-expected-tests",
+        "11",
+        "--fail-skips",
+        "on",
+        "--results-directory",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-contract-gap-followthrough/attempt-06/12915-results",
+        "--report-xunit-trx",
+        "--report-xunit-trx-filename",
+        "tests.trx",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true"
+      ],
+      "exit_code": 2,
+      "elapsed_seconds": 6.605271359003382,
+      "children_maxrss_kib": 531592,
+      "log": "12915-tests.log",
+      "sha256": "13615758cc6edd9457df3da4741e71f2ec4d7399efebf30b81f2d5f1b58371c0"
+    },
+    {
+      "name": "13013-build",
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "-c",
+        "Release",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true",
+        "-p:GeneratePackageOnBuild=false",
+        "-p:RunAnalyzers=false",
+        "-m:1",
+        "-nodeReuse:false"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 6.302586238998629,
+      "children_maxrss_kib": 531592,
+      "log": "13013-build.log",
+      "sha256": "4359bdc1f1fcbc8c18ddcb87e3ccb74fb4aa0dc1847d5487acb797c0da27797c"
+    },
+    {
+      "name": "13013-tests",
+      "command": [
+        "dotnet",
+        "test",
+        "--project",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "--no-build",
+        "--configuration",
+        "Release",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.CommandContractBoundaryTests",
+        "--minimum-expected-tests",
+        "11",
+        "--fail-skips",
+        "on",
+        "--results-directory",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-contract-gap-followthrough/attempt-06/13013-results",
+        "--report-xunit-trx",
+        "--report-xunit-trx-filename",
+        "tests.trx",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true"
+      ],
+      "exit_code": 2,
+      "elapsed_seconds": 6.845902378998289,
+      "children_maxrss_kib": 531592,
+      "log": "13013-tests.log",
+      "sha256": "7155fc673bc1e762a6f2f2c9f8fa8622619183a72535a9531cadeb61d7c5fa0a"
+    },
+    {
+      "name": "13089-build",
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "-c",
+        "Release",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true",
+        "-p:GeneratePackageOnBuild=false",
+        "-p:RunAnalyzers=false",
+        "-m:1",
+        "-nodeReuse:false"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 6.4533590840001125,
+      "children_maxrss_kib": 531592,
+      "log": "13089-build.log",
+      "sha256": "876e47efa8db3ecc3136b9a59d5466d0c8c8412293ab6107a0d03a7bc44c7e29"
+    },
+    {
+      "name": "13089-tests",
+      "command": [
+        "dotnet",
+        "test",
+        "--project",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "--no-build",
+        "--configuration",
+        "Release",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.CommandContractBoundaryTests",
+        "--minimum-expected-tests",
+        "11",
+        "--fail-skips",
+        "on",
+        "--results-directory",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-contract-gap-followthrough/attempt-06/13089-results",
+        "--report-xunit-trx",
+        "--report-xunit-trx-filename",
+        "tests.trx",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true"
+      ],
+      "exit_code": 2,
+      "elapsed_seconds": 6.569690338998043,
+      "children_maxrss_kib": 531592,
+      "log": "13089-tests.log",
+      "sha256": "eb7c60f5cbbf0e990409295b9770fc0a23d89cfa22498f805ed5ebaea4975940"
+    },
+    {
+      "name": "13730-build",
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "-c",
+        "Release",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true",
+        "-p:GeneratePackageOnBuild=false",
+        "-p:RunAnalyzers=false",
+        "-m:1",
+        "-nodeReuse:false"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 5.828802296993672,
+      "children_maxrss_kib": 531592,
+      "log": "13730-build.log",
+      "sha256": "ba039e1fe84dc42883fc8f064e2b1d15d826920f0406bfcf8d1f550722d1ba04"
+    },
+    {
+      "name": "13730-tests",
+      "command": [
+        "dotnet",
+        "test",
+        "--project",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "--no-build",
+        "--configuration",
+        "Release",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.TemplateContractBoundaryTests",
+        "--minimum-expected-tests",
+        "8",
+        "--fail-skips",
+        "on",
+        "--results-directory",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-contract-gap-followthrough/attempt-06/13730-results",
+        "--report-xunit-trx",
+        "--report-xunit-trx-filename",
+        "tests.trx",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true"
+      ],
+      "exit_code": 2,
+      "elapsed_seconds": 5.829890745997545,
+      "children_maxrss_kib": 531592,
+      "log": "13730-tests.log",
+      "sha256": "fe7f996121185f1287a698b6861187264f315cffe0984baa2573c79889fe8658"
+    },
+    {
+      "name": "13870-build",
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "-c",
+        "Release",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true",
+        "-p:GeneratePackageOnBuild=false",
+        "-p:RunAnalyzers=false",
+        "-m:1",
+        "-nodeReuse:false"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 6.2111822639999446,
+      "children_maxrss_kib": 531592,
+      "log": "13870-build.log",
+      "sha256": "dbe25a51dca1dc183da2b40ed35374d1679bd8ed8980a88ff97e3c2229f2d684"
+    },
+    {
+      "name": "13870-tests",
+      "command": [
+        "dotnet",
+        "test",
+        "--project",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "--no-build",
+        "--configuration",
+        "Release",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.TemplateContractBoundaryTests",
+        "--minimum-expected-tests",
+        "8",
+        "--fail-skips",
+        "on",
+        "--results-directory",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-contract-gap-followthrough/attempt-06/13870-results",
+        "--report-xunit-trx",
+        "--report-xunit-trx-filename",
+        "tests.trx",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true"
+      ],
+      "exit_code": 2,
+      "elapsed_seconds": 5.851502600999083,
+      "children_maxrss_kib": 531592,
+      "log": "13870-tests.log",
+      "sha256": "be38165e1c49ef0dd09410cb111c153595287a3c0aa7220247832b94ed2643a1"
+    },
+    {
+      "name": "13996-build",
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "-c",
+        "Release",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true",
+        "-p:GeneratePackageOnBuild=false",
+        "-p:RunAnalyzers=false",
+        "-m:1",
+        "-nodeReuse:false"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 6.49498876400321,
+      "children_maxrss_kib": 531592,
+      "log": "13996-build.log",
+      "sha256": "a6717a7c3ba370ab75d51e36fb68c74e61c75982ebf78ad2d2e87ef6ffb31b9f"
+    },
+    {
+      "name": "13996-tests",
+      "command": [
+        "dotnet",
+        "test",
+        "--project",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "--no-build",
+        "--configuration",
+        "Release",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.AliasSignatureContractTests",
+        "--minimum-expected-tests",
+        "4",
+        "--fail-skips",
+        "on",
+        "--results-directory",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-contract-gap-followthrough/attempt-06/13996-results",
+        "--report-xunit-trx",
+        "--report-xunit-trx-filename",
+        "tests.trx",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true"
+      ],
+      "exit_code": 2,
+      "elapsed_seconds": 4.12884057800693,
+      "children_maxrss_kib": 531592,
+      "log": "13996-tests.log",
+      "sha256": "85d27443bae42e7bb73fe62c5616c7e46c74ecb569418ac50127835089a9d54b"
+    },
+    {
+      "name": "13143-build",
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "-c",
+        "Release",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true",
+        "-p:GeneratePackageOnBuild=false",
+        "-p:RunAnalyzers=false",
+        "-m:1",
+        "-nodeReuse:false"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 6.43621039899881,
+      "children_maxrss_kib": 531592,
+      "log": "13143-build.log",
+      "sha256": "876e47efa8db3ecc3136b9a59d5466d0c8c8412293ab6107a0d03a7bc44c7e29"
+    },
+    {
+      "name": "13143-tests",
+      "command": [
+        "dotnet",
+        "test",
+        "--project",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "--no-build",
+        "--configuration",
+        "Release",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.ModelDefaultComparisonContractTests",
+        "--minimum-expected-tests",
+        "2",
+        "--fail-skips",
+        "on",
+        "--results-directory",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-contract-gap-followthrough/attempt-06/13143-results",
+        "--report-xunit-trx",
+        "--report-xunit-trx-filename",
+        "tests.trx",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true"
+      ],
+      "exit_code": 2,
+      "elapsed_seconds": 0.9555697250034427,
+      "children_maxrss_kib": 531592,
+      "log": "13143-tests.log",
+      "sha256": "41afd9484d05432b0a4e271d276985abfdc90c7d9bcc6c0131995bb1a7c91579"
+    },
+    {
+      "name": "13027-build",
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "-c",
+        "Release",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true",
+        "-p:GeneratePackageOnBuild=false",
+        "-p:RunAnalyzers=false",
+        "-m:1",
+        "-nodeReuse:false"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 6.480786722997436,
+      "children_maxrss_kib": 531592,
+      "log": "13027-build.log",
+      "sha256": "a6717a7c3ba370ab75d51e36fb68c74e61c75982ebf78ad2d2e87ef6ffb31b9f"
+    },
+    {
+      "name": "13027-tests",
+      "command": [
+        "dotnet",
+        "test",
+        "--project",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "--no-build",
+        "--configuration",
+        "Release",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.CommandContractBoundaryTests",
+        "--minimum-expected-tests",
+        "11",
+        "--fail-skips",
+        "on",
+        "--results-directory",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-contract-gap-followthrough/attempt-06/13027-results",
+        "--report-xunit-trx",
+        "--report-xunit-trx-filename",
+        "tests.trx",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true"
+      ],
+      "exit_code": 2,
+      "elapsed_seconds": 5.907593153002381,
+      "children_maxrss_kib": 531592,
+      "log": "13027-tests.log",
+      "sha256": "cbdd129f43a1178375398278247b93427f56be0cdfda946f193d7e48a377c1ed"
+    },
+    {
+      "name": "13047-build",
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "-c",
+        "Release",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true",
+        "-p:GeneratePackageOnBuild=false",
+        "-p:RunAnalyzers=false",
+        "-m:1",
+        "-nodeReuse:false"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 6.524740331995417,
+      "children_maxrss_kib": 531592,
+      "log": "13047-build.log",
+      "sha256": "b3bb310eff89232d9e8d2cf7137682c52a6c787b78022b981229b13273fa6e34"
+    },
+    {
+      "name": "13047-tests",
+      "command": [
+        "dotnet",
+        "test",
+        "--project",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "--no-build",
+        "--configuration",
+        "Release",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.CommandContractBoundaryTests",
+        "--minimum-expected-tests",
+        "11",
+        "--fail-skips",
+        "on",
+        "--results-directory",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-contract-gap-followthrough/attempt-06/13047-results",
+        "--report-xunit-trx",
+        "--report-xunit-trx-filename",
+        "tests.trx",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true"
+      ],
+      "exit_code": 2,
+      "elapsed_seconds": 6.797101306998229,
+      "children_maxrss_kib": 531592,
+      "log": "13047-tests.log",
+      "sha256": "893fc58ffcb9f9e0fd3651248a72014de30e154dda00024680601c04734c0062"
+    },
+    {
+      "name": "13736-build",
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "-c",
+        "Release",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true",
+        "-p:GeneratePackageOnBuild=false",
+        "-p:RunAnalyzers=false",
+        "-m:1",
+        "-nodeReuse:false"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 6.198935567001172,
+      "children_maxrss_kib": 531592,
+      "log": "13736-build.log",
+      "sha256": "dbe25a51dca1dc183da2b40ed35374d1679bd8ed8980a88ff97e3c2229f2d684"
+    },
+    {
+      "name": "13736-tests",
+      "command": [
+        "dotnet",
+        "test",
+        "--project",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "--no-build",
+        "--configuration",
+        "Release",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.TemplateContractBoundaryTests",
+        "--minimum-expected-tests",
+        "8",
+        "--fail-skips",
+        "on",
+        "--results-directory",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-contract-gap-followthrough/attempt-06/13736-results",
+        "--report-xunit-trx",
+        "--report-xunit-trx-filename",
+        "tests.trx",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true"
+      ],
+      "exit_code": 2,
+      "elapsed_seconds": 5.7058542580052745,
+      "children_maxrss_kib": 531592,
+      "log": "13736-tests.log",
+      "sha256": "a9f4e06a04cfc44e3b27e780a48cbf9c3717d2f4aa8eb30cd172b2388d915c69"
+    },
+    {
+      "name": "13748-build",
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "-c",
+        "Release",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true",
+        "-p:GeneratePackageOnBuild=false",
+        "-p:RunAnalyzers=false",
+        "-m:1",
+        "-nodeReuse:false"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 6.4532718929986,
+      "children_maxrss_kib": 531592,
+      "log": "13748-build.log",
+      "sha256": "0bb69d15a99c5358b29a3ac8cf444c8e68dd2e86c48ec02c72e9687ea247cd93"
+    },
+    {
+      "name": "13748-tests",
+      "command": [
+        "dotnet",
+        "test",
+        "--project",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "--no-build",
+        "--configuration",
+        "Release",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.TemplateContractBoundaryTests",
+        "--minimum-expected-tests",
+        "8",
+        "--fail-skips",
+        "on",
+        "--results-directory",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-contract-gap-followthrough/attempt-06/13748-results",
+        "--report-xunit-trx",
+        "--report-xunit-trx-filename",
+        "tests.trx",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true"
+      ],
+      "exit_code": 2,
+      "elapsed_seconds": 5.360099164005078,
+      "children_maxrss_kib": 531592,
+      "log": "13748-tests.log",
+      "sha256": "c4fdbf5e7df7ce075bc0d2d78e30ccb903d6edc3477312e78ba74bb1abfc0c0a"
+    },
+    {
+      "name": "13939-build",
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "-c",
+        "Release",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true",
+        "-p:GeneratePackageOnBuild=false",
+        "-p:RunAnalyzers=false",
+        "-m:1",
+        "-nodeReuse:false"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 6.646488470003533,
+      "children_maxrss_kib": 531592,
+      "log": "13939-build.log",
+      "sha256": "199791c5c7ed600c7b3605515a7bbf3e3946b0ddfa0dfe3e8f326dbdee576a7d"
+    },
+    {
+      "name": "13939-tests",
+      "command": [
+        "dotnet",
+        "test",
+        "--project",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "--no-build",
+        "--configuration",
+        "Release",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.AliasSignatureContractTests",
+        "--minimum-expected-tests",
+        "4",
+        "--fail-skips",
+        "on",
+        "--results-directory",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-contract-gap-followthrough/attempt-06/13939-results",
+        "--report-xunit-trx",
+        "--report-xunit-trx-filename",
+        "tests.trx",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true"
+      ],
+      "exit_code": 2,
+      "elapsed_seconds": 4.132327083003474,
+      "children_maxrss_kib": 531592,
+      "log": "13939-tests.log",
+      "sha256": "1d977dbbe2aaba5593e101a472e4810dbee3f688a81583195a49a55685bb48bc"
+    },
+    {
+      "name": "13973-build",
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "-c",
+        "Release",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true",
+        "-p:GeneratePackageOnBuild=false",
+        "-p:RunAnalyzers=false",
+        "-m:1",
+        "-nodeReuse:false"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 6.32005214599485,
+      "children_maxrss_kib": 531592,
+      "log": "13973-build.log",
+      "sha256": "3d93d148efecfef473e14521ae3e59e71c49912e87ebb50bffa84350d7e2eaa4"
+    },
+    {
+      "name": "13973-tests",
+      "command": [
+        "dotnet",
+        "test",
+        "--project",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "--no-build",
+        "--configuration",
+        "Release",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.AliasSignatureContractTests",
+        "--minimum-expected-tests",
+        "4",
+        "--fail-skips",
+        "on",
+        "--results-directory",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-contract-gap-followthrough/attempt-06/13973-results",
+        "--report-xunit-trx",
+        "--report-xunit-trx-filename",
+        "tests.trx",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true"
+      ],
+      "exit_code": 2,
+      "elapsed_seconds": 4.027611170000455,
+      "children_maxrss_kib": 531592,
+      "log": "13973-tests.log",
+      "sha256": "979b20167a44c10010aa46529dedd96e2eb7c35a325b0378673f87c43d257bbe"
+    },
+    {
+      "name": "14003-build",
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "-c",
+        "Release",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true",
+        "-p:GeneratePackageOnBuild=false",
+        "-p:RunAnalyzers=false",
+        "-m:1",
+        "-nodeReuse:false"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 6.481977666997409,
+      "children_maxrss_kib": 531592,
+      "log": "14003-build.log",
+      "sha256": "a6717a7c3ba370ab75d51e36fb68c74e61c75982ebf78ad2d2e87ef6ffb31b9f"
+    },
+    {
+      "name": "14003-tests",
+      "command": [
+        "dotnet",
+        "test",
+        "--project",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "--no-build",
+        "--configuration",
+        "Release",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.AliasSignatureContractTests",
+        "--minimum-expected-tests",
+        "4",
+        "--fail-skips",
+        "on",
+        "--results-directory",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-contract-gap-followthrough/attempt-06/14003-results",
+        "--report-xunit-trx",
+        "--report-xunit-trx-filename",
+        "tests.trx",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 4.519131615001243,
+      "children_maxrss_kib": 531592,
+      "log": "14003-tests.log",
+      "sha256": "cffe8729b0c238dc70f0e7729fc284e02024961769181e460214b127829095de"
+    }
+  ],
+  "variants": {
+    "12915": {
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/CommandParser.cs",
+      "original_status": "Survived",
+      "original_location": {
+        "start": {
+          "line": 660,
+          "column": 13
+        },
+        "end": {
+          "line": 660,
+          "column": 60
+        }
+      },
+      "original": "policyAttribute.ConstructorArguments.Length > 0",
+      "replacement": "policyAttribute.ConstructorArguments.Length >= 0",
+      "class": "CommandContractBoundaryTests",
+      "baseline_source_sha256": "d592027a06458ebfef0f9b3f34e8be831340d91a3b44af063a2c0bb8f15c6e98",
+      "literal_source_sha256": "0f103c24aed93686cb88e0d6b044f78192f4e1a99fd9408889488c487054f27d"
+    },
+    "13013": {
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/CommandParser.cs",
+      "original_status": "Survived",
+      "original_location": {
+        "start": {
+          "line": 792,
+          "column": 20
+        },
+        "end": {
+          "line": 792,
+          "column": 56
+        }
+      },
+      "original": "attr.ConstructorArguments.Length > 0",
+      "replacement": "attr.ConstructorArguments.Length >= 0",
+      "class": "CommandContractBoundaryTests",
+      "baseline_source_sha256": "d592027a06458ebfef0f9b3f34e8be831340d91a3b44af063a2c0bb8f15c6e98",
+      "literal_source_sha256": "64cea2f66518880f72674d8c0dcadc784e85768f09cab2d85708a8b33d56c0c7"
+    },
+    "13089": {
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/CommandParser.cs",
+      "original_status": "Survived",
+      "original_location": {
+        "start": {
+          "line": 884,
+          "column": 41
+        },
+        "end": {
+          "line": 884,
+          "column": 94
+        }
+      },
+      "original": "SpecialType.System_Int32 or SpecialType.System_UInt32",
+      "replacement": "SpecialType.System_Int32 and SpecialType.System_UInt32",
+      "class": "CommandContractBoundaryTests",
+      "baseline_source_sha256": "d592027a06458ebfef0f9b3f34e8be831340d91a3b44af063a2c0bb8f15c6e98",
+      "literal_source_sha256": "d64a3d95d1e7aa5f5e4991f73808e93a406ed8343922cc83bbba9f7f7e67c3d9"
+    },
+    "13730": {
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/ProjectionTemplateMarkerParser.cs",
+      "original_status": "Survived",
+      "original_location": {
+        "start": {
+          "line": 98,
+          "column": 29
+        },
+        "end": {
+          "line": 98,
+          "column": 452
+        }
+      },
+      "original": "\"What: [ProjectionTemplate] on '{0}' specifies an unknown ProjectionRole value.\\nExpected: A named value from ProjectionRole.\\nGot: numeric role value {1}.\\nFix: Remove the unsafe enum cast or use a declared ProjectionRole member.\\nFallback: This template is excluded from the generated manifest so it cannot accidentally become an any-role template.\\nDocsLink: https://hexalith.github.io/FrontComposer/diagnostics/HFC1024\"",
+      "replacement": "\"\"",
+      "class": "TemplateContractBoundaryTests",
+      "baseline_source_sha256": "400f3ce2c10137672207f9d131f640e3fe267ab6a5bd84f9733387112ede6e8e",
+      "literal_source_sha256": "03b39cc44ae11690629c9e54f739f3fd5cedb42c70ade05b793f2bcf42ff861f"
+    },
+    "13870": {
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/ProjectionTemplateMarkerParser.cs",
+      "original_status": "Survived",
+      "original_location": {
+        "start": {
+          "line": 360,
+          "column": 17
+        },
+        "end": {
+          "line": 360,
+          "column": 350
+        }
+      },
+      "original": "\"What: [ProjectionTemplate] '{0}' for projection '{1}' uses an out-of-date contract minor version.\\nExpected: {2}.{3}.{4} (current).\\nGot: {5}.{6}.{7} (raw value {8}).\\nFix: Update the marker to ProjectionTemplateContractVersion.Current at the next safe touch.\\nDocsLink: https://hexalith.github.io/FrontComposer/diagnostics/HFC1036\"",
+      "replacement": "\"\"",
+      "class": "TemplateContractBoundaryTests",
+      "baseline_source_sha256": "400f3ce2c10137672207f9d131f640e3fe267ab6a5bd84f9733387112ede6e8e",
+      "literal_source_sha256": "b49460b898d6404feab85aebb9fc46d6f93730c8f4d531ea7a8cec3ce86c4370"
+    },
+    "13996": {
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/SourceTypeNameFormatter.cs",
+      "original_status": "NoCoverage",
+      "original_location": {
+        "start": {
+          "line": 173,
+          "column": 22
+        },
+        "end": {
+          "line": 175,
+          "column": 18
+        }
+      },
+      "original": "{\r\n                    _ = aliases.Add(alias);\r\n                }",
+      "replacement": "{}",
+      "class": "AliasSignatureContractTests",
+      "baseline_source_sha256": "379af431c5ce06e1f51fd8c316ff109c5313a5407b5f9891432b973a5e551ffe",
+      "literal_source_sha256": "6524208042ce77b1784bde43ceead1032efc5b573cace4531609ad9e4ff8dc94"
+    },
+    "13143": {
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/DomainModel.cs",
+      "original_status": "Survived",
+      "original_location": {
+        "start": {
+          "line": 33,
+          "column": 44
+        },
+        "end": {
+          "line": 33,
+          "column": 56
+        }
+      },
+      "original": "string.Empty",
+      "replacement": "\"Stryker was here!\"",
+      "class": "ModelDefaultComparisonContractTests",
+      "baseline_source_sha256": "acf13555b32a38ecd204bfada635276aa304f9f7c5f604f89ffe51d46bdcd624",
+      "literal_source_sha256": "31439f9bf0e9d874c1c2eec75969d304e65eae9892d03286cd0c1c0b42a351e9"
+    },
+    "13027": {
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/CommandParser.cs",
+      "original_status": "NoCoverage",
+      "original_location": {
+        "start": {
+          "line": 814,
+          "column": 17
+        },
+        "end": {
+          "line": 814,
+          "column": 26
+        }
+      },
+      "original": "continue;",
+      "replacement": ";",
+      "class": "CommandContractBoundaryTests",
+      "baseline_source_sha256": "d592027a06458ebfef0f9b3f34e8be831340d91a3b44af063a2c0bb8f15c6e98",
+      "literal_source_sha256": "5fd37c02a3279ecf4899037cdd821ef22fa282ced13e12e6a15efff8b26464aa"
+    },
+    "13047": {
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/CommandParser.cs",
+      "original_status": "NoCoverage",
+      "original_location": {
+        "start": {
+          "line": 837,
+          "column": 21
+        },
+        "end": {
+          "line": 837,
+          "column": 30
+        }
+      },
+      "original": "continue;",
+      "replacement": ";",
+      "class": "CommandContractBoundaryTests",
+      "baseline_source_sha256": "d592027a06458ebfef0f9b3f34e8be831340d91a3b44af063a2c0bb8f15c6e98",
+      "literal_source_sha256": "da0fceef4afff89c4d20b8e82b631448aed7bd278e9570343fed7f2050bb7789"
+    },
+    "13736": {
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/ProjectionTemplateMarkerParser.cs",
+      "original_status": "NoCoverage",
+      "original_location": {
+        "start": {
+          "line": 115,
+          "column": 13
+        },
+        "end": {
+          "line": 124,
+          "column": 37
+        }
+      },
+      "original": "diagnostics.Add(new DiagnosticInfo(\r\n                \"HFC1033\",\r\n                string.Format(\r\n                    CultureInfo.InvariantCulture,\r\n                    \"What: [ProjectionTemplate] on '{0}' is missing its projection type argument.\\nExpected: typeof(MyProjection) where MyProjection is a [Projection]-annotated class.\\nGot: null.\\nFix: Pass typeof(MyProjection) as the first argument.\\nDocsLink: https://hexalith.github.io/FrontComposer/diagnostics/HFC1033\",\r\n                    templateSymbol.Name),\r\n                \"Error\",\r\n                filePath,\r\n                linePos.Line,\r\n                linePos.Character));",
+      "replacement": ";",
+      "class": "TemplateContractBoundaryTests",
+      "baseline_source_sha256": "400f3ce2c10137672207f9d131f640e3fe267ab6a5bd84f9733387112ede6e8e",
+      "literal_source_sha256": "c01eab91aee8bc5d0058eedc22991dc27333e48014dbb569d0b38b1340adf13a"
+    },
+    "13748": {
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/ProjectionTemplateMarkerParser.cs",
+      "original_status": "NoCoverage",
+      "original_location": {
+        "start": {
+          "line": 147,
+          "column": 13
+        },
+        "end": {
+          "line": 157,
+          "column": 37
+        }
+      },
+      "original": "diagnostics.Add(new DiagnosticInfo(\r\n                \"HFC1034\",\r\n                string.Format(\r\n                    CultureInfo.InvariantCulture,\r\n            \"What: [ProjectionTemplate] component '{0}' is not a valid Level 2 Razor component.\\nExpected: A non-abstract, non-generic Razor component partial type.\\nGot: {1}.\\nFix: Move the marker to the Razor component partial class.\\nFallback: This template is excluded from the generated manifest.\\nDocsLink: https://hexalith.github.io/FrontComposer/diagnostics/HFC1034\",\r\n                    templateSymbol.Name,\r\n                    templateReason),\r\n                \"Warning\",\r\n                filePath,\r\n                linePos.Line,\r\n                linePos.Character));",
+      "replacement": ";",
+      "class": "TemplateContractBoundaryTests",
+      "baseline_source_sha256": "400f3ce2c10137672207f9d131f640e3fe267ab6a5bd84f9733387112ede6e8e",
+      "literal_source_sha256": "f33266a902fbcf6b952000218e96de33da60ef5c5432422e1549e008b437d1e3"
+    },
+    "13939": {
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/SourceTypeNameFormatter.cs",
+      "original_status": "NoCoverage",
+      "original_location": {
+        "start": {
+          "line": 88,
+          "column": 29
+        },
+        "end": {
+          "line": 90,
+          "column": 14
+        }
+      },
+      "original": "{\r\n                _ = builder.Append('?');\r\n            }",
+      "replacement": "{}",
+      "class": "AliasSignatureContractTests",
+      "baseline_source_sha256": "379af431c5ce06e1f51fd8c316ff109c5313a5407b5f9891432b973a5e551ffe",
+      "literal_source_sha256": "3763b7ab09c8cbd33ed86fcdfca99bd9aae902e4ae94bfb4910732bd721ae3c6"
+    },
+    "13973": {
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/SourceTypeNameFormatter.cs",
+      "original_status": "Survived",
+      "original_location": {
+        "start": {
+          "line": 130,
+          "column": 40
+        },
+        "end": {
+          "line": 130,
+          "column": 44
+        }
+      },
+      "original": "\", \"",
+      "replacement": "\"\"",
+      "class": "AliasSignatureContractTests",
+      "baseline_source_sha256": "379af431c5ce06e1f51fd8c316ff109c5313a5407b5f9891432b973a5e551ffe",
+      "literal_source_sha256": "c77bc0e0a50e2c08567bed501788bb4b0aa5ef0bd9ee1dc12d69503a2c199923"
+    },
+    "14003": {
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/SourceTypeNameFormatter.cs",
+      "original_status": "NoCoverage",
+      "original_location": {
+        "start": {
+          "line": 183,
+          "column": 32
+        },
+        "end": {
+          "line": 183,
+          "column": 43
+        }
+      },
+      "original": "aliases.Min",
+      "replacement": "aliases.Max",
+      "class": "AliasSignatureContractTests",
+      "baseline_source_sha256": "379af431c5ce06e1f51fd8c316ff109c5313a5407b5f9891432b973a5e551ffe",
+      "literal_source_sha256": "62c7f0f607bf8b91b39c8ba0a44f10c728486b82ce60f6141f65342995e69096"
+    }
+  },
+  "archives": [
+    {
+      "revision": "b34be9245443d21b72a6076cf205bbbc8a8c521f",
+      "sha256": "6cb2fd629f781af3d677fbeff9d7752f7a6101e494660d4f32ff72edda534516"
+    },
+    {
+      "revision": "73e60af8a1fcdf3f06726d5d1b6e1199cce778ee",
+      "sha256": "9b92ae56444da9b4bff1b2527011d061a37aa4ad925ac5c507bb55ef78ada9c5"
+    }
+  ],
+  "runner_sha256": "db2a0d97c2f9671dab32b069b2700363d49a4313f7439cfd407821d7472e2158"
+}

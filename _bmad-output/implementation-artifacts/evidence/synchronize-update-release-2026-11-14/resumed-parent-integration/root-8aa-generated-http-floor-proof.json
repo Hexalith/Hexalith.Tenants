@@ -1,0 +1,26 @@
+{
+  "observedAtUtc": "2026-11-16T06:16:40.299763+00:00",
+  "source": "8aa6f169b3e27f0a831ad6425c4bc1278ca2c445",
+  "run": 43752423731,
+  "job": 132929102559,
+  "conclusion": "success",
+  "class": "Hexalith.Tenants.IntegrationTests.TenantsApiGeneratedControllerTests",
+  "total": 67,
+  "succeeded": 67,
+  "failed": 0,
+  "skipped": 0,
+  "summaryOriginalLines": [
+    "Test run summary: Passed!",
+    "2026-11-15T19:31:11.2390439Z \u001b[m  total: 67",
+    "2026-11-15T19:31:11.2390793Z   failed: 0",
+    "2026-11-15T19:31:11.2391213Z \u001b[32m  succeeded: 67",
+    "2026-11-15T19:31:11.2391680Z \u001b[m  skipped: 0",
+    "2026-11-15T19:31:11.2392079Z   duration: 30s 746ms"
+  ],
+  "rawLogSha256": "0a4085cfb03af4c65e1dd9fb59b5bee178f834e6ae1dbd97b77654c1bd008843",
+  "compressedLog": "root-8aa-generated-http-job.txt.gz",
+  "compressedLogSha256": "b7bda98a56042c7b91d4d637c8a0b2150ea8d96812f722f0a8b59d05f7b4d2e2",
+  "currentTestSourceUnchanged": true,
+  "testSourceSha256": "27d3575ff5da15986823ce400b16720f255b08027937d4df3102fc7c093ec19c",
+  "scope": "Existing real suite proves the corrected67floor is reachable on unchanged tests; does not replace future exact final source CI."
+}

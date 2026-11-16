@@ -1,0 +1,345 @@
+{
+  "source_commit": "e0eef14ddbbcd03823863a4f417a4b07f6f5bafc",
+  "hosted_run": "43755375617",
+  "hosted_job": "132939666243",
+  "input_file": "fc-e0-happy-tail-1794775304.txt",
+  "input_sha256": "4b5c9196fe242052c673ec22c0d9763d359836658f3850209e34de2c16650627",
+  "input_bytes": 18983794,
+  "input_line_count": 69828,
+  "discovered_tests": 1482,
+  "planned_live_mutants": 2333,
+  "completed_ids": 378,
+  "test_run_success": 41,
+  "test_run_failed": 337,
+  "scope": "Partial log observations only; success is a survivor candidate, not a final complete report status or mutation score.",
+  "observed_survivors": [
+    {
+      "id": 11858,
+      "completion_line": 67266,
+      "observed_status": "success",
+      "kind": "Block removal mutation",
+      "creation_line": 30701,
+      "change": "{\n            return EmptyParseResult;\n        } -> {} using Stryker.Core.Mutators.BlockMutator"
+    },
+    {
+      "id": 11905,
+      "completion_line": 67524,
+      "observed_status": "success",
+      "kind": "String mutation",
+      "creation_line": 30881,
+      "change": "\"[Projection] attribute on '{0}' is not supported: structs are not supported. Only non-abstract, non-generic classes and records are supported\" -> \"\" using Stryker.Core.Mutators.StringMutator"
+    },
+    {
+      "id": 11906,
+      "completion_line": 67530,
+      "observed_status": "success",
+      "kind": "String mutation",
+      "creation_line": 30882,
+      "change": "\"Warning\" -> \"\" using Stryker.Core.Mutators.StringMutator"
+    },
+    {
+      "id": 11921,
+      "completion_line": 67600,
+      "observed_status": "success",
+      "kind": "Linq method mutation (FirstOrDefault() to First())",
+      "creation_line": 30939,
+      "change": "containingType.DeclaringSyntaxReferences.FirstOrDefault -> containingType.DeclaringSyntaxReferences.First using Stryker.Core.Mutators.LinqMutator"
+    },
+    {
+      "id": 11924,
+      "completion_line": 67606,
+      "observed_status": "success",
+      "kind": "Linq method mutation (Any() to All())",
+      "creation_line": 30944,
+      "change": "outerTds.Modifiers.Any -> outerTds.Modifiers.All using Stryker.Core.Mutators.LinqMutator"
+    },
+    {
+      "id": 11961,
+      "completion_line": 67754,
+      "observed_status": "success",
+      "kind": "String mutation",
+      "creation_line": 31119,
+      "change": "\"Invalid argument for attribute 'BoundedContext' on type '{0}': name must be a non-empty string\" -> \"\" using Stryker.Core.Mutators.StringMutator"
+    },
+    {
+      "id": 11962,
+      "completion_line": 67760,
+      "observed_status": "success",
+      "kind": "String mutation",
+      "creation_line": 31120,
+      "change": "\"Warning\" -> \"\" using Stryker.Core.Mutators.StringMutator"
+    },
+    {
+      "id": 11990,
+      "completion_line": 67860,
+      "observed_status": "success",
+      "kind": "String mutation",
+      "creation_line": 31365,
+      "change": "\"Unknown ProjectionRole value '{0}' on {1} - falling back to Default rendering.\" -> \"\" using Stryker.Core.Mutators.StringMutator"
+    },
+    {
+      "id": 11991,
+      "completion_line": 67866,
+      "observed_status": "success",
+      "kind": "String mutation",
+      "creation_line": 31366,
+      "change": "\"Warning\" -> \"\" using Stryker.Core.Mutators.StringMutator"
+    },
+    {
+      "id": 12009,
+      "completion_line": 67939,
+      "observed_status": "success",
+      "kind": "CoalesceAssignmentExpression to SimpleAssignmentExpression mutation",
+      "creation_line": 31461,
+      "change": "statusProperty ??= property -> statusProperty = property using Stryker.Core.Mutators.AssignmentExpressionMutator"
+    },
+    {
+      "id": 12036,
+      "completion_line": 68047,
+      "observed_status": "success",
+      "kind": "String mutation",
+      "creation_line": 31540,
+      "change": "\", \" -> \"\" using Stryker.Core.Mutators.StringMutator"
+    },
+    {
+      "id": 12079,
+      "completion_line": 68257,
+      "observed_status": "success",
+      "kind": "Null coalescing mutation (remove left)",
+      "creation_line": 31779,
+      "change": "propertySymbol.Locations.FirstOrDefault() ?? Location.None -> Location.None using Stryker.Core.Mutators.NullCoalescingExpressionMutator"
+    },
+    {
+      "id": 12080,
+      "completion_line": 68264,
+      "observed_status": "success",
+      "kind": "Linq method mutation (FirstOrDefault() to First())",
+      "creation_line": 31780,
+      "change": "propertySymbol.Locations.FirstOrDefault -> propertySymbol.Locations.First using Stryker.Core.Mutators.LinqMutator"
+    },
+    {
+      "id": 12081,
+      "completion_line": 68270,
+      "observed_status": "success",
+      "kind": "Null coalescing mutation (remove left)",
+      "creation_line": 31781,
+      "change": "flagsLocation.SourceTree?.FilePath ?? filePath -> filePath using Stryker.Core.Mutators.NullCoalescingExpressionMutator"
+    },
+    {
+      "id": 12085,
+      "completion_line": 68294,
+      "observed_status": "success",
+      "kind": "String mutation",
+      "creation_line": 31794,
+      "change": "\"Warning\" -> \"\" using Stryker.Core.Mutators.StringMutator"
+    },
+    {
+      "id": 12086,
+      "completion_line": 68300,
+      "observed_status": "success",
+      "kind": "Boolean mutation",
+      "creation_line": 31795,
+      "change": "true -> false using Stryker.Core.Mutators.BooleanMutator"
+    },
+    {
+      "id": 12133,
+      "completion_line": 68612,
+      "observed_status": "success",
+      "kind": "Boolean mutation",
+      "creation_line": 31985,
+      "change": "false -> true using Stryker.Core.Mutators.BooleanMutator"
+    },
+    {
+      "id": 12152,
+      "completion_line": 68707,
+      "observed_status": "success",
+      "kind": "Boolean mutation",
+      "creation_line": 32036,
+      "change": "false -> true using Stryker.Core.Mutators.BooleanMutator"
+    },
+    {
+      "id": 12192,
+      "completion_line": 68934,
+      "observed_status": "success",
+      "kind": "Equality mutation",
+      "creation_line": 32271,
+      "change": "attr.ConstructorArguments.Length > 0 -> attr.ConstructorArguments.Length >= 0 using Stryker.Core.Mutators.BinaryExpressionMutator"
+    },
+    {
+      "id": 12207,
+      "completion_line": 68989,
+      "observed_status": "success",
+      "kind": "Conditional (false) mutation",
+      "creation_line": 32319,
+      "change": "ctorArg.Value is null\n                            ? \"null\"\n                            : ctorArg.Value.ToString() ?? ctorArg.Value.GetType().Name -> (false?\"null\"\n:ctorArg.Value.ToString() ?? ctorArg.Value.GetType().Name) using Stryker.Core.Mutators.ConditionalExpressionMutator"
+    },
+    {
+      "id": 12224,
+      "completion_line": 69084,
+      "observed_status": "success",
+      "kind": "String mutation",
+      "creation_line": 32362,
+      "change": "\"[RelativeTime] + [Currency]\" -> \"\" using Stryker.Core.Mutators.StringMutator"
+    },
+    {
+      "id": 12225,
+      "completion_line": 69090,
+      "observed_status": "success",
+      "kind": "String mutation",
+      "creation_line": 32363,
+      "change": "\"at most one Level 1 format annotation\" -> \"\" using Stryker.Core.Mutators.StringMutator"
+    },
+    {
+      "id": 12226,
+      "completion_line": 69096,
+      "observed_status": "success",
+      "kind": "String mutation",
+      "creation_line": 32364,
+      "change": "\"Remove one annotation so the field has a single format hint.\" -> \"\" using Stryker.Core.Mutators.StringMutator"
+    },
+    {
+      "id": 12232,
+      "completion_line": 69121,
+      "observed_status": "success",
+      "kind": "String mutation",
+      "creation_line": 32418,
+      "change": "\"[RelativeTime]\" -> \"\" using Stryker.Core.Mutators.StringMutator"
+    },
+    {
+      "id": 12234,
+      "completion_line": 69133,
+      "observed_status": "success",
+      "kind": "Equality mutation",
+      "creation_line": 32420,
+      "change": "propertyType.TypeKind == TypeKind.Enum -> propertyType.TypeKind != TypeKind.Enum using Stryker.Core.Mutators.BinaryExpressionMutator"
+    },
+    {
+      "id": 12235,
+      "completion_line": 69139,
+      "observed_status": "success",
+      "kind": "String mutation",
+      "creation_line": 32421,
+      "change": "\"Apply [RelativeTime] only to DateTime/DateTimeOffset fields or remove the annotation.\" -> \"\" using Stryker.Core.Mutators.StringMutator"
+    },
+    {
+      "id": 12249,
+      "completion_line": 69205,
+      "observed_status": "success",
+      "kind": "String mutation",
+      "creation_line": 32464,
+      "change": "\"[Currency]\" -> \"\" using Stryker.Core.Mutators.StringMutator"
+    },
+    {
+      "id": 12251,
+      "completion_line": 69217,
+      "observed_status": "success",
+      "kind": "Equality mutation",
+      "creation_line": 32466,
+      "change": "propertyType.TypeKind == TypeKind.Enum -> propertyType.TypeKind != TypeKind.Enum using Stryker.Core.Mutators.BinaryExpressionMutator"
+    },
+    {
+      "id": 12252,
+      "completion_line": 69222,
+      "observed_status": "success",
+      "kind": "String mutation",
+      "creation_line": 32467,
+      "change": "\"Apply [Currency] only to decimal/double/float fields or remove the annotation.\" -> \"\" using Stryker.Core.Mutators.StringMutator"
+    },
+    {
+      "id": 12266,
+      "completion_line": 69283,
+      "observed_status": "success",
+      "kind": "Null coalescing mutation (remove left)",
+      "creation_line": 32502,
+      "change": "location.SourceTree?.FilePath ?? fallbackFilePath -> fallbackFilePath using Stryker.Core.Mutators.NullCoalescingExpressionMutator"
+    },
+    {
+      "id": 12265,
+      "completion_line": 69288,
+      "observed_status": "success",
+      "kind": "Linq method mutation (FirstOrDefault() to First())",
+      "creation_line": 32501,
+      "change": "propertySymbol.Locations.FirstOrDefault -> propertySymbol.Locations.First using Stryker.Core.Mutators.LinqMutator"
+    },
+    {
+      "id": 12267,
+      "completion_line": 69318,
+      "observed_status": "success",
+      "kind": "String mutation",
+      "creation_line": 32503,
+      "change": "\"\\n\" -> \"\" using Stryker.Core.Mutators.StringMutator"
+    },
+    {
+      "id": 12280,
+      "completion_line": 69354,
+      "observed_status": "success",
+      "kind": "Equality mutation",
+      "creation_line": 32574,
+      "change": "attr.ConstructorArguments.Length > 0 -> attr.ConstructorArguments.Length >= 0 using Stryker.Core.Mutators.BinaryExpressionMutator"
+    },
+    {
+      "id": 12303,
+      "completion_line": 69442,
+      "observed_status": "success",
+      "kind": "Equality mutation",
+      "creation_line": 32645,
+      "change": "attr.ConstructorArguments.Length > 0 -> attr.ConstructorArguments.Length >= 0 using Stryker.Core.Mutators.BinaryExpressionMutator"
+    },
+    {
+      "id": 12334,
+      "completion_line": 69500,
+      "observed_status": "success",
+      "kind": "Equality mutation",
+      "creation_line": 32762,
+      "change": "attr.ConstructorArguments.Length > 0 -> attr.ConstructorArguments.Length >= 0 using Stryker.Core.Mutators.BinaryExpressionMutator"
+    },
+    {
+      "id": 12376,
+      "completion_line": 69553,
+      "observed_status": "success",
+      "kind": "Equality mutation",
+      "creation_line": 32941,
+      "change": "attr.ConstructorArguments.Length > 0 -> attr.ConstructorArguments.Length >= 0 using Stryker.Core.Mutators.BinaryExpressionMutator"
+    },
+    {
+      "id": 12455,
+      "completion_line": 69787,
+      "observed_status": "success",
+      "kind": "Null coalescing mutation (remove left)",
+      "creation_line": 33334,
+      "change": "field.Locations.FirstOrDefault() ?? Location.None -> Location.None using Stryker.Core.Mutators.NullCoalescingExpressionMutator"
+    },
+    {
+      "id": 12456,
+      "completion_line": 69793,
+      "observed_status": "success",
+      "kind": "Linq method mutation (FirstOrDefault() to First())",
+      "creation_line": 33335,
+      "change": "field.Locations.FirstOrDefault -> field.Locations.First using Stryker.Core.Mutators.LinqMutator"
+    },
+    {
+      "id": 12457,
+      "completion_line": 69799,
+      "observed_status": "success",
+      "kind": "Null coalescing mutation (remove left)",
+      "creation_line": 33336,
+      "change": "location.SourceTree?.FilePath ?? filePath -> filePath using Stryker.Core.Mutators.NullCoalescingExpressionMutator"
+    },
+    {
+      "id": 12460,
+      "completion_line": 69817,
+      "observed_status": "success",
+      "kind": "String mutation",
+      "creation_line": 33345,
+      "change": "\"Invalid argument for attribute 'ProjectionBadge' on enum member '{0}': slot must be a defined BadgeSlot value\" -> \"\" using Stryker.Core.Mutators.StringMutator"
+    },
+    {
+      "id": 12461,
+      "completion_line": 69823,
+      "observed_status": "success",
+      "kind": "String mutation",
+      "creation_line": 33346,
+      "change": "\"Warning\" -> \"\" using Stryker.Core.Mutators.StringMutator"
+    }
+  ]
+}

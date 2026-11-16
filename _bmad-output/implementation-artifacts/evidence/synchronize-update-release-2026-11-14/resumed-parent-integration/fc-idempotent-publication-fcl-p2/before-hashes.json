@@ -1,0 +1,6 @@
+{
+  "eng/prepare-mutation-artifacts.ps1": "12c94afe1963f40ec2c60ff4331c2e6cdc02901c8b9d98d354c332e65a00cb78",
+  "tests/eng/test_mutation_artifact_publication.py": "87522f7a6466741c9a5a4139f3150098d12d51c453c1790976894d0a6a602c99",
+  "eng/mutation-artifact-policy.ps1": "e42c7a3e7aca1798d72522505d39c5a205b673ffccb14e3bff22dee7e1e19bca",
+  "eng/validate-stryker-reports.ps1": "16d44b70d1b0069174a663a934a2630d4d6cd399c1587ed6a39495f853e16091"
+}

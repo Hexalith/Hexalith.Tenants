@@ -1,0 +1,61 @@
+{
+  "scope": "CI-only lifetime correction; no mutation score, hosted qualification or owner acceptance",
+  "ownerHead": "b34be9245443d21b72a6076cf205bbbc8a8c521f",
+  "workflowSha256": "ff9c63fcaca125749cd6224bed8f11dbec76cd6bedc69a8aea2bbcf989f2d8d5",
+  "trackedOwnerFilesChangedByTask": [
+    ".github/workflows/mutation-property-nightly.yml"
+  ],
+  "workflowChange": "Fixed happy-path/error-handling matrix, fail-fast false and separate360m lifetimes; independent strict BOTH aggregate remains source-tools-mutation",
+  "verification": {
+    "actionlintVersion": "1.7.12",
+    "actionlintExit": 0,
+    "workflowTests": 6,
+    "structuralAdverseControls": 12,
+    "actualResultShellCases": 5,
+    "existingNativeProvenanceContractTests": 18,
+    "layoutTransportSegments": 2,
+    "failedAttemptRetained": "attempt-01/actionlint.log (invalid -color=never CLI argument; tooling invocation refusal, no workflow finding)",
+    "successfulNarrowRetry": "attempt-02/verification.json"
+  },
+  "preservation": {
+    "protectedFilesByteIdentical": 6466,
+    "parentUntrackedTestFileCount": 12,
+    "parentConcurrentChange": {
+      "path": "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/MetadataDiagnosticContractTests.cs",
+      "beforeSha256": "5149fd3087576b3121c505ea18f34dbb6de2ff86e048b1334fdfa23e6b633aa9",
+      "afterSha256": "c5da80758632a0731dbe72b51fd29531c758ab967d23cf4d31420a38e1545c0d",
+      "attribution": "Parent-authored concurrent test change; this task never wrote test source"
+    },
+    "lifecycleAndHeaderBytesIdentical": true,
+    "helpersConfigsToolPolicyUnchanged": true,
+    "parentTestHashes": {
+      "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/AliasSignatureContractTests.cs": "4d9553bc86ca646537226a8473561f0aa5b997a072e3fcdbfecc87d489478a31",
+      "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/ColumnFilterContractTests.cs": "0e971bab5f02a836f242fdc059916821d60be9579b93e06fcc8e68171d61bc4b",
+      "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/CommandContractBoundaryTests.cs": "efe32181aeec0762344924751085593dc997ef113a9c45a75279b47448242011",
+      "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/ErrorFollowthroughBehaviorTests.cs": "b104b8433a7de4fc0487283d7e6fb8b03c97be2174485824dea2d637d10b4a53",
+      "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/MetadataDiagnosticContractTests.cs": "c5da80758632a0731dbe72b51fd29531c758ab967d23cf4d31420a38e1545c0d",
+      "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/ModelDefaultComparisonContractTests.cs": "a873739f4f6ac344bb381e5c6d11c18b1ad41bcfb7a0a9f23731aec505a82fe3",
+      "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/OtherAttributeGenerator.cs": "1ee8dfc941d994f3ff2da588c9a23afb2d079abf90fe3959cddff909ad309ce3",
+      "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/ProjectionParserSurvivorRegressionTests.cs": "cca95b425e01560c9f9d21859439569ace047c2b1c0cab1a03fb2d7233ab04d2",
+      "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/RazorRoleRecoveryContractTests.cs": "1cc1f789cf55fb98eab7d96f8819c3374bd3ffba1f74370f9fcdbe38faf26de3",
+      "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/RelativeTimeHashParticipationTests.cs": "7c04cc05e322965d1558cf2bc41ecaf6f166ce6a749426e96c3f353258c8125d",
+      "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/TemplateContractBoundaryTests.cs": "02cc2e509b2caf21431a726982fcb442fbbbe55a299c3636ad0fe9898b084fb2",
+      "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/TemplateParserProviderBoundaryTests.cs": "19ad13025d8d5632f5a39554e46d0205cd930279d551b71af937c1a1ef959583"
+    }
+  },
+  "cleanup": {
+    "scratchPathsGone": [
+      "/dev/shm/hexalith-job.zyMA5uuH",
+      "/dev/shm/hexalith-job.y9HC6UYG"
+    ],
+    "processesRetainingJobTMPDIR": [],
+    "allCommandsWaited": true
+  },
+  "limits": [
+    "Actual new hosted jobs must still pass exact independent runtime/receipt equality and BOTH report validation; the prior proof establishes clean same-path rebuild repeatability only.",
+    "The existing score failure and untriaged mutants are unresolved by job lifetimes; thresholds80/60, predicates, cohorts and source/tool policy remain unchanged.",
+    "Local artifact control checks finite paths and byte transport only; it does not execute GitHub upload/download services.",
+    "No full mutation rerun, remote operation, owner Git mutation, authority or accepted triage edit was performed."
+  ],
+  "finishedUtc": "2026-11-16T02:15:24Z"
+}
