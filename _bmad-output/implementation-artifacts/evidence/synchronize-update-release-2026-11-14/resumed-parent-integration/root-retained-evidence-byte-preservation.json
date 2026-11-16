@@ -1,7 +1,0 @@
-{
-  "verifiedAtUtc": "2026-11-16T12:25:01.536080+00:00",
-  "scope": "All tracked resumed-parent-integration evidence and helper files in the index match exact raw working bytes; scoped -text overrides prevent newline normalization. Production source attributes unchanged.",
-  "checkedFiles": 1822,
-  "mismatches": 0,
-  "method": "For each git ls-files --stage object, calculate Git blobSHA1 over original raw bytes and compare exact index object ID."
-}

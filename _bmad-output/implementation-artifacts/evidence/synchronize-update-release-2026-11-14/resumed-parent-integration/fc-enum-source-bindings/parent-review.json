@@ -1,7 +1,0 @@
-{
-  "scope": "Parent read and matched final finite test/source bindings; no repeated full mutation sweep or native/source qualification transfer.",
-  "handoffSha256": "a860bcd31ea66be28935afcbc12a26f9bcf2af694fc57bf89d67a00b394c8f09",
-  "matchedFiles": 7,
-  "reviewTriage": "fc-current-gate-review-triage.json",
-  "parentConclusion": "Finite enum bindings preserve live-result auditing and reject source drift; three exact enum cases are justified by completed original reports."
-}

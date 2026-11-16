@@ -1,9 +1,0 @@
-{
-  "source": "9ea805dc7bbdf048b282e66e94115add295099a3",
-  "parent": "a03ee98a8964d56506160bcd9c73de992df56f58",
-  "exitCode": 0,
-  "stdout": "",
-  "stderr": "To https://github.com/Hexalith/Hexalith.FrontComposer.git\n   a03ee98a..9ea805dc  main -> main\n",
-  "recordedAtUtc": "2026-11-16T11:20:58.416580+00:00",
-  "scopedException": "pragmatic-release-user-authorization.json"
-}

@@ -1,9 +1,0 @@
-{
-  "validatedAtUtc": "2026-11-16T12:22:13.499597+00:00",
-  "cli": "@commitlint/cli@21.2.4",
-  "cwd": "/home/administrator/projects/hexalith/tenants",
-  "config": "commitlint.config.mjs",
-  "exitCode": 0,
-  "violations": 0,
-  "messageSha256": "557841fbd537dcebcf0fc59320a2c37ee1c634a754dec8e91fa5c5d3c8e9609d"
-}

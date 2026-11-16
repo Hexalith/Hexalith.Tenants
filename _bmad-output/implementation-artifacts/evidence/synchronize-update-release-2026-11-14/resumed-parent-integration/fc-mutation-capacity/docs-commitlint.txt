@@ -1,3 +1,0 @@
-⧗   --- input ---
-docs: align mutation container resource limits
-✔   found 0 problems, 0 warnings

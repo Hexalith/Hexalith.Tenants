@@ -1,8 +1,0 @@
-{
-  "verifiedAtUtc": "2026-11-16T12:21:42.066626+00:00",
-  "unchangedReviewedImplementationInputs": 11,
-  "mutableOperationalState": "Intentionally updated metadata; no test/qualification transfer.",
-  "frozenBlockSha256": "e9342829f9dbb0dad91e8a6ff05f4157c7a6efbe0ae97f46f619634f697fd285",
-  "baseline": "401d926eb7d51bdf332696ed3f0fe39a812b3501",
-  "previousFocusedVerification": "18focused Python cases and2actionlint checks pass; no implementation changes justify repetition. Final Root hosted gates remain required."
-}

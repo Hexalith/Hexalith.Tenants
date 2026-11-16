@@ -1,9 +1,0 @@
-{
-  "validatedAtUtc": "2026-11-16T11:08:39.966139+00:00",
-  "cli": "@commitlint/cli@21.2.4",
-  "cwd": "/home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore",
-  "config": "commitlint.config.mjs",
-  "messageSha256": "12b160a9b3411e39dd3f18edc489ad194871e458cb39a2922a86ac676f3c6408",
-  "exitCode": 0,
-  "violations": 0
-}

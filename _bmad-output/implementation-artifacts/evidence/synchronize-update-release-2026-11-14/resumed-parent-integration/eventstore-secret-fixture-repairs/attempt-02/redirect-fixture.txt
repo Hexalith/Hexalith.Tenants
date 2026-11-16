@@ -1,6 +1,0 @@
-test_review_artifact_redirects_drop_credentials_and_refuse_unsafe_or_further_redirects (test_phase_4_transition.TransitionTests.test_review_artifact_redirects_drop_credentials_and_refuse_unsafe_or_further_redirects) ... ok
-
-----------------------------------------------------------------------
-Ran 1 test in 16.137s
-
-OK

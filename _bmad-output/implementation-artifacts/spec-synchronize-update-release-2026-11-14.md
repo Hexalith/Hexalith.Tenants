@@ -66,7 +66,6 @@ This is one coordinated release goal. The user's explicit request supersedes wor
 
 ## File List
 
-- `.gitattributes` — preserve original retained report/source-capture bytes in the resumed evidence subtree.
 
 - `references/Hexalith.AI.Tools`
 - `references/Hexalith.Builds`
@@ -650,3 +649,14 @@ FrontComposer source `a03ee98a8964d56506160bcd9c73de992df56f58` commits the seve
 ## Direct Root release decision (2026-11-16)
 
 The pragmatic completion audit removed an unnecessary parent-imposed FC6.0.1 prerequisite. Frozen intent requires the published.NET11 generator and five verified Tenants packages; the generator prerequisite was already met by publicFC6.0.0, whose eight official archives/source/signatures/prepared payload passed independent verification, and by prior Root package UI/Integration/generated-HTTP checks. Root production/configuration bytes are unchanged from green8aa; subsequent FCf263 changes since green9ea are documentation only. Prior receipts retain exact original source attribution, and final Root source/package CI must independently pass. Keep Buildsfdda and its qualified public600 default/audit; no new catalog family change is needed. Preserve all pushed owner fixes, existing automatic owner checks, historical native failure and specialized authority boundaries. FC601 remains its own future owner release. A pause in other FC writers is no longer needed to start final Root CI/publication. See resumed-parent-integration/pragmatic-root-release-decision.json.
+
+
+## Approved pragmatic stop conditions (2026-11-16)
+
+Apply the approved sprint-change-proposal-2026-11-16-pragmatic-release-policy.md4A/4D. Done when each selected pushed owner source has green required push CI (and Quality where applicable), the final frozen Root gitlink/source commit passes exact pinned commitlint and required Root CI, the existing release workflow publishes the intended source, all five official NuGet archives verify version/source/provenance, and one concise release-report-<version>.md exists. Later upstream work, new full mutation sweeps, additional reviews, CiCd adoption and new evidence-qualification CI steps are excluded. Source holds preserve all other user work on existing main branches.
+
+Freeze FrontComposer at9ea805dc7bbdf048b282e66e94115add295099a3, whose actual CI43856960601,Quality43856959801(all8),CodeQL43856960406 and Commitlint43856960438 succeeded. Its main branch and later documentation remain preserved. The extra proposed601 publication is unnecessary because verified public600 already satisfies Tenants' package dependency. EventStore8b6d5bee5217b3f4bbd8fd689ad887aca863961b fixes the demonstrated source scanner blocker; wait its existing required CI. Keep McpCli4cf qualified source and the other already selected revisions. No specialized migration/census approval is inferred.
+
+The new Dapr read-policy step is evidence-byte qualification only, as its existing test docstring states. Remove that newly introduced step and retain the existing test and all original8aa release gates; pipeline qualification expansion is deferred under approved4A. The generatedHTTP floor67 remains.
+
+An intermediate push4b99a89c78c57294b99b52eaf5889e8c74b87999 included bulk diagnostics before the concurrent approved policy was read. A forward corrective commit removes newly introduced diagnostic captures from the tracked release tree while preserving their exact local bytes and public history. Only the required public verifier helper and its regression test sources remain as new verification code. The existing historical evidence remains. Final publication uses the corrected source, never the intermediate snapshot.

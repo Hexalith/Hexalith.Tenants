@@ -1,6 +1,0 @@
-{
-  "StrykerVersion": "5.1.0-hexalith.compat.1+upstream.7052fa6c.patch.b631f905b07a",
-  "OfficialBaseVersion": "5.1.0",
-  "CompatibilityProvenanceRequired": true,
-  "Reports": []
-}

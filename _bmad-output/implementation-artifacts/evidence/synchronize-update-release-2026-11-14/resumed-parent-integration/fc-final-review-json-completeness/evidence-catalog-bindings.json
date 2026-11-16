@@ -1,8 +1,0 @@
-{
-  "cases": 95,
-  "catalogBytes": 563423,
-  "ledgerBytes": 1026896,
-  "catalogSha256": "fabe89505ed21920950af5c6fab0c9fffeebab8299a252ec4884b84a13b5381c",
-  "ledgerSha256": "0b1f26b7640658a45b2588edf7016dd5eacab18493bdcacfb2fd202d4a6fc6cf",
-  "rootEvidencePublication": "pending"
-}

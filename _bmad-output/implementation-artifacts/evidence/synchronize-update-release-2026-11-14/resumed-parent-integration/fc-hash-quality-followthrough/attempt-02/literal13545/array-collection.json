@@ -1,8 +1,0 @@
-{
-  "count": 128,
-  "insertionEqualityProbes": 0,
-  "lookupEqualityProbes": 256,
-  "distinctHashes": 128,
-  "collectionCorrect": true,
-  "collisionBudgetAsserted": false
-}

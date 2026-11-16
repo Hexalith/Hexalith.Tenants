@@ -1,1 +1,0 @@
-Reconstructed after the private proposal was revised. Exact bytes match the SHA256 recorded before attempt01 execution; this is explicitly reconstructed source, not a claimed original capture. The initial Default display-format basis never exercised conditional RelativeTime windows; attempt02 fixes that private fixture only.

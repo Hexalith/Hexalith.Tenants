@@ -1,7 +1,0 @@
-{
-  "scope": "Original e0 Happy coverage-capture zero-test assignments only; not final report/score; paths matched against original source Error inventory",
-  "source": "e0eef14ddbbcd03823863a4f417a4b07f6f5bafc",
-  "count": 0,
-  "originalLogSha256AtRead": "2274a60b3dcbc943668cb505a5e964a5fb683b087a67ad8d896ef950585e02a5",
-  "mutants": []
-}

@@ -1,5 +1,0 @@
-{
-  "eng/dependency-graph-policy.json": "482173610532e2ad17cd73bab8a5560e99af764ae698fead93d08c107985c62b",
-  "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/mutation-target-manifest.json": "697c5733f1936306299b7090de35760d0c634128ff70eb51c1c1b764aa46d4c3",
-  "tests/eng/test_mutation_triage.py": "847f299fc9bcd0a2dd20730ef0d2812707ddf5b601bf39e915d2bf53fa61f6b2"
-}

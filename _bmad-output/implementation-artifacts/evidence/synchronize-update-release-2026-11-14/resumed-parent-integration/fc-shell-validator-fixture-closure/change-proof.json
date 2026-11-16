@@ -1,9 +1,0 @@
-{
-  "onlyChange": "Copy exact sibling policy into the existing disposable validator fixture",
-  "allOriginalBytesAndAssertionsPreserved": true,
-  "beforeSha256": "b2b6e0a1d7ea53229d980a66ad143fa48ad36e007d4e987088a07fe82349d673",
-  "afterSha256": "e94bdaa532fe316c6dc28dcda7b7613518ee48d26f2dd96d2ad71577f45dbc14",
-  "copiedPolicySha256": "e42c7a3e7aca1798d72522505d39c5a205b673ffccb14e3bff22dee7e1e19bca",
-  "existingScenarioCount": 45,
-  "otherScriptCopyCallersFound": 0
-}

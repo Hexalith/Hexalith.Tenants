@@ -1,6 +1,0 @@
-⧗   --- input ---
-docs(16.1): capture and accept the green EventStore runtime tuple
-✔   found 0 problems, 0 warnings
-⧗   --- input ---
-docs(governance): record seal proof and qualification cadence
-✔   found 0 problems, 0 warnings

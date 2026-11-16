@@ -1,1 +1,0 @@
-fix: align dependency seals and finite mutation inventory

@@ -1,9 +1,0 @@
-{
-  "observed_exit_code": 1,
-  "stage": "Before any build, test or patch rewrite; overlay count guard rejected14 files rather than intended4.",
-  "observed_exception": "AssertionError at verify-b34-assertion-corrections.py line41: assert len(record['test_overlay_sha256']) == 4",
-  "cause": "The synchronization glob copied all existing Mutation/*.cs fixtures, not only the four proposal files. Owner fixtures were never changed.",
-  "retained_script": "failed-script.py",
-  "retained_extra_copies": "refused-extra-copies",
-  "owned_workspace_cleaned": true
-}

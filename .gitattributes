@@ -13,6 +13,3 @@
 # Preserve the required C# line endings for the DW-606 source paths on checkout.
 src/Hexalith.Tenants.UI/Services/Gateways/TenantsRestQueryClient.cs text eol=crlf
 src/Hexalith.Tenants/Bootstrap/TenantBootstrapCredentialProvider.cs text eol=crlf
-
-# Retained release evidence keeps original report and source-capture bytes.
-_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/** -text
