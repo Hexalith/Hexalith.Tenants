@@ -1,0 +1,24 @@
+testCanonicalPatchAcceptsCheckoutCrlf (__main__.ContractTests.testCanonicalPatchAcceptsCheckoutCrlf) ... ok
+testChangedDescriptorBinding (__main__.ContractTests.testChangedDescriptorBinding) ... ok
+testChangedRuntimeBytes (__main__.ContractTests.testChangedRuntimeBytes) ... ok
+testDefinitionAndLicenseDriftRefuseBeforeBuild (__main__.ContractTests.testDefinitionAndLicenseDriftRefuseBeforeBuild) ... ok
+testDigestTampering (__main__.ContractTests.testDigestTampering) ... ok
+testDuplicateAssemblyCannotReplaceMissingMtp (__main__.ContractTests.testDuplicateAssemblyCannotReplaceMissingMtp) ... ok
+testExtraRuntimeFile (__main__.ContractTests.testExtraRuntimeFile) ... ok
+testInvocationBindsCurrentConfigAndConstructsOriginalOptions (__main__.ContractTests.testInvocationBindsCurrentConfigAndConstructsOriginalOptions) ... ok
+testMatchingContract (__main__.ContractTests.testMatchingContract) ... ok
+testMatchingVersionPrefixIsInsufficient (__main__.ContractTests.testMatchingVersionPrefixIsInsufficient) ... ok
+testNoGlobalToolRootFallback (__main__.ContractTests.testNoGlobalToolRootFallback) ... ok
+testPreparationOwnsAndReapsChildrenAcrossExitTimeoutAndCancellation (__main__.ContractTests.testPreparationOwnsAndReapsChildrenAcrossExitTimeoutAndCancellation) ... ok
+testSymlinkedReceipt (__main__.ContractTests.testSymlinkedReceipt) ... ok
+testSymlinkedRuntimeDirectory (__main__.ContractTests.testSymlinkedRuntimeDirectory) ... ok
+testUnknownBuildMember (__main__.ContractTests.testUnknownBuildMember) ... ok
+testUnknownBuildSchema (__main__.ContractTests.testUnknownBuildSchema) ... ok
+testUnknownSegmentAndArbitraryArgumentsRefuse (__main__.ContractTests.testUnknownSegmentAndArbitraryArgumentsRefuse) ... ok
+testWholeSourceBoundaryIncludesReferencedProjectAndSharedTargets (__main__.ContractTests.testWholeSourceBoundaryIncludesReferencedProjectAndSharedTargets) ... ok
+testWrongActualInformationalIdentity (__main__.ContractTests.testWrongActualInformationalIdentity) ... ok
+
+----------------------------------------------------------------------
+Ran 19 tests in 3.920s
+
+OK

@@ -1,0 +1,22 @@
+{
+  "finishedUtc": "2026-11-16T14:38:48.312465+00:00",
+  "ownerTrackedFilesPreserved": 6482,
+  "changedOwnerFiles": [],
+  "archivedFilesPreserved": 23,
+  "changedArchivedFiles": [],
+  "ownerStatus": "",
+  "ownerHeadUnchanged": true,
+  "removedJobScratch": {
+    "/tmp/hexalith-job.HeJyj8x2": true,
+    "/tmp/hexalith-job.Ve0eTzMC": true,
+    "/tmp/hexalith-job.hMP8SOjx": true
+  },
+  "processesRetainingJobTMPDIR": [],
+  "allChildWorkWaited": true,
+  "verificationPassed": true,
+  "limits": [
+    "Inline review only, per retained parent restrictions; no independent reviewer agents.",
+    "No full mutation rerun, current-source compiled-tool qualification, hosted artifact-service execution, score acceptance or owner Git/remote mutation.",
+    "Original retained spec and audit identity remain unchanged; this new packet records local review completion only."
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "command": [
+    "/usr/bin/python3",
+    "-B",
+    "tests/eng/test_mutation_artifact_publication.py"
+  ],
+  "cwd": "/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer",
+  "exitCode": 0,
+  "seconds": 29.441,
+  "scratch": "/tmp/hexalith-job.hMP8SOjx",
+  "logSha256": "d8689657ea71d1610773f44d506d5c52d53f5a64a58df1ae360cf43da6ed502a",
+  "finishedUtc": "2026-11-16T14:37:42.130261+00:00"
+}

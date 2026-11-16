@@ -1,0 +1,64 @@
+{
+  "startedUtc": "2026-11-16T14:36:57.850074+00:00",
+  "rootHead": "292dbf164f26bcf376ef86d749b149b075f8b502",
+  "ownerHead": "bc9dbedc6141b750ca92f01b40ac840dc2066704",
+  "originalSource": "b34be9245443d21b72a6076cf205bbbc8a8c521f",
+  "scratch": "/tmp/hexalith-job.HeJyj8x2",
+  "workflowSha256": "59e9993aff87f264f2d9faab7be9015a2cdd09b8945bd331de03ac061f4db479",
+  "retainedSpecSha256": "acf58654f16cf4029e14419ac8127a2f9d71a9dfce0e576fd2f5e098a9241462",
+  "structureChecks": {
+    "fixed_complete_matrix": true,
+    "job_lifetimes_and_preparation_environment": true,
+    "independent_original_preparation": true,
+    "original_complete_invocations": true,
+    "unchanged_header_and_lifecycle_bytes": true,
+    "strict_validator_unchanged_invocation": true,
+    "aggregate_required_identity_and_dependency": true,
+    "no_advisory_failure": true,
+    "native_verification_after_complete_segment": true,
+    "same_run_named_downloads": true,
+    "retained_crlf": true,
+    "bounded_worker_artifacts": true,
+    "failure_publication_preflight_preserved": true,
+    "result_guard_binding": true,
+    "actual_shell_result_cases": true
+  },
+  "shellCases": [
+    {
+      "matrixResult": "success",
+      "exitCode": 0,
+      "expected": 0
+    },
+    {
+      "matrixResult": "failure",
+      "exitCode": 1,
+      "expected": 1
+    },
+    {
+      "matrixResult": "cancelled",
+      "exitCode": 1,
+      "expected": 1
+    },
+    {
+      "matrixResult": "skipped",
+      "exitCode": 1,
+      "expected": 1
+    },
+    {
+      "matrixResult": "",
+      "exitCode": 1,
+      "expected": 1
+    }
+  ],
+  "actionlint": {
+    "command": [
+      "actionlint",
+      "-no-color",
+      ".github/workflows/mutation-property-nightly.yml"
+    ],
+    "cwd": "/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer",
+    "exitCode": 0,
+    "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "scope": "Bounded local review; no hosted execution, complete mutation run or owner acceptance."
+}

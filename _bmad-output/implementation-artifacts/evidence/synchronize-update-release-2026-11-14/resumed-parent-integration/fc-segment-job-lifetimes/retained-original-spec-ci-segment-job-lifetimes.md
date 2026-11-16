@@ -1,6 +1,6 @@
 ---
 title: Independent complete mutation segment lifetimes
-status: in-review
+status: done
 route: oneshot
 source: b34be9245443d21b72a6076cf205bbbc8a8c521f
 story_key: ''

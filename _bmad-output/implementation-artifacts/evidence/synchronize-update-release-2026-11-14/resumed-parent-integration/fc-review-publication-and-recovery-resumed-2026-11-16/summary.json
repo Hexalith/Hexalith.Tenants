@@ -1,0 +1,62 @@
+{
+  "finishedUtc": "2026-11-16T14:40:38Z",
+  "rootHead": "292dbf164f26bcf376ef86d749b149b075f8b502",
+  "ownerHead": "bc9dbedc6141b750ca92f01b40ac840dc2066704",
+  "reviewedHistoricalDiffSha256": "908a170279548db799fba05e4e9fb30356c409636c1ffa940dd0172ba7fad325",
+  "reviewedHistoricalDiffBytes": 35755,
+  "currentOwnerInputs": {
+    ".github/workflows/mutation-property-nightly.yml": "59e9993aff87f264f2d9faab7be9015a2cdd09b8945bd331de03ac061f4db479",
+    "eng/validate-stryker-reports.ps1": "6bc964ae82e58890d94963e4c7a569090158853187b555e5d9af69ab98a39463",
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/ErrorFollowthroughBehaviorTests.cs": "c6e8acd6d3ab7ca88a2255e6e3ebc3c55c793a344e4a84f9bac3b171e4cbf6cd",
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/RazorRoleRecoveryContractTests.cs": "e754a769a548c19cf006cac4421903d0c42063c74fe71814e15e9d5b217ec2f9",
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/TemplateContractBoundaryTests.cs": "41e8c5a0d4f4516515fc2d599d4a09d3d125bc001f766b785e015a884272cb70",
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/AliasSignatureContractTests.cs": "09cc726195de02fa9c6fc25e90d9fcefe4eaf5eb42dbba947e8d74d04bfff954",
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/CommandContractBoundaryTests.cs": "ef19ed57bb1ee71814e0d1a526dd3b2e3fe214923fb94d009275666ac6d0af51",
+    "eng/mutation-artifact-policy.ps1": "9c630e86af8c82f49ed62cf4a19a88c2d335518e94622ca62db3eea0ebe92835",
+    "eng/prepare-mutation-artifacts.ps1": "05a548a903e506ec7975ee6782e03c7c673a94014303587487255bffc6e5219c",
+    "tests/eng/test_mutation_artifact_publication.py": "5d45df2847c2798e8e00eb7821b3b77d82ce58d856db18e4f02af0a3154b0295"
+  },
+  "verification": {
+    "debugBuild": {
+      "warnings": 0,
+      "errors": 0
+    },
+    "fiveRegressionClasses": {
+      "passed": 53,
+      "failed": 0,
+      "skipped": 0,
+      "sameBytesAsRetainedCorrections": true
+    },
+    "publicationTests": {
+      "original": 9,
+      "laterRepairControls": 6,
+      "actualProcesses": 31,
+      "successfulProcesses": 11,
+      "refusedProcesses": 20
+    }
+  },
+  "review": {
+    "layers": 3,
+    "findingsIndividuallyTriaged": 14,
+    "currentOpenFindings": 0,
+    "deferred": 0,
+    "historicalDefectsResolvedByExistingLaterSource": true
+  },
+  "preservation": {
+    "retainedPacketFilesUnchanged": 192,
+    "ownerWorkingTreeClean": true,
+    "ownerHeadUnchanged": true,
+    "originalSpecStatusUnchanged": "in-review"
+  },
+  "cleanup": {
+    "buildScratchRemoved": true,
+    "reviewScratchRemoved": true,
+    "allOwnedChildJobsWaited": true
+  },
+  "limits": [
+    "Scoped local verification only; no full mutation score or hosted upload qualification.",
+    "Historical original observations and retained status are preserved; only the new resumed spec is completed.",
+    "No product source, dependency, accepted triage, authority, branch, commit, push, merge or submodule pointer change."
+  ],
+  "helperCorrection": "Initial run helper resolved ROOT one directory too shallow and exited before any verification began; corrected to OUT.parents[5], then the recorded run passed."
+}

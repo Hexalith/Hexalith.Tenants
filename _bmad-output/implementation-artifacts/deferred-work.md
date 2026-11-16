@@ -5435,350 +5435,647 @@ priority: P2
 archived: 2026-10-22
 
 
-## Deferred from: bootstrap handoff independent review (2026-10-23)
-
-- source_spec: `spec-dw-551-556-575-576-597-bootstrap-handoff.md`
-  summary: Unverified medium, pre-existing: establish the bootstrap credential HTTP handler's redirect policy for password-grant requests.
-  evidence: The provider's HttpClient.SendAsync and default handler ownership predate this batch; initial destination validation does not itself establish 307/308 handling. A real-handler redirect fixture must determine whether credentials can be reposted to a different destination, then the owning transport contract must choose and qualify its redirect policy. This follow-up does not change the five numbered closures or authorize a new redirect policy.
-  status: done 2026-10-28
-  outcome: fixed
-  resolution: A real-handler matrix reproduced same/cross-origin default 307/308 password-form replay. The explicitly recorded transport decision now disables all automatic redirects only for delegated credential acquisition; command dispatch retains the existing default client. Production registration, exact client selection, ten no-replay redirect cases and a direct-token success pass.
-  resolution-spec: spec-five-deferred-runtime-followups.md
-  resolution-evidence: five-deferred-runtime-followups-validation-evidence.md
-
-## Deferred from: navigation accessibility verification (2026-10-23)
-
-- source_spec: `_bmad-output/implementation-artifacts/spec-dw-119-211-212-213-444-navigation-accessibility.md`
-  summary: Pre-existing medium; synchronize the late-subscription cancellation test with actual asynchronous cleanup completion.
-  evidence: `TenantReadRefreshSubscriptionTests.Cancellation_after_late_backend_setup_cleans_up_without_retaining_a_callback` immediately asserts `UnsubscribeAsync` after the caller's cancellation exception, while unchanged `TenantReadRefreshSubscription.cs` starts `CleanupFailedSetupAsync` without awaiting it before rethrowing. One full 7,504-case run observed no unsubscribe yet; the isolated 37-case class and subsequent full 7,504-case run passed. Use a deterministic unsubscribe-completion signal while preserving exactly-one-unsubscribe and no-retained-callback assertions; this records test timing rather than a proven production cleanup failure.
-  status: done 2026-10-27
-  resolution: The cancellation test now observes caller cancellation before releasing late setup, holds unsubscribe to verify callback retirement, releases cleanup in finally and awaits bounded unsubscribe completion before exactly-once/no-callback assertions. Production cleanup is unchanged; the current full UI run passes 7,839/7,839.
-  resolution-spec: `_bmad-output/implementation-artifacts/spec-dw-114-137-144-514-523-read-and-recovery-contracts.md`
-  resolution-evidence: `_bmad-output/implementation-artifacts/dw-114-137-144-514-523-validation-evidence.md`
-
-## Deferred from: UI runtime qualification verification (2026-10-24)
-
-- source_spec: `_bmad-output/implementation-artifacts/spec-dw-268-328-391-434-489-ui-runtime-qualification.md`
-  summary: Unverified medium; isolate one administrator-grant Escape focus timeout before changing production restoration behavior.
-  evidence: A frozen-source normal Chromium run detached the grant dialog but observed body focus instead of the enabled launcher for twenty seconds (`dw-391-final-grant-focus-unavailable.json`). A separate instrumented three-case run found enabled launcher focus calls connected, outside inert, and immediately active; the final standalone normal run passed all nine cases. The cause is unproven: no production focus defect or browser-concurrency cause is claimed. Reproduce with controlled foreground and held subscription/render ordering, then identify whether renderer ownership or the browser driver lost focus. The diagnostic source, trace and limits are retained in `dw-391-focus-diagnostic.json` and its archive. This unnumbered qualification follow-up does not change the five numbered closures or the existing runtime/release holds.
-  status: open
-  outcome: bounded-negative-reproduction
-  verification-date: 2026-10-28
-  verification: A foreground authenticated browser holds only the live unscoped global-administrators/system JoinGroup on its current connection, retiring cancelled/closed/expired entries. The completion predicate rejects while held; after release a scoped notification must drive an authoritative read and a distinct DOM row before exact enabled-launcher focus is checked. The original body-focus timeout and its cause were not reproduced, so no restoration patch or historical root-cause closure is claimed.
-  verification-evidence: five-deferred-runtime-followups-validation-evidence.md
-  remaining-batch-date: 2026-10-30
-  remaining-batch-result: Fresh standalone OIDC runtime-followups/safety-only runner stops at the default EventStore 3.128.3 below 3.128.4 build guard before a browser opens. No foreground Escape, held-subscription negative control, acknowledged callback or rendered-row check ran. The historical body-focus failure and its cause remain unexplained; keep open.
-  remaining-batch-evidence: five-remaining-speech-and-browser-validation-evidence.md
-
-
-
-
-  resumed-batch-date: 2026-10-30
-  resumed-batch-result: Current foreground Escape, held negative control and acknowledged callback/distinct-row rendering pass; the historical timeout remains unexplained and open.
-  resumed-batch-evidence: five-remaining-speech-and-browser-resumed-validation-evidence.md
-## Deferred from: five UI safety items independent review (2026-10-25)
-
-- source_spec: `_bmad-output/implementation-artifacts/spec-dw-194-201-221-267-609-ui-safety.md`
-  summary: Unverified medium — qualify removal-modal containment when pre-submit focus interop fails while the browser and command delivery remain connected.
-  evidence: PrepareSubmissionFocusAsync awaits FocusSafelyAsync, which catches interop failures before the exact lifetime/admission checks. The lifecycle target exists throughout normal connected rendering, and the final browser lane proves normal and pending native containment; no connected failure/bypass was reproduced. Settle with production-component browser fault injection that rejects the focus operation, continues held delivery and checks Escape/overlay containment plus retained ownership.
-  status: done 2026-10-28
-  outcome: fixed
-  verification-date: 2026-10-28
-  verification: The earlier negative result allowed later focus repair and is superseded. The corrected diagnostic rejects the first lifecycle focus, holds subsequent programmatic recovery effects, verifies exact synthetic member payload and tenant/domain/aggregate, then observes body focus and native Escape closing the dialog while one simulated delivery remains pending. Zero circuit errors and cleanup source equality hold; the native containment assertion fails. Overlay and subsequent same-message status checks remain unqualified because this earlier assertion stops the run.
-  pre-fix-blocker: A qualified owning fix for native containment before focus recovery; the earlier closure is withdrawn.
-  verification-evidence: five-deferred-runtime-followups-validation-evidence.md
-
-  resolution: Rejected private focus preparation now refuses admission before changing attempts, leases or dispatch. Initial/retained retry regressions preserve confirmation, snapshot and tracking identity. Fresh uninstrumented focused browser passes: Escape and overlay after rejection send zero commands, then successful focus admits one exact member command with repeated same-message status lookup and zero circuit errors. Arbitrary interop failures and the separate external grid fault remain outside this closure.
-  resolution-spec: spec-five-deferred-runtime-followups.md
-  resolution-evidence: five-deferred-runtime-followups-validation-evidence.md
-
-- source_spec: `_bmad-output/implementation-artifacts/spec-dw-194-201-221-267-609-ui-safety.md`
-  summary: Medium — route a pinned Fluent UI 5.0.1 grid continuation that uses a disposed JavaScript module during navigation to the component owner.
-  evidence: One full authenticated browser run failed during create recovery with ObjectDisposedException in FluentDataGrid.UpdateColumnInteractionsAsync/OnAfterRenderAsync and one circuit error; its packet, log and sanitized stack are preserved in the batch evidence diagnostics. The existing pinned grid awaits initialization before later module use without a disposal recheck. Later labelled checks did not reproduce the circuit fault, so the exact focus checkpoint remains unproven and no local workaround is claimed. Reproduce with controlled grid initialization/disposal across detail navigation and Back, then qualify the owning component fix; retain zero-circuit-error acceptance.
-  status: open
-  outcome: reproduced-external-defect
-  verification-date: 2026-10-28
-  owner: Microsoft.FluentUI.AspNetCore.Components 5.0.1
-  verification: A one-shot hold of the pinned grid Initialize continuation records a connected workspace element, detail navigation detaches it, and release while detached produces ObjectDisposedException in FluentDataGrid.UpdateColumnInteractionsAsync/OnAfterRenderAsync plus CircuitHost[111]. The diagnostic fails the unchanged zero-circuit-error gate and remains separate from passing browser acceptance.
-  blocker: An owning component fix and approved dependency qualification; no Tenants workaround, fault suppression or speculative upgrade is applied.
-  verification-evidence: five-deferred-runtime-followups-validation-evidence.md
-  remaining-batch-date: 2026-10-30
-  remaining-batch-result: The separate unchanged HOLD_GRID diagnostic stops at the default EventStore 3.128.3 below 3.128.4 build guard before a browser opens. Connected initialization, detached release and the zero-circuit-error assertion were not exercised anew. The historical reproduced Fluent 5.0.1 external defect and owning-fix blocker remain open; no workaround or suppression is introduced.
-  remaining-batch-evidence: five-remaining-speech-and-browser-validation-evidence.md
-
-
-
-
-  resumed-batch-date: 2026-10-30
-  resumed-batch-result: Current connected initialization, detached navigation and release reproduce the pinned FluentDataGrid disposed-JSObjectReference circuit failure; unchanged zero-error acceptance fails and the external blocker remains open.
-  resumed-batch-evidence: five-remaining-speech-and-browser-resumed-validation-evidence.md
-## Deferred from: release-governance independent review (2026-10-27)
-
-- source_spec: `_bmad-output/implementation-artifacts/spec-dw-540-554-570-584-593-release-governance.md`
-  summary: Medium, unverified — qualify a fresh generic blocking Aspire CI run after the published EventStore routing contracts can compile.
-  evidence: The new browser/TLS/Dapr prerequisite and result-gate definitions have local contract checks, but no fresh full generic Aspire provisioning run is claimed. Current default and Release/package Contracts builds fail with ten missing EventStore routing-type errors in TenantCatalogDeclarations.cs; pre-review Debug/source Contracts passed 704/704 and both real workflow closures passed immutable-snapshot checks. Retain those distinct results and the existing release holds. Capture a fresh package-mode generic tier with installed prerequisites, executed tests and no skips after the upstream package prerequisite is available.
-  status: done
-  resolution-date: 2026-10-29
-  resolution-spec: spec-five-deferred-authority-and-read-bounds.md
-  resolution: Actual push CI 40809733133 on 516267c9675dc48bc35bf92f14a712f5ddc1a504 passed the main build/test job and complete generic Aspire job 123242100351:530 executed, 530 passed, zero failures/skips. Browser/TLS/Dapr prerequisites, workers-enabled default, strict MTP command and executed/no-skips gate all succeeded under actual Builds workflow e909ffd9fe9a6097e36d932010b983d029396968. Generic FrontComposer/Memories source exceptions and separate published-profile evidence remain distinct; no all-source or broad release acceptance is claimed. Earlier compile, CI and browser failures remain retained.
-  resolution-evidence: five-deferred-authority-and-read-bounds-validation-evidence.md
-
-
-
-## Deferred from: five read-safety items independent review (2026-10-28)
-
-- source_spec: `spec-dw-117-118-127-599-618-read-safety.md`
-  summary: Medium, pre-existing: qualify fatal dependency failure precedence when the authenticated caller retires concurrently.
-  evidence: CallerBoundTenantsRestQueryClient.ReadAsync verifies cancellation/current authority in finally, and TenantQueryGateway.ReadForAuthenticatedCallerAsync contains caller-transition failures. Those unchanged entry paths can replace a fatal dependency exception with cancellation or authorization failure before workspace classification. Establish a held fatal read plus caller/cancellation transition regression and an owning precedence decision before changing this security boundary. This is separate from the selected workspace/search fixes and numbered totals.
-  status: done
-  resolution-date: 2026-10-28
-  resolution-spec: spec-five-deferred-authority-and-read-bounds.md
-  resolution: The approved original-fatal precedence now survives caller retirement/cancellation, fatal wrappers and completed canceled tasks; pre-cancelled work never starts. Fatal transport, enrichment and timing/callback regressions preserve original identity without returning retired-caller evidence.
-  resolution-evidence: five-deferred-authority-and-read-bounds-validation-evidence.md
-
-- source_spec: `spec-dw-117-118-127-599-618-read-safety.md`
-  summary: Unverified medium: measure elapsed latency of bounded authorized backfill against a slow upstream before choosing a whole-load deadline.
-  evidence: The approved scan examines at most 1,000 raw positions and honors caller cancellation and existing request timeouts, but multiple sequential windows can multiply latency. No unacceptable-duration threshold or controlled slow-upstream incident was established. Capture per-window/whole-load timing and cancellation with a deterministic slow fixture, then choose the owning timeout/fallback contract. Rendered privacy/completeness qualification does not claim a latency SLA; numbered totals are unchanged.
-  status: done
-  resolution-date: 2026-10-28
-  resolution-spec: spec-five-deferred-authority-and-read-bounds.md
-  resolution: The approved configurable ten-second whole-load budget covers windows, hydration and fallback, cancels outstanding work and discards late evidence. Manual-clock slow-window/seam controls, nondefault production-DI binding, cursor recovery and safe expiry diagnostics pass; controlled populated-list timing is retained without claiming a general latency SLA.
-  resolution-evidence: five-deferred-authority-and-read-bounds-validation-evidence.md
-
-
-## Deferred from: native authority CI qualification (2026-10-29)
-
-- source_spec: `_bmad-output/implementation-artifacts/spec-five-deferred-authority-and-read-bounds.md`
-  summary: Unverified medium — determine the cause of the published-profile browser timeout before the 1440-pixel tenant-list check.
-  evidence: Exact-source CI40783107965 on22644726 passed16 authenticated route/layout cases, then reported browser-timeout under tenant-list-layout-1440-none. That phase covered both navigation/network-idle and seeded Current readiness; finer fixed phase labels now distinguish them without changing waits or assertions. Native transport responses in the captured logs were200, which does not prove a cause. Preserve the original safe result and compare a fresh exact-source run plus a same-corpus baseline/control if it recurs before changing production behavior or timeouts. Generic and explicit published qualification profiles remain distinct; this unnumbered risk is excluded from numbered totals.
-  status: done
-  resolution-date: 2026-10-29
-  resolution-spec: spec-five-deferred-authority-and-read-bounds.md
-  resolution: Exact-order four-CPU controls reproduce native actor admission-window pressure with retained cursor flags,995 completed known callbacks in22.224s and a31.219s queued cancellation at maximum queue depth one. Independent test groups now observe the unchanged60-second policy window; fresh reads, seeded Current assertions and existing deadlines remain mandatory. Both method orders pass25 browser cases and the complete local strict generic tier passes530/530 with zero skips. This resolves the cause investigation; actual post-push generic CI acceptance remains separately open.
-  resolution-evidence: five-deferred-authority-and-read-bounds-validation-evidence.md
-
-
-## Deferred from: latest EventStore package verification (2026-10-29)
-
-- source_spec: `_bmad-output/implementation-artifacts/spec-eventstore-3-117-1.md`
-  summary: Reconcile the long-lived EventStore spec gitlink audit scope while preserving its original baseline and unrelated committed dependency updates.
-  evidence: Review R1. The retained historical endpoint ef4b7f2f99b2a60910b94481a198f591c51bfe5c passes with --ref, while the default validate-story-gitlinks.py command exits 1 for eight intervening undeclared pointers since baseline 9e9e04308ea1060010a64bb8b800e755c4aaf99d. This continuation starts at 03615cc91d940ca37b47fb13413a90a31151dd71 and has zero gitlink diff. Package currency, both Release builds and 10887 tests pass. Resolve historical attribution without resetting the baseline, reverting independent changes or inventing story ownership; exact commands/logs are in dependency-refresh-eventstore-3.128.4-evidence-2026-10-29.json and its raw-log archive.
-  resolution: done — Restored the creation snapshot's original 1846c7128cf0f6b16f9e62f38032bcab78e26e38 start instead of the narrowed October 10 checkpoint, retired the incompatible active historical endpoint, and inventoried all nine exact current range targets without claiming independent commits as story-owned. Default guard, original-range/history verifier with 23 controls, guard suite 77/77 and changed-story suite 78/78 pass. Evidence: eventstore-gitlink-reconciliation-2026-10-29.md; original review evidence above is preserved.
-
-
-## Deferred from: resumed speech review incoming coverage (2026-10-30)
-
-- source_spec: `_bmad-output/implementation-artifacts/spec-five-remaining-speech-and-browser-followups.md`
-  summary: Unverified medium, pre-existing incoming coverage gap: qualify granting and post-removal revocation through the registered bound metadata transport.
-  evidence: Incoming a16d897 src/Hexalith.Tenants/Program.cs:82 registers GatewayNativeSourceMetadataReader through TenantOwnerSourceGateway, while tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsRouteTests.cs:105 still constructs DaprNativeSourceMetadataReader directly. Those existing route tests do not establish equivalent coverage through the registered bound transport.
-  status: open
-  classification: pre-existing-incoming-test-coverage-gap
-  production-impact: Unverified; no production authorization or revocation failure is demonstrated or claimed.
-  next-action: Exercise matching granting and post-removal revocation through the registered GatewayNativeSourceMetadataReader bound transport before claiming that production path qualified; preserve current authorization and exact identity rules.
-  scope: Deferred separately from the five selected speech/browser follow-ups; excluded from numbered totals. No incoming host or unrelated integration test was changed.
-  evidence-review: RBH10; five-remaining-speech-and-browser-resumed-validation-evidence.md
-
-
-## Deferred from: merged-main CI repair independent review (2026-11-01)
-
-- source_spec: `_bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md`
-  summary: Pre-existing verification gap: qualify bootstrap catalog readiness across a wrong-root to matching-root transition and cancellation.
-  evidence: tests/Hexalith.Tenants.Server.Tests/Bootstrap/TenantBootstrapBoundCommandTests.cs constructs its service provider without IRouteCatalogAuthority or the expected development root. Its existing authenticated bound-command assertions therefore do not exercise the readiness loop in src/Hexalith.Tenants/Bootstrap/TenantBootstrapBoundCommand.cs; neither delayed matching-root readiness nor cancellation during catalog waiting has distinguishing coverage.
-  status: open
-  classification: pre-existing-test-coverage-gap
-  production-impact: Unverified; no readiness or authenticated bound-command failure is demonstrated or claimed.
-  next-action: Register a controlled IRouteCatalogAuthority and expected root in focused tests; prove no bound command is issued while a different root is serving, progress after the matching root becomes serving, and cancellation interrupts waiting without issuing a command. Retain all existing identity, administrator and workload proof checks.
-  scope: Deferred from this bounded CI compatibility repair; excluded from numbered totals. Production and test behavior remain unchanged by this record.
-  evidence-review: Independent review of spec-ci-repair-2026-11-01.md; verification-gap finding explicitly triaged as defer.
-
-- source_spec: `spec-synchronize-dependencies-and-release-2026-11-02.md`
-  summary: Verify no-build publication cohort enforcement for non-Contracts packages against formerly qualified EventStore and McpCli selections.
-  evidence: Medium severity, unverified consumer impact. Synthetic guard fixtures can pack Server/Client/Testing/Aspire with EventStore 3.133.0 or McpCli 1.1.0 because the pre-existing canonical API guard belongs to Contracts. Reproduce using real released producer packages and inspect actual nuspec dependency closure plus publication preflight before deciding whether additional owner-package guards are needed; the current cohort producers are unpublished.
-
-- source_spec: `_bmad-output/implementation-artifacts/spec-fix-builds-sdk-cohort-fixtures.md`
-  summary: Hexalith.Builds should reconcile pre-existing synthetic Source readiness Dapr metadata with its manifest and assess that profile's explicit pin-binding contract.
-  evidence: The unchanged baseline positive release-passed.json reports Dapr runtime 1.18.0 while its bound manifest selects 1.18.7; full G4 acceptance separately checks all supported pins. This is not a regression or a failed CI assertion from the EventStore 4.0.2 refresh.
-
-
-- source_spec: `_bmad-output/implementation-artifacts/spec-align-native-read-timeout-budgets.md`
-  summary: Complete the later .NET 11 migration across browser binary paths and the FrontComposer/Memories build cohort.
-  evidence: Resumed review at 401d926eb7d51bdf332696ed3f0fe39a812b3501 confirms net10.0 output paths in validate-authenticated-live-routes.mjs, validate-status-filter-label-browser.mjs, validate-authenticated-administrator-dialogs.mjs, validate-authenticated-navigation-focus.mjs, validate-authenticated-detail-audit-return.mjs, validate-authenticated-audit-layout.mjs and validate-authenticated-workspace-focus.mjs. Migration dc33fda90beea8ee9352b15cb061bf01dbf5f178 changed Tenants to net11.0; source integration restore now fails NU1201/NU1202 against net10.0 FrontComposer/Memories projects, while serialized package fallback fails CS0618 in generated CreateTenantCommand validation. Exact commands and logs are retained in this spec's verification artifact; no dependency or warning gate was weakened.
-
-- source_spec: `_bmad-output/implementation-artifacts/spec-align-native-read-timeout-budgets.md`
-  summary: Preserve every package's immediate acquisition probe when zero-poll release verification includes slow signature checks.
-  evidence: scripts/verify-release-artifacts.sh sets one five-second cohort deadline before its five-package loop, then runs comparison/native signature validation between acquisitions. Verification taking most of that interval prevents later already-published packages receiving their documented one-second immediate probe. This belongs to separate release-verification commit 8eaf6f601d82bcb4a92ed89aa1c2dcdc8815baa8; add a delayed-verifier control before choosing how acquisition and verification share the bound.
-
-- source_spec: `_bmad-output/implementation-artifacts/spec-align-native-read-timeout-budgets.md`
-  summary: Investigate an unverified same-subject authentication-change race while corroborating configuration principal evidence.
-  evidence: Unverified medium finding outside the timeout repair. TenantConfigurationPrincipalResolver.ResolveAsync checks authenticationChanged before userContextAccessor.UserId; ServerCircuitUserContextAccessor.UserId can call GetAuthenticationStateAsync again. A deterministic provider control must establish whether revocation during that second resolution can return the earlier principal's privileged evidence, then verify fail-closed behavior if reproduced. The resolver change belongs to later commit dc33fda90beea8ee9352b15cb061bf01dbf5f178.
-
-- source_spec: `_bmad-output/implementation-artifacts/spec-align-native-read-timeout-budgets.md`
-  summary: Qualify and enforce supplementary-page completion when an enrichment dependency ignores cancellation.
-  evidence: Medium, pre-existing boundary limitation. Both original baseline cea24f9a2cc513beef36d42805634e21ffe217a4 and current TenantQueryGateway.EnrichRowsAsync await detail tasks directly inside Task.WhenAll; cancelling the page token alone cannot complete an uncooperative task. The current production FrontComposerGatewayAuthorizationHandler awaits FrontComposerTokenSession.ReadPrincipalAsync, which awaits AuthenticationStateProvider without a cancellation-aware wait. Add a controlled pending-authentication/provider case and preserve caller isolation, fatal failures, late-task observation and bounded concurrency when selecting a fix. Existing deadline tests establish cooperative transport cancellation; no observed business-topology hang is claimed.
-
-
-- source_spec: `_bmad-output/implementation-artifacts/spec-repair-current-mcpcli-published-cohort-ci.md`
-  summary: Complete the remaining McpCli census source classifications and exact-source hosted qualification after specific owning-maintainer approval.
-  evidence: The unchanged candidate checker still refuses eight earlier allowance source drifts and four inspection errors at the recorded McpCli source pins. The packet evidence/mcpcli-current-ci-2026-11-14/remaining-census-followup.json and source-context-comparison.json bind all observed paths, old/current digests and newer Platform closure differences. Amendment 1.0.8 authorizes only the two new EventStore identities; all other decisions and committed/hosted/native acceptance remain pending.
-
-- source_spec: `_bmad-output/implementation-artifacts/spec-complete-dotnet-11-source-graph.md`
-  summary: Source-only resolution of the earlier .NET 11 framework and browser-path deferral; package and governance qualification remain independent.
-  evidence: Root commit d99b7f63feb81f74cee75c3976894c02d173b373 preserves all seven corrected browser validator paths and the migration evidence at evidence/dotnet-11-source-graph-2026-11-13/verification.md and verification.json. FrontComposer migration a79714385319439296c79263ce2bc50f81821d79 and Memories migration 2c2e9b58990638ededf22e8e67ff5c12de75b434 preserve the owning source-framework repairs. This resolves the source-framework/browser-path portion of the earlier native-timeout review entry only. The historical failure text and evidence remain unchanged; published package compatibility, exact committed-source hosted acceptance, governed execution identities and McpCli census authority retain their separate outstanding obligations.
-
-- source_spec: `_bmad-output/implementation-artifacts/spec-synchronize-update-release-2026-11-14.md`
-  summary: Retain sanitized raw reports for the historical 2026-11-13 source-migration evidence.
-  evidence: Review B5 confirmed that the historical summaries retain original temporary/ignored report paths. This is pre-existing evidence debt; current release qualification must use fresh exact-source hosted reports and may not retroactively attribute those reports to the historical run.
-
-- source_spec: `_bmad-output/implementation-artifacts/spec-synchronize-update-release-2026-11-14.md`
-  summary: Bind the standalone workspace-focus validator endpoint to its measured running assembly identity.
-  evidence: Review B7 confirmed that validate-authenticated-workspace-focus.mjs records a local assembly digest while accepting an independently supplied endpoint. The framework edit changes only its output path. Preserve existing caller/topology ownership checks and add a distinguishing stale-host control before expanding this standalone proof claim.
-
-## Deferred from: November 1 CI repair resumed review (2026-11-15)
-
-- source_spec: `_bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md`
-  summary: Align the current Server SDK build floor with its snapshot-budget API dependency.
-  evidence: Medium, pre-existing later-story issue (BH-1). Directory.Build.targets admits EventStore 4.0.4 through 5.0.1, while TenantAggregate.RefreshTenantAccess unconditionally uses ProjectionSnapshotLimits and ProjectionSnapshotLimitExceededException introduced in 5.1.0. Current installed Client XML confirms the older API absence. Qualify actual admitted package builds and preserve explicitly historical archive cohorts rather than silently claiming current-source compatibility.
-
-- source_spec: `_bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md`
-  summary: Reconcile canonical package-boundary admission with catalog SDK alias normalization.
-  evidence: Medium, pre-existing later-story issue (BH-2). ValidateCanonicalBoundaryPackageCohort compares raw HexalithEventStoreVersion literals although the catalog selector normalizes zero-revision and metadata aliases. Evaluate the actual target for 5.1.0.0 and 5.1.0+metadata and decide one consistent documented policy without broadening unqualified SDK admission.
-
-- source_spec: `_bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md`
-  summary: Make configured source AppHost catalog activation agree with its developer instructions.
-  evidence: Medium, pre-existing later-story issue (BH-3). AppHost Program.cs gained a TENANTS_SOURCE_CATALOG_PROFILE condition on November 2, while docs/development-route-catalog.md describes source custody configuration without that required switch. An ordinary source run with custody alone does not create the catalog. Document and validate the intended opt-in or repair the enrollment condition while preserving custody ownership.
-
-- source_spec: `_bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md`
-  summary: Verify unknown historical event handling across durable consumer upgrades before trusting access state.
-  evidence: Unverified high impact, pre-existing later-story concern (BH-4). TenantProjectionCheckpointTransition.Decode treats unknown event types as checkpoint-only evidence. No currently emitted unknown access-changing event was demonstrated. A producer-upgrade replay with an actual supported newer event must establish whether stale membership can remain healthy; retain explicit harmless rejection behavior and fail-closed access semantics when deciding the policy.
-
-- source_spec: `_bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md`
-  summary: Qualify payload-to-stream tenant identity integrity during durable history recovery.
-  evidence: Unverified high impact, pre-existing later-story concern (BH-5). Live TenantServiceCollectionExtensions registers PayloadAggregateIdPropertyName=TenantId, but TenantProjectionCheckpointTransition decodes history without that check and the generic history adapter fingerprints bytes without domain payload validation. Demonstrate whether a persisted authoritative event with a foreign payload TenantId can reach the transition and assert refusal/unavailable health if reachable; no observed cross-tenant history corruption is claimed.
-
-- source_spec: `_bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md`
-  summary: Assess the user-visible delay from the later 90-second supplementary list enrichment budget.
-  evidence: Medium, pre-existing later-story issue (BH-7). TenantQueryGateway.EnrichRowsAsync awaits every supplemental detail read before returning a confirmed list; its production timer increased to 90 seconds on November 3. Slow cooperative reads can therefore delay list rendering for that budget. Evaluate the intended latency and progressive/degraded rendering while preserving bounded concurrency and caller isolation.
-
-- source_spec: `_bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md`
-  summary: Qualify current quickstart command examples against the canonical platform-scope boundary.
-  evidence: Medium, pre-existing later-story issue (BH-8). docs/quickstart.md explicitly labels later system-scoped request/claim examples legacy, but its advertised first-command path still uses them against the current checkout. Replace and qualify the executable path with the coordinated package cohort and required scope headers without changing retained system storage or administrator authorization.
-
-- source_spec: `_bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md`
-  summary: Initialize the required root-declared Platform dependency before clean partial-release preparation.
-  evidence: Medium, pre-existing later-story issue (BH-9 and EC-1, same root cause). recover-partial-release.yml initializes a fixed solution-dependency list without references/Hexalith.Platform; prepare-partial-release.sh builds the solution and AppHost ValidateCanonicalPlatformSource requires Platform's solution and Dapr identity files. A fresh runner therefore cannot prepare recovery packages. Add the root dependency nonrecursively and validate the clean-checkout preparation boundary without publishing.
-
-- source_spec: `_bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md`
-  summary: Normalize optional coordinated candidate package identities before archive byte binding.
-  evidence: Medium, pre-existing later-story issue (BH-10). verify-catalog-package-consumer.py uses case-sensitive SDK/McpCli prefixes and dictionary keys for local candidate archives but case-folds restored SDK identities elsewhere. A lowercased candidate is omitted from candidate source mapping and byte matching. Add a distinguishing casing control and normalize classification, duplicate detection and restored-byte lookup consistently.
-
-- source_spec: `_bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md`
-  summary: Verify protected cursor continuation through the dedicated global-administrator audit query type.
-  evidence: Medium regression gap, pre-existing later-story issue (VG-1). GetGlobalAdministratorAuditQueryHandler overrides QueryType; GetTenantAuditQueryHandler now uses that derived value for cursor decode/protection. Existing global-audit handler, REST client, generated route and live tests read page one only. A mutation protecting the cursor with the old tenant QueryType would pass them and fail continuation. Add a persisted multi-row, page-size-one test using the real codec and assert that the returned cursor resumes the next global row.
-
-- source_spec: `_bmad-output/implementation-artifacts/spec-complete-dotnet-11-source-graph.md`
-  summary: Qualify production Tenants compilation against each older advertised EventStore package cohort.
-  evidence: Medium, unverified (R1): later tenant-access recovery uses ProjectionSnapshotLimits and ProjectionSnapshotLimitExceededException. The current 5.1.0 source graph passes, but real older package builds are needed to establish compatibility; synthetic marker assemblies do not establish it.
-
-- source_spec: `_bmad-output/implementation-artifacts/spec-complete-dotnet-11-source-graph.md`
-  summary: Bind the retained net10 package-consumer mode to its historical route and adapter inventory.
-  evidence: Medium, pre-existing later-story issue (R2): the current consumer copies recovery-inclusive Program.cs and approved-route-ids.txt with 24 routes and 13 adapters, while older retained archives precede that independent command.
-
-- source_spec: `_bmad-output/implementation-artifacts/spec-complete-dotnet-11-source-graph.md`
-  summary: Add a dedicated McpCli conformance vector for the later RefreshTenantAccess operation.
-  evidence: Medium, pre-existing later-story coverage gap (R4): the decorated recovery command is absent from the 14 previous operation vectors. Qualify wire routing and operation identity in the recovery feature lane.
-
-- source_spec: `_bmad-output/implementation-artifacts/spec-complete-dotnet-11-source-graph.md`
-  summary: Revalidate the tenant snapshot after delayed command authorization completes.
-  evidence: Medium, pre-existing behavior (R6): CommandAuthorizationEvaluator captures TryGetContext before AuthorizeAsync but does not call the existing Revalidate seam afterward. Demonstrate a context-only transition and fail closed without changing the migration authority contract incidentally.
-
-- source_spec: `_bmad-output/implementation-artifacts/spec-complete-dotnet-11-source-graph.md`
-  summary: Qualify cancellation and observer cleanup with uncooperative authentication and policy tasks.
-  evidence: Medium, pre-existing wait contract (R7): EvaluateAsync waits external tasks without WaitAsync and checks cancellation after completion; its finally removes the authentication observer only then. Keep a held provider/handler pending, cancel, and qualify the intended completion/cleanup contract before changing it.
-
-- source_spec: `_bmad-output/implementation-artifacts/spec-complete-dotnet-11-source-graph.md`
-  summary: Make private Stryker preparation retryable after interrupted or failed cache creation.
-  evidence: Medium, independently added tooling issue (R8): prepare creates its deterministic directory before download/build and verify_build rejects that incomplete directory on subsequent calls. Use owned staging and atomic completion, or bounded joined cleanup, with failed-download/build/cancellation retry controls.
-
-- source_spec: `_bmad-output/implementation-artifacts/spec-complete-dotnet-11-source-graph.md`
-  summary: Qualify actual Fluent native time-editor parsing for the later typed-field mapping.
-  evidence: Medium, unverified (R9): current generated-field tests inspect component parameters and invoke callbacks; a rendered browser control must establish invalid-input, clearing and seconds-preservation behavior before claiming a parsing defect.
-
-
-- source_spec: `_bmad-output/implementation-artifacts/spec-fix-builds-sdk-cohort-fixtures.md`
-  summary: Reconcile pre-existing synthetic Source readiness module topology labels with the manifest they cite.
-  evidence: Resumed blind review 2; both Builds baseline 10163c3e4ffd84ddb9b2831dea767a04da04f2ef and repair 70850b18e0d0b80facd2df0809974020dd935732 describe module-a/module-b in release-passed.json while the bound manifest declares p0-fixture-orders/p0-fixture-inventory. This is descriptive synthetic metadata; current command/manifest/profile/filter/fixture binding and separate G4 acceptance checks pass. No runtime qualification is claimed.
-
-- source_spec: `_bmad-output/implementation-artifacts/spec-fix-builds-sdk-cohort-fixtures.md`
-  summary: Isolate the pre-existing Source readiness non-test-command negative from its other deliberately invalid bindings.
-  evidence: Resumed blind review 4; baseline binding-mismatch.yaml and down-run.json combine a non-test command, null profile/filter and an all-A manifest hash, so that single fixture does not independently distinguish command rejection. Improve the control separately while retaining exact negative oracles and avoiding changes to production validation.
-
-- source_spec: `_bmad-output/implementation-artifacts/spec-align-native-read-timeout-budgets.md`
-  summary: Older admitted EventStore packages lack the new recovery snapshot API.
-  evidence: 2026-11-15 resumed review B1, medium; Directory.Build.targets still admits 4.0.4/4.1.0/4.2.0/5.0.1 while TenantAggregate unconditionally uses ProjectionSnapshotLimits. Four dotnet-inspect API diffs confirm the type was added in 5.1.0. Recovery was introduced by 6fcff842a8e48fc843d7b2df942d369f99f92b6b; package selections are explicitly excluded from this timeout repair.
-
-- source_spec: `_bmad-output/implementation-artifacts/spec-align-native-read-timeout-budgets.md`
-  summary: Rejection-only tenant state receives a different recovery refusal.
-  evidence: 2026-11-15 resumed review B3, medium; TenantState starts with an empty TenantId; its TenantNotFoundRejection Apply leaves it empty, and SDK replay constructs a state object. RefreshTenantAccess checks foreign TenantId before checking for an uncreated aggregate, so a subsequent attempt returns InsufficientPermissionsRejection. This belongs to later recovery commit 6fcff842a8e48fc843d7b2df942d369f99f92b6b.
-
-- source_spec: `_bmad-output/implementation-artifacts/spec-align-native-read-timeout-budgets.md`
-  summary: C# wrapper can truncate the browser progress checkpoint.
-  evidence: 2026-11-15 resumed review B5, medium; RetainBrowserProgressAsync reads the retained snapshot then writes directly to the same path with File.WriteAllTextAsync. Interruption during that write can destroy the complete checkpoint. This later evidence-wrapper change is owned by 7066cbaeff0a34624250542eb4954fbb8c623027, outside the native timeout behavior.
-
-- source_spec: `_bmad-output/implementation-artifacts/spec-align-native-read-timeout-budgets.md`
-  summary: Failure diagnostics can outlive the functional browser deadline.
-  evidence: 2026-11-15 resumed review B6, medium; The failure path directly awaits captureFocus/captureReadiness; those execute page evaluation without a separate cancellation race. A wedged renderer can therefore keep failure cleanup pending until the outer test timeout. The original baseline already contains the unbounded captureReadiness call; no native budget increase introduced it.
-
-- source_spec: `_bmad-output/implementation-artifacts/spec-align-native-read-timeout-budgets.md`
-  summary: Concurrent Firefox evidence driver labels a longer poll loop as thirty seconds.
-  evidence: 2026-11-15 resumed review B7, low; The unrelated untracked fix-firefox-route-focus-ci-2026-11-15/verify.sh loops 120 times with a one-second HTTP timeout plus a 250ms pause. That is not a thirty-second elapsed-time bound. Preserve this other workstream and its evidence; no historical evidence file is edited.
-
-- source_spec: `_bmad-output/implementation-artifacts/spec-align-native-read-timeout-budgets.md`
-  summary: Live corpus credential creation has no total corpus or encoded-token limit.
-  evidence: 2026-11-15 resumed review B8, medium; AuthenticatedRouteState.CreateCorpusReadTokenAsync limits each page to 100 but continues for any fresh cursor, growing exactIds and cursors until caller cancellation. A sufficiently large valid corpus also becomes one JWT and then a browser session. This is separate scoped-live-credential work introduced by 5db9648cfd0456896c1c549dcd1021f4c216bf2d.
-
-- source_spec: `_bmad-output/implementation-artifacts/spec-align-native-read-timeout-budgets.md`
-  summary: New recovery operation lacks a full delivery/convergence regression.
-  evidence: 2026-11-15 resumed review B10, medium; Searches find RefreshTenantAccess in structural/generated-controller and aggregate tests, but no command-gateway live delivery test in the authenticated route suite. Add persisted-event and consumer-convergence coverage in the separate recovery feature from 6fcff842a8e48fc843d7b2df942d369f99f92b6b; this timeout intent excludes business-runtime launches.
-
-- source_spec: `_bmad-output/implementation-artifacts/spec-synchronize-update-release-2026-11-14.md`
-  summary: EventStore offline source-mode component fixtures remove CI and can avoid the Platform Release/package guard when a CI caller omits explicit interop settings.
-  evidence: The six pre-existing source-mode setups scrub CI before building; frozen Platform00ed0607 Directory.Build.targets validates only when CI is true. The maintained payload workflow explicitly supplies Release/false and the repaired package branch preserves CI, so this is unchanged source-default debt rather than current hosted acceptance.
-
-- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-synchronize-update-release-2026-11-14.md`
-  summary: FrontComposer nested projection generation loses the containing type in generated references.
-  evidence: The independent CS0246 probe agrees with unchanged b34 AttributeParser using typeSymbol.Name and emitter consumers; parser acceptance does not qualify generated compilation. Track a source/generator compatibility fix with full nested compilation.
-
-- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-synchronize-update-release-2026-11-14.md`
-  summary: FrontComposer skill-corpus canonicalization loses collection-element boundaries containing a pipe.
-  evidence: Unchanged CreateSkillCorpusResourcePayload joins sorted values before canonical escaping; the reviewed two distinct partitions collide. No tracked production call site was found; qualify inputs and versioned fingerprint compatibility before a wire-format fix.
-
-- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-synchronize-update-release-2026-11-14.md`
-  summary: FrontComposer HFC1012 diagnostics use the command file path for default attributes in another partial declaration.
-  evidence: Unchanged ValidateDefaultValueType combines the root filePath with attribute syntax coordinates. The independent two-file probe reports Test0.cs for the Test1.cs attribute; add a focused cross-file diagnostic fix separately.
-
-- source_spec: `_bmad-output/implementation-artifacts/spec-synchronize-update-release-2026-11-14.md`
-  summary: Unverified medium concern: determine the supported recovery policy for malformed historical authoritative tenant status, membership roles or configuration keys.
-  evidence: The refresh producer preserves existing authoritative data while audit certification refuses malformed snapshots. Valid current commands initialize Active/Disabled and real assignable roles; cited Unknown-role historical events already fail full-history certification before recovery. A real persisted historical actor-state fixture and owner-selected repair/rejection policy would determine whether refresh creates a new loss of previously valid certification; no production occurrence or new rejection contract is asserted.
-
-- source_spec: `_bmad-output/implementation-artifacts/spec-synchronize-update-release-2026-11-14.md`
-  summary: FrontComposer's upstream16.2 reopening procedure must also reopen approved-change EVT-XFER-1 tracking.
-  evidence: Current upstream epic-16-context.md:199 reopens the16.2 story row and requires the full transfer path, but approved-change EVT-XFER-1 remains not-required from its closure. Blind and edge reviewers independently identify this future operator-tracking inconsistency. It predates the current enum/catalog repairs; preserve original decision receipts and let the owning planning work correct its future reopening instruction.
-
-- source_spec: `_bmad-output/implementation-artifacts/spec-synchronize-update-release-2026-11-14.md`
-  summary: Fix the upstream EventStore transition fixture test that mistakes a later step's environment expressions for shell interpolation after an earlier run block was added.
-  evidence: Exact source fbed6cd32e0497bf8dd82a2ab7681e15e268234f run43857136989 has37/38passing tests; unchanged test_phase_4_transition.py:793 uses content.split('run: |')[1] across step boundaries. Upstreamceb43c78dca2a0f350eb98efe9f4a376b5de2114 introduced the earlier run block; this release only changed credential fixtures. The optional transition workflow is absent from main required contexts, and the required Phase4 gate risk matrix fixtures job133264190388 succeeded. Keep the failure visible; shared CI instructions direct pipeline defects to report rather than module fixes.
-
-- source_spec: `_bmad-output/implementation-artifacts/spec-synchronize-update-release-2026-11-14.md`
-  summary: The EventStore optional transition workflow-test defect recorded above is addressed by its existing owning scanner repair; fresh hosted verification remains pending.
-  evidence: Upstream8b6d5bee5217b3f4bbd8fd689ad887aca863961b replaces content.split('run: |')[1] with workflow_run_bodies and checks every run block, including single-line, later-body, compact-expression and commented-header refusal cases. This release preserves and integrates that existing repair; source and current run IDs are in resumed-parent-integration/eventstore-upstream-scanner-repair-integration.json.
-  resolution: Hosted optional transition run43862075403 succeeded on the selected8b6d5bee5217b3f4bbd8fd689ad887aca863961b source. The earlier failing run remains historical.
-
-## Deferred from: pragmatic release completion (2026-11-16)
-
-- source_spec: `_bmad-output/implementation-artifacts/spec-synchronize-update-release-2026-11-14.md`
-  summary: EventStore Development transport can select the same ephemeral port for two owned control-plane endpoints.
-  evidence: On8b6d5bee5217b3f4bbd8fd689ad887aca863961b, integration run43862075310/job133281459500 failed PublicDevelopmentTransportAuthenticatesPeersAndPersistsActorsAcrossNativeRestart with "Owned control-plane endpoints must be distinct" (329 passed, one failed, four configured skips across334 cases). Separate bind/release TcpListener allocations can return the same port; production transport and test bytes are unchanged from the previously qualified981fabaa source. Retrying only the failed job on identical source passed as job133318826521/attempt2. The retry does not fix the allocator: reserve distinct endpoints in a separate EventStore owner repair. Existing guards and original failure remain preserved.
-
-- source_spec: `_bmad-output/implementation-artifacts/spec-synchronize-update-release-2026-11-14.md`
-  summary: Apply the approved shared release policy and CiCd-adoption condition in a separate maintainer change; keep pipeline modernization outside this release.
-  evidence: Approved sprint-change-proposal-2026-11-16-pragmatic-release-policy.md sections4B/4C assign AI.Tools policy changes to its maintainer and CiCd adoption to the pipeline track. The release-scoped checker exception ends with completion bookkeeping. The new Dapr evidence-only workflow step was deferred under4A; its existing regression test and the original release gates are retained. No shared policy edit or CiCd adoption is claimed by the completed8.0.1 release.
+### DW-658: Unverified medium, pre-existing: establish the bootstrap credential HTTP handler's redirect policy for password-grant requests.
+
+origin: migrated from legacy ledger ("Deferred from: bootstrap handoff independent review (2026-10-23)"), 2026-11-16
+location: bootstrap credential HTTP handler / HttpClient.SendAsync
+reason: Unverified medium, pre-existing: establish the bootstrap credential HTTP handler's redirect policy for password-grant requests.
+status: done 2026-10-28
+source_spec: `spec-dw-551-556-575-576-597-bootstrap-handoff.md`
+summary: Unverified medium, pre-existing: establish the bootstrap credential HTTP handler's redirect policy for password-grant requests.
+evidence: The provider's HttpClient.SendAsync and default handler ownership predate this batch; initial destination validation does not itself establish 307/308 handling. A real-handler redirect fixture must determine whether credentials can be reposted to a different destination, then the owning transport contract must choose and qualify its redirect policy. This follow-up does not change the five numbered closures or authorize a new redirect policy.
+outcome: fixed
+resolution: A real-handler matrix reproduced same/cross-origin default 307/308 password-form replay. The explicitly recorded transport decision now disables all automatic redirects only for delegated credential acquisition; command dispatch retains the existing default client. Production registration, exact client selection, ten no-replay redirect cases and a direct-token success pass.
+resolution-spec: spec-five-deferred-runtime-followups.md
+resolution-evidence: five-deferred-runtime-followups-validation-evidence.md
+
+### DW-659: Pre-existing medium; synchronize the late-subscription cancellation test with actual asynchronous cleanup completion.
+
+origin: migrated from legacy ledger ("Deferred from: navigation accessibility verification (2026-10-23)"), 2026-11-16
+location: TenantReadRefreshSubscriptionTests.Cancellation_after_late_backend_setup_cleans_up_without_retaining_a_callback
+reason: Pre-existing medium; synchronize the late-subscription cancellation test with actual asynchronous cleanup completion.
+status: done 2026-10-27
+source_spec: `_bmad-output/implementation-artifacts/spec-dw-119-211-212-213-444-navigation-accessibility.md`
+summary: Pre-existing medium; synchronize the late-subscription cancellation test with actual asynchronous cleanup completion.
+evidence: `TenantReadRefreshSubscriptionTests.Cancellation_after_late_backend_setup_cleans_up_without_retaining_a_callback` immediately asserts `UnsubscribeAsync` after the caller's cancellation exception, while unchanged `TenantReadRefreshSubscription.cs` starts `CleanupFailedSetupAsync` without awaiting it before rethrowing. One full 7,504-case run observed no unsubscribe yet; the isolated 37-case class and subsequent full 7,504-case run passed. Use a deterministic unsubscribe-completion signal while preserving exactly-one-unsubscribe and no-retained-callback assertions; this records test timing rather than a proven production cleanup failure.
+resolution: The cancellation test now observes caller cancellation before releasing late setup, holds unsubscribe to verify callback retirement, releases cleanup in finally and awaits bounded unsubscribe completion before exactly-once/no-callback assertions. Production cleanup is unchanged; the current full UI run passes 7,839/7,839.
+resolution-spec: `_bmad-output/implementation-artifacts/spec-dw-114-137-144-514-523-read-and-recovery-contracts.md`
+resolution-evidence: `_bmad-output/implementation-artifacts/dw-114-137-144-514-523-validation-evidence.md`
+
+### DW-660: Unverified medium; isolate one administrator-grant Escape focus timeout before changing production restoration behavior.
+
+origin: migrated from legacy ledger ("Deferred from: UI runtime qualification verification (2026-10-24)"), 2026-11-16
+location: administrator-grant Escape focus restoration
+reason: Unverified medium; isolate one administrator-grant Escape focus timeout before changing production restoration behavior.
+status: open
+source_spec: `_bmad-output/implementation-artifacts/spec-dw-268-328-391-434-489-ui-runtime-qualification.md`
+summary: Unverified medium; isolate one administrator-grant Escape focus timeout before changing production restoration behavior.
+evidence: A frozen-source normal Chromium run detached the grant dialog but observed body focus instead of the enabled launcher for twenty seconds (`dw-391-final-grant-focus-unavailable.json`). A separate instrumented three-case run found enabled launcher focus calls connected, outside inert, and immediately active; the final standalone normal run passed all nine cases. The cause is unproven: no production focus defect or browser-concurrency cause is claimed. Reproduce with controlled foreground and held subscription/render ordering, then identify whether renderer ownership or the browser driver lost focus. The diagnostic source, trace and limits are retained in `dw-391-focus-diagnostic.json` and its archive. This unnumbered qualification follow-up does not change the five numbered closures or the existing runtime/release holds.
+outcome: bounded-negative-reproduction
+verification-date: 2026-10-28
+verification: A foreground authenticated browser holds only the live unscoped global-administrators/system JoinGroup on its current connection, retiring cancelled/closed/expired entries. The completion predicate rejects while held; after release a scoped notification must drive an authoritative read and a distinct DOM row before exact enabled-launcher focus is checked. The original body-focus timeout and its cause were not reproduced, so no restoration patch or historical root-cause closure is claimed.
+verification-evidence: five-deferred-runtime-followups-validation-evidence.md
+remaining-batch-date: 2026-10-30
+remaining-batch-result: Fresh standalone OIDC runtime-followups/safety-only runner stops at the default EventStore 3.128.3 below 3.128.4 build guard before a browser opens. No foreground Escape, held-subscription negative control, acknowledged callback or rendered-row check ran. The historical body-focus failure and its cause remain unexplained; keep open.
+remaining-batch-evidence: five-remaining-speech-and-browser-validation-evidence.md
+resumed-batch-date: 2026-10-30
+resumed-batch-result: Current foreground Escape, held negative control and acknowledged callback/distinct-row rendering pass; the historical timeout remains unexplained and open.
+resumed-batch-evidence: five-remaining-speech-and-browser-resumed-validation-evidence.md
+
+### DW-661: Unverified medium — qualify removal-modal containment when pre-submit focus interop fails while the browser and command delivery remain connected.
+
+origin: migrated from legacy ledger ("Deferred from: five UI safety items independent review (2026-10-25)"), 2026-11-16
+location: PrepareSubmissionFocusAsync / FocusSafelyAsync
+reason: Unverified medium — qualify removal-modal containment when pre-submit focus interop fails while the browser and command delivery remain connected.
+status: done 2026-10-28
+source_spec: `_bmad-output/implementation-artifacts/spec-dw-194-201-221-267-609-ui-safety.md`
+summary: Unverified medium — qualify removal-modal containment when pre-submit focus interop fails while the browser and command delivery remain connected.
+evidence: PrepareSubmissionFocusAsync awaits FocusSafelyAsync, which catches interop failures before the exact lifetime/admission checks. The lifecycle target exists throughout normal connected rendering, and the final browser lane proves normal and pending native containment; no connected failure/bypass was reproduced. Settle with production-component browser fault injection that rejects the focus operation, continues held delivery and checks Escape/overlay containment plus retained ownership.
+outcome: fixed
+verification-date: 2026-10-28
+verification: The earlier negative result allowed later focus repair and is superseded. The corrected diagnostic rejects the first lifecycle focus, holds subsequent programmatic recovery effects, verifies exact synthetic member payload and tenant/domain/aggregate, then observes body focus and native Escape closing the dialog while one simulated delivery remains pending. Zero circuit errors and cleanup source equality hold; the native containment assertion fails. Overlay and subsequent same-message status checks remain unqualified because this earlier assertion stops the run.
+pre-fix-blocker: A qualified owning fix for native containment before focus recovery; the earlier closure is withdrawn.
+verification-evidence: five-deferred-runtime-followups-validation-evidence.md
+resolution: Rejected private focus preparation now refuses admission before changing attempts, leases or dispatch. Initial/retained retry regressions preserve confirmation, snapshot and tracking identity. Fresh uninstrumented focused browser passes: Escape and overlay after rejection send zero commands, then successful focus admits one exact member command with repeated same-message status lookup and zero circuit errors. Arbitrary interop failures and the separate external grid fault remain outside this closure.
+resolution-spec: spec-five-deferred-runtime-followups.md
+resolution-evidence: five-deferred-runtime-followups-validation-evidence.md
+
+### DW-662: Medium — route a pinned Fluent UI 5.0.1 grid continuation that uses a disposed JavaScript module during navigation to the component owner.
+
+origin: migrated from legacy ledger ("Deferred from: five UI safety items independent review (2026-10-25)"), 2026-11-16
+location: FluentDataGrid.UpdateColumnInteractionsAsync / OnAfterRenderAsync
+reason: Medium — route a pinned Fluent UI 5.0.1 grid continuation that uses a disposed JavaScript module during navigation to the component owner.
+status: open
+source_spec: `_bmad-output/implementation-artifacts/spec-dw-194-201-221-267-609-ui-safety.md`
+summary: Medium — route a pinned Fluent UI 5.0.1 grid continuation that uses a disposed JavaScript module during navigation to the component owner.
+evidence: One full authenticated browser run failed during create recovery with ObjectDisposedException in FluentDataGrid.UpdateColumnInteractionsAsync/OnAfterRenderAsync and one circuit error; its packet, log and sanitized stack are preserved in the batch evidence diagnostics. The existing pinned grid awaits initialization before later module use without a disposal recheck. Later labelled checks did not reproduce the circuit fault, so the exact focus checkpoint remains unproven and no local workaround is claimed. Reproduce with controlled grid initialization/disposal across detail navigation and Back, then qualify the owning component fix; retain zero-circuit-error acceptance.
+outcome: reproduced-external-defect
+verification-date: 2026-10-28
+owner: Microsoft.FluentUI.AspNetCore.Components 5.0.1
+verification: A one-shot hold of the pinned grid Initialize continuation records a connected workspace element, detail navigation detaches it, and release while detached produces ObjectDisposedException in FluentDataGrid.UpdateColumnInteractionsAsync/OnAfterRenderAsync plus CircuitHost[111]. The diagnostic fails the unchanged zero-circuit-error gate and remains separate from passing browser acceptance.
+blocker: An owning component fix and approved dependency qualification; no Tenants workaround, fault suppression or speculative upgrade is applied.
+verification-evidence: five-deferred-runtime-followups-validation-evidence.md
+remaining-batch-date: 2026-10-30
+remaining-batch-result: The separate unchanged HOLD_GRID diagnostic stops at the default EventStore 3.128.3 below 3.128.4 build guard before a browser opens. Connected initialization, detached release and the zero-circuit-error assertion were not exercised anew. The historical reproduced Fluent 5.0.1 external defect and owning-fix blocker remain open; no workaround or suppression is introduced.
+remaining-batch-evidence: five-remaining-speech-and-browser-validation-evidence.md
+resumed-batch-date: 2026-10-30
+resumed-batch-result: Current connected initialization, detached navigation and release reproduce the pinned FluentDataGrid disposed-JSObjectReference circuit failure; unchanged zero-error acceptance fails and the external blocker remains open.
+resumed-batch-evidence: five-remaining-speech-and-browser-resumed-validation-evidence.md
+
+### DW-663: Medium, unverified — qualify a fresh generic blocking Aspire CI run after the published EventStore routing contracts can compile.
+
+origin: migrated from legacy ledger ("Deferred from: release-governance independent review (2026-10-27)"), 2026-11-16
+location: generic blocking Aspire CI
+reason: Medium, unverified — qualify a fresh generic blocking Aspire CI run after the published EventStore routing contracts can compile.
+status: done 2026-10-29
+source_spec: `_bmad-output/implementation-artifacts/spec-dw-540-554-570-584-593-release-governance.md`
+summary: Medium, unverified — qualify a fresh generic blocking Aspire CI run after the published EventStore routing contracts can compile.
+evidence: The new browser/TLS/Dapr prerequisite and result-gate definitions have local contract checks, but no fresh full generic Aspire provisioning run is claimed. Current default and Release/package Contracts builds fail with ten missing EventStore routing-type errors in TenantCatalogDeclarations.cs; pre-review Debug/source Contracts passed 704/704 and both real workflow closures passed immutable-snapshot checks. Retain those distinct results and the existing release holds. Capture a fresh package-mode generic tier with installed prerequisites, executed tests and no skips after the upstream package prerequisite is available.
+resolution-date: 2026-10-29
+resolution-spec: spec-five-deferred-authority-and-read-bounds.md
+resolution: Actual push CI 40809733133 on 516267c9675dc48bc35bf92f14a712f5ddc1a504 passed the main build/test job and complete generic Aspire job 123242100351:530 executed, 530 passed, zero failures/skips. Browser/TLS/Dapr prerequisites, workers-enabled default, strict MTP command and executed/no-skips gate all succeeded under actual Builds workflow e909ffd9fe9a6097e36d932010b983d029396968. Generic FrontComposer/Memories source exceptions and separate published-profile evidence remain distinct; no all-source or broad release acceptance is claimed. Earlier compile, CI and browser failures remain retained.
+resolution-evidence: five-deferred-authority-and-read-bounds-validation-evidence.md
+
+### DW-664: Medium, pre-existing: qualify fatal dependency failure precedence when the authenticated caller retires concurrently.
+
+origin: migrated from legacy ledger ("Deferred from: five read-safety items independent review (2026-10-28)"), 2026-11-16
+location: CallerBoundTenantsRestQueryClient.ReadAsync / TenantQueryGateway.ReadForAuthenticatedCallerAsync
+reason: Medium, pre-existing: qualify fatal dependency failure precedence when the authenticated caller retires concurrently.
+status: done 2026-10-28
+source_spec: `spec-dw-117-118-127-599-618-read-safety.md`
+summary: Medium, pre-existing: qualify fatal dependency failure precedence when the authenticated caller retires concurrently.
+evidence: CallerBoundTenantsRestQueryClient.ReadAsync verifies cancellation/current authority in finally, and TenantQueryGateway.ReadForAuthenticatedCallerAsync contains caller-transition failures. Those unchanged entry paths can replace a fatal dependency exception with cancellation or authorization failure before workspace classification. Establish a held fatal read plus caller/cancellation transition regression and an owning precedence decision before changing this security boundary. This is separate from the selected workspace/search fixes and numbered totals.
+resolution-date: 2026-10-28
+resolution-spec: spec-five-deferred-authority-and-read-bounds.md
+resolution: The approved original-fatal precedence now survives caller retirement/cancellation, fatal wrappers and completed canceled tasks; pre-cancelled work never starts. Fatal transport, enrichment and timing/callback regressions preserve original identity without returning retired-caller evidence.
+resolution-evidence: five-deferred-authority-and-read-bounds-validation-evidence.md
+
+### DW-665: Unverified medium: measure elapsed latency of bounded authorized backfill against a slow upstream before choosing a whole-load deadline.
+
+origin: migrated from legacy ledger ("Deferred from: five read-safety items independent review (2026-10-28)"), 2026-11-16
+location: bounded authorized backfill whole-load deadline
+reason: Unverified medium: measure elapsed latency of bounded authorized backfill against a slow upstream before choosing a whole-load deadline.
+status: done 2026-10-28
+source_spec: `spec-dw-117-118-127-599-618-read-safety.md`
+summary: Unverified medium: measure elapsed latency of bounded authorized backfill against a slow upstream before choosing a whole-load deadline.
+evidence: The approved scan examines at most 1,000 raw positions and honors caller cancellation and existing request timeouts, but multiple sequential windows can multiply latency. No unacceptable-duration threshold or controlled slow-upstream incident was established. Capture per-window/whole-load timing and cancellation with a deterministic slow fixture, then choose the owning timeout/fallback contract. Rendered privacy/completeness qualification does not claim a latency SLA; numbered totals are unchanged.
+resolution-date: 2026-10-28
+resolution-spec: spec-five-deferred-authority-and-read-bounds.md
+resolution: The approved configurable ten-second whole-load budget covers windows, hydration and fallback, cancels outstanding work and discards late evidence. Manual-clock slow-window/seam controls, nondefault production-DI binding, cursor recovery and safe expiry diagnostics pass; controlled populated-list timing is retained without claiming a general latency SLA.
+resolution-evidence: five-deferred-authority-and-read-bounds-validation-evidence.md
+
+### DW-666: Unverified medium — determine the cause of the published-profile browser timeout before the 1440-pixel tenant-list check.
+
+origin: migrated from legacy ledger ("Deferred from: native authority CI qualification (2026-10-29)"), 2026-11-16
+location: tenant-list-layout-1440-none / native actor admission window
+reason: Unverified medium — determine the cause of the published-profile browser timeout before the 1440-pixel tenant-list check.
+status: done 2026-10-29
+source_spec: `_bmad-output/implementation-artifacts/spec-five-deferred-authority-and-read-bounds.md`
+summary: Unverified medium — determine the cause of the published-profile browser timeout before the 1440-pixel tenant-list check.
+evidence: Exact-source CI40783107965 on22644726 passed16 authenticated route/layout cases, then reported browser-timeout under tenant-list-layout-1440-none. That phase covered both navigation/network-idle and seeded Current readiness; finer fixed phase labels now distinguish them without changing waits or assertions. Native transport responses in the captured logs were200, which does not prove a cause. Preserve the original safe result and compare a fresh exact-source run plus a same-corpus baseline/control if it recurs before changing production behavior or timeouts. Generic and explicit published qualification profiles remain distinct; this unnumbered risk is excluded from numbered totals.
+resolution-date: 2026-10-29
+resolution-spec: spec-five-deferred-authority-and-read-bounds.md
+resolution: Exact-order four-CPU controls reproduce native actor admission-window pressure with retained cursor flags,995 completed known callbacks in22.224s and a31.219s queued cancellation at maximum queue depth one. Independent test groups now observe the unchanged60-second policy window; fresh reads, seeded Current assertions and existing deadlines remain mandatory. Both method orders pass25 browser cases and the complete local strict generic tier passes530/530 with zero skips. This resolves the cause investigation; actual post-push generic CI acceptance remains separately open.
+resolution-evidence: five-deferred-authority-and-read-bounds-validation-evidence.md
+
+### DW-667: Reconcile the long-lived EventStore spec gitlink audit scope while preserving its original baseline and unrelated committed dependency updates.
+
+origin: migrated from legacy ledger ("Deferred from: latest EventStore package verification (2026-10-29)"), 2026-11-16
+location: spec-eventstore-3-117-1.md / validate-story-gitlinks.py
+reason: Reconcile the long-lived EventStore spec gitlink audit scope while preserving its original baseline and unrelated committed dependency updates.
+status: done 2026-10-29
+source_spec: `_bmad-output/implementation-artifacts/spec-eventstore-3-117-1.md`
+summary: Reconcile the long-lived EventStore spec gitlink audit scope while preserving its original baseline and unrelated committed dependency updates.
+evidence: Review R1. The retained historical endpoint ef4b7f2f99b2a60910b94481a198f591c51bfe5c passes with --ref, while the default validate-story-gitlinks.py command exits 1 for eight intervening undeclared pointers since baseline 9e9e04308ea1060010a64bb8b800e755c4aaf99d. This continuation starts at 03615cc91d940ca37b47fb13413a90a31151dd71 and has zero gitlink diff. Package currency, both Release builds and 10887 tests pass. Resolve historical attribution without resetting the baseline, reverting independent changes or inventing story ownership; exact commands/logs are in dependency-refresh-eventstore-3.128.4-evidence-2026-10-29.json and its raw-log archive.
+resolution: done — Restored the creation snapshot's original 1846c7128cf0f6b16f9e62f38032bcab78e26e38 start instead of the narrowed October 10 checkpoint, retired the incompatible active historical endpoint, and inventoried all nine exact current range targets without claiming independent commits as story-owned. Default guard, original-range/history verifier with 23 controls, guard suite 77/77 and changed-story suite 78/78 pass. Evidence: eventstore-gitlink-reconciliation-2026-10-29.md; original review evidence above is preserved.
+
+### DW-668: Unverified medium, pre-existing incoming coverage gap: qualify granting and post-removal revocation through the registered bound metadata transport.
+
+origin: migrated from legacy ledger ("Deferred from: resumed speech review incoming coverage (2026-10-30)"), 2026-11-16
+location: src/Hexalith.Tenants/Program.cs:82; tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsRouteTests.cs:105
+reason: Unverified medium, pre-existing incoming coverage gap: qualify granting and post-removal revocation through the registered bound metadata transport.
+status: open
+source_spec: `_bmad-output/implementation-artifacts/spec-five-remaining-speech-and-browser-followups.md`
+summary: Unverified medium, pre-existing incoming coverage gap: qualify granting and post-removal revocation through the registered bound metadata transport.
+evidence: Incoming a16d897 src/Hexalith.Tenants/Program.cs:82 registers GatewayNativeSourceMetadataReader through TenantOwnerSourceGateway, while tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsRouteTests.cs:105 still constructs DaprNativeSourceMetadataReader directly. Those existing route tests do not establish equivalent coverage through the registered bound transport.
+classification: pre-existing-incoming-test-coverage-gap
+production-impact: Unverified; no production authorization or revocation failure is demonstrated or claimed.
+next-action: Exercise matching granting and post-removal revocation through the registered GatewayNativeSourceMetadataReader bound transport before claiming that production path qualified; preserve current authorization and exact identity rules.
+scope: Deferred separately from the five selected speech/browser follow-ups; excluded from numbered totals. No incoming host or unrelated integration test was changed.
+evidence-review: RBH10; five-remaining-speech-and-browser-resumed-validation-evidence.md
+
+### DW-669: Pre-existing verification gap: qualify bootstrap catalog readiness across a wrong-root to matching-root transition and cancellation.
+
+origin: migrated from legacy ledger ("Deferred from: merged-main CI repair independent review (2026-11-01)"), 2026-11-16
+location: src/Hexalith.Tenants/Bootstrap/TenantBootstrapBoundCommand.cs; tests/Hexalith.Tenants.Server.Tests/Bootstrap/TenantBootstrapBoundCommandTests.cs
+reason: Pre-existing verification gap: qualify bootstrap catalog readiness across a wrong-root to matching-root transition and cancellation.
+status: open
+source_spec: `_bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md`
+summary: Pre-existing verification gap: qualify bootstrap catalog readiness across a wrong-root to matching-root transition and cancellation.
+evidence: tests/Hexalith.Tenants.Server.Tests/Bootstrap/TenantBootstrapBoundCommandTests.cs constructs its service provider without IRouteCatalogAuthority or the expected development root. Its existing authenticated bound-command assertions therefore do not exercise the readiness loop in src/Hexalith.Tenants/Bootstrap/TenantBootstrapBoundCommand.cs; neither delayed matching-root readiness nor cancellation during catalog waiting has distinguishing coverage.
+classification: pre-existing-test-coverage-gap
+production-impact: Unverified; no readiness or authenticated bound-command failure is demonstrated or claimed.
+next-action: Register a controlled IRouteCatalogAuthority and expected root in focused tests; prove no bound command is issued while a different root is serving, progress after the matching root becomes serving, and cancellation interrupts waiting without issuing a command. Retain all existing identity, administrator and workload proof checks.
+scope: Deferred from this bounded CI compatibility repair; excluded from numbered totals. Production and test behavior remain unchanged by this record.
+evidence-review: Independent review of spec-ci-repair-2026-11-01.md; verification-gap finding explicitly triaged as defer.
+
+### DW-670: Verify no-build publication cohort enforcement for non-Contracts packages against formerly qualified EventStore and McpCli selections.
+
+origin: migrated from legacy ledger ("Deferred from: merged-main CI repair independent review (2026-11-01)"), 2026-11-16
+location: Server/Client/Testing/Aspire package publication preflight
+reason: Verify no-build publication cohort enforcement for non-Contracts packages against formerly qualified EventStore and McpCli selections.
+status: open
+source_spec: `spec-synchronize-dependencies-and-release-2026-11-02.md`
+summary: Verify no-build publication cohort enforcement for non-Contracts packages against formerly qualified EventStore and McpCli selections.
+evidence: Medium severity, unverified consumer impact. Synthetic guard fixtures can pack Server/Client/Testing/Aspire with EventStore 3.133.0 or McpCli 1.1.0 because the pre-existing canonical API guard belongs to Contracts. Reproduce using real released producer packages and inspect actual nuspec dependency closure plus publication preflight before deciding whether additional owner-package guards are needed; the current cohort producers are unpublished.
+
+### DW-671: Hexalith.Builds should reconcile pre-existing synthetic Source readiness Dapr metadata with its manifest and assess that profile's explicit pin-binding contract.
+
+origin: migrated from legacy ledger ("Deferred from: merged-main CI repair independent review (2026-11-01)"), 2026-11-16
+location: release-passed.json / synthetic Source readiness Dapr metadata
+reason: Hexalith.Builds should reconcile pre-existing synthetic Source readiness Dapr metadata with its manifest and assess that profile's explicit pin-binding contract.
+status: open
+source_spec: `_bmad-output/implementation-artifacts/spec-fix-builds-sdk-cohort-fixtures.md`
+summary: Hexalith.Builds should reconcile pre-existing synthetic Source readiness Dapr metadata with its manifest and assess that profile's explicit pin-binding contract.
+evidence: The unchanged baseline positive release-passed.json reports Dapr runtime 1.18.0 while its bound manifest selects 1.18.7; full G4 acceptance separately checks all supported pins. This is not a regression or a failed CI assertion from the EventStore 4.0.2 refresh.
+
+### DW-672: Complete the later .NET 11 migration across browser binary paths and the FrontComposer/Memories build cohort.
+
+origin: migrated from legacy ledger ("Deferred from: merged-main CI repair independent review (2026-11-01)"), 2026-11-16
+location: validate-authenticated-live-routes.mjs; validate-status-filter-label-browser.mjs; validate-authenticated-administrator-dialogs.mjs; validate-authenticated-navigation-focus.mjs; validate-authenticated-detail-audit-return.mjs; validate-authenticated-audit-layout.mjs; validate-authenticated-workspace-focus.mjs
+reason: Complete the later .NET 11 migration across browser binary paths and the FrontComposer/Memories build cohort.
+status: open
+source_spec: `_bmad-output/implementation-artifacts/spec-align-native-read-timeout-budgets.md`
+summary: Complete the later .NET 11 migration across browser binary paths and the FrontComposer/Memories build cohort.
+evidence: Resumed review at 401d926eb7d51bdf332696ed3f0fe39a812b3501 confirms net10.0 output paths in validate-authenticated-live-routes.mjs, validate-status-filter-label-browser.mjs, validate-authenticated-administrator-dialogs.mjs, validate-authenticated-navigation-focus.mjs, validate-authenticated-detail-audit-return.mjs, validate-authenticated-audit-layout.mjs and validate-authenticated-workspace-focus.mjs. Migration dc33fda90beea8ee9352b15cb061bf01dbf5f178 changed Tenants to net11.0; source integration restore now fails NU1201/NU1202 against net10.0 FrontComposer/Memories projects, while serialized package fallback fails CS0618 in generated CreateTenantCommand validation. Exact commands and logs are retained in this spec's verification artifact; no dependency or warning gate was weakened.
+
+### DW-673: Preserve every package's immediate acquisition probe when zero-poll release verification includes slow signature checks.
+
+origin: migrated from legacy ledger ("Deferred from: merged-main CI repair independent review (2026-11-01)"), 2026-11-16
+location: scripts/verify-release-artifacts.sh
+reason: Preserve every package's immediate acquisition probe when zero-poll release verification includes slow signature checks.
+status: open
+source_spec: `_bmad-output/implementation-artifacts/spec-align-native-read-timeout-budgets.md`
+summary: Preserve every package's immediate acquisition probe when zero-poll release verification includes slow signature checks.
+evidence: scripts/verify-release-artifacts.sh sets one five-second cohort deadline before its five-package loop, then runs comparison/native signature validation between acquisitions. Verification taking most of that interval prevents later already-published packages receiving their documented one-second immediate probe. This belongs to separate release-verification commit 8eaf6f601d82bcb4a92ed89aa1c2dcdc8815baa8; add a delayed-verifier control before choosing how acquisition and verification share the bound.
+
+### DW-674: Investigate an unverified same-subject authentication-change race while corroborating configuration principal evidence.
+
+origin: migrated from legacy ledger ("Deferred from: merged-main CI repair independent review (2026-11-01)"), 2026-11-16
+location: TenantConfigurationPrincipalResolver.ResolveAsync / ServerCircuitUserContextAccessor.UserId
+reason: Investigate an unverified same-subject authentication-change race while corroborating configuration principal evidence.
+status: open
+source_spec: `_bmad-output/implementation-artifacts/spec-align-native-read-timeout-budgets.md`
+summary: Investigate an unverified same-subject authentication-change race while corroborating configuration principal evidence.
+evidence: Unverified medium finding outside the timeout repair. TenantConfigurationPrincipalResolver.ResolveAsync checks authenticationChanged before userContextAccessor.UserId; ServerCircuitUserContextAccessor.UserId can call GetAuthenticationStateAsync again. A deterministic provider control must establish whether revocation during that second resolution can return the earlier principal's privileged evidence, then verify fail-closed behavior if reproduced. The resolver change belongs to later commit dc33fda90beea8ee9352b15cb061bf01dbf5f178.
+
+### DW-675: Qualify and enforce supplementary-page completion when an enrichment dependency ignores cancellation.
+
+origin: migrated from legacy ledger ("Deferred from: merged-main CI repair independent review (2026-11-01)"), 2026-11-16
+location: TenantQueryGateway.EnrichRowsAsync / FrontComposerGatewayAuthorizationHandler / FrontComposerTokenSession.ReadPrincipalAsync
+reason: Qualify and enforce supplementary-page completion when an enrichment dependency ignores cancellation.
+status: open
+source_spec: `_bmad-output/implementation-artifacts/spec-align-native-read-timeout-budgets.md`
+summary: Qualify and enforce supplementary-page completion when an enrichment dependency ignores cancellation.
+evidence: Medium, pre-existing boundary limitation. Both original baseline cea24f9a2cc513beef36d42805634e21ffe217a4 and current TenantQueryGateway.EnrichRowsAsync await detail tasks directly inside Task.WhenAll; cancelling the page token alone cannot complete an uncooperative task. The current production FrontComposerGatewayAuthorizationHandler awaits FrontComposerTokenSession.ReadPrincipalAsync, which awaits AuthenticationStateProvider without a cancellation-aware wait. Add a controlled pending-authentication/provider case and preserve caller isolation, fatal failures, late-task observation and bounded concurrency when selecting a fix. Existing deadline tests establish cooperative transport cancellation; no observed business-topology hang is claimed.
+
+### DW-676: Complete the remaining McpCli census source classifications and exact-source hosted qualification after specific owning-maintainer approval.
+
+origin: migrated from legacy ledger ("Deferred from: merged-main CI repair independent review (2026-11-01)"), 2026-11-16
+location: McpCli candidate checker / remaining-census-followup.json / source-context-comparison.json
+reason: Complete the remaining McpCli census source classifications and exact-source hosted qualification after specific owning-maintainer approval.
+status: open
+source_spec: `_bmad-output/implementation-artifacts/spec-repair-current-mcpcli-published-cohort-ci.md`
+summary: Complete the remaining McpCli census source classifications and exact-source hosted qualification after specific owning-maintainer approval.
+evidence: The unchanged candidate checker still refuses eight earlier allowance source drifts and four inspection errors at the recorded McpCli source pins. The packet evidence/mcpcli-current-ci-2026-11-14/remaining-census-followup.json and source-context-comparison.json bind all observed paths, old/current digests and newer Platform closure differences. Amendment 1.0.8 authorizes only the two new EventStore identities; all other decisions and committed/hosted/native acceptance remain pending.
+
+### DW-677: Source-only resolution of the earlier .NET 11 framework and browser-path deferral; package and governance qualification remain independent.
+
+origin: migrated from legacy ledger ("Deferred from: merged-main CI repair independent review (2026-11-01)"), 2026-11-16
+location: FrontComposer/Memories source-framework repairs / .NET 11 browser validator paths
+reason: Source-only resolution of the earlier .NET 11 framework and browser-path deferral; package and governance qualification remain independent.
+status: open
+source_spec: `_bmad-output/implementation-artifacts/spec-complete-dotnet-11-source-graph.md`
+summary: Source-only resolution of the earlier .NET 11 framework and browser-path deferral; package and governance qualification remain independent.
+evidence: Root commit d99b7f63feb81f74cee75c3976894c02d173b373 preserves all seven corrected browser validator paths and the migration evidence at evidence/dotnet-11-source-graph-2026-11-13/verification.md and verification.json. FrontComposer migration a79714385319439296c79263ce2bc50f81821d79 and Memories migration 2c2e9b58990638ededf22e8e67ff5c12de75b434 preserve the owning source-framework repairs. This resolves the source-framework/browser-path portion of the earlier native-timeout review entry only. The historical failure text and evidence remain unchanged; published package compatibility, exact committed-source hosted acceptance, governed execution identities and McpCli census authority retain their separate outstanding obligations.
+
+### DW-678: Retain sanitized raw reports for the historical 2026-11-13 source-migration evidence.
+
+origin: migrated from legacy ledger ("Deferred from: merged-main CI repair independent review (2026-11-01)"), 2026-11-16
+location: historical 2026-11-13 source-migration evidence reports
+reason: Retain sanitized raw reports for the historical 2026-11-13 source-migration evidence.
+status: open
+source_spec: `_bmad-output/implementation-artifacts/spec-synchronize-update-release-2026-11-14.md`
+summary: Retain sanitized raw reports for the historical 2026-11-13 source-migration evidence.
+evidence: Review B5 confirmed that the historical summaries retain original temporary/ignored report paths. This is pre-existing evidence debt; current release qualification must use fresh exact-source hosted reports and may not retroactively attribute those reports to the historical run.
+
+### DW-679: Bind the standalone workspace-focus validator endpoint to its measured running assembly identity.
+
+origin: migrated from legacy ledger ("Deferred from: merged-main CI repair independent review (2026-11-01)"), 2026-11-16
+location: validate-authenticated-workspace-focus.mjs
+reason: Bind the standalone workspace-focus validator endpoint to its measured running assembly identity.
+status: open
+source_spec: `_bmad-output/implementation-artifacts/spec-synchronize-update-release-2026-11-14.md`
+summary: Bind the standalone workspace-focus validator endpoint to its measured running assembly identity.
+evidence: Review B7 confirmed that validate-authenticated-workspace-focus.mjs records a local assembly digest while accepting an independently supplied endpoint. The framework edit changes only its output path. Preserve existing caller/topology ownership checks and add a distinguishing stale-host control before expanding this standalone proof claim.
+
+### DW-680: Align the current Server SDK build floor with its snapshot-budget API dependency.
+
+origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
+location: Directory.Build.targets / TenantAggregate.RefreshTenantAccess
+reason: Align the current Server SDK build floor with its snapshot-budget API dependency.
+status: open
+source_spec: `_bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md`
+summary: Align the current Server SDK build floor with its snapshot-budget API dependency.
+evidence: Medium, pre-existing later-story issue (BH-1). Directory.Build.targets admits EventStore 4.0.4 through 5.0.1, while TenantAggregate.RefreshTenantAccess unconditionally uses ProjectionSnapshotLimits and ProjectionSnapshotLimitExceededException introduced in 5.1.0. Current installed Client XML confirms the older API absence. Qualify actual admitted package builds and preserve explicitly historical archive cohorts rather than silently claiming current-source compatibility.
+
+### DW-681: Reconcile canonical package-boundary admission with catalog SDK alias normalization.
+
+origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
+location: ValidateCanonicalBoundaryPackageCohort
+reason: Reconcile canonical package-boundary admission with catalog SDK alias normalization.
+status: open
+source_spec: `_bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md`
+summary: Reconcile canonical package-boundary admission with catalog SDK alias normalization.
+evidence: Medium, pre-existing later-story issue (BH-2). ValidateCanonicalBoundaryPackageCohort compares raw HexalithEventStoreVersion literals although the catalog selector normalizes zero-revision and metadata aliases. Evaluate the actual target for 5.1.0.0 and 5.1.0+metadata and decide one consistent documented policy without broadening unqualified SDK admission.
+
+### DW-682: Make configured source AppHost catalog activation agree with its developer instructions.
+
+origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
+location: AppHost Program.cs / TENANTS_SOURCE_CATALOG_PROFILE / docs/development-route-catalog.md
+reason: Make configured source AppHost catalog activation agree with its developer instructions.
+status: open
+source_spec: `_bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md`
+summary: Make configured source AppHost catalog activation agree with its developer instructions.
+evidence: Medium, pre-existing later-story issue (BH-3). AppHost Program.cs gained a TENANTS_SOURCE_CATALOG_PROFILE condition on November 2, while docs/development-route-catalog.md describes source custody configuration without that required switch. An ordinary source run with custody alone does not create the catalog. Document and validate the intended opt-in or repair the enrollment condition while preserving custody ownership.
+
+### DW-683: Verify unknown historical event handling across durable consumer upgrades before trusting access state.
+
+origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
+location: TenantProjectionCheckpointTransition.Decode
+reason: Verify unknown historical event handling across durable consumer upgrades before trusting access state.
+status: open
+source_spec: `_bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md`
+summary: Verify unknown historical event handling across durable consumer upgrades before trusting access state.
+evidence: Unverified high impact, pre-existing later-story concern (BH-4). TenantProjectionCheckpointTransition.Decode treats unknown event types as checkpoint-only evidence. No currently emitted unknown access-changing event was demonstrated. A producer-upgrade replay with an actual supported newer event must establish whether stale membership can remain healthy; retain explicit harmless rejection behavior and fail-closed access semantics when deciding the policy.
+
+### DW-684: Qualify payload-to-stream tenant identity integrity during durable history recovery.
+
+origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
+location: TenantServiceCollectionExtensions / TenantProjectionCheckpointTransition / generic history adapter
+reason: Qualify payload-to-stream tenant identity integrity during durable history recovery.
+status: open
+source_spec: `_bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md`
+summary: Qualify payload-to-stream tenant identity integrity during durable history recovery.
+evidence: Unverified high impact, pre-existing later-story concern (BH-5). Live TenantServiceCollectionExtensions registers PayloadAggregateIdPropertyName=TenantId, but TenantProjectionCheckpointTransition decodes history without that check and the generic history adapter fingerprints bytes without domain payload validation. Demonstrate whether a persisted authoritative event with a foreign payload TenantId can reach the transition and assert refusal/unavailable health if reachable; no observed cross-tenant history corruption is claimed.
+
+### DW-685: Assess the user-visible delay from the later 90-second supplementary list enrichment budget.
+
+origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
+location: TenantQueryGateway.EnrichRowsAsync
+reason: Assess the user-visible delay from the later 90-second supplementary list enrichment budget.
+status: open
+source_spec: `_bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md`
+summary: Assess the user-visible delay from the later 90-second supplementary list enrichment budget.
+evidence: Medium, pre-existing later-story issue (BH-7). TenantQueryGateway.EnrichRowsAsync awaits every supplemental detail read before returning a confirmed list; its production timer increased to 90 seconds on November 3. Slow cooperative reads can therefore delay list rendering for that budget. Evaluate the intended latency and progressive/degraded rendering while preserving bounded concurrency and caller isolation.
+
+### DW-686: Qualify current quickstart command examples against the canonical platform-scope boundary.
+
+origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
+location: docs/quickstart.md
+reason: Qualify current quickstart command examples against the canonical platform-scope boundary.
+status: open
+source_spec: `_bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md`
+summary: Qualify current quickstart command examples against the canonical platform-scope boundary.
+evidence: Medium, pre-existing later-story issue (BH-8). docs/quickstart.md explicitly labels later system-scoped request/claim examples legacy, but its advertised first-command path still uses them against the current checkout. Replace and qualify the executable path with the coordinated package cohort and required scope headers without changing retained system storage or administrator authorization.
+
+### DW-687: Initialize the required root-declared Platform dependency before clean partial-release preparation.
+
+origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
+location: recover-partial-release.yml / prepare-partial-release.sh / ValidateCanonicalPlatformSource
+reason: Initialize the required root-declared Platform dependency before clean partial-release preparation.
+status: open
+source_spec: `_bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md`
+summary: Initialize the required root-declared Platform dependency before clean partial-release preparation.
+evidence: Medium, pre-existing later-story issue (BH-9 and EC-1, same root cause). recover-partial-release.yml initializes a fixed solution-dependency list without references/Hexalith.Platform; prepare-partial-release.sh builds the solution and AppHost ValidateCanonicalPlatformSource requires Platform's solution and Dapr identity files. A fresh runner therefore cannot prepare recovery packages. Add the root dependency nonrecursively and validate the clean-checkout preparation boundary without publishing.
+
+### DW-688: Normalize optional coordinated candidate package identities before archive byte binding.
+
+origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
+location: verify-catalog-package-consumer.py
+reason: Normalize optional coordinated candidate package identities before archive byte binding.
+status: open
+source_spec: `_bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md`
+summary: Normalize optional coordinated candidate package identities before archive byte binding.
+evidence: Medium, pre-existing later-story issue (BH-10). verify-catalog-package-consumer.py uses case-sensitive SDK/McpCli prefixes and dictionary keys for local candidate archives but case-folds restored SDK identities elsewhere. A lowercased candidate is omitted from candidate source mapping and byte matching. Add a distinguishing casing control and normalize classification, duplicate detection and restored-byte lookup consistently.
+
+### DW-689: Verify protected cursor continuation through the dedicated global-administrator audit query type.
+
+origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
+location: GetGlobalAdministratorAuditQueryHandler / GetTenantAuditQueryHandler / protected cursor codec
+reason: Verify protected cursor continuation through the dedicated global-administrator audit query type.
+status: open
+source_spec: `_bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md`
+summary: Verify protected cursor continuation through the dedicated global-administrator audit query type.
+evidence: Medium regression gap, pre-existing later-story issue (VG-1). GetGlobalAdministratorAuditQueryHandler overrides QueryType; GetTenantAuditQueryHandler now uses that derived value for cursor decode/protection. Existing global-audit handler, REST client, generated route and live tests read page one only. A mutation protecting the cursor with the old tenant QueryType would pass them and fail continuation. Add a persisted multi-row, page-size-one test using the real codec and assert that the returned cursor resumes the next global row.
+
+### DW-690: Qualify production Tenants compilation against each older advertised EventStore package cohort.
+
+origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
+location: production Tenants compilation / ProjectionSnapshotLimits / ProjectionSnapshotLimitExceededException
+reason: Qualify production Tenants compilation against each older advertised EventStore package cohort.
+status: open
+source_spec: `_bmad-output/implementation-artifacts/spec-complete-dotnet-11-source-graph.md`
+summary: Qualify production Tenants compilation against each older advertised EventStore package cohort.
+evidence: Medium, unverified (R1): later tenant-access recovery uses ProjectionSnapshotLimits and ProjectionSnapshotLimitExceededException. The current 5.1.0 source graph passes, but real older package builds are needed to establish compatibility; synthetic marker assemblies do not establish it.
+
+### DW-691: Bind the retained net10 package-consumer mode to its historical route and adapter inventory.
+
+origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
+location: net10 package consumer Program.cs / approved-route-ids.txt
+reason: Bind the retained net10 package-consumer mode to its historical route and adapter inventory.
+status: open
+source_spec: `_bmad-output/implementation-artifacts/spec-complete-dotnet-11-source-graph.md`
+summary: Bind the retained net10 package-consumer mode to its historical route and adapter inventory.
+evidence: Medium, pre-existing later-story issue (R2): the current consumer copies recovery-inclusive Program.cs and approved-route-ids.txt with 24 routes and 13 adapters, while older retained archives precede that independent command.
+
+### DW-692: Add a dedicated McpCli conformance vector for the later RefreshTenantAccess operation.
+
+origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
+location: McpCli RefreshTenantAccess conformance vectors
+reason: Add a dedicated McpCli conformance vector for the later RefreshTenantAccess operation.
+status: open
+source_spec: `_bmad-output/implementation-artifacts/spec-complete-dotnet-11-source-graph.md`
+summary: Add a dedicated McpCli conformance vector for the later RefreshTenantAccess operation.
+evidence: Medium, pre-existing later-story coverage gap (R4): the decorated recovery command is absent from the 14 previous operation vectors. Qualify wire routing and operation identity in the recovery feature lane.
+
+### DW-693: Revalidate the tenant snapshot after delayed command authorization completes.
+
+origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
+location: CommandAuthorizationEvaluator / TryGetContext / AuthorizeAsync / Revalidate
+reason: Revalidate the tenant snapshot after delayed command authorization completes.
+status: open
+source_spec: `_bmad-output/implementation-artifacts/spec-complete-dotnet-11-source-graph.md`
+summary: Revalidate the tenant snapshot after delayed command authorization completes.
+evidence: Medium, pre-existing behavior (R6): CommandAuthorizationEvaluator captures TryGetContext before AuthorizeAsync but does not call the existing Revalidate seam afterward. Demonstrate a context-only transition and fail closed without changing the migration authority contract incidentally.
+
+### DW-694: Qualify cancellation and observer cleanup with uncooperative authentication and policy tasks.
+
+origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
+location: EvaluateAsync authentication and policy waits / authentication observer cleanup
+reason: Qualify cancellation and observer cleanup with uncooperative authentication and policy tasks.
+status: open
+source_spec: `_bmad-output/implementation-artifacts/spec-complete-dotnet-11-source-graph.md`
+summary: Qualify cancellation and observer cleanup with uncooperative authentication and policy tasks.
+evidence: Medium, pre-existing wait contract (R7): EvaluateAsync waits external tasks without WaitAsync and checks cancellation after completion; its finally removes the authentication observer only then. Keep a held provider/handler pending, cancel, and qualify the intended completion/cleanup contract before changing it.
+
+### DW-695: Make private Stryker preparation retryable after interrupted or failed cache creation.
+
+origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
+location: private Stryker preparation / verify_build
+reason: Make private Stryker preparation retryable after interrupted or failed cache creation.
+status: open
+source_spec: `_bmad-output/implementation-artifacts/spec-complete-dotnet-11-source-graph.md`
+summary: Make private Stryker preparation retryable after interrupted or failed cache creation.
+evidence: Medium, independently added tooling issue (R8): prepare creates its deterministic directory before download/build and verify_build rejects that incomplete directory on subsequent calls. Use owned staging and atomic completion, or bounded joined cleanup, with failed-download/build/cancellation retry controls.
+
+### DW-696: Qualify actual Fluent native time-editor parsing for the later typed-field mapping.
+
+origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
+location: Fluent native time editor / generated-field browser control
+reason: Qualify actual Fluent native time-editor parsing for the later typed-field mapping.
+status: open
+source_spec: `_bmad-output/implementation-artifacts/spec-complete-dotnet-11-source-graph.md`
+summary: Qualify actual Fluent native time-editor parsing for the later typed-field mapping.
+evidence: Medium, unverified (R9): current generated-field tests inspect component parameters and invoke callbacks; a rendered browser control must establish invalid-input, clearing and seconds-preservation behavior before claiming a parsing defect.
+
+### DW-697: Reconcile pre-existing synthetic Source readiness module topology labels with the manifest they cite.
+
+origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
+location: release-passed.json synthetic Source readiness module topology
+reason: Reconcile pre-existing synthetic Source readiness module topology labels with the manifest they cite.
+status: open
+source_spec: `_bmad-output/implementation-artifacts/spec-fix-builds-sdk-cohort-fixtures.md`
+summary: Reconcile pre-existing synthetic Source readiness module topology labels with the manifest they cite.
+evidence: Resumed blind review 2; both Builds baseline 10163c3e4ffd84ddb9b2831dea767a04da04f2ef and repair 70850b18e0d0b80facd2df0809974020dd935732 describe module-a/module-b in release-passed.json while the bound manifest declares p0-fixture-orders/p0-fixture-inventory. This is descriptive synthetic metadata; current command/manifest/profile/filter/fixture binding and separate G4 acceptance checks pass. No runtime qualification is claimed.
+
+### DW-698: Isolate the pre-existing Source readiness non-test-command negative from its other deliberately invalid bindings.
+
+origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
+location: binding-mismatch.yaml / down-run.json
+reason: Isolate the pre-existing Source readiness non-test-command negative from its other deliberately invalid bindings.
+status: open
+source_spec: `_bmad-output/implementation-artifacts/spec-fix-builds-sdk-cohort-fixtures.md`
+summary: Isolate the pre-existing Source readiness non-test-command negative from its other deliberately invalid bindings.
+evidence: Resumed blind review 4; baseline binding-mismatch.yaml and down-run.json combine a non-test command, null profile/filter and an all-A manifest hash, so that single fixture does not independently distinguish command rejection. Improve the control separately while retaining exact negative oracles and avoiding changes to production validation.
+
+### DW-699: Older admitted EventStore packages lack the new recovery snapshot API.
+
+origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
+location: Directory.Build.targets / TenantAggregate / ProjectionSnapshotLimits
+reason: Older admitted EventStore packages lack the new recovery snapshot API.
+status: open
+source_spec: `_bmad-output/implementation-artifacts/spec-align-native-read-timeout-budgets.md`
+summary: Older admitted EventStore packages lack the new recovery snapshot API.
+evidence: 2026-11-15 resumed review B1, medium; Directory.Build.targets still admits 4.0.4/4.1.0/4.2.0/5.0.1 while TenantAggregate unconditionally uses ProjectionSnapshotLimits. Four dotnet-inspect API diffs confirm the type was added in 5.1.0. Recovery was introduced by 6fcff842a8e48fc843d7b2df942d369f99f92b6b; package selections are explicitly excluded from this timeout repair.
+
+### DW-700: Rejection-only tenant state receives a different recovery refusal.
+
+origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
+location: TenantState / TenantNotFoundRejection.Apply / RefreshTenantAccess
+reason: Rejection-only tenant state receives a different recovery refusal.
+status: open
+source_spec: `_bmad-output/implementation-artifacts/spec-align-native-read-timeout-budgets.md`
+summary: Rejection-only tenant state receives a different recovery refusal.
+evidence: 2026-11-15 resumed review B3, medium; TenantState starts with an empty TenantId; its TenantNotFoundRejection Apply leaves it empty, and SDK replay constructs a state object. RefreshTenantAccess checks foreign TenantId before checking for an uncreated aggregate, so a subsequent attempt returns InsufficientPermissionsRejection. This belongs to later recovery commit 6fcff842a8e48fc843d7b2df942d369f99f92b6b.
+
+### DW-701: C# wrapper can truncate the browser progress checkpoint.
+
+origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
+location: RetainBrowserProgressAsync / File.WriteAllTextAsync
+reason: C# wrapper can truncate the browser progress checkpoint.
+status: open
+source_spec: `_bmad-output/implementation-artifacts/spec-align-native-read-timeout-budgets.md`
+summary: C# wrapper can truncate the browser progress checkpoint.
+evidence: 2026-11-15 resumed review B5, medium; RetainBrowserProgressAsync reads the retained snapshot then writes directly to the same path with File.WriteAllTextAsync. Interruption during that write can destroy the complete checkpoint. This later evidence-wrapper change is owned by 7066cbaeff0a34624250542eb4954fbb8c623027, outside the native timeout behavior.
+
+### DW-702: Failure diagnostics can outlive the functional browser deadline.
+
+origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
+location: captureFocus / captureReadiness failure diagnostics
+reason: Failure diagnostics can outlive the functional browser deadline.
+status: open
+source_spec: `_bmad-output/implementation-artifacts/spec-align-native-read-timeout-budgets.md`
+summary: Failure diagnostics can outlive the functional browser deadline.
+evidence: 2026-11-15 resumed review B6, medium; The failure path directly awaits captureFocus/captureReadiness; those execute page evaluation without a separate cancellation race. A wedged renderer can therefore keep failure cleanup pending until the outer test timeout. The original baseline already contains the unbounded captureReadiness call; no native budget increase introduced it.
+
+### DW-703: Concurrent Firefox evidence driver labels a longer poll loop as thirty seconds.
+
+origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
+location: fix-firefox-route-focus-ci-2026-11-15/verify.sh
+reason: Concurrent Firefox evidence driver labels a longer poll loop as thirty seconds.
+status: open
+source_spec: `_bmad-output/implementation-artifacts/spec-align-native-read-timeout-budgets.md`
+summary: Concurrent Firefox evidence driver labels a longer poll loop as thirty seconds.
+evidence: 2026-11-15 resumed review B7, low; The unrelated untracked fix-firefox-route-focus-ci-2026-11-15/verify.sh loops 120 times with a one-second HTTP timeout plus a 250ms pause. That is not a thirty-second elapsed-time bound. Preserve this other workstream and its evidence; no historical evidence file is edited.
+
+### DW-704: Live corpus credential creation has no total corpus or encoded-token limit.
+
+origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
+location: AuthenticatedRouteState.CreateCorpusReadTokenAsync
+reason: Live corpus credential creation has no total corpus or encoded-token limit.
+status: open
+source_spec: `_bmad-output/implementation-artifacts/spec-align-native-read-timeout-budgets.md`
+summary: Live corpus credential creation has no total corpus or encoded-token limit.
+evidence: 2026-11-15 resumed review B8, medium; AuthenticatedRouteState.CreateCorpusReadTokenAsync limits each page to 100 but continues for any fresh cursor, growing exactIds and cursors until caller cancellation. A sufficiently large valid corpus also becomes one JWT and then a browser session. This is separate scoped-live-credential work introduced by 5db9648cfd0456896c1c549dcd1021f4c216bf2d.
+
+### DW-705: New recovery operation lacks a full delivery/convergence regression.
+
+origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
+location: RefreshTenantAccess / authenticated route suite
+reason: New recovery operation lacks a full delivery/convergence regression.
+status: open
+source_spec: `_bmad-output/implementation-artifacts/spec-align-native-read-timeout-budgets.md`
+summary: New recovery operation lacks a full delivery/convergence regression.
+evidence: 2026-11-15 resumed review B10, medium; Searches find RefreshTenantAccess in structural/generated-controller and aggregate tests, but no command-gateway live delivery test in the authenticated route suite. Add persisted-event and consumer-convergence coverage in the separate recovery feature from 6fcff842a8e48fc843d7b2df942d369f99f92b6b; this timeout intent excludes business-runtime launches.
+
+### DW-706: EventStore offline source-mode component fixtures remove CI and can avoid the Platform Release/package guard when a CI caller omits explicit interop settings.
+
+origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
+location: EventStore offline source-mode component fixtures / Platform Directory.Build.targets
+reason: EventStore offline source-mode component fixtures remove CI and can avoid the Platform Release/package guard when a CI caller omits explicit interop settings.
+status: open
+source_spec: `_bmad-output/implementation-artifacts/spec-synchronize-update-release-2026-11-14.md`
+summary: EventStore offline source-mode component fixtures remove CI and can avoid the Platform Release/package guard when a CI caller omits explicit interop settings.
+evidence: The six pre-existing source-mode setups scrub CI before building; frozen Platform00ed0607 Directory.Build.targets validates only when CI is true. The maintained payload workflow explicitly supplies Release/false and the repaired package branch preserves CI, so this is unchanged source-default debt rather than current hosted acceptance.
+
+### DW-707: FrontComposer nested projection generation loses the containing type in generated references.
+
+origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
+location: FrontComposer AttributeParser / nested projection emitter references
+reason: FrontComposer nested projection generation loses the containing type in generated references.
+status: open
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-synchronize-update-release-2026-11-14.md`
+summary: FrontComposer nested projection generation loses the containing type in generated references.
+evidence: The independent CS0246 probe agrees with unchanged b34 AttributeParser using typeSymbol.Name and emitter consumers; parser acceptance does not qualify generated compilation. Track a source/generator compatibility fix with full nested compilation.
+
+### DW-708: FrontComposer skill-corpus canonicalization loses collection-element boundaries containing a pipe.
+
+origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
+location: CreateSkillCorpusResourcePayload
+reason: FrontComposer skill-corpus canonicalization loses collection-element boundaries containing a pipe.
+status: open
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-synchronize-update-release-2026-11-14.md`
+summary: FrontComposer skill-corpus canonicalization loses collection-element boundaries containing a pipe.
+evidence: Unchanged CreateSkillCorpusResourcePayload joins sorted values before canonical escaping; the reviewed two distinct partitions collide. No tracked production call site was found; qualify inputs and versioned fingerprint compatibility before a wire-format fix.
+
+### DW-709: FrontComposer HFC1012 diagnostics use the command file path for default attributes in another partial declaration.
+
+origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
+location: ValidateDefaultValueType / partial declaration diagnostic coordinates
+reason: FrontComposer HFC1012 diagnostics use the command file path for default attributes in another partial declaration.
+status: open
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-synchronize-update-release-2026-11-14.md`
+summary: FrontComposer HFC1012 diagnostics use the command file path for default attributes in another partial declaration.
+evidence: Unchanged ValidateDefaultValueType combines the root filePath with attribute syntax coordinates. The independent two-file probe reports Test0.cs for the Test1.cs attribute; add a focused cross-file diagnostic fix separately.
+
+### DW-710: Unverified medium concern: determine the supported recovery policy for malformed historical authoritative tenant status, membership roles or configuration keys.
+
+origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
+location: authoritative tenant snapshot refresh / historical actor-state certification
+reason: Unverified medium concern: determine the supported recovery policy for malformed historical authoritative tenant status, membership roles or configuration keys.
+status: open
+source_spec: `_bmad-output/implementation-artifacts/spec-synchronize-update-release-2026-11-14.md`
+summary: Unverified medium concern: determine the supported recovery policy for malformed historical authoritative tenant status, membership roles or configuration keys.
+evidence: The refresh producer preserves existing authoritative data while audit certification refuses malformed snapshots. Valid current commands initialize Active/Disabled and real assignable roles; cited Unknown-role historical events already fail full-history certification before recovery. A real persisted historical actor-state fixture and owner-selected repair/rejection policy would determine whether refresh creates a new loss of previously valid certification; no production occurrence or new rejection contract is asserted.
+
+### DW-711: FrontComposer's upstream16.2 reopening procedure must also reopen approved-change EVT-XFER-1 tracking.
+
+origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
+location: epic-16-context.md:199 / approved-change EVT-XFER-1
+reason: FrontComposer's upstream16.2 reopening procedure must also reopen approved-change EVT-XFER-1 tracking.
+status: open
+source_spec: `_bmad-output/implementation-artifacts/spec-synchronize-update-release-2026-11-14.md`
+summary: FrontComposer's upstream16.2 reopening procedure must also reopen approved-change EVT-XFER-1 tracking.
+evidence: Current upstream epic-16-context.md:199 reopens the16.2 story row and requires the full transfer path, but approved-change EVT-XFER-1 remains not-required from its closure. Blind and edge reviewers independently identify this future operator-tracking inconsistency. It predates the current enum/catalog repairs; preserve original decision receipts and let the owning planning work correct its future reopening instruction.
+
+### DW-712: Fix the upstream EventStore transition fixture test that mistakes a later step's environment expressions for shell interpolation after an earlier run block was added.
+
+origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
+location: test_phase_4_transition.py:793
+reason: Fix the upstream EventStore transition fixture test that mistakes a later step's environment expressions for shell interpolation after an earlier run block was added.
+status: open
+source_spec: `_bmad-output/implementation-artifacts/spec-synchronize-update-release-2026-11-14.md`
+summary: Fix the upstream EventStore transition fixture test that mistakes a later step's environment expressions for shell interpolation after an earlier run block was added.
+evidence: Exact source fbed6cd32e0497bf8dd82a2ab7681e15e268234f run43857136989 has37/38passing tests; unchanged test_phase_4_transition.py:793 uses content.split('run: |')[1] across step boundaries. Upstreamceb43c78dca2a0f350eb98efe9f4a376b5de2114 introduced the earlier run block; this release only changed credential fixtures. The optional transition workflow is absent from main required contexts, and the required Phase4 gate risk matrix fixtures job133264190388 succeeded. Keep the failure visible; shared CI instructions direct pipeline defects to report rather than module fixes.
+
+### DW-713: The EventStore optional transition workflow-test defect recorded above is addressed by its existing owning scanner repair; fresh hosted verification remains pending.
+
+origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
+location: EventStore optional transition workflow / workflow_run_bodies
+reason: The EventStore optional transition workflow-test defect recorded above is addressed by its existing owning scanner repair; fresh hosted verification remains pending.
+status: open
+source_spec: `_bmad-output/implementation-artifacts/spec-synchronize-update-release-2026-11-14.md`
+summary: The EventStore optional transition workflow-test defect recorded above is addressed by its existing owning scanner repair; fresh hosted verification remains pending.
+evidence: Upstream8b6d5bee5217b3f4bbd8fd689ad887aca863961b replaces content.split('run: |')[1] with workflow_run_bodies and checks every run block, including single-line, later-body, compact-expression and commented-header refusal cases. This release preserves and integrates that existing repair; source and current run IDs are in resumed-parent-integration/eventstore-upstream-scanner-repair-integration.json.
+resolution: Hosted optional transition run43862075403 succeeded on the selected8b6d5bee5217b3f4bbd8fd689ad887aca863961b source. The earlier failing run remains historical.
+
+### DW-714: EventStore Development transport can select the same ephemeral port for two owned control-plane endpoints.
+
+origin: migrated from legacy ledger ("Deferred from: pragmatic release completion (2026-11-16)"), 2026-11-16
+location: PublicDevelopmentTransportAuthenticatesPeersAndPersistsActorsAcrossNativeRestart / owned control-plane port allocation
+reason: EventStore Development transport can select the same ephemeral port for two owned control-plane endpoints.
+status: open
+source_spec: `_bmad-output/implementation-artifacts/spec-synchronize-update-release-2026-11-14.md`
+summary: EventStore Development transport can select the same ephemeral port for two owned control-plane endpoints.
+evidence: On8b6d5bee5217b3f4bbd8fd689ad887aca863961b, integration run43862075310/job133281459500 failed PublicDevelopmentTransportAuthenticatesPeersAndPersistsActorsAcrossNativeRestart with "Owned control-plane endpoints must be distinct" (329 passed, one failed, four configured skips across334 cases). Separate bind/release TcpListener allocations can return the same port; production transport and test bytes are unchanged from the previously qualified981fabaa source. Retrying only the failed job on identical source passed as job133318826521/attempt2. The retry does not fix the allocator: reserve distinct endpoints in a separate EventStore owner repair. Existing guards and original failure remain preserved.
+
+### DW-715: Apply the approved shared release policy and CiCd-adoption condition in a separate maintainer change; keep pipeline modernization outside this release.
+
+origin: migrated from legacy ledger ("Deferred from: pragmatic release completion (2026-11-16)"), 2026-11-16
+location: sprint-change-proposal-2026-11-16-pragmatic-release-policy.md sections 4B/4C
+reason: Apply the approved shared release policy and CiCd-adoption condition in a separate maintainer change; keep pipeline modernization outside this release.
+status: open
+source_spec: `_bmad-output/implementation-artifacts/spec-synchronize-update-release-2026-11-14.md`
+summary: Apply the approved shared release policy and CiCd-adoption condition in a separate maintainer change; keep pipeline modernization outside this release.
+evidence: Approved sprint-change-proposal-2026-11-16-pragmatic-release-policy.md sections4B/4C assign AI.Tools policy changes to its maintainer and CiCd adoption to the pipeline track. The release-scoped checker exception ends with completion bookkeeping. The new Dapr evidence-only workflow step was deferred under4A; its existing regression test and the original release gates are retained. No shared policy edit or CiCd adoption is claimed by the completed8.0.1 release.

@@ -1,0 +1,13 @@
+{
+  "README.md": "340db50f9a59edf399ff8a77d1266ad0fadcaa61a925652f591219335835cf7a",
+  "actionlint.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "baseline.diff": "cbcb412fdcb8fa4f436e28b5616cadc782ad19047deea69936c9dad01aa06ab2",
+  "final-audit.json": "753c81bbf08615597676f130c9bba08f99491c3aac93b66d41b6660945060afe",
+  "native-provenance.json": "92e0f434d9ff11b3252762fc765fea3f4dbe36f018e45074a8795b4440307a4d",
+  "native-provenance.txt": "db7baa20a6fbc088fd46a0fbf1ee424fac08f50a4ca6d61ff4db6f684da52430",
+  "preservation.json": "51ef0435e453123ed62c09f627f5b7967ae71fc53aeed3cc785455fba80c0286",
+  "publication.json": "43a6ce16219d410284b4882d768a1a93c73afb862687d0457a16728fa131384d",
+  "publication.txt": "d8689657ea71d1610773f44d506d5c52d53f5a64a58df1ae360cf43da6ed502a",
+  "retained-proposal.diff": "97df033e1a901efce6d2ab3d5f477358f8653be7b9d0144ebd8600d64306a0ba",
+  "structure.json": "d95605f90e2eae11fb3bf24309e33a367a205ece8adf8aef8ab18d86ee188d06"
+}

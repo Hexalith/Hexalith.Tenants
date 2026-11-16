@@ -1,0 +1,20 @@
+testActualUnsafeAggregateSummaryAndEitherSegmentRefuse (__main__.PublicationTests.testActualUnsafeAggregateSummaryAndEitherSegmentRefuse) ... ok
+testActualUnsafeSegmentContentRefusesBeforeAnyNormalizationWrite (__main__.PublicationTests.testActualUnsafeSegmentContentRefusesBeforeAnyNormalizationWrite) ... ok
+testActualValidatorAuditHashSurvivesIdempotentPublication (__main__.PublicationTests.testActualValidatorAuditHashSurvivesIdempotentPublication) ... ok
+testAggregateCannotInventMissingOriginalCapture (__main__.PublicationTests.testAggregateCannotInventMissingOriginalCapture) ... ok
+testDirectoryAtAllowedReportNameRefusesItsUnsafeDescendants (__main__.PublicationTests.testDirectoryAtAllowedReportNameRefusesItsUnsafeDescendants) ... ok
+testJsonEscapedCredentialIsDecodedAndRefused (__main__.PublicationTests.testJsonEscapedCredentialIsDecodedAndRefused) ... ok
+testJsonTerminalHomePathKeepsDelimitersAndIdempotentBytes (__main__.PublicationTests.testJsonTerminalHomePathKeepsDelimitersAndIdempotentBytes) ... ok
+testJsonWindowsPathIsRedactedAndRemainsValid (__main__.PublicationTests.testJsonWindowsPathIsRedactedAndRemainsValid) ... ok
+testLinkedArtifactRefusesWithoutWritingItsTarget (__main__.PublicationTests.testLinkedArtifactRefusesWithoutWritingItsTarget) ... ok
+testLinkedReportDirectoryRefusesWithoutPublishingItsUnsafeTarget (__main__.PublicationTests.testLinkedReportDirectoryRefusesWithoutPublishingItsUnsafeTarget) ... ok
+testNoAllowedArtifactsRefuses (__main__.PublicationTests.testNoAllowedArtifactsRefuses) ... ok
+testOriginalDigestCaptureAndAggregatePublishedBindingAreRealAndFinite (__main__.PublicationTests.testOriginalDigestCaptureAndAggregatePublishedBindingAreRealAndFinite) ... ok
+testSafeFailedAggregatePreservesBothReportsAndNormalizesSummaries (__main__.PublicationTests.testSafeFailedAggregatePreservesBothReportsAndNormalizesSummaries) ... ok
+testSafeFailedSegmentIsNormalizedWithoutChangingReceiptIdentity (__main__.PublicationTests.testSafeFailedSegmentIsNormalizedWithoutChangingReceiptIdentity) ... ok
+testWorkflowPublishesOnlyAfterSuccessfulGuardEvenOnMutationFailure (__main__.PublicationTests.testWorkflowPublishesOnlyAfterSuccessfulGuardEvenOnMutationFailure) ... ok
+
+----------------------------------------------------------------------
+Ran 15 tests in 29.385s
+
+OK

@@ -1,0 +1,865 @@
+{
+  "migration_date": "2026-11-16",
+  "tool_version": "bmad-loop 0.13.2",
+  "ledger": "_bmad-output/implementation-artifacts/deferred-work.md",
+  "baseline_sha256": "e9ad66867782cca6e93ac71edec1e63de3b87a18fe7250588e0c1c03c9a1c29d",
+  "migrated_sha256": "a597f5947119a13bec2f480bd89fd6678e0196d42ac4e2b293f119755b23d241",
+  "counts": {
+    "legacy_blocks_migrated": 58,
+    "new_done": 8,
+    "new_open": 50,
+    "total_done": 663,
+    "total_open": 52,
+    "total_entries": 715,
+    "legacy_remaining": 0
+  },
+  "validation": {
+    "installed_validate_migration_errors": [],
+    "preexisting_entries_byte_identical": 657,
+    "all_original_non_status_field_values_preserved": true,
+    "historical_prefix_preserved": true,
+    "duplicate_ids": [],
+    "archive_unchanged_sha256": "a324689757796b511b816079517e41d72f4b48a9f85403d371f864ed764343e0",
+    "archive_eligible_ids": [
+      "DW-658",
+      "DW-659",
+      "DW-661",
+      "DW-663",
+      "DW-664",
+      "DW-665",
+      "DW-666",
+      "DW-667"
+    ],
+    "git_diff_check": {
+      "command": "git diff --check -- _bmad-output/implementation-artifacts/deferred-work.md",
+      "exit_code": 0,
+      "output": ""
+    },
+    "archive_dry_run": {
+      "command": "run-with-temp bmad-loop sweep --archive --dry-run",
+      "exit_code": 0,
+      "output": "would archive 8 entries:\n  DW-658\n  DW-659\n  DW-661\n  DW-663\n  DW-664\n  DW-665\n  DW-666\n  DW-667\n"
+    }
+  },
+  "state_policy": "Preserve explicit status fields, recover undated done dates from resolution-date, and preserve the explicit resolution: done marker on DW-667. Other entries without an explicit completion marker remain open; their resolution evidence is retained for later triage.",
+  "result": {
+    "workflow": "deferred-sweep-migrate",
+    "mapping": [
+      {
+        "key": "fa09edd1b0",
+        "dw_id": "DW-658"
+      },
+      {
+        "key": "7868932319",
+        "dw_id": "DW-659"
+      },
+      {
+        "key": "9a019108be",
+        "dw_id": "DW-660"
+      },
+      {
+        "key": "be0d89a855",
+        "dw_id": "DW-661"
+      },
+      {
+        "key": "2fb90faa0c",
+        "dw_id": "DW-662"
+      },
+      {
+        "key": "2d78c4c0d6",
+        "dw_id": "DW-663"
+      },
+      {
+        "key": "4b1367fe6d",
+        "dw_id": "DW-664"
+      },
+      {
+        "key": "97d95e20df",
+        "dw_id": "DW-665"
+      },
+      {
+        "key": "f25a35e1c6",
+        "dw_id": "DW-666"
+      },
+      {
+        "key": "0981be8ffe",
+        "dw_id": "DW-667"
+      },
+      {
+        "key": "30a7a1cec4",
+        "dw_id": "DW-668"
+      },
+      {
+        "key": "ee0632d46b",
+        "dw_id": "DW-669"
+      },
+      {
+        "key": "3cc8d3a721",
+        "dw_id": "DW-670"
+      },
+      {
+        "key": "a07995ae29",
+        "dw_id": "DW-671"
+      },
+      {
+        "key": "e881dbaf15",
+        "dw_id": "DW-672"
+      },
+      {
+        "key": "fe83f316e7",
+        "dw_id": "DW-673"
+      },
+      {
+        "key": "7f084b0b53",
+        "dw_id": "DW-674"
+      },
+      {
+        "key": "b2c8bc14d0",
+        "dw_id": "DW-675"
+      },
+      {
+        "key": "1aa79ab2ff",
+        "dw_id": "DW-676"
+      },
+      {
+        "key": "eb5b25ad33",
+        "dw_id": "DW-677"
+      },
+      {
+        "key": "0a2d9408f6",
+        "dw_id": "DW-678"
+      },
+      {
+        "key": "35cb1630e7",
+        "dw_id": "DW-679"
+      },
+      {
+        "key": "720f36cff1",
+        "dw_id": "DW-680"
+      },
+      {
+        "key": "a6557b4f0f",
+        "dw_id": "DW-681"
+      },
+      {
+        "key": "376912ae84",
+        "dw_id": "DW-682"
+      },
+      {
+        "key": "45dbbd6d52",
+        "dw_id": "DW-683"
+      },
+      {
+        "key": "d253628751",
+        "dw_id": "DW-684"
+      },
+      {
+        "key": "de828be616",
+        "dw_id": "DW-685"
+      },
+      {
+        "key": "29b1f2c0fa",
+        "dw_id": "DW-686"
+      },
+      {
+        "key": "04d072db50",
+        "dw_id": "DW-687"
+      },
+      {
+        "key": "e7614df06c",
+        "dw_id": "DW-688"
+      },
+      {
+        "key": "a3825c4df2",
+        "dw_id": "DW-689"
+      },
+      {
+        "key": "5dcdb64d88",
+        "dw_id": "DW-690"
+      },
+      {
+        "key": "50b8c0b81f",
+        "dw_id": "DW-691"
+      },
+      {
+        "key": "69ccfca70d",
+        "dw_id": "DW-692"
+      },
+      {
+        "key": "6f1a50dda9",
+        "dw_id": "DW-693"
+      },
+      {
+        "key": "54fd4f606e",
+        "dw_id": "DW-694"
+      },
+      {
+        "key": "ab4ce2a17e",
+        "dw_id": "DW-695"
+      },
+      {
+        "key": "77c6a9ca39",
+        "dw_id": "DW-696"
+      },
+      {
+        "key": "a1079aac43",
+        "dw_id": "DW-697"
+      },
+      {
+        "key": "b15e46e48b",
+        "dw_id": "DW-698"
+      },
+      {
+        "key": "4ef7f032a3",
+        "dw_id": "DW-699"
+      },
+      {
+        "key": "912e18f0d1",
+        "dw_id": "DW-700"
+      },
+      {
+        "key": "4f10207a0a",
+        "dw_id": "DW-701"
+      },
+      {
+        "key": "4adc08ab3b",
+        "dw_id": "DW-702"
+      },
+      {
+        "key": "f44f6e5a1e",
+        "dw_id": "DW-703"
+      },
+      {
+        "key": "088f77429c",
+        "dw_id": "DW-704"
+      },
+      {
+        "key": "dfb81a6c34",
+        "dw_id": "DW-705"
+      },
+      {
+        "key": "cb3ea3dc45",
+        "dw_id": "DW-706"
+      },
+      {
+        "key": "05e738db31",
+        "dw_id": "DW-707"
+      },
+      {
+        "key": "5a5968e76a",
+        "dw_id": "DW-708"
+      },
+      {
+        "key": "37c2b560bc",
+        "dw_id": "DW-709"
+      },
+      {
+        "key": "786ca4022d",
+        "dw_id": "DW-710"
+      },
+      {
+        "key": "625096b2ce",
+        "dw_id": "DW-711"
+      },
+      {
+        "key": "7d8da7658e",
+        "dw_id": "DW-712"
+      },
+      {
+        "key": "9991d104fd",
+        "dw_id": "DW-713"
+      },
+      {
+        "key": "7788762c2f",
+        "dw_id": "DW-714"
+      },
+      {
+        "key": "4ef8dd92ef",
+        "dw_id": "DW-715"
+      }
+    ],
+    "escalations": []
+  },
+  "records": [
+    {
+      "legacy_key": "fa09edd1b0",
+      "dw_id": "DW-658",
+      "title": "Unverified medium, pre-existing: establish the bootstrap credential HTTP handler's redirect policy for password-grant requests.",
+      "original_line": 5440,
+      "original_status": "done 2026-10-28",
+      "status": "done 2026-10-28",
+      "status_basis": "existing status and original completion date",
+      "legacy_body_sha256": "bd750e5571005cd2bf1b3d3ebf724b706b5804c063662a0ae6d0b909ce6030f7"
+    },
+    {
+      "legacy_key": "7868932319",
+      "dw_id": "DW-659",
+      "title": "Pre-existing medium; synchronize the late-subscription cancellation test with actual asynchronous cleanup completion.",
+      "original_line": 5451,
+      "original_status": "done 2026-10-27",
+      "status": "done 2026-10-27",
+      "status_basis": "existing status and original completion date",
+      "legacy_body_sha256": "e1e01e5e3346f47492fc868327b2fcb40d144e80dad46adfc52e217da8b9ce62"
+    },
+    {
+      "legacy_key": "9a019108be",
+      "dw_id": "DW-660",
+      "title": "Unverified medium; isolate one administrator-grant Escape focus timeout before changing production restoration behavior.",
+      "original_line": 5461,
+      "original_status": "open",
+      "status": "open",
+      "status_basis": "existing open status",
+      "legacy_body_sha256": "5eabd137b3f447bf7e8437cd2bdc5178b9e268b340c43f673dae91865a67bfb2"
+    },
+    {
+      "legacy_key": "be0d89a855",
+      "dw_id": "DW-661",
+      "title": "Unverified medium — qualify removal-modal containment when pre-submit focus interop fails while the browser and command delivery remain connected.",
+      "original_line": 5481,
+      "original_status": "done 2026-10-28",
+      "status": "done 2026-10-28",
+      "status_basis": "existing status and original completion date",
+      "legacy_body_sha256": "3a3121d1689789e4f0c20ad1edee89c4d272e95dc70358216add11aad229ec1c"
+    },
+    {
+      "legacy_key": "2fb90faa0c",
+      "dw_id": "DW-662",
+      "title": "Medium — route a pinned Fluent UI 5.0.1 grid continuation that uses a disposed JavaScript module during navigation to the component owner.",
+      "original_line": 5495,
+      "original_status": "open",
+      "status": "open",
+      "status_basis": "existing open status",
+      "legacy_body_sha256": "b8babcb52eff86126a54d83bc88285a108cec60c25124fbd010f23f949ce7854"
+    },
+    {
+      "legacy_key": "2d78c4c0d6",
+      "dw_id": "DW-663",
+      "title": "Medium, unverified — qualify a fresh generic blocking Aspire CI run after the published EventStore routing contracts can compile.",
+      "original_line": 5517,
+      "original_status": "done",
+      "status": "done 2026-10-29",
+      "status_basis": "existing status and original completion date",
+      "legacy_body_sha256": "bd1e7a1bd69a0f22ffe9458addb36074b2a0bd0a8df40f7cea1ea06755f0fa8e"
+    },
+    {
+      "legacy_key": "4b1367fe6d",
+      "dw_id": "DW-664",
+      "title": "Medium, pre-existing: qualify fatal dependency failure precedence when the authenticated caller retires concurrently.",
+      "original_line": 5530,
+      "original_status": "done",
+      "status": "done 2026-10-28",
+      "status_basis": "existing status and original completion date",
+      "legacy_body_sha256": "ff88c6f1f323e177054072aaf40dfb587290202130230c2eac3bbc9fad60a4ac"
+    },
+    {
+      "legacy_key": "97d95e20df",
+      "dw_id": "DW-665",
+      "title": "Unverified medium: measure elapsed latency of bounded authorized backfill against a slow upstream before choosing a whole-load deadline.",
+      "original_line": 5539,
+      "original_status": "done",
+      "status": "done 2026-10-28",
+      "status_basis": "existing status and original completion date",
+      "legacy_body_sha256": "ee9475f13ca9b1efeb278b97f8490e61ebd2f427bfff783bdce319a8df11d4cc"
+    },
+    {
+      "legacy_key": "f25a35e1c6",
+      "dw_id": "DW-666",
+      "title": "Unverified medium — determine the cause of the published-profile browser timeout before the 1440-pixel tenant-list check.",
+      "original_line": 5551,
+      "original_status": "done",
+      "status": "done 2026-10-29",
+      "status_basis": "existing status and original completion date",
+      "legacy_body_sha256": "16330a5e8b734307cd2528ab03da710661535258cef1c3a9d07c59b6864e9608"
+    },
+    {
+      "legacy_key": "0981be8ffe",
+      "dw_id": "DW-667",
+      "title": "Reconcile the long-lived EventStore spec gitlink audit scope while preserving its original baseline and unrelated committed dependency updates.",
+      "original_line": 5563,
+      "original_status": null,
+      "status": "done 2026-10-29",
+      "status_basis": "explicit resolution: done; date from retained reconciliation evidence",
+      "legacy_body_sha256": "9f19a6e54684295a941e6469d910b64d57eee89f21c5cdedc325c63b4281fe80"
+    },
+    {
+      "legacy_key": "30a7a1cec4",
+      "dw_id": "DW-668",
+      "title": "Unverified medium, pre-existing incoming coverage gap: qualify granting and post-removal revocation through the registered bound metadata transport.",
+      "original_line": 5571,
+      "original_status": "open",
+      "status": "open",
+      "status_basis": "existing open status",
+      "legacy_body_sha256": "f8bfc2ebd1fa3d7a42ff32362378441173a57e7cc04a174a4ee8ed9a37893da5"
+    },
+    {
+      "legacy_key": "ee0632d46b",
+      "dw_id": "DW-669",
+      "title": "Pre-existing verification gap: qualify bootstrap catalog readiness across a wrong-root to matching-root transition and cancellation.",
+      "original_line": 5584,
+      "original_status": "open",
+      "status": "open",
+      "status_basis": "existing open status",
+      "legacy_body_sha256": "8282e12b2da15876b2694e7e28cd73e852650ad69ecf67fe1c37fea91648afe1"
+    },
+    {
+      "legacy_key": "3cc8d3a721",
+      "dw_id": "DW-670",
+      "title": "Verify no-build publication cohort enforcement for non-Contracts packages against formerly qualified EventStore and McpCli selections.",
+      "original_line": 5594,
+      "original_status": null,
+      "status": "open",
+      "status_basis": "no explicit completion marker; retained as open for later triage",
+      "legacy_body_sha256": "cd163055f8ac48a0422b34ea2a6445745683cecfc4a168a51a16a6581e1c3c3f"
+    },
+    {
+      "legacy_key": "a07995ae29",
+      "dw_id": "DW-671",
+      "title": "Hexalith.Builds should reconcile pre-existing synthetic Source readiness Dapr metadata with its manifest and assess that profile's explicit pin-binding contract.",
+      "original_line": 5598,
+      "original_status": null,
+      "status": "open",
+      "status_basis": "no explicit completion marker; retained as open for later triage",
+      "legacy_body_sha256": "f2d07db36418ac37dfc3098ecf6fa6cc9efc1b82bfdcd8345468bff90a79cbad"
+    },
+    {
+      "legacy_key": "e881dbaf15",
+      "dw_id": "DW-672",
+      "title": "Complete the later .NET 11 migration across browser binary paths and the FrontComposer/Memories build cohort.",
+      "original_line": 5603,
+      "original_status": null,
+      "status": "open",
+      "status_basis": "no explicit completion marker; retained as open for later triage",
+      "legacy_body_sha256": "117f7a3aa112c6e486f9e3767bd4215b4cd53f3ad3582fcb6535b4df4bd02a23"
+    },
+    {
+      "legacy_key": "fe83f316e7",
+      "dw_id": "DW-673",
+      "title": "Preserve every package's immediate acquisition probe when zero-poll release verification includes slow signature checks.",
+      "original_line": 5607,
+      "original_status": null,
+      "status": "open",
+      "status_basis": "no explicit completion marker; retained as open for later triage",
+      "legacy_body_sha256": "421902f521bca8b5a3813d765d23e78761764633aa25579a6c54bb0a3d36b877"
+    },
+    {
+      "legacy_key": "7f084b0b53",
+      "dw_id": "DW-674",
+      "title": "Investigate an unverified same-subject authentication-change race while corroborating configuration principal evidence.",
+      "original_line": 5611,
+      "original_status": null,
+      "status": "open",
+      "status_basis": "no explicit completion marker; retained as open for later triage",
+      "legacy_body_sha256": "6f440cd17bb40823357bc7dfa44d28c5fe6b942b676d0dd748c88c89e569766f"
+    },
+    {
+      "legacy_key": "b2c8bc14d0",
+      "dw_id": "DW-675",
+      "title": "Qualify and enforce supplementary-page completion when an enrichment dependency ignores cancellation.",
+      "original_line": 5615,
+      "original_status": null,
+      "status": "open",
+      "status_basis": "no explicit completion marker; retained as open for later triage",
+      "legacy_body_sha256": "27f58d94e29fe8a4943616470d40af399240104ee65320b6ab79c713c67313ad"
+    },
+    {
+      "legacy_key": "1aa79ab2ff",
+      "dw_id": "DW-676",
+      "title": "Complete the remaining McpCli census source classifications and exact-source hosted qualification after specific owning-maintainer approval.",
+      "original_line": 5620,
+      "original_status": null,
+      "status": "open",
+      "status_basis": "no explicit completion marker; retained as open for later triage",
+      "legacy_body_sha256": "cf8ab3d78a2270019d8a60ebd974372079fe1b5d08564b98aef7607aeba455a2"
+    },
+    {
+      "legacy_key": "eb5b25ad33",
+      "dw_id": "DW-677",
+      "title": "Source-only resolution of the earlier .NET 11 framework and browser-path deferral; package and governance qualification remain independent.",
+      "original_line": 5624,
+      "original_status": null,
+      "status": "open",
+      "status_basis": "no explicit completion marker; retained as open for later triage",
+      "legacy_body_sha256": "16df3405ebdb7c0d1caf3c5fb8441603820d94242188db574b5aa15b95024e22"
+    },
+    {
+      "legacy_key": "0a2d9408f6",
+      "dw_id": "DW-678",
+      "title": "Retain sanitized raw reports for the historical 2026-11-13 source-migration evidence.",
+      "original_line": 5628,
+      "original_status": null,
+      "status": "open",
+      "status_basis": "no explicit completion marker; retained as open for later triage",
+      "legacy_body_sha256": "8eca67be63abff7c4c57b2c37470f7907a7beb87963e5602317dad59c1b517e8"
+    },
+    {
+      "legacy_key": "35cb1630e7",
+      "dw_id": "DW-679",
+      "title": "Bind the standalone workspace-focus validator endpoint to its measured running assembly identity.",
+      "original_line": 5632,
+      "original_status": null,
+      "status": "open",
+      "status_basis": "no explicit completion marker; retained as open for later triage",
+      "legacy_body_sha256": "d9c3a2ea9f8c616be80b935fd9426e2a03e25b145082c6dca03dad4ba04077ab"
+    },
+    {
+      "legacy_key": "720f36cff1",
+      "dw_id": "DW-680",
+      "title": "Align the current Server SDK build floor with its snapshot-budget API dependency.",
+      "original_line": 5638,
+      "original_status": null,
+      "status": "open",
+      "status_basis": "no explicit completion marker; retained as open for later triage",
+      "legacy_body_sha256": "2179c3140cb25994396d1879dc4b300bac3d9c7e5faf9c2e95be330c935bd879"
+    },
+    {
+      "legacy_key": "a6557b4f0f",
+      "dw_id": "DW-681",
+      "title": "Reconcile canonical package-boundary admission with catalog SDK alias normalization.",
+      "original_line": 5642,
+      "original_status": null,
+      "status": "open",
+      "status_basis": "no explicit completion marker; retained as open for later triage",
+      "legacy_body_sha256": "88a2bd2e23239a665a87a511354dfaac17736d84d9e41aa04db11365756ae23a"
+    },
+    {
+      "legacy_key": "376912ae84",
+      "dw_id": "DW-682",
+      "title": "Make configured source AppHost catalog activation agree with its developer instructions.",
+      "original_line": 5646,
+      "original_status": null,
+      "status": "open",
+      "status_basis": "no explicit completion marker; retained as open for later triage",
+      "legacy_body_sha256": "8cc34bdfb763c31a20198666b0598ef221adc9845d7ceb79937aef85a876c85d"
+    },
+    {
+      "legacy_key": "45dbbd6d52",
+      "dw_id": "DW-683",
+      "title": "Verify unknown historical event handling across durable consumer upgrades before trusting access state.",
+      "original_line": 5650,
+      "original_status": null,
+      "status": "open",
+      "status_basis": "no explicit completion marker; retained as open for later triage",
+      "legacy_body_sha256": "d886e9aff07d74e23f5ca09f547a907fb97b904ce39fb58a17be7bffa8d3345f"
+    },
+    {
+      "legacy_key": "d253628751",
+      "dw_id": "DW-684",
+      "title": "Qualify payload-to-stream tenant identity integrity during durable history recovery.",
+      "original_line": 5654,
+      "original_status": null,
+      "status": "open",
+      "status_basis": "no explicit completion marker; retained as open for later triage",
+      "legacy_body_sha256": "7f5184936a69c1cfaefa9e7ebe6fdb20310a2a277b87d3854706d02cbbdc86b1"
+    },
+    {
+      "legacy_key": "de828be616",
+      "dw_id": "DW-685",
+      "title": "Assess the user-visible delay from the later 90-second supplementary list enrichment budget.",
+      "original_line": 5658,
+      "original_status": null,
+      "status": "open",
+      "status_basis": "no explicit completion marker; retained as open for later triage",
+      "legacy_body_sha256": "f011bd5af01e63f15a784e91440086725c8501401b3fd1f39c66bbfbbddeda07"
+    },
+    {
+      "legacy_key": "29b1f2c0fa",
+      "dw_id": "DW-686",
+      "title": "Qualify current quickstart command examples against the canonical platform-scope boundary.",
+      "original_line": 5662,
+      "original_status": null,
+      "status": "open",
+      "status_basis": "no explicit completion marker; retained as open for later triage",
+      "legacy_body_sha256": "3761c1c1db1e32003c8239a6c70584582c960960f497ca440f66b67e9235e02c"
+    },
+    {
+      "legacy_key": "04d072db50",
+      "dw_id": "DW-687",
+      "title": "Initialize the required root-declared Platform dependency before clean partial-release preparation.",
+      "original_line": 5666,
+      "original_status": null,
+      "status": "open",
+      "status_basis": "no explicit completion marker; retained as open for later triage",
+      "legacy_body_sha256": "9992c99821d3e1911e459afbe7decb82c9166f3507877e69b8837a0d6b3d78e2"
+    },
+    {
+      "legacy_key": "e7614df06c",
+      "dw_id": "DW-688",
+      "title": "Normalize optional coordinated candidate package identities before archive byte binding.",
+      "original_line": 5670,
+      "original_status": null,
+      "status": "open",
+      "status_basis": "no explicit completion marker; retained as open for later triage",
+      "legacy_body_sha256": "afec8154885b75a1f8066bcce15b8236f11a405ec944e22f098e8e9c937d8458"
+    },
+    {
+      "legacy_key": "a3825c4df2",
+      "dw_id": "DW-689",
+      "title": "Verify protected cursor continuation through the dedicated global-administrator audit query type.",
+      "original_line": 5674,
+      "original_status": null,
+      "status": "open",
+      "status_basis": "no explicit completion marker; retained as open for later triage",
+      "legacy_body_sha256": "681cc4dea30159c8ee1bcd63321e1f96ce14427ee2fafd42f0685b6e9ebbdf49"
+    },
+    {
+      "legacy_key": "5dcdb64d88",
+      "dw_id": "DW-690",
+      "title": "Qualify production Tenants compilation against each older advertised EventStore package cohort.",
+      "original_line": 5678,
+      "original_status": null,
+      "status": "open",
+      "status_basis": "no explicit completion marker; retained as open for later triage",
+      "legacy_body_sha256": "04e562ea54076f137d00f621746ef54ca9645b0e6ae604ce741e4dd9db6bfa59"
+    },
+    {
+      "legacy_key": "50b8c0b81f",
+      "dw_id": "DW-691",
+      "title": "Bind the retained net10 package-consumer mode to its historical route and adapter inventory.",
+      "original_line": 5682,
+      "original_status": null,
+      "status": "open",
+      "status_basis": "no explicit completion marker; retained as open for later triage",
+      "legacy_body_sha256": "5ecc531066f076f79f9ba52766cd732ed9964312d2a0e7d2738a5fb60396cb4c"
+    },
+    {
+      "legacy_key": "69ccfca70d",
+      "dw_id": "DW-692",
+      "title": "Add a dedicated McpCli conformance vector for the later RefreshTenantAccess operation.",
+      "original_line": 5686,
+      "original_status": null,
+      "status": "open",
+      "status_basis": "no explicit completion marker; retained as open for later triage",
+      "legacy_body_sha256": "14d009f0f974ee545e459fe250f8d5f744fd28a14fde49936ac0aded933f41ca"
+    },
+    {
+      "legacy_key": "6f1a50dda9",
+      "dw_id": "DW-693",
+      "title": "Revalidate the tenant snapshot after delayed command authorization completes.",
+      "original_line": 5690,
+      "original_status": null,
+      "status": "open",
+      "status_basis": "no explicit completion marker; retained as open for later triage",
+      "legacy_body_sha256": "c5c6d11bd4db390a0d3b45a96d00fa07833d251630bece5916b5a7dcfadac322"
+    },
+    {
+      "legacy_key": "54fd4f606e",
+      "dw_id": "DW-694",
+      "title": "Qualify cancellation and observer cleanup with uncooperative authentication and policy tasks.",
+      "original_line": 5694,
+      "original_status": null,
+      "status": "open",
+      "status_basis": "no explicit completion marker; retained as open for later triage",
+      "legacy_body_sha256": "1e57c424fc7e016a1ed6671de2756db2682e70ac2bf9ac0953cf717b88b90829"
+    },
+    {
+      "legacy_key": "ab4ce2a17e",
+      "dw_id": "DW-695",
+      "title": "Make private Stryker preparation retryable after interrupted or failed cache creation.",
+      "original_line": 5698,
+      "original_status": null,
+      "status": "open",
+      "status_basis": "no explicit completion marker; retained as open for later triage",
+      "legacy_body_sha256": "c2c197a91a6a65ce0a69971dc956a6ccab4a671d8ff6197ae25e6311f5ed48d0"
+    },
+    {
+      "legacy_key": "77c6a9ca39",
+      "dw_id": "DW-696",
+      "title": "Qualify actual Fluent native time-editor parsing for the later typed-field mapping.",
+      "original_line": 5702,
+      "original_status": null,
+      "status": "open",
+      "status_basis": "no explicit completion marker; retained as open for later triage",
+      "legacy_body_sha256": "3ea6696fc254ca8fca8f5959b7e11e0e6b38c9951f12265ada349f8faa5e13da"
+    },
+    {
+      "legacy_key": "a1079aac43",
+      "dw_id": "DW-697",
+      "title": "Reconcile pre-existing synthetic Source readiness module topology labels with the manifest they cite.",
+      "original_line": 5707,
+      "original_status": null,
+      "status": "open",
+      "status_basis": "no explicit completion marker; retained as open for later triage",
+      "legacy_body_sha256": "dc6dcaef0e2286d2e3c561ea5dc858ed9db3292f5efd27deb6676bc222f5b40a"
+    },
+    {
+      "legacy_key": "b15e46e48b",
+      "dw_id": "DW-698",
+      "title": "Isolate the pre-existing Source readiness non-test-command negative from its other deliberately invalid bindings.",
+      "original_line": 5711,
+      "original_status": null,
+      "status": "open",
+      "status_basis": "no explicit completion marker; retained as open for later triage",
+      "legacy_body_sha256": "bc49e27fa4f509800b38db7b0fcd167c2a5548dd114464506a393e4ea1e36b3d"
+    },
+    {
+      "legacy_key": "4ef7f032a3",
+      "dw_id": "DW-699",
+      "title": "Older admitted EventStore packages lack the new recovery snapshot API.",
+      "original_line": 5715,
+      "original_status": null,
+      "status": "open",
+      "status_basis": "no explicit completion marker; retained as open for later triage",
+      "legacy_body_sha256": "ab1645c2f3f0a5d56a0e5e419d39a54665538c43d5b8c9ff6fda927aa786527e"
+    },
+    {
+      "legacy_key": "912e18f0d1",
+      "dw_id": "DW-700",
+      "title": "Rejection-only tenant state receives a different recovery refusal.",
+      "original_line": 5719,
+      "original_status": null,
+      "status": "open",
+      "status_basis": "no explicit completion marker; retained as open for later triage",
+      "legacy_body_sha256": "6a71d7412b722f7ee5bffca531e1bdf61993bcb9529e0ca9762c47a1b0f6187f"
+    },
+    {
+      "legacy_key": "4f10207a0a",
+      "dw_id": "DW-701",
+      "title": "C# wrapper can truncate the browser progress checkpoint.",
+      "original_line": 5723,
+      "original_status": null,
+      "status": "open",
+      "status_basis": "no explicit completion marker; retained as open for later triage",
+      "legacy_body_sha256": "e44b968d03d231fe401ea56f1d6d2cc3e7d53f4e28ea97a3ad2fc6e3ba847d11"
+    },
+    {
+      "legacy_key": "4adc08ab3b",
+      "dw_id": "DW-702",
+      "title": "Failure diagnostics can outlive the functional browser deadline.",
+      "original_line": 5727,
+      "original_status": null,
+      "status": "open",
+      "status_basis": "no explicit completion marker; retained as open for later triage",
+      "legacy_body_sha256": "9bbd63492d7542211245579b2ec16a2e5bd120a07c51388ea884b2eb55a8956d"
+    },
+    {
+      "legacy_key": "f44f6e5a1e",
+      "dw_id": "DW-703",
+      "title": "Concurrent Firefox evidence driver labels a longer poll loop as thirty seconds.",
+      "original_line": 5731,
+      "original_status": null,
+      "status": "open",
+      "status_basis": "no explicit completion marker; retained as open for later triage",
+      "legacy_body_sha256": "ad0e7585f8fd1f314c58442056c65582de1f2e619592928fa35308cde612aa46"
+    },
+    {
+      "legacy_key": "088f77429c",
+      "dw_id": "DW-704",
+      "title": "Live corpus credential creation has no total corpus or encoded-token limit.",
+      "original_line": 5735,
+      "original_status": null,
+      "status": "open",
+      "status_basis": "no explicit completion marker; retained as open for later triage",
+      "legacy_body_sha256": "5e0048b794751778256808a8553ee8a9e3eb18df0dac95e43193e391bdca6e73"
+    },
+    {
+      "legacy_key": "dfb81a6c34",
+      "dw_id": "DW-705",
+      "title": "New recovery operation lacks a full delivery/convergence regression.",
+      "original_line": 5739,
+      "original_status": null,
+      "status": "open",
+      "status_basis": "no explicit completion marker; retained as open for later triage",
+      "legacy_body_sha256": "b6c5da529f597ded8e538f502af5033877614417ec5f98fddff2d7a85217e9f0"
+    },
+    {
+      "legacy_key": "cb3ea3dc45",
+      "dw_id": "DW-706",
+      "title": "EventStore offline source-mode component fixtures remove CI and can avoid the Platform Release/package guard when a CI caller omits explicit interop settings.",
+      "original_line": 5743,
+      "original_status": null,
+      "status": "open",
+      "status_basis": "no explicit completion marker; retained as open for later triage",
+      "legacy_body_sha256": "00f7bc230df5e7f9562ab72d2be90f6a9e3ac2ac902fa4d9de14a4eaeabd0583"
+    },
+    {
+      "legacy_key": "05e738db31",
+      "dw_id": "DW-707",
+      "title": "FrontComposer nested projection generation loses the containing type in generated references.",
+      "original_line": 5747,
+      "original_status": null,
+      "status": "open",
+      "status_basis": "no explicit completion marker; retained as open for later triage",
+      "legacy_body_sha256": "7071b6f6d4c191989a4bf0f5a3e639fb81856b68adfd0ad2367d32ecb53636fd"
+    },
+    {
+      "legacy_key": "5a5968e76a",
+      "dw_id": "DW-708",
+      "title": "FrontComposer skill-corpus canonicalization loses collection-element boundaries containing a pipe.",
+      "original_line": 5751,
+      "original_status": null,
+      "status": "open",
+      "status_basis": "no explicit completion marker; retained as open for later triage",
+      "legacy_body_sha256": "51339e8780184f0d87b083813d9b1f239bf6f79540ae738c3f998fa483fc4d6a"
+    },
+    {
+      "legacy_key": "37c2b560bc",
+      "dw_id": "DW-709",
+      "title": "FrontComposer HFC1012 diagnostics use the command file path for default attributes in another partial declaration.",
+      "original_line": 5755,
+      "original_status": null,
+      "status": "open",
+      "status_basis": "no explicit completion marker; retained as open for later triage",
+      "legacy_body_sha256": "1a77b8f6f6dbe6519b6091847524a619208068de3f1a291e9c9b89bc966ffebf"
+    },
+    {
+      "legacy_key": "786ca4022d",
+      "dw_id": "DW-710",
+      "title": "Unverified medium concern: determine the supported recovery policy for malformed historical authoritative tenant status, membership roles or configuration keys.",
+      "original_line": 5759,
+      "original_status": null,
+      "status": "open",
+      "status_basis": "no explicit completion marker; retained as open for later triage",
+      "legacy_body_sha256": "f3604577c6a648cd7a399a5025598fd070a98365c210cea7e9813e0c7a48f965"
+    },
+    {
+      "legacy_key": "625096b2ce",
+      "dw_id": "DW-711",
+      "title": "FrontComposer's upstream16.2 reopening procedure must also reopen approved-change EVT-XFER-1 tracking.",
+      "original_line": 5763,
+      "original_status": null,
+      "status": "open",
+      "status_basis": "no explicit completion marker; retained as open for later triage",
+      "legacy_body_sha256": "24931febe1086766d86d357ed3f944407860892e621e084b904693b5f6705d81"
+    },
+    {
+      "legacy_key": "7d8da7658e",
+      "dw_id": "DW-712",
+      "title": "Fix the upstream EventStore transition fixture test that mistakes a later step's environment expressions for shell interpolation after an earlier run block was added.",
+      "original_line": 5767,
+      "original_status": null,
+      "status": "open",
+      "status_basis": "no explicit completion marker; retained as open for later triage",
+      "legacy_body_sha256": "788fb0a9bd8db581d7a2f06742115b6bc9e2518f7536b72390f588ea6c9cf579"
+    },
+    {
+      "legacy_key": "9991d104fd",
+      "dw_id": "DW-713",
+      "title": "The EventStore optional transition workflow-test defect recorded above is addressed by its existing owning scanner repair; fresh hosted verification remains pending.",
+      "original_line": 5771,
+      "original_status": null,
+      "status": "open",
+      "status_basis": "no explicit completion marker; retained as open for later triage",
+      "legacy_body_sha256": "c261ec5ba35a47b403ce0be65a304b04884959cf35aea23b94a34652cae5182d"
+    },
+    {
+      "legacy_key": "7788762c2f",
+      "dw_id": "DW-714",
+      "title": "EventStore Development transport can select the same ephemeral port for two owned control-plane endpoints.",
+      "original_line": 5778,
+      "original_status": null,
+      "status": "open",
+      "status_basis": "no explicit completion marker; retained as open for later triage",
+      "legacy_body_sha256": "647ab41c3f6f7c792d4654f0f73d419e89801bf6e6d08171ef063cfed5a01d02"
+    },
+    {
+      "legacy_key": "4ef8dd92ef",
+      "dw_id": "DW-715",
+      "title": "Apply the approved shared release policy and CiCd-adoption condition in a separate maintainer change; keep pipeline modernization outside this release.",
+      "original_line": 5782,
+      "original_status": null,
+      "status": "open",
+      "status_basis": "no explicit completion marker; retained as open for later triage",
+      "legacy_body_sha256": "32f609fddb258704a69e5ccaf9310c518566057624c35ddf51b29700c9004535"
+    }
+  ]
+}

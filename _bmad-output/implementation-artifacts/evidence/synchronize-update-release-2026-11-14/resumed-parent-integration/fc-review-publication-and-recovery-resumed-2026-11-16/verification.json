@@ -1,0 +1,92 @@
+{
+  "scratch": "/tmp/hexalith-job.aORyh30K",
+  "commands": [
+    {
+      "name": "publication-controls",
+      "command": [
+        "python3",
+        "-B",
+        "tests/eng/test_mutation_artifact_publication.py",
+        "PublicationTests.testSafeFailedSegmentIsNormalizedWithoutChangingReceiptIdentity",
+        "PublicationTests.testSafeFailedAggregatePreservesBothReportsAndNormalizesSummaries",
+        "PublicationTests.testActualUnsafeSegmentContentRefusesBeforeAnyNormalizationWrite",
+        "PublicationTests.testActualUnsafeAggregateSummaryAndEitherSegmentRefuse",
+        "PublicationTests.testLinkedArtifactRefusesWithoutWritingItsTarget",
+        "PublicationTests.testNoAllowedArtifactsRefuses",
+        "PublicationTests.testLinkedReportDirectoryRefusesWithoutPublishingItsUnsafeTarget",
+        "PublicationTests.testDirectoryAtAllowedReportNameRefusesItsUnsafeDescendants",
+        "PublicationTests.testWorkflowPublishesOnlyAfterSuccessfulGuardEvenOnMutationFailure"
+      ],
+      "exitCode": 0,
+      "seconds": 17.642,
+      "logSha256": "9e95c7b0763d1a48f47e916163b6a497a05997c197cee454b33f90a6bf35d91b"
+    },
+    {
+      "name": "focused-debug-build",
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "-c",
+        "Debug",
+        "-p:UseMicrosoftTestingPlatformRunner=true",
+        "-p:GeneratePackageOnBuild=false",
+        "-m:1",
+        "-nodeReuse:false"
+      ],
+      "exitCode": 0,
+      "seconds": 42.212,
+      "logSha256": "a2f4c475061d0f1589bac5624eea46a07d036e4b16c52b8d9ef6f1e9f255c411"
+    },
+    {
+      "name": "five-regression-classes",
+      "command": [
+        "dotnet",
+        "test",
+        "--project",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "--no-build",
+        "--configuration",
+        "Debug",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.ErrorFollowthroughBehaviorTests",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.RazorRoleRecoveryContractTests",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.TemplateContractBoundaryTests",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.AliasSignatureContractTests",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.CommandContractBoundaryTests",
+        "--minimum-expected-tests",
+        "53",
+        "--fail-skips",
+        "on",
+        "--results-directory",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-review-publication-and-recovery-resumed-2026-11-16/test-results",
+        "--report-xunit-trx",
+        "--report-xunit-trx-filename",
+        "tests.trx",
+        "-p:UseMicrosoftTestingPlatformRunner=true"
+      ],
+      "exitCode": 0,
+      "seconds": 12.588,
+      "logSha256": "9b0e5409e895034d9e93ff782537f5641df94de804c6b8080b1a6d5c7cde8a2b"
+    }
+  ],
+  "archives": [
+    {
+      "repository": "references/Hexalith.FrontComposer",
+      "revision": "bc9dbedc6141b750ca92f01b40ac840dc2066704",
+      "archiveSha256": "9fa143aa2f6526b433c81a5f9d9821d02e6f47fa3bb432a6ee48c4cf38b0de06"
+    },
+    {
+      "repository": "references/Hexalith.Builds",
+      "revision": "65fd22f37b9fad64b595841923cdbe050563ab99",
+      "archiveSha256": "1a50f38d15ebb3159910c3ac9d6321c58d2dcdf601030d10a24ee4f9e90779d8"
+    }
+  ],
+  "ownerHead": "bc9dbedc6141b750ca92f01b40ac840dc2066704",
+  "finishedUtc": "2026-11-16T14:38:42Z",
+  "allChecksPassed": true
+}

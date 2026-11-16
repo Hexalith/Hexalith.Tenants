@@ -1,0 +1,87 @@
+--- retained-proposal/mutation-property-nightly.yml
++++ current/mutation-property-nightly.yml
+@@ -88,8 +88,14 @@
+         if: always()
+         run: python3 eng/stryker_compat.py verify ${{ matrix.segment }}
+ 
++      - name: Prepare segment artifacts for publication
++        id: publication
++        if: always()
++        shell: pwsh
++        run: ./eng/prepare-mutation-artifacts.ps1 -Segment ${{ matrix.segment }}
++
+       - name: Upload segment reports and provenance
+-        if: always()
++        if: always() && steps.publication.outcome == 'success'
+         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+         with:
+           name: mutation-source-tools-${{ matrix.segment }}
+@@ -99,6 +105,7 @@
+             artifacts/mutation/${{ matrix.segment }}/**/reports/source-tools-${{ matrix.segment }}.json
+             artifacts/mutation/${{ matrix.segment }}/**/reports/source-tools-${{ matrix.segment }}.html
+             artifacts/mutation/${{ matrix.segment }}/tool-provenance.json
++            artifacts/mutation/${{ matrix.segment }}/publication-digests.json
+ 
+   source-tools-mutation:
+     name: source-tools-mutation
+@@ -177,10 +184,19 @@
+           name: mutation-source-tools-error-handling
+           path: artifacts/mutation/error-handling
+ 
++      - name: Verify worker publication digest bindings
++        if: always()
++        shell: pwsh
++        run: ./eng/prepare-mutation-artifacts.ps1 -VerifyPublishedInputs
++
+       - name: Validate mutation reports
+         if: always()
+         shell: pwsh
+         run: ./eng/validate-stryker-reports.ps1 -RequireCompatibilityProvenance
++
++      - name: Validate finite mutation identities and statuses
++        if: always()
++        run: python3 eng/check-mutation-triage.py
+ 
+       - name: Require both complete segment jobs to succeed
+         if: always()
+@@ -188,8 +204,14 @@
+           SEGMENT_RESULT: ${{ needs.source-tools-mutation-segment.result }}
+         run: test "$SEGMENT_RESULT" = success
+ 
++      - name: Prepare aggregate artifacts for publication
++        id: publication
++        if: always()
++        shell: pwsh
++        run: ./eng/prepare-mutation-artifacts.ps1
++
+       - name: Mutation Summary
+-        if: always()
++        if: always() && steps.publication.outcome == 'success'
+         shell: bash
+         run: |
+           if [ -f artifacts/mutation/job-summary.md ]; then
+@@ -197,7 +219,7 @@
+           fi
+ 
+       - name: Upload mutation artifacts
+-        if: always()
++        if: always() && steps.publication.outcome == 'success'
+         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+         with:
+           name: mutation-source-tools-artifacts
+@@ -207,11 +229,15 @@
+             artifacts/mutation/happy-path/**/reports/source-tools-happy-path.json
+             artifacts/mutation/happy-path/**/reports/source-tools-happy-path.html
+             artifacts/mutation/happy-path/tool-provenance.json
++            artifacts/mutation/happy-path/publication-digests.json
+             artifacts/mutation/error-handling/**/reports/source-tools-error-handling.json
+             artifacts/mutation/error-handling/**/reports/source-tools-error-handling.html
+             artifacts/mutation/error-handling/tool-provenance.json
++            artifacts/mutation/error-handling/publication-digests.json
+             artifacts/mutation/job-summary.md
+             artifacts/mutation/mutation-report-audit.json
++            artifacts/mutation/publication-input-audit.json
++            artifacts/mutation/mutation-triage-admission.json
+             artifacts/mutation/mutation-validation-errors.txt
+ 
+   lifecycle-properties:

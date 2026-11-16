@@ -1,0 +1,68 @@
+[
+  {
+    "command": [
+      "pwsh",
+      "-NoProfile",
+      "-NonInteractive",
+      "-File",
+      "/tmp/hexalith-job.aORyh30K/tmpxz510uli/eng/prepare-mutation-artifacts.ps1"
+    ],
+    "exitCode": 1,
+    "logSha256": "82ce4c19ac396c448d8c65058dc296cc3350b8f69b7f7db609fc95b8944a5695"
+  },
+  {
+    "command": [
+      "pwsh",
+      "-NoProfile",
+      "-NonInteractive",
+      "-File",
+      "/tmp/hexalith-job.aORyh30K/tmpxz510uli/eng/prepare-mutation-artifacts.ps1"
+    ],
+    "exitCode": 1,
+    "logSha256": "de9483385083c2e75644285c694e9ce4f920c3974f60a0fd356108726a9e608f"
+  },
+  {
+    "command": [
+      "pwsh",
+      "-NoProfile",
+      "-NonInteractive",
+      "-File",
+      "/tmp/hexalith-job.aORyh30K/tmpxz510uli/eng/prepare-mutation-artifacts.ps1"
+    ],
+    "exitCode": 1,
+    "logSha256": "eeb1bee76214495f335f0eec93c366e4e5b7cd4687899274c4d642f4c0d71954"
+  },
+  {
+    "command": [
+      "pwsh",
+      "-NoProfile",
+      "-NonInteractive",
+      "-File",
+      "/tmp/hexalith-job.aORyh30K/tmpxz510uli/eng/prepare-mutation-artifacts.ps1"
+    ],
+    "exitCode": 1,
+    "logSha256": "142567090fe804a452b690f562525a26d9154fe75bf118e6b31f61844beccd39"
+  },
+  {
+    "command": [
+      "pwsh",
+      "-NoProfile",
+      "-NonInteractive",
+      "-File",
+      "/tmp/hexalith-job.aORyh30K/tmpxz510uli/eng/prepare-mutation-artifacts.ps1"
+    ],
+    "exitCode": 1,
+    "logSha256": "a85ebe612ae1def95aa1fd9fd5b0b20df168bc3b8aaa4e27c51122cc47eb1f17"
+  },
+  {
+    "command": [
+      "pwsh",
+      "-NoProfile",
+      "-NonInteractive",
+      "-File",
+      "/tmp/hexalith-job.aORyh30K/tmpxz510uli/eng/prepare-mutation-artifacts.ps1"
+    ],
+    "exitCode": 1,
+    "logSha256": "d0482fdd93af53e362839ad58111c7837b59efbb1bf8a80a39e90c5bac8ddc60"
+  }
+]

@@ -1,0 +1,34 @@
+[
+  {
+    "location": "eng/prepare-mutation-artifacts.ps1:56-58",
+    "trigger_condition": "JSON quoting or escapes conceal credential markers and machine-local paths",
+    "guard_snippet": "Parse JSON; normalize decoded strings and scan decoded property/value pairs before serialization.",
+    "potential_consequence": "Sensitive JSON passes publication scanning and remains eligible for upload."
+  },
+  {
+    "location": "eng/mutation-artifact-policy.ps1:6",
+    "trigger_condition": "A JSON string ends with /home/policy-user",
+    "guard_snippet": "Normalize decoded JSON strings instead of applying path regexes to serialized JSON.",
+    "potential_consequence": "Normalization consumes closing JSON syntax and publishes a malformed report."
+  },
+  {
+    "location": "eng/prepare-mutation-artifacts.ps1:61-62",
+    "trigger_condition": "Aggregate preparation runs after the validator records OutputSha256",
+    "guard_snippet": "Write only changed content using WriteAllText without appending a newline.",
+    "potential_consequence": "Published report bytes no longer match their recorded audit digest."
+  },
+  {
+    "location": "eng/prepare-mutation-artifacts.ps1:56-62",
+    "trigger_condition": "Worker normalization changes report content before aggregate auditing",
+    "guard_snippet": "Capture original and published digests before first normalization; verify their binding during aggregation.",
+    "potential_consequence": "Aggregate input and source hashes describe normalized content; original hashes become unrecoverable."
+  },
+  {
+    "location": "eng/prepare-mutation-artifacts.ps1:56-58",
+    "trigger_condition": "Actual unsafe content makes either publication guard render upload ineligible",
+    "guard_snippet": "The raw-text scan accepts {\"source\":\"pass\\u0077ord=synthetic\"}, whose decoded value contains password=synthetic.",
+    "potential_consequence": "Credential-bearing JSON uploads despite a successful publication policy step.",
+    "kind": "claim",
+    "confidence": "high"
+  }
+]
