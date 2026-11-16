@@ -20,7 +20,7 @@ def commit(root):
     return subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD"], text=True).strip()
 
 
-def create(root, actual_workflows=False):
+def create(root):
     root = Path(root)
     builds = root / ".hexalith/builds-execution"
     for directory in ("Github/governed-provenance", "Github/publish-containers", "Github/initialize-build"):
@@ -29,24 +29,17 @@ def create(root, actual_workflows=False):
     builds_sha = commit(builds)
     workflows = root / ".github/workflows"
     workflows.mkdir(parents=True, exist_ok=True)
-    if actual_workflows:
-        for name in ("release.yml", "recover-partial-release.yml"):
-            source = (ROOT / ".github/workflows" / name).read_text()
-            if name == "release.yml":
-                # Bind the actual workflow graph to this immutable local Builds snapshot.
-                source = re.sub(r"(?m)^([ \t]*HEXALITH_BUILDS_EXECUTION_SHA:[ \t]*)[0-9a-f]{40}([ \t]*)$",
-                                lambda match: match[1] + builds_sha + match[2], source)
-            (workflows / name).write_text(source)
-    else:
-        (workflows / "release.yml").write_text("env:\n  HEXALITH_BUILDS_EXECUTION_SHA: " + builds_sha + "\n")
-        (workflows / "recover-partial-release.yml").write_text("jobs:\n  recover:\n    steps:\n      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n")
+    # Synthetic immutable inputs exercise shipped recovery tooling, independently
+    # of the module's delivered workflow YAML.
+    (workflows / "release.yml").write_text("env:\n  HEXALITH_BUILDS_EXECUTION_SHA: " + builds_sha + "\n")
+    (workflows / "recover-partial-release.yml").write_text("jobs:\n  recover:\n    steps: []\n")
     subprocess.run(["git", "-C", str(root), "init", "-q"], check=True)
     subprocess.run(["git", "-C", str(root), "add", ".github"], check=True)
     subprocess.run(["git", "-C", str(root), "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid",
                     "commit", "-qm", "test: create source fixture"], check=True)
     source_sha = subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD"], text=True).strip()
     provenance = root / ".hexalith/recovery-workflow-provenance.json"
-    for name in (("recover-partial-release.yml", "release.yml") if actual_workflows else ("recover-partial-release.yml",)):
+    for name in ("recover-partial-release.yml",):
         workflow_path = ".github/workflows/" + name
         workflow_ref = "fixture/recovery/" + workflow_path + "@refs/heads/main"
         output_path = ".hexalith/recovery-workflow-provenance.json" if name.startswith("recover-") else ".hexalith/release-workflow-provenance.json"
@@ -69,19 +62,6 @@ def create(root, actual_workflows=False):
             "provenance": str(provenance), "identity": str(execution_state),
             "release_provenance": str(root / ".hexalith/release-workflow-provenance.json")}
 
-
-def workflow_step(path, name):
-    """Extract the actual literal run block for a named shipped workflow step."""
-    source = Path(path).read_text()
-    block = source.split("      - name: " + name + "\n", 1)[1]
-    lines = block.splitlines(keepends=True)
-    start = next(index for index, line in enumerate(lines) if line == "        run: |\n") + 1
-    selected = []
-    for line in lines[start:]:
-        if line.strip() and not line.startswith("          "):
-            break
-        selected.append(line)
-    return textwrap.dedent("".join(selected))
 
 
 if __name__ == "__main__":

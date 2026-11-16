@@ -484,12 +484,8 @@ public class AspireTopologyTests : IDisposable {
         removal.CommandCorrelationId.ShouldBe(removeStatus.CorrelationId);
         removal.AggregateSequence.ShouldBe(verifiedRemove.CommittedEventSequence);
         removal.EventReference.ShouldNotBe(removeCommand.MessageId);
-        using RedisConnectionMultiplexer redis = await RedisConnection.ConnectAsync(new RedisConfigurationOptions
-        {
-            EndPoints = { $"localhost:{DaprDiagnostics.ResolveRedisPort()}" },
-            ConnectTimeout = 5_000, SyncTimeout = 5_000, AbortOnConnectFail = true,
-        });
-        RedisValue storedAudit = await redis.GetDatabase().HashGetAsync($"tenants||audit:{tenantId}", "data").WaitAsync(timeout.Token);
+        using RedisConnectionMultiplexer redis = await CatalogRedisBackend.ConnectAsync(timeout.Token);
+        RedisValue storedAudit = await CatalogRedisBackend.Database(redis).HashGetAsync($"tenants||audit:{tenantId}", "data").WaitAsync(timeout.Token);
         TenantAuditReadModel persistedAudit = JsonSerializer.Deserialize<TenantAuditReadModel>(storedAudit.ToString(), WebJsonOptions).ShouldNotBeNull();
         TenantAuditEntry persistedRemoval = persistedAudit.Entries.Single(entry => entry.EventType == nameof(UserRemovedFromTenant));
         persistedRemoval.CommandCorrelationId.ShouldBe(removeStatus.CorrelationId);
@@ -569,13 +565,7 @@ public class AspireTopologyTests : IDisposable {
         string persistedKey = $"tenants||projection:tenants:{tenantId}";
         RedisConnectionMultiplexer redis;
         try {
-            redis = await RedisConnection.ConnectAsync(new RedisConfigurationOptions {
-                EndPoints = { redisEndpoint },
-                ConnectTimeout = 5_000,
-                SyncTimeout = 5_000,
-                AbortOnConnectFail = true,
-                AllowAdmin = false,
-            });
+            redis = await CatalogRedisBackend.ConnectAsync(cancellationToken);
         }
         catch (RedisConnectionException ex) {
             throw new InvalidOperationException(
@@ -584,7 +574,7 @@ public class AspireTopologyTests : IDisposable {
         }
 
         using (redis) {
-            RedisDatabase database = redis.GetDatabase();
+            RedisDatabase database = CatalogRedisBackend.Database(redis);
             DateTimeOffset deadline = DateTimeOffset.UtcNow.Add(SampleProjectionTimeout);
             string? lastPayload = null;
             string? lastJsonError = null;

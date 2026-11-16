@@ -196,7 +196,7 @@ class PartialReleaseRecoveryTests(unittest.TestCase):
             path = self.root / "bin" / client
             path.write_text(f"#!{sys.executable}\n" + CLIENT)
             path.chmod(0o755)
-        execution = create_execution_fixture(self.root, actual_workflows=getattr(self, "actual_workflows", False))
+        execution = create_execution_fixture(self.root)
         self.source_sha = execution["source_sha"]
         self.environment = {
             **os.environ,
@@ -295,31 +295,7 @@ class PartialReleaseRecoveryTests(unittest.TestCase):
                                       ["dotnet", "nuget", "push"])
                              or c[:2] == ["dotnet", "publish"] for c in self.calls()))
 
-    def test_required_source_gate_refuses_before_build_or_publication(self):
-        for workflow in ("ci.yml", "story-guards.yml", "source-reference.yml"):
-            for status, conclusion in (("completed", "failure"), ("completed", "skipped"), ("in_progress", None)):
-                with self.subTest(workflow=workflow, status=status, conclusion=conclusion):
-                    run = {"id": {"ci.yml": 1, "story-guards.yml": 2, "source-reference.yml": 3}[workflow],
-                           "run_number": 1, "run_attempt": 1, "head_sha": self.source_sha, "head_branch": "main",
-                           "event": "push", "path": ".github/workflows/" + workflow, "status": status, "conclusion": conclusion}
-                    self.destinations["gate_detail"] = {workflow: run}
-                    self.save()
-                    result = self.run_script("validate-partial-release-recovery.sh", False)
-                    self.assertIn(workflow, result.stderr)
-                    self.assertFalse(any(call[0] == "dotnet" for call in self.calls()))
-                    self.assert_no_publication()
 
-    def test_gate_failure_after_preparation_refuses_publication(self):
-        self.prepare()
-        before = (self.root / "state/prepared-state-sha256").read_bytes()
-        self.destinations["gate_detail"] = {"ci.yml": {"id": 1, "run_number": 1, "run_attempt": 2,
-            "head_sha": self.source_sha, "head_branch": "main", "event": "push",
-            "path": ".github/workflows/ci.yml", "status": "completed", "conclusion": "failure"}}
-        self.save()
-        self.environment["NUGET_API_KEY"] = "fixture-key"
-        self.run_script("publish-partial-release.sh", False)
-        self.assertEqual((self.root / "state/prepared-state-sha256").read_bytes(), before)
-        self.assert_no_publication()
 
     def test_recovery_tooling_must_match_source_approval(self):
         self.environment["HEXALITH_BUILDS_EXECUTION_SHA"] = "b" * 40

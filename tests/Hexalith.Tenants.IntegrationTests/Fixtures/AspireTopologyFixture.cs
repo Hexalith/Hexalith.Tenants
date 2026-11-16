@@ -75,6 +75,13 @@ public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith
             diagnosticToken => ProbeBootstrapAuthorityFailureAsync(scoped, CommandApiClient, token, diagnosticToken));
     }
 
+    /// <inheritdoc/>
+    public new async ValueTask DisposeAsync()
+    {
+        await base.DisposeAsync();
+        CatalogRedisBackend.RecordShutdown();
+    }
+
     internal static bool IsSourceCatalogProfile => string.Equals(Environment.GetEnvironmentVariable("TENANTS_SOURCE_CATALOG_PROFILE"), "true", StringComparison.Ordinal);
 
     internal static bool IncludeSample => !IsSourceCatalogProfile

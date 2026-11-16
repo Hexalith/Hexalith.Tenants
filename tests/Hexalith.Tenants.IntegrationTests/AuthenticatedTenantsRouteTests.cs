@@ -77,12 +77,8 @@ public sealed class AuthenticatedTenantsRouteTests(AuthenticatedRouteTopologyFix
             page => page.Items.Any(item => item.UserId == administrator));
 
         // Retain the actual persisted granting projection, without changing the live store or its workers.
-        using var redis = await StackExchange.Redis.ConnectionMultiplexer.ConnectAsync(new StackExchange.Redis.ConfigurationOptions
-        {
-            EndPoints = { $"localhost:{DaprDiagnostics.ResolveRedisPort()}" },
-            ConnectTimeout = 5_000, SyncTimeout = 5_000, AbortOnConnectFail = true,
-        });
-        var bytes = await redis.GetDatabase().HashGetAsync("tenants||projection:global-administrators:singleton", "data").WaitAsync(timeout.Token);
+        using var redis = await CatalogRedisBackend.ConnectAsync(timeout.Token);
+        var bytes = await CatalogRedisBackend.Database(redis).HashGetAsync("tenants||projection:global-administrators:singleton", "data").WaitAsync(timeout.Token);
         var granting = JsonSerializer.Deserialize<GlobalAdministratorReadModel>(bytes.ToString(), JsonSerializerOptions.Web).ShouldNotBeNull();
         granting.Administrators.ShouldContain(administrator);
         var retained = new InMemoryReadModelStore();
@@ -167,13 +163,13 @@ public sealed class AuthenticatedTenantsRouteTests(AuthenticatedRouteTopologyFix
                 using HttpResponseMessage response = await fixture.CommandApiClient.SendAsync(denied, timeout.Token);
                 response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
             }
-            (await redis.GetDatabase().HashGetAsync(eventPrefix + (sequence + 1), "data").WaitAsync(timeout.Token)).IsNull.ShouldBeTrue();
+            (await CatalogRedisBackend.Database(redis).HashGetAsync(eventPrefix + (sequence + 1), "data").WaitAsync(timeout.Token)).IsNull.ShouldBeTrue();
             var recovered = await AspireTopologyTests.SubmitAndWaitForTerminalStatusAsync(fixture.CommandApiClient, request, ownerToken, timeout.Token);
             recovered.Status.ShouldBe("Completed");
             recovered.EventCount.ShouldBe(1);
             recovered.CommittedEventSequence.ShouldBe(sequence + 1);
             sequence++;
-            var bytes = await redis.GetDatabase().HashGetAsync(eventPrefix + sequence, "data").WaitAsync(timeout.Token);
+            var bytes = await CatalogRedisBackend.Database(redis).HashGetAsync(eventPrefix + sequence, "data").WaitAsync(timeout.Token);
             bytes.IsNull.ShouldBeFalse();
             EventEnvelope stored = JsonSerializer.Deserialize<EventEnvelope>(bytes.ToString(), JsonSerializerOptions.Web).ShouldNotBeNull();
             stored.EventTypeName.ShouldBe(typeof(TenantAccessRefreshed).FullName);
@@ -190,7 +186,7 @@ public sealed class AuthenticatedTenantsRouteTests(AuthenticatedRouteTopologyFix
             after.Status.ShouldBe(before.Status);
             after.Members.OrderBy(member => member.Key).ShouldBe(before.Members.OrderBy(member => member.Key));
             after.Configuration.OrderBy(item => item.Key).ShouldBe(before.Configuration.OrderBy(item => item.Key));
-            (await redis.GetDatabase().HashGetAsync(eventPrefix + (sequence + 1), "data").WaitAsync(timeout.Token)).IsNull.ShouldBeTrue();
+            (await CatalogRedisBackend.Database(redis).HashGetAsync(eventPrefix + (sequence + 1), "data").WaitAsync(timeout.Token)).IsNull.ShouldBeTrue();
         }
 
         string OwnerToken(bool mayRefresh)

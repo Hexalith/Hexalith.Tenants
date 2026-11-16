@@ -1,0 +1,15 @@
+name: Tenants scheduled performance
+description: Run the retained daily Performance tier against the shared Release build and Dapr environment.
+runs:
+  using: composite
+  steps:
+    - name: Require actual execution of the daily performance tier
+      shell: bash
+      run: bash scripts/run-product-nightly.sh daily
+    - name: Retain performance test results
+      if: always()
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: tenants-daily-performance
+        path: TestResults/performance/*.trx
+        if-no-files-found: error

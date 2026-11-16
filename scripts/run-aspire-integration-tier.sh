@@ -2,12 +2,11 @@
 set -euo pipefail
 
 # The current catalog topology is qualified on fresh, isolated backends by the
-# authenticated-routes matrix and the source-reference owner-profile job.
+# serial catalog profiles in scripts/run-product-integration.py.
 # This tier retains every in-process and slim Dapr actor integration test.
-test "${ASPIRE_TEST_PROJECT:-}" = tests/Hexalith.Tenants.IntegrationTests
 mkdir -p TestResults/aspire
-dotnet test "$ASPIRE_TEST_PROJECT" \
-    --no-build --configuration Release \
+dotnet test --project tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj \
+    --no-build --no-restore --configuration Release --stop-on-fail off \
     --filter-not-trait Category=Performance \
     --filter-not-class \
         Hexalith.Tenants.IntegrationTests.AspireTopologyTests \
