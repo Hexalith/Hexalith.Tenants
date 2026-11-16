@@ -5771,3 +5771,14 @@ archived: 2026-10-22
 - source_spec: `_bmad-output/implementation-artifacts/spec-synchronize-update-release-2026-11-14.md`
   summary: The EventStore optional transition workflow-test defect recorded above is addressed by its existing owning scanner repair; fresh hosted verification remains pending.
   evidence: Upstream8b6d5bee5217b3f4bbd8fd689ad887aca863961b replaces content.split('run: |')[1] with workflow_run_bodies and checks every run block, including single-line, later-body, compact-expression and commented-header refusal cases. This release preserves and integrates that existing repair; source and current run IDs are in resumed-parent-integration/eventstore-upstream-scanner-repair-integration.json.
+  resolution: Hosted optional transition run43862075403 succeeded on the selected8b6d5bee5217b3f4bbd8fd689ad887aca863961b source. The earlier failing run remains historical.
+
+## Deferred from: pragmatic release completion (2026-11-16)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-synchronize-update-release-2026-11-14.md`
+  summary: EventStore Development transport can select the same ephemeral port for two owned control-plane endpoints.
+  evidence: On8b6d5bee5217b3f4bbd8fd689ad887aca863961b, integration run43862075310/job133281459500 failed PublicDevelopmentTransportAuthenticatesPeersAndPersistsActorsAcrossNativeRestart with "Owned control-plane endpoints must be distinct" (329 passed, one failed, four configured skips across334 cases). Separate bind/release TcpListener allocations can return the same port; production transport and test bytes are unchanged from the previously qualified981fabaa source. Retrying only the failed job on identical source passed as job133318826521/attempt2. The retry does not fix the allocator: reserve distinct endpoints in a separate EventStore owner repair. Existing guards and original failure remain preserved.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-synchronize-update-release-2026-11-14.md`
+  summary: Apply the approved shared release policy and CiCd-adoption condition in a separate maintainer change; keep pipeline modernization outside this release.
+  evidence: Approved sprint-change-proposal-2026-11-16-pragmatic-release-policy.md sections4B/4C assign AI.Tools policy changes to its maintainer and CiCd adoption to the pipeline track. The release-scoped checker exception ends with completion bookkeeping. The new Dapr evidence-only workflow step was deferred under4A; its existing regression test and the original release gates are retained. No shared policy edit or CiCd adoption is claimed by the completed8.0.1 release.

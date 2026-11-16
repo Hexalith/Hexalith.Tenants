@@ -2,7 +2,7 @@
 title: 'Synchronize dependencies and publish the .NET 11 release'
 type: 'chore'
 created: '2026-11-14'
-status: 'in-review'
+status: 'done'
 route: 'dispatch'
 review_loop_iteration: 1
 baseline_commit: '401d926eb7d51bdf332696ed3f0fe39a812b3501'
@@ -48,8 +48,8 @@ Preserve existing work and historical evidence. Work in each owning repository; 
 - [x] Recovery verification -- rejection-only state must remain not-found; prove exact snapshot budgets, registered durable delivery/checkpoint/gap recovery, and repeated versus fresh operation-ID behavior using existing production harnesses.
 - [x] Testing/documentation parity -- add the ordinary fake recovery overload and clarify that contract decoration does not qualify current native McpCli enrollment.
 - [x] Verification receipts -- refuse cross-revision evidence reuse and dirty source attribution in the Builds fixture verifier; make the Firefox host probe obey its stated elapsed-time deadline.
-- [ ] Root main -- validate commit message, push synchronized work, obtain successful latest exact-source required CI.
-- [ ] Release workflow and NuGet -- publish intended source, verify GitHub Release plus all five NuGet package versions and retained provenance.
+- [x] Root main -- validate commit message, push synchronized work, obtain successful latest exact-source required CI.
+- [x] Release workflow and NuGet -- publish intended source, verify GitHub Release plus all five NuGet package versions and retained provenance.
 
 Acceptance:
 - Given authoritative current metadata, when build/restore runs, then SDK11.0.100 is selected and updated compatible dependencies restore with warnings as errors.
@@ -660,3 +660,7 @@ Freeze FrontComposer at9ea805dc7bbdf048b282e66e94115add295099a3, whose actual CI
 The new Dapr read-policy step is evidence-byte qualification only, as its existing test docstring states. Remove that newly introduced step and retain the existing test and all original8aa release gates; pipeline qualification expansion is deferred under approved4A. The generatedHTTP floor67 remains.
 
 An intermediate push4b99a89c78c57294b99b52eaf5889e8c74b87999 included bulk diagnostics before the concurrent approved policy was read. A forward corrective commit removes newly introduced diagnostic captures from the tracked release tree while preserving their exact local bytes and public history. Only the required public verifier helper and its regression test sources remain as new verification code. The existing historical evidence remains. Final publication uses the corrected source, never the intermediate snapshot.
+
+## Release completion (2026-11-16)
+
+Published [Tenants 8.0.1](https://github.com/Hexalith/Hexalith.Tenants/releases/tag/v8.0.1) from `ab67fd6bc308b5a641b0ca398d776e347193c168` through successful release run43880703312. All five required source workflows passed on that exact commit:17 successful jobs and one existing configured performance skip. Selected EventStore required checks passed, with its failed live job retried successfully on the same source; the underlying Development port-allocation issue remains deferred. Independent official NuGet verification passed for all five packages, including listed version, repository commit, official SHA512, native signatures and candidate payload equality. Both existing container destination checks passed. See [the concise release report](release-report-8.0.1.md) for frozen revisions, run links, exceptions and remaining deferrals. The completion documentation commit does not change the published source or tag. Bulk diagnostics remain local, and historical failures and separate migration authorities retain their original scope. The scoped checker exception expires when this completion bookkeeping finishes; other FrontComposer pushes may resume.
