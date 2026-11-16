@@ -1,0 +1,22 @@
+[
+  {
+    "matrixResult": "success",
+    "exitCode": 0
+  },
+  {
+    "matrixResult": "failure",
+    "exitCode": 1
+  },
+  {
+    "matrixResult": "cancelled",
+    "exitCode": 1
+  },
+  {
+    "matrixResult": "skipped",
+    "exitCode": 1
+  },
+  {
+    "matrixResult": "",
+    "exitCode": 1
+  }
+]

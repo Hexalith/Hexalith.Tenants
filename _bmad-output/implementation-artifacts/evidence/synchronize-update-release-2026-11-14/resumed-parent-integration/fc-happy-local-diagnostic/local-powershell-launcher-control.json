@@ -1,0 +1,21 @@
+{
+  "scope": "Local launcher identity control; no product/tool/cohort/source changes",
+  "powershellDll": "/home/administrator/.dotnet/tools/.store/powershell/7.6.2/powershell/7.6.2/tools/net10.0/any/unix/pwsh.dll",
+  "powershellDllSha256": "2273c3ad0babb532647fc9c393acbba9f1483e067e4fa6ab5e0f44eed7c4adbb",
+  "dotnetExecutable": "/home/administrator/.dotnet/dotnet",
+  "dotnetExecutableSha256": "634efbf2414144d140d6f59d167342c8b3b53b4c34346ed786dd0470ddc9a3cb",
+  "rows": [
+    {
+      "launcher": "global-tool-shim",
+      "startedPid": 2249574,
+      "reportedPowerShellPid": 2249602,
+      "samePid": false
+    },
+    {
+      "launcher": "same-powershell-direct",
+      "startedPid": 2250110,
+      "reportedPowerShellPid": 2250110,
+      "samePid": true
+    }
+  ]
+}

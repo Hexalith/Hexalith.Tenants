@@ -1,0 +1,93 @@
+[
+  {
+    "command": [
+      "pwsh",
+      "-NoProfile",
+      "-NonInteractive",
+      "-File",
+      "/dev/shm/hexalith-job.gz41AR2D/tmp2owqik33/eng/prepare-mutation-artifacts.ps1",
+      "-Segment",
+      "happy-path"
+    ],
+    "exitCode": 1,
+    "logSha256": "df1e36f1ed5e395f67755196127f956903d492847ed1d83426f3f37087669826"
+  },
+  {
+    "command": [
+      "pwsh",
+      "-NoProfile",
+      "-NonInteractive",
+      "-File",
+      "/dev/shm/hexalith-job.gz41AR2D/tmp2owqik33/eng/prepare-mutation-artifacts.ps1",
+      "-Segment",
+      "happy-path"
+    ],
+    "exitCode": 1,
+    "logSha256": "df1e36f1ed5e395f67755196127f956903d492847ed1d83426f3f37087669826"
+  },
+  {
+    "command": [
+      "pwsh",
+      "-NoProfile",
+      "-NonInteractive",
+      "-File",
+      "/dev/shm/hexalith-job.gz41AR2D/tmp2owqik33/eng/prepare-mutation-artifacts.ps1",
+      "-Segment",
+      "happy-path"
+    ],
+    "exitCode": 1,
+    "logSha256": "df1e36f1ed5e395f67755196127f956903d492847ed1d83426f3f37087669826"
+  },
+  {
+    "command": [
+      "pwsh",
+      "-NoProfile",
+      "-NonInteractive",
+      "-File",
+      "/dev/shm/hexalith-job.gz41AR2D/tmp2owqik33/eng/prepare-mutation-artifacts.ps1",
+      "-Segment",
+      "happy-path"
+    ],
+    "exitCode": 1,
+    "logSha256": "df1e36f1ed5e395f67755196127f956903d492847ed1d83426f3f37087669826"
+  },
+  {
+    "command": [
+      "pwsh",
+      "-NoProfile",
+      "-NonInteractive",
+      "-File",
+      "/dev/shm/hexalith-job.gz41AR2D/tmp2owqik33/eng/prepare-mutation-artifacts.ps1",
+      "-Segment",
+      "happy-path"
+    ],
+    "exitCode": 1,
+    "logSha256": "df1e36f1ed5e395f67755196127f956903d492847ed1d83426f3f37087669826"
+  },
+  {
+    "command": [
+      "pwsh",
+      "-NoProfile",
+      "-NonInteractive",
+      "-File",
+      "/dev/shm/hexalith-job.gz41AR2D/tmp2owqik33/eng/prepare-mutation-artifacts.ps1",
+      "-Segment",
+      "happy-path"
+    ],
+    "exitCode": 1,
+    "logSha256": "df1e36f1ed5e395f67755196127f956903d492847ed1d83426f3f37087669826"
+  },
+  {
+    "command": [
+      "pwsh",
+      "-NoProfile",
+      "-NonInteractive",
+      "-File",
+      "/dev/shm/hexalith-job.gz41AR2D/tmp2owqik33/eng/prepare-mutation-artifacts.ps1",
+      "-Segment",
+      "happy-path"
+    ],
+    "exitCode": 1,
+    "logSha256": "df1e36f1ed5e395f67755196127f956903d492847ed1d83426f3f37087669826"
+  }
+]

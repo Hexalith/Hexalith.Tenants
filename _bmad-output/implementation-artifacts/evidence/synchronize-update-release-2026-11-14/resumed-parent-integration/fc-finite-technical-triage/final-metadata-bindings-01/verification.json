@@ -1,0 +1,69 @@
+{
+  "scope": "Final metadata binding/native count contracts and original-report nonqualification refusals only",
+  "scratch": "/dev/shm/hexalith-job.rI1HC28f",
+  "commands": [
+    {
+      "name": "current-owner-metadata-binding",
+      "command": [
+        "python3",
+        "-B",
+        "tests/eng/test_mutation_triage.py",
+        "FiniteTriageTests.testEveryOriginalIdentityAndObservationIsFiniteAndNoTechnicalGatesChanged"
+      ],
+      "exitCode": 0,
+      "logSha256": "28ca718d1d428b3fc25cc245340b8b8ae2e7a4415d8ab026c12476fcb409502e"
+    },
+    {
+      "name": "actual-native-count-policy",
+      "command": [
+        "pwsh",
+        "-NoProfile",
+        "-NonInteractive",
+        "-File",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-finite-technical-triage/check-native-triage-counts.ps1",
+        "-OwnerRoot",
+        "/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer"
+      ],
+      "exitCode": 0,
+      "logSha256": "d22c0332bbe1a78859189a9201439de7670804a0242bddeb5e205214ec67d3f2"
+    },
+    {
+      "name": "error-handling-old-report-refusal",
+      "command": [
+        "python3",
+        "-B",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-finite-technical-triage/check-fresh-report.py",
+        "--owner-root",
+        "/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer",
+        "--segment",
+        "error-handling",
+        "--report",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-error-local-diagnostic/retained-original-reports/source-tools-error-handling.json",
+        "--output",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-finite-technical-triage/final-metadata-bindings-01/error-handling-original-refusal.json"
+      ],
+      "exitCode": 1,
+      "expectedRefusals": 95,
+      "logSha256": "0e6f04294708030dc5c04268f3cdb69b693c7e7ae487e126883fac331ff5cf40"
+    },
+    {
+      "name": "happy-path-old-report-refusal",
+      "command": [
+        "python3",
+        "-B",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-finite-technical-triage/check-fresh-report.py",
+        "--owner-root",
+        "/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer",
+        "--segment",
+        "happy-path",
+        "--report",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-happy-local-diagnostic/attempt-03/post-validator-artifacts/happy-path/reports/source-tools-happy-path.json",
+        "--output",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-finite-technical-triage/final-metadata-bindings-01/happy-path-original-refusal.json"
+      ],
+      "exitCode": 1,
+      "expectedRefusals": 95,
+      "logSha256": "0e6f04294708030dc5c04268f3cdb69b693c7e7ae487e126883fac331ff5cf40"
+    }
+  ]
+}

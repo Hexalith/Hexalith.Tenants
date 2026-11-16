@@ -1,0 +1,16 @@
+{
+  "authenticated-tool-prepare.log": "e47f77338f79dd119b551d0777f420ca3a6211b0e6105f9696ddd206980d6839",
+  "builds-input-manifest.json": "256f56bc35b9a5c6d24d01415c6f271b4c302aec53ad1384b60140827f3c4455",
+  "checkout-e0.log": "406084dd5a0bfd4cbd0eb94c9b7f5266809a2428b9b55d38550f21593ae6b144",
+  "clone-exact-input.log": "6490a9f29d2d7e0961ee8f7ff2504126179c2dabcdcf27a9bf204e4b27b192fa",
+  "docs-baseline/tests.xml": "614832e287d6e8a40958cd5b83fb3afbe4032d63123a562b57b88a9538a21477",
+  "execution.json": "39a8ca53a3aeb931ed27fd67b3eff618427ffaa7be070d4e81b83cd2907ccfb3",
+  "installed-dotnet.log": "358c6a323881b35b97fd33d4a102f829bff79147a57616c1c22a5a09103d3f73",
+  "private-tool-build-provenance.json": "42419fe08f7587315cee4b1dd6ce05578ea6edb1f7073b501adf7a54ffe459db",
+  "solution-restore.log": "c4a69bb3b6beacac3b4196662bd6ef684201f7929236b6b9caeba8265701673c",
+  "source-clean-preflight.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "source-input-manifest.json": "eda12d030aae1759b1664cb0c1edbb88f3d66f4a61a911db8056df419ad7b44d",
+  "source-tools-test-build.log": "b6cd8ac93d21500504b909684bd2d8209d05f950e3a3be5f984c9c0d52148197",
+  "tool-restore.log": "4c5e61c789049ee3ad90ce6029587458977b991ef9c16ea3a243672e57d53f25",
+  "unmutated-docs-baseline.log": "047119042e700f3f7972b6fa72fb19122f470159b70d9caf1c428dc80f2705f4"
+}

@@ -1,0 +1,28 @@
+[
+  {
+    "command": [
+      "pwsh",
+      "-NoProfile",
+      "-NonInteractive",
+      "-File",
+      "/dev/shm/hexalith-job.YCdz01wi/tmp4spu_gbw/eng/prepare-mutation-artifacts.ps1",
+      "-Segment",
+      "happy-path"
+    ],
+    "exitCode": 0,
+    "logSha256": "52c4e5d7252fc0e57f8778151e1aaf069ce10662922018e0becd5a2902627024"
+  },
+  {
+    "command": [
+      "pwsh",
+      "-NoProfile",
+      "-NonInteractive",
+      "-File",
+      "/dev/shm/hexalith-job.YCdz01wi/tmp4spu_gbw/eng/prepare-mutation-artifacts.ps1",
+      "-Segment",
+      "happy-path"
+    ],
+    "exitCode": 0,
+    "logSha256": "dcd3ee12f68f21ce4d1a83535de71216a87568ea7e92e07c1da4efb1da6eb02c"
+  }
+]

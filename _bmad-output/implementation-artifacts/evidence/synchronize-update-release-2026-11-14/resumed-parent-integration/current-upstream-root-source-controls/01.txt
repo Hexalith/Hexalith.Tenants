@@ -1,0 +1,8 @@
+test_fresh_owned_backend_provisions_private_material_and_public_receipt (test_source_catalog_profile.SourceCatalogProfileProvisioningTests.test_fresh_owned_backend_provisions_private_material_and_public_receipt) ... ok
+test_package_job_uses_the_same_fresh_backend_guard (test_source_catalog_profile.SourceCatalogProfileProvisioningTests.test_package_job_uses_the_same_fresh_backend_guard) ... ok
+test_refusals_preserve_existing_evidence_and_do_not_mint_owner_material (test_source_catalog_profile.SourceCatalogProfileProvisioningTests.test_refusals_preserve_existing_evidence_and_do_not_mint_owner_material) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.008s
+
+OK

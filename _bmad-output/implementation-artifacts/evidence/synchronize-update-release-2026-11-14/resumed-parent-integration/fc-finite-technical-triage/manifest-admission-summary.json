@@ -1,0 +1,20 @@
+{
+  "manifestRecords": 14,
+  "manifestBytes": 54272,
+  "identityLedgerBytes": 1029457,
+  "ledgerSha256": "cc79367d83e4eebe5ac40bcd962f7fb3cfc5602e2808921415a042f4bcbfb2e5",
+  "originalObservations": 1498,
+  "maximumCountsBySegmentStatus": {
+    "happy-path": {
+      "Survived": 639,
+      "NoCoverage": 132,
+      "Timeout": 1
+    },
+    "error-handling": {
+      "Survived": 776,
+      "NoCoverage": 187,
+      "Timeout": 1
+    }
+  },
+  "statusTransitionRule": "Original observations permit only explicit NoCoverage-to-Survived unresolved transitions; supplemental12812 permits only its exact Survived/NoCoverage identity. Tested kills admit no remaining problem;14021 remains Timeout."
+}

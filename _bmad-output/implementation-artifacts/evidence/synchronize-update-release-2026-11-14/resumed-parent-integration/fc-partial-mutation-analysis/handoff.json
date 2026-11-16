@@ -1,0 +1,214 @@
+{
+  "source": "e0eef14ddbbcd03823863a4f417a4b07f6f5bafc",
+  "scope": "Read-only partial mutation analysis and private proposed regression patch, not current/final mutation qualification or acceptance.",
+  "owner_status_porcelain": "",
+  "owner_source_raw_sha256": {
+    "src/Hexalith.FrontComposer.SourceTools/Parsing/AttributeParser.cs": "de4f342c3311d02662f3753d19bb902ae67cc3b3d66af260f67fa434ee1b2eed",
+    "src/Hexalith.FrontComposer.SourceTools/Parsing/DomainModel.cs": "03797b63cd736daee22c9c1839c388d99e07e6139da10d9586d147c7b91f3aff",
+    "src/Hexalith.FrontComposer.SourceTools/FrontComposerGenerator.cs": "6edcac943801db14d52f806d098bd36bd5321c4b9034ad64e46bc1b7ba530cd7",
+    "eng/validate-stryker-reports.ps1": "1ab32f0ff0de5fdf71ef6bc665a937d9f16dd97b7ac3da3b4904b7bb5361e4c5",
+    "eng/stryker_compat.py": "ba020bc16cc50983428822fae713a705f652460281f1049dc3442209636979ee",
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/mutation-target-manifest.json": "0c7a17f4d32b1e91b25574a687c03bbcd32c075b8dfe533a2eb03ac9f799e179",
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/stryker-happy-path.json": "1ab1f072bc2d7719f15916a4643669fef8fc203798cd4c3efbe60490be5150e0",
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/stryker-error-handling.json": "591cc35914504b9caf303dd96676b770e05a6a1b3918cdb4b398811c04764880"
+  },
+  "proposed_test_file": "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/ProjectionParserSurvivorRegressionTests.cs",
+  "proposed_test_sha256": "712a401e2b520cf45bff60a1c35651875232f79d5dc85012cc95bde37e85c087",
+  "private_patch_sha256": "8bcd24e547d7b3b4ef1e1154144e7f7d3bd02d0cd3e464ccbe35b09cc8367b77",
+  "focused_cases": 13,
+  "separate_mutant_variants_detected": 15,
+  "test_results": {
+    "11924-test-patch-trx": {
+      "total": 13,
+      "passed": 12,
+      "failed": 1,
+      "not_executed": 0,
+      "failed_tests": [
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.ProjectionParserSurvivorRegressionTests.PublicPartialOuterTypeDoesNotTriggerUnsupportedTypeDiagnostic"
+      ],
+      "trx_sha256": "0287aa21ae75399f5de57028e87d426e53b1d720edd87ffffa6c1fd613dcbbbc"
+    },
+    "12009-test-patch-trx": {
+      "total": 13,
+      "passed": 12,
+      "failed": 1,
+      "not_executed": 0,
+      "failed_tests": [
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.ProjectionParserSurvivorRegressionTests.WhenStateFallsBackToFirstEnumWhenNeitherEnumHasBadges"
+      ],
+      "trx_sha256": "eecdf7a3b388b8f5ba3aaa95523981a76696f2128b9f09480ed26c80031db700"
+    },
+    "12036-test-patch-trx": {
+      "total": 13,
+      "passed": 12,
+      "failed": 1,
+      "not_executed": 0,
+      "failed_tests": [
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.ProjectionParserSurvivorRegressionTests.UnknownWhenStateListsReadableSeparatedValidMembers"
+      ],
+      "trx_sha256": "6d5bc313b9d33d7dae603b482bb970707187c3fcb96c7d42a7100f25c1aba922"
+    },
+    "12192-test-patch-trx": {
+      "total": 13,
+      "passed": 12,
+      "failed": 1,
+      "not_executed": 0,
+      "failed_tests": [
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.ProjectionParserSurvivorRegressionTests.MissingOrUnboundArgumentsKeepProjectionParsingAvailable(annotation: \\\"RelativeTime(null)\\\", onType: False)"
+      ],
+      "trx_sha256": "e68a5f9f347f199390fe2a2e4a65a26ee25f3327802c87de47e0e67e6e9fa9d9"
+    },
+    "12207-nullable-control-trx": {
+      "total": 13,
+      "passed": 12,
+      "failed": 1,
+      "not_executed": 0,
+      "failed_tests": [
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.ProjectionParserSurvivorRegressionTests.InvalidRelativeTimeConstantWarnsAndKeepsDefaultFormatter"
+      ],
+      "trx_sha256": "9d8b5b51f9f5e8d998b0c6a28590a454374cb9d52f9a61d5dc21fdfdd7484247"
+    },
+    "12234-test-patch-trx": {
+      "total": 13,
+      "passed": 12,
+      "failed": 1,
+      "not_executed": 0,
+      "failed_tests": [
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.ProjectionParserSurvivorRegressionTests.InvalidEnumFormatDiagnosticExplainsUnderlyingEnumType(attribute: \\\"RelativeTime\\\")"
+      ],
+      "trx_sha256": "7476ae376c1aa34c119a6f1795948ac91ee44b2007b856f8883e958076041f15"
+    },
+    "12251-test-patch-trx": {
+      "total": 13,
+      "passed": 12,
+      "failed": 1,
+      "not_executed": 0,
+      "failed_tests": [
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.ProjectionParserSurvivorRegressionTests.InvalidEnumFormatDiagnosticExplainsUnderlyingEnumType(attribute: \\\"Currency\\\")"
+      ],
+      "trx_sha256": "5e38926e31763fb102cd0f9c23b1946c0ec2b090a917c07c0921775eb9fcc9d6"
+    },
+    "12280-test-patch-trx": {
+      "total": 13,
+      "passed": 12,
+      "failed": 1,
+      "not_executed": 0,
+      "failed_tests": [
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.ProjectionParserSurvivorRegressionTests.MissingOrUnboundArgumentsKeepProjectionParsingAvailable(annotation: \\\"ProjectionFieldGroup()\\\", onType: False)"
+      ],
+      "trx_sha256": "65afebb4d0880820bcf36ea03b5d4de40f88989f6dcc8b8a27dfe54fca44cd67"
+    },
+    "12303-test-patch-trx": {
+      "total": 13,
+      "passed": 12,
+      "failed": 1,
+      "not_executed": 0,
+      "failed_tests": [
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.ProjectionParserSurvivorRegressionTests.MissingOrUnboundArgumentsKeepProjectionParsingAvailable(annotation: \\\"ProjectionEmptyStateCta()\\\", onType: True)"
+      ],
+      "trx_sha256": "cb2f5dc554ddc2798f017e002e83ae37d5aa2654d7fd7fe0ab73ee6cdb9ac5b0"
+    },
+    "12334-test-patch-trx": {
+      "total": 13,
+      "passed": 12,
+      "failed": 1,
+      "not_executed": 0,
+      "failed_tests": [
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.ProjectionParserSurvivorRegressionTests.MissingOrUnboundArgumentsKeepProjectionParsingAvailable(annotation: \\\"ColumnPriority()\\\", onType: False)"
+      ],
+      "trx_sha256": "9baa5ce42642186f844f52a95d2c9f3c670d9187f03b904fbfd9336c80c5e941"
+    },
+    "12376-test-patch-trx": {
+      "total": 13,
+      "passed": 12,
+      "failed": 1,
+      "not_executed": 0,
+      "failed_tests": [
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.ProjectionParserSurvivorRegressionTests.ParameterlessDescriptionRemainsValidAndHasNoDescriptionText"
+      ],
+      "trx_sha256": "6ebe7e857d5b94ff09980604f4ff1bf7b1df9efe36734d76635a9b2d41637823"
+    },
+    "12455-test-patch-trx": {
+      "total": 13,
+      "passed": 12,
+      "failed": 1,
+      "not_executed": 0,
+      "failed_tests": [
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.ProjectionParserSurvivorRegressionTests.InvalidBadgeDiagnosticUsesEnumDeclarationFileAndCoordinates"
+      ],
+      "trx_sha256": "3cd747702e326dceffeb19a4b4d0a3f95bc4abbb60d19951ca2c1c55d83a2309"
+    },
+    "12457-test-patch-trx": {
+      "total": 13,
+      "passed": 12,
+      "failed": 1,
+      "not_executed": 0,
+      "failed_tests": [
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.ProjectionParserSurvivorRegressionTests.InvalidBadgeDiagnosticUsesEnumDeclarationFileAndCoordinates"
+      ],
+      "trx_sha256": "50e75cdb76f257255f7ef789b539c87a6233e1d05e6873e1e8eac63b95e50482"
+    },
+    "12460-test-patch-trx": {
+      "total": 13,
+      "passed": 11,
+      "failed": 2,
+      "not_executed": 0,
+      "failed_tests": [
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.ProjectionParserSurvivorRegressionTests.InvalidMetadataBadgeKeepsReasonAndProjectionFileFallback",
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.ProjectionParserSurvivorRegressionTests.InvalidBadgeDiagnosticUsesEnumDeclarationFileAndCoordinates"
+      ],
+      "trx_sha256": "d877faf4b582f884ad645fecbc67a6503cf79cc0b7237322285446f7bcabfbbc"
+    },
+    "12461-test-patch-trx": {
+      "total": 13,
+      "passed": 11,
+      "failed": 2,
+      "not_executed": 0,
+      "failed_tests": [
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.ProjectionParserSurvivorRegressionTests.InvalidMetadataBadgeKeepsReasonAndProjectionFileFallback",
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.ProjectionParserSurvivorRegressionTests.InvalidBadgeDiagnosticUsesEnumDeclarationFileAndCoordinates"
+      ],
+      "trx_sha256": "ec8beda46eec6aae8c3c922a720d5db0963c2602c222024a443c639c80dec252"
+    },
+    "baseline-nullable-control-trx": {
+      "total": 13,
+      "passed": 13,
+      "failed": 0,
+      "not_executed": 0,
+      "failed_tests": [],
+      "trx_sha256": "e6ebb93d3ace8bc18c2e7ac7e542c0ba1c93df29d996129212dcd796962d361c"
+    },
+    "baseline-test-patch-trx": {
+      "total": 13,
+      "passed": 13,
+      "failed": 0,
+      "not_executed": 0,
+      "failed_tests": [],
+      "trx_sha256": "34ce84d602b28642e106a26b7946275917ccdece072f0e809e326f3f2e7bba16"
+    }
+  },
+  "strict_12207_compile_refusal_preserved": "12207-test-patch-build.log",
+  "12207_followup": "Same literal runtime mutation; only private build sets WarningsNotAsErrors=CS8602. Baseline retains owner strict policy. No Stryker activation or score inferred.",
+  "cleanup": [
+    {
+      "receipt": "reproduction.json",
+      "workspace": "/dev/shm/hexalith-job.60yB6eTs/FrontComposer",
+      "workspace_exists": false,
+      "wrapper_exists": false
+    },
+    {
+      "receipt": "test-patch-verification.json",
+      "workspace": "/dev/shm/hexalith-job.xu18Us4h/FrontComposer",
+      "workspace_exists": false,
+      "wrapper_exists": false
+    },
+    {
+      "receipt": "nullable-mutant-verification.json",
+      "workspace": "/dev/shm/hexalith-job.o9I2XYLh/FrontComposer",
+      "workspace_exists": false,
+      "wrapper_exists": false
+    }
+  ],
+  "owned_process_matches": [],
+  "nested_submodule_or_git_mutations": false
+}

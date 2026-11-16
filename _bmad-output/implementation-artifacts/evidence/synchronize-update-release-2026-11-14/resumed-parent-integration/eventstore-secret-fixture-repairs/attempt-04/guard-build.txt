@@ -1,0 +1,43 @@
+  Determining projects to restore...
+  Restored /dev/shm/hexalith-job.ycFlQOH9/eventstore/src/Hexalith.EventStore.Admin.Abstractions/Hexalith.EventStore.Admin.Abstractions.csproj (in 318 ms).
+  Restored /dev/shm/hexalith-job.ycFlQOH9/eventstore/tests/Hexalith.EventStore.QuerySelectorFixture/Hexalith.EventStore.QuerySelectorFixture.csproj (in 326 ms).
+  Restored /dev/shm/hexalith-job.ycFlQOH9/eventstore/src/Hexalith.EventStore/Hexalith.EventStore.csproj (in 326 ms).
+  Restored /dev/shm/hexalith-job.ycFlQOH9/eventstore/samples/Hexalith.EventStore.Sample.Contracts/Hexalith.EventStore.Sample.Contracts.csproj (in 3 ms).
+  Restored /dev/shm/hexalith-job.ycFlQOH9/eventstore/samples/Hexalith.EventStore.Sample/Hexalith.EventStore.Sample.csproj (in 5 ms).
+  Restored /dev/shm/hexalith-job.ycFlQOH9/eventstore/tests/Hexalith.EventStore.Server.Tests/Hexalith.EventStore.Server.Tests.csproj (in 331 ms).
+  Restored /dev/shm/hexalith-job.ycFlQOH9/eventstore/tools/Hexalith.EventStore.CatalogConstruction/Hexalith.EventStore.CatalogConstruction.csproj (in 8 ms).
+  Restored /dev/shm/hexalith-job.ycFlQOH9/eventstore/src/Hexalith.EventStore.Contracts/Hexalith.EventStore.Contracts.csproj (in 1 ms).
+  Restored /dev/shm/hexalith-job.ycFlQOH9/eventstore/src/Hexalith.EventStore.DomainService/Hexalith.EventStore.DomainService.csproj (in 5 ms).
+  Restored /dev/shm/hexalith-job.ycFlQOH9/eventstore/src/Hexalith.EventStore.Gateway/Hexalith.EventStore.Gateway.csproj (in 8 ms).
+  Restored /dev/shm/hexalith-job.ycFlQOH9/eventstore/src/Hexalith.EventStore.Admin.Server/Hexalith.EventStore.Admin.Server.csproj (in 3 ms).
+  Restored /dev/shm/hexalith-job.ycFlQOH9/eventstore/src/Hexalith.EventStore.Client/Hexalith.EventStore.Client.csproj (in 3 ms).
+  Restored /dev/shm/hexalith-job.ycFlQOH9/eventstore/src/Hexalith.EventStore.SignalR/Hexalith.EventStore.SignalR.csproj (in 4 ms).
+  Restored /dev/shm/hexalith-job.ycFlQOH9/eventstore/src/Hexalith.EventStore.ServiceDefaults/Hexalith.EventStore.ServiceDefaults.csproj (in 5 ms).
+  Restored /dev/shm/hexalith-job.ycFlQOH9/eventstore/src/Hexalith.EventStore.Server/Hexalith.EventStore.Server.csproj (in 6 ms).
+  Restored /dev/shm/hexalith-job.ycFlQOH9/eventstore/src/Hexalith.EventStore.Testing/Hexalith.EventStore.Testing.csproj (in 8 ms).
+  Hexalith.EventStore.Contracts -> /dev/shm/hexalith-job.ycFlQOH9/eventstore/src/Hexalith.EventStore.Contracts/bin/Release/net11.0/Hexalith.EventStore.Contracts.dll
+  Hexalith.EventStore.Admin.Abstractions -> /dev/shm/hexalith-job.ycFlQOH9/eventstore/src/Hexalith.EventStore.Admin.Abstractions/bin/Release/net11.0/Hexalith.EventStore.Admin.Abstractions.dll
+  Hexalith.EventStore.Admin.Server -> /dev/shm/hexalith-job.ycFlQOH9/eventstore/src/Hexalith.EventStore.Admin.Server/bin/Release/net11.0/Hexalith.EventStore.Admin.Server.dll
+  Hexalith.EventStore.SignalR -> /dev/shm/hexalith-job.ycFlQOH9/eventstore/src/Hexalith.EventStore.SignalR/bin/Release/net11.0/Hexalith.EventStore.SignalR.dll
+  Hexalith.EventStore.Client -> /dev/shm/hexalith-job.ycFlQOH9/eventstore/src/Hexalith.EventStore.Client/bin/Release/net11.0/Hexalith.EventStore.Client.dll
+  Hexalith.EventStore.ServiceDefaults -> /dev/shm/hexalith-job.ycFlQOH9/eventstore/src/Hexalith.EventStore.ServiceDefaults/bin/Release/net11.0/Hexalith.EventStore.ServiceDefaults.dll
+  Hexalith.EventStore.DomainService -> /dev/shm/hexalith-job.ycFlQOH9/eventstore/src/Hexalith.EventStore.DomainService/bin/Release/net11.0/Hexalith.EventStore.DomainService.dll
+  Hexalith.EventStore.Sample.Contracts -> /dev/shm/hexalith-job.ycFlQOH9/eventstore/samples/Hexalith.EventStore.Sample.Contracts/bin/Release/net11.0/Hexalith.EventStore.Sample.Contracts.dll
+  Hexalith.EventStore.Sample -> /dev/shm/hexalith-job.ycFlQOH9/eventstore/samples/Hexalith.EventStore.Sample/bin/Release/net11.0/Hexalith.EventStore.Sample.dll
+  Hexalith.EventStore.Server -> /dev/shm/hexalith-job.ycFlQOH9/eventstore/src/Hexalith.EventStore.Server/bin/Release/net11.0/Hexalith.EventStore.Server.dll
+  Hexalith.EventStore.CatalogConstruction -> /dev/shm/hexalith-job.ycFlQOH9/eventstore/tools/Hexalith.EventStore.CatalogConstruction/bin/Release/net11.0/Hexalith.EventStore.CatalogConstruction.dll
+  Hexalith.EventStore.Gateway -> /dev/shm/hexalith-job.ycFlQOH9/eventstore/src/Hexalith.EventStore.Gateway/bin/Release/net11.0/Hexalith.EventStore.Gateway.dll
+  Hexalith.EventStore -> /dev/shm/hexalith-job.ycFlQOH9/eventstore/src/Hexalith.EventStore/bin/Release/net11.0/Hexalith.EventStore.dll
+  Hexalith.EventStore.Testing -> /dev/shm/hexalith-job.ycFlQOH9/eventstore/src/Hexalith.EventStore.Testing/bin/Release/net11.0/Hexalith.EventStore.Testing.dll
+  Hexalith.EventStore.QuerySelectorFixture -> /dev/shm/hexalith-job.ycFlQOH9/eventstore/tests/Hexalith.EventStore.QuerySelectorFixture/bin/Release/net11.0/Hexalith.EventStore.QuerySelectorFixture.dll
+/dev/shm/hexalith-job.ycFlQOH9/eventstore/tests/Hexalith.EventStore.Server.Tests/PublishedTenantQuerySelectorFixture.targets(14,5): error MSB3030: Could not copy the file "/dev/shm/hexalith-job.ycFlQOH9/packages/hexalith.tenants.contracts/7.0.0/lib/net10.0/Hexalith.Tenants.Contracts.dll" because it was not found. [/dev/shm/hexalith-job.ycFlQOH9/eventstore/tests/Hexalith.EventStore.Server.Tests/Hexalith.EventStore.Server.Tests.csproj]
+/dev/shm/hexalith-job.ycFlQOH9/eventstore/tests/Hexalith.EventStore.Server.Tests/PublishedTenantQuerySelectorFixture.targets(14,5): error MSB3030: Could not copy the file "/dev/shm/hexalith-job.ycFlQOH9/packages/hexalith.tenants.contracts/7.0.0/hexalith.tenants.contracts.7.0.0.nupkg" because it was not found. [/dev/shm/hexalith-job.ycFlQOH9/eventstore/tests/Hexalith.EventStore.Server.Tests/Hexalith.EventStore.Server.Tests.csproj]
+
+Build FAILED.
+
+/dev/shm/hexalith-job.ycFlQOH9/eventstore/tests/Hexalith.EventStore.Server.Tests/PublishedTenantQuerySelectorFixture.targets(14,5): error MSB3030: Could not copy the file "/dev/shm/hexalith-job.ycFlQOH9/packages/hexalith.tenants.contracts/7.0.0/lib/net10.0/Hexalith.Tenants.Contracts.dll" because it was not found. [/dev/shm/hexalith-job.ycFlQOH9/eventstore/tests/Hexalith.EventStore.Server.Tests/Hexalith.EventStore.Server.Tests.csproj]
+/dev/shm/hexalith-job.ycFlQOH9/eventstore/tests/Hexalith.EventStore.Server.Tests/PublishedTenantQuerySelectorFixture.targets(14,5): error MSB3030: Could not copy the file "/dev/shm/hexalith-job.ycFlQOH9/packages/hexalith.tenants.contracts/7.0.0/hexalith.tenants.contracts.7.0.0.nupkg" because it was not found. [/dev/shm/hexalith-job.ycFlQOH9/eventstore/tests/Hexalith.EventStore.Server.Tests/Hexalith.EventStore.Server.Tests.csproj]
+    0 Warning(s)
+    2 Error(s)
+
+Time Elapsed 00:01:05.70

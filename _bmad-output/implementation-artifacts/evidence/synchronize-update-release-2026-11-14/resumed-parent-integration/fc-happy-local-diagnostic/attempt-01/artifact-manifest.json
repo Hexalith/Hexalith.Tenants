@@ -1,0 +1,23 @@
+{
+  "authenticated-tool-prepare.log": "28dba1f2ee2abe3eb79a2302e5f6592a983b80eebe8dd8db53d1b24109ed334e",
+  "builds-input-manifest.json": "256f56bc35b9a5c6d24d01415c6f271b4c302aec53ad1384b60140827f3c4455",
+  "checkout-e0.log": "406084dd5a0bfd4cbd0eb94c9b7f5266809a2428b9b55d38550f21593ae6b144",
+  "clone-exact-input.log": "1ea39bf004a42f4dd6f24592c5be13f838fecdcc7f755e5d29db1d7f78b2dff1",
+  "complete-happy-segment.log": "fe49cbe1c7fdf876fdf3559f29b980ec5393a88b157ad3889198af00f9eb53a0",
+  "execution.json": "3673e745ff6accba231ff4ff6bbb0cec98f67f0b88b4da72a73554c2853d96a8",
+  "happy-provenance-verify.log": "955729edb0e81ce1c2ae25e44759a405fe4e68e9657ca0cd8abaf86714475df6",
+  "installed-dotnet.log": "3f3ef2d1ec36279d679a0140eb0932edeb570a650d6e34427af2e194e0632796",
+  "post-validator-artifacts/happy-path/.gitignore": "684888c0ebb17f374298b65ee2807526c066094c701bcc7ebbe1c1095f494fc1",
+  "post-validator-artifacts/happy-path/tool-provenance.json": "258fcb56c30ffa46d5a271e82d9499c1951d6914ed02d342c702cc89dcadfbca",
+  "post-validator-artifacts/job-summary.md": "7160f146edbcf894c635309f4064ff37743ac05fc6276e1275c85ebbc0f4dbb5",
+  "post-validator-artifacts/mutation-report-audit.json": "f37b4515867adf9555ba65ac1ec8b03aed460729a42a8f895026cd4fbe4d497b",
+  "post-validator-artifacts/mutation-validation-errors.txt": "cbed8b4cda4e8dee392739c1b5a11211053be8036bbf21ca930971470a64d884",
+  "private-tool-build-provenance.json": "fd0142d52b52cbf0ed57d7bf85c96cb19101f809b36583ed9756d91335531126",
+  "solution-restore.log": "da364cb117de4384d4a2c42d5bc6cd3bd42f68face5a7eb9d3ae6cf541f855df",
+  "source-clean-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "source-clean-preflight.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "source-input-manifest.json": "eda12d030aae1759b1664cb0c1edbb88f3d66f4a61a911db8056df419ad7b44d",
+  "source-tools-test-build.log": "26da1156a7dcf43048ef7b7326a8c55422f02737ffcb5031fa10a902c423976f",
+  "strict-both-segment-validator.log": "0696978edbad73c3b87d54bcdf7e9ca553e2ce4bca476264df3a734f48c8282b",
+  "tool-restore.log": "4c5e61c789049ee3ad90ce6029587458977b991ef9c16ea3a243672e57d53f25"
+}

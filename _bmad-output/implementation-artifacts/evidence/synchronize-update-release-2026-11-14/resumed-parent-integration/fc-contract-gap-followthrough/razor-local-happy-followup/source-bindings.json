@@ -1,0 +1,48 @@
+{
+  "source_base_commit": "b34be9245443d21b72a6076cf205bbbc8a8c521f",
+  "owner_status_before": "?? tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/ErrorFollowthroughBehaviorTests.cs\n?? tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/OtherAttributeGenerator.cs\n?? tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/ProjectionParserSurvivorRegressionTests.cs\n?? tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/TemplateParserProviderBoundaryTests.cs\n",
+  "working_input_overlay": {
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/ErrorFollowthroughBehaviorTests.cs": "b104b8433a7de4fc0487283d7e6fb8b03c97be2174485824dea2d637d10b4a53",
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/ProjectionParserSurvivorRegressionTests.cs": "cca95b425e01560c9f9d21859439569ace047c2b1c0cab1a03fb2d7233ab04d2",
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/OtherAttributeGenerator.cs": "1ee8dfc941d994f3ff2da588c9a23afb2d079abf90fe3959cddff909ad309ce3",
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/TemplateParserProviderBoundaryTests.cs": "19ad13025d8d5632f5a39554e46d0205cd930279d551b71af937c1a1ef959583"
+  },
+  "read_inputs": {
+    "src/Hexalith.FrontComposer.SourceTools/Transforms/RazorModelTransform.cs": {
+      "sha256": "b9854e6ddff02ea27ae09bce8a7e40a925c3da7a5ae9ac541edb2d06b7fae455",
+      "git_blob": "a09c26eee26d3e7b237b4d3725b4718f9ec5f372"
+    },
+    "src/Hexalith.FrontComposer.SourceTools/Transforms/ColumnModel.cs": {
+      "sha256": "a321397a2596c89ed0f469afd36c4fd9aabccf44c50a21a20d775f6b6388a738",
+      "git_blob": "36cf4f9c11c51f136d28b3505166ddb81bfecd80"
+    },
+    "src/Hexalith.FrontComposer.SourceTools/Emitters/RazorEmitter.cs": {
+      "sha256": "ba6dcec31c6ab79900774d90c8e5e352716abb15589e6a7964d06cb2402b1e7d",
+      "git_blob": "73a90a5a7af07b1565db59b0392c2a4b7a4cce0a"
+    },
+    "src/Hexalith.FrontComposer.SourceTools/Emitters/ProjectionRoleBodyEmitter.cs": {
+      "sha256": "ce0126e0ad3bb9522015e0a6df33f05a1ddad76bc12ca02b28550518980c4bd0",
+      "git_blob": "6f3979c56291a6775603f9a70bb2dcb17d14ac50"
+    },
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Diagnostics/Hfc1025DiagnosticTests.cs": {
+      "sha256": "58ed09f98e7c2572905aea13b696c12f41badf491555134b4f8ee4c281b89f59",
+      "git_blob": "1856e0d3c780e4fa9e1b9acf10c5cc10adeb7ca8"
+    },
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Transforms/RazorModelTransformTests.cs": {
+      "sha256": "538c7585f589fb7d4390911bf3be61c4e1963bc44fec365a39cf3502b86a4568",
+      "git_blob": "b71e9afd797b57ded3baaeb320731cc53581de99"
+    },
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Emitters/RazorEmitterBadgeColumnTests.cs": {
+      "sha256": "f7b8af61dbbbf6e2212f49ff5c2cf12effc0e17aaeea101e9932cbca7a88bdf1",
+      "git_blob": "32b0395b2a9e7143c001c1ad01646581f3b87e60"
+    },
+    ".editorconfig": {
+      "sha256": "af17fbac51b2321704fc2f76183e58f08a1eac91a2474bf00e8de2e71a569029",
+      "git_blob": "2736eae40f2ea8ec9eb24f2383983a891c4122cf"
+    },
+    ".gitattributes": {
+      "sha256": "b63905fb94becd364b681123bacfac88fb4a93a208e07b0f312110823dd658e8",
+      "git_blob": "f593cb86164ebe5116d90762e0c90d176715c5d1"
+    }
+  }
+}

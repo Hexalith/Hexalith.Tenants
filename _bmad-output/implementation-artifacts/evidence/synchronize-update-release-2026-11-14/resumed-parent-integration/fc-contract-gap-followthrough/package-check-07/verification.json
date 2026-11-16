@@ -1,0 +1,45 @@
+{
+  "scope": "Create and structurally check the private four-file proposal without applying it to the owner.",
+  "workspace": "/dev/shm/hexalith-job.wsUElcoW/package-check",
+  "commands": [
+    {
+      "command": [
+        "dotnet",
+        "build",
+        "/dev/shm/hexalith-job.wsUElcoW/package-check/PackageStyleInspector.csproj",
+        "-c",
+        "Release",
+        "-m:1",
+        "-nodeReuse:false"
+      ],
+      "exit_code": 0,
+      "output": "build.log",
+      "sha256": "bed64194c19ef77e89b2dad878ae5e92ee1e251c21922daa19c6875a9cba608e"
+    },
+    {
+      "command": [
+        "dotnet",
+        "/dev/shm/hexalith-job.wsUElcoW/package-check/bin/Release/net11.0/PackageStyleInspector.dll",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-contract-gap-followthrough/AliasSignatureContractTests.cs",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-contract-gap-followthrough/CommandContractBoundaryTests.cs",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-contract-gap-followthrough/ModelDefaultComparisonContractTests.cs",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-contract-gap-followthrough/TemplateContractBoundaryTests.cs"
+      ],
+      "exit_code": 0,
+      "output": "style-check.json",
+      "sha256": "a053066799832b6a798d7a019cb40a8455ca1596220493425e412d17d1c977a4"
+    },
+    {
+      "command": [
+        "git",
+        "apply",
+        "--check",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-contract-gap-followthrough/private-contract-gap-proposal.patch"
+      ],
+      "exit_code": 0,
+      "output": "apply-check.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "patch_sha256": "c3bc3951367fe50ffc430d1daace7bd2402d32792480256cf092aa418daf1a22"
+}

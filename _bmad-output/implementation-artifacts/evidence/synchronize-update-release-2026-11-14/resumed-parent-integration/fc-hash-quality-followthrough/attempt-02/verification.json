@@ -1,0 +1,572 @@
+{
+  "scope": "Private finite hash-quality diagnostics on b34 tracked source plus preserved reviewed tests; never mutation qualification.",
+  "source_base_commit": "b34be9245443d21b72a6076cf205bbbc8a8c521f",
+  "builds_commit": "73e60af8a1fcdf3f06726d5d1b6e1199cce778ee",
+  "workspace": "/dev/shm/hexalith-job.EbBlMzuJ/FrontComposer",
+  "private_source_sha256": {
+    "ArrayHashCollectionObservationTests.cs": "293f6a80f5bdeb5a8366edf1f2bab73e87637a054037004e953eae302a5552d4",
+    "PrivateHashActivity.cs": "25170aeddca5b7f2bd53c1f2c131d83030df822e883787da75c70856c569ecfd",
+    "PrivateArrayHashValue.cs": "f768c3a874d9625e89717ec27084687617629434bd07d36f67e91f5a07a1dce8",
+    "PrivateHashObservationOutput.cs": "9de977e74f3642fb8222b076aad820b096879468e8b2a1fc57f45527a105672f",
+    "RelativeTimeHashParticipationTests.cs": "e53a987cc5e27f5d99e6fbfdfc9b2a21aef33287251def4025bffd421ecd1010",
+    "GeneratorHashCacheObservationTests.cs": "2090530f48f5a99145433fd7512b0fb7f2f23cdf79b0955477115579a01b2b1e",
+    "GeneratorIncrementalBudgetReplayTests.cs": "c7060975d235e098f8765e3ec6e4d54645d299ee2ecba684cd8a2e193f8c62bd"
+  },
+  "commands": [
+    {
+      "name": "baseline-build",
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "-c",
+        "Release",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true",
+        "-p:GeneratePackageOnBuild=false",
+        "-p:RunAnalyzers=false",
+        "-m:1",
+        "-nodeReuse:false"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "elapsed_seconds": 21.417814967004233,
+      "log": "baseline-build.log",
+      "sha256": "07f9751c89cf14be190dcb3ac50ed1f7d84abd057d855eedd3946f570d528d16",
+      "children_maxrss_kib": 532620
+    },
+    {
+      "name": "baseline-tests",
+      "command": [
+        "dotnet",
+        "test",
+        "--project",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "--no-build",
+        "--configuration",
+        "Release",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.PrivateHashQuality.RelativeTimeHashParticipationTests",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.PrivateHashQuality.ArrayHashCollectionObservationTests",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.PrivateHashQuality.GeneratorHashCacheObservationTests",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.PrivateHashQuality.GeneratorIncrementalBudgetReplayTests",
+        "--minimum-expected-tests",
+        "4",
+        "--fail-skips",
+        "on",
+        "--results-directory",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-hash-quality-followthrough/attempt-02/baseline/results",
+        "--report-xunit-trx",
+        "--report-xunit-trx-filename",
+        "tests.trx",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "elapsed_seconds": 2.348045029997593,
+      "log": "baseline-tests.log",
+      "sha256": "622f42e50b1e11983e2ffee5ebd211c34eb77431810c238a5a7008cc06d048cf",
+      "children_maxrss_kib": 532620
+    },
+    {
+      "name": "literal13541-build",
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "-c",
+        "Release",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true",
+        "-p:GeneratePackageOnBuild=false",
+        "-p:RunAnalyzers=false",
+        "-m:1",
+        "-nodeReuse:false"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "elapsed_seconds": 6.154825871002686,
+      "log": "literal13541-build.log",
+      "sha256": "0605accd0670401e619dd58c0efea285482817e095edf21c436188b2fc0c1e73",
+      "children_maxrss_kib": 532620
+    },
+    {
+      "name": "literal13541-tests",
+      "command": [
+        "dotnet",
+        "test",
+        "--project",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "--no-build",
+        "--configuration",
+        "Release",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.PrivateHashQuality.ArrayHashCollectionObservationTests",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.PrivateHashQuality.GeneratorHashCacheObservationTests",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.PrivateHashQuality.GeneratorIncrementalBudgetReplayTests",
+        "--minimum-expected-tests",
+        "3",
+        "--fail-skips",
+        "on",
+        "--results-directory",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-hash-quality-followthrough/attempt-02/literal13541/results",
+        "--report-xunit-trx",
+        "--report-xunit-trx-filename",
+        "tests.trx",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "elapsed_seconds": 2.55527938400337,
+      "log": "literal13541-tests.log",
+      "sha256": "448bc1cd2e733c1acf2330e833c1fa8cf8175d05f7c0cbc0d9d099cf5d3f23ab",
+      "children_maxrss_kib": 532620
+    },
+    {
+      "name": "literal13545-build",
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "-c",
+        "Release",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true",
+        "-p:GeneratePackageOnBuild=false",
+        "-p:RunAnalyzers=false",
+        "-m:1",
+        "-nodeReuse:false"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "elapsed_seconds": 5.91759016400465,
+      "log": "literal13545-build.log",
+      "sha256": "d3122b37a8d7ea596b2fefe3d61ec34f95785763dde21491bbcff94f6dad3158",
+      "children_maxrss_kib": 532620
+    },
+    {
+      "name": "literal13545-tests",
+      "command": [
+        "dotnet",
+        "test",
+        "--project",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "--no-build",
+        "--configuration",
+        "Release",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.PrivateHashQuality.ArrayHashCollectionObservationTests",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.PrivateHashQuality.GeneratorHashCacheObservationTests",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.PrivateHashQuality.GeneratorIncrementalBudgetReplayTests",
+        "--minimum-expected-tests",
+        "3",
+        "--fail-skips",
+        "on",
+        "--results-directory",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-hash-quality-followthrough/attempt-02/literal13545/results",
+        "--report-xunit-trx",
+        "--report-xunit-trx-filename",
+        "tests.trx",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "elapsed_seconds": 2.6524317920047906,
+      "log": "literal13545-tests.log",
+      "sha256": "92bb16775af3ee2b558e1d852135ec20048097ad5fc333c01d0bbe99fd2b02a8",
+      "children_maxrss_kib": 532620
+    },
+    {
+      "name": "literal13546-build",
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "-c",
+        "Release",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true",
+        "-p:GeneratePackageOnBuild=false",
+        "-p:RunAnalyzers=false",
+        "-m:1",
+        "-nodeReuse:false"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "elapsed_seconds": 6.526366570004029,
+      "log": "literal13546-build.log",
+      "sha256": "d08c7cd1ea126dfa79243150a6fb57f985901c31b111f5c90c1522b544dcdfba",
+      "children_maxrss_kib": 532620
+    },
+    {
+      "name": "literal13546-tests",
+      "command": [
+        "dotnet",
+        "test",
+        "--project",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "--no-build",
+        "--configuration",
+        "Release",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.PrivateHashQuality.ArrayHashCollectionObservationTests",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.PrivateHashQuality.GeneratorHashCacheObservationTests",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.PrivateHashQuality.GeneratorIncrementalBudgetReplayTests",
+        "--minimum-expected-tests",
+        "3",
+        "--fail-skips",
+        "on",
+        "--results-directory",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-hash-quality-followthrough/attempt-02/literal13546/results",
+        "--report-xunit-trx",
+        "--report-xunit-trx-filename",
+        "tests.trx",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "elapsed_seconds": 2.783007190999342,
+      "log": "literal13546-tests.log",
+      "sha256": "9753acedbc7bd3baf6e67c1d27e10a29273299a2434b5f884ed93356ec5c7441",
+      "children_maxrss_kib": 532620
+    },
+    {
+      "name": "literal13419-build",
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "-c",
+        "Release",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true",
+        "-p:GeneratePackageOnBuild=false",
+        "-p:RunAnalyzers=false",
+        "-m:1",
+        "-nodeReuse:false"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "elapsed_seconds": 6.254453554000065,
+      "log": "literal13419-build.log",
+      "sha256": "17c9606fedb0666f1475c5ed19d82b986a45d42e57cb30d91adf9bd73f668bb8",
+      "children_maxrss_kib": 532620
+    },
+    {
+      "name": "literal13419-tests",
+      "command": [
+        "dotnet",
+        "test",
+        "--project",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "--no-build",
+        "--configuration",
+        "Release",
+        "--filter-class",
+        "Hexalith.FrontComposer.SourceTools.Tests.PrivateHashQuality.RelativeTimeHashParticipationTests",
+        "--minimum-expected-tests",
+        "1",
+        "--fail-skips",
+        "on",
+        "--results-directory",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-hash-quality-followthrough/attempt-02/literal13419/results",
+        "--report-xunit-trx",
+        "--report-xunit-trx-filename",
+        "tests.trx",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true"
+      ],
+      "exit_code": 2,
+      "expected_exit": 2,
+      "elapsed_seconds": 1.2780882849983755,
+      "log": "literal13419-tests.log",
+      "sha256": "452e5982a485dd761890f9cb296b8e9c612fd33864f00ddd9c36d27bf749481f",
+      "children_maxrss_kib": 532620
+    },
+    {
+      "name": "instrumented-baseline-build",
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.FrontComposer.SourceTools.Tests/Hexalith.FrontComposer.SourceTools.Tests.csproj",
+        "-c",
+        "Release",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseMicrosoftTestingPlatformRunner=true",
+        "-p:GeneratePackageOnBuild=false",
+        "-p:RunAnalyzers=false",
+        "-m:1",
+        "-nodeReuse:false"
+      ],
+      "exit_code": 1,
+      "expected_exit": 0,
+      "elapsed_seconds": 3.085086972998397,
+      "log": "instrumented-baseline-build.log",
+      "sha256": "c9ec06d0106363cc0cfc6f8af36621121ad3ed39fb35b36937ed0193b785e662",
+      "children_maxrss_kib": 532620
+    }
+  ],
+  "phases": {
+    "baseline": {
+      "literal_id": null,
+      "instrumented": false,
+      "classes": [
+        "RelativeTimeHashParticipationTests",
+        "ArrayHashCollectionObservationTests",
+        "GeneratorHashCacheObservationTests",
+        "GeneratorIncrementalBudgetReplayTests"
+      ],
+      "source_sha256": {
+        "src/Hexalith.FrontComposer.SourceTools/Parsing/CommandTargetModel.cs": "b388d5a43624dc4fbdc2235f26d91767de2dd35ccdba316658f47ca987c141b4",
+        "src/Hexalith.FrontComposer.SourceTools/Parsing/DomainModel.cs": "03797b63cd736daee22c9c1839c388d99e07e6139da10d9586d147c7b91f3aff",
+        "src/Hexalith.FrontComposer.SourceTools/Parsing/EquatableArray.cs": "30435a3eeac2d1cf906b545c7dd30da981a4aec8e90a41e50bdfd1775ee0f3ad",
+        "src/Hexalith.FrontComposer.SourceTools/Parsing/ProjectionTemplateMarkerInfo.cs": "089336fdff7ef8cf82f9266dd25dd1a5d643e4c417e7797adcc5f086eaeefba6",
+        "src/Hexalith.FrontComposer.SourceTools/Transforms/ColumnModel.cs": "a321397a2596c89ed0f469afd36c4fd9aabccf44c50a21a20d775f6b6388a738",
+        "src/Hexalith.FrontComposer.SourceTools/Transforms/CommandFluxorModel.cs": "b710e1edbfb10ab5f6edda9ffd33a8f8747bf40cdbd697da813b37c1fd2264b3",
+        "src/Hexalith.FrontComposer.SourceTools/Transforms/CommandRendererModel.cs": "8a0dee8947200533975093657582a0407453b1e5b176f37d0d3449f4a3938b2f",
+        "src/Hexalith.FrontComposer.SourceTools/Transforms/FluxorModel.cs": "75be5fa4b0c0e3bb07ffeb58af865d6503d545f93a3953b4a0340ec7725804f4",
+        "src/Hexalith.FrontComposer.SourceTools/Transforms/FormFieldModel.cs": "15f1e3579cc6e79b039ca010b7620723e5c59b07ef432deefd0edcd079bebf7b",
+        "src/Hexalith.FrontComposer.SourceTools/Transforms/RazorModel.cs": "71c50999c393e51219397000064fe35070f21ac0fb7f063b97a9bd3dafc0a35d",
+        "src/Hexalith.FrontComposer.SourceTools/Transforms/RegistrationModel.cs": "29299b2b6ec1273e960781dcf840ae688c85cc0553260a1f180855ade5977d8b"
+      }
+    },
+    "literal13541": {
+      "literal_id": "13541",
+      "instrumented": false,
+      "classes": [
+        "ArrayHashCollectionObservationTests",
+        "GeneratorHashCacheObservationTests",
+        "GeneratorIncrementalBudgetReplayTests"
+      ],
+      "source_sha256": {
+        "src/Hexalith.FrontComposer.SourceTools/Parsing/CommandTargetModel.cs": "b388d5a43624dc4fbdc2235f26d91767de2dd35ccdba316658f47ca987c141b4",
+        "src/Hexalith.FrontComposer.SourceTools/Parsing/DomainModel.cs": "03797b63cd736daee22c9c1839c388d99e07e6139da10d9586d147c7b91f3aff",
+        "src/Hexalith.FrontComposer.SourceTools/Parsing/EquatableArray.cs": "06451af90b39ef7ed4b63cc70d2b36c3fcc3d93aa72c3d847a26c1131bd4416c",
+        "src/Hexalith.FrontComposer.SourceTools/Parsing/ProjectionTemplateMarkerInfo.cs": "089336fdff7ef8cf82f9266dd25dd1a5d643e4c417e7797adcc5f086eaeefba6",
+        "src/Hexalith.FrontComposer.SourceTools/Transforms/ColumnModel.cs": "a321397a2596c89ed0f469afd36c4fd9aabccf44c50a21a20d775f6b6388a738",
+        "src/Hexalith.FrontComposer.SourceTools/Transforms/CommandFluxorModel.cs": "b710e1edbfb10ab5f6edda9ffd33a8f8747bf40cdbd697da813b37c1fd2264b3",
+        "src/Hexalith.FrontComposer.SourceTools/Transforms/CommandRendererModel.cs": "8a0dee8947200533975093657582a0407453b1e5b176f37d0d3449f4a3938b2f",
+        "src/Hexalith.FrontComposer.SourceTools/Transforms/FluxorModel.cs": "75be5fa4b0c0e3bb07ffeb58af865d6503d545f93a3953b4a0340ec7725804f4",
+        "src/Hexalith.FrontComposer.SourceTools/Transforms/FormFieldModel.cs": "15f1e3579cc6e79b039ca010b7620723e5c59b07ef432deefd0edcd079bebf7b",
+        "src/Hexalith.FrontComposer.SourceTools/Transforms/RazorModel.cs": "71c50999c393e51219397000064fe35070f21ac0fb7f063b97a9bd3dafc0a35d",
+        "src/Hexalith.FrontComposer.SourceTools/Transforms/RegistrationModel.cs": "29299b2b6ec1273e960781dcf840ae688c85cc0553260a1f180855ade5977d8b"
+      }
+    },
+    "literal13545": {
+      "literal_id": "13545",
+      "instrumented": false,
+      "classes": [
+        "ArrayHashCollectionObservationTests",
+        "GeneratorHashCacheObservationTests",
+        "GeneratorIncrementalBudgetReplayTests"
+      ],
+      "source_sha256": {
+        "src/Hexalith.FrontComposer.SourceTools/Parsing/CommandTargetModel.cs": "b388d5a43624dc4fbdc2235f26d91767de2dd35ccdba316658f47ca987c141b4",
+        "src/Hexalith.FrontComposer.SourceTools/Parsing/DomainModel.cs": "03797b63cd736daee22c9c1839c388d99e07e6139da10d9586d147c7b91f3aff",
+        "src/Hexalith.FrontComposer.SourceTools/Parsing/EquatableArray.cs": "0cc7671f294bf69bd9a8357e54eafe921c8e99336f83b83ec24aea75206a9bce",
+        "src/Hexalith.FrontComposer.SourceTools/Parsing/ProjectionTemplateMarkerInfo.cs": "089336fdff7ef8cf82f9266dd25dd1a5d643e4c417e7797adcc5f086eaeefba6",
+        "src/Hexalith.FrontComposer.SourceTools/Transforms/ColumnModel.cs": "a321397a2596c89ed0f469afd36c4fd9aabccf44c50a21a20d775f6b6388a738",
+        "src/Hexalith.FrontComposer.SourceTools/Transforms/CommandFluxorModel.cs": "b710e1edbfb10ab5f6edda9ffd33a8f8747bf40cdbd697da813b37c1fd2264b3",
+        "src/Hexalith.FrontComposer.SourceTools/Transforms/CommandRendererModel.cs": "8a0dee8947200533975093657582a0407453b1e5b176f37d0d3449f4a3938b2f",
+        "src/Hexalith.FrontComposer.SourceTools/Transforms/FluxorModel.cs": "75be5fa4b0c0e3bb07ffeb58af865d6503d545f93a3953b4a0340ec7725804f4",
+        "src/Hexalith.FrontComposer.SourceTools/Transforms/FormFieldModel.cs": "15f1e3579cc6e79b039ca010b7620723e5c59b07ef432deefd0edcd079bebf7b",
+        "src/Hexalith.FrontComposer.SourceTools/Transforms/RazorModel.cs": "71c50999c393e51219397000064fe35070f21ac0fb7f063b97a9bd3dafc0a35d",
+        "src/Hexalith.FrontComposer.SourceTools/Transforms/RegistrationModel.cs": "29299b2b6ec1273e960781dcf840ae688c85cc0553260a1f180855ade5977d8b"
+      }
+    },
+    "literal13546": {
+      "literal_id": "13546",
+      "instrumented": false,
+      "classes": [
+        "ArrayHashCollectionObservationTests",
+        "GeneratorHashCacheObservationTests",
+        "GeneratorIncrementalBudgetReplayTests"
+      ],
+      "source_sha256": {
+        "src/Hexalith.FrontComposer.SourceTools/Parsing/CommandTargetModel.cs": "b388d5a43624dc4fbdc2235f26d91767de2dd35ccdba316658f47ca987c141b4",
+        "src/Hexalith.FrontComposer.SourceTools/Parsing/DomainModel.cs": "03797b63cd736daee22c9c1839c388d99e07e6139da10d9586d147c7b91f3aff",
+        "src/Hexalith.FrontComposer.SourceTools/Parsing/EquatableArray.cs": "8f7529d2e433df6fd5064ed1dcca9c4521021e9382019ea1587e917f4d8485a0",
+        "src/Hexalith.FrontComposer.SourceTools/Parsing/ProjectionTemplateMarkerInfo.cs": "089336fdff7ef8cf82f9266dd25dd1a5d643e4c417e7797adcc5f086eaeefba6",
+        "src/Hexalith.FrontComposer.SourceTools/Transforms/ColumnModel.cs": "a321397a2596c89ed0f469afd36c4fd9aabccf44c50a21a20d775f6b6388a738",
+        "src/Hexalith.FrontComposer.SourceTools/Transforms/CommandFluxorModel.cs": "b710e1edbfb10ab5f6edda9ffd33a8f8747bf40cdbd697da813b37c1fd2264b3",
+        "src/Hexalith.FrontComposer.SourceTools/Transforms/CommandRendererModel.cs": "8a0dee8947200533975093657582a0407453b1e5b176f37d0d3449f4a3938b2f",
+        "src/Hexalith.FrontComposer.SourceTools/Transforms/FluxorModel.cs": "75be5fa4b0c0e3bb07ffeb58af865d6503d545f93a3953b4a0340ec7725804f4",
+        "src/Hexalith.FrontComposer.SourceTools/Transforms/FormFieldModel.cs": "15f1e3579cc6e79b039ca010b7620723e5c59b07ef432deefd0edcd079bebf7b",
+        "src/Hexalith.FrontComposer.SourceTools/Transforms/RazorModel.cs": "71c50999c393e51219397000064fe35070f21ac0fb7f063b97a9bd3dafc0a35d",
+        "src/Hexalith.FrontComposer.SourceTools/Transforms/RegistrationModel.cs": "29299b2b6ec1273e960781dcf840ae688c85cc0553260a1f180855ade5977d8b"
+      }
+    },
+    "literal13419": {
+      "literal_id": "13419",
+      "instrumented": false,
+      "classes": [
+        "RelativeTimeHashParticipationTests"
+      ],
+      "source_sha256": {
+        "src/Hexalith.FrontComposer.SourceTools/Parsing/CommandTargetModel.cs": "b388d5a43624dc4fbdc2235f26d91767de2dd35ccdba316658f47ca987c141b4",
+        "src/Hexalith.FrontComposer.SourceTools/Parsing/DomainModel.cs": "b623d38aa32b3661dde0cd8981b7abc10e595b87fa37fd552129fa6a211cae1a",
+        "src/Hexalith.FrontComposer.SourceTools/Parsing/EquatableArray.cs": "30435a3eeac2d1cf906b545c7dd30da981a4aec8e90a41e50bdfd1775ee0f3ad",
+        "src/Hexalith.FrontComposer.SourceTools/Parsing/ProjectionTemplateMarkerInfo.cs": "089336fdff7ef8cf82f9266dd25dd1a5d643e4c417e7797adcc5f086eaeefba6",
+        "src/Hexalith.FrontComposer.SourceTools/Transforms/ColumnModel.cs": "a321397a2596c89ed0f469afd36c4fd9aabccf44c50a21a20d775f6b6388a738",
+        "src/Hexalith.FrontComposer.SourceTools/Transforms/CommandFluxorModel.cs": "b710e1edbfb10ab5f6edda9ffd33a8f8747bf40cdbd697da813b37c1fd2264b3",
+        "src/Hexalith.FrontComposer.SourceTools/Transforms/CommandRendererModel.cs": "8a0dee8947200533975093657582a0407453b1e5b176f37d0d3449f4a3938b2f",
+        "src/Hexalith.FrontComposer.SourceTools/Transforms/FluxorModel.cs": "75be5fa4b0c0e3bb07ffeb58af865d6503d545f93a3953b4a0340ec7725804f4",
+        "src/Hexalith.FrontComposer.SourceTools/Transforms/FormFieldModel.cs": "15f1e3579cc6e79b039ca010b7620723e5c59b07ef432deefd0edcd079bebf7b",
+        "src/Hexalith.FrontComposer.SourceTools/Transforms/RazorModel.cs": "71c50999c393e51219397000064fe35070f21ac0fb7f063b97a9bd3dafc0a35d",
+        "src/Hexalith.FrontComposer.SourceTools/Transforms/RegistrationModel.cs": "29299b2b6ec1273e960781dcf840ae688c85cc0553260a1f180855ade5977d8b"
+      }
+    },
+    "instrumented-baseline": {
+      "literal_id": null,
+      "instrumented": true,
+      "classes": [
+        "GeneratorHashCacheObservationTests"
+      ],
+      "source_sha256": {
+        "src/Hexalith.FrontComposer.SourceTools/Parsing/CommandTargetModel.cs": "815125b04381b73ded1f435102383bef21d975776bac03d6cc6d14eafc3848eb",
+        "src/Hexalith.FrontComposer.SourceTools/Parsing/DomainModel.cs": "c07097ec55e020300255729821d13c86790d673d258a7bcfc788f8b505c15b63",
+        "src/Hexalith.FrontComposer.SourceTools/Parsing/EquatableArray.cs": "a27cd67d12f4657cc81008990561426fe3fa0a17741c0163acd848773651e0ff",
+        "src/Hexalith.FrontComposer.SourceTools/Parsing/ProjectionTemplateMarkerInfo.cs": "b84d89a9d81b20c7efdd079a57bf4b37327f548b78576cce73cb598db2bf2473",
+        "src/Hexalith.FrontComposer.SourceTools/Transforms/ColumnModel.cs": "818120518d867a5cad0fa55cefe7eec18f7a37ca8f23dd400d6c969e14959b99",
+        "src/Hexalith.FrontComposer.SourceTools/Transforms/CommandFluxorModel.cs": "a87d575794a7ae5093da9b688b064467021c539a8ae0a3a0137e420b983ca3b3",
+        "src/Hexalith.FrontComposer.SourceTools/Transforms/CommandRendererModel.cs": "5b5e092212f398cead7e9ca85985dd7c01e504ca583ad9e9aaa211761d67d188",
+        "src/Hexalith.FrontComposer.SourceTools/Transforms/FluxorModel.cs": "5728d2618f3c38a1d9c1da9ed568e796157419ae857bf5ca3759d5792f28d5f7",
+        "src/Hexalith.FrontComposer.SourceTools/Transforms/FormFieldModel.cs": "2242fca434640628c373e1f6d414755d8404ec0aa6bca8b9993b02b9452108fe",
+        "src/Hexalith.FrontComposer.SourceTools/Transforms/RazorModel.cs": "548a5bdd560c0996923e393b35b0e1d0a0d1dbadf8d1afb0b2b99a1fc62ec06f",
+        "src/Hexalith.FrontComposer.SourceTools/Transforms/RegistrationModel.cs": "5b21dbbd67e2949daa7ffe1e37c358d7b475524beaabb1503e1aa1f39f3d739b"
+      }
+    }
+  },
+  "instrumentation_slots": [
+    {
+      "slot": 0,
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/CommandTargetModel.cs",
+      "member": "CommandTargetModel.GetHashCode"
+    },
+    {
+      "slot": 1,
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/DomainModel.cs",
+      "member": "BadgeMappingEntry.GetHashCode"
+    },
+    {
+      "slot": 2,
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/DomainModel.cs",
+      "member": "CommandModel.GetHashCode"
+    },
+    {
+      "slot": 3,
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/DomainModel.cs",
+      "member": "CommandParseResult.GetHashCode"
+    },
+    {
+      "slot": 4,
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/DomainModel.cs",
+      "member": "DiagnosticInfo.GetHashCode"
+    },
+    {
+      "slot": 5,
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/DomainModel.cs",
+      "member": "DomainModel.GetHashCode"
+    },
+    {
+      "slot": 6,
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/DomainModel.cs",
+      "member": "ParseResult.GetHashCode"
+    },
+    {
+      "slot": 7,
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/DomainModel.cs",
+      "member": "PropertyModel.GetHashCode"
+    },
+    {
+      "slot": 8,
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/EquatableArray.cs",
+      "member": "EquatableArray.GetHashCode"
+    },
+    {
+      "slot": 9,
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/ProjectionTemplateMarkerInfo.cs",
+      "member": "ProjectionTemplateMarkerInfo.GetHashCode"
+    },
+    {
+      "slot": 10,
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/ProjectionTemplateMarkerInfo.cs",
+      "member": "ProjectionTemplateMarkerResult.GetHashCode"
+    },
+    {
+      "slot": 11,
+      "path": "src/Hexalith.FrontComposer.SourceTools/Transforms/ColumnModel.cs",
+      "member": "ColumnModel.GetHashCode"
+    },
+    {
+      "slot": 12,
+      "path": "src/Hexalith.FrontComposer.SourceTools/Transforms/CommandFluxorModel.cs",
+      "member": "CommandFluxorModel.GetHashCode"
+    },
+    {
+      "slot": 13,
+      "path": "src/Hexalith.FrontComposer.SourceTools/Transforms/CommandRendererModel.cs",
+      "member": "CommandRendererModel.GetHashCode"
+    },
+    {
+      "slot": 14,
+      "path": "src/Hexalith.FrontComposer.SourceTools/Transforms/FluxorModel.cs",
+      "member": "FluxorModel.GetHashCode"
+    },
+    {
+      "slot": 15,
+      "path": "src/Hexalith.FrontComposer.SourceTools/Transforms/FormFieldModel.cs",
+      "member": "CommandFormModel.GetHashCode"
+    },
+    {
+      "slot": 16,
+      "path": "src/Hexalith.FrontComposer.SourceTools/Transforms/FormFieldModel.cs",
+      "member": "FormFieldModel.GetHashCode"
+    },
+    {
+      "slot": 17,
+      "path": "src/Hexalith.FrontComposer.SourceTools/Transforms/RazorModel.cs",
+      "member": "RazorModel.GetHashCode"
+    },
+    {
+      "slot": 18,
+      "path": "src/Hexalith.FrontComposer.SourceTools/Transforms/RegistrationModel.cs",
+      "member": "RegistrationModel.GetHashCode"
+    },
+    {
+      "slot": 19,
+      "path": "src/Hexalith.FrontComposer.SourceTools/Parsing/EquatableArray.cs",
+      "member": "EquatableArray.Equals(EquatableArray<T>)"
+    }
+  ],
+  "resource_start": {
+    "cpu_count": 14,
+    "meminfo": [
+      "MemTotal:       94747288 kB",
+      "MemAvailable:   66437132 kB"
+    ]
+  },
+  "archives": [
+    {
+      "revision": "b34be9245443d21b72a6076cf205bbbc8a8c521f",
+      "sha256": "6cb2fd629f781af3d677fbeff9d7752f7a6101e494660d4f32ff72edda534516"
+    },
+    {
+      "revision": "73e60af8a1fcdf3f06726d5d1b6e1199cce778ee",
+      "sha256": "9b92ae56444da9b4bff1b2527011d061a37aa4ad925ac5c507bb55ef78ada9c5"
+    }
+  ]
+}

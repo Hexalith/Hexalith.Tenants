@@ -1,0 +1,13 @@
+{
+  "scope": "Retry only invalid actionlint CLI flag from attempt-01; all workflow and existing native contract checks unchanged and already pass",
+  "command": [
+    "actionlint",
+    "-no-color",
+    ".github/workflows/mutation-property-nightly.yml"
+  ],
+  "exitCode": 0,
+  "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "workflowSha256": "ff9c63fcaca125749cd6224bed8f11dbec76cd6bedc69a8aea2bbcf989f2d8d5",
+  "scratch": "/dev/shm/hexalith-job.y9HC6UYG",
+  "finishedUtc": "2026-11-16T02:12:50Z"
+}

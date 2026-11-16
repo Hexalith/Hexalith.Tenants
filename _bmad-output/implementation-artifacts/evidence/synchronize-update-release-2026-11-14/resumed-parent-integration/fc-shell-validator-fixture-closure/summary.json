@@ -1,0 +1,59 @@
+{
+  "scope": "One-line existing Shell fixture closure repair; actual class45/45; no wider verification",
+  "ownerHead": "b34be9245443d21b72a6076cf205bbbc8a8c521f",
+  "changedFile": "tests/Hexalith.FrontComposer.Shell.Tests/Governance/MutationReportValidationTests.cs",
+  "changedFileSha256": "e94bdaa532fe316c6dc28dcda7b7613518ee48d26f2dd96d2ad71577f45dbc14",
+  "originalBytesAndAllAssertionsPreserved": true,
+  "policyModuleSha256": "e42c7a3e7aca1798d72522505d39c5a205b673ffccb14e3bff22dee7e1e19bca",
+  "otherCopyCallersFound": 0,
+  "callerSearch": "script-callers.log",
+  "frozenInputs": [
+    {
+      "owner": "/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer",
+      "revision": "b34be9245443d21b72a6076cf205bbbc8a8c521f",
+      "archiveSha256": "6cb2fd629f781af3d677fbeff9d7752f7a6101e494660d4f32ff72edda534516"
+    },
+    {
+      "owner": "/home/administrator/projects/hexalith/tenants/references/Hexalith.Builds",
+      "revision": "73e60af8a1fcdf3f06726d5d1b6e1199cce778ee",
+      "archiveSha256": "9b92ae56444da9b4bff1b2527011d061a37aa4ad925ac5c507bb55ef78ada9c5"
+    },
+    {
+      "owner": "/home/administrator/projects/hexalith/tenants/references/Hexalith.Platform",
+      "revision": "f6f85032598865b9123f16364448bfd02c0ff5b0",
+      "archiveSha256": "ea42709490b59dc317d2ab24a11bb3f664e25eaae98312aba33c2fcd4a8a8a68"
+    }
+  ],
+  "workingOverlayHashes": "attempt-01/verification.json",
+  "verification": {
+    "actualShellClass": "Hexalith.FrontComposer.Shell.Tests.Governance.MutationReportValidationTests",
+    "passed": 45,
+    "failed": 0,
+    "skipped": 0,
+    "buildWarnings": 0,
+    "buildErrors": 0,
+    "normalAnalyzers": true,
+    "configuration": "Release",
+    "externalDependencyMode": "NuGet packages",
+    "nativePowerShellUsedByExistingFixture": true,
+    "trx": "attempt-01/test-results/tests.trx"
+  },
+  "preservation": {
+    "preexistingOwnerInputFilesByteIdentical": 6470,
+    "parentAuthorizedNewFiles": {
+      "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/CountingModelComparer.cs": "137bb8ea0b530d4e039581ecc6deb32480b547df3a16aa1ef80f52d48a67f5e2",
+      "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/ModelHashFieldParticipationTests.cs": "638e74f19ed5654fe4ddbd441e141020ecc768d4505ede7f07588748e9555b77"
+    },
+    "parentNewFilesBoundary": "Added after private snapshot; preserved and excluded from this Shell45 scope, no broader-source qualification inferred"
+  },
+  "cleanup": {
+    "scratchRemoved": "/dev/shm/hexalith-job.uj7SMukR",
+    "processesRetainingOwnedTMPDIR": [],
+    "allCommandsWaited": true
+  },
+  "limits": [
+    "No extra test class, Python publication test, function-equivalence substitute, source-wide mutation or hosted qualification was run/claimed.",
+    "No owner Git/remote/submodule/authority mutation occurred."
+  ],
+  "finishedUtc": "2026-11-16T03:00:51Z"
+}

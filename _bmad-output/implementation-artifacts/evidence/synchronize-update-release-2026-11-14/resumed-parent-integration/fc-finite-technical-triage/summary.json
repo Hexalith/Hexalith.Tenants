@@ -1,0 +1,106 @@
+{
+  "scope": "Final source/count/evidence/cleanup audit; no native rerun or release qualification.",
+  "ownerBase": "b34be9245443d21b72a6076cf205bbbc8a8c521f",
+  "authorizedOwnerFiles": {
+    ".github/workflows/mutation-property-nightly.yml": "e1a65ac013d00581acb4c5f35bb46ed105d9352daaca8c7b9c0419ab43668de3",
+    "eng/prepare-mutation-artifacts.ps1": "e3cc1b639fdd002767088b4af91ad051d2e4ecd0c93ebf4531a593acb7ed54c9",
+    "tests/eng/test_mutation_artifact_publication.py": "e127743df334d57f6b995139463676218d4ff62d6f84d2a4b36b19ee947f70bb",
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/mutation-target-manifest.json": "728eaaa2ffe582a9ca38b7df3e406a1f1095e48506396ccbd1aa2864f19a7f84",
+    "eng/check-mutation-triage.py": "677c9af9c906e593784967c067fb4cd48841975d93d1c8e3695cdc9bdacb0246",
+    "tests/eng/test_mutation_triage.py": "4efb025b5638c02f0e15d993150d0e4650059556ea1798d94b93311f16ce6fc0",
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/mutation-problem-followups.json": "cc79367d83e4eebe5ac40bcd962f7fb3cfc5602e2808921415a042f4bcbfb2e5"
+  },
+  "originalEvidence": {
+    "uniqueIdentities": 828,
+    "observations": 1498,
+    "errorProblems": 817,
+    "happyProblems": 681,
+    "tracedCauses": 225,
+    "additionalHappyCauseGroups": 11,
+    "productionFilesIndependentlyVerified": 23
+  },
+  "supplemental12812": {
+    "additionalIdentities": 1,
+    "originalObservationCountChange": 0,
+    "actualCurrentLiteral": "baseline94/94 and literal94/94 pass; finite survivor only",
+    "hostedFinalJsonStatus": null,
+    "allowedFreshProblemStates": [
+      "Survived",
+      "NoCoverage"
+    ],
+    "exactIdentityOnly": true
+  },
+  "dispositions": {
+    "deferred-with-owner": 405,
+    "kill-test-added": 95,
+    "equivalent-accepted": 329
+  },
+  "boundedAcceptedBreakdown": {
+    "individualHashArithmeticCongruenceOnly": 318,
+    "boundedSourceOutputEquivalence": 10,
+    "detectedDestructiveTimeout14021": 1
+  },
+  "finiteAssignedFollowups": 214,
+  "totalCauseGroups": 237,
+  "originalSealedCensus": {
+    "detected": 92,
+    "survived": 150,
+    "compileRefusedNotKills": 10
+  },
+  "additionalAdoptedHashControlKills": 3,
+  "verification": {
+    "ownerTriageTestMethods": 13,
+    "finiteAllowedIdentityStatusCases": 1546,
+    "actualOwnerCliProcesses": 7,
+    "publicationTestMethods": 10,
+    "actualPublicationOrValidatorProcesses": 22,
+    "actualPublicationRefusals": 17,
+    "actionlintExit": 0,
+    "actualExistingCountPolicyChecks": 6,
+    "invalidActionAndMissingOwnerRefused": true,
+    "originalReportsFreshAdmissionRefused": {
+      "happy-path": 95,
+      "error-handling": 95
+    }
+  },
+  "persistence": {
+    "ownerChecker": "eng/check-mutation-triage.py",
+    "mandatoryAggregateStep": "Validate finite mutation identities and statuses",
+    "ordering": "After unchanged strict BOTH validator; separate raw segment-success requirement remains",
+    "missingOrAmbiguousReportsRefuse": true,
+    "audit": "artifacts/mutation/mutation-triage-admission.json",
+    "auditExplicitlyScannedAndUploadAllowed": true,
+    "manifestRecords": 14,
+    "manifestBytes": 54272,
+    "followupLedgerBytes": 1029457,
+    "allOwnerFilesBelowOneMiB": true
+  },
+  "preservation": {
+    "preexistingOwnerInputsByteIdentical": 6469,
+    "allCurrentCsharpAssertionsStillBound": true,
+    "onlyManifestProblemMutantTriageChanged": true,
+    "sharedPolicyAndStrictValidatorUnchanged": true,
+    "fclP2AuthorizedDeltaPreserved": true,
+    "rawThresholdsCohortsToolProvenanceProtectionsUnchanged": true
+  },
+  "cleanup": {
+    "allScratchRootsGone": [
+      "/dev/shm/hexalith-job.pl1TL7ML",
+      "/dev/shm/hexalith-job.pzd1jX82",
+      "/dev/shm/hexalith-job.2wwoCJ6u",
+      "/dev/shm/hexalith-job.H6SQMUJ0",
+      "/dev/shm/hexalith-job.FAkYC9jm",
+      "/dev/shm/hexalith-job.2aHOK3W0",
+      "/dev/shm/hexalith-job.rI1HC28f"
+    ],
+    "processesRetainingOwnedTMPDIR": [],
+    "allOwnedCommandsWaited": true
+  },
+  "limits": [
+    "No personal human review, new census authority, future native status or passing score is asserted.",
+    "318 arithmetic dispositions preserve only conditional equal-value/hash congruence; concrete distribution/external/performance and selected collection-quality effects remain explicitly bounded/open. Constant-array13541 and96 unproved field drops are deferred.",
+    "Private compile refusals are not kills; original observations are unchanged. Current native complete scores80/60, both segment exits and exact private provenance/BOTH validation remain mandatory.",
+    "Owner CLI positives/refusals use finite synthetic fixtures; original complete reports are retained/refused rather than requalified. No full mutation rerun, Git/remote or governance-authority edit occurred."
+  ],
+  "finishedUtc": "2026-11-16T04:09:29Z"
+}

@@ -1,0 +1,44 @@
+{
+  "verifiedAtUtc": "2026-11-16T14:05:00.138091+00:00",
+  "run": 43880703312,
+  "attempt": 1,
+  "prepareJob": 133345717175,
+  "artifactId": 14231529383,
+  "archiveSha256": "483a4cdeb55cf01f7e812c6254dbb8ddf9024395a67871f00e6cb151d6ab7ef2",
+  "archiveBytes": 10784866,
+  "source": "ab67fd6bc308b5a641b0ca398d776e347193c168",
+  "version": "8.0.1",
+  "packages": [
+    {
+      "id": "Hexalith.Tenants.Testing",
+      "version": "8.0.1",
+      "source": "ab67fd6bc308b5a641b0ca398d776e347193c168",
+      "sha256": "1c8b8f0b494ba77a70215c04be49926b631c6f2bbeaf836b1c30f66259d4cf87"
+    },
+    {
+      "id": "Hexalith.Tenants.Server",
+      "version": "8.0.1",
+      "source": "ab67fd6bc308b5a641b0ca398d776e347193c168",
+      "sha256": "d668a40e42acbe5f57e6db6109594bc2be414132b87c822ac634dc8079130de4"
+    },
+    {
+      "id": "Hexalith.Tenants.Aspire",
+      "version": "8.0.1",
+      "source": "ab67fd6bc308b5a641b0ca398d776e347193c168",
+      "sha256": "16546a601fb95349d49979cf12c04497d4dd33e99546af18b94b7ca011157baf"
+    },
+    {
+      "id": "Hexalith.Tenants.Client",
+      "version": "8.0.1",
+      "source": "ab67fd6bc308b5a641b0ca398d776e347193c168",
+      "sha256": "01b0bdeb0e57abdd89b0a7675f2452bae2eb242282b2f8251af9c58338a4fe66"
+    },
+    {
+      "id": "Hexalith.Tenants.Contracts",
+      "version": "8.0.1",
+      "source": "ab67fd6bc308b5a641b0ca398d776e347193c168",
+      "sha256": "803cd09b52f9f83b0939228fdabef8111bbf502fc1a5d4305a1eba0ad8ffff06"
+    }
+  ],
+  "scope": "Actual authenticated prepared ZIP/manifest and5candidate nuspecs only; official public NuGet signatures/payload checks remain separate after publication."
+}

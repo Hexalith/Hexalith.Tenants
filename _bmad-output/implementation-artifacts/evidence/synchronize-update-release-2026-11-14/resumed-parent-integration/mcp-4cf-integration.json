@@ -1,0 +1,25 @@
+{
+  "source": "4cf120c410a668d08c6ba70d59962c3a2c031952",
+  "remoteMain": "4cf120c410a668d08c6ba70d59962c3a2c031952",
+  "integration": "fast-forward existing upstream metadata only",
+  "files": [
+    "tools/proprietary-surfaces/v1/README.md",
+    "tools/proprietary-surfaces/v1/amendments.json",
+    "tools/proprietary-surfaces/v1/amendments/1.0.13-approval.json",
+    "tools/proprietary-surfaces/v1/amendments/1.0.13.json"
+  ],
+  "localControls": {
+    "command": "run-with-temp python3 -B -m unittest discover -v -s tools/proprietary-surfaces/v1 -p 'test_*.py'",
+    "exitCode": 0,
+    "passed": 222,
+    "logSha256": "5817dc6ceacf1039a3ab02908c126834652fabb606a90a7f6a2dd9f881931d42"
+  },
+  "hostedCensus": {
+    "runId": 43752669619,
+    "jobId": 132929961282,
+    "conclusion": "success",
+    "completeDeclaredRoots": 17
+  },
+  "authority": "existing exact-source upstream continuation only; no individual human review, runtime, migration or publication acceptance inferred",
+  "observedUtc": "2026-11-15T19:48:02.775331+00:00"
+}

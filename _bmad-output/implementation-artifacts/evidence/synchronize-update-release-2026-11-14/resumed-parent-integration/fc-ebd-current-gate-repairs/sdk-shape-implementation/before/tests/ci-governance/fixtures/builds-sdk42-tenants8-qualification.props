@@ -1,0 +1,7 @@
+<!-- Exact Tenants rows from Builds 99f7c86072ca7b35e3fbbaee4606a559a847805a; raw catalog SHA256 01219d064fc1c375879312f543aa649c6aaef344be054cf4c80571825ca59b41. -->
+<Project>
+  <PropertyGroup>
+    <HexalithTenantsVersion Condition="'$(HexalithTenantsVersion)' == '' and ('$(HexalithEventStoreVersion)' != '4.2.0' or ('$(HexalithPartiesSdk42CatalogView)' != 'true' and '$(HexalithPlatformSdk42CatalogView)' != 'true' and '$(HexalithBuildsPackagedHostSdk42CatalogView)' != 'true'))">8.0.0</HexalithTenantsVersion>
+    <HexalithTenantsVersion Condition="'$(HexalithTenantsVersion)' == '' and '$(HexalithEventStoreVersion)' == '4.2.0' and ('$(HexalithPartiesSdk42CatalogView)' == 'true' or '$(HexalithPlatformSdk42CatalogView)' == 'true' or '$(HexalithBuildsPackagedHostSdk42CatalogView)' == 'true')">7.0.7</HexalithTenantsVersion>
+  </PropertyGroup>
+</Project>

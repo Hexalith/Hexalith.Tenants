@@ -1,0 +1,11 @@
+{
+  "source": "25cde2065c6f8f919cebc17e067bea5f5953980f",
+  "parent": "97c02f7bf99a694528a2b15f0b3b0a6e5fb10e9d",
+  "inputs": {
+    "tests/Hexalith.EventStore.Testing.Integration.Tests/GeneratedApiSmokePreflightDiagnosticsTests.cs": "802aefaf43ec9d795d3f5bae4c7d30b4a6c61e528d8d8b812e3bc686abd035c4",
+    "tools/tests/test_phase_4_gate_decision.py": "d2072f8dbfc269aaffdfb3defc28fbe090decfc683e73f7f3f2a1dbd2f7aadaa",
+    "tools/tests/test_phase_4_transition.py": "32638ed460ea02542de626b68a3dc02c73081fabd46fda65b1b90f5c25bea85f"
+  },
+  "tests": "286 secret controls,25 diagnostic cases,2 focused Python checks pass.",
+  "push": "Awaiting scoped prerequisite exception; not pushed."
+}

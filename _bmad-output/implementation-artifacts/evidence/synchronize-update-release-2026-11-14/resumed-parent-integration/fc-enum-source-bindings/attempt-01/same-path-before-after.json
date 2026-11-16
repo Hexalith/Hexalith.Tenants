@@ -1,0 +1,18 @@
+[
+  {
+    "version": "before",
+    "exit_code": 0,
+    "manifest_sha256": "adf67a8a47ac777dd80670bee49435f8a00998a6d134a787ed197dd22940d2d2",
+    "changed_source_sha256": "9016cb5a548b51184ea975e194600cb00c29faf15b4eb0ec50f8db0b3d4be2c6",
+    "call": 1,
+    "refusal": ""
+  },
+  {
+    "version": "after",
+    "exit_code": 1,
+    "manifest_sha256": "adf67a8a47ac777dd80670bee49435f8a00998a6d134a787ed197dd22940d2d2",
+    "changed_source_sha256": "9016cb5a548b51184ea975e194600cb00c29faf15b4eb0ec50f8db0b3d4be2c6",
+    "call": 2,
+    "refusal": "Canonical source hash mismatch for finite enum exclusion 'src/Hexalith.FrontComposer.SourceTools/Transforms/FormFieldTypeCategory.cs'.\n"
+  }
+]

@@ -1,0 +1,30 @@
+[
+  {
+    "name": "enum-inventory-controls",
+    "command": [
+      "python3",
+      "tests/eng/test_mutation_triage.py",
+      "MutationInventoryTests"
+    ],
+    "exit_code": 0,
+    "expected_exit": 0,
+    "log": "enum-inventory-controls.log",
+    "log_sha256": "7b1f0aa0bea69eb4330e1ed417f428ac7b269f335b12ab58e670162acf951ee8"
+  },
+  {
+    "name": "actual-old-base-catalog-refusal",
+    "command": [
+      "python3",
+      "eng/dependency_graph.py",
+      "acquire-catalogs",
+      "--event-base",
+      "33e71036c04f2b99955376e9c90cbb1fc3a81e64",
+      "--candidate",
+      "ebd3f76dc0b320d455917c593ff86526b58d0c77"
+    ],
+    "exit_code": 1,
+    "expected_exit": 1,
+    "log": "actual-old-base-catalog-refusal.log",
+    "log_sha256": "1c091ef382bd953ad69799ef9a2dfb70a9da565e5fba13a14acee61d28b725a7"
+  }
+]

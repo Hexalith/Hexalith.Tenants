@@ -1,0 +1,97 @@
+{
+  "scope": "Root-only helper/CI/state repair; no full Builds, .NET, historical qualification, public-release verification or remote/Git operation.",
+  "source_sha256": {
+    "_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/verify-public-release.py": "2695956b616081c46d1d3ea6542e6fafc7fdefae36996c2f9cd5b4d60e126c5a",
+    "_bmad-output/implementation-artifacts/evidence/fix-builds-sdk-cohort-fixtures-2026-11-15/verify-current.py": "555ef40d4ac3a7b04f57681df72d8f99fdc3f76f0c7e799bade02fac564508e9",
+    "tests/scripts/test_release_resume_verification.py": "1fc02286f5f6e8c3258ac693e83820ed073f1331bce2cea2af47568632371d3f",
+    ".github/workflows/story-guards.yml": "6d92829c44fef0cafb9aaab03c1429cc0095f5bd45acc470d323eaa26ac071f7",
+    ".github/workflows/ci.yml": "dc4b7bfc4146baf094ff33aa994d621a6641a088f5111e023f9411e55a799ed3",
+    "_bmad-output/implementation-artifacts/evidence/latest-sdk-catalog-qualification-2026-11-15/README.md": "436649205026f5dbfa11023acb3f8573ebc4b655aa9ca06feea9269b077d3692",
+    "_bmad-output/implementation-artifacts/evidence/latest-sdk-catalog-qualification-2026-11-15/qualify.py": "79bbd732f58e1e3983ba2b8f1eda4d454ffdf35ccdb2c90a90a7a50329ffd804",
+    "_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-root-verification/verify.py": "31c2d5c9c52e50919e8594c8cf86dc7973f47e6b9cf2bc7413702a59477bc041",
+    "_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-packed-verification/verify.py": "4987920ab9cffc98c781b9a8a07a668cf4af11a56cc80b9488fcd6af7ccd1467",
+    "_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/current-operational-state.json": "d62fd2d90e5534189f16e263e90a883f81cb117369e439b95804867962961d5f",
+    "tests/scripts/test_public_release_verification.py": "aed9e4974f2b2bd0c625dca131cfd33ec4571f62349b9c631e5ba86c99e51898",
+    "tests/scripts/test_release_evidence_replays.py": "55759616daeb5925eb8a500ac750c1a3420b12ca3be8a70949692cd2ac3de499"
+  },
+  "former_assert_gates_preserved": 28,
+  "historical_fields_preserved": [
+    "ciAndBothQuality",
+    "completedOriginalHappy",
+    "contractGapFollowthrough",
+    "fullErrorFollowthrough",
+    "hashQualityFollowthrough",
+    "hostedCompletedConsole",
+    "hostedLastObserved",
+    "latestRemoteCiAndQuality",
+    "lifecycleJob",
+    "localErrorDiagnostic",
+    "localHappyDiagnostic",
+    "manualQuality",
+    "mutation",
+    "mutationJob",
+    "mutationPurpose",
+    "partialHappyConcern",
+    "pendingUpstreamScope",
+    "plannedPatch",
+    "privateInvestigation",
+    "releaseRun",
+    "releaseStatus"
+  ],
+  "current_state": "11c normal gates success; native Happy/Error pending; protected 6.0.1 preparation HELD.",
+  "checks": [
+    {
+      "command": [
+        "python3",
+        "tests/scripts/test_release_resume_verification.py"
+      ],
+      "exit_code": 0,
+      "log": "_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/root-final-resume-hardening/attempt-01/01-test_release_resume_verification.log",
+      "log_sha256": "0e1bb943d42c36e8572fc48f908ecd553f3f7907e9bfee618956cbfbb67361ad"
+    },
+    {
+      "command": [
+        "python3",
+        "tests/scripts/test_public_release_verification.py"
+      ],
+      "exit_code": 0,
+      "log": "_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/root-final-resume-hardening/attempt-01/02-test_public_release_verification.log",
+      "log_sha256": "b2e24e47fed963967bb443e875abdd484b715580e89f0b96c0f57745f2193860"
+    },
+    {
+      "command": [
+        "python3",
+        "tests/scripts/test_release_evidence_replays.py"
+      ],
+      "exit_code": 0,
+      "log": "_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/root-final-resume-hardening/attempt-01/03-test_release_evidence_replays.log",
+      "log_sha256": "c346f1228fe88f4ab3cb336ffa610dc3a34ec7c7bb7d05df7a1c222f2d928881"
+    },
+    {
+      "command": [
+        "python3",
+        "tests/scripts/test_dapr_read_policy_evidence.py"
+      ],
+      "exit_code": 0,
+      "log": "_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/root-final-resume-hardening/attempt-01/04-test_dapr_read_policy_evidence.log",
+      "log_sha256": "c346f1228fe88f4ab3cb336ffa610dc3a34ec7c7bb7d05df7a1c222f2d928881"
+    },
+    {
+      "command": [
+        "actionlint",
+        ".github/workflows/story-guards.yml",
+        ".github/workflows/ci.yml"
+      ],
+      "exit_code": 0,
+      "log": "_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/root-final-resume-hardening/attempt-01/05-story-guards.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "test_counts": {
+    "release_resume": 9,
+    "public_release": 7,
+    "replay_paths": 1,
+    "dapr_evidence": 1
+  },
+  "cleanup": "Owned run-with-temp session 10547 exited 0 after all children completed; replay test allocations were disposable. No full recipe was executed."
+}

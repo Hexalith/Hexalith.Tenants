@@ -1,0 +1,28 @@
+{
+  "scope": "SDK Roslyn syntax/token inspection, not a test or mutation run",
+  "scratch": "/dev/shm/hexalith-job.pl1TL7ML",
+  "commands": [
+    {
+      "command": [
+        "dotnet",
+        "build",
+        "Inspect.csproj",
+        "-c",
+        "Release",
+        "-m:1",
+        "-nodeReuse:false"
+      ],
+      "exitCode": 0,
+      "logSha256": "1b8f89fa63da3c287e15e750337dfa58d345e57ce32afb06f8e4d76a61a97260"
+    },
+    {
+      "command": [
+        "dotnet",
+        "/dev/shm/hexalith-job.pl1TL7ML/inspector/bin/Release/net11.0/Inspect.dll",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-finite-technical-triage/inspection-inputs.json"
+      ],
+      "exitCode": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}

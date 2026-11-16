@@ -1,0 +1,210 @@
+{
+  "CommandTargetModel": {
+    "included": [
+      "projectionFullyQualifiedName",
+      "viewKey",
+      "expectedStatus"
+    ],
+    "intentionallyExcludedScalarParameters": [
+      "projectionViewKey"
+    ],
+    "basis": "Independent baseline-declared scalar inventory; not inferred from current Equals"
+  },
+  "DomainModel": {
+    "included": [
+      "typeName",
+      "namespace",
+      "boundedContext",
+      "boundedContextDisplayLabel",
+      "projectionRole",
+      "projectionRoleWhenState",
+      "displayName",
+      "displayGroupName",
+      "sourceFilePath",
+      "sourceLine",
+      "sourceColumn",
+      "emptyStateCtaCommandTypeName"
+    ],
+    "intentionallyExcludedScalarParameters": [],
+    "basis": "Independent baseline-declared scalar inventory; not inferred from current Equals"
+  },
+  "CommandModel": {
+    "included": [
+      "typeName",
+      "namespace",
+      "boundedContext",
+      "boundedContextDisplayLabel",
+      "displayName",
+      "iconName",
+      "destructiveConfirmTitle",
+      "destructiveConfirmBody",
+      "authorizationPolicyName"
+    ],
+    "intentionallyExcludedScalarParameters": [
+      "sourceFilePath",
+      "sourceLine",
+      "sourceColumn"
+    ],
+    "basis": "Independent baseline-declared scalar inventory; not inferred from current Equals"
+  },
+  "PropertyModel": {
+    "included": [
+      "name",
+      "typeName",
+      "displayName",
+      "enumFullyQualifiedName",
+      "unsupportedTypeFullyQualifiedName",
+      "columnPriority",
+      "fieldGroup",
+      "description",
+      "relativeTimeWindowDays",
+      "sourceTypeName",
+      "fieldGroupDescription"
+    ],
+    "intentionallyExcludedScalarParameters": [],
+    "basis": "Independent baseline-declared scalar inventory; not inferred from current Equals"
+  },
+  "BadgeMappingEntry": {
+    "included": [
+      "enumMemberName",
+      "slot"
+    ],
+    "intentionallyExcludedScalarParameters": [],
+    "basis": "Independent baseline-declared scalar inventory; not inferred from current Equals"
+  },
+  "DiagnosticInfo": {
+    "included": [
+      "id",
+      "message",
+      "severity",
+      "filePath",
+      "line",
+      "column"
+    ],
+    "intentionallyExcludedScalarParameters": [],
+    "basis": "Independent baseline-declared scalar inventory; not inferred from current Equals"
+  },
+  "ProjectionTemplateMarkerInfo": {
+    "included": [
+      "templateTypeFullName",
+      "templateNamespace",
+      "templateTypeName",
+      "projectionTypeFullName",
+      "projectionNamespace",
+      "projectionTypeName",
+      "role",
+      "expectedContractVersion",
+      "filePath",
+      "line",
+      "column"
+    ],
+    "intentionallyExcludedScalarParameters": [],
+    "basis": "Independent baseline-declared scalar inventory; not inferred from current Equals"
+  },
+  "ColumnModel": {
+    "included": [
+      "propertyName",
+      "header",
+      "formatHint",
+      "priority",
+      "fieldGroup",
+      "description",
+      "unsupportedTypeFullyQualifiedName",
+      "relativeTimeWindowDays"
+    ],
+    "intentionallyExcludedScalarParameters": [],
+    "basis": "Independent baseline-declared scalar inventory; not inferred from current Equals"
+  },
+  "CommandFluxorModel": {
+    "included": [
+      "typeName",
+      "namespace",
+      "stateName",
+      "featureName",
+      "actionsWrapperName",
+      "reducersClassName",
+      "commandFullyQualifiedName",
+      "featureQualifiedName"
+    ],
+    "intentionallyExcludedScalarParameters": [],
+    "basis": "Independent baseline-declared scalar inventory; not inferred from current Equals"
+  },
+  "CommandRendererModel": {
+    "included": [
+      "typeName",
+      "namespace",
+      "boundedContext",
+      "iconName",
+      "displayLabel",
+      "fullPageRoute",
+      "commandFullyQualifiedName",
+      "formComponentName",
+      "actionsWrapperName",
+      "stateName",
+      "subscriberTypeName",
+      "destructiveConfirmTitle",
+      "destructiveConfirmBody",
+      "authorizationPolicyName"
+    ],
+    "intentionallyExcludedScalarParameters": [],
+    "basis": "Independent baseline-declared scalar inventory; not inferred from current Equals"
+  },
+  "FluxorModel": {
+    "included": [
+      "typeName",
+      "namespace",
+      "stateName",
+      "featureName"
+    ],
+    "intentionallyExcludedScalarParameters": [],
+    "basis": "Independent baseline-declared scalar inventory; not inferred from current Equals"
+  },
+  "FormFieldModel": {
+    "included": [
+      "propertyName",
+      "typeName",
+      "staticLabel",
+      "enumFullyQualifiedName",
+      "fieldGroup",
+      "description",
+      "fieldGroupDescription"
+    ],
+    "intentionallyExcludedScalarParameters": [],
+    "basis": "Independent baseline-declared scalar inventory; not inferred from current Equals"
+  },
+  "CommandFormModel": {
+    "included": [
+      "typeName",
+      "namespace",
+      "boundedContext",
+      "commandFullyQualifiedName",
+      "buttonLabel",
+      "authorizationPolicyName"
+    ],
+    "intentionallyExcludedScalarParameters": [],
+    "basis": "Independent baseline-declared scalar inventory; not inferred from current Equals"
+  },
+  "RazorModel": {
+    "included": [
+      "typeName",
+      "namespace",
+      "boundedContext",
+      "entityLabel",
+      "entityPluralLabel",
+      "emptyStateCtaCommandName"
+    ],
+    "intentionallyExcludedScalarParameters": [],
+    "basis": "Independent baseline-declared scalar inventory; not inferred from current Equals"
+  },
+  "RegistrationModel": {
+    "included": [
+      "boundedContext",
+      "typeName",
+      "namespace",
+      "displayLabel",
+      "authorizationPolicyName"
+    ],
+    "intentionallyExcludedScalarParameters": [],
+    "basis": "Independent baseline-declared scalar inventory; not inferred from current Equals"
+  }
+}

@@ -1,0 +1,62 @@
+{
+  "status": "passed",
+  "edited_files": {
+    "eng/validate-stryker-reports.ps1": {
+      "sha256": "6bc964ae82e58890d94963e4c7a569090158853187b555e5d9af69ab98a39463",
+      "bytes": 21639
+    },
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/mutation-target-manifest.json": {
+      "sha256": "17e016e67d21922a9d64169f193f9d1e85993f0bc262ac9b520584d8cba49209",
+      "bytes": 55826
+    },
+    "tests/eng/test_mutation_triage.py": {
+      "sha256": "034004111820941e981c8511b64b0bb1b577300545859605a6cf7a08b23788c4",
+      "bytes": 31237
+    }
+  },
+  "protected_files_unchanged": {
+    "eng/dependency_graph.py": "b08c7748dab5db847800a13201028abeae1af110d375dcaa377587b32407c425",
+    "eng/dependency-graph-policy.json": "024776b5d6d778f818521c6dbced44b9afcb255d1478ff055a6f181d4f1c28fa",
+    "tests/eng/test_dependency_graph.py": "cf852ebb6356588b0ee57a5de3e8fc8e6eb1fc7be1dc5754d1898dbc2b8a743a",
+    "tests/ci-governance/fixtures/builds-sdk42-package-511-qualification.xml": "7999f670fa57122a6f7d5a0ab8fd7e24830ef1dae3d273f1636522330de042ad"
+  },
+  "canonical_sources": {
+    "src/Hexalith.FrontComposer.SourceTools/Transforms/FormFieldTypeCategory.cs": {
+      "raw_sha256": "cc7f4ab94635f8d4447117ee4f90df40bb33e022cfcfceb911c804e960e370f6",
+      "canonical_sha256": "47ed9636146e17c60ea855a6e20d2a2417757458280d12480d844e5aff5e662b"
+    },
+    "src/Hexalith.FrontComposer.SourceTools/Transforms/ProjectionRenderStrategy.cs": {
+      "raw_sha256": "713881406395a80921e67233867d78df75b5716bc996f8708f7d0a07aae3482b",
+      "canonical_sha256": "645d4104796d9777b42a4c1f3f33c0c7769f855427d429c87ab7972946a96aaf"
+    },
+    "src/Hexalith.FrontComposer.SourceTools/Transforms/TypeCategory.cs": {
+      "raw_sha256": "042420d2320f553257fc546717d154fe6dadf268595fc4d7c6fd82a6884d64c8",
+      "canonical_sha256": "8d2afc4617bda507cfced3c1178d959646ef6a3bba51e8ef92e469ec5203cefd"
+    }
+  },
+  "original_assertions_and_other_exclusions_preserved": true,
+  "live_counts_audits_both_provenance_threshold_logic_verbatim": true,
+  "tests": {
+    "tests_run": 9,
+    "subcases": 13,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "success": true
+  },
+  "actual_pwsh_invocations": 19,
+  "counterexample_before_after": [
+    0,
+    1
+  ],
+  "incremental_patch": {
+    "bytes": 10324,
+    "sha256": "fac6a586a21aeac8c6698b27c1331ac70bbe9ceb174d21f61b869cb941b7d1de"
+  },
+  "complete_seven_repair_file_patch": {
+    "bytes": 41408,
+    "sha256": "70d4d743ccd9f382e457b9db95a54b792dfeafc8f54f4326bf6215f60c2ba582"
+  },
+  "cleanup": "Owned run-with-temp session38702 exited0 after all actual PowerShell children completed; its private archive and all synthetic fixture workspaces were removed. This source audit is read-only.",
+  "qualification": "Finite real entry-point controls on synthetic report data only; no raw score, new private provenance, current-source native qualification or transfer of historical11c results."
+}

@@ -1,0 +1,21 @@
+{
+  "verifiedAtUtc": "2026-11-16T13:28:12.999684+00:00",
+  "scope": "Actual unchanged source-cleanliness guard on fresh private Git snapshots, synthetic prepared-state files only; no build, package or publication qualification.",
+  "cases": [
+    {
+      "source": "42d53e30eb117b26fa7c27e421d3910e1a4924eb",
+      "result": "refused",
+      "reason": "Tracked release source differs from the prepared commit"
+    },
+    {
+      "source": "ab67fd6bc308b5a641b0ca398d776e347193c168",
+      "result": "pass",
+      "identity": [
+        "8.0.1",
+        "ab67fd6bc308b5a641b0ca398d776e347193c168"
+      ]
+    }
+  ],
+  "sourceOnlyChange": "Retained note canonicalGitblob restored exactly to8aa; raw local original preserved.",
+  "scratch": "/dev/shm/hexalith-job.0XuExlT5"
+}

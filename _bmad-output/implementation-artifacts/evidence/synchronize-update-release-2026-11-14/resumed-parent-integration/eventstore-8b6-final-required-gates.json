@@ -1,0 +1,65 @@
+{
+  "verifiedAtUtc": "2026-11-16T13:48:32.539483+00:00",
+  "source": "8b6d5bee5217b3f4bbd8fd689ad887aca863961b",
+  "ciRun": 43862076142,
+  "integrationRun": 43862075310,
+  "integrationAttempt": 2,
+  "conclusions": {
+    "ci": "success",
+    "integration": "success"
+  },
+  "pushApplicableRequiredChecks": {
+    "advisory": {
+      "id": 133281147688,
+      "head_sha": "8b6d5bee5217b3f4bbd8fd689ad887aca863961b",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Hexalith/Hexalith.EventStore/actions/runs/43862075208/job/133281147688"
+    },
+    "ci / build-and-test": {
+      "id": 133281150894,
+      "head_sha": "8b6d5bee5217b3f4bbd8fd689ad887aca863961b",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Hexalith/Hexalith.EventStore/actions/runs/43862076142/job/133281150894"
+    },
+    "ci / tenants-source-mode": {
+      "id": 133281150518,
+      "head_sha": "8b6d5bee5217b3f4bbd8fd689ad887aca863961b",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Hexalith/Hexalith.EventStore/actions/runs/43862076142/job/133281150518"
+    },
+    "codeql / analyze": {
+      "id": 133281203829,
+      "head_sha": "8b6d5bee5217b3f4bbd8fd689ad887aca863961b",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Hexalith/Hexalith.EventStore/actions/runs/43862075949/job/133281203829"
+    },
+    "commitlint / commitlint": {
+      "id": 133281149436,
+      "head_sha": "8b6d5bee5217b3f4bbd8fd689ad887aca863961b",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Hexalith/Hexalith.EventStore/actions/runs/43862075834/job/133281149436"
+    },
+    "live-sidecar": {
+      "id": 133318826521,
+      "head_sha": "8b6d5bee5217b3f4bbd8fd689ad887aca863961b",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Hexalith/Hexalith.EventStore/actions/runs/43862075310/job/133318826521"
+    },
+    "Phase 4 gate risk matrix fixtures": {
+      "id": 133281147246,
+      "head_sha": "8b6d5bee5217b3f4bbd8fd689ad887aca863961b",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Hexalith/Hexalith.EventStore/actions/runs/43862075305/job/133281147246"
+    }
+  },
+  "prOnly": "Existing dependency-review PR-only context absent on push; no success inferred.",
+  "priorFailedAttempt": "Retained original live port-collision failure; no relabel. Only failedjob retried on exact same source; latent allocation issue remains deferred.",
+  "businessAuthority": "Intentional unbound Phase4 live matrix evaluation remains failed; fixture context succeeds. No business or native migration approval claimed."
+}

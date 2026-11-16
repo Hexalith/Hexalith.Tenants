@@ -1,0 +1,9 @@
+{
+  "recordedAtUtc": "2026-11-16T13:28:59.061827+00:00",
+  "source": "ab67fd6bc308b5a641b0ca398d776e347193c168",
+  "exitCode": 0,
+  "stdout": "",
+  "stderr": "To https://github.com/Hexalith/Hexalith.Tenants.git\n   42d53e30..ab67fd6b  main -> main\n",
+  "change": "Only historical note canonical line endings restored to original8aaGitblob. Same actual unmodified source guard refuses old42d and passes corrected snapshot. All product source and dependency pins fixed.",
+  "previousRelease": "43874135505 selected8.0.1 and passed package build/consumer24/24/13 controls, then failed strict sourcecleanliness; no publication."
+}

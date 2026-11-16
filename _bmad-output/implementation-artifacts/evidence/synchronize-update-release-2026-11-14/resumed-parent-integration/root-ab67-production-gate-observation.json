@@ -1,0 +1,49 @@
+{
+  "observedAtUtc": "2026-11-16T14:06:47.954336+00:00",
+  "run": 43880703312,
+  "source": "ab67fd6bc308b5a641b0ca398d776e347193c168",
+  "publisherJob": 133349658763,
+  "publisherStatus": "in_progress",
+  "thisAgentApproval": "Guard observed no pending eligible deployment before POST; this agent submitted no approval. Publisher already started through existing environment gate.",
+  "reviewHistory": [
+    {
+      "user": {
+        "login": "jpiquot",
+        "id": 6775094,
+        "node_id": "MDQ6VXNlcjY3NzUwOTQ=",
+        "avatar_url": "https://avatars.githubusercontent.com/u/6775094?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/jpiquot",
+        "html_url": "https://github.com/jpiquot",
+        "followers_url": "https://api.github.com/users/jpiquot/followers",
+        "following_url": "https://api.github.com/users/jpiquot/following{/other_user}",
+        "gists_url": "https://api.github.com/users/jpiquot/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/jpiquot/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/jpiquot/subscriptions",
+        "organizations_url": "https://api.github.com/users/jpiquot/orgs",
+        "repos_url": "https://api.github.com/users/jpiquot/repos",
+        "events_url": "https://api.github.com/users/jpiquot/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/jpiquot/received_events",
+        "type": "User",
+        "user_view_type": "public",
+        "site_admin": false
+      },
+      "state": "approved",
+      "comment": "",
+      "environments": [
+        {
+          "id": 18745236815,
+          "node_id": "EN_kwDORf3mrc8AAAAEXU2dTw",
+          "name": "production",
+          "url": "https://api.github.com/repos/Hexalith/Hexalith.Tenants/environments/production",
+          "html_url": "https://github.com/Hexalith/Hexalith.Tenants/deployments/activity_log?environments_filter=production",
+          "created_at": "2026-07-25T18:15:54Z",
+          "updated_at": "2026-07-25T18:15:54Z",
+          "can_admins_bypass": false
+        }
+      ]
+    }
+  ],
+  "protectionChanges": "None",
+  "preparedInspection": "root-8.0.1-candidate/prepared-inspection.json; actual5packages/version/source/digest checked before this observation."
+}

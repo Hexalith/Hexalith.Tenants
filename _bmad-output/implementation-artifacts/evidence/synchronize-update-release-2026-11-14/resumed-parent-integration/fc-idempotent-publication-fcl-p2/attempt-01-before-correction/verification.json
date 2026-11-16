@@ -1,0 +1,16 @@
+{
+  "scope": "FCL-P2 actual pre-correction audit-hash/idempotence regression; no native qualification",
+  "command": [
+    "python3",
+    "-B",
+    "tests/eng/test_mutation_artifact_publication.py",
+    "PublicationTests.testActualValidatorAuditHashSurvivesIdempotentPublication"
+  ],
+  "exitCode": 1,
+  "scratch": "/dev/shm/hexalith-job.D08l56GE",
+  "logSha256": "e0f61161268c5c5258b5770353f6fa9fe5e61fec937f8eec4019ad1244dd5cd9",
+  "inputs": {
+    "eng/prepare-mutation-artifacts.ps1": "12c94afe1963f40ec2c60ff4331c2e6cdc02901c8b9d98d354c332e65a00cb78",
+    "tests/eng/test_mutation_artifact_publication.py": "c9c80ec39de0a43c78c7e13aed837c45540725d1407fa1b2daa5dd2385357f41"
+  }
+}

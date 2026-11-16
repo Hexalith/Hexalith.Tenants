@@ -1,0 +1,13 @@
+{
+  "observedAtUtc": "2026-11-16T11:31:36.889602+00:00",
+  "repository": "Hexalith/Hexalith.EventStore",
+  "source": "fbed6cd32e0497bf8dd82a2ab7681e15e268234f",
+  "introducedBy": "ceb43c78dca2a0f350eb98efe9f4a376b5de2114",
+  "workflowRun": 43857136989,
+  "job": 133264190239,
+  "url": "https://github.com/Hexalith/Hexalith.EventStore/actions/runs/43857136989",
+  "actualResult": "38tests;37passed;1failed at test_workflows_permissions_pins_triggers_lf_and_required_check_name, line793.",
+  "defect": "Unchanged test splits the entire workflow at run: | and inspects element1. New upstream workflow adds a prior run block, so that fragment also includes the following step env inputs and incorrectly classifies env as shell interpolation. Fixture-only release changes did not touch workflow or this assertion.",
+  "requiredContextStatus": "Phase4 transition fixtures is absent from actual main required-status rules. Separate required Phase4 gate risk matrix fixtures job133264190388 passes. Its live-evaluation sibling remains the intentional missing-authority refusal.",
+  "disposition": "Pre-existing upstream pipeline-text test defect; report/defer under shared baseline and pragmatic release scope. No workflow/assertion/skip/audit change; do not call failing optional workflow green."
+}

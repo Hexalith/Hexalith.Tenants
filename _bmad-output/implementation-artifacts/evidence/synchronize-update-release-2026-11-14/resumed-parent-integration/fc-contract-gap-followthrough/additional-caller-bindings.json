@@ -1,0 +1,22 @@
+{
+  "src/Hexalith.FrontComposer.SourceTools/Parsing/AttributeParser.cs": {
+    "sha256": "de4f342c3311d02662f3753d19bb902ae67cc3b3d66af260f67fa434ee1b2eed",
+    "git_blob": "afc3158e5dddcbe86fd29654a5ca85260b3f1735"
+  },
+  "tests/Hexalith.FrontComposer.SourceTools.Tests/CompilationHelper.cs": {
+    "sha256": "c06433d88eb7037a407ffb2ff6b5bfaddc431036fd5f1f9f0fef91e2f6b1073e",
+    "git_blob": "8372eddac3c84ffaae4687be599d40ded5c54811"
+  },
+  "src/Hexalith.FrontComposer.SourceTools/Transforms/CommandFormTransform.cs": {
+    "sha256": "9ba30470d90ffa8b0afbdca2bec24b9cc329cb949c8652ed5e566eb0e3817387",
+    "git_blob": "5b7949cc5dce99ef0ad4d01c36adf3b94f08f862"
+  },
+  "src/Hexalith.FrontComposer.SourceTools/Emitters/CommandRendererEmitter.cs": {
+    "sha256": "6a5e864e32b14294133a02cd15829d2e03fa3419c34bc1b704b230935c7db0d5",
+    "git_blob": "c6ec58271e532fde3c6fc942d8b3add67b03a5f3"
+  },
+  "tests/Hexalith.FrontComposer.SourceTools.Tests/Benchmarks/IncrementalRebuildBenchmarkTests.cs": {
+    "sha256": "9b34ba17a9b651719c789eda44911287379aa0bfe38fb889550c94eb7a973b99",
+    "git_blob": "c7b83fb820e41bd7a90ed422cc9ed51bcb1fa9be"
+  }
+}

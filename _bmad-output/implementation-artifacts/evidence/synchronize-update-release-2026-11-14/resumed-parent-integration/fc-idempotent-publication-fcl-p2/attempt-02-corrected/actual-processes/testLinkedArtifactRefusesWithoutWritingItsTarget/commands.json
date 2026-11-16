@@ -1,0 +1,15 @@
+[
+  {
+    "command": [
+      "pwsh",
+      "-NoProfile",
+      "-NonInteractive",
+      "-File",
+      "/dev/shm/hexalith-job.WzWO3Qf3/tmpul66z8tl/eng/prepare-mutation-artifacts.ps1",
+      "-Segment",
+      "happy-path"
+    ],
+    "exitCode": 1,
+    "logSha256": "0b56f5dc030f9da329a6301d5270f30645738a8788d0a5046e60570590d15355"
+  }
+]

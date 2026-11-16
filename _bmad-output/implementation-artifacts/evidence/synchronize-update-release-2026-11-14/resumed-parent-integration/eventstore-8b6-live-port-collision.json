@@ -1,0 +1,12 @@
+{
+  "observedAtUtc": "2026-11-16T13:09:00.374468+00:00",
+  "source": "8b6d5bee5217b3f4bbd8fd689ad887aca863961b",
+  "run": 43862075310,
+  "job": 133281459500,
+  "test": "PublicDevelopmentTransportAuthenticatesPeersAndPersistsActorsAcrossNativeRestart",
+  "result": "329pass,1fail,4configuredskips across334 cases; test fails before startup with Owned control-plane endpoints must be distinct.",
+  "rootCause": "Existing DevelopmentRouteCatalogTransport selects two ephemeral addresses separately by binding then releasing a TcpListener. The same ephemeral port can be selected twice and the existing guard correctly rejects the duplicate.",
+  "scopeProof": "The production transport and failed test bytes are unchanged between known qualified981fabaa and current8b6 (git diff empty). No Root product or SDK source edit introduced this outcome.",
+  "action": "Request one retry of this failed job only; preserve source and existing full job checks. Never relabel the failed original as green. Final publication remains held until required selected-source checks succeed.",
+  "followup": "Keep actual port allocation distinct/reserved in Development transport as separate SDK owner repair; no SDK511 republish or larger release scope here."
+}

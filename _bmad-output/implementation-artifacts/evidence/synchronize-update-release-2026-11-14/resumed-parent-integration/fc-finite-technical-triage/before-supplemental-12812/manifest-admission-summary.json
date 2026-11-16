@@ -1,0 +1,20 @@
+{
+  "manifestRecords": 14,
+  "manifestBytes": 52730,
+  "identityLedgerBytes": 1027028,
+  "ledgerSha256": "60756c804534e1a1030afbf27b2e1a7da5373d479fd69bc372bfda10d4685257",
+  "originalObservations": 1498,
+  "maximumCountsBySegmentStatus": {
+    "happy-path": {
+      "Survived": 638,
+      "NoCoverage": 131,
+      "Timeout": 1
+    },
+    "error-handling": {
+      "Survived": 775,
+      "NoCoverage": 186,
+      "Timeout": 1
+    }
+  },
+  "statusTransitionRule": "Only explicit NoCoverage-to-Survived unresolved transitions; kill-test-added entries admit no remaining problem and source-inspected Timeout14021 stays Timeout."
+}

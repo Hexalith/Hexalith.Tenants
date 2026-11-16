@@ -1,0 +1,7 @@
+{
+  "cli": "@commitlint/cli@21.2.4",
+  "validatedAtUtc": "2026-11-16T12:44:33.937999+00:00",
+  "messageSha256": "a7b2123ed45898590e018f3ff7553b1621fee79ac591d1d188d94875d2ee8440",
+  "exitCode": 0,
+  "violations": 0
+}

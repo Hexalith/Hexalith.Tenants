@@ -1,0 +1,60 @@
+{
+  "scope": "Verbatim pre-fix package, summary, manifest and reproduction scripts. Original raw attempts and drafts remain untouched.",
+  "files": [
+    {
+      "path": "README.md",
+      "sha256": "671f04fe6dd670861cafe66bf6657aa12fe95cc223818e08ba221f101680e747",
+      "bytes": 10353
+    },
+    {
+      "path": "TokenComparison.cs",
+      "sha256": "7d7b67f88d7e0c01fe12e1a29d8a7ab13fd60091e86a4a32e655341fc3cecf45",
+      "bytes": 1001
+    },
+    {
+      "path": "evidence-manifest.json",
+      "sha256": "8a2545655f5565f8f425b17062f7624bd5a0c47c4f68bcc3a50f57852a160868",
+      "bytes": 22645
+    },
+    {
+      "path": "final-audit.py",
+      "sha256": "720ded9eff85c51b0855fe92d37e2fe7257fbf5b61c94688cc403cd8e309cad0",
+      "bytes": 7540
+    },
+    {
+      "path": "private-test-proposal/ErrorFollowthroughBehaviorTests.cs",
+      "sha256": "d55b606faa5303ee2c540e8d897b9af8cda412ea986523f716facf9d98dbea8f",
+      "bytes": 7113
+    },
+    {
+      "path": "private-test-proposal/ProjectionParserSurvivorRegressionTests.cs",
+      "sha256": "4446c7c3938bcd1b06f1197129cf87a7b47b753ab2835eb809750d23939a0602",
+      "bytes": 9131
+    },
+    {
+      "path": "private-test-proposal/TemplateParserProviderBoundaryTests.cs",
+      "sha256": "ae707096243ec9a9eb986b0c4a2d63f04208232f893490dd4f188a7ae70f7a54",
+      "bytes": 2192
+    },
+    {
+      "path": "private-test-proposal.patch",
+      "sha256": "d994edc6ee3565a50d47c1c054620595836d101d0a81b80dd1e67ecac47a58ce",
+      "bytes": 19844
+    },
+    {
+      "path": "summary.json",
+      "sha256": "bae3900ff60f610d362a1d2580c022ab52d44668a7f7043a60934c12e325f759",
+      "bytes": 21372
+    },
+    {
+      "path": "verify-package.py",
+      "sha256": "dedb1e6524e9c08f8e98ac7b7c5d81da09eb4fe9c0798f013734e07b21ab1cb8",
+      "bytes": 3337
+    },
+    {
+      "path": "verify-proposal.py",
+      "sha256": "4b13ba0fa2f9dd9fa5fc83479deed77f7a0796a257605eb1f165cef455311e14",
+      "bytes": 4631
+    }
+  ]
+}

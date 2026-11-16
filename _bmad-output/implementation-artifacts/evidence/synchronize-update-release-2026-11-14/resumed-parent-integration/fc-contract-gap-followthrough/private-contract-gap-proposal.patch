@@ -1,0 +1,564 @@
+diff --git a/tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/AliasSignatureContractTests.cs b/tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/AliasSignatureContractTests.cs
+new file mode 100644
+--- /dev/null
++++ b/tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/AliasSignatureContractTests.cs
+@@ -0,0 +1,130 @@
++using System.Collections.Immutable;
++
++using Hexalith.FrontComposer.SourceTools.Parsing;
++
++using Microsoft.CodeAnalysis;
++using Microsoft.CodeAnalysis.CSharp;
++
++using Shouldly;
++
++namespace Hexalith.FrontComposer.SourceTools.Tests.Mutation;
++
++/// <summary>Protects actual alias provenance, keyword syntax and compiled generated assignment signatures.</summary>
++[Trait("Category", "MutationErrorRegression")]
++public sealed class AliasSignatureContractTests
++{
++    /// <summary>Retains a usable reference qualification without prescribing one of several valid alias choices.</summary>
++    /// <param name="globallyAvailable">Whether the assembly is available through global as well as named aliases.</param>
++    [Theory]
++    [InlineData(false)]
++    [InlineData(true)]
++    public void GeneratedAssignmentSignatureCompilesWithItsActualAliases(bool globallyAvailable)
++    {
++        CSharpCompilation library = CompilationHelper.CreateCompilation("namespace AliasLibrary; public sealed class @class { }", assemblyName: "GapAliasLibrary");
++        using MemoryStream stream = new();
++        library.Emit(stream, cancellationToken: TestContext.Current.CancellationToken).Success.ShouldBeTrue();
++        ImmutableArray<string> aliases = globallyAvailable ? ["Zulu", "global", "Alpha"] : ["Zulu", "Alpha"];
++        MetadataReference reference = MetadataReference.CreateFromImage(stream.ToArray(), properties: MetadataReferenceProperties.Assembly.WithAliases(aliases));
++        const string source = """
++            extern alias Zulu;
++            using Hexalith.FrontComposer.Contracts.Attributes;
++            namespace AliasFixtures;
++            [Command] public sealed class C
++            {
++                public string MessageId { get; set; } = "";
++                [DerivedFrom(DerivedFromSource.Context)]
++                public Zulu::AliasLibrary.@class[,][] Value { get; set; } = null!;
++            }
++            """;
++        string damagedSource = source.Replace("extern alias Zulu;", "extern alias Missing;", StringComparison.Ordinal).Replace("Zulu::AliasLibrary", "Missing::AliasLibrary", StringComparison.Ordinal);
++        CSharpCompilation damaged = CompilationHelper.CreateCompilation([HealthySource, damagedSource], additionalReferences: [reference]);
++        damaged.GetDiagnostics(TestContext.Current.CancellationToken).ShouldContain(item => item.Severity == DiagnosticSeverity.Error);
++        AssertEditingFallback(damaged);
++        (CSharpCompilation compilation, GeneratorDriverRunResult result) = Recover(damaged, source);
++        AssertValid(compilation);
++        PropertyModel property = CompilationHelper.ParseCommand(compilation, "AliasFixtures.C").Model.ShouldNotBeNull().Properties.Single(item => item.Name == "Value");
++        string[] required = property.RequiredExternAliases.ToArray();
++        string qualifier;
++        if (required.Length == 0)
++        {
++            globallyAvailable.ShouldBeTrue();
++            qualifier = "global::";
++        }
++        else
++        {
++            required.Length.ShouldBe(1);
++            new[] { "Alpha", "Zulu" }.ShouldContain(required.Single());
++            qualifier = required.Single() + "::";
++        }
++        property.SourceTypeName.ShouldBe(qualifier + "AliasLibrary.@class[,][]");
++        result.Results.Single().Exception.ShouldBeNull();
++        string renderer = result.Results.Single().GeneratedSources.Single(item => item.HintName.EndsWith("C.CommandRenderer.g.razor.cs", StringComparison.Ordinal)).SourceText.ToString();
++        renderer.ShouldContain("TryConvertPropertyValue<" + property.SourceTypeName + ">");
++        foreach (string alias in required)
++        {
++            renderer.ShouldContain("extern alias " + alias + ";");
++        }
++        AssertValid(compilation.AddSyntaxTrees(result.GeneratedTrees));
++    }
++
++    /// <summary>Recovers unresolved property syntax into nullable-array and generic signatures that round-trip through Roslyn.</summary>
++    /// <param name="signature">The supported repaired property type syntax.</param>
++    [Theory]
++    [InlineData("string?[]?[]")]
++    [InlineData("System.Collections.Generic.Dictionary<string, int>")]
++    public void RepairedSignatureRetainsItsActualTypeAndGeneratedAssignment(string signature)
++    {
++        const string damagedSource = "using Hexalith.FrontComposer.Contracts.Attributes; namespace AliasFixtures; [Command] public class C { public string MessageId { get; set; } = \"\"; [DerivedFrom(DerivedFromSource.Context)] public MissingType Value { get; set; } = null!; }";
++        CSharpCompilation damaged = CompilationHelper.CreateCompilation([HealthySource, damagedSource]);
++        damaged.GetDiagnostics(TestContext.Current.CancellationToken).ShouldContain(item => item.Severity == DiagnosticSeverity.Error);
++        AssertEditingFallback(damaged);
++        (CSharpCompilation repaired, GeneratorDriverRunResult generated) = Recover(damaged, damagedSource.Replace("MissingType", signature, StringComparison.Ordinal));
++        PropertyModel property = CompilationHelper.ParseCommand(repaired, "AliasFixtures.C").Model.ShouldNotBeNull().Properties.Single(item => item.Name == "Value");
++        property.SupportsStaticAssignment.ShouldBeTrue();
++        string validationSource = "namespace AliasFixtures; public class SignatureCheck { public " + property.SourceTypeName + " Value { get; set; } = null!; }";
++        CSharpCompilation validation = repaired.AddSyntaxTrees(CSharpSyntaxTree.ParseText(validationSource, cancellationToken: TestContext.Current.CancellationToken));
++        AssertValid(validation);
++        ITypeSymbol expected = validation.GetTypeByMetadataName("AliasFixtures.C")!.GetMembers("Value").OfType<IPropertySymbol>().Single().Type;
++        ITypeSymbol actual = validation.GetTypeByMetadataName("AliasFixtures.SignatureCheck")!.GetMembers("Value").OfType<IPropertySymbol>().Single().Type;
++        SymbolEqualityComparer.IncludeNullability.Equals(expected, actual).ShouldBeTrue();
++        string renderer = Renderer(generated);
++        renderer.ShouldContain("TryConvertPropertyValue<" + property.SourceTypeName + ">");
++        renderer.ShouldContain("_prefilledModel.@Value =");
++        AssertValid(repaired.AddSyntaxTrees(generated.GeneratedTrees));
++    }
++
++    private static void AssertEditingFallback(CSharpCompilation compilation)
++    {
++        PropertyModel property = CompilationHelper.ParseCommand(compilation, "AliasFixtures.C").Model.ShouldNotBeNull().Properties.Single(item => item.Name == "Value");
++        property.SourceTypeName.ShouldNotBeNullOrWhiteSpace();
++        GeneratorDriverRunResult result = CSharpGeneratorDriver.Create(new FrontComposerGenerator()).RunGenerators(compilation, TestContext.Current.CancellationToken).GetRunResult();
++        result.Results.Single().Exception.ShouldBeNull();
++        HealthyOutput(result).ShouldNotBeEmpty();
++    }
++
++    private static (CSharpCompilation Compilation, GeneratorDriverRunResult Generated) Recover(CSharpCompilation damaged, string source)
++    {
++        GeneratorDriver driver = CSharpGeneratorDriver.Create(new FrontComposerGenerator()).RunGenerators(damaged, TestContext.Current.CancellationToken);
++        string[] healthy = HealthyOutput(driver.GetRunResult());
++        healthy.ShouldNotBeEmpty();
++        SyntaxTree tree = damaged.SyntaxTrees.Last();
++        CSharpCompilation repaired = damaged.ReplaceSyntaxTree(tree, CSharpSyntaxTree.ParseText(source, (CSharpParseOptions)tree.Options, tree.FilePath, cancellationToken: TestContext.Current.CancellationToken));
++        driver = driver.RunGenerators(repaired, TestContext.Current.CancellationToken);
++        GeneratorDriverRunResult result = driver.GetRunResult();
++        result.Results.Single().Exception.ShouldBeNull();
++        HealthyOutput(result).ShouldBe(healthy);
++        Renderer(result).ShouldContain("_prefilledModel.@Value =");
++        return (repaired, result);
++    }
++
++    private static string Renderer(GeneratorDriverRunResult result) => result.Results.Single().GeneratedSources.Single(item => item.HintName.EndsWith("C.CommandRenderer.g.razor.cs", StringComparison.Ordinal)).SourceText.ToString();
++
++    private static string[] HealthyOutput(GeneratorDriverRunResult result) => result.Results.Single().GeneratedSources
++        .Where(item => item.HintName.StartsWith("AliasFixtures.Healthy", StringComparison.Ordinal)).OrderBy(item => item.HintName, StringComparer.Ordinal)
++        .Select(item => item.HintName + "\n" + item.SourceText.ToString()).ToArray();
++
++    private static void AssertValid(CSharpCompilation compilation) => compilation.GetDiagnostics(TestContext.Current.CancellationToken)
++        .Where(item => item.Severity == DiagnosticSeverity.Error).Select(item => item.ToString()).ShouldBeEmpty();
++
++    private const string HealthySource = "using Hexalith.FrontComposer.Contracts.Attributes; namespace AliasFixtures; [Command] public class Healthy { public string MessageId { get; set; } = \"\"; public string Name { get; set; } = \"\"; }";
++}
+diff --git a/tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/CommandContractBoundaryTests.cs b/tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/CommandContractBoundaryTests.cs
+new file mode 100644
+--- /dev/null
++++ b/tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/CommandContractBoundaryTests.cs
+@@ -0,0 +1,196 @@
++using Hexalith.FrontComposer.SourceTools.Parsing;
++using Hexalith.FrontComposer.SourceTools.Transforms;
++
++using Microsoft.CodeAnalysis;
++using Microsoft.CodeAnalysis.CSharp;
++using Microsoft.CodeAnalysis.CSharp.Syntax;
++
++using Shouldly;
++
++namespace Hexalith.FrontComposer.SourceTools.Tests.Mutation;
++
++/// <summary>Protects command diagnostic, editing and conversion boundaries with actual source metadata.</summary>
++[Trait("Category", "MutationErrorRegression")]
++public sealed class CommandContractBoundaryTests
++{
++    /// <summary>Explains unsupported command shapes at the declaring syntax location.</summary>
++    /// <param name="declaration">The command declaration.</param>
++    /// <param name="metadataName">The Roslyn metadata name.</param>
++    /// <param name="reason">The existing unsupported-type reason.</param>
++    [Theory]
++    [InlineData("public abstract class C", "GapFixtures.C", "abstract types are not supported")]
++    [InlineData("public class C<T>", "GapFixtures.C`1", "generic types are not supported")]
++    public void UnsupportedCommandExplainsItsShapeAndLocation(string declaration, string metadataName, string reason)
++    {
++        CSharpCompilation compilation = CompilationHelper.CreateCompilation([HealthySource, Prefix + "[Command] " + declaration + " { public C() { } " + Members + " }"]);
++        AssertValid(compilation);
++        CommandParseResult result = CompilationHelper.ParseCommand(compilation, metadataName);
++        DiagnosticInfo diagnostic = result.Diagnostics.Single(item => item.Id == "HFC1004");
++        diagnostic.Severity.ShouldBe("Warning");
++        diagnostic.Message.ShouldContain("[Command] attribute on 'C'");
++        diagnostic.Message.ShouldContain(reason);
++        AssertLocation(diagnostic, compilation.SyntaxTrees.Last().GetRoot(TestContext.Current.CancellationToken).DescendantNodes().OfType<ClassDeclarationSyntax>().Single());
++        Recover(compilation, Prefix + "[Command] public class C { public C() { } " + Members + " }", "HFC1004");
++    }
++
++    /// <summary>Rejects a missing policy argument without throwing during incomplete editing.</summary>
++    [Fact]
++    public void MissingPolicyArgumentRetainsTheRefusalReasonAndAttributeLocation()
++    {
++        string damaged = Prefix + "[Command, RequiresPolicy] public class C { " + Members + " }";
++        CSharpCompilation compilation = CompilationHelper.CreateCompilation([HealthySource, damaged]);
++        compilation.GetDiagnostics(TestContext.Current.CancellationToken).ShouldContain(item => item.Severity == DiagnosticSeverity.Error);
++        CommandParseResult result = Should.NotThrow(() => CompilationHelper.ParseCommand(compilation, "GapFixtures.C"));
++        result.Model.ShouldBeNull();
++        DiagnosticInfo diagnostic = result.Diagnostics.Single(item => item.Id == "HFC1056");
++        diagnostic.Severity.ShouldBe("Error");
++        diagnostic.Message.ShouldContain("Expected a non-empty policy name");
++        diagnostic.Message.ShouldContain("Got: <null>");
++        AssertLocation(diagnostic, compilation.SyntaxTrees.Last().GetRoot(TestContext.Current.CancellationToken).DescendantNodes().OfType<AttributeSyntax>().Single(item => item.Name.ToString() == "RequiresPolicy"));
++        (CSharpCompilation repaired, GeneratorDriverRunResult generated) = Recover(compilation, damaged.Replace("RequiresPolicy]", "RequiresPolicy(\"Gap.Manage\")]", StringComparison.Ordinal), "HFC1056");
++        CompilationHelper.ParseCommand(repaired, "GapFixtures.C").Model.ShouldNotBeNull().AuthorizationPolicyName.ShouldBe("Gap.Manage");
++        string.Join('\n', Output(generated, "GapFixtures.C")).ShouldContain("Gap.Manage");
++    }
++
++    /// <summary>Preserves absent icon metadata when its required source argument is missing.</summary>
++    [Fact]
++    public void MissingIconArgumentKeepsTheCommandAvailableWithoutAnIcon()
++    {
++        string damaged = Prefix + "[Command, Icon] public class C { " + Members + " }";
++        CSharpCompilation compilation = CompilationHelper.CreateCompilation([HealthySource, damaged]);
++        compilation.GetDiagnostics(TestContext.Current.CancellationToken).ShouldContain(item => item.Severity == DiagnosticSeverity.Error);
++        CommandParseResult result = Should.NotThrow(() => CompilationHelper.ParseCommand(compilation, "GapFixtures.C"));
++        result.Model.ShouldNotBeNull().IconName.ShouldBeNull();
++        result.Diagnostics.ShouldNotContain(item => item.Id == "HFC1056");
++        (CSharpCompilation repaired, _) = Recover(compilation, damaged.Replace("Icon]", "Icon(\"Regular.Size16.Play\")]", StringComparison.Ordinal), null);
++        CompilationHelper.ParseCommand(repaired, "GapFixtures.C").Model.ShouldNotBeNull().IconName.ShouldBe("Regular.Size16.Play");
++    }
++
++    /// <summary>Admits the existing implicit numeric default conversions using Roslyn as an independent oracle.</summary>
++    /// <param name="sourceType">The declared default metadata type.</param>
++    /// <param name="text">The type-string default payload.</param>
++    /// <param name="expectedSource">The expected Roslyn primitive source type.</param>
++    [Theory]
++    [InlineData("sbyte", "7", SpecialType.System_SByte)]
++    [InlineData("byte", "7", SpecialType.System_Byte)]
++    [InlineData("ushort", "7", SpecialType.System_UInt16)]
++    [InlineData("char", "A", SpecialType.System_Char)]
++    public void ImplicitNumericDefaultRemainsAdmitted(string sourceType, string text, SpecialType expectedSource)
++    {
++        string repairedSource = Prefix + "[Command] public class C { " + Members + " [DefaultValue(typeof(" + sourceType + "), \"" + text + "\")] public int Value { get; set; } }";
++        CSharpCompilation damaged = CompilationHelper.CreateCompilation([HealthySource, repairedSource.Replace("typeof(" + sourceType + "), \"" + text + "\"", "typeof(decimal), \"7.5\"", StringComparison.Ordinal)]);
++        AssertValid(damaged);
++        CommandParseResult refused = CompilationHelper.ParseCommand(damaged, "GapFixtures.C");
++        DiagnosticInfo diagnostic = refused.Diagnostics.Single(item => item.Id == "HFC1012");
++        diagnostic.Severity.ShouldBe("Error");
++        diagnostic.Message.ShouldContain("of type 'decimal' which is not assignable to the property type 'int'");
++        AssertLocation(diagnostic, damaged.SyntaxTrees.Last().GetRoot(TestContext.Current.CancellationToken).DescendantNodes().OfType<AttributeSyntax>().Single(item => item.Name.ToString() == "DefaultValue"));
++        (CSharpCompilation compilation, _) = Recover(damaged, repairedSource, "HFC1012");
++        IPropertySymbol property = compilation.GetTypeByMetadataName("GapFixtures.C")!.GetMembers("Value").OfType<IPropertySymbol>().Single();
++        ITypeSymbol declaredDefault = (ITypeSymbol)property.GetAttributes().Single().ConstructorArguments[0].Value!;
++        declaredDefault.SpecialType.ShouldBe(expectedSource);
++        compilation.ClassifyConversion(declaredDefault, property.Type).IsImplicit.ShouldBeTrue();
++        CommandParseResult result = CompilationHelper.ParseCommand(compilation, "GapFixtures.C");
++        result.Diagnostics.ShouldNotContain(item => item.Id == "HFC1012");
++        CommandModel model = result.Model.ShouldNotBeNull();
++        model.Properties.Single(item => item.Name == "Value").SourceTypeName.ShouldBe("global::System.Int32");
++        CommandFormTransform.Transform(model).Fields.Single(item => item.PropertyName == "Value").TypeCategory.ShouldBe(FormFieldTypeCategory.NumberInput);
++        model.ShouldBe(refused.Model);
++    }
++
++    /// <summary>Recovers a missing DefaultValue argument without throwing or inventing field initialization metadata.</summary>
++    [Fact]
++    public void MissingDefaultArgumentRecoversWithoutPoisoningAHealthyCommand()
++    {
++        string damaged = Prefix + "[Command] public class C { " + Members + " [DefaultValue] public int Value { get; set; } }";
++        CSharpCompilation compilation = CompilationHelper.CreateCompilation([HealthySource, damaged]);
++        compilation.GetDiagnostics(TestContext.Current.CancellationToken).ShouldContain(item => item.Severity == DiagnosticSeverity.Error);
++        CommandParseResult result = Should.NotThrow(() => CompilationHelper.ParseCommand(compilation, "GapFixtures.C"));
++        result.Diagnostics.ShouldNotContain(item => item.Id == "HFC1012");
++        result.Model.ShouldNotBeNull().Properties.Single(item => item.Name == "Value").TypeName.ShouldBe("Int32");
++        (CSharpCompilation repaired, _) = Recover(compilation, damaged.Replace("[DefaultValue]", "[DefaultValue(7)]", StringComparison.Ordinal), null);
++        CompilationHelper.ParseCommand(repaired, "GapFixtures.C").Diagnostics.ShouldNotContain(item => item.Id == "HFC1012");
++    }
++
++    /// <summary>Repairs incompatible metadata to a nullable null default and retains nullable form semantics.</summary>
++    [Fact]
++    public void NullableNullDefaultRecoversWithoutAFalseTypeError()
++    {
++        string damaged = Prefix + "[Command] public class C { " + Members + " [DefaultValue(\"bad\")] public int? Value { get; set; } }";
++        CSharpCompilation compilation = CompilationHelper.CreateCompilation([HealthySource, damaged]);
++        AssertValid(compilation);
++        CompilationHelper.ParseCommand(compilation, "GapFixtures.C").Diagnostics.Single(item => item.Id == "HFC1012").Severity.ShouldBe("Error");
++        (CSharpCompilation repaired, _) = Recover(compilation, damaged.Replace("DefaultValue(\"bad\")", "DefaultValue(null)", StringComparison.Ordinal), "HFC1012");
++        IPropertySymbol symbol = repaired.GetTypeByMetadataName("GapFixtures.C")!.GetMembers("Value").OfType<IPropertySymbol>().Single();
++        symbol.GetAttributes().Single().ConstructorArguments[0].IsNull.ShouldBeTrue();
++        CommandParseResult recovered = CompilationHelper.ParseCommand(repaired, "GapFixtures.C");
++        recovered.Diagnostics.ShouldNotContain(item => item.Id == "HFC1012");
++        CommandModel model = recovered.Model.ShouldNotBeNull();
++        model.Properties.Single(item => item.Name == "Value").IsNullable.ShouldBeTrue();
++        CommandFormTransform.Transform(model).Fields.Single(item => item.PropertyName == "Value").IsRequired.ShouldBeFalse();
++    }
++
++    /// <summary>Retains the existing global-namespace target fallback in parsed and form metadata.</summary>
++    [Fact]
++    public void GlobalProjectionTargetRetainsItsExistingScopeFallback()
++    {
++        const string source = "using Hexalith.FrontComposer.Contracts.Attributes; [Projection] public sealed partial class P { } [Command, CommandTarget(typeof(P), CommandTargetResolutionMode.Provider, CommandTargetChangeKind.Update, ViewKey = \"Wrong\")] public class C { public string MessageId { get; set; } = \"\"; }";
++        CSharpCompilation compilation = CompilationHelper.CreateCompilation([HealthySource, source]);
++        AssertValid(compilation);
++        CommandParseResult refused = CompilationHelper.ParseCommand(compilation, "C");
++        refused.Model.ShouldNotBeNull().CommandTarget.ShouldBeNull();
++        DiagnosticInfo diagnostic = refused.Diagnostics.Single(item => item.Id == "HFC1005");
++        diagnostic.Severity.ShouldBe("Warning");
++        diagnostic.Message.ShouldContain("invalid CommandTarget declaration");
++        (CSharpCompilation repaired, _) = Recover(compilation, source.Replace("\"Wrong\"", "\":P\"", StringComparison.Ordinal), "HFC1005", affectedPrefix: "C");
++        CommandModel model = CompilationHelper.ParseCommand(repaired, "C").Model.ShouldNotBeNull();
++        model.CommandTarget.ShouldNotBeNull().ProjectionViewKey.ShouldBe(":P");
++        CommandFormTransform.Transform(model).CommandTarget.ShouldNotBeNull().ProjectionViewKey.ShouldBe(":P");
++    }
++
++    private static (CSharpCompilation Compilation, GeneratorDriverRunResult Generated) Recover(CSharpCompilation damaged, string repairedSource, string? diagnosticId, string affectedPrefix = "GapFixtures.C")
++    {
++        GeneratorDriver driver = CSharpGeneratorDriver.Create(new FrontComposerGenerator()).RunGenerators(damaged, TestContext.Current.CancellationToken);
++        GeneratorDriverRunResult before = driver.GetRunResult();
++        before.Results.Single().Exception.ShouldBeNull();
++        if (diagnosticId is not null)
++        {
++            before.Diagnostics.ShouldContain(item => item.Id == diagnosticId);
++        }
++        string[] healthy = Output(before, "GapFixtures.Healthy");
++        healthy.ShouldNotBeEmpty();
++        SyntaxTree tree = damaged.SyntaxTrees.Last();
++        CSharpCompilation repaired = damaged.ReplaceSyntaxTree(tree, CSharpSyntaxTree.ParseText(repairedSource, (CSharpParseOptions)tree.Options, tree.FilePath, cancellationToken: TestContext.Current.CancellationToken));
++        driver = driver.RunGenerators(repaired, TestContext.Current.CancellationToken);
++        GeneratorDriverRunResult after = driver.GetRunResult();
++        after.Results.Single().Exception.ShouldBeNull();
++        after.Diagnostics.Where(item => item.Severity == DiagnosticSeverity.Error).ShouldBeEmpty();
++        if (diagnosticId is not null)
++        {
++            after.Diagnostics.ShouldNotContain(item => item.Id == diagnosticId);
++        }
++        Output(after, "GapFixtures.Healthy").ShouldBe(healthy);
++        Output(after, affectedPrefix).ShouldNotBeEmpty();
++        AssertValid(repaired.AddSyntaxTrees(after.GeneratedTrees));
++        return (repaired, after);
++    }
++
++    private static string[] Output(GeneratorDriverRunResult result, string prefix) => result.Results.Single().GeneratedSources
++        .Where(item => item.HintName.StartsWith(prefix, StringComparison.Ordinal)).OrderBy(item => item.HintName, StringComparer.Ordinal)
++        .Select(item => item.HintName + "\n" + item.SourceText.ToString()).ToArray();
++
++    private static void AssertLocation(DiagnosticInfo diagnostic, SyntaxNode node)
++    {
++        FileLinePositionSpan location = node.GetLocation().GetLineSpan();
++        diagnostic.FilePath.ShouldBe(location.Path);
++        diagnostic.Line.ShouldBe(location.StartLinePosition.Line);
++        diagnostic.Column.ShouldBe(location.StartLinePosition.Character);
++    }
++
++    private static void AssertValid(CSharpCompilation compilation) => compilation.GetDiagnostics(TestContext.Current.CancellationToken)
++        .Where(item => item.Severity == DiagnosticSeverity.Error).Select(item => item.ToString()).ShouldBeEmpty();
++
++    private const string Prefix = "using System; using System.ComponentModel; using Hexalith.FrontComposer.Contracts.Attributes; namespace GapFixtures; ";
++    private const string Members = "public string MessageId { get; set; } = \"\";";
++    private const string HealthySource = Prefix + "[Command] public class Healthy { " + Members + " public string Name { get; set; } = \"\"; }";
++}
+diff --git a/tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/ModelDefaultComparisonContractTests.cs b/tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/ModelDefaultComparisonContractTests.cs
+new file mode 100644
+--- /dev/null
++++ b/tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/ModelDefaultComparisonContractTests.cs
+@@ -0,0 +1,41 @@
++using Hexalith.FrontComposer.SourceTools.Parsing;
++
++using Shouldly;
++
++namespace Hexalith.FrontComposer.SourceTools.Tests.Mutation;
++
++/// <summary>Protects externally observable model-default normalization through generic comparison and lookup.</summary>
++[Trait("Category", "MutationErrorRegression")]
++public sealed class ModelDefaultComparisonContractTests
++{
++    /// <summary>Matches omitted and empty paths while preserving each model's existing location identity.</summary>
++    /// <param name="kind">The public model constructor family.</param>
++    [Theory]
++    [InlineData("projection")]
++    [InlineData("command")]
++    public void OmittedLocationAndExplicitEmptyRemainTheSameGenericKey(string kind)
++    {
++        if (kind == "projection")
++        {
++            AssertLookup(new DomainModel("P", "N", null, null, null, default),
++                new DomainModel("P", "N", null, null, null, default, sourceFilePath: ""),
++                new DomainModel("P", "N", null, null, null, default, sourceFilePath: "Source.cs"), pathParticipates: true);
++        }
++        else
++        {
++            AssertLookup(new CommandModel("C", "N", null, null, null, default, default, default),
++                new CommandModel("C", "N", null, null, null, default, default, default, sourceFilePath: ""),
++                new CommandModel("C", "N", null, null, null, default, default, default, sourceFilePath: "Source.cs"), pathParticipates: false);
++        }
++    }
++
++    private static void AssertLookup<T>(T omitted, T explicitEmpty, T changed, bool pathParticipates) where T : notnull, IEquatable<T>
++    {
++        EqualityComparer<T>.Default.Equals(omitted, explicitEmpty).ShouldBeTrue();
++        EqualityComparer<T>.Default.Equals(explicitEmpty, omitted).ShouldBeTrue();
++        EqualityComparer<T>.Default.Equals(omitted, changed).ShouldBe(!pathParticipates);
++        HashSet<T> keys = [omitted];
++        keys.Contains(explicitEmpty).ShouldBeTrue();
++        keys.Contains(changed).ShouldBe(!pathParticipates);
++    }
++}
+diff --git a/tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/TemplateContractBoundaryTests.cs b/tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/TemplateContractBoundaryTests.cs
+new file mode 100644
+--- /dev/null
++++ b/tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/TemplateContractBoundaryTests.cs
+@@ -0,0 +1,177 @@
++using Hexalith.FrontComposer.SourceTools.Emitters;
++
++using Microsoft.CodeAnalysis;
++using Microsoft.CodeAnalysis.CSharp;
++using Microsoft.CodeAnalysis.CSharp.Syntax;
++
++using Shouldly;
++
++namespace Hexalith.FrontComposer.SourceTools.Tests.Mutation;
++
++/// <summary>Protects template role, context and packed-version diagnostics through the real generator.</summary>
++[Trait("Category", "MutationErrorRegression")]
++public sealed class TemplateContractBoundaryTests
++{
++    /// <summary>Distinguishes exact/build compatibility from minor warnings and major exclusion.</summary>
++    /// <param name="version">The marker's packed version.</param>
++    /// <param name="diagnosticId">The expected version warning, if any.</param>
++    /// <param name="reason">The existing packed-version reason text.</param>
++    /// <param name="included">Whether the descriptor remains available.</param>
++    [Theory]
++    [InlineData(1000000, null, null, true)]
++    [InlineData(1000007, null, null, true)]
++    [InlineData(1005007, "HFC1036", "Got: 1.5.7 (raw value 1005007).", true)]
++    [InlineData(9005007, "HFC1035", "marker requested major 9 (raw value 9005007).", false)]
++    public void VersionDiagnosticsRetainThePackedReasonAndManifestDecision(int version, string? diagnosticId, string? reason, bool included)
++    {
++        CSharpCompilation compilation = CompilationHelper.CreateCompilation(Source(version));
++        AssertValid(compilation);
++        GeneratorDriverRunResult result = Run(compilation);
++        if (diagnosticId is null)
++        {
++            result.Diagnostics.ShouldNotContain(item => item.Id == "HFC1035" || item.Id == "HFC1036");
++        }
++        else
++        {
++            Diagnostic diagnostic = result.Diagnostics.Single(item => item.Id == diagnosticId);
++            diagnostic.Severity.ShouldBe(DiagnosticSeverity.Warning);
++            diagnostic.GetMessage().ShouldContain(reason!);
++            diagnostic.GetMessage().ShouldContain("1.0.0");
++            AssertLocation(diagnostic, compilation);
++        }
++        Manifest(result).Contains("typeof(global::GapFixtures.T)", StringComparison.Ordinal).ShouldBe(included);
++        Recover(compilation, Source(1000000));
++    }
++
++    /// <summary>Explains a numeric unknown role and excludes the unsafe descriptor.</summary>
++    [Fact]
++    public void UnknownRoleRetainsReasonLocationAndDescriptorRefusal()
++    {
++        CSharpCompilation compilation = CompilationHelper.CreateCompilation(Source(1000000, ", Role = (ProjectionRole)999"));
++        AssertValid(compilation);
++        GeneratorDriverRunResult result = Run(compilation);
++        Diagnostic diagnostic = result.Diagnostics.Single(item => item.Id == "HFC1024");
++        diagnostic.Severity.ShouldBe(DiagnosticSeverity.Warning);
++        diagnostic.GetMessage().ShouldContain("Got: numeric role value 999.");
++        diagnostic.GetMessage().ShouldContain("Fix: Remove the unsafe enum cast");
++        diagnostic.GetMessage().ShouldContain("Fallback: This template is excluded");
++        AssertLocation(diagnostic, compilation);
++        Manifest(result).ShouldNotContain("typeof(global::GapFixtures.T)");
++        GeneratorDriverRunResult recovered = Recover(compilation, Source(1000000, ", Role = ProjectionRole.DetailRecord"));
++        Manifest(recovered).ShouldContain("ProjectionRole.DetailRecord");
++    }
++
++    /// <summary>Explains a correctly typed Context that lacks its required Razor parameter marker.</summary>
++    [Fact]
++    public void MissingParameterExplainsTheContextContractAndExcludesTheDescriptor()
++    {
++        CSharpCompilation compilation = CompilationHelper.CreateCompilation(Source(1000000, parameter: false));
++        AssertValid(compilation);
++        GeneratorDriverRunResult result = Run(compilation);
++        Diagnostic diagnostic = result.Diagnostics.Single(item => item.Id == "HFC1034");
++        diagnostic.Severity.ShouldBe(DiagnosticSeverity.Warning);
++        diagnostic.GetMessage().ShouldContain("Got: Matching property without Microsoft.AspNetCore.Components.ParameterAttribute.");
++        diagnostic.GetMessage().ShouldContain("Fix: Add `[Parameter]`");
++        AssertLocation(diagnostic, compilation);
++        Manifest(result).ShouldNotContain("typeof(global::GapFixtures.T)");
++        Recover(compilation, Source(1000000));
++    }
++
++    /// <summary>Recovers a marker with missing required arguments while retaining the healthy sibling descriptor.</summary>
++    [Fact]
++    public void MissingProjectionArgumentExplainsTheRefusalAndCanRecover()
++    {
++        CSharpCompilation compilation = CompilationHelper.CreateCompilation(Source(1000000).Replace("ProjectionTemplate(typeof(P), 1000000)", "ProjectionTemplate", StringComparison.Ordinal));
++        compilation.GetDiagnostics(TestContext.Current.CancellationToken).ShouldContain(item => item.Severity == DiagnosticSeverity.Error);
++        GeneratorDriverRunResult result = Run(compilation);
++        Diagnostic diagnostic = result.Diagnostics.Single(item => item.Id == "HFC1033");
++        diagnostic.Severity.ShouldBe(DiagnosticSeverity.Error);
++        diagnostic.GetMessage().ShouldContain("missing its projection type argument");
++        diagnostic.GetMessage().ShouldContain("Got: null.");
++        diagnostic.GetMessage().ShouldContain("Fix: Pass typeof(MyProjection)");
++        AssertLocation(diagnostic, compilation);
++        Manifest(result).ShouldNotContain("typeof(global::GapFixtures.T)");
++        Recover(compilation, Source(1000000));
++    }
++
++    /// <summary>Recovers a source-valid abstract template after explaining its unsupported shape.</summary>
++    [Fact]
++    public void AbstractTemplateExplainsItsShapeAndCanRecover()
++    {
++        CSharpCompilation compilation = CompilationHelper.CreateCompilation(Source(1000000).Replace("public partial class T :", "public abstract partial class T :", StringComparison.Ordinal));
++        AssertValid(compilation);
++        GeneratorDriverRunResult result = Run(compilation);
++        Diagnostic diagnostic = result.Diagnostics.Single(item => item.Id == "HFC1034");
++        diagnostic.Severity.ShouldBe(DiagnosticSeverity.Warning);
++        diagnostic.GetMessage().ShouldContain("Expected: A non-abstract, non-generic Razor component partial type.");
++        diagnostic.GetMessage().ShouldContain("Got: the symbol is abstract.");
++        AssertLocation(diagnostic, compilation);
++        Manifest(result).ShouldNotContain("typeof(global::GapFixtures.T)");
++        Recover(compilation, Source(1000000));
++    }
++
++    private static GeneratorDriverRunResult Recover(CSharpCompilation damaged, string source)
++    {
++        GeneratorDriver driver = CSharpGeneratorDriver.Create(new FrontComposerGenerator()).RunGenerators(damaged, TestContext.Current.CancellationToken);
++        GeneratorDriverRunResult before = driver.GetRunResult();
++        string[] healthy = HealthyOutput(before);
++        healthy.ShouldNotBeEmpty();
++        Manifest(before).ShouldContain("typeof(global::GapFixtures.HealthyT)");
++        SyntaxTree tree = damaged.SyntaxTrees.Single();
++        CSharpCompilation repaired = damaged.ReplaceSyntaxTree(tree, CSharpSyntaxTree.ParseText(source, (CSharpParseOptions)tree.Options, tree.FilePath, cancellationToken: TestContext.Current.CancellationToken));
++        driver = driver.RunGenerators(repaired, TestContext.Current.CancellationToken);
++        GeneratorDriverRunResult after = driver.GetRunResult();
++        after.Results.Single().Exception.ShouldBeNull();
++        after.Diagnostics.Any(item => item.Id is "HFC1024" or "HFC1033" or "HFC1034" or "HFC1035" or "HFC1036").ShouldBeFalse();
++        HealthyOutput(after).ShouldBe(healthy);
++        Manifest(after).ShouldContain("typeof(global::GapFixtures.HealthyT)");
++        Manifest(after).ShouldContain("typeof(global::GapFixtures.T)");
++        AssertValid(repaired.AddSyntaxTrees(after.GeneratedTrees));
++        return after;
++    }
++
++    private static string[] HealthyOutput(GeneratorDriverRunResult result) => result.Results.Single().GeneratedSources
++        .Where(item => item.HintName.StartsWith("GapFixtures.HealthyP", StringComparison.Ordinal)).OrderBy(item => item.HintName, StringComparer.Ordinal)
++        .Select(item => item.HintName + "\n" + item.SourceText.ToString()).ToArray();
++
++    private static GeneratorDriverRunResult Run(CSharpCompilation compilation)
++    {
++        GeneratorDriverRunResult result = CSharpGeneratorDriver.Create(new FrontComposerGenerator()).RunGenerators(compilation, TestContext.Current.CancellationToken).GetRunResult();
++        result.Results.Single().Exception.ShouldBeNull();
++        return result;
++    }
++
++    private static string Manifest(GeneratorDriverRunResult result) => result.GeneratedTrees.Single(tree => Path.GetFileName(tree.FilePath) == ProjectionTemplateManifestEmitter.GeneratedHintName).GetText(TestContext.Current.CancellationToken).ToString();
++
++    private static void AssertLocation(Diagnostic diagnostic, CSharpCompilation compilation)
++    {
++        ClassDeclarationSyntax type = compilation.SyntaxTrees.Single().GetRoot(TestContext.Current.CancellationToken).DescendantNodes().OfType<ClassDeclarationSyntax>().Single(item => item.Identifier.ValueText == "T");
++        FileLinePositionSpan expected = type.GetLocation().GetLineSpan();
++        FileLinePositionSpan actual = diagnostic.Location.GetLineSpan();
++        actual.Path.ShouldBe(expected.Path);
++        actual.StartLinePosition.ShouldBe(expected.StartLinePosition);
++    }
++
++    private static void AssertValid(CSharpCompilation compilation) => compilation.GetDiagnostics(TestContext.Current.CancellationToken)
++        .Where(item => item.Severity == DiagnosticSeverity.Error).Select(item => item.ToString()).ShouldBeEmpty();
++
++    private static string Source(int version, string role = "", bool parameter = true) => $$"""
++        using Hexalith.FrontComposer.Contracts.Attributes;
++        using Hexalith.FrontComposer.Contracts.Rendering;
++        using Microsoft.AspNetCore.Components;
++        namespace GapFixtures;
++        [Projection] public partial class P { public int Count { get; set; } }
++        [ProjectionTemplate(typeof(P), {{version}}{{role}})]
++        public partial class T : ComponentBase
++        {
++            {{(parameter ? "[Parameter]" : "")}}
++            public ProjectionTemplateContext<P> Context { get; set; } = default!;
++        }
++        [Projection] public partial class HealthyP { public int Count { get; set; } }
++        [ProjectionTemplate(typeof(HealthyP), 1000000)]
++        public partial class HealthyT : ComponentBase
++        {
++            [Parameter] public ProjectionTemplateContext<HealthyP> Context { get; set; } = default!;
++        }
++        """;
++}

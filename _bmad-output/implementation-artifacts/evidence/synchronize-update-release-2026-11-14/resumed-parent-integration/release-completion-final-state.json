@@ -1,0 +1,17 @@
+{
+  "observedAtUtc": "2026-11-16T14:29:32.453398+00:00",
+  "status": "complete",
+  "documentationCommit": "618c52b91f9af0259f507c412491b5e68e020b1d",
+  "publishedSource": "ab67fd6bc308b5a641b0ca398d776e347193c168",
+  "releaseVersion": "8.0.1",
+  "releaseRun": 43880703312,
+  "publicVerification": "root-8.0.1-public-verification-attempt-2/verification.json",
+  "remoteRefs": {
+    "refs/heads/main": "618c52b91f9af0259f507c412491b5e68e020b1d",
+    "refs/tags/v8.0.1": "ab67fd6bc308b5a641b0ca398d776e347193c168"
+  },
+  "trackedChanges": "",
+  "diagnostics": "Local untracked originals preserved; no bulk staging.",
+  "writerCoordination": "FrontComposer writers may resume.",
+  "checkerException": "Expired after completion bookkeeping."
+}

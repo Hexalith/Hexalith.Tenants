@@ -1,0 +1,6 @@
+test_both_actual_workflow_entry_paths_require_authenticated_consumption (test_phase_4_gate_decision.GateDecisionTests.test_both_actual_workflow_entry_paths_require_authenticated_consumption) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 24.022s
+
+OK

@@ -1,0 +1,13 @@
+{
+  "recordedAtUtc": "2026-11-16T13:56:48.245625+00:00",
+  "source": "ab67fd6bc308b5a641b0ca398d776e347193c168",
+  "actor": "jpiquot",
+  "exitCode": 0,
+  "stdout": "",
+  "stderr": "",
+  "jobConclusions": {
+    "success": 17,
+    "skipped": 1
+  },
+  "authority": "Original publication authorization and approved pragmatic release policy; all selected required checks green."
+}

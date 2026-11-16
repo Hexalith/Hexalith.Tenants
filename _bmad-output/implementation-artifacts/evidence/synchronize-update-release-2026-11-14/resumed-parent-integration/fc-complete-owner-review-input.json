@@ -1,0 +1,22 @@
+{
+  "scope": "Additional owner review of all uncommitted FrontComposer code/workflow changes; prior b34 docs preserved; does not replace final root401-baseline review",
+  "base": "b34be9245443d21b72a6076cf205bbbc8a8c521f",
+  "diff": "/tmp/hexalith-job.AwUtYK0p/fc-complete-regressions-and-lifetimes-review.diff",
+  "bytes": 93082,
+  "sha256": "6a367debcdb107ca6e2f742155b31a924fc11fe0542e040485884463d8b8a24c",
+  "newFiles": [
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/AliasSignatureContractTests.cs",
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/ColumnFilterContractTests.cs",
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/CommandContractBoundaryTests.cs",
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/ErrorFollowthroughBehaviorTests.cs",
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/MetadataDiagnosticContractTests.cs",
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/ModelDefaultComparisonContractTests.cs",
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/OtherAttributeGenerator.cs",
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/ProjectionParserSurvivorRegressionTests.cs",
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/RazorRoleRecoveryContractTests.cs",
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/RelativeTimeHashParticipationTests.cs",
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/TemplateContractBoundaryTests.cs",
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/TemplateParserProviderBoundaryTests.cs"
+  ],
+  "observedAtUtc": "2026-11-16T02:14:00.763287+00:00"
+}

@@ -1,0 +1,18 @@
+{
+  "scope": "Historical Root8.0.0 retained-artifact inventory; no new release qualification",
+  "source": "0cfe90e887e4d9d9f0168cba98fca1852cb80313",
+  "run": 43612404327,
+  "retainedArtifacts": [
+    {
+      "id": 14122159167,
+      "name": "release-evidence-43612404327-1",
+      "sha256": "88d8563103e61db831a9665c74eba4c13b871575efb968eaa0d286a6d320d14b"
+    },
+    {
+      "id": 14120733059,
+      "name": "release-source-admission-43612404327-1",
+      "sha256": "cd7eb9e82cc48edde43b7c4fa2ad19732e784514485125812acd1737abcb5693"
+    }
+  ],
+  "limit": "The historical run has no retained release-candidate artifact, so the new prepared-candidate verifier cannot be end-to-end replayed against that historical release. Common public checks already replayed on actualFC6.0.0; Rootnew TAR reader independently tested against actual cancelledcandidate; actualnewRootpublication still must pass full fresh verification."
+}

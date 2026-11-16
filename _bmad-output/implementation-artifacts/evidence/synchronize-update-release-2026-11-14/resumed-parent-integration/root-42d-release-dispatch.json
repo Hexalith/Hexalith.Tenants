@@ -1,0 +1,13 @@
+{
+  "recordedAtUtc": "2026-11-16T13:16:03.935249+00:00",
+  "source": "42d53e30eb117b26fa7c27e421d3910e1a4924eb",
+  "actor": "jpiquot",
+  "exitCode": 0,
+  "stdout": "",
+  "stderr": "",
+  "jobConclusions": {
+    "success": 17,
+    "skipped": 1
+  },
+  "hold": "Do not approve protected publisher until selected EventStore live-sidecar retry succeeds."
+}

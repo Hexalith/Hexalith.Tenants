@@ -1,0 +1,8 @@
+{
+  "recordedAtUtc": "2026-11-16T12:45:10.707166+00:00",
+  "source": "42d53e30eb117b26fa7c27e421d3910e1a4924eb",
+  "exitCode": 0,
+  "stdout": "",
+  "stderr": "To https://github.com/Hexalith/Hexalith.Tenants.git\n   b73cadc1..42d53e30  main -> main\n",
+  "guard": "Unchanged actual push-event story guard passed2identity records,7declared pointer changes each; raw originals preserved locally. No product code or gate changed."
+}

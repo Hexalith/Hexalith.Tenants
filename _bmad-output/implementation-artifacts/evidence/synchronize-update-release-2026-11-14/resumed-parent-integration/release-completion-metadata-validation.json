@@ -1,0 +1,20 @@
+{
+  "version": "@commitlint/cli@21.2.4",
+  "command": [
+    "/home/administrator/projects/hexalith/tenants/node_modules/.bin/commitlint",
+    "--cwd",
+    "/home/administrator/projects/hexalith/tenants",
+    "--config",
+    "/home/administrator/projects/hexalith/tenants/commitlint.config.mjs",
+    "--edit",
+    "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/release-completion-commit-message.txt",
+    "--verbose"
+  ],
+  "messageSha256": "8a4e420e1aad01d560f43ec303de9b3c962115feb5a8740e225f3051b31616ae",
+  "exitCode": 0,
+  "output": "\u29d7   --- input ---\ndocs: record verified Tenants 8.0.1 release completion\n\u2714   found 0 problems, 0 warnings\n",
+  "frozenBlockSha256": "e9342829f9dbb0dad91e8a6ff05f4157c7a6efbe0ae97f46f619634f697fd285",
+  "reportWords": 335,
+  "publicVerificationStatus": "passed",
+  "publicPackageCount": 5
+}

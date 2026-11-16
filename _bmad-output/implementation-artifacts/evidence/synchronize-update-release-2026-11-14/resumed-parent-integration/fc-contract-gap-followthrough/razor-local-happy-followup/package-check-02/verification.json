@@ -1,0 +1,42 @@
+{
+  "scope": "Create and structurally check the private four-file proposal without applying it to the owner.",
+  "workspace": "/dev/shm/hexalith-job.qS3or7lB/package-check",
+  "commands": [
+    {
+      "command": [
+        "dotnet",
+        "build",
+        "/dev/shm/hexalith-job.qS3or7lB/package-check/PackageStyleInspector.csproj",
+        "-c",
+        "Release",
+        "-m:1",
+        "-nodeReuse:false"
+      ],
+      "exit_code": 0,
+      "output": "build.log",
+      "sha256": "99b9b56160979131e96f0b199a5df0a48af9d9f2af8ab3b7c69734fc7bb86d3f"
+    },
+    {
+      "command": [
+        "dotnet",
+        "/dev/shm/hexalith-job.qS3or7lB/package-check/bin/Release/net11.0/PackageStyleInspector.dll",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-contract-gap-followthrough/razor-local-happy-followup/RazorRoleRecoveryContractTests.cs"
+      ],
+      "exit_code": 0,
+      "output": "style-check.json",
+      "sha256": "a58083398dcd47856bd97e73e957faa085b3b2446c82f886833e41eaf27eff15"
+    },
+    {
+      "command": [
+        "git",
+        "apply",
+        "--check",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-contract-gap-followthrough/razor-local-happy-followup/private-razor-recovery-proposal.patch"
+      ],
+      "exit_code": 0,
+      "output": "apply-check.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "patch_sha256": "06b83d4e3cbbf3437de0616105ced43dd1614ca9b162d16b601fd1fa40f54a02"
+}

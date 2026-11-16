@@ -1,0 +1,17 @@
+{
+  "scope": "Narrow final publication-policy rerun after demonstrated linked/directory upload-selection bypass corrections",
+  "command": [
+    "python3",
+    "-B",
+    "tests/eng/test_mutation_artifact_publication.py"
+  ],
+  "exitCode": 1,
+  "scratch": "/dev/shm/hexalith-job.gz41AR2D",
+  "logSha256": "c3dc8a34b5588486c89fa5de744365d71c0e746cab5e4cfcd36647dc693ea714",
+  "inputs": {
+    "eng/prepare-mutation-artifacts.ps1": "44fd79eb0394b17d3fdfdec31f105c7189c30202ba9b96a71619900b475ef7e1",
+    "eng/mutation-artifact-policy.ps1": "e42c7a3e7aca1798d72522505d39c5a205b673ffccb14e3bff22dee7e1e19bca",
+    "tests/eng/test_mutation_artifact_publication.py": "87522f7a6466741c9a5a4139f3150098d12d51c453c1790976894d0a6a602c99",
+    ".github/workflows/mutation-property-nightly.yml": "1d4c3ffdfc29302d0215dfc9e962d098a18e15f97581964145b19d6de5bdec5a"
+  }
+}

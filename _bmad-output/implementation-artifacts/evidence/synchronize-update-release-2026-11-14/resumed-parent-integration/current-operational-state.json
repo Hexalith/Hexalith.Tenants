@@ -1,0 +1,128 @@
+{
+  "updatedUtc": "2026-11-16T14:29:32.453398+00:00",
+  "status": "Complete: Tenants 8.0.1 published and independently verified; concise report, completed spec and deferred-work notes committed and pushed.",
+  "root": {
+    "head": "618c52b91f9af0259f507c412491b5e68e020b1d",
+    "publicVersion": "8.0.1",
+    "publicSource": "ab67fd6bc308b5a641b0ca398d776e347193c168",
+    "baseline": "401d926eb7d51bdf332696ed3f0fe39a812b3501",
+    "frozenBlockSha256": "e9342829f9dbb0dad91e8a6ff05f4157c7a6efbe0ae97f46f619634f697fd285",
+    "finalCommitAndCI": "Published source passed all five required workflows; 17 successful jobs and one existing configured performance skip.",
+    "releaseSource": "ab67fd6bc308b5a641b0ca398d776e347193c168",
+    "ci": 43876176872,
+    "sourceReference": 43876176366,
+    "storyGuards": 43876176408,
+    "codeql": 43876176808,
+    "commitlint": 43876176890,
+    "previousGreenSource": "42d53e30eb117b26fa7c27e421d3910e1a4924eb",
+    "previousGreenJobs": "17success+1configuredskip; root-42d-complete-hosted-gates.json",
+    "previousRelease": 43874135505,
+    "previousReleaseResult": "Failed unprotected preparation after actual8.0.1five-package build and consumer24routes/24ops/13adapters/smokes passed; strictcleanliness rejected a historical note incorrectly storedCRLF. No publication or approval.",
+    "canonicalCorrection": "Only retained noteGitblob restored exactly8aa; freshprivateGitSnapshots old42d refusal/newab67 pass through unchanged actualguard. root-canonical-note-guard-proof.json",
+    "releaseRun": 43880703312,
+    "releaseResult": "success",
+    "publicVerification": "_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/root-8.0.1-public-verification-attempt-2/verification.json",
+    "completionDocumentationCommit": "618c52b91f9af0259f507c412491b5e68e020b1d",
+    "completionRemoteVerified": true
+  },
+  "selectedOwners": {
+    "AI.Tools": "7ef8166ef87e1365f86d1a1b3aaf0235545177d4",
+    "Builds": "fdda17c0a4538b0f7c99f813c20ca24b49006530",
+    "Commons": "ab5e92faa3bab1fa43b8ecadd423432dfe652bb2",
+    "EventStore": "8b6d5bee5217b3f4bbd8fd689ad887aca863961b",
+    "FrontComposer": "9ea805dc7bbdf048b282e66e94115add295099a3",
+    "McpCli": "4cf120c410a668d08c6ba70d59962c3a2c031952",
+    "Memories": "65bfb98dca7f65c005213507b15fbe4ab45f2e19",
+    "Platform": "ead9ff0d4268efaa7054b3a14b45956b647f6171",
+    "PolymorphicSerializations": "476cfccac3c5ba694a8e0ef11b1157728b9ec093"
+  },
+  "frontComposer": {
+    "source": "9ea805dc7bbdf048b282e66e94115add295099a3",
+    "sealCommit": "a03ee98a8964d56506160bcd9c73de992df56f58",
+    "activationCommit": "9ea805dc7bbdf048b282e66e94115add295099a3",
+    "remoteVerified": true,
+    "ci": 43856960601,
+    "quality": 43856959801,
+    "status": "Frozen exact9ea source has all4workflows green,Quality8/8. Later docs preserved on owner mainf263; detached selected source. No601 release needed.",
+    "plannedVersion": "6.0.1; actual planner confirmed",
+    "publicVersion": "6.0.0",
+    "publicSource": "d7e8f57808b610f7cddf95ecd06db178dfd7592f",
+    "release": "No FC publication pending for this Root task; stale9ea attempt43861479203 cancelled before approval/preparation/publication.",
+    "nativeEvidence": {
+      "source": "11c8377a858a756c4e4069bf08e62db1f58e1733",
+      "run": 43807658283,
+      "happy": "success81.45>=80",
+      "error": "success77.52>=60",
+      "aggregate": "failure; three enum-only report entries with empty mutant arrays",
+      "attribution": "Historical only; no current-source native qualification or outcome relabel.",
+      "currentFiniteRepair": "9methods/13subcases and19real PowerShell calls pass; canonical source bindings and active-result controls.",
+      "rerun": "No further full mutation sweep under user pragmatic completion steering."
+    },
+    "productionApproval": "Not submitted: guard refused old/main source mismatch. Existing delegated authority remains for fresh current source.",
+    "evidence": [
+      "fc-a03-source-push.json",
+      "fc-9ea-activation-push.json",
+      "fc-enum-source-bindings/handoff-attempt-02.json"
+    ],
+    "priorGreenSource": "9ea805dc7bbdf048b282e66e94115add295099a3",
+    "priorGreenGates": "fc-9ea-complete-hosted-gates.json",
+    "selectedPublicVersion": "6.0.0; final official18project/42package audit confirms current latest stable."
+  },
+  "eventStore": {
+    "source": "8b6d5bee5217b3f4bbd8fd689ad887aca863961b",
+    "ci": 43862076142,
+    "integration": 43862075310,
+    "payloadProtection": 43857136940,
+    "status": "Exact8b6 mainCI success, publishedcompatibility success. live-sidecar attempt1 has329pass/1portcollision/4skips. Retry only thatjob on same source accepted; attempt2job133318826521 running.",
+    "localProof": "286secret controls+25diagnostics on97c+unchanged C# fixture;2focused Python controls rerun/pass on final rebased source.",
+    "integrationNote": "One clean rebase preserves concurrentceb43 Story9.2; dependency gitlinks unchanged.",
+    "pushBypass": "GitHub reported PR-only plus8expected checks; fresh checks remain required.",
+    "publicSdk": "5.1.1/sourcef792bba6c0564d3c36dda6ad1c2fc55b0b0a6331; no new SDK publication requested for fixture-only repair.",
+    "phase4": "Historical unbound authority failures remain truthful; no false approvals.",
+    "optionalWorkflow": "Prior upstream interpolation defect addressed by8b6; fresh transition fixture CI pending.",
+    "evidence": "eventstore-upstream-scanner-repair-integration.json",
+    "retryJob": 133318826521,
+    "retryEvidence": "eventstore-8b6-live-port-collision.json",
+    "followup": "Existing Developmenttransport ephemeralport allocation can choose duplicate endpoints. Preserve guard; defer separate owner repair; no SDKrepublish.",
+    "finalRequiredGates": "All seven push-applicable required checks passed on selected8b6; integration43862075310 attempt2. Original failed port-allocation attempt retained; allocator issue deferred."
+  },
+  "mcpCli": {
+    "selected": "4cf120c410a668d08c6ba70d59962c3a2c031952",
+    "preservedMain": "fbe4b6bd5502741ff8006abedac5c9bb27a4df3c",
+    "reason": "Incoming Projects.Contracts2.0.0-story66.3 not on official NuGet; keep qualified4cf source. No census/runtime enrollment invented.",
+    "evidence": "mcp-qualified-source-compatibility-hold.json"
+  },
+  "userSteering": {
+    "question": "is this over engeneered? does this have a real ROI? can it be simplified with a more pragmatic solution?",
+    "scope": "Freeze dependency revisions, finite demonstrated fixes, existing required CI/Quality/security/provenance/package checks; no full mutation rerun or redundant reviews. CI migration separate.",
+    "localCheckerException": "User explicitly answered yes to existing checks except new local check.py prerequisite. No nested initialization; no claim checker passed.",
+    "authorization": "pragmatic-release-user-authorization.json"
+  },
+  "rootPriorVerification": {
+    "hardening": "18focused Python cases and2actionlint checks passed; no production C# edit",
+    "publicVerifier": "Actual6.0.0 positive plus precise producing-attempt/source/refusal controls pass",
+    "generatedHttpFloor": "67actual8aa cases pass; CI floor corrected to67",
+    "rootReviews": "All3layers complete; root-current-complete-review-triage.json",
+    "retainedLogs": "1327original logs archived and roundtrip/hash-verified; retained-command-logs-01/manifest.json"
+  },
+  "next": [],
+  "ownedLocalWork": "No release-owned local work remains; verifier and Git push exited0.",
+  "finalBypassReport": [
+    "Platform earlier maintainer push: PR-only rule bypass.",
+    "EventStore981 earlier and fbed current maintainer pushes: PR-only+8expected checks bypass."
+  ],
+  "currentStableAudit": "Pre-FC normal18-project/42direct-package audit and compatible12-dependency npm audit passed; final catalog selection audit pending.",
+  "pragmaticRootDecision": "pragmatic-root-release-decision.json",
+  "approvedPolicy": "_bmad-output/planning-artifacts/sprint-change-proposal-2026-11-16-pragmatic-release-policy.md",
+  "diagnostics": {
+    "removedFromTrackedReleaseTree": 1793,
+    "localOriginals": "All retained SHA256-equal; no local diagnostics deleted.",
+    "retainedCode": "Only reusable public verifier and2regression test sources remain as newly added verification code. Existing historical evidence remains.",
+    "history": "Intermediate4b99 contains bulk; correctedb73 removes it from release tree without rewriting public history.",
+    "record": "root-bulk-diagnostics-forward-removal.json",
+    "auditIdentities": "Two small required identity records retained; full original capture files copied unchanged to untracked retained-original-spec-*.md before replacing captures. No validator change."
+  },
+  "daprFlag": "New qualification-only CIstep removed under approved4A; original Story Guards bytes exactly8aa; existingtest retained, HTTPfloor67 retained.",
+  "writerCoordination": "User paused other FrontComposer writers through publication; release complete, writers may resume.",
+  "localCheckerException": "Expired after release completion bookkeeping; future pushes follow current applicable repository policy."
+}

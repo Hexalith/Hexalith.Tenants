@@ -1,0 +1,13 @@
+{
+  "uniqueIdentities": 828,
+  "originalObservations": 1498,
+  "actions": {
+    "deferred-with-owner": 404,
+    "kill-test-added": 95,
+    "equivalent-accepted": 329
+  },
+  "hashArithmeticBounded": 318,
+  "followupTickets": 213,
+  "ownerLedgerBytes": 1027028,
+  "belowOneMiB": true
+}

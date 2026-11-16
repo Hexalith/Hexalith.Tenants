@@ -1,0 +1,1 @@
+fix: keep release delivery on qualified frozen snapshots

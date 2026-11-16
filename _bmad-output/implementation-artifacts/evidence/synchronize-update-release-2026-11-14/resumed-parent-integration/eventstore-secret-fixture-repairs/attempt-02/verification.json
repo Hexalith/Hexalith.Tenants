@@ -1,0 +1,57 @@
+{
+  "startedAtUtc": "2026-11-16T10:54:39.369800+00:00",
+  "scope": "Modified97c working-tree fixtures, original guard/test classes, frozen direct build inputs. No committed-source CI, full suite or publication qualification.",
+  "inputs": {
+    "tests/Hexalith.EventStore.Testing.Integration.Tests/GeneratedApiSmokePreflightDiagnosticsTests.cs": "802aefaf43ec9d795d3f5bae4c7d30b4a6c61e528d8d8b812e3bc686abd035c4",
+    "tools/tests/test_phase_4_gate_decision.py": "d2072f8dbfc269aaffdfb3defc28fbe090decfc683e73f7f3f2a1dbd2f7aadaa",
+    "tools/tests/test_phase_4_transition.py": "32638ed460ea02542de626b68a3dc02c73081fabd46fda65b1b90f5c25bea85f"
+  },
+  "checks": [
+    {
+      "name": "redirect-fixture",
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "-v",
+        "test_phase_4_transition.TransitionTests.test_review_artifact_redirects_drop_credentials_and_refuse_unsafe_or_further_redirects"
+      ],
+      "exitCode": 0,
+      "log": "redirect-fixture.txt",
+      "logSha256": "462b566f13e30dadadfa986cc7df2b8cb9fce0a2ae6cf87f929e30d6f7b7c5c3"
+    },
+    {
+      "name": "authenticated-cli-fixture",
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "-v",
+        "test_phase_4_gate_decision.GateDecisionTests.test_both_actual_workflow_entry_paths_require_authenticated_consumption"
+      ],
+      "exitCode": 0,
+      "log": "authenticated-cli-fixture.txt",
+      "logSha256": "569435e632fee3428804db25dedadc6401274f177b089000adb94bc681cedd40"
+    },
+    {
+      "name": "guard-build",
+      "command": [
+        "dotnet",
+        "build",
+        "/dev/shm/hexalith-job.7O2eBTjv/guard-runner/guard.csproj",
+        "-c",
+        "Release",
+        "-m:1",
+        "-nr:false",
+        "-warnaserror",
+        "-p:RestoreFallbackFolders=/home/administrator/.nuget/packages"
+      ],
+      "exitCode": 1,
+      "log": "guard-build.txt",
+      "logSha256": "061901453d2ab36bf6598874280bfc5b5af4ffc52bbc825d79a6246dea7b2b6c"
+    }
+  ],
+  "scratch": "/dev/shm/hexalith-job.7O2eBTjv",
+  "baseSource": "97c02f7bf99a694528a2b15f0b3b0a6e5fb10e9d",
+  "setupFailure": "Ad hoc single-file guard runner omitted existing partial-class files; no guard-test result claimed. Retry uses original repository test project and preserves the two passing focused Python checks."
+}

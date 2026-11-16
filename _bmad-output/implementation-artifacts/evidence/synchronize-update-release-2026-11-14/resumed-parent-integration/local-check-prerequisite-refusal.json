@@ -1,0 +1,15 @@
+{
+  "observedAtUtc": "2026-11-16T11:09:23.684780+00:00",
+  "frontComposerSource": "a03ee98a8964d56506160bcd9c73de992df56f58",
+  "eventStoreSource": "25cde2065c6f8f919cebc17e067bea5f5953980f",
+  "command": "python3 /home/administrator/projects/hexalith/tenants/references/Hexalith.Builds/check.py",
+  "cwd": [
+    "references/Hexalith.FrontComposer",
+    "references/Hexalith.EventStore"
+  ],
+  "exitCode": 1,
+  "stderr": "guard: references/Hexalith.Builds: initialize the required separate submodule checkout at its committed pin\nCI/CD is owned by Hexalith.CiCd. Fix the product code, not the pipeline.\n",
+  "nestedInitialization": "Not performed; umbrella user instructions prohibit it.",
+  "adoption": "Neither owner has .github/hexalith-ci.json; migration not included in current release.",
+  "resolution": "Awaiting explicit scoped exception to new local pre-push prerequisite. Existing required CI/Quality/security/provenance/package gates remain mandatory."
+}

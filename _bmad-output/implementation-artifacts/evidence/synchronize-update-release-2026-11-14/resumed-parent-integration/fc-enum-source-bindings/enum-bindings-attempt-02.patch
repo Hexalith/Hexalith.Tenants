@@ -1,0 +1,154 @@
+diff --git a/eng/validate-stryker-reports.ps1 b/eng/validate-stryker-reports.ps1
+--- a/eng/validate-stryker-reports.ps1
++++ b/eng/validate-stryker-reports.ps1
+@@ -98,6 +98,25 @@
+     if (Test-WildcardRepoPath $Path ([string] $exclusion.path)) {
+       if ([string]::IsNullOrWhiteSpace([string] $exclusion.reason) -or [string]::IsNullOrWhiteSpace([string] $exclusion.owner)) {
+         Add-Failure "Exclusion '$($exclusion.path)' must include reason and owner."
++      }
++
++      $sourceBoundEnums = @(
++        "src/Hexalith.FrontComposer.SourceTools/Transforms/FormFieldTypeCategory.cs",
++        "src/Hexalith.FrontComposer.SourceTools/Transforms/ProjectionRenderStrategy.cs",
++        "src/Hexalith.FrontComposer.SourceTools/Transforms/TypeCategory.cs"
++      )
++      if ($sourceBoundEnums -contains $Path) {
++        $expected = [string] (Get-PSObjectPropertyValue $exclusion "canonicalSourceSha256")
++        if ([string] $exclusion.path -cne $Path -or $expected -cnotmatch '^[0-9a-f]{64}$') {
++          Add-Failure "Finite enum exclusion '$Path' requires its exact path and canonical source SHA256."
++        }
++        else {
++          # ReadAllText consumes the BOM. Canonicalize line endings in memory only.
++          $source = [System.IO.File]::ReadAllText((Join-Path $RepoRoot $Path)).Replace("`r`n", "`n").Replace("`r", "`n")
++          if ((Get-TextSha256 $source) -cne $expected) {
++            Add-Failure "Canonical source hash mismatch for finite enum exclusion '$Path'."
++          }
++        }
+       }
+ 
+       return $true
+diff --git a/tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/mutation-target-manifest.json b/tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/mutation-target-manifest.json
+--- a/tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/mutation-target-manifest.json
++++ b/tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/mutation-target-manifest.json
+@@ -40,17 +40,20 @@
+     {
+       "path": "src/Hexalith.FrontComposer.SourceTools/Transforms/FormFieldTypeCategory.cs",
+       "reason": "Enum declarations with implicit ordinals only; no executable expressions or Stryker mutation sites. Native reports contain no active mutants for this inventory file. Executable uses remain in the unchanged mutation targets.",
+-      "owner": "Story 10-4 SourceTools quality/release-automation"
++      "owner": "Story 10-4 SourceTools quality/release-automation",
++      "canonicalSourceSha256": "47ed9636146e17c60ea855a6e20d2a2417757458280d12480d844e5aff5e662b"
+     },
+     {
+       "path": "src/Hexalith.FrontComposer.SourceTools/Transforms/ProjectionRenderStrategy.cs",
+       "reason": "Enum declarations with implicit ordinals only; no executable expressions or Stryker mutation sites. Native reports contain no active mutants for this inventory file. Executable uses remain in the unchanged mutation targets.",
+-      "owner": "Story 10-4 SourceTools quality/release-automation"
++      "owner": "Story 10-4 SourceTools quality/release-automation",
++      "canonicalSourceSha256": "645d4104796d9777b42a4c1f3f33c0c7769f855427d429c87ab7972946a96aaf"
+     },
+     {
+       "path": "src/Hexalith.FrontComposer.SourceTools/Transforms/TypeCategory.cs",
+       "reason": "Enum declarations with implicit ordinals only; no executable expressions or Stryker mutation sites. Native reports contain no active mutants for this inventory file. Executable uses remain in the unchanged mutation targets.",
+-      "owner": "Story 10-4 SourceTools quality/release-automation"
++      "owner": "Story 10-4 SourceTools quality/release-automation",
++      "canonicalSourceSha256": "8d2afc4617bda507cfced3c1178d959646ef6a3bba51e8ef92e469ec5203cefd"
+     }
+   ],
+   "triageActions": [
+diff --git a/tests/eng/test_mutation_triage.py b/tests/eng/test_mutation_triage.py
+--- a/tests/eng/test_mutation_triage.py
++++ b/tests/eng/test_mutation_triage.py
+@@ -319,6 +319,8 @@
+                 self.assertEqual(entry['owner'],'Story 10-4 SourceTools quality/release-automation')
+                 self.assertIn('implicit ordinals only',entry['reason'])
+                 self.assertTrue(self.implicit_enum((OWNER/entry['path']).read_text()),entry['path'])
++                canonical=(OWNER/entry['path']).read_bytes().decode('utf-8-sig').replace('\r\n','\n').replace('\r','\n')
++                self.assertEqual(entry['canonicalSourceSha256'],hashlib.sha256(canonical.encode()).hexdigest())
+         self.assertFalse(self.implicit_enum('namespace Fixture; public enum E { One = 1, Two, }'))
+         self.assertFalse(self.implicit_enum('namespace Fixture; public enum E { One, } class C { int M() => 1; }'))
+ 
+@@ -376,4 +378,85 @@
+             self.assertIn(self.ENUM_ROOT+'FutureExecutable.cs',refusal)
+ 
+ 
++    def testNativeValidatorRefusesSamePathEnumSourceChangesWithUnchangedBindings(self):
++        for name in self.ENUM_NAMES:
++            with self.subTest(enum=name), tempfile.TemporaryDirectory() as temporary:
++                root=Path(temporary);self.fixture(root)
++                manifest=(root/'manifest.json').read_bytes()
++                source=root/self.ENUM_ROOT/(name+'.cs')
++                changed=('namespace Fixture; public enum '+name+' { One = 1, Two, }\n').encode()
++                source.write_bytes(changed)
++                result,refusal=self.validate(root)
++                self.assertNotEqual(result.returncode,0,result.stdout+result.stderr)
++                self.assertIn("Canonical source hash mismatch for finite enum exclusion '"+self.ENUM_ROOT+name+'.cs',refusal)
++                self.assertEqual((root/'manifest.json').read_bytes(),manifest)
++                self.assertEqual(source.read_bytes(),changed)
++
++    def testNativeValidatorCanonicalizesBomAndLineEndingsWithoutRewritingSources(self):
++        for bom,eol in ((b'',b'\n'),(b'',b'\r\n'),(b'\xef\xbb\xbf',b'\n'),(b'\xef\xbb\xbf',b'\r\n')):
++            with self.subTest(bom=bool(bom),eol=eol), tempfile.TemporaryDirectory() as temporary:
++                root=Path(temporary);self.fixture(root)
++                originals={}
++                for name in self.ENUM_NAMES:
++                    source=root/self.ENUM_ROOT/(name+'.cs')
++                    canonical=source.read_bytes().decode('utf-8-sig').replace('\r\n','\n').replace('\r','\n').encode()
++                    originals[source]=bom+canonical.replace(b'\n',eol)
++                    source.write_bytes(originals[source])
++                result,refusal=self.validate(root)
++                self.assertEqual(result.returncode,0,result.stdout+result.stderr+refusal)
++                for source,original in originals.items():self.assertEqual(source.read_bytes(),original)
++
++    def testNativeValidatorRequiresEachFiniteExceptionToHaveAValidBinding(self):
++        for value in (None,'invalid','0'*64):
++            with self.subTest(hash=value), tempfile.TemporaryDirectory() as temporary:
++                root=Path(temporary);self.fixture(root)
++                manifest=json.loads((root/'manifest.json').read_text())
++                row=next(row for row in manifest['explicitExclusions'] if row['path']==self.ENUM_ROOT+self.ENUM_NAMES[0]+'.cs')
++                if value is None:row.pop('canonicalSourceSha256')
++                else:row['canonicalSourceSha256']=value
++                (root/'manifest.json').write_text(json.dumps(manifest))
++                result,refusal=self.validate(root)
++                self.assertNotEqual(result.returncode,0,result.stdout+result.stderr)
++                self.assertIn('finite enum exclusion' if value=='0'*64 else 'requires its exact path and canonical source SHA256',refusal)
++
++    def testActiveEnumResultsRemainInLiveAndAuditCountsAndUntriagedProblemsRefuse(self):
++        relative=self.ENUM_ROOT+self.ENUM_NAMES[0]+'.cs'
++        for status in ('Killed','Survived','NoCoverage'):
++            with self.subTest(status=status), tempfile.TemporaryDirectory() as temporary:
++                root=Path(temporary);self.fixture(root)
++                manifest=json.loads((root/'manifest.json').read_text())
++                # This synthetic entry-point case intentionally has no problem triage.
++                # Its three reported results are data, not a native mutation score.
++                manifest['problemMutantTriage']=[]
++                (root/'manifest.json').write_text(json.dumps(manifest))
++                for report in (root/'reports').glob('source-tools-*.json'):
++                    document=json.loads(report.read_text())
++                    document['files'][relative]['mutants']=[{'id':'90000001','status':status,'location':{}}]
++                    report.write_text(json.dumps(document))
++                result,refusal=self.validate(root)
++                if status=='Killed':self.assertEqual(result.returncode,0,result.stdout+result.stderr+refusal)
++                else:
++                    self.assertNotEqual(result.returncode,0,result.stdout+result.stderr)
++                    self.assertIn('untriaged '+status,refusal)
++                audit=json.loads((root/'reports/mutation-report-audit.json').read_text())
++                self.assertEqual(len(audit['Reports']),2)
++                for entry in audit['Reports']:
++                    self.assertEqual(entry['LiveMutantCount'],3)
++                    self.assertEqual(len(entry['RawMutantStatuses']),3)
++                    self.assertEqual([row for row in entry['RawMutantStatuses'] if row['Id']=='90000001'],
++                                     [{'Path':relative,'Id':'90000001','Status':status}])
++                    counts={row['Status']:row['Count'] for row in entry['StatusCounts']}
++                    self.assertEqual(counts,{'Killed':3} if status=='Killed' else {'Killed':2,status:1})
++
++
++    def testNativeValidatorRequiresCanonicalCaseForFiniteEnumPaths(self):
++        with tempfile.TemporaryDirectory() as temporary:
++            root=Path(temporary);self.fixture(root)
++            source=root/self.ENUM_ROOT/(self.ENUM_NAMES[0]+'.cs')
++            source.rename(source.with_name(source.name.lower()))
++            result,refusal=self.validate(root)
++            self.assertNotEqual(result.returncode,0,result.stdout+result.stderr)
++            self.assertIn('requires its exact path and canonical source SHA256',refusal)
++
++
+ if __name__=='__main__':unittest.main(verbosity=2)

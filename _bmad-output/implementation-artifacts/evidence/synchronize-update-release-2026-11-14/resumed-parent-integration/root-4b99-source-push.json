@@ -1,0 +1,11 @@
+{
+  "recordedAtUtc": "2026-11-16T12:27:12.397319+00:00",
+  "source": "4b99a89c78c57294b99b52eaf5889e8c74b87999",
+  "parent": "8aa6f169b3e27f0a831ad6425c4bc1278ca2c445",
+  "exitCode": 0,
+  "stdout": "",
+  "stderr": "To https://github.com/Hexalith/Hexalith.Tenants.git\n   8aa6f169..4b99a89c  main -> main\n",
+  "localCheckerException": "pragmatic-release-user-authorization.json",
+  "unrelatedWorkingFile": "A new concurrent sprint-change-proposal-2026-11-16-pragmatic-release-policy.md appeared after staging; preserved untracked, not included in this release snapshot.",
+  "selectedPackages": "Existing qualified publicFC6.0.0 and EventStore5.1.1; Root required exact-source CI and final publication still pending."
+}

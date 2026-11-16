@@ -1,0 +1,5 @@
+Missing or invalid exact private-tool provenance for segment 'happy-path'.
+Missing JSON mutation report for segment 'happy-path' under artifacts/mutation.
+Mutation report 'source-tools-error-handling.json' has untriaged Survived mutants in segment 'error-handling': count=630.
+Mutation report 'source-tools-error-handling.json' has untriaged NoCoverage mutants in segment 'error-handling': count=186.
+Mutation report 'source-tools-error-handling.json' has untriaged Timeout mutants in segment 'error-handling': count=1.

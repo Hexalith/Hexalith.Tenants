@@ -1,0 +1,1 @@
+docs: preserve required audit identities for retained captures

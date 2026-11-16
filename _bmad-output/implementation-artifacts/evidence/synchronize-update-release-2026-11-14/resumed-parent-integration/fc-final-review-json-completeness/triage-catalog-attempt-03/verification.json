@@ -1,0 +1,10 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "tests/eng/test_mutation_triage.py"
+  ],
+  "exitCode": 0,
+  "scratch": "/dev/shm/hexalith-job.zf0jaok3",
+  "logSha256": "bc08c8828f59e6b22cc950a103f997de01b183791997d8ec9813564a2d196df1"
+}

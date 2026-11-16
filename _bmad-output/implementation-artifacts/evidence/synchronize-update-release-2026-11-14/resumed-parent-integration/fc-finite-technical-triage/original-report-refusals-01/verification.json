@@ -1,0 +1,46 @@
+{
+  "scope": "Original complete reports deliberately cannot satisfy fresh expected-resolution admission; no new qualification",
+  "scratch": "/dev/shm/hexalith-job.H6SQMUJ0",
+  "commands": [
+    {
+      "segment": "error-handling",
+      "command": [
+        "python3",
+        "-B",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-finite-technical-triage/check-fresh-report.py",
+        "--owner-root",
+        "/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer",
+        "--segment",
+        "error-handling",
+        "--report",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-error-local-diagnostic/retained-original-reports/source-tools-error-handling.json",
+        "--output",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-finite-technical-triage/original-report-refusals-01/error-handling.json"
+      ],
+      "exitCode": 1,
+      "retainedOldProblemRefusals": 95,
+      "reportSha256": "44079e6dd90db8bf8370b59dd90e0049fb12a9ef5643f403e738ab15172e23bc",
+      "logSha256": "0e6f04294708030dc5c04268f3cdb69b693c7e7ae487e126883fac331ff5cf40"
+    },
+    {
+      "segment": "happy-path",
+      "command": [
+        "python3",
+        "-B",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-finite-technical-triage/check-fresh-report.py",
+        "--owner-root",
+        "/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer",
+        "--segment",
+        "happy-path",
+        "--report",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-happy-local-diagnostic/attempt-03/post-validator-artifacts/happy-path/reports/source-tools-happy-path.json",
+        "--output",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-finite-technical-triage/original-report-refusals-01/happy-path.json"
+      ],
+      "exitCode": 1,
+      "retainedOldProblemRefusals": 95,
+      "reportSha256": "91144b286ea92cf254d0e4039384f99d2eeaaf84aac4fb1dcd7c0b41743abb71",
+      "logSha256": "0e6f04294708030dc5c04268f3cdb69b693c7e7ae487e126883fac331ff5cf40"
+    }
+  ]
+}

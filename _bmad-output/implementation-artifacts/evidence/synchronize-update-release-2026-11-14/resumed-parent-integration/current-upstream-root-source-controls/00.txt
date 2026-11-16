@@ -1,0 +1,13 @@
+test_absent_declared_sources_refuse (test_platform_source_root.PlatformSourceRootTests.test_absent_declared_sources_refuse) ... ok
+test_ambient_parent_helpers_do_not_become_compile_inputs (test_platform_source_root.PlatformSourceRootTests.test_ambient_parent_helpers_do_not_become_compile_inputs) ... ok
+test_declared_nested_and_sibling_layouts_in_both_dependency_modes (test_platform_source_root.PlatformSourceRootTests.test_declared_nested_and_sibling_layouts_in_both_dependency_modes) ... ok
+test_declared_nested_checkout_has_precedence_over_sibling (test_platform_source_root.PlatformSourceRootTests.test_declared_nested_checkout_has_precedence_over_sibling) ... ok
+test_explicit_foreign_helpers_without_the_platform_checkout_refuse (test_platform_source_root.PlatformSourceRootTests.test_explicit_foreign_helpers_without_the_platform_checkout_refuse) ... ok
+test_explicit_owner_input_has_precedence_over_discovery (test_platform_source_root.PlatformSourceRootTests.test_explicit_owner_input_has_precedence_over_discovery) ... ok
+test_incomplete_canonical_checkout_refuses (test_platform_source_root.PlatformSourceRootTests.test_incomplete_canonical_checkout_refuses) ... ok
+test_platform_umbrella_requires_and_accepts_its_explicit_owner_input (test_platform_source_root.PlatformSourceRootTests.test_platform_umbrella_requires_and_accepts_its_explicit_owner_input) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 15.269s
+
+OK

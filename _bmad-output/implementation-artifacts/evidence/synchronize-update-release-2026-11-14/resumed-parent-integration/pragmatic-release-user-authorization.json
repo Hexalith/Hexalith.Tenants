@@ -1,0 +1,12 @@
+{
+  "recordedAtUtc": "2026-11-16T11:19:16.908106+00:00",
+  "userReply": "yes",
+  "precedingQuestion": "May I finish using the existing checks, excepting the newly introduced local-checker prerequisite?",
+  "scope": "This release only: exception to newly synchronized local check.py pre-push prerequisite. Keep existing required CI, Quality, security, provenance, package checks. Do not adopt CI migration or initialize nested submodules.",
+  "dependencySelection": "Freeze already selected source revisions; preserve incoming unrelated work; no further full mutation sweep or redundant reviews.",
+  "writerCoordinationReply": {
+    "receivedReply": "paused",
+    "recordedAtUtc": "2026-11-16T12:26:10.822915+00:00",
+    "scope": "Other FrontComposer pushes paused by user until package release finishes. Direct Root release path remains selected."
+  }
+}

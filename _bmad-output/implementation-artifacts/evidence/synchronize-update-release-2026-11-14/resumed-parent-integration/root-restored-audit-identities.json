@@ -1,0 +1,22 @@
+{
+  "recordedAtUtc": "2026-11-16T12:44:33.528777+00:00",
+  "records": [
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-review-publication-and-recovery/spec-review-corrections.md",
+      "localOriginal": "_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-review-publication-and-recovery/retained-original-spec-review-corrections.md",
+      "originalSha256": "e2f24841bdddb1bd35383df8b63462530a82bd5365a560c47a02a0f4a0009253",
+      "originalGitBlob": "307ff26e590d05673cb43120b7e5bc41a8ca8620",
+      "capturedOwnerBaseline": "not recorded",
+      "rootBaseline": "8aa6f169b3e27f0a831ad6425c4bc1278ca2c445"
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-segment-job-lifetimes/spec-ci-segment-job-lifetimes.md",
+      "localOriginal": "_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-segment-job-lifetimes/retained-original-spec-ci-segment-job-lifetimes.md",
+      "originalSha256": "acf58654f16cf4029e14419ac8127a2f9d71a9dfce0e576fd2f5e098a9241462",
+      "originalGitBlob": "d381b71b636d6131c8d2a168cf62430e144b2f39",
+      "capturedOwnerBaseline": "not recorded",
+      "rootBaseline": "8aa6f169b3e27f0a831ad6425c4bc1278ca2c445"
+    }
+  ],
+  "guard": "Unchanged existing validator; final committed event must pass."
+}

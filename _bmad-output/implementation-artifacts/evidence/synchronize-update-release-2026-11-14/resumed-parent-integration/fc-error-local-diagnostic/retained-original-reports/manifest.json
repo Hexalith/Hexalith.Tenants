@@ -1,0 +1,18 @@
+{
+  "scope": "Original complete Error-only diagnostics; no later-source or dual-gate qualification",
+  "source": "e0eef14ddbbcd03823863a4f417a4b07f6f5bafc",
+  "artifacts": [
+    {
+      "sourcePath": "fc-error-local-diagnostic/attempt-01/original-error-artifacts/reports/source-tools-error-handling.json",
+      "retainedPath": "fc-error-local-diagnostic/retained-original-reports/source-tools-error-handling.json",
+      "sha256": "44079e6dd90db8bf8370b59dd90e0049fb12a9ef5643f403e738ab15172e23bc",
+      "bytes": 14950597
+    },
+    {
+      "sourcePath": "fc-error-local-diagnostic/attempt-01/original-error-artifacts/reports/source-tools-error-handling.html",
+      "retainedPath": "fc-error-local-diagnostic/retained-original-reports/source-tools-error-handling.html",
+      "sha256": "389019d9f51f93286830efd1338adb5015e4a8431ad587b802a2db7a733b1ab9",
+      "bytes": 15189644
+    }
+  ]
+}

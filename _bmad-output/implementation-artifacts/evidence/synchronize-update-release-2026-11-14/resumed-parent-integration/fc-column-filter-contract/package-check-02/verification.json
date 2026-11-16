@@ -1,0 +1,42 @@
+{
+  "scope": "Create and structurally check the private four-file proposal without applying it to the owner.",
+  "workspace": "/dev/shm/hexalith-job.RO1UHD7i/package-check",
+  "commands": [
+    {
+      "command": [
+        "dotnet",
+        "build",
+        "/dev/shm/hexalith-job.RO1UHD7i/package-check/PackageStyleInspector.csproj",
+        "-c",
+        "Release",
+        "-m:1",
+        "-nodeReuse:false"
+      ],
+      "exit_code": 0,
+      "output": "build.log",
+      "sha256": "0b77ae55d3a1fef956642a3f660c4e7bcf33785ce8c2e2f6a671ed01da00a078"
+    },
+    {
+      "command": [
+        "dotnet",
+        "/dev/shm/hexalith-job.RO1UHD7i/package-check/bin/Release/net11.0/PackageStyleInspector.dll",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-column-filter-contract/ColumnFilterContractTests.cs"
+      ],
+      "exit_code": 0,
+      "output": "style-check.json",
+      "sha256": "0df5f54db61d11a1f4f40495cfef4669b2af6acd546837791258d8c0d66cc96a"
+    },
+    {
+      "command": [
+        "git",
+        "apply",
+        "--check",
+        "/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/evidence/synchronize-update-release-2026-11-14/resumed-parent-integration/fc-column-filter-contract/private-column-filter-proposal.patch"
+      ],
+      "exit_code": 0,
+      "output": "apply-check.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "patch_sha256": "9d8ef174ba0ccd746fd2f500f8f662295afd4c28bb76e65809ac36c0c7176523"
+}

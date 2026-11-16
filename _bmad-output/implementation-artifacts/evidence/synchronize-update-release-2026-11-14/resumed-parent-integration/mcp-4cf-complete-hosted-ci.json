@@ -1,0 +1,55 @@
+{
+  "source": "4cf120c410a668d08c6ba70d59962c3a2c031952",
+  "runId": 43752669619,
+  "conclusion": "success",
+  "htmlUrl": "https://github.com/Hexalith/Hexalith.McpCli/actions/runs/43752669619",
+  "jobs": [
+    {
+      "id": 132929961071,
+      "name": "topology-vector-discovery",
+      "conclusion": "success"
+    },
+    {
+      "id": 132929961238,
+      "name": "enrolled-module-conformance",
+      "conclusion": "success"
+    },
+    {
+      "id": 132929961250,
+      "name": "conformance-vector-loopback",
+      "conclusion": "success"
+    },
+    {
+      "id": 132929961262,
+      "name": "conformance-vector-contract",
+      "conclusion": "success"
+    },
+    {
+      "id": 132929961282,
+      "name": "proprietary-surface-census",
+      "conclusion": "success"
+    },
+    {
+      "id": 132929961305,
+      "name": "ci / build-and-test",
+      "conclusion": "success"
+    },
+    {
+      "id": 132929961315,
+      "name": "release-automation",
+      "conclusion": "success"
+    },
+    {
+      "id": 132932720814,
+      "name": "ci / aspire-tests",
+      "conclusion": "success"
+    },
+    {
+      "id": 132932722056,
+      "name": "ci / performance-tests",
+      "conclusion": "skipped"
+    }
+  ],
+  "scope": "Existing owner-frozen enrolled vectors/native package profiles only; no Root5.1.1 or recovery-operation enrollment acceptance inferred",
+  "observedUtc": "2026-11-15T20:27:36.772439+00:00"
+}

@@ -1,0 +1,35 @@
+{
+  "run": 43755375617,
+  "head": "e0eef14ddbbcd03823863a4f417a4b07f6f5bafc",
+  "runConclusion": "cancelled",
+  "jobs": [
+    {
+      "id": 132939666243,
+      "status": "completed",
+      "conclusion": "cancelled",
+      "started_at": "2026-11-15T20:03:29Z",
+      "completed_at": "2026-11-16T02:08:29Z",
+      "name": "source-tools-mutation"
+    },
+    {
+      "id": 132939666488,
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-15T20:03:29Z",
+      "completed_at": "2026-11-15T20:06:29Z",
+      "name": "lifecycle-properties"
+    }
+  ],
+  "logsZipSha256": "95d78289c36c3a24e1fc96401e33567094dbcae98af20c4ac7e849a07c6cc70d",
+  "logsZipBytes": 9565,
+  "logsZipMembers": [
+    "0_lifecycle-properties.txt",
+    "lifecycle-properties/system.txt"
+  ],
+  "artifactNames": [
+    "lifecycle-property-artifacts"
+  ],
+  "qualification": "No complete hosted dual gate; original Happy score72.36%failure and Error incomplete; no hosted original mutation JSON artifact produced; complete unchanged local reports retain separate source/execution scope",
+  "logsZipName": "available-terminal-workflow-logs.zip",
+  "logsScope": "Archive returned by the terminal run-logs API, exact members listed. It contains lifecycle logs only; cancelled source-tools mutation step logs are absent. Original Happy completed console is separately retained; no complete hosted mutation JSON is available."
+}

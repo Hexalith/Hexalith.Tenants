@@ -1,0 +1,15 @@
+{
+  "observedAtUtc": "2026-11-16T10:10:20.735748+00:00",
+  "url": "https://api.nuget.org/v3-flatcontainer/hexalith.projects.contracts/index.json",
+  "sha256": "80f8b7385d76fda7f85ab623ff30867af3ab2af8f3df2cd5a636f8f3a49590a0",
+  "versions": [
+    "1.0.0",
+    "1.2.0",
+    "1.2.1",
+    "1.2.2",
+    "1.2.3",
+    "1.2.4"
+  ],
+  "selectedPreview": "2.0.0-story66.3",
+  "selectedPreviewPublished": false
+}

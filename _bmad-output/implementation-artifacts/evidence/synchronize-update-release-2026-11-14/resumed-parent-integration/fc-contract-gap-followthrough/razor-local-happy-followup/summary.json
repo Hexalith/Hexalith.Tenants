@@ -1,0 +1,229 @@
+{
+  "scope": "Audit the local-report-bound private Razor recovery proposal and unchanged owner/preceding packet.",
+  "source_base_commit": "b34be9245443d21b72a6076cf205bbbc8a8c521f",
+  "working_input_overlay": {
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/ErrorFollowthroughBehaviorTests.cs": "b104b8433a7de4fc0487283d7e6fb8b03c97be2174485824dea2d637d10b4a53",
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/ProjectionParserSurvivorRegressionTests.cs": "cca95b425e01560c9f9d21859439569ace047c2b1c0cab1a03fb2d7233ab04d2",
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/OtherAttributeGenerator.cs": "1ee8dfc941d994f3ff2da588c9a23afb2d079abf90fe3959cddff909ad309ce3",
+    "tests/Hexalith.FrontComposer.SourceTools.Tests/Mutation/TemplateParserProviderBoundaryTests.cs": "19ad13025d8d5632f5a39554e46d0205cd930279d551b71af937c1a1ef959583"
+  },
+  "local_original_report_sha256": "91144b286ea92cf254d0e4039384f99d2eeaaf84aac4fb1dcd7c0b41743abb71",
+  "local_original_status_counts": {
+    "Ignored": 562,
+    "CompileError": 717,
+    "Killed": 1783,
+    "Survived": 549,
+    "NoCoverage": 131,
+    "Timeout": 1
+  },
+  "local_hosted_boundary": {
+    "id": "12812",
+    "local": "Killed",
+    "hosted_parent_console_observation": "rawSuccess",
+    "transfer_permitted": false
+  },
+  "local_nocoverage": {
+    "hash": 25,
+    "non_hash": 106,
+    "total": 131
+  },
+  "proposal_cases": 5,
+  "baseline_passed": 5,
+  "literal_controls": 14,
+  "literal_detections": 12,
+  "literal_survivors": {
+    "14940": "List capacity only in this output contract; allocation/extreme inputs remain bounded unknowns.",
+    "14950": "Canonical HFC1025 descriptor controls emitted severity; raw transform diagnostic consumers remain a boundary."
+  },
+  "uncovered_extra_id": {
+    "14143": "Unused documented public getter has no tracked production reader; no actual UI effect asserted."
+  },
+  "tests": [
+    {
+      "control": "14921",
+      "trx": "attempt-01/14921-results/tests.trx",
+      "sha256": "790f25232bdce336e00a068f98b5bf3ae6e4f18a5be1977a12275127d9a3b82f",
+      "outcomes": {
+        "Passed": 4,
+        "Failed": 1
+      },
+      "failed_tests": [
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.RazorRoleRecoveryContractTests.MissingTimelineDateRecoversWithoutChangingTheHealthyProjection"
+      ]
+    },
+    {
+      "control": "14923",
+      "trx": "attempt-01/14923-results/tests.trx",
+      "sha256": "eae88929fe72e8da55d2ea5ac4d71e7eb6fa2281d4cee7af64cb7e2a395ac1cb",
+      "outcomes": {
+        "Passed": 4,
+        "Failed": 1
+      },
+      "failed_tests": [
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.RazorRoleRecoveryContractTests.MissingTimelineDateRecoversWithoutChangingTheHealthyProjection"
+      ]
+    },
+    {
+      "control": "14940",
+      "trx": "attempt-01/14940-results/tests.trx",
+      "sha256": "b4e5e6e0be87046f46ef0a8aaf8ec36ab49de231576f447d3bb8c8cb389b3e86",
+      "outcomes": {
+        "Passed": 5
+      },
+      "failed_tests": []
+    },
+    {
+      "control": "14941",
+      "trx": "attempt-01/14941-results/tests.trx",
+      "sha256": "828c0872716f3b47f9331e32f3d19704f0fa7c295e20c43366df08634eac723b",
+      "outcomes": {
+        "Failed": 1,
+        "Passed": 4
+      },
+      "failed_tests": [
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.RazorRoleRecoveryContractTests.PartialBadgesRecoverFromPreciseFallbackToCompleteMetadata"
+      ]
+    },
+    {
+      "control": "14943",
+      "trx": "attempt-01/14943-results/tests.trx",
+      "sha256": "6c27e49ea7773496bb7a764cdc6fd9d788eaf48426077ca09f7163a07ff432b6",
+      "outcomes": {
+        "Failed": 1,
+        "Passed": 4
+      },
+      "failed_tests": [
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.RazorRoleRecoveryContractTests.PartialBadgesRecoverFromPreciseFallbackToCompleteMetadata"
+      ]
+    },
+    {
+      "control": "14945",
+      "trx": "attempt-01/14945-results/tests.trx",
+      "sha256": "28d05ed1838cc58e4de0a14e3aa1049a80456ba2018324521d79e7ee61f3470f",
+      "outcomes": {
+        "Failed": 1,
+        "Passed": 4
+      },
+      "failed_tests": [
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.RazorRoleRecoveryContractTests.PartialBadgesRecoverFromPreciseFallbackToCompleteMetadata"
+      ]
+    },
+    {
+      "control": "14946",
+      "trx": "attempt-01/14946-results/tests.trx",
+      "sha256": "33eef2ed93aac2162a60e2d423d80528aabf320fc429e8bc374e904e83a6c882",
+      "outcomes": {
+        "Failed": 1,
+        "Passed": 4
+      },
+      "failed_tests": [
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.RazorRoleRecoveryContractTests.PartialBadgesRecoverFromPreciseFallbackToCompleteMetadata"
+      ]
+    },
+    {
+      "control": "14947",
+      "trx": "attempt-01/14947-results/tests.trx",
+      "sha256": "7e2e3b491b8851b81c9c4bc125055c988f1c8d04473e8cff7a681c3c27cafb58",
+      "outcomes": {
+        "Failed": 1,
+        "Passed": 4
+      },
+      "failed_tests": [
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.RazorRoleRecoveryContractTests.PartialBadgesRecoverFromPreciseFallbackToCompleteMetadata"
+      ]
+    },
+    {
+      "control": "14948",
+      "trx": "attempt-01/14948-results/tests.trx",
+      "sha256": "7172ce48e827eb62f6d5676aceaba5de14e4052d2d8e7db58005feec443a1de2",
+      "outcomes": {
+        "Failed": 1,
+        "Passed": 4
+      },
+      "failed_tests": [
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.RazorRoleRecoveryContractTests.PartialBadgesRecoverFromPreciseFallbackToCompleteMetadata"
+      ]
+    },
+    {
+      "control": "14949",
+      "trx": "attempt-01/14949-results/tests.trx",
+      "sha256": "106521be0da74753e60ee9a5cc077faf16154a000bc7e53b09f7f4c407ca68a7",
+      "outcomes": {
+        "Failed": 1,
+        "Passed": 4
+      },
+      "failed_tests": [
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.RazorRoleRecoveryContractTests.PartialBadgesRecoverFromPreciseFallbackToCompleteMetadata"
+      ]
+    },
+    {
+      "control": "14950",
+      "trx": "attempt-01/14950-results/tests.trx",
+      "sha256": "859dda78ce5e7bc344b19a6fb3d6a5d35df8c2c8a584f65eb9a560c60cedc884",
+      "outcomes": {
+        "Passed": 5
+      },
+      "failed_tests": []
+    },
+    {
+      "control": "15029",
+      "trx": "attempt-01/15029-results/tests.trx",
+      "sha256": "62399ad2a0683ebe47be4a8629d9ff5afb6f7551024ad5381cdcffda74d0947c",
+      "outcomes": {
+        "Passed": 4,
+        "Failed": 1
+      },
+      "failed_tests": [
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.RazorRoleRecoveryContractTests.RepairedFieldTypeRetainsItsObservableFormat(type: \\\"bool\\\", category: Boolean, format: \\\"Yes/No\\\")"
+      ]
+    },
+    {
+      "control": "15037",
+      "trx": "attempt-01/15037-results/tests.trx",
+      "sha256": "c7bb1cae5875542523d61bded51944fcece589b8018fea6556d9db46b188a572",
+      "outcomes": {
+        "Passed": 4,
+        "Failed": 1
+      },
+      "failed_tests": [
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.RazorRoleRecoveryContractTests.RepairedFieldTypeRetainsItsObservableFormat(type: \\\"TimeOnly\\\", category: DateTime, format: \\\"t\\\")"
+      ]
+    },
+    {
+      "control": "15043",
+      "trx": "attempt-01/15043-results/tests.trx",
+      "sha256": "2ac0a43aeded6dfe8d540f97c2fd5533d274bc0dfcb488963c1eae7eb74c3cbc",
+      "outcomes": {
+        "Passed": 4,
+        "Failed": 1
+      },
+      "failed_tests": [
+        "Hexalith.FrontComposer.SourceTools.Tests.Mutation.RazorRoleRecoveryContractTests.RepairedFieldTypeRetainsItsObservableFormat(type: \\\"List<string>\\\", category: Collection, format: \\\"Count\\\")"
+      ]
+    },
+    {
+      "control": "baseline",
+      "trx": "attempt-01/baseline-results/tests.trx",
+      "sha256": "e135ae508dbd884e3e7e217085f77b3f13d1d5c64020ea9cf47cfc869a73ff39",
+      "outcomes": {
+        "Passed": 5
+      },
+      "failed_tests": []
+    }
+  ],
+  "patch_sha256": "06b83d4e3cbbf3437de0616105ced43dd1614ca9b162d16b601fd1fa40f54a02",
+  "preceding_packet_files_verified_unchanged": 213,
+  "owner_unchanged": true,
+  "cleanup": {
+    "owned_job_paths_removed": [
+      "/dev/shm/hexalith-job.2oi4ISpu",
+      "/dev/shm/hexalith-job.qS3or7lB"
+    ],
+    "owned_processes_remaining": []
+  },
+  "full_mutation_run": false,
+  "accepted_triage_authored": false,
+  "gate_or_tool_changes": false,
+  "qualification_claim": false,
+  "remaining": "Original threshold failure remains unresolved; parent owns any source integration, full current-source qualification and disposition."
+}

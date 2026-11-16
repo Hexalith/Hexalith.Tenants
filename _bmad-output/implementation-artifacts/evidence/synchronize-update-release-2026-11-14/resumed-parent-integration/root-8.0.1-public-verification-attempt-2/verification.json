@@ -1,0 +1,110 @@
+{
+  "status": "passed",
+  "verifiedAtUtc": "2026-11-16T14:25:12.523409+00:00",
+  "repository": "Hexalith/Hexalith.Tenants",
+  "version": "8.0.1",
+  "source": "ab67fd6bc308b5a641b0ca398d776e347193c168",
+  "release": {
+    "id": 447133958,
+    "url": "https://github.com/Hexalith/Hexalith.Tenants/releases/tag/v8.0.1",
+    "tagCommit": "ab67fd6bc308b5a641b0ca398d776e347193c168",
+    "immutable": false
+  },
+  "candidate": {
+    "artifactId": 14231529383,
+    "name": "release-candidate",
+    "digest": "sha256:483a4cdeb55cf01f7e812c6254dbb8ddf9024395a67871f00e6cb151d6ab7ef2",
+    "runId": 43880703312,
+    "runAttempt": 1,
+    "runLatestAttempt": 1,
+    "producerEvidence": {
+      "attempt": 1,
+      "jobId": 133345717175,
+      "jobName": "Prepare release artifacts without publication credentials",
+      "jobStartedAt": "2026-11-16T13:57:15Z",
+      "jobCompletedAt": "2026-11-16T14:03:59Z",
+      "artifactCreatedAt": "2026-11-16T14:03:25Z",
+      "artifactUpdatedAt": "2026-11-16T14:03:25Z",
+      "jobsEvidenceSha256": "d111db6302571f321284fe2dbd5e2ed2b0b3b5d77d4bd1fb8f060f85411e8ed9"
+    },
+    "conclusion": "success"
+  },
+  "comparisonHelperSha256": "8fdd5035a883da2682b73afeb0e6d4a5da5a6f40db8ec30c39b8cc575bf63b03",
+  "packages": [
+    {
+      "id": "Hexalith.Tenants.Contracts",
+      "version": "8.0.1",
+      "source": "ab67fd6bc308b5a641b0ca398d776e347193c168",
+      "listed": true,
+      "registrationUrl": "https://api.nuget.org/v3/registration5-gz-semver2/hexalith.tenants.contracts/8.0.1.json",
+      "catalogUrl": "https://api.nuget.org/v3/catalog0/data/2026.11.16.14.14.08/hexalith.tenants.contracts.8.0.1.json",
+      "archiveUrl": "https://api.nuget.org/v3-flatcontainer/hexalith.tenants.contracts/8.0.1/hexalith.tenants.contracts.8.0.1.nupkg",
+      "sha256": "857545d118547d11e296effb182230c740ac74f8449d546efb6da62a88209059",
+      "officialSha512": "Y/CEYTJxwG5wI4P0VfDHi3ecMDunkDCj+840biy5ujuZBu1FoK9hLXxrz+hEO2bD0xv3aA/zZGZWS2tDnNWRZg==",
+      "preparedSha256": "803cd09b52f9f83b0939228fdabef8111bbf502fc1a5d4305a1eba0ad8ffff06",
+      "payloadComparison": "identical except repository signature",
+      "nativeSignatureVerificationExitCode": 0,
+      "signatureLogSha256": "fb007726418fd75056ae4b1b78b788d10ff826d6b082f110d8793586945fdfba"
+    },
+    {
+      "id": "Hexalith.Tenants.Client",
+      "version": "8.0.1",
+      "source": "ab67fd6bc308b5a641b0ca398d776e347193c168",
+      "listed": true,
+      "registrationUrl": "https://api.nuget.org/v3/registration5-gz-semver2/hexalith.tenants.client/8.0.1.json",
+      "catalogUrl": "https://api.nuget.org/v3/catalog0/data/2026.11.16.14.15.48/hexalith.tenants.client.8.0.1.json",
+      "archiveUrl": "https://api.nuget.org/v3-flatcontainer/hexalith.tenants.client/8.0.1/hexalith.tenants.client.8.0.1.nupkg",
+      "sha256": "834df1fe050fdeb44c3fcddff3d5dd6afb0a2d7f4d467732c5192d880cfa3951",
+      "officialSha512": "XVizOsEwQwXEfq5RDTlSv1EqkLKzokiVXmq/wC5PHtA1FQWpqVQ3Og2a5o1cmJDwAInIqPGXKSBOTtqqE+j6rw==",
+      "preparedSha256": "01b0bdeb0e57abdd89b0a7675f2452bae2eb242282b2f8251af9c58338a4fe66",
+      "payloadComparison": "identical except repository signature",
+      "nativeSignatureVerificationExitCode": 0,
+      "signatureLogSha256": "5c2e0e1224b6047e53770951a1ebec8901a9b1b5ff5a48630c309776e0741c80"
+    },
+    {
+      "id": "Hexalith.Tenants.Server",
+      "version": "8.0.1",
+      "source": "ab67fd6bc308b5a641b0ca398d776e347193c168",
+      "listed": true,
+      "registrationUrl": "https://api.nuget.org/v3/registration5-gz-semver2/hexalith.tenants.server/8.0.1.json",
+      "catalogUrl": "https://api.nuget.org/v3/catalog0/data/2026.11.16.14.19.46/hexalith.tenants.server.8.0.1.json",
+      "archiveUrl": "https://api.nuget.org/v3-flatcontainer/hexalith.tenants.server/8.0.1/hexalith.tenants.server.8.0.1.nupkg",
+      "sha256": "d4891c3cf03e282717e207ab735c0e05fb2ec2819d8ff2f1e96a1a2abeb2c1ac",
+      "officialSha512": "x1umR5hN7sQ+Xcv9N9a/vAsdF7BPW0qHaoTKxwet/c7Q+fhgxl9e/NRKZWrGdl/l1PSwl2MiLRbeDNBUaaCinQ==",
+      "preparedSha256": "d668a40e42acbe5f57e6db6109594bc2be414132b87c822ac634dc8079130de4",
+      "payloadComparison": "identical except repository signature",
+      "nativeSignatureVerificationExitCode": 0,
+      "signatureLogSha256": "6c62cc7baf058b7c20b387bf8efd1c83ac3818964ea6bbdba740da91ba37a9c4"
+    },
+    {
+      "id": "Hexalith.Tenants.Testing",
+      "version": "8.0.1",
+      "source": "ab67fd6bc308b5a641b0ca398d776e347193c168",
+      "listed": true,
+      "registrationUrl": "https://api.nuget.org/v3/registration5-gz-semver2/hexalith.tenants.testing/8.0.1.json",
+      "catalogUrl": "https://api.nuget.org/v3/catalog0/data/2026.11.16.14.15.01/hexalith.tenants.testing.8.0.1.json",
+      "archiveUrl": "https://api.nuget.org/v3-flatcontainer/hexalith.tenants.testing/8.0.1/hexalith.tenants.testing.8.0.1.nupkg",
+      "sha256": "8854dd715c796a2c5da9ac620c9ad191003ea67e531914f038971ea3aa0d063b",
+      "officialSha512": "GooDIts1wHO8SceQXAe5u+0AaFPXeIm4RHhJxrgflbfXkQ5DSF7Ktsd3olPUKY6z0LEu1y/Q0uEqgQa3pu9z9w==",
+      "preparedSha256": "1c8b8f0b494ba77a70215c04be49926b631c6f2bbeaf836b1c30f66259d4cf87",
+      "payloadComparison": "identical except repository signature",
+      "nativeSignatureVerificationExitCode": 0,
+      "signatureLogSha256": "536ac569a9a2ce93e333a9e22c0a229372f23d8db28a8788d30a262d6415c5d9"
+    },
+    {
+      "id": "Hexalith.Tenants.Aspire",
+      "version": "8.0.1",
+      "source": "ab67fd6bc308b5a641b0ca398d776e347193c168",
+      "listed": true,
+      "registrationUrl": "https://api.nuget.org/v3/registration5-gz-semver2/hexalith.tenants.aspire/8.0.1.json",
+      "catalogUrl": "https://api.nuget.org/v3/catalog0/data/2026.11.16.14.17.32/hexalith.tenants.aspire.8.0.1.json",
+      "archiveUrl": "https://api.nuget.org/v3-flatcontainer/hexalith.tenants.aspire/8.0.1/hexalith.tenants.aspire.8.0.1.nupkg",
+      "sha256": "c9c15d55966190452b16a7c69b723a0781ee6b15000bbdee8b10c4ac9140c6a5",
+      "officialSha512": "ZZH/SvUvf5SHKyt5n18qtYgg3U3YtT8KMWqJAiXqDS7/4DxFHTS0VsNfm9Rs14pVeUmh/WGmBnat37MGgxy37Q==",
+      "preparedSha256": "16546a601fb95349d49979cf12c04497d4dd33e99546af18b94b7ca011157baf",
+      "payloadComparison": "identical except repository signature",
+      "nativeSignatureVerificationExitCode": 0,
+      "signatureLogSha256": "2690e9b8a6422d5a95158b656cbdc2a6669a998e2a74f5675fb88b4ab135c622"
+    }
+  ]
+}

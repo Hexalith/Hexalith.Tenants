@@ -1,0 +1,15 @@
+{
+  "observedAtUtc": "2026-11-16T12:03:08.959481+00:00",
+  "failedSource": "fbed6cd32e0497bf8dd82a2ab7681e15e268234f",
+  "failedCi": 43857137467,
+  "failedJob": 133264193179,
+  "actualFailure": "Server.Tests8431pass/1fail/25configuredskips: TrackedReusableContent_DoesNotContainUsableSecrets points only to tools/tests/test_phase_4_story_completion.py:78, a file introduced by concurrentceb43 work. Other five CI jobs succeeded.",
+  "actualOldIntegration": "Run43857136975 both jobs cancelled when new owner main arrived; no successclaimed.",
+  "selectedRepair": "8b6d5bee5217b3f4bbd8fd689ad887aca863961b",
+  "repairScope": "Existing owning11-file scanner/fixture/story repair; Runtime SDK src, .gitmodules and dependency gitlinks unchanged. Adds credential-format controls, runtime-generated fixture secrets, and per-run-block workflow interpolation controls.",
+  "parentAction": "Read owning spec, preserved prior fixture proof at its actual sources, fast-forwarded clean owner without authoring/reviewing a duplicate repair.",
+  "currentCi": 43862076142,
+  "currentIntegration": 43862075310,
+  "optionalFailureResolution": "Source8b6 replaces flawed content.split fragment check with bounded run-body parsing and rejection cases; prior deferred defect is addressed in source, current CI pending.",
+  "publication": "No new EventStore package publication; public SDK5.1.1 provenance remainsf792."
+}

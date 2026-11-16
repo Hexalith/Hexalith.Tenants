@@ -1,0 +1,183 @@
+[
+  {
+    "owner": "Hexalith.EventStore",
+    "source": "2dcf708cbab0d4ad0cf72f947d0b0a1444e251a1",
+    "command_exit_code": 0,
+    "runs": [
+      {
+        "conclusion": "failure",
+        "databaseId": 43736791172,
+        "headSha": "2dcf708cbab0d4ad0cf72f947d0b0a1444e251a1",
+        "status": "completed",
+        "workflowName": "Phase 4 gate risk matrix"
+      },
+      {
+        "conclusion": "failure",
+        "databaseId": 43736791246,
+        "headSha": "2dcf708cbab0d4ad0cf72f947d0b0a1444e251a1",
+        "status": "completed",
+        "workflowName": "Payload Protection"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 43736791133,
+        "headSha": "2dcf708cbab0d4ad0cf72f947d0b0a1444e251a1",
+        "status": "completed",
+        "workflowName": "OQ8 governing-design availability"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 43736791679,
+        "headSha": "2dcf708cbab0d4ad0cf72f947d0b0a1444e251a1",
+        "status": "completed",
+        "workflowName": "Commitlint"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 43736791173,
+        "headSha": "2dcf708cbab0d4ad0cf72f947d0b0a1444e251a1",
+        "status": "completed",
+        "workflowName": "Payload Protection Azure"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 43736791250,
+        "headSha": "2dcf708cbab0d4ad0cf72f947d0b0a1444e251a1",
+        "status": "completed",
+        "workflowName": "Payload Protection Lifecycle"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 43736791181,
+        "headSha": "2dcf708cbab0d4ad0cf72f947d0b0a1444e251a1",
+        "status": "completed",
+        "workflowName": "Advisory Tests"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 43736791596,
+        "headSha": "2dcf708cbab0d4ad0cf72f947d0b0a1444e251a1",
+        "status": "completed",
+        "workflowName": "CodeQL"
+      }
+    ]
+  },
+  {
+    "owner": "Hexalith.Commons",
+    "source": "ab5e92faa3bab1fa43b8ecadd423432dfe652bb2",
+    "command_exit_code": 0,
+    "runs": [
+      {
+        "conclusion": "success",
+        "databaseId": 43743595546,
+        "headSha": "ab5e92faa3bab1fa43b8ecadd423432dfe652bb2",
+        "status": "completed",
+        "workflowName": "Commitlint"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 43743595620,
+        "headSha": "ab5e92faa3bab1fa43b8ecadd423432dfe652bb2",
+        "status": "completed",
+        "workflowName": "CI"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 43743595559,
+        "headSha": "ab5e92faa3bab1fa43b8ecadd423432dfe652bb2",
+        "status": "completed",
+        "workflowName": "CodeQL"
+      }
+    ]
+  },
+  {
+    "owner": "Hexalith.Memories",
+    "source": "61a2caef3f3b7d556a856100b04b05feddddfb34",
+    "command_exit_code": 0,
+    "runs": [
+      {
+        "conclusion": "success",
+        "databaseId": 43751093346,
+        "headSha": "61a2caef3f3b7d556a856100b04b05feddddfb34",
+        "status": "completed",
+        "workflowName": "Commitlint"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 43751093239,
+        "headSha": "61a2caef3f3b7d556a856100b04b05feddddfb34",
+        "status": "completed",
+        "workflowName": "CodeQL"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 43751093337,
+        "headSha": "61a2caef3f3b7d556a856100b04b05feddddfb34",
+        "status": "completed",
+        "workflowName": "CI"
+      }
+    ]
+  },
+  {
+    "owner": "Hexalith.McpCli",
+    "source": "9b9c2c46e29d9b34b51badbdb4334b4ca0047930",
+    "command_exit_code": 0,
+    "runs": [
+      {
+        "conclusion": "success",
+        "databaseId": 43750457556,
+        "headSha": "9b9c2c46e29d9b34b51badbdb4334b4ca0047930",
+        "status": "completed",
+        "workflowName": "Agent instructions sync"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 43750457700,
+        "headSha": "9b9c2c46e29d9b34b51badbdb4334b4ca0047930",
+        "status": "completed",
+        "workflowName": "Commitlint"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 43750457553,
+        "headSha": "9b9c2c46e29d9b34b51badbdb4334b4ca0047930",
+        "status": "completed",
+        "workflowName": "Bootstrap package"
+      },
+      {
+        "conclusion": "cancelled",
+        "databaseId": 43750457698,
+        "headSha": "9b9c2c46e29d9b34b51badbdb4334b4ca0047930",
+        "status": "completed",
+        "workflowName": "CI"
+      }
+    ]
+  },
+  {
+    "owner": "Hexalith.PolymorphicSerializations",
+    "source": "476cfccac3c5ba694a8e0ef11b1157728b9ec093",
+    "command_exit_code": 0,
+    "runs": [
+      {
+        "conclusion": "success",
+        "databaseId": 43743627724,
+        "headSha": "476cfccac3c5ba694a8e0ef11b1157728b9ec093",
+        "status": "completed",
+        "workflowName": "Build and Test"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 43743628046,
+        "headSha": "476cfccac3c5ba694a8e0ef11b1157728b9ec093",
+        "status": "completed",
+        "workflowName": "CodeQL"
+      }
+    ]
+  },
+  {
+    "owner": "Hexalith.AI.Tools",
+    "source": "17a37d83db193f0b7494c1b931fd1e82a67c1424",
+    "command_exit_code": 0,
+    "runs": []
+  }
+]

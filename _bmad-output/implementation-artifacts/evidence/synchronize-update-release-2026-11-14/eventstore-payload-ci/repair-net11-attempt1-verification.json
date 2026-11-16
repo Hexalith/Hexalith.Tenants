@@ -1,0 +1,65 @@
+{
+  "source": "2dcf708cbab0d4ad0cf72f947d0b0a1444e251a1",
+  "platform": "00ed06074f5b67522eff81dc8dae6ebd28161c36",
+  "builds": "e2bbbd0893f586e4d447ef8358ff747ea3d34435",
+  "scope": "Local disposable source-component qualification; frozen package cohort remains separate from current SDK/native or installed acceptance.",
+  "workspace": "/dev/shm/hexalith-job.Jpxsqyku/EventStore",
+  "commands": [
+    {
+      "name": "package-view",
+      "command": [
+        "dotnet",
+        "msbuild",
+        "tests/Hexalith.Platform.Protection.Tests/Hexalith.Platform.Protection.Tests.csproj",
+        "-p:Configuration=Release",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:TargetFramework=net11.0",
+        "-p:HexalithEventStoreRoot=/dev/shm/hexalith-job.Jpxsqyku/EventStore",
+        "-getProperty:TargetFramework,HexalithEventStoreVersion,HexalithMemoriesVersion,UseHexalithProjectReferences",
+        "-getItem:PackageVersion"
+      ],
+      "cwd": "/dev/shm/hexalith-job.Jpxsqyku/EventStore/references/Hexalith.Platform",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "log": "repair-net11-attempt1-package-view.log",
+      "log_sha256": "19181d8e9ede34f20ace96eb6e143297d6a0453cc63506f7c0850ae03255dab7"
+    },
+    {
+      "name": "npm-ci",
+      "command": [
+        "npm",
+        "ci",
+        "--ignore-scripts",
+        "--no-audit"
+      ],
+      "cwd": "/dev/shm/hexalith-job.Jpxsqyku/EventStore",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "log": "repair-net11-attempt1-npm-ci.log",
+      "log_sha256": "6409d09dde432715586bd86f8cc621b6131e20966d2baed871142e9ad11e4b39"
+    },
+    {
+      "name": "python-owner-qualification",
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tools/tests",
+        "-p",
+        "test_ext_protection_1*.py",
+        "-v"
+      ],
+      "cwd": "/dev/shm/hexalith-job.Jpxsqyku/EventStore",
+      "exit_code": 1,
+      "expected_exit_code": 0,
+      "log": "repair-net11-attempt1-python-owner-qualification.log",
+      "log_sha256": "705e3a225a9dc9b6d19e25c8dfc7a1d37d63c0baffa9c9cee843f316097aa77b"
+    }
+  ],
+  "input_manifest": "repair-net11-attempt1-input-manifest.json",
+  "input_manifest_sha256": "e350d7ac4b90c6697817194c9d987cb3af2c294b4de3c111b507a6f17bc362cb",
+  "input_file_count": 41211,
+  "runner_sha256": "d0ac5adee37f34bf53a470e318790748ca9ac0a43dac3690192a8c96607b1e95"
+}

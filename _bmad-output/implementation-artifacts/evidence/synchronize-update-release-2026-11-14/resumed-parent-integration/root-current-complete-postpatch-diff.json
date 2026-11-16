@@ -1,0 +1,9 @@
+{
+  "createdAtUtc": "2026-11-16T06:14:59.266811+00:00",
+  "baseline": "401d926eb7d51bdf332696ed3f0fe39a812b3501",
+  "diffPath": "/tmp/hexalith-job.AwUtYK0p/release-review.diff",
+  "bytes": 279178207,
+  "sha256": "abf1f080a17d4da22125be21069b2b3f0ae982a191611cb274dcd9a42c91f7db",
+  "untrackedFiles": 1585,
+  "scope": "Complete diff refresh after all11Root findings were individually triaged and9patch findings corrected/verified. No staging. Final actual package adoption/publication remains pending."
+}
