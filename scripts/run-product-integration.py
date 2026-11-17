@@ -15,6 +15,7 @@ import time
 
 ROOT = Path(__file__).resolve().parents[1]
 PROJECT = "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj"
+NATURAL_EXIT_TIMEOUT_SECONDS = 60
 # The ordinary tier excludes exactly these five classes and Performance. Each
 # cold profile uses one distinct nonzero database; DB0 remains the ordinary tier.
 PROFILES = (
@@ -62,6 +63,16 @@ def stop_private_consumers(private):
         raise ValueError("Private topology container cleanup is incomplete.")
 
 
+def wait_for_private_consumers(private):
+    """Await natural exit under one deadline while retaining private custody."""
+    deadline = time.monotonic() + NATURAL_EXIT_TIMEOUT_SECONDS
+    while PROFILE.active_processes(private):
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise ValueError("Private topology consumers did not exit before the shutdown deadline.")
+        time.sleep(min(0.1, remaining))
+
+
 def run_profile(profile, class_name, database, minimum, workers, sample, *, temporary, output, producer, source):
     receipt = output / (profile + ".json")
     env_path = temporary / ("tenants-profile-environment-" + profile)
@@ -105,6 +116,9 @@ def run_profile(profile, class_name, database, minimum, workers, sample, *, temp
         for index, result in enumerate(sorted(private.glob("tenants-live-routes-*/result.json"))):
             if result.is_file() and not result.is_symlink():
                 PROFILE.write_exclusive(output / (profile + "-browser-" + str(index) + ".json"), json.loads(result.read_text()))
+        # The awaited fixture has requested native shutdown. Keep its custody
+        # until detached consumers exit, then apply every original finish guard.
+        wait_for_private_consumers(private)
         PROFILE.finish(receipt, temporary, PROFILE.job_identity())
         private = None
         if status:
