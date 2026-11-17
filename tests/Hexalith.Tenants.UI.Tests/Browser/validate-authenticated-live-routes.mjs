@@ -7,6 +7,7 @@ import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { capturePublishedFrontComposer } from './published-frontcomposer-evidence.mjs';
+import { assertStableCapture } from './authenticated-live-source-capture.mjs';
 import { createFunctionalNavigation } from './authenticated-live-route-waits.mjs';
 import { captureLauncherFocusState, createLiveRouteCheckpoint } from './authenticated-live-route-evidence.mjs';
 
@@ -479,7 +480,8 @@ try {
     check(errors.length === 0, 'browser-page-errors-absent');
     await checkpoint('final-source-capture');
     const after = await capture(configuration);
-    for (const key of Object.keys(before)) check(after[key] === before[key], `stable-capture-${key}`);
+    evidence.sourceAfter = after;
+    assertStableCapture(before, after);
     evidence.passed = true;
 } catch (error) {
     // Match only known diagnostic categories; raw browser errors may include signed URLs.
