@@ -138,11 +138,7 @@ public sealed class AuthenticatedTenantsRouteTests(AuthenticatedRouteTopologyFix
         TenantReadModel before = await AspireTopologyTests.WaitForPersistedTenantAsync(state.TenantId, "tenant-sequence:" + sequence, timeout.Token);
         string ownerToken = OwnerToken(true);
         string deniedToken = OwnerToken(false);
-        using var redis = await StackExchange.Redis.ConnectionMultiplexer.ConnectAsync(new StackExchange.Redis.ConfigurationOptions
-        {
-            EndPoints = { $"localhost:{DaprDiagnostics.ResolveRedisPort()}" },
-            ConnectTimeout = 5_000, SyncTimeout = 5_000, AbortOnConnectFail = true,
-        });
+        using var redis = await CatalogRedisBackend.ConnectAsync(timeout.Token);
         var identity = new AggregateIdentity("system", "tenants", state.TenantId);
         string eventPrefix = $"eventstore||AggregateActor||{identity.ActorId}||{identity.EventStreamKeyPrefix}";
         foreach (bool disabled in new[] { false, true })
