@@ -26,6 +26,7 @@ namespace Hexalith.Tenants.IntegrationTests.Fixtures;
 /// </remarks>
 public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith_Tenants_AppHost>, IAsyncLifetime {
     private readonly string _nativeOwnerPrivateKey = NativeOwnerReadServiceComposition.CreatePrivateKey();
+    private readonly FrozenAspireShutdownClient _shutdown;
 
     internal static string DemoSigningKey => Environment.GetEnvironmentVariable("TENANTS_SOURCE_CATALOG_SIGNING_KEY")
         ?? "DevOnlySigningKey-AtLeast32Chars!";
@@ -42,6 +43,7 @@ public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith
     /// <summary>Uses the SDK's trusted development certificate directory without changing TLS validation.</summary>
     public AspireTopologyFixture()
     {
+        _shutdown = FrozenAspireLifecycle.Attach(this);
         ConfigureCertificateTrust();
     }
 
@@ -68,7 +70,7 @@ public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith
             async () =>
             {
                 await BootstrapResourceFailureDiagnostics.CaptureAsync(this);
-                await base.DisposeAsync();
+                await DisposeApplicationAsync();
             },
             string.Equals(Environment.GetEnvironmentVariable("TENANTS_LIVE_REQUIRE_COLD_BOOTSTRAP"), "true", StringComparison.OrdinalIgnoreCase),
             timeout.Token,
@@ -78,8 +80,14 @@ public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith
     /// <inheritdoc/>
     public new async ValueTask DisposeAsync()
     {
-        await base.DisposeAsync();
+        await DisposeApplicationAsync();
         CatalogRedisBackend.RecordShutdown();
+    }
+
+    private async ValueTask DisposeApplicationAsync()
+    {
+        await _shutdown.StopAsync();
+        await base.DisposeAsync();
     }
 
     internal static bool IsSourceCatalogProfile => string.Equals(Environment.GetEnvironmentVariable("TENANTS_SOURCE_CATALOG_PROFILE"), "true", StringComparison.Ordinal);
