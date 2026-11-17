@@ -50,6 +50,9 @@ internal static class CatalogRedisBackend
         var options = new ConfigurationOptions
         {
             AbortOnConnectFail = false,
+            // The client classifies read-only INFO as administrative. Only the receipt-bound
+            // cold verifier needs that category to compare the actual server run identity.
+            AllowAdmin = AspireTopologyFixture.IsSourceCatalogProfile,
             ConnectTimeout = 5000,
             SyncTimeout = 5000,
             AsyncTimeout = 5000,
