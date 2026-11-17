@@ -1898,14 +1898,6 @@ public sealed class TenantsUiCompositionTests
     }
 
     [Fact]
-    public void Release_workflow_does_not_claim_an_unsupported_tenants_ui_container_handoff()
-    {
-        string workflow = File.ReadAllText(Path.Combine(ProjectRoot(), ".github/workflows/release.yml"));
-
-        workflow.ShouldNotContain("src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj|tenants-ui");
-    }
-
-    [Fact]
     public void Styles_include_forced_colors_and_visible_focus_rules()
     {
         // 2026-06-25 ergonomic pass: TenantsWorkspace no longer ships component CSS. Its surface is

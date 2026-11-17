@@ -5187,20 +5187,9 @@ public sealed partial class GlobalAdministratorsPageTests : FluentBunitContext
                 .Any(directory => File.Exists(Path.Combine(directory, name)));
 
         string assets = Path.Combine(ProjectRoot(), "src", "Hexalith.Tenants.UI", "obj", "project.assets.json");
-        string? configuredBrowser = Environment.GetEnvironmentVariable("CHROMIUM_BIN");
-        string browserCache = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-            ".cache",
-            "ms-playwright");
-        bool hasBrowser = configuredBrowser is not null && File.Exists(configuredBrowser)
-            || new[] { "google-chrome-stable", "google-chrome", "chromium", "chromium-browser" }
-                .Any(HasCommand)
-            || Directory.Exists(browserCache)
-                && Directory.EnumerateFiles(browserCache, "*", SearchOption.AllDirectories)
-                    .Any(path => Path.GetFileName(path) is "chrome" or "headless_shell");
         Assert.SkipUnless(
-            File.Exists(assets) && HasCommand("bash") && HasCommand("python3") && hasBrowser,
-            "The restored UI assets, bash, python3, and Chromium are required for this browser subprocess check.");
+            File.Exists(assets) && HasCommand("bash") && HasCommand("python3"),
+            "The restored UI assets, bash, and python3 are required for this browser subprocess check.");
 
         string runner = Path.Combine(
             ProjectRoot(),
@@ -5208,9 +5197,16 @@ public sealed partial class GlobalAdministratorsPageTests : FluentBunitContext
             "Hexalith.Tenants.UI.Tests",
             "Browser",
             "validate-tenants-focus-browser.sh");
-        string browserMarker = Path.Combine(
-            Path.GetTempPath(),
-            $"tenants-focus-browser-invoked-{Guid.NewGuid():N}");
+        string validationDirectory = Directory.CreateTempSubdirectory("tenants-focus-startup-failure-").FullName;
+        string browser = Path.Combine(validationDirectory, "chromium-canary");
+        string browserMarker = Path.Combine(validationDirectory, "browser-invoked");
+        // This negative case must fail before launching a browser. Keep real Chromium for the
+        // separate browser qualification and use a canary to detect an unexpected launch here.
+        await File.WriteAllTextAsync(browser, "#!/usr/bin/env bash\nexit 97\n");
+        if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
+        {
+            File.SetUnixFileMode(browser, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        }
         var startInfo = new ProcessStartInfo("bash")
         {
             WorkingDirectory = ProjectRoot(),
@@ -5226,6 +5222,7 @@ public sealed partial class GlobalAdministratorsPageTests : FluentBunitContext
         startInfo.Environment["TENANTS_BROWSER_BUILD_CONFIGURATION"] =
             Environment.GetEnvironmentVariable("TENANTS_BROWSER_BUILD_CONFIGURATION")
             ?? currentConfiguration;
+        startInfo.Environment["CHROMIUM_BIN"] = browser;
         startInfo.Environment["TENANTS_FOCUS_TEST_SERVER_START_FAILURE"] = "true";
         startInfo.Environment["TENANTS_FOCUS_BROWSER_INVOCATION_MARKER"] = browserMarker;
 
@@ -5253,7 +5250,7 @@ public sealed partial class GlobalAdministratorsPageTests : FluentBunitContext
         }
         finally
         {
-            File.Delete(browserMarker);
+            Directory.Delete(validationDirectory, recursive: true);
         }
     }
 

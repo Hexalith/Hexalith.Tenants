@@ -1,4 +1,4 @@
-#if HEXALITH_DEVELOPMENT_CATALOG_SOURCE_REFERENCE
+#if HEXALITH_DEVELOPMENT_CATALOG_COHORT
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -22,7 +22,7 @@ using StoredEventEnvelope = Hexalith.EventStore.Server.Events.EventEnvelope;
 
 namespace Hexalith.Tenants.IntegrationTests;
 
-/// <summary>Mandatory standalone source-runtime proof; model/socket fixtures and package compatibility hosts cannot satisfy it.</summary>
+/// <summary>Mandatory standalone catalog-runtime proof; model/socket fixtures and package compatibility hosts cannot satisfy it.</summary>
 [Collection("AspireTopology")]
 [DaprTestSerialization]
 [Trait("Category", "Integration")]
@@ -110,12 +110,12 @@ public sealed class SourceCatalogOwnerProfileTests(AspireTopologyFixture fixture
         refused.Headers.Authorization = new("Bearer", token);
         using var denied = await fixture.TenantsUiDaprClient.SendAsync(refused, deadline.Token);
         denied.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
-        using var redis = await ConnectionMultiplexer.ConnectAsync("localhost:6379,abortConnect=false,connectTimeout=5000,asyncTimeout=5000").WaitAsync(deadline.Token);
-        (await redis.GetDatabase().KeyExistsAsync("tenants||projection:tenants:" + tenantId).WaitAsync(deadline.Token)).ShouldBeTrue();
+        using var redis = await CatalogRedisBackend.ConnectAsync(deadline.Token);
+        (await CatalogRedisBackend.Database(redis).KeyExistsAsync("tenants||projection:tenants:" + tenantId).WaitAsync(deadline.Token)).ShouldBeTrue();
         string tenantAuditKey = TenantAuditStreams.GetTenantKey(tenantId);
         tenantAuditKey.ShouldNotBe(TenantAuditStreams.GlobalAdministratorsKey);
-        (await redis.GetDatabase().KeyExistsAsync("tenants||" + tenantAuditKey).WaitAsync(deadline.Token)).ShouldBeTrue();
-        (await redis.GetDatabase().KeyExistsAsync("tenants||" + TenantAuditStreams.GlobalAdministratorsKey).WaitAsync(deadline.Token)).ShouldBeTrue();
+        (await CatalogRedisBackend.Database(redis).KeyExistsAsync("tenants||" + tenantAuditKey).WaitAsync(deadline.Token)).ShouldBeTrue();
+        (await CatalogRedisBackend.Database(redis).KeyExistsAsync("tenants||" + TenantAuditStreams.GlobalAdministratorsKey).WaitAsync(deadline.Token)).ShouldBeTrue();
         // The public tenant stream route reads its retained actor through EventStore's Dapr
         // sidecar and must return the historical storage identity unchanged.
         using var historyRequest = new HttpRequestMessage(HttpMethod.Post, "/api/v1/streams/read")
@@ -134,7 +134,7 @@ public sealed class SourceCatalogOwnerProfileTests(AspireTopologyFixture fixture
         async Task<StoredEventEnvelope> ReadRetainedEventAsync(AggregateIdentity identity)
         {
             string key = $"eventstore||AggregateActor||{identity.ActorId}||{identity.EventStreamKeyPrefix}1";
-            RedisValue value = await redis.GetDatabase().HashGetAsync(key, "data").WaitAsync(deadline.Token);
+            RedisValue value = await CatalogRedisBackend.Database(redis).HashGetAsync(key, "data").WaitAsync(deadline.Token);
             value.IsNullOrEmpty.ShouldBeFalse();
             return JsonSerializer.Deserialize<StoredEventEnvelope>(value.ToString(), JsonSerializerOptions.Web).ShouldNotBeNull();
         }
@@ -149,7 +149,7 @@ public sealed class SourceCatalogOwnerProfileTests(AspireTopologyFixture fixture
         globalStoredEvent.EventTypeName.ShouldBe(typeof(GlobalAdministratorSet).FullName);
         // Dapr Redis pub/sub retains topic entries as a Redis stream. The fresh backend has
         // only this qualification's traffic, so each family must appear on the shared legacy topic.
-        var topic = await redis.GetDatabase().StreamRangeAsync("tenants.events").WaitAsync(deadline.Token);
+        var topic = await CatalogRedisBackend.Database(redis).StreamRangeAsync("tenants.events").WaitAsync(deadline.Token);
         topic.ShouldContain(entry => entry.Values.Any(field => field.Value.ToString().Contains(tenantId, StringComparison.Ordinal)));
         topic.ShouldContain(entry => entry.Values.Any(field => field.Value.ToString().Contains(nameof(GlobalAdministratorSet), StringComparison.Ordinal)));
         while (true)

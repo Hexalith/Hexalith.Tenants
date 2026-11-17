@@ -1,0 +1,51 @@
+name: Tenants complete product integration
+description: Preserve coverage thresholds, ordinary integration, all cold profiles and real Dapr retry controls.
+runs:
+  using: composite
+  steps:
+    - name: Require retained library coverage and isolation branch thresholds
+      shell: bash
+      run: >-
+        python3 scripts/validate-coverage.py --coverage-root TestResults
+        --minimum-line-coverage 80 --required-branch-coverage 100
+        --line-scope src/Hexalith.Tenants.Contracts/
+        --line-scope src/Hexalith.Tenants.Client/
+        --line-scope src/Hexalith.Tenants.Server/
+        --line-scope src/Hexalith.Tenants.Testing/
+        --isolation-auth-target src/Hexalith.Tenants.Server/Aggregates/TenantAggregate.cs
+        --isolation-auth-target src/Hexalith.Tenants.Server/Aggregates/GlobalAdministratorsAggregate.cs
+        --isolation-auth-target src/Hexalith.Tenants.Server/Validators/ChangeUserRoleValidator.cs
+        --isolation-auth-target src/Hexalith.Tenants.Server/Projections/TenantAuditOwnership.cs
+        --summary-file "$GITHUB_STEP_SUMMARY"
+    - name: Run the complete integration project with isolated cold catalog profiles
+      shell: bash
+      run: python3 scripts/run-product-integration.py
+    - name: Require real Dapr HTTPS no-retry behavior and its four-call mutation control
+      shell: bash
+      run: |
+        set -euo pipefail
+        python3 tests/integration/qualify-dapr-read-retries.py --output "${RUNNER_TEMP}/tenants-dapr-no-retry.json"
+        if python3 tests/integration/qualify-dapr-read-retries.py --mutate-retries --output "${RUNNER_TEMP}/tenants-dapr-retry-mutation.json"; then
+          echo 'The retries=3 mutation unexpectedly passed.' >&2
+          exit 1
+        fi
+        python3 - "${RUNNER_TEMP}/tenants-dapr-retry-mutation.json" <<'PY'
+        import json, sys
+        report = json.load(open(sys.argv[1]))
+        retry = next(row for row in report['results'] if row['case'] == 'no retry on 503')
+        assert retry['backendCalls'] == 4 and not retry['pass']
+        assert len(report['results']) == 13 and all(row['pass'] for row in report['results'] if row is not retry)
+        PY
+    - name: Retain product test results and support-safe receipts
+      if: always()
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: tenants-product-integration
+        path: |
+          TestResults/aspire/*.trx
+          TestResults/authenticated-routes/**/*.trx
+          TestResults/coverage/**/coverage.cobertura.xml
+          ${{ runner.temp }}/tenants-product-profiles/*.json
+          ${{ runner.temp }}/tenants-bootstrap-diagnostics/*.json
+          ${{ runner.temp }}/tenants-dapr-*.json
+        if-no-files-found: warn
