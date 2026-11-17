@@ -4,6 +4,7 @@ runs:
   using: composite
   steps:
     - name: Require actual execution of the daily performance tier
+      id: performance
       shell: bash
       run: bash scripts/run-product-nightly.sh daily
     - name: Retain performance test results
@@ -13,3 +14,16 @@ runs:
         name: tenants-daily-performance
         path: TestResults/performance/*.trx
         if-no-files-found: error
+    - name: Retain the support-safe performance checkpoints
+      if: always() && steps.performance.outputs.progress_path != ''
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: tenants-daily-performance-progress
+        path: ${{ steps.performance.outputs.progress_path }}
+        if-no-files-found: error
+    - name: Remove the private performance checkpoints
+      if: always() && steps.performance.outputs.progress_directory != ''
+      shell: bash
+      env:
+        PERFORMANCE_PROGRESS_DIRECTORY: ${{ steps.performance.outputs.progress_directory }}
+      run: bash scripts/run-product-nightly.sh cleanup "$PERFORMANCE_PROGRESS_DIRECTORY"
