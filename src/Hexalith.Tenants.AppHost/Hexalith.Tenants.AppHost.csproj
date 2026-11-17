@@ -44,17 +44,11 @@
            Text="The selected Platform checkout must contain both canonical Dapr self-hosted identity source files." />
   </Target>
 
-  <!-- Debug build-forcing references for the launched child host projects.
-       The children are added to the app model via path-only IProjectMetadata (SuppressBuild=true) and Aspire
-       launches them with `dotnet run` in no-build mode, so nothing on the `aspire run` path compiles them — a
-       stale bin/Debug would run silently. These references put each child in the AppHost MSBuild graph so `aspire run`
-       rebuilds them all before launch. They are pure build edges: ReferenceOutputAssembly/Private=false keep the
-       child assemblies out of the AppHost closure, and IsAspireProjectResource=false keeps them out of the Aspire
-       resource graph (the IProjectMetadata classes remain the single source of the launched resources).
-       Cross-repo paths use the multi-layout $(Hexalith*Root) properties from Directory.Build.props; each is
-       Exists-guarded so a missing dependency submodule never breaks the AppHost build. Debug-only: Release builds
-       compile the platform via the solution / consume NuGet packages (Phase 2), and the AppHost is dev-only. -->
-  <ItemGroup Condition="'$(Configuration)' == 'Debug' and '$(UseHexalithProjectReferences)' == 'true'">
+  <!-- The pinned upstream executables are the approved composition-source boundary.
+       Build their Release outputs with the shared solution so path-only Aspire
+       metadata never launches stale Debug binaries. Ordinary Tenants dependencies
+       above continue to consume packages. -->
+  <ItemGroup>
     <ProjectReference Include="$(HexalithEventStoreRoot)\src\Hexalith.EventStore\Hexalith.EventStore.csproj"
                       Condition="Exists('$(HexalithEventStoreRoot)\src\Hexalith.EventStore\Hexalith.EventStore.csproj')"
                       GlobalPropertiesToRemove="Version"
@@ -80,7 +74,7 @@
                       Condition="Exists('..\..\samples\Hexalith.Tenants.Sample\Hexalith.Tenants.Sample.csproj')"
                       ReferenceOutputAssembly="false" Private="false" IsAspireProjectResource="false" />
     <ProjectReference Include="$(HexalithMemoriesRoot)\src\Hexalith.Memories.Server\Hexalith.Memories.Server.csproj"
-                      Condition="Exists('$(HexalithMemoriesRoot)\src\Hexalith.Memories.Server\Hexalith.Memories.Server.csproj')"
+                      Condition="'$(UseHexalithProjectReferences)' == 'true' and Exists('$(HexalithMemoriesRoot)\src\Hexalith.Memories.Server\Hexalith.Memories.Server.csproj')"
                       ReferenceOutputAssembly="false" Private="false" IsAspireProjectResource="false" />
   </ItemGroup>
 

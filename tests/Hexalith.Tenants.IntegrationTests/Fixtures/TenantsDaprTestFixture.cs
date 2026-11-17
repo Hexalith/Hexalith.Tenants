@@ -33,7 +33,43 @@ namespace Hexalith.Tenants.IntegrationTests.Fixtures;
 /// reusable platform base <see cref="DaprDomainServiceTestFixtureBase"/>. This fixture supplies only the
 /// Tenants domain host registration and the publisher/store fakes the tests assert against.
 /// </remarks>
-public sealed class TenantsDaprTestFixture : DaprDomainServiceTestFixtureBase {
+public sealed class TenantsDaprTestFixture : DaprDomainServiceTestFixtureBase, IAsyncLifetime {
+    internal SnapshotPerformanceProgress PerformanceProgress { get; } = SnapshotPerformanceProgress.FromEnvironment();
+
+    /// <inheritdoc/>
+    public new async ValueTask InitializeAsync()
+    {
+        try
+        {
+            PerformanceProgress.SetPhase(SnapshotPerformanceProgress.Phase.FixtureInitialization);
+            await base.InitializeAsync();
+            if (PrerequisitesAvailable) PerformanceProgress.SetPhase(SnapshotPerformanceProgress.Phase.FixtureReady);
+            else PerformanceProgress.Failed();
+        }
+        catch { PerformanceProgress.Failed(); throw; }
+    }
+
+    /// <inheritdoc/>
+    public new async ValueTask DisposeAsync()
+    {
+        // Checkpoint refusal must not prevent the frozen fixture from cleaning its own resources.
+        try
+        {
+            try { PerformanceProgress.SetPhase(SnapshotPerformanceProgress.Phase.FixtureTeardown); }
+            catch { PerformanceProgress.Failed(); throw; }
+        }
+        finally
+        {
+            try
+            {
+                await base.DisposeAsync();
+                PerformanceProgress.FixtureDisposed();
+            }
+            catch { PerformanceProgress.Failed(); throw; }
+            finally { PerformanceProgress.Dispose(); }
+        }
+    }
+
     /// <inheritdoc/>
     protected override string AppId => "commandapi";
 
@@ -78,6 +114,8 @@ public sealed class TenantsDaprTestFixture : DaprDomainServiceTestFixtureBase {
     /// <inheritdoc/>
     protected override void ConfigureDomain(WebApplicationBuilder builder) {
         ArgumentNullException.ThrowIfNull(builder);
+
+        PerformanceProgress.SetPhase(SnapshotPerformanceProgress.Phase.DomainConfiguration);
 
         _ = builder.Logging.AddProvider(new SupportSafeDiagnosticLogProvider(_supportDiagnostics));
 
@@ -138,6 +176,17 @@ public sealed class TenantsDaprTestFixture : DaprDomainServiceTestFixtureBase {
         _ = builder.Services.AddDataProtection()
             .SetApplicationName("Hexalith.Tenants.IntegrationTests");
         builder.Services.AddEventStoreQueryCursorCodec("Hexalith.Tenants.QueryCursor.v1");
+        bool policyResolverRegistered = builder.Services.Any(service => service.ServiceType == typeof(ISnapshotPolicyResolver));
+        builder.Services.PostConfigure<SnapshotOptions>(options =>
+        {
+            SnapshotPerformanceProgress.IntervalSource source;
+            int interval;
+            if (options.TenantDomainIntervals.TryGetValue("system:tenants", out interval)) source = SnapshotPerformanceProgress.IntervalSource.TenantDomain;
+            else if (options.DomainIntervals.TryGetValue("tenants", out interval)) source = SnapshotPerformanceProgress.IntervalSource.Domain;
+            else { interval = options.DefaultInterval; source = SnapshotPerformanceProgress.IntervalSource.Default; }
+            PerformanceProgress.RecordSnapshotInterval(interval, source, policyResolverRegistered);
+        });
+        PerformanceProgress.SetPhase(SnapshotPerformanceProgress.Phase.HostStartup);
     }
 
     private static InMemoryReadModelStore CreateGlobalAdministratorsReadModel() {

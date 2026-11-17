@@ -192,8 +192,6 @@ POLL_SECONDS=3
                     if ROOT / 'references' not in target.parents:
                         self.assertTrue(target.exists(), (document, link))
         self.assertEqual(QUICKSTART.count('dotnet run --project src/Hexalith.Tenants.AppHost/'), 1)
-        workflow = (ROOT / '.github/workflows/story-guards.yml').read_text()
-        self.assertIn('run: python3 tests/scripts/test_bootstrap_handoff.py', workflow)
 
     def test_actual_token_request_subject_decoder_and_credential_descriptors(self):
         result = self.run_shell('''

@@ -6,6 +6,8 @@ import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { capturePublishedFrontComposer } from './published-frontcomposer-evidence.mjs';
+import { assertStableCapture } from './authenticated-live-source-capture.mjs';
 import { createFunctionalNavigation } from './authenticated-live-route-waits.mjs';
 import { captureLauncherFocusState, createLiveRouteCheckpoint } from './authenticated-live-route-evidence.mjs';
 
@@ -14,7 +16,7 @@ const require = createRequire(new URL('../../performance/tenant-audit/package.js
 const moduleName = process.env.TENANTS_BROWSER_PLAYWRIGHT_MODULE || '@playwright/test';
 const output = process.argv[3];
 const evidence = { startedUtc: new Date().toISOString(), mode: 'Authenticated live Aspire topology; command-seeded persisted projections',
-    bindingScope: { artifacts: 'On-disk UI/Shell binaries, validator, and Tenants/FrontComposer working sources',
+    bindingScope: { artifacts: 'On-disk UI/Shell binaries, validator, Tenants working sources and the restored published FrontComposer closure',
         runningBackendBinaries: 'Not verified by this browser artifact; qualify through the separate integration results',
         otherDependencyWorkingSources: 'Gitlink state only; source contents are not bound by this artifact' },
     cases: [], passed: false };
@@ -47,9 +49,7 @@ const capture = async configuration => ({
     validatorSha256: hash(await readFile(fileURLToPath(import.meta.url))),
     uiBinarySha256: hash(await readFile(resolve(root, `src/Hexalith.Tenants.UI/bin/${configuration}/net11.0/Hexalith.Tenants.UI.dll`))),
     shellBinarySha256: hash(await readFile(resolve(root, `src/Hexalith.Tenants.UI/bin/${configuration}/net11.0/Hexalith.FrontComposer.Shell.dll`))),
-    frontComposerRevision: git('-C', 'references/Hexalith.FrontComposer', 'rev-parse', 'HEAD'),
-    frontComposerDiffSha256: hash(git('-C', 'references/Hexalith.FrontComposer', 'diff', '--binary', 'HEAD', '--', 'src', 'Directory.Build.props', 'Directory.Build.targets', 'Directory.Packages.props', 'global.json')),
-    frontComposerUntrackedSha256: await untrackedHash('references/Hexalith.FrontComposer'),
+    ...await capturePublishedFrontComposer(root),
     dependencyGitlinksSha256: hash(git('diff', '--binary', 'HEAD', '--', 'references')),
     playwrightPackageSha256: hash(await readFile(require.resolve(`${moduleName}/package.json`))),
 });
@@ -480,7 +480,8 @@ try {
     check(errors.length === 0, 'browser-page-errors-absent');
     await checkpoint('final-source-capture');
     const after = await capture(configuration);
-    for (const key of Object.keys(before)) check(after[key] === before[key], `stable-capture-${key}`);
+    evidence.sourceAfter = after;
+    assertStableCapture(before, after);
     evidence.passed = true;
 } catch (error) {
     // Match only known diagnostic categories; raw browser errors may include signed URLs.

@@ -1,0 +1,8 @@
+name: Tenants package and browser product checks
+description: Qualify published package consumers, private bootstrap controls and shipped browser behavior.
+runs:
+  using: composite
+  steps:
+    - name: Run package, bootstrap and browser assertions
+      shell: bash
+      run: bash scripts/run-product-unit-checks.sh

@@ -20,7 +20,8 @@ namespace Hexalith.Tenants.IntegrationTests;
 /// Tier 3 scheduled performance evidence for Story 7.5, AC5 (NFR13 startup reconstruction).
 /// Verifies that cold-start actor rehydration completes within 30 seconds
 /// for a tenant aggregate seeded with 500,000 events (1,000 tenants x 500 events average)
-/// using a 50-event snapshot interval.
+/// The documented scenario calls for a 50-event snapshot interval; the fixture's
+/// actual resolved options are observed separately without changing them.
 ///
 /// This is the scheduled performance lane: it is guarded by <see cref="DaprPerformanceFactAttribute"/>
 /// (HEXALITH_TENANTS_RUN_PERFORMANCE_TESTS=1 plus DAPR prerequisites), so it is skipped on ordinary PR
@@ -42,8 +43,11 @@ public class SnapshotPerformanceTests : IDisposable {
     private readonly TenantsDaprTestFixture _fixture;
 
     public SnapshotPerformanceTests(TenantsDaprTestFixture fixture) {
-        _daprTestLease = DaprTestExecutionGate.Enter();
+        ArgumentNullException.ThrowIfNull(fixture);
         _fixture = fixture;
+        fixture.PerformanceProgress.SetPhase(SnapshotPerformanceProgress.Phase.ExecutionGateWait);
+        try { _daprTestLease = DaprTestExecutionGate.Enter(); }
+        catch { fixture.PerformanceProgress.Failed(); throw; }
     }
 
     public void Dispose() {
@@ -53,76 +57,92 @@ public class SnapshotPerformanceTests : IDisposable {
 
     [DaprPerformanceFact]
     public async Task ColdStartRehydration_CompletesWithin30Seconds_With500KEvents() {
-        _fixture.SkipIfUnavailable();
+        try
+        {
+            _fixture.PerformanceProgress.SetPhase(SnapshotPerformanceProgress.Phase.BenchmarkSetup);
+            _fixture.SkipIfUnavailable();
 
-        // Arrange — seed 1,000 tenant aggregates with 500 events each
-        var actorProxyFactory = new ActorProxyFactory(
-            new ActorProxyOptions { HttpEndpoint = _fixture.DaprHttpEndpoint });
+            // Arrange — seed 1,000 tenant aggregates with 500 events each
+            var actorProxyFactory = new ActorProxyFactory(
+                new ActorProxyOptions { HttpEndpoint = _fixture.DaprHttpEndpoint });
 
-        using var semaphore = new SemaphoreSlim(MaxConcurrency);
+            using var semaphore = new SemaphoreSlim(MaxConcurrency);
 
-        // Phase 1: Seed tenants with events (Create + 499 commands per tenant)
-        string[] tenantIds = Enumerable.Range(0, TenantCount)
-            .Select(i => $"t-perf-{i:D4}-{Guid.NewGuid():N}")
-            .ToArray();
+            // Phase 1: Seed tenants with events (Create + 499 commands per tenant)
+            string[] tenantIds = Enumerable.Range(0, TenantCount)
+                .Select(i => $"t-perf-{i:D4}-{Guid.NewGuid():N}")
+                .ToArray();
 
-        var seedTasks = new List<Task>();
-        foreach (string tenantId in tenantIds) {
-            await semaphore.WaitAsync();
+            var seedTasks = new List<Task>();
+            _fixture.PerformanceProgress.SetPhase(SnapshotPerformanceProgress.Phase.Seeding);
+            foreach (string tenantId in tenantIds) {
+                await semaphore.WaitAsync();
 
-            seedTasks.Add(Task.Run(async () => {
-                try {
-                    await SeedTenantEventsAsync(actorProxyFactory, _fixture.AggregateActorTypeName, tenantId, EventsPerTenant);
-                }
-                finally {
-                    _ = semaphore.Release();
-                }
-            }));
+                seedTasks.Add(Task.Run(async () => {
+                    try {
+                        await SeedTenantEventsAsync(actorProxyFactory, _fixture.AggregateActorTypeName, tenantId, EventsPerTenant, _fixture.PerformanceProgress);
+                        _fixture.PerformanceProgress.RecordSeededTenant();
+                    }
+                    catch { _fixture.PerformanceProgress.Failed(); throw; }
+                    finally {
+                        _ = semaphore.Release();
+                    }
+                }));
+            }
+
+            await Task.WhenAll(seedTasks);
+            _fixture.PerformanceProgress.SetPhase(SnapshotPerformanceProgress.Phase.SeedingComplete);
+
+            // Phase 2: Pick a random tenant for cold-start rehydration measurement
+            string targetTenantId = tenantIds[Random.Shared.Next(tenantIds.Length)];
+
+            // Phase 2.5: Deactivate the target actor to force a cold-start rehydration.
+            // Calling DELETE on the app's actor endpoint mimics what the DAPR runtime does during
+            // idle timeout, evicting the actor from the in-process actor manager so the next
+            // invocation triggers OnActivateAsync() and replays state from the event store + snapshots.
+            string targetActorId = BuildActorId(targetTenantId);
+            _fixture.PerformanceProgress.SetPhase(SnapshotPerformanceProgress.Phase.TargetDeactivation);
+            await DeactivateActorAsync(targetActorId);
+            _fixture.PerformanceProgress.SetPhase(SnapshotPerformanceProgress.Phase.TargetDeactivated);
+
+            // Phase 3: Measure cold-start rehydration time.
+            // Create a new actor proxy and send a command to trigger full rehydration.
+            // The documented 50-event interval would produce ~10 snapshots per tenant.
+            // The private progress artifact reports the fixture's actual options independently.
+            CommandEnvelope rehydrationCmd = CreateTenantCommand(
+                new UpdateTenant(targetTenantId, "Rehydration Test", "Cold-start rehydration measurement"));
+
+            IAggregateActor proxy = actorProxyFactory.CreateActorProxy<IAggregateActor>(
+                new ActorId(rehydrationCmd.AggregateIdentity.ActorId),
+                _fixture.AggregateActorTypeName);
+
+            _fixture.PerformanceProgress.SetPhase(SnapshotPerformanceProgress.Phase.Rehydration);
+            var stopwatch = Stopwatch.StartNew();
+            CommandProcessingResult result = await proxy.ProcessCommandAsync(rehydrationCmd);
+            stopwatch.Stop();
+            _fixture.PerformanceProgress.RecordRehydration(stopwatch.Elapsed);
+            _fixture.PerformanceProgress.SetPhase(SnapshotPerformanceProgress.Phase.RehydrationComplete);
+
+            // Assert — rehydration completes within 30 seconds (NFR13)
+            _ = result.ShouldNotBeNull();
+            result.Accepted.ShouldBeTrue(
+                $"UpdateTenant should succeed after rehydration but got: {result.ErrorMessage}");
+
+            stopwatch.Elapsed.TotalSeconds.ShouldBeLessThan(
+                RehydrationTimeoutSeconds,
+                $"Cold-start rehydration took {stopwatch.Elapsed.TotalSeconds:F2}s, " +
+                $"exceeding the {RehydrationTimeoutSeconds}s NFR13 threshold");
+            _fixture.PerformanceProgress.BenchmarkPassed();
         }
-
-        await Task.WhenAll(seedTasks);
-
-        // Phase 2: Pick a random tenant for cold-start rehydration measurement
-        string targetTenantId = tenantIds[Random.Shared.Next(tenantIds.Length)];
-
-        // Phase 2.5: Deactivate the target actor to force a cold-start rehydration.
-        // Calling DELETE on the app's actor endpoint mimics what the DAPR runtime does during
-        // idle timeout, evicting the actor from the in-process actor manager so the next
-        // invocation triggers OnActivateAsync() and replays state from the event store + snapshots.
-        string targetActorId = BuildActorId(targetTenantId);
-        await DeactivateActorAsync(targetActorId);
-
-        // Phase 3: Measure cold-start rehydration time.
-        // Create a new actor proxy and send a command to trigger full rehydration.
-        // With 50-event snapshot interval, each tenant has ~10 snapshots, and rehydration
-        // replays at most 50 events from the last snapshot.
-        CommandEnvelope rehydrationCmd = CreateTenantCommand(
-            new UpdateTenant(targetTenantId, "Rehydration Test", "Cold-start rehydration measurement"));
-
-        IAggregateActor proxy = actorProxyFactory.CreateActorProxy<IAggregateActor>(
-            new ActorId(rehydrationCmd.AggregateIdentity.ActorId),
-            _fixture.AggregateActorTypeName);
-
-        var stopwatch = Stopwatch.StartNew();
-        CommandProcessingResult result = await proxy.ProcessCommandAsync(rehydrationCmd);
-        stopwatch.Stop();
-
-        // Assert — rehydration completes within 30 seconds (NFR13)
-        _ = result.ShouldNotBeNull();
-        result.Accepted.ShouldBeTrue(
-            $"UpdateTenant should succeed after rehydration but got: {result.ErrorMessage}");
-
-        stopwatch.Elapsed.TotalSeconds.ShouldBeLessThan(
-            RehydrationTimeoutSeconds,
-            $"Cold-start rehydration took {stopwatch.Elapsed.TotalSeconds:F2}s, " +
-            $"exceeding the {RehydrationTimeoutSeconds}s NFR13 threshold");
+        catch { _fixture.PerformanceProgress.Failed(); throw; }
     }
 
     private static async Task SeedTenantEventsAsync(
         ActorProxyFactory actorProxyFactory,
         string actorTypeName,
         string tenantId,
-        int eventCount) {
+        int eventCount,
+        SnapshotPerformanceProgress progress) {
         // Event 1: CreateTenant
         CommandEnvelope createCmd = CreateTenantCommand(
             new CreateTenant(tenantId, $"Perf Tenant {tenantId}", "Performance test seed"));
@@ -136,6 +156,7 @@ public class SnapshotPerformanceTests : IDisposable {
             throw new InvalidOperationException(
                 $"Failed to create tenant {tenantId}: {createResult.ErrorMessage}");
         }
+        progress.RecordAcceptedCommand(configuration: false);
 
         // Events 2 through eventCount: mix of AddUser, SetConfig, and Update commands
         for (int i = 1; i < eventCount; i++) {
@@ -153,6 +174,7 @@ public class SnapshotPerformanceTests : IDisposable {
                 throw new InvalidOperationException(
                     $"Failed to seed event {i} for tenant {tenantId}: {result.ErrorMessage}");
             }
+            progress.RecordAcceptedCommand(configuration: i % 3 == 1);
         }
     }
 

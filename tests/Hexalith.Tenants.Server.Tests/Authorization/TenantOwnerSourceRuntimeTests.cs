@@ -27,7 +27,6 @@ namespace Hexalith.Tenants.Server.Tests.Authorization;
 /// <summary>Uses the production source reader registration and real SDK catalog transport fence.</summary>
 public sealed class TenantOwnerSourceRuntimeTests
 {
-#if DEBUG && HEXALITH_DEVELOPMENT_CATALOG_SOURCE_REFERENCE
     [Fact]
     public void PrivateSourceEnrollmentIsInertByDefaultAndProductionRefuses()
     {
@@ -129,7 +128,6 @@ public sealed class TenantOwnerSourceRuntimeTests
         refusal.Message.ShouldBe("Private owner source proof requires the explicitly selected Debug/source host build.");
         services.ShouldBeEmpty();
     }
-#endif
 #endif
     [Theory]
     [InlineData(null, null, "http://127.0.0.1:3500/", true)]
