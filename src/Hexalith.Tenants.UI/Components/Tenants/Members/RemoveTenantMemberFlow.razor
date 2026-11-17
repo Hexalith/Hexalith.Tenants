@@ -149,7 +149,8 @@
                 @Localizer["Tenants.RemoveMember.Action.ContinueReadOnly"]
             </FluentButton>
         }
-        <FluentButton @ref="_cancelElement" Appearance="ButtonAppearance.Outline" AutoFocus="@(!IsOwnedCommandInFlight)"
+        @* Awaited dialog initialization owns Cancel focus; independent autofocus can complete after dismissal. *@
+        <FluentButton @ref="_cancelElement" Appearance="ButtonAppearance.Outline"
                       data-testid="tenants-remove-member-cancel"
                       Disabled="@IsOwnedCommandInFlight"
                       OnClick="CloseAsync">
