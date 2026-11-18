@@ -7,6 +7,7 @@
     <WarningsNotAsErrors>$(WarningsNotAsErrors);CS0618</WarningsNotAsErrors>
     <IsPackable>false</IsPackable>
     <IsPublishable>true</IsPublishable>
+    <NoWarn>$(NoWarn);ASPIRE012</NoWarn>
     <UserSecretsId>hexalith-tenants</UserSecretsId>
   </PropertyGroup>
 
