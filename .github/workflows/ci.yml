@@ -310,6 +310,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          restore_properties=(
+            -p:HexalithEventStoreVersion=5.3.1 -p:HexalithMcpCliVersion=3.0.0
+            -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true
+            -p:HexalithFrontComposerFromSource=false -p:HexalithMemoriesFromSource=false
+          )
+          # Live capture hashes the restored UI and UI.Tests package graphs. IntegrationTests
+          # builds the UI host, but it never materializes tests/Hexalith.Tenants.UI.Tests/obj.
+          dotnet restore tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj \
+            "${restore_properties[@]}" -m:1 -nr:false
           for project in \
             references/Hexalith.EventStore/src/Hexalith.EventStore/Hexalith.EventStore.csproj \
             references/Hexalith.EventStore/src/Hexalith.EventStore.Admin.Server.Host/Hexalith.EventStore.Admin.Server.Host.csproj \
@@ -318,9 +327,7 @@ jobs:
             tests/Hexalith.Tenants.AppHost.Tests/Hexalith.Tenants.AppHost.Tests.csproj \
             tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj; do
             dotnet build "$project" --configuration Release \
-              -p:HexalithEventStoreVersion=5.3.1 -p:HexalithMcpCliVersion=3.0.0 \
-              -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true \
-              -p:HexalithFrontComposerFromSource=false -p:HexalithMemoriesFromSource=false \
+              "${restore_properties[@]}" \
               -warnaserror -m:1 -nr:false
           done
       - name: Verify unique app-channel ownership
