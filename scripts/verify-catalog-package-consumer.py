@@ -62,8 +62,8 @@ def verify(directory, expected_source=None, output=None, target_framework="net11
             except ValueError as error:
                 raise ValueError('Catalog package requires a well-formed inclusive McpCli dependency range.') from error
             selected_mcp = mcp_range[1:].split(',')[0].rstrip(']') if mcp_range.startswith('[') else None
-            if selected_mcp not in ('2.0.0', '2.0.1') or mcp is not None and selected_mcp != mcp:
-                raise ValueError('Catalog package requires one coordinated McpCli 2.0.0 or 2.0.1 dependency cohort.')
+            if selected_mcp not in ('3.0.0',) or mcp is not None and selected_mcp != mcp:
+                raise ValueError('Catalog package requires one coordinated McpCli 3.0.0 dependency cohort.')
             mcp = selected_mcp
             for dependency in metadata.findall('.//{*}dependency'):
                 if dependency.get('id', '').startswith('Hexalith.EventStore.'):
@@ -76,7 +76,7 @@ def verify(directory, expected_source=None, output=None, target_framework="net11
                     except ValueError as error:
                         raise ValueError('Catalog SDK dependency is not one inclusive qualified stable cohort.') from error
                     selected = sdk_range[1:].split(',')[0].rstrip(']') if sdk_range.startswith('[') else ''
-                    normalized = re.fullmatch(r'(3\.129\.[01]|3\.130\.[012]|3\.131\.0|3\.132\.[012]|3\.133\.0|4\.0\.[01234]|4\.[12]\.0|5\.0\.1|5\.1\.[01])', selected)
+                    normalized = re.fullmatch(r'(3\.129\.[01]|3\.130\.[012]|3\.131\.0|3\.132\.[012]|3\.133\.0|4\.0\.[01234]|4\.[12]\.0|5\.0\.1|5\.1\.[01]|5\.2\.0|5\.3\.[01])', selected)
                     if not normalized or sdk is not None and normalized[1] != sdk:
                         raise ValueError('Catalog SDK dependency is not one qualified stable cohort.')
                     sdk = normalized[1]

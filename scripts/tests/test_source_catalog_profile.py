@@ -25,15 +25,15 @@ class SourceCatalogProfileProvisioningTests(unittest.TestCase):
             root = Path(temporary)
             shutil.copytree(REPOSITORY / "src/Hexalith.Tenants.AppHost/DaprComponents",
                             root / "src/Hexalith.Tenants.AppHost/DaprComponents")
-            package_path = root / "feed/hexalith.eventstore.aspire/5.1.1"
+            package_path = root / "feed/hexalith.eventstore.aspire/5.3.1"
             package_path.mkdir(parents=True)
             (package_path / "hexalith.eventstore.aspire.nuspec").write_text(
                 '<package><metadata><repository url="https://github.com/Hexalith/Hexalith.EventStore" commit="' + 'f' * 40 + '" /></metadata></package>')
             assets_path = root / "src/Hexalith.Tenants.AppHost/obj/project.assets.json"
             assets_path.parent.mkdir()
-            assets = {"libraries": {"Hexalith.EventStore.Aspire/5.1.1": {"type": "package", "sha512": "fixture-hash",
-                      "path": "hexalith.eventstore.aspire/5.1.1"}}, "packageFolders": {str(root / "feed"): {}}}
-            if scenario == "producer-source": assets["libraries"]["Hexalith.EventStore.Aspire/5.1.1"]["type"] = "project"
+            assets = {"libraries": {"Hexalith.EventStore.Aspire/5.3.1": {"type": "package", "sha512": "fixture-hash",
+                      "path": "hexalith.eventstore.aspire/5.3.1"}}, "packageFolders": {str(root / "feed"): {}}}
+            if scenario == "producer-source": assets["libraries"]["Hexalith.EventStore.Aspire/5.3.1"]["type"] = "project"
             if scenario == "producer-mismatch": assets["libraries"] = {}
             if scenario == "producer-missing-revision":
                 (package_path / "hexalith.eventstore.aspire.nuspec").write_text('<package><metadata><repository /></metadata></package>')
@@ -100,7 +100,7 @@ class SourceCatalogProfileProvisioningTests(unittest.TestCase):
                 source.write_text(text)
             settings = {variable: identity[key] for key, variable in profile.IDENTITY.items()}
             settings.update(GITHUB_ACTIONS="true", RUNNER_TEMP=str(root), GITHUB_ENV=str(environment),
-                            HEXALITH_DAPR_INITIALIZATION_RECEIPT=str(receipt_path), TENANTS_SOURCE_SDK_PRODUCER_VERSION="5.1.1")
+                            HEXALITH_DAPR_INITIALIZATION_RECEIPT=str(receipt_path), TENANTS_SOURCE_SDK_PRODUCER_VERSION="5.3.1")
             if scenario == "wrong-job": settings["GITHUB_JOB"] = "invalid/job"
             if scenario == "different-job": settings["GITHUB_JOB"] = "another_shared_job"
             if scenario == "no-producer": settings.pop("TENANTS_SOURCE_SDK_PRODUCER_VERSION")
@@ -130,7 +130,7 @@ class SourceCatalogProfileProvisioningTests(unittest.TestCase):
                     evidence = json.loads(output.read_text(encoding="utf-8"))
                     self.assertTrue(evidence["materialProvisionedWithFreshBackend"])
                     self.assertEqual(evidence["backend"]["initialDatabaseSize"], 0)
-                    self.assertEqual(evidence["sdkProducerVersion"], "5.1.1")
+                    self.assertEqual(evidence["sdkProducerVersion"], "5.3.1")
                     self.assertEqual(evidence["sdkPackageProducer"]["revision"], "f" * 40)
                     self.assertEqual(evidence["database"], int(database))
                     self.assertEqual(evidence["initializationSha256"], profile.digest(receipt_path))

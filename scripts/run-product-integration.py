@@ -144,7 +144,7 @@ def main():
     producer = PROFILE.command("dotnet", "msbuild", "src/Hexalith.Tenants/Hexalith.Tenants.csproj", "-nologo",
         "-getProperty:HexalithEventStoreVersion", "-p:Configuration=Release", "-p:UseHexalithProjectReferences=false",
         "-p:UseNuGetDeps=true", "-p:HexalithEventStoreFromSource=false")
-    if producer != "5.1.1":
+    if producer != "5.3.1":
         raise ValueError("The catalog profile did not select its exact qualified SDK.")
     for values in PROFILES:
         run_profile(*values, temporary=temporary, output=output, producer=producer, source=source)

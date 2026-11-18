@@ -123,14 +123,39 @@ jobs:
           PY
       - name: Verify material provisioning refuses retained or substituted inputs
         run: python3 -m unittest discover -s scripts/tests -p 'test_source_catalog_profile.py' -v
-      - name: Initialize the same Dapr tuple as the selected SDK source gate
-        uses: Hexalith/Hexalith.Builds/Github/dapr-init@6ad5854aa14a9950e1fbfc32d7e27953a1c4b82b
+      - name: Restore the published catalog producer package graph
+        run: >
+          dotnet restore src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj
+          -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true
+          -p:HexalithEventStoreFromSource=false
+          -p:HexalithEventStoreVersion="${{ env.TENANTS_SOURCE_SDK_PRODUCER_VERSION }}"
+          -m:1 -nr:false
+      - name: Install the Dapr CLI
+        uses: dapr/setup-dapr@8d980918fd43a2765c143ce7f687665b2d46a6b9 # v2
         with:
           version: '1.18.2'
-          runtime-version: '1.18.7'
+      - name: Initialize Dapr with a job-owned receipt
+        shell: bash
+        env:
+          DAPR_DEFAULT_IMAGE_REGISTRY: ghcr
+          DAPR_RUNTIME_VERSION: '1.18.7'
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os, shutil, sys
+          from pathlib import Path
+          sys.path.insert(0, str(Path("references/Hexalith.Builds/Github/lib").resolve()))
+          from ci_environment import initialize_dapr
+          binary = shutil.which("dapr")
+          if not binary:
+              raise SystemExit("The Dapr CLI is not on PATH.")
+          initialize_dapr(Path(binary), os.environ["DAPR_RUNTIME_VERSION"], Path.cwd())
+          PY
       - name: Prove fresh backend ownership before provisioning private owner material
         run: >-
           python3 scripts/prepare-source-catalog-profile.py
+          --profile catalog-owner --redis-db 5
           --sdk-source-sha "$TENANTS_SOURCE_SDK_SHA"
           --output "${{ runner.temp }}/tenants-source-backend.json"
       - name: Trust the SDK development certificate for actual HTTPS peers

@@ -68,7 +68,7 @@ class PrivateTopologyCleanupTests(unittest.TestCase):
                             mock.patch.object(PRODUCT.shutil, "rmtree") as remove:
                         with self.assertRaises(ValueError):
                             PRODUCT.run_profile("rest", "example", 1, 1, False, False,
-                                temporary=temporary, output=output, producer="5.1.1", source="a" * 40)
+                                temporary=temporary, output=output, producer="5.3.1", source="a" * 40)
                         stop.assert_not_called()
                         remove.assert_not_called()
                     self.assertEqual(marker.read_bytes(), b"foreign material")
@@ -147,7 +147,7 @@ class NaturalExitSynchronizationTests(unittest.TestCase):
                         mock.patch.object(PRODUCT, "stop_private_consumers", wraps=PRODUCT.stop_private_consumers) as emergency, \
                         mock.patch.object(PRODUCT, "NATURAL_EXIT_TIMEOUT_SECONDS", 0.2 if scenario == "persistent" else 3, create=True):
                     arguments = ("rest", "example", 1, 1, False, False)
-                    options = {"temporary": temporary, "output": output, "producer": "5.1.1", "source": "a" * 40}
+                    options = {"temporary": temporary, "output": output, "producer": "5.3.1", "source": "a" * 40}
                     if scenario == "persistent":
                         with self.assertRaisesRegex(ValueError, "^Private topology consumers did not exit before the shutdown deadline\\.$"):
                             PRODUCT.run_profile(*arguments, **options)

@@ -22,7 +22,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - profile: canonical scope 5.1.1
+          - profile: canonical scope 5.3.1
             sdk-argument: ''
             budget-minimum: 8
             runtime-minimum: 7
@@ -73,7 +73,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - profile: canonical scope 5.1.1
+          - profile: canonical scope 5.3.1
             sdk-argument: ''
             owner-source-minimum: 25
     env:
@@ -246,11 +246,34 @@ jobs:
               output.write("TENANTS_SOURCE_BACKEND_BEFORE_PATH=" + str(before) + "\n")
               output.write("TENANTS_SOURCE_BACKEND_STARTED_AT=" + datetime.datetime.now(datetime.timezone.utc).isoformat() + "\n")
           PY
-      - name: Install and initialize Dapr
-        uses: Hexalith/Hexalith.Builds/Github/dapr-init@6ad5854aa14a9950e1fbfc32d7e27953a1c4b82b
+      - name: Install the Dapr CLI
+        uses: dapr/setup-dapr@8d980918fd43a2765c143ce7f687665b2d46a6b9 # v2
         with:
           version: '1.18.2'
-          runtime-version: '1.18.7'
+      - name: Initialize Dapr with a job-owned receipt
+        shell: bash
+        env:
+          DAPR_DEFAULT_IMAGE_REGISTRY: ghcr
+          DAPR_RUNTIME_VERSION: '1.18.7'
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os, shutil, sys
+          from pathlib import Path
+          sys.path.insert(0, str(Path("references/Hexalith.Builds/Github/lib").resolve()))
+          from ci_environment import initialize_dapr
+          binary = shutil.which("dapr")
+          if not binary:
+              raise SystemExit("The Dapr CLI is not on PATH.")
+          initialize_dapr(Path(binary), os.environ["DAPR_RUNTIME_VERSION"], Path.cwd())
+          PY
+      - name: Restore the canonical AppHost package graph
+        run: >
+          dotnet restore src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj
+          -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true
+          -p:HexalithEventStoreFromSource=false -p:HexalithEventStoreVersion=5.3.1
+          -p:HexalithMcpCliVersion=3.0.0 -m:1 -nr:false
       - name: Provision the canonical package catalog on the fresh backend
         shell: bash
         run: |
@@ -258,14 +281,26 @@ jobs:
           source_sha="$(git rev-parse HEAD:references/Hexalith.EventStore)"
           sdk_producer_version="$(dotnet msbuild src/Hexalith.Tenants/Hexalith.Tenants.csproj -nologo \
             -getProperty:HexalithEventStoreVersion -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true \
-            -p:HexalithEventStoreFromSource=false -p:HexalithEventStoreVersion=5.1.1)"
-          if [[ "$sdk_producer_version" != '5.1.1' ]]; then
+            -p:HexalithEventStoreFromSource=false -p:HexalithEventStoreVersion=5.3.1)"
+          if [[ "$sdk_producer_version" != '5.3.1' ]]; then
             echo 'The authenticated package profile did not select its exact qualified SDK.' >&2
             exit 1
           fi
+          case "${{ matrix.suite }}" in
+            rest) redis_db=1; workers=false ;;
+            persisted) redis_db=2; workers=true ;;
+            anonymous-ui) redis_db=3; workers=false ;;
+            authenticated-ui) redis_db=4; workers=false ;;
+            *)
+              echo "Unsupported authenticated-routes suite '${{ matrix.suite }}'." >&2
+              exit 1
+              ;;
+          esac
+          export TENANTS_SOURCE_SDK_PRODUCER_VERSION="$sdk_producer_version"
           printf 'TENANTS_SOURCE_SDK_PRODUCER_VERSION=%s\n' "$sdk_producer_version" >> "$GITHUB_ENV"
           python3 scripts/prepare-source-catalog-profile.py \
-            --ci-job authenticated-routes --sdk-source-sha "$source_sha" \
+            --profile "${{ matrix.suite }}" --redis-db "$redis_db" \
+            --worker-backed-responses "$workers" --sdk-source-sha "$source_sha" \
             --output "${RUNNER_TEMP}/tenants-package-backend.json"
       - name: Verify bounded functional browser navigation and readiness
         if: ${{ matrix.suite == 'rest' }}
@@ -275,6 +310,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          restore_properties=(
+            -p:HexalithEventStoreVersion=5.3.1 -p:HexalithMcpCliVersion=3.0.0
+            -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true
+            -p:HexalithFrontComposerFromSource=false -p:HexalithMemoriesFromSource=false
+          )
+          # Live capture hashes the restored UI and UI.Tests package graphs. IntegrationTests
+          # builds the UI host, but it never materializes tests/Hexalith.Tenants.UI.Tests/obj.
+          dotnet restore tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj \
+            "${restore_properties[@]}" -m:1 -nr:false
           for project in \
             references/Hexalith.EventStore/src/Hexalith.EventStore/Hexalith.EventStore.csproj \
             references/Hexalith.EventStore/src/Hexalith.EventStore.Admin.Server.Host/Hexalith.EventStore.Admin.Server.Host.csproj \
@@ -283,9 +327,7 @@ jobs:
             tests/Hexalith.Tenants.AppHost.Tests/Hexalith.Tenants.AppHost.Tests.csproj \
             tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj; do
             dotnet build "$project" --configuration Release \
-              -p:HexalithEventStoreVersion=5.1.1 -p:HexalithMcpCliVersion=2.0.1 \
-              -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true \
-              -p:HexalithFrontComposerFromSource=false -p:HexalithMemoriesFromSource=false \
+              "${restore_properties[@]}" \
               -warnaserror -m:1 -nr:false
           done
       - name: Verify unique app-channel ownership
