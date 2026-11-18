@@ -123,6 +123,13 @@ jobs:
           PY
       - name: Verify material provisioning refuses retained or substituted inputs
         run: python3 -m unittest discover -s scripts/tests -p 'test_source_catalog_profile.py' -v
+      - name: Restore the published catalog producer package graph
+        run: >
+          dotnet restore src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj
+          -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true
+          -p:HexalithEventStoreFromSource=false
+          -p:HexalithEventStoreVersion="${{ env.TENANTS_SOURCE_SDK_PRODUCER_VERSION }}"
+          -m:1 -nr:false
       - name: Initialize the same Dapr tuple as the selected SDK source gate
         uses: Hexalith/Hexalith.Builds/Github/dapr-init@6ad5854aa14a9950e1fbfc32d7e27953a1c4b82b
         with:

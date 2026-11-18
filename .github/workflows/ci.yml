@@ -251,6 +251,12 @@ jobs:
         with:
           version: '1.18.2'
           runtime-version: '1.18.7'
+      - name: Restore the canonical AppHost package graph
+        run: >
+          dotnet restore src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj
+          -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true
+          -p:HexalithEventStoreFromSource=false -p:HexalithEventStoreVersion=5.3.1
+          -p:HexalithMcpCliVersion=3.0.0 -m:1 -nr:false
       - name: Provision the canonical package catalog on the fresh backend
         shell: bash
         run: |
@@ -273,6 +279,7 @@ jobs:
               exit 1
               ;;
           esac
+          export TENANTS_SOURCE_SDK_PRODUCER_VERSION="$sdk_producer_version"
           printf 'TENANTS_SOURCE_SDK_PRODUCER_VERSION=%s\n' "$sdk_producer_version" >> "$GITHUB_ENV"
           python3 scripts/prepare-source-catalog-profile.py \
             --profile "${{ matrix.suite }}" --redis-db "$redis_db" \
