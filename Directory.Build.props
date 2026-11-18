@@ -84,7 +84,9 @@
         <HexalithFrontComposerSourceConsumer Condition="'$(MSBuildProjectName)' == 'Hexalith.Tenants.UI' or '$(MSBuildProjectName)' == 'Hexalith.Tenants.UI.Tests'">true</HexalithFrontComposerSourceConsumer>
         <HexalithFrontComposerSourceAvailable Condition="'$(HexalithFrontComposerSourceAvailable)' == '' and Exists('$(HexalithFrontComposerRoot)\src\Hexalith.FrontComposer.Contracts\Hexalith.FrontComposer.Contracts.csproj') and Exists('$(HexalithFrontComposerRoot)\src\Hexalith.FrontComposer.Shell\Hexalith.FrontComposer.Shell.csproj') and Exists('$(HexalithFrontComposerRoot)\src\Hexalith.FrontComposer.Testing\Hexalith.FrontComposer.Testing.csproj')">true</HexalithFrontComposerSourceAvailable>
         <HexalithFrontComposerSourceAvailable Condition="'$(HexalithFrontComposerSourceAvailable)' == ''">false</HexalithFrontComposerSourceAvailable>
-        <HexalithFrontComposerFromSource Condition="'$(HexalithFrontComposerFromSource)' == '' and '$(UseHexalithProjectReferences)' == 'true' and '$(HexalithFrontComposerSourceConsumer)' == 'true' and '$(HexalithFrontComposerSourceAvailable)' == 'true'">true</HexalithFrontComposerFromSource>
+        <!-- Restore walks drop AdditionalProperties. Tenants.UI still follows an on-disk FrontComposer
+             source tree so Memories and FrontComposer stay on the same restore graph. -->
+        <HexalithFrontComposerFromSource Condition="'$(HexalithFrontComposerFromSource)' == '' and '$(HexalithFrontComposerSourceConsumer)' == 'true' and '$(HexalithFrontComposerSourceAvailable)' == 'true'">true</HexalithFrontComposerFromSource>
         <HexalithFrontComposerFromSource Condition="'$(HexalithFrontComposerFromSource)' == ''">false</HexalithFrontComposerFromSource>
         <HexalithMemoriesFromSource Condition="'$(UseHexalithProjectReferences)' == 'true' and Exists('$(HexalithMemoriesRoot)\src\Hexalith.Memories.Contracts\Hexalith.Memories.Contracts.csproj')">true</HexalithMemoriesFromSource>
         <!-- NuGet restore does not carry the parent edge's AdditionalProperties into every walk.
