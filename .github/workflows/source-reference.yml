@@ -131,6 +131,7 @@ jobs:
       - name: Prove fresh backend ownership before provisioning private owner material
         run: >-
           python3 scripts/prepare-source-catalog-profile.py
+          --profile catalog-owner --redis-db 5
           --sdk-source-sha "$TENANTS_SOURCE_SDK_SHA"
           --output "${{ runner.temp }}/tenants-source-backend.json"
       - name: Trust the SDK development certificate for actual HTTPS peers

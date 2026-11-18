@@ -18,7 +18,7 @@ SPEC.loader.exec_module(CONSUMER)
 
 class CatalogPackageMetadataTests(unittest.TestCase):
     def write_package(self, root, package_id, version='7.0.0', source='a' * 40, sdk='4.0.0', include_dependency=True,
-                      mcp='2.0.0', include_mcp=True, framework='net11.0'):
+                      mcp='3.0.0', include_mcp=True, framework='net11.0'):
         package = ET.Element('package')
         metadata = ET.SubElement(package, 'metadata')
         ET.SubElement(metadata, 'id').text = package_id
@@ -58,7 +58,7 @@ class CatalogPackageMetadataTests(unittest.TestCase):
         self.reject(server={'version': '7.0.1'}, message='versions disagree')
 
     def test_unknown_or_prerelease_sdk_refuses_before_restore(self):
-        for sdk in ('3.128.4', '3.129.0-preview.1', '3.129.2', '3.130.3', '3.131.1', '3.132.3', '3.133.1', '4.0.5', '4.1.1', '4.2.1', '4.3.0', '5.0.0', '5.0.2', '5.1.2', '5.1.1-preview.1', '5.1.1.1', '5.1.1+', '5.1.1+invalid..metadata', '5.2.0', '5.1.0-preview.1', '5.1.0.1', '5.1.0+', '5.1.0+invalid..metadata', '5.0.1-preview.1', '5.0.1.1', '5.0.1+', '5.0.1+invalid..metadata', '4.2.0-preview.1', '4.2.0.1', '4.2.0+', '4.2.0+invalid..metadata', '4.1.0-preview.1', '4.1.0.1', '4.1.0+', '4.1.0+invalid..metadata', '4.0.4-preview.1', '4.0.4.1', '4.0.3-preview.1', '4.0.0-preview.1',
+        for sdk in ('3.128.4', '3.129.0-preview.1', '3.129.2', '3.130.3', '3.131.1', '3.132.3', '3.133.1', '4.0.5', '4.1.1', '4.2.1', '4.3.0', '5.0.0', '5.0.2', '5.1.2', '5.1.1-preview.1', '5.1.1.1', '5.1.1+', '5.1.1+invalid..metadata', '5.2.1', '5.3.2', '5.3.1-preview.1', '5.1.0-preview.1', '5.1.0.1', '5.1.0+', '5.1.0+invalid..metadata', '5.0.1-preview.1', '5.0.1.1', '5.0.1+', '5.0.1+invalid..metadata', '4.2.0-preview.1', '4.2.0.1', '4.2.0+', '4.2.0+invalid..metadata', '4.1.0-preview.1', '4.1.0.1', '4.1.0+', '4.1.0+invalid..metadata', '4.0.4-preview.1', '4.0.4.1', '4.0.3-preview.1', '4.0.0-preview.1',
                     '3.133.0-preview.1', '3.133.0.1',
                     '3.132.2-preview.1', '3.132.2.1',
                     '3.132.1-preview.1', '3.132.1-preview.1+metadata', '3.132.1.1', '3.132.1+',
@@ -71,7 +71,7 @@ class CatalogPackageMetadataTests(unittest.TestCase):
                 self.reject(server={'sdk': sdk}, message='qualified stable cohort')
 
     def test_every_qualified_sdk_and_alias_reaches_only_its_normalized_restore(self):
-        for sdk in ('3.129.0', '3.129.1', '3.130.0', '3.130.1', '3.130.2', '3.131.0', '3.132.0', '3.132.1', '3.132.2', '3.133.0', '4.0.0', '4.0.1', '4.0.2', '4.0.3', '4.0.4', '4.1.0', '4.2.0', '5.0.1', '5.1.0', '5.1.1'):
+        for sdk in ('3.129.0', '3.129.1', '3.130.0', '3.130.1', '3.130.2', '3.131.0', '3.132.0', '3.132.1', '3.132.2', '3.133.0', '4.0.0', '4.0.1', '4.0.2', '4.0.3', '4.0.4', '4.1.0', '4.2.0', '5.0.1', '5.1.0', '5.1.1', '5.2.0', '5.3.0', '5.3.1'):
             for alias in (sdk, sdk + '.0', sdk + '+metadata-with-dash', sdk + '.0+metadata.1'):
                 with self.subTest(sdk=sdk, alias=alias), tempfile.TemporaryDirectory(prefix='tenants-catalog-metadata-') as temporary:
                     root = Path(temporary)
@@ -97,14 +97,14 @@ class CatalogPackageMetadataTests(unittest.TestCase):
         self.reject(server={'include_dependency': False}, message='required SDK dependency')
 
     def test_missing_or_old_mcpcli_dependency_refuses_before_restore(self):
-        self.reject(server={'include_mcp': False}, message='coordinated McpCli 2.0.0')
-        for mcp in ('1.1.0', '2.0.2', '2.0.1-preview.1'):
+        self.reject(server={'include_mcp': False}, message='coordinated McpCli 3.0.0')
+        for mcp in ('1.1.0', '2.0.0', '2.0.1', '2.0.2', '3.0.1', '3.0.0-preview.1'):
             with self.subTest(mcp=mcp):
-                self.reject(server={'mcp': mcp}, message='coordinated McpCli 2.0.0')
+                self.reject(server={'mcp': mcp}, message='coordinated McpCli 3.0.0')
 
     def test_refreshed_mcpcli_cohort_reaches_restore(self):
-        for mcp in ('2.0.0', '2.0.1'):
-            for dependency_range in (mcp, '[' + mcp + ']', '[' + mcp + ', )', '[' + mcp + ', 3.0.0)'):
+        for mcp in ('3.0.0',):
+            for dependency_range in (mcp, '[' + mcp + ']', '[' + mcp + ', )', '[' + mcp + ', 4.0.0)'):
                 with self.subTest(mcp=mcp, dependency_range=dependency_range), tempfile.TemporaryDirectory(prefix='tenants-catalog-metadata-') as temporary:
                     root = Path(temporary)
                     self.write_package(root, 'Hexalith.Tenants.Contracts', mcp=dependency_range)
@@ -122,10 +122,10 @@ class CatalogPackageMetadataTests(unittest.TestCase):
                         run.assert_called_once()
 
     def test_exclusive_or_malformed_mcpcli_ranges_refuse_before_restore(self):
-        for dependency_range in ('(2.0.1, )', '(2.0.0, 3.0.0]', '(, 2.0.1]',
-                                 '[2.0.1, 2.0.0)', '[2.0.1, 2.0.1)', '[2.0.1, )garbage',
-                                 '[2.0.1, invalid)', '[2.0.1, 3.0.0', '[2.0.1, ]',
-                                 '[2.0.1, 3.0.0, 4.0.0)', '[2.0.1-preview.1, )', '[2.0.2, )'):
+        for dependency_range in ('(3.0.0, )', '(2.0.0, 3.0.0]', '(, 3.0.0]',
+                                 '[3.0.0, 2.0.0)', '[3.0.0, 3.0.0)', '[3.0.0, )garbage',
+                                 '[3.0.0, invalid)', '[3.0.0, 4.0.0', '[3.0.0, ]',
+                                 '[3.0.0, 4.0.0, 5.0.0)', '[3.0.0-preview.1, )', '[3.0.1, )'):
             with self.subTest(dependency_range=dependency_range):
                 self.reject(server={'mcp': dependency_range}, message='McpCli')
 
@@ -151,7 +151,7 @@ class CatalogPackageMetadataTests(unittest.TestCase):
                     self.assertEqual(arguments[:2], ['dotnet', 'restore'])
                     consumer_root = Path(arguments[2]).parent
                     (consumer_root / 'obj').mkdir()
-                    libraries = {'Hexalith.McpCli.Abstractions/2.0.0': {'type': 'package'},
+                    libraries = {'Hexalith.McpCli.Abstractions/3.0.0': {'type': 'package'},
                                  'Hexalith.EventStore.Contracts/' + restored_version: {'type': kind},
                                  'Hexalith.EventStore.ServiceDefaults/5.0.1': {'type': 'package'}}
                     for package_id in CONSUMER.IDS:
@@ -172,7 +172,7 @@ class CatalogPackageMetadataTests(unittest.TestCase):
                         run.assert_called_once()
 
     def test_restored_mcpcli_must_match_the_admitted_package_before_build(self):
-        for mcp in ('2.0.0', '2.0.1'):
+        for mcp in ('3.0.0',):
             for restored_version, kind in ((mcp, 'package'), ('2.0.2', 'package'), (mcp, 'project'), (None, None)):
                 with self.subTest(mcp=mcp, restored_version=restored_version, kind=kind), tempfile.TemporaryDirectory(prefix='tenants-catalog-assets-') as temporary:
                     root = Path(temporary)
@@ -206,8 +206,8 @@ class CatalogPackageMetadataTests(unittest.TestCase):
                             run.assert_called_once()
 
     def test_mixed_mcpcli_cohort_refuses_before_restore(self):
-        self.reject(server={'mcp': '2.0.1'}, message='coordinated McpCli 2.0.0')
-        self.reject(contracts={'mcp': '2.0.1'}, server={'mcp': '2.0.0'}, message='coordinated McpCli 2.0.0')
+        self.reject(server={'mcp': '2.0.1'}, message='coordinated McpCli 3.0.0')
+        self.reject(contracts={'mcp': '3.0.0'}, server={'mcp': '2.0.1'}, message='coordinated McpCli 3.0.0')
 
     def test_mixed_sdk_cohort_refuses_before_restore(self):
         for sdk in ('3.129.1', '3.130.2', '3.131.0', '3.132.0', '3.132.1', '3.132.2', '3.133.0'):

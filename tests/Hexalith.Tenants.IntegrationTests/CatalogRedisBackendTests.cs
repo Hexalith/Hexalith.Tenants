@@ -142,7 +142,7 @@ public sealed class CatalogRedisBackendTests
             schema = "tenants.catalog-profile.v1", identity, database = mutation == "substituted-db" ? 6 : 5,
             endpoint = "127.0.0.1:6379", privateDirectory, initializationReceipt = initializationPath,
             initializationSha256 = Hash(File.ReadAllBytes(initializationPath)), sdkSource = new string('b', 40),
-            sdkProducerVersion = "5.1.1", sdkPackageProducer = new { version = "5.1.1", revision = new string('f', 40) },
+            sdkProducerVersion = "5.3.1", sdkPackageProducer = new { version = "5.3.1", revision = new string('f', 40) },
             components = hashes, materialProvisionedWithFreshBackend = true,
             backend = new { initialDatabaseSize = 0, containerId = new string('a', 64), created = "2026-11-16T01:00:00Z", redisRunId = new string('e', 40) },
         }));
@@ -154,7 +154,7 @@ public sealed class CatalogRedisBackendTests
             ["TENANTS_SOURCE_CATALOG_REDIS_ENDPOINT"] = "127.0.0.1:6379", ["TENANTS_SOURCE_CATALOG_PROVISIONING_RECEIPT"] = receiptPath,
             ["TENANTS_SOURCE_CATALOG_PROVISIONING_SHA256"] = Hash(File.ReadAllBytes(receiptPath)),
             ["HEXALITH_DAPR_INITIALIZATION_RECEIPT"] = initializationPath, ["TENANTS_SOURCE_SDK_SHA"] = new string('b', 40),
-            ["TENANTS_SOURCE_SDK_PRODUCER_VERSION"] = "5.1.1", ["TENANTS_SOURCE_SDK_PRODUCER_REVISION"] = new string(mutation == "producer-drift" ? 'd' : 'f', 40),
+            ["TENANTS_SOURCE_SDK_PRODUCER_VERSION"] = "5.3.1", ["TENANTS_SOURCE_SDK_PRODUCER_REVISION"] = new string(mutation == "producer-drift" ? 'd' : 'f', 40),
             ["Dapr__StateStoreComponentPath"] = Path.Combine(components, "statestore.yaml"),
             ["Dapr__PubSubComponentPath"] = Path.Combine(components, "pubsub.yaml"),
             ["Tenants__DevelopmentRouteCatalog__CustodyDirectory"] = custody,
