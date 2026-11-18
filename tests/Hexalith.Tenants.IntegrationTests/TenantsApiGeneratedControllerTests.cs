@@ -237,8 +237,10 @@ public sealed class TenantsApiGeneratedControllerTests
         query.Request.Payload.ShouldNotBeNull().GetProperty("pageSize").GetInt32().ShouldBe(12);
     }
 
-    [Fact]
-    public async Task TenantDetail_generated_route_submits_tenant_scoped_query_for_route_tenant()
+    [Theory]
+    [InlineData("tenant-alpha", "tenant-alpha")]
+    [InlineData("Tenant-Alpha", "TENANT-ALPHA")]
+    public async Task TenantDetail_generated_route_submits_canonical_tenant_scoped_query(string routeTenant, string tenantGrant)
     {
         CapturingEventStoreGatewayClient gateway = new();
         gateway.EnqueueQueryResult(new TenantDetail(
@@ -250,9 +252,9 @@ public sealed class TenantsApiGeneratedControllerTests
             new Dictionary<string, string>(StringComparer.Ordinal),
             DateTimeOffset.Parse("2026-07-03T05:20:00Z", CultureInfo.InvariantCulture)));
         await using var factory = new TenantsApiWebApplicationFactory(gateway);
-        using HttpClient client = CreateAuthenticatedClient(factory);
+        using HttpClient client = CreateAuthenticatedClient(factory, tenantGrants: [tenantGrant]);
 
-        HttpResponseMessage response = await client.GetAsync("/api/tenants/tenant-alpha");
+        using HttpResponseMessage response = await client.GetAsync($"/api/tenants/{routeTenant}", TestContext.Current.CancellationToken);
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         SubmittedQuery query = gateway.SubmittedQueries.ShouldHaveSingleItem();
@@ -263,6 +265,57 @@ public sealed class TenantsApiGeneratedControllerTests
         query.Request.QueryType.ShouldBe(GetTenantQuery.QueryType);
         query.Request.ProjectionType.ShouldBe(GetTenantQuery.ProjectionType);
         query.Request.Payload.ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData("/api/tenants", null, null)]
+    [InlineData("/api/tenants/tenant_alpha", null, null)]
+    [InlineData("/api/tenants/System", null, null)]
+    [InlineData("/api/tenants/tenant-alpha", "Tenant-Alpha", null)]
+    [InlineData("/api/tenants/tenant-alpha", "tenant-beta", null)]
+    [InlineData("/api/tenants/tenant-alpha", null, "platform:tenants")]
+    public async Task Generated_read_refuses_missing_invalid_or_extra_scope_before_gateway(
+        string path, string? tenantHeader, string? platformHeader)
+    {
+        CapturingEventStoreGatewayClient gateway = new();
+        await using var factory = new TenantsApiWebApplicationFactory(gateway);
+        using HttpClient client = factory.CreateClient();
+        using var request = new HttpRequestMessage(HttpMethod.Get, path);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", CreateJwt("test-user", "queries:*"));
+        if (tenantHeader is not null)
+        {
+            request.Headers.Add("X-Hexalith-Tenant", tenantHeader);
+        }
+
+        if (platformHeader is not null)
+        {
+            request.Headers.Add("X-Hexalith-Scope", platformHeader);
+        }
+
+        using HttpResponseMessage response = await client.SendAsync(request, TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        gateway.SubmittedQueries.ShouldBeEmpty();
+    }
+
+    [Theory]
+    [InlineData(null, null)]
+    [InlineData("tenant-beta", null)]
+    [InlineData("tenant-alpha", "tenant_beta")]
+    [InlineData("tenant-alpha", "TENANT-ALPHA")]
+    [InlineData("tenant-alpha", "System")]
+    public async Task TenantDetail_generated_route_refuses_invalid_or_unauthorized_grants_before_gateway(
+        string? firstGrant, string? secondGrant)
+    {
+        string[] tenantGrants = new[] { firstGrant, secondGrant }.OfType<string>().ToArray();
+        CapturingEventStoreGatewayClient gateway = new();
+        await using var factory = new TenantsApiWebApplicationFactory(gateway);
+        using HttpClient client = CreateAuthenticatedClient(factory, tenantGrants: tenantGrants);
+
+        using HttpResponseMessage response = await client.GetAsync("/api/tenants/tenant-alpha", TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        gateway.SubmittedQueries.ShouldBeEmpty();
     }
 
     [Fact]
@@ -1442,10 +1495,11 @@ public sealed class TenantsApiGeneratedControllerTests
 
     private static HttpClient CreateAuthenticatedClient(
         TenantsApiWebApplicationFactory factory,
-        string permission = "queries:*")
+        string permission = "queries:*",
+        IReadOnlyList<string>? tenantGrants = null)
     {
         HttpClient client = CreateScopedClient(factory);
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", CreateJwt("test-user", permission));
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", CreateJwt("test-user", permission, tenantGrants: tenantGrants));
         return client;
     }
 
@@ -1457,7 +1511,8 @@ public sealed class TenantsApiGeneratedControllerTests
         string permission,
         string issuer = JwtIssuer,
         string audience = JwtAudience,
-        IReadOnlyList<string>? surfaces = null)
+        IReadOnlyList<string>? surfaces = null,
+        IReadOnlyList<string>? tenantGrants = null)
     {
         var credentials = new SigningCredentials(
             new SymmetricSecurityKey(Encoding.UTF8.GetBytes(JwtSigningKey)),
@@ -1475,8 +1530,8 @@ public sealed class TenantsApiGeneratedControllerTests
                 new Claim("sub", subject),
                 new Claim("permissions", JsonSerializer.Serialize(new[] { permission }), JsonClaimValueTypes.JsonArray),
                 new Claim("tenants", JsonSerializer.Serialize(new[] { "system", "tenant-alpha" }), JsonClaimValueTypes.JsonArray),
-                new Claim("eventstore:tenant", "tenant-alpha"),
-            }.Concat(exactPermissions.Select(value => new Claim("eventstore:permission", value)))
+            }.Concat((tenantGrants ?? ["tenant-alpha"]).Select(value => new Claim("eventstore:tenant", value)))
+                .Concat(exactPermissions.Select(value => new Claim("eventstore:permission", value)))
                 .Concat((surfaces ?? ["ui"]).Select(surface => new Claim("eventstore:surface", surface))),
             notBefore: DateTime.UtcNow.AddMinutes(-1),
             expires: DateTime.UtcNow.AddMinutes(10),
