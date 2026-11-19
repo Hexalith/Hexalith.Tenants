@@ -78,8 +78,8 @@ class CatalogArtifactPackTests(unittest.TestCase):
             self.assertEqual(built.returncode, 0, built.stdout + built.stderr)
             stale = {package: binary(package).read_bytes() for package in ('Contracts', 'Server')}
             for property_name, version, diagnostic in (
-                    ('HexalithEventStoreVersion', '3.128.4', 'Current Tenants packages require EventStore 5.3.0 or 5.3.1'),
-                    ('HexalithEventStoreVersion', '3.133.0', 'Current Tenants packages require EventStore 5.3.0 or 5.3.1'),
+                    ('HexalithEventStoreVersion', '3.128.4', 'Current Tenants packages require EventStore 5.3.0, 5.3.1 or 5.4.0'),
+                    ('HexalithEventStoreVersion', '3.133.0', 'Current Tenants packages require EventStore 5.3.0, 5.3.1 or 5.4.0'),
                     ('HexalithEventStoreVersion', '4.2.0-preview.1', "Catalog SDK selection '4.2.0-preview.1' is not qualified"),
                     ('HexalithEventStoreVersion', '4.2.1', "Catalog SDK selection '4.2.1' is not qualified"),
                     ('HexalithEventStoreVersion', '4.3.0', "Catalog SDK selection '4.3.0' is not qualified"),
@@ -97,7 +97,7 @@ class CatalogArtifactPackTests(unittest.TestCase):
                     self.assertNotEqual(rejected.returncode, 0, rejected.stdout + rejected.stderr)
                     self.assertIn(diagnostic, rejected.stdout + rejected.stderr)
             # Only snapshot-capable current production cohorts may build current packages.
-            for sdk in ('5.3.0', '5.3.1'):
+            for sdk in ('5.3.0', '5.3.1', '5.4.0'):
                 with self.subTest(canonical_sdk=sdk):
                     compatible = run('build', 'PackFixtures.slnx', *common, '-warnaserror',
                                      '-p:HexalithEventStoreVersion=' + sdk)
@@ -105,7 +105,7 @@ class CatalogArtifactPackTests(unittest.TestCase):
             # The ordinary default remains the current public SDK.
             selected = run('msbuild', project('Contracts'), '-nologo', '-getProperty:HexalithEventStoreVersion')
             self.assertEqual(selected.returncode, 0, selected.stdout + selected.stderr)
-            self.assertEqual(selected.stdout.strip(), '5.3.1')
+            self.assertEqual(selected.stdout.strip(), '5.4.0')
             for package in PACKAGES:
                 for sdk in ('3.128.4', '3.133.0', '4.0.4', '4.1.0', '4.2.0', '5.0.1', '5.1.1', '5.2.0'):
                     with self.subTest(old_sdk_current_package=package, sdk=sdk):
@@ -114,13 +114,13 @@ class CatalogArtifactPackTests(unittest.TestCase):
                         packed = run('pack', project(package), '--no-build', '--no-restore', *common,
                                      '-p:HexalithEventStoreVersion=' + sdk, '--output', str(output))
                         self.assertNotEqual(packed.returncode, 0, packed.stdout + packed.stderr)
-                        self.assertIn('Current Tenants packages require EventStore 5.3.0 or 5.3.1', packed.stdout + packed.stderr)
+                        self.assertIn('Current Tenants packages require EventStore 5.3.0, 5.3.1 or 5.4.0', packed.stdout + packed.stderr)
                         self.assertFalse(list(output.glob('*.nupkg')))
                         for entry in ('CollectPackageReferences', 'PrepareForBuild'):
                             rejected = run('msbuild', project(package), '-nologo', '-target:' + entry,
                                            '-p:HexalithEventStoreFromSource=false', '-p:HexalithEventStoreVersion=' + sdk)
                             self.assertNotEqual(rejected.returncode, 0, rejected.stdout + rejected.stderr)
-                            self.assertIn('Current Tenants packages require EventStore 5.3.0 or 5.3.1', rejected.stdout + rejected.stderr)
+                            self.assertIn('Current Tenants packages require EventStore 5.3.0, 5.3.1 or 5.4.0', rejected.stdout + rejected.stderr)
 
             for package, namespace, attribute, declaration, members in (
                     ('Contracts', 'Hexalith.EventStore.Contracts.Routing', 'RouteCatalogDeclarationSource',

@@ -830,7 +830,7 @@ public class PackageGovernanceTests {
     }
 
     [Theory]
-    [InlineData("", false, "5.3.1")]
+    [InlineData("", false, "5.4.0")]
     [InlineData("4.0.0", false, "4.0.0")]
     [InlineData("4.0.1", false, "4.0.1")]
     [InlineData("4.0.2", false, "4.0.2")]
@@ -844,6 +844,7 @@ public class PackageGovernanceTests {
     [InlineData("5.2.0", false, "5.2.0")]
     [InlineData("5.3.0", false, "5.3.0")]
     [InlineData("5.3.1", false, "5.3.1")]
+    [InlineData("5.4.0", false, "5.4.0")]
     [InlineData("3.129.0", false, "3.129.0")]
     [InlineData("3.131.0", false, "3.131.0")]
     [InlineData("3.132.0", false, "3.132.0")]
@@ -1053,6 +1054,13 @@ public class PackageGovernanceTests {
     [InlineData("5.3.1-preview.1", false, false)]
     [InlineData("5.3.1.1", false, false)]
     [InlineData("5.3.2", false, false)]
+    [InlineData("5.4.0", false, true)]
+    [InlineData("5.4.0.0", false, true)]
+    [InlineData("5.4.0+metadata-with-dash", false, true)]
+    [InlineData("5.4.0.0+metadata.1", false, true)]
+    [InlineData("5.4.0-preview.1", false, false)]
+    [InlineData("5.4.0.1", false, false)]
+    [InlineData("5.4.1", false, false)]
     [InlineData("5.0.2", false, false)]
     [InlineData("test-source-version", true, true)]
     public Task Published_packages_require_qualified_catalog_artifactsAsync(
@@ -1200,6 +1208,13 @@ public class PackageGovernanceTests {
     [InlineData("5.3.1-preview.1", false, false)]
     [InlineData("5.3.1.1", false, false)]
     [InlineData("5.3.2", false, false)]
+    [InlineData("5.4.0", false, true)]
+    [InlineData("5.4.0.0", false, true)]
+    [InlineData("5.4.0+metadata-with-dash", false, true)]
+    [InlineData("5.4.0.0+metadata.1", false, true)]
+    [InlineData("5.4.0-preview.1", false, false)]
+    [InlineData("5.4.0.1", false, false)]
+    [InlineData("5.4.1", false, false)]
     [InlineData("5.0.2", false, false)]
     [InlineData("test-source-version", true, true)]
     public Task Native_hosts_refuse_unqualified_catalog_sdk_selectionsAsync(string selectedVersion, bool useSource, bool accepted)
@@ -1318,7 +1333,8 @@ public class PackageGovernanceTests {
                     || expectedVersion.StartsWith("5.1.1", StringComparison.Ordinal)
                     || expectedVersion.StartsWith("5.2.0", StringComparison.Ordinal)
                     || expectedVersion.StartsWith("5.3.0", StringComparison.Ordinal)
-                    || expectedVersion.StartsWith("5.3.1", StringComparison.Ordinal));
+                    || expectedVersion.StartsWith("5.3.1", StringComparison.Ordinal)
+                    || expectedVersion.StartsWith("5.4.0", StringComparison.Ordinal));
                 constants.Contains("HEXALITH_DEVELOPMENT_CATALOG_SOURCE_REFERENCE").ShouldBe(useSource);
                 constants.Contains("HEXALITH_CHECKPOINTED_TENANT_PROJECTION").ShouldBe(useSource
                     || expectedVersion.StartsWith("3.133.0", StringComparison.Ordinal)
@@ -1330,7 +1346,8 @@ public class PackageGovernanceTests {
                     || expectedVersion.StartsWith("5.1.1", StringComparison.Ordinal)
                     || expectedVersion.StartsWith("5.2.0", StringComparison.Ordinal)
                     || expectedVersion.StartsWith("5.3.0", StringComparison.Ordinal)
-                    || expectedVersion.StartsWith("5.3.1", StringComparison.Ordinal));
+                    || expectedVersion.StartsWith("5.3.1", StringComparison.Ordinal)
+                    || expectedVersion.StartsWith("5.4.0", StringComparison.Ordinal));
                 constants.Contains("HEXALITH_TECHNICAL_HTTP_CATALOG_BINDING").ShouldBe(useSource
                     || expectedVersion.StartsWith("3.131.0", StringComparison.Ordinal)
                     || expectedVersion.StartsWith("3.132.0", StringComparison.Ordinal)
@@ -1345,7 +1362,8 @@ public class PackageGovernanceTests {
                     || expectedVersion.StartsWith("5.1.1", StringComparison.Ordinal)
                     || expectedVersion.StartsWith("5.2.0", StringComparison.Ordinal)
                     || expectedVersion.StartsWith("5.3.0", StringComparison.Ordinal)
-                    || expectedVersion.StartsWith("5.3.1", StringComparison.Ordinal));
+                    || expectedVersion.StartsWith("5.3.1", StringComparison.Ordinal)
+                    || expectedVersion.StartsWith("5.4.0", StringComparison.Ordinal));
                 if (catalogAvailable && !useSource) {
                     properties.GetProperty("HexalithTenantsCatalogSdkVersion").GetString()
                         .ShouldBe(string.Join(".", expectedVersion.Split('+')[0].Split('.').Take(3)));

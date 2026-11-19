@@ -1,7 +1,7 @@
 <Project>
     <PropertyGroup>
         <!-- Keep canonical package cohorts exact; other family defaults come from the Builds catalog. -->
-        <HexalithEventStoreVersion Condition="'$(HexalithEventStoreVersion)' == ''">5.3.1</HexalithEventStoreVersion>
+        <HexalithEventStoreVersion Condition="'$(HexalithEventStoreVersion)' == ''">5.4.0</HexalithEventStoreVersion>
         <HexalithMcpCliVersion Condition="'$(HexalithMcpCliVersion)' == ''">3.0.0</HexalithMcpCliVersion>
         <HexalithBuildPackageVersions1>$(MSBuildThisFileDirectory)references/Hexalith.Builds/Props/Directory.Packages.props</HexalithBuildPackageVersions1>
         <HexalithBuildPackageVersions2>$(MSBuildThisFileDirectory)../Hexalith.Builds/Props/Directory.Packages.props</HexalithBuildPackageVersions2>
