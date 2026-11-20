@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PRD Validation: Tenants Management UI</title>
+<style>
+  :root {
+    --bg: #fafaf9;
+    --surface: #ffffff;
+    --border: #e7e5e4;
+    --text: #1c1917;
+    --muted: #78716c;
+
+    --verdict-strong: #16a34a;
+    --verdict-adequate: #65a30d;
+    --verdict-thin: #d97706;
+    --verdict-broken: #dc2626;
+
+    --sev-low: #64748b;
+    --sev-medium: #ca8a04;
+    --sev-high: #ea580c;
+    --sev-critical: #dc2626;
+
+    --grade-exc: #16a34a;
+    --grade-good: #65a30d;
+    --grade-fair: #d97706;
+    --grade-poor: #dc2626;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    font-size: 15px;
+  }
+  .container { max-width: 960px; margin: 0 auto; padding: 32px 24px 64px; }
+
+  header.report-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 24px;
+  }
+  .title h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+  .title .subtitle { color: var(--muted); font-size: 13px; margin-top: 4px; font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+  .grade {
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-weight: 600;
+    color: white;
+    font-size: 15px;
+    white-space: nowrap;
+  }
+  .grade-excellent { background: var(--grade-exc); }
+  .grade-good { background: var(--grade-good); }
+  .grade-fair { background: var(--grade-fair); }
+  .grade-poor { background: var(--grade-poor); }
+
+  .synthesis {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--muted);
+    border-radius: 8px;
+    padding: 18px 22px;
+    margin-bottom: 24px;
+    font-size: 15.5px;
+  }
+  .synthesis p { margin: 0 0 10px; }
+  .synthesis p:last-child { margin-bottom: 0; }
+
+  .dimension-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+  .dim-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .dim-card .dim-name { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .dim-card .dim-verdict { font-size: 14px; font-weight: 600; }
+
+  section.dimension, section.reviewer-section { margin-bottom: 14px; }
+  section.dimension details, section.reviewer-section details {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  section summary {
+    padding: 14px 20px;
+    cursor: pointer;
+    user-select: none;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  section summary::-webkit-details-marker { display: none; }
+  section summary::before {
+    content: "▸";
+    display: inline-block;
+    color: var(--muted);
+    transition: transform 0.15s ease;
+  }
+  section details[open] summary::before { transform: rotate(90deg); }
+  section summary h2 {
+    display: inline;
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    flex: 1;
+  }
+  .verdict-pill {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: white;
+  }
+  .verdict-strong { background: var(--verdict-strong); }
+  .verdict-adequate { background: var(--verdict-adequate); }
+  .verdict-thin { background: var(--verdict-thin); }
+  .verdict-broken { background: var(--verdict-broken); }
+
+  .dim-body { padding: 4px 20px 18px; }
+  .dim-judgment { color: var(--text); font-size: 14.5px; }
+  .dim-judgment p { margin: 0 0 10px; }
+
+  .findings-list { padding: 0 20px 4px; }
+  article.finding {
+    padding: 14px 0;
+    border-top: 1px solid var(--border);
+  }
+  article.finding:first-child { border-top: none; }
+  article.finding header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+  }
+  .badge {
+    font-size: 10.5px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    line-height: 1.4;
+  }
+  .badge-sev-low { background: rgba(100, 116, 139, 0.12); color: var(--sev-low); }
+  .badge-sev-medium { background: rgba(202, 138, 4, 0.14); color: var(--sev-medium); }
+  .badge-sev-high { background: rgba(234, 88, 12, 0.14); color: var(--sev-high); }
+  .badge-sev-critical { background: rgba(220, 38, 38, 0.14); color: var(--sev-critical); }
+  .finding-title { margin: 0; font-size: 15px; font-weight: 500; flex: 1; min-width: 200px; }
+  .finding-location { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12.5px; color: var(--muted); }
+  .finding-note, .finding-fix { margin-top: 6px; font-size: 14px; }
+  .finding-fix strong { color: var(--muted); font-weight: 500; }
+
+  .reviewer-source {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+
+  .mechanical {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-top: 24px;
+    font-size: 14px;
+  }
+  .mechanical h3 { margin: 0 0 10px; font-size: 14px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+  .mechanical ul { margin: 0; padding-left: 20px; }
+  .mechanical li { margin-bottom: 4px; color: var(--text); }
+
+  footer.report-footer {
+    margin-top: 40px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--muted);
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  footer .meta { display: flex; gap: 24px; flex-wrap: wrap; }
+</style>
+</head>
+<body><main class="container">
+<header class="report-header"><div class="title"><h1>Tenants Management UI — Validation Report</h1><div class="subtitle">_bmad-output/planning-artifacts/prds/prd-tenants-2026-06-02/prd.md</div></div><div class="grade grade-good">Good</div></header>
+<div class="synthesis"><p>The revised PRD resolves the 13 earlier findings and gives Product and Release a clear account of the evidence still owed. Its requirements can guide planning, but several acceptance tests still require consulting the source stories: the first-tenant exception, approval to copy a literal, membership-removal proof, and the meaning of an audit entry opened from a user or command. The engineering handoff also needs a precise account of which server components hold proof metadata and which module supplies command admission.</p><p>The <a href="validation-report-pre-update-2026-11-20.md">previous validation</a> recorded 13 findings. The <a href="review-validation-update-2026-11-20.md">correction review</a> traces their resolution. This run examined the revised PRD and addendum on the working tree at Tenants commit <code>8318f917</code>. The four owner checks for hosted qualification, first-consumer recovery, deployed identity and index capacity remain open. Product and Release still need to confirm the proposed SM-6 observation method. <a href="../../../implementation-artifacts/sprint-status.yaml#L408">Sprint tracker</a></p><p>0 critical, 0 high, 7 medium, 1 low findings.</p></div>
+<div class="dimension-summary"><div class="dim-card"><div class="dim-name">Decision-readiness</div><div class="dim-verdict" style="color:var(--verdict-strong)">Strong</div></div><div class="dim-card"><div class="dim-name">Substance over theater</div><div class="dim-verdict" style="color:var(--verdict-strong)">Strong</div></div><div class="dim-card"><div class="dim-name">Strategic coherence</div><div class="dim-verdict" style="color:var(--verdict-strong)">Strong</div></div><div class="dim-card"><div class="dim-name">Done-ness clarity</div><div class="dim-verdict" style="color:var(--verdict-adequate)">Adequate</div></div><div class="dim-card"><div class="dim-name">Scope honesty</div><div class="dim-verdict" style="color:var(--verdict-strong)">Strong</div></div><div class="dim-card"><div class="dim-name">Downstream usability</div><div class="dim-verdict" style="color:var(--verdict-thin)">Thin</div></div><div class="dim-card"><div class="dim-name">Shape fit</div><div class="dim-verdict" style="color:var(--verdict-adequate)">Adequate</div></div></div>
+<section class="dimension"><details><summary><h2>Decision-readiness</h2><span class="verdict-pill verdict-strong">strong</span></summary><div class="dim-body"><div class="dim-judgment"><p>Sections 14 and 16 distinguish the September audit performance approval from the November deployment decision. The dedicated release-candidate workload has an owner, budgets and fallback. Addendum §J identifies separate evidence for hosted package qualification, first-consumer recovery, deployed identity and index capacity. A reader can tell who must act and what would close each check.</p></div></div><div class="findings-list"></div></details></section>
+<section class="dimension"><details><summary><h2>Substance over theater</h2><span class="verdict-pill verdict-strong">strong</span></summary><div class="dim-body"><div class="dim-judgment"><p>The distinction between zero owners and zero membership history changes who can recover an active tenant. The exact-key configuration display policy has different consequences for an administrator and a tenant-scoped caller. These concrete examples give FR-24 and FR-6 testable meaning. The recorded November run counts establish local coverage without making a deployment claim.</p></div></div><div class="findings-list"></div></details></section>
+<section class="dimension"><details><summary><h2>Strategic coherence</h2><span class="verdict-pill verdict-strong">strong</span></summary><div class="dim-body"><div class="dim-judgment"><p>SM-6 measures the product’s central promise by matching the first displayed or announced success to authoritative evidence for that command. The proposed per-candidate cohort, denominator, unassessed count and no-result rule make zero incidents interpretable. Product and Release confirmation of the proposal is an explicit decision. SM-C1 and SM-C3 also protect preview and freshness safeguards against pressure to complete tasks faster.</p></div></div><div class="findings-list"></div></details></section>
+<section class="dimension"><details><summary><h2>Done-ness clarity</h2><span class="verdict-pill verdict-adequate">adequate</span></summary><div class="dim-body"><div class="dim-judgment"><p>All 25 FRs give a reader an observable consequence. FR-25 now distinguishes a confirmed correction, missing tenant receipt pairing and independently verified governance proof. Several other requirements omit meaningful positive or negative acceptance cases.</p></div></div><div class="findings-list"><article class="finding"><header><span class="badge badge-sev-medium">medium</span><h3 class="finding-title">First-tenant creation omits its named freshness exception (§6 CP-2, §7.5 FR-13)</h3></header><div class="finding-note">CP-2 permits an approved exception but FR-13 omits the case a global administrator encounters on a fresh installation. Story 3.1 permits creation with unknown freshness only when the tenant list is authoritatively empty in the caller’s scope and no first-write timestamp exists. An empty later page, an ambiguous projection or unproven authority must still block. See <code>spec-3-1-create-tenant-with-projection-confirmation.md:28</code>, <code>TenantsWorkspace.razor:565–581</code> and <code>TenantsWorkspaceTests.cs:1554–1606,1763–1776</code>. <a href="../../../implementation-artifacts/spec-3-1-create-tenant-with-projection-confirmation.md#L28">Approved first-tenant exception</a></div><div class="finding-fix"><strong>Suggested change</strong> Name this exception in FR-13 and cross-reference CP-2. Include authorized first creation and the blocked look-alikes as acceptance cases.</div></article><article class="finding"><header><span class="badge badge-sev-medium">medium</span><h3 class="finding-title">Copy eligibility needs a positive approval test (§7.2 FR-7, §10, addendum §E)</h3></header><div class="finding-note">“Copied content is the full id” and §10’s forbidden-field list do not establish who may approve that literal for copying. Story 1.8 requires an authorized read surface to approve the exact value and its kind. An unapproved value gets no copy control and never enters copy-component state. See <code>spec-1-8-support-safe-identifier-copy-and-read-experience-evidence.md:29,39–40</code> and <code>SupportSafeCopyClassifier.cs:15–32</code>. <a href="../../../implementation-artifacts/spec-1-8-support-safe-identifier-copy-and-read-experience-evidence.md#L67">Copy acceptance cases</a></div><div class="finding-fix"><strong>Suggested change</strong> Pair the approved literal’s unchanged clipboard result with a refusal case for an unapproved literal, including absence from the control’s state.</div></article><article class="finding"><header><span class="badge badge-sev-medium">medium</span><h3 class="finding-title">Member-removal audit proof lacks a discriminating acceptance case (§7.4 FR-12, addendum §I WP-2A)</h3></header><div class="finding-note">The progression to <code>audit_available</code> omits what distinguishes this removal from an older removal of the same member. Current behavior requires the authorized proof lookup to establish the exact attempt and committed sequence across stable, complete evidence. An inconclusive walk preserves the confirmed removal and withholds the receipt. See <code>spec-2-4b-wp-2a-removal-proof-and-audit-available.md:45–51</code>, <code>release-readiness.md:542</code> and <code>RemoveTenantMemberFlow.razor:1722–1805</code>. <a href="../../../implementation-artifacts/spec-2-4b-wp-2a-removal-proof-and-audit-available.md#L45">Removal proof contract</a></div><div class="finding-fix"><strong>Suggested change</strong> Add exact-match and incomplete, changing or unmatched-read cases. Include the pre-dispatch block when proof capability is absent.</div></article><article class="finding"><header><span class="badge badge-sev-medium">medium</span><h3 class="finding-title">Audit entry context can be mistaken for an authoritative filter (§7.8 FR-21)</h3></header><div class="finding-note">“Each entry point lands scoped to the relevant tenant/user/command” suggests that a user or command entry restricts the returned rows. Story 5.2 makes tenant scope authoritative, with date and category filters. User and command origins provide context hints. The UI expressly disclaims exhaustive user matches and command proof. See <code>spec-5-2-reach-scoped-audit-evidence-from-context.md:24</code> and <code>TenantsResources.resx:3465–3472</code>. <a href="../../../implementation-artifacts/spec-5-2-reach-scoped-audit-evidence-from-context.md#L24">Contextual audit entry rules</a></div><div class="finding-fix"><strong>Suggested change</strong> Describe the eligible origin, the authoritative filters, and the meaning of the hint in separate acceptance cases.</div></article></div></details></section>
+<section class="dimension"><details><summary><h2>Scope honesty</h2><span class="verdict-pill verdict-strong">strong</span></summary><div class="dim-body"><div class="dim-judgment"><p>Sections 2 and 14 distinguish the historical read-only milestone from the delivered command flows. FR-6, FR-15 and FR-25 define limits on data disclosure, hard deletion and tenant audit pairing. Open language and accessibility decisions have been kept conditional. The four external checks in §J have concrete owners and acceptance evidence.</p></div></div><div class="findings-list"></div></details></section>
+<section class="dimension"><details open><summary><h2>Downstream usability</h2><span class="verdict-pill verdict-thin">thin</span></summary><div class="dim-body"><div class="dim-judgment"><p>The glossary, stable identifiers and story mappings support extraction. The current text still gives a reader the wrong expectation about a server-component boundary and the provider of an aggregate-scoped lock. The removal preview’s own reference section also omits required facts.</p></div></div><div class="findings-list"><article class="finding"><header><span class="badge badge-sev-medium">medium</span><h3 class="finding-title">The component data boundary and server-side proof model disagree (§7.8 FR-22, §10, addendum §D)</h3></header><div class="finding-note">The PRD says rendered components never receive internal correlations. The server-side audit page passes rows with internal <code>CommandCorrelationId</code> and aggregate sequence to the grid. The mapped receipt exposes support-safe fields. This is a mismatch between the stated architecture and its implementation. The reviewed evidence does not establish browser disclosure. See <code>TenantAuditRow.cs:39–43,92–93</code>, <code>TenantAuditPage.razor:222</code>, <code>AuditDataGrid.razor:178</code> and <code>TenantAuditReceipt.cs:23–33</code>. <a href="../../../../src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditRow.cs#L40">Server-side audit row</a></div><div class="finding-fix"><strong>Suggested change</strong> Decide whether the categorical component boundary remains required. If retained, record the implementation gap. If server-only verification state is accepted, specify its permitted owner and test the prohibitions on rendering, copying, serialization to clients and logging.</div></article><article class="finding"><header><span class="badge badge-sev-medium">medium</span><h3 class="finding-title">The dependency table attributes Tenants command behavior to FrontComposer (§11, addendum §B)</h3></header><div class="finding-note">The shared command contracts are marked “confirmed” beside an aggregate-scoped lock. The July 19 review recorded limitations in the shared contracts. Story 2.1 explicitly selected a Tenants-owned admission gate keyed by aggregate identity while the FrontComposer gate remains circuit-wide. Inferring package capability from product behavior would serialize unrelated commands in another integration. See <code>story-1-0-frontcomposer-fluent-reverification-2026-07-19.md:51–52</code>, <code>spec-2-1-reverify-projection-confirmed-membership-command-foundation.md:40</code> and <code>TenantAggregateCommandAdmissionGate.cs:6–17</code>. <a href="../../../implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md#L40">Command gate ownership decision</a></div><div class="finding-fix"><strong>Suggested change</strong> Give the shared component and the Tenants implementation separate owner and evidence entries for command feedback and admission.</div></article><article class="finding"><header><span class="badge badge-sev-medium">medium</span><h3 class="finding-title">The removal preview summary omits three displayed safety facts (§7.4 FR-12, addendum §H)</h3></header><div class="finding-note">FR-12 requires the tenant, target and current role as inputs. Section H describes a “canonical 10-item set” but its extracted list omits these three as fields the operator must see. A preflight check alone would pass while a user confirms removal of the wrong member. The shipped dialog and its regression explicitly display them. See <code>docs/tenants-ui-remove-user-from-tenant-journey-spec.md:69–80</code>, <code>RemoveTenantMemberFlow.razor:722–734</code> and <code>RemoveTenantMemberFlowTests.cs:326–352</code>. <a href="../../../../docs/tenants-ui-remove-user-from-tenant-journey-spec.md#L69">Complete removal preview</a></div><div class="finding-fix"><strong>Suggested change</strong> Enumerate the displayed facts or link directly to the complete approved list and explain how the dialog groups the facts and shows platform standing.</div></article></div></details></section>
+<section class="dimension"><details><summary><h2>Shape fit</h2><span class="verdict-pill verdict-adequate">adequate</span></summary><div class="dim-body"><div class="dim-judgment"><p>The journeys suit a shared operator and owner interface. Users can follow the recovery examples while engineers can use the addendum for command and projection behavior. One navigation attribution could misdirect a downstream UX handoff.</p></div></div><div class="findings-list"><article class="finding"><header><span class="badge badge-sev-low">low</span><h3 class="finding-title">The Users tab description conflates self-audit and lookup (§5.1)</h3></header><div class="finding-note">The PRD assigns FR-3 “My Tenants” and FR-4 lookup to the Users tab after describing the self-membership filter under Tenants. The canonical workspace places <code>scope=mine</code> under Tenants and lookup under Users. See <code>1-1-reverify-ui-host-bootstrap-and-canonical-workspace.md:64</code> and <code>TenantsWorkspace.razor:304–326</code>. <a href="../../../implementation-artifacts/1-1-reverify-ui-host-bootstrap-and-canonical-workspace.md#L64">Workspace scope and tabs</a></div><div class="finding-fix"><strong>Suggested change</strong> Map FR-3 to the Tenants self-membership scope and FR-4 to the Users lookup tab.</div></article></div></details></section>
+
+<div class="mechanical"><h3>Mechanical notes</h3><ul><li>FR-1–25, UJ-1–6, SM-1–6, and SM-C1–3 each have a unique definition. Each journey names its protagonist. SM-6 is grouped with the primary measures.</li><li>All 52 explicit relative Markdown links in the current PRD and addendum resolve. The 28 line and heading fragments resolve against their target files. Section 17 indexes the substantive tagged assumptions, including the proposed SM-6 measurement.</li><li>The prior findings reconciliation and the decision log distinguish the 13 completed document corrections from outstanding product and deployment decisions. This assessment used the edited working tree at Tenants revision <code>8318f917</code> and the cited source and test contracts. It did not execute the product qualification suites.</li></ul></div>
+<footer class="report-footer"><div class="meta"><span>Rubric · .agents/skills/bmad-prd/assets/prd-validation-checklist.md</span><span>2026-11-20T15:58:30+01:00</span></div><p><a href="review-rubric.md">Full rubric review</a> · <a href="validation-report.md">Markdown report</a></p></footer>
+</main></body></html>
