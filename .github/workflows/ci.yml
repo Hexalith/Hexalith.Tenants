@@ -268,6 +268,8 @@ jobs:
               raise SystemExit("The Dapr CLI is not on PATH.")
           initialize_dapr(Path(binary), os.environ["DAPR_RUNTIME_VERSION"], Path.cwd())
           PY
+      - name: Select executable EventStore hosts from the catalog release
+        run: bash scripts/prepare-bootstrap-compatibility.sh
       - name: Select the shipping SDKs for all live hosts
         run: python3 scripts/prepare-source-catalog-profile.py --shipping-versions >> "$GITHUB_ENV"
       - name: Verify bounded functional browser navigation and readiness
@@ -303,7 +305,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          source_sha="$(git rev-parse HEAD:references/Hexalith.EventStore)"
+          source_sha="$(git -C references/Hexalith.EventStore rev-parse HEAD)"
           results="TestResults/authenticated-routes/${{ matrix.suite }}"
           mkdir -p "$results"
           python3 scripts/prepare-source-catalog-profile.py --shipping-runtime-evidence "$results/package-provenance.json"
@@ -512,7 +514,7 @@ jobs:
       solution: Hexalith.Tenants.slnx
       test-platform: microsoft-testing-platform
       run-consumer-validation: true
-      # Canonical-scope hosts use the current root-declared EventStore source.
+      package-prepare-script: scripts/prepare-bootstrap-compatibility.sh
       run-coverage-gate: true
       # Root object acquisition, restore, build, tests and package consumers exceeded 25 minutes on hosted CI.
       build-timeout-minutes: 60

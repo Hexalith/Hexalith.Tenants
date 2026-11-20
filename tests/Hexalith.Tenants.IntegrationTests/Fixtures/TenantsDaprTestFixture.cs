@@ -30,10 +30,10 @@ namespace Hexalith.Tenants.IntegrationTests.Fixtures;
 /// <remarks>
 /// All DAPR sidecar plumbing — port allocation, sidecar lifecycle, health probing, prerequisite
 /// checks, support-safe diagnostics, the actor/<c>/process</c>/<c>/healthz</c> endpoints — lives in the
-/// reusable platform base <see cref="DaprDomainServiceTestFixtureBase"/>. This fixture supplies only the
+/// Tenants-owned base <see cref="TenantsDomainServiceHarness"/>. This fixture supplies only the
 /// Tenants domain host registration and the publisher/store fakes the tests assert against.
 /// </remarks>
-public sealed class TenantsDaprTestFixture : DaprDomainServiceTestFixtureBase, IAsyncLifetime {
+public sealed class TenantsDaprTestFixture : TenantsDomainServiceHarness, IAsyncLifetime {
     internal SnapshotPerformanceProgress PerformanceProgress { get; } = SnapshotPerformanceProgress.FromEnvironment();
 
     /// <inheritdoc/>
@@ -52,7 +52,7 @@ public sealed class TenantsDaprTestFixture : DaprDomainServiceTestFixtureBase, I
     /// <inheritdoc/>
     public new async ValueTask DisposeAsync()
     {
-        // Checkpoint refusal must not prevent the frozen fixture from cleaning its own resources.
+        // Checkpoint refusal must not prevent the Tenants fixture from cleaning its own resources.
         try
         {
             try { PerformanceProgress.SetPhase(SnapshotPerformanceProgress.Phase.FixtureTeardown); }

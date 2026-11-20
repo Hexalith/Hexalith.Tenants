@@ -1,4 +1,3 @@
-using System.Reflection;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -142,14 +141,11 @@ internal static class BootstrapResourceFailureDiagnostics
 
     internal static async Task CaptureAsync(AspireTopologyFixture fixture)
     {
-        // The frozen legacy 3.128.4 fixture exposes no public application handle. Read its
-        // pinned private handle solely for diagnostics; no configuration or service is changed.
         if (Environment.GetEnvironmentVariable("GITHUB_ACTIONS") != "true"
             || Environment.GetEnvironmentVariable("RUNNER_TEMP") is not { Length: > 0 } temporary) return;
         try
         {
-            DistributedApplication? app = typeof(AspireTopologyFixtureBase<Projects.Hexalith_Tenants_AppHost>)
-                .GetField("_app", BindingFlags.Instance | BindingFlags.NonPublic)?.GetValue(fixture) as DistributedApplication;
+            DistributedApplication? app = fixture.Application;
             if (app is null) return;
             using CancellationTokenSource bound = new(TimeSpan.FromSeconds(3));
             ResourceLoggerService logger = app.Services.GetRequiredService<ResourceLoggerService>();
@@ -164,7 +160,7 @@ internal static class BootstrapResourceFailureDiagnostics
             string json = JsonSerializer.Serialize(new
             {
                 kind = "owned-bootstrap-failure-categories", source = "Aspire.GetAllAsync(IResource)",
-                fixtureVersion = typeof(AspireTopologyFixtureBase<>).Assembly.GetName().Version?.ToString(), resources,
+                fixtureVersion = typeof(TenantsAspireHarness<>).Assembly.GetName().Version?.ToString(), resources,
                 enrollmentSource = "Aspire.ResourceNotificationService.WatchAsync", enrollment,
             });
             string directory = Path.Combine(temporary, "tenants-bootstrap-diagnostics");

@@ -15,15 +15,15 @@ using Shouldly;
 
 namespace Hexalith.Tenants.IntegrationTests;
 
-/// <summary>Exercises the frozen package's real disposal sequence without starting an AppHost or Dapr.</summary>
+/// <summary>Exercises the Tenants harness disposal sequence without starting an AppHost or Dapr.</summary>
 [Collection("BootstrapReadiness")]
-public sealed class FrozenAspireLifecycleTests
+public sealed class TenantsAspireLifecycleTests
 {
-    /// <summary>Both module disposal and the final frozen method used on startup failure await the owned application's stop.</summary>
+    /// <summary>Both module disposal and the base lifecycle method used on startup failure await the owned application's stop.</summary>
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task ActualFrozenDisposalWaitsForStopBeforeApplicationBuilderAndFixtureLockRelease(bool startupFailure)
+    public async Task OwnedDisposalWaitsForStopBeforeApplicationBuilderAndFixtureLockRelease(bool startupFailure)
     {
         string root = Directory.CreateTempSubdirectory("tenants-frozen-lifetime-").FullName;
         string? profile = Environment.GetEnvironmentVariable("TENANTS_SOURCE_CATALOG_PROFILE");
@@ -57,11 +57,10 @@ public sealed class FrozenAspireLifecycleTests
             using var fixtureLock = new FileStream(lockPath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None);
             SetField(fixture, "_daprFixtureLock", fixtureLock);
 
-            // Calling the actual frozen final method models its internal startup catch, which
-            // cannot dispatch a hidden derived DisposeAsync implementation.
+            // Exercise the same cleanup entry point used by the startup failure path.
             disposing = Task.Run(async () =>
             {
-                if (startupFailure) await ((AspireTopologyFixtureBase<Projects.Hexalith_Tenants_AppHost>)fixture).DisposeAsync();
+                if (startupFailure) await ((TenantsAspireHarness<Projects.Hexalith_Tenants_AppHost>)fixture).DisposeAsync();
                 else await fixture.DisposeAsync();
             });
             await started.Task.WaitAsync(TimeSpan.FromSeconds(3));
@@ -88,7 +87,7 @@ public sealed class FrozenAspireLifecycleTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task FailedStopDoesNotReleaseFrozenApplicationBuilderOrFixtureLock(bool startupFailure)
+    public async Task FailedStopDoesNotReleaseOwnedApplicationBuilderOrFixtureLock(bool startupFailure)
     {
         const string sentinel = "credential-sentinel://private-stop?password=never-retain";
         string root = Directory.CreateTempSubdirectory("tenants-frozen-stop-refusal-").FullName;
@@ -110,11 +109,11 @@ public sealed class FrozenAspireLifecycleTests
             SetField(fixture, "_daprFixtureLock", fixtureLock);
             Task disposing = Task.Run(async () =>
             {
-                if (startupFailure) await ((AspireTopologyFixtureBase<Projects.Hexalith_Tenants_AppHost>)fixture).DisposeAsync();
+                if (startupFailure) await ((TenantsAspireHarness<Projects.Hexalith_Tenants_AppHost>)fixture).DisposeAsync();
                 else await fixture.DisposeAsync();
             });
             InvalidOperationException failure = await Should.ThrowAsync<InvalidOperationException>(() => disposing);
-            failure.Message.ShouldBe("frozen-aspire-stop-failed");
+            failure.Message.ShouldBe("tenants-aspire-stop-failed");
             failure.Message.ShouldNotContain(sentinel);
             failure.ToString().ShouldNotContain(sentinel);
             failure.InnerException.ShouldBeNull();
@@ -142,7 +141,7 @@ public sealed class FrozenAspireLifecycleTests
             var fixture = new AspireTopologyFixture();
             IDistributedApplicationTestingBuilder builder = Substitute.For<IDistributedApplicationTestingBuilder>();
             SetField(fixture, "_builder", builder);
-            await ((AspireTopologyFixtureBase<Projects.Hexalith_Tenants_AppHost>)fixture).DisposeAsync();
+            await ((TenantsAspireHarness<Projects.Hexalith_Tenants_AppHost>)fixture).DisposeAsync();
             await builder.Received(1).DisposeAsync();
         }
         finally
@@ -159,6 +158,6 @@ public sealed class FrozenAspireLifecycleTests
             .AddSingleton<ResourceLoggerService>().AddSingleton<ResourceNotificationService>().BuildServiceProvider();
 
     private static void SetField(AspireTopologyFixture fixture, string name, object value)
-        => typeof(AspireTopologyFixtureBase<Projects.Hexalith_Tenants_AppHost>)
+        => typeof(TenantsAspireHarness<Projects.Hexalith_Tenants_AppHost>)
             .GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(fixture, value);
 }

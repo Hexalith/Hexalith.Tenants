@@ -117,7 +117,10 @@ class SourceCatalogProfileProvisioningTests(unittest.TestCase):
                 if arguments[:4] == ("git", "config", "--file", ".gitmodules"):
                     return "references/" + arguments[-1].split(".", 1)[1].removesuffix(".path")
                 if arguments[:2] == ("git", "rev-parse"): return "c" * 40
-                if arguments[:2] == ("git", "-C"): return "d" * 40 if scenario == "source-drift" else "c" * 40
+                if arguments[:2] == ("git", "-C"):
+                    if arguments[2].endswith("/Hexalith.EventStore"):
+                        return ("d" if scenario == "source-drift" else "f") * 40
+                    return ("d" if scenario == "builds-drift" else "c") * 40
                 if arguments == ("docker", "inspect", "dapr_redis"): return json.dumps([copy.deepcopy(backend)])
                 if arguments[:3] == ("docker", "volume", "inspect"): return json.dumps([copy.deepcopy(volume)])
                 if arguments == ("docker", "exec", backend["Id"], "redis-cli", "-n", database, "DBSIZE"):
@@ -127,7 +130,7 @@ class SourceCatalogProfileProvisioningTests(unittest.TestCase):
                 raise AssertionError("Unexpected boundary command: " + repr(arguments))
 
             with mock.patch.dict(os.environ, settings, clear=True), mock.patch.object(profile, "command", command), \
-                    mock.patch("sys.argv", ["prepare", "--sdk-source-sha", "c" * 40, "--profile", "rest",
+                    mock.patch("sys.argv", ["prepare", "--sdk-source-sha", ("c" if scenario == "selected-host-drift" else "f") * 40, "--profile", "rest",
                                             "--redis-db", database, "--worker-backed-responses", worker, "--output", str(output)]), \
                     contextlib.redirect_stdout(io.StringIO()) as diagnostics:
                 if scenario in ("fresh", "finish", "shutdown-missing", "shutdown-running", "shutdown-container", "shutdown-changed-component"):
@@ -191,7 +194,7 @@ class SourceCatalogProfileProvisioningTests(unittest.TestCase):
 
     def test_refusals_preserve_existing_evidence_and_do_not_mint_owner_material(self):
         for scenario in ("old-container", "substituted-container", "stopped", "retained-volume", "old-volume", "remote-volume",
-                         "bind-mount", "changed-mount", "wrong-port", "wrong-loopback", "ipv6-only", "nonempty", "source-drift",
+                         "bind-mount", "changed-mount", "wrong-port", "wrong-loopback", "ipv6-only", "nonempty", "source-drift", "builds-drift", "selected-host-drift",
                          "existing-evidence", "evidence-link", "wrong-job", "different-job", "no-producer", "incomplete-receipt",
                          "mismatched-receipt", "missing-created-redis", "preexisting-container", "non-utc", "reversed-time",
                          "malformed-receipt", "public-receipt", "receipt-link", "unfinished-profile", "used-database",

@@ -209,7 +209,7 @@ try {
     evidence.sourceBeforeBuild = sourceBeforeBuild;
     const privateDirectory = await mkdtemp(resolve(tmpdir(), 'tenants-admin-dialog-browser-'));
     const buildArguments = ['build', 'src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj', '-c', 'Debug', '-m:1', '-p:UseNuGetDeps=false'];
-    if (readSafety || handoff) buildArguments.push('-p:HexalithEventStoreVersion=3.128.4', '-p:HexalithMcpCliFromSource=false', '-p:NuGetAudit=false');
+    if (readSafety || handoff) buildArguments.push('-p:HexalithMcpCliFromSource=false', '-p:NuGetAudit=false');
     evidence.build = { executable: 'dotnet', arguments: buildArguments, succeeded: false,
         skippedForDevelopment: process.env.TENANTS_BROWSER_SKIP_BUILD === '1',
         reusedBuild: process.env.TENANTS_BROWSER_SKIP_BUILD === '1' };

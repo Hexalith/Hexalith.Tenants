@@ -37,7 +37,7 @@ class ProductPackageSelectionTests(unittest.TestCase):
             "runtimeTarget": {"name": "current"}, "targets": targets, "libraries": libraries}))
 
     def test_only_the_restored_and_built_shipping_packages_can_start_the_product_profiles(self):
-        for scenario in ("current", "stale-restore", "stale-domain", "api-project", "ui-inactive", "apphost-hash"):
+        for scenario in ("current", "stale-restore", "stale-domain", "api-project", "ui-inactive", "apphost-hash", "stale-host"):
             with self.subTest(scenario=scenario), tempfile.TemporaryDirectory() as temporary:
                 root = Path(temporary)
                 restored = "5.3.1" if scenario == "stale-restore" else "5.4.0"
@@ -65,8 +65,8 @@ class ProductPackageSelectionTests(unittest.TestCase):
                         self.assertNotIn("HexalithMcpCliVersion", env)
                         self.assertFalse(any(arg.startswith("-p:HexalithEventStoreVersion=") for arg in arguments))
                         return json.dumps({"Properties": {"HexalithEventStoreVersion": "5.4.0", "HexalithMcpCliVersion": "3.0.0"}})
-                    self.assertEqual(arguments, ("git", "rev-parse", "HEAD:references/Hexalith.EventStore"))
-                    return "a" * 40
+                    self.assertEqual(arguments, ("git", "-C", str(root / "references/Hexalith.EventStore"), "rev-parse", "HEAD"))
+                    return ("a" if scenario == "stale-host" else "e") * 40
 
                 with mock.patch.object(PRODUCT, "ROOT", root), mock.patch.object(PRODUCT.PROFILE, "command", command), \
                         mock.patch.object(PRODUCT.subprocess, "run") as ordinary, mock.patch.object(PRODUCT, "run_profile") as cold, \

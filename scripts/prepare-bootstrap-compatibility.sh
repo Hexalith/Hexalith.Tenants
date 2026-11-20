@@ -1,9 +1,7 @@
 #!/usr/bin/env bash
-# Frozen topology tests launch non-packaged platform hosts beside the 3.128.4
-# packages. Select their published source identity only in disposable CI checkouts.
+# Select the executable host source for the catalog release tested by the Tenants-owned harness.
 set -euo pipefail
 
-compatibility_revision=717a06e16c3afd81b904eaf4de646b74b13262d2
 reference_path=references/Hexalith.EventStore
 workspace_root="$(git rev-parse --show-toplevel)"
 
@@ -12,16 +10,30 @@ if [ "$(git -C "$workspace_root" config --file .gitmodules --get submodule.Hexal
     exit 1
 fi
 reference_root="$workspace_root/$reference_path"
-git -C "$reference_root" status --short --branch
-git -C "$reference_root" remote -v
-git -C "$reference_root" log --oneline --max-count=3
+builds_root="$workspace_root/references/Hexalith.Builds"
+read -r version compatibility_revision < <(python3 - "$builds_root" <<'PYCODE'
+import json, re, sys
+from pathlib import Path
+from xml.etree import ElementTree as ET
+root = Path(sys.argv[1]) / "Props"
+versions = ET.parse(root / "Directory.Packages.props").findall("PropertyGroup/HexalithEventStoreVersion")
+if len(versions) != 1 or not re.fullmatch(r"[0-9]+(?:\.[0-9]+){2,3}", versions[0].text or ""):
+    raise ValueError("The Builds catalog must select one stable EventStore version")
+version = versions[0].text
+release = json.loads((root / "release-declarations.json").read_bytes())["eventstore/" + version]
+if release["repository"] != "Hexalith.EventStore" or release["version"] != version or not re.fullmatch("[0-9a-f]{40}", release["commit"]):
+    raise ValueError("Invalid EventStore release declaration")
+print(version, release["commit"])
+PYCODE
+)
+
 if [ -n "$(git -C "$reference_root" status --porcelain)" ]; then
     echo 'The compatibility host checkout contains changes; refusing to replace them.' >&2
     exit 1
 fi
 if [ "${1:-}" = --check ]; then
     git -C "$reference_root" cat-file -e "${compatibility_revision}^{commit}"
-    echo "Frozen EventStore 3.128.4 host source: $compatibility_revision (check only)."
+    echo "EventStore $version host source: $compatibility_revision (check only)."
     exit 0
 fi
 if [ "$#" -ne 0 ] || [ "${GITHUB_ACTIONS:-}" != true ]; then
@@ -29,32 +41,15 @@ if [ "$#" -ne 0 ] || [ "${GITHUB_ACTIONS:-}" != true ]; then
     exit 1
 fi
 case "${GITHUB_JOB:-}" in
-    build-and-test)
-        # This reusable job runs package/unit checks, including current-source
-        # tooling checks, and never launches the compatibility topology.
-        echo 'Keeping tracked EventStore source for the build-and-test job.'
-        exit 0
-        ;;
-    authenticated-routes|aspire-tests|performance-tests) ;;
+    build-and-test|authenticated-routes|aspire-tests|performance-tests) ;;
     *)
-        echo 'Host selection is limited to the declared compatibility topology jobs.' >&2
+        echo 'Host selection is limited to the declared CI jobs.' >&2
         exit 1
         ;;
 esac
-: "${GITHUB_ENV:?The compatibility job requires the GitHub environment file.}"
-compatibility_response="$workspace_root/Directory.Build.rsp"
-if [ -e "$compatibility_response" ] || [ -L "$compatibility_response" ]; then
-    echo 'The compatibility response file already exists; refusing to replace it.' >&2
-    exit 1
-fi
 if ! git -C "$reference_root" cat-file -e "${compatibility_revision}^{commit}" 2>/dev/null; then
     git -C "$reference_root" -c submodule.recurse=false fetch --no-recurse-submodules origin "$compatibility_revision"
 fi
 git -C "$reference_root" -c submodule.recurse=false checkout --detach "$compatibility_revision"
 test "$(git -C "$reference_root" rev-parse HEAD)" = "$compatibility_revision"
-# Select the cohort as a global MSBuild property for subsequent CLI invocations.
-# Project-reference metadata can then remove it from the independent Builds.Tooling
-# catalog. An environment override would leak through that boundary into its writer.
-(set -o noclobber; printf '%s\n' '-p:HexalithEventStoreVersion=3.128.4' > "$compatibility_response")
-echo 'TENANTS_BOOTSTRAP_COMPAT_SDK_VERSION=3.128.4' >> "$GITHUB_ENV"
-echo "Frozen EventStore 3.128.4 host source: $compatibility_revision."
+echo "EventStore $version host source: $compatibility_revision."
