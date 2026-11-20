@@ -20,13 +20,12 @@ namespace Hexalith.Tenants.IntegrationTests.Fixtures;
 /// </summary>
 /// <remarks>
 /// All DAPR/Aspire plumbing — placement/scheduler endpoint resolution, prerequisite probing, build/
-/// start, client creation, endpoint polling, and liveness diagnostics — lives in the reusable platform
-/// base <see cref="AspireTopologyFixtureBase{TAppHost}"/>. This fixture supplies the Tenants resources
+/// start, client creation, endpoint polling, and liveness diagnostics — lives in the Tenants-owned
+/// base <see cref="TenantsAspireHarness{TAppHost}"/>. This fixture supplies the Tenants resources
 /// and requires projected caller authority after its explicit post-startup bootstrap.
 /// </remarks>
-public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith_Tenants_AppHost>, IAsyncLifetime {
+public class AspireTopologyFixture : TenantsAspireHarness<Projects.Hexalith_Tenants_AppHost>, IAsyncLifetime {
     private readonly string _nativeOwnerPrivateKey = NativeOwnerReadServiceComposition.CreatePrivateKey();
-    private readonly FrozenAspireShutdownClient _shutdown;
 
     internal static string DemoSigningKey => Environment.GetEnvironmentVariable("TENANTS_SOURCE_CATALOG_SIGNING_KEY")
         ?? "DevOnlySigningKey-AtLeast32Chars!";
@@ -43,7 +42,6 @@ public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith
     /// <summary>Uses the SDK's trusted development certificate directory without changing TLS validation.</summary>
     public AspireTopologyFixture()
     {
-        _shutdown = FrozenAspireLifecycle.Attach(this);
         ConfigureCertificateTrust();
     }
 
@@ -70,7 +68,7 @@ public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith
             async () =>
             {
                 await BootstrapResourceFailureDiagnostics.CaptureAsync(this);
-                await DisposeApplicationAsync();
+                await base.DisposeAsync();
             },
             string.Equals(Environment.GetEnvironmentVariable("TENANTS_LIVE_REQUIRE_COLD_BOOTSTRAP"), "true", StringComparison.OrdinalIgnoreCase),
             timeout.Token,
@@ -80,14 +78,8 @@ public class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith
     /// <inheritdoc/>
     public new async ValueTask DisposeAsync()
     {
-        await DisposeApplicationAsync();
-        CatalogRedisBackend.RecordShutdown();
-    }
-
-    private async ValueTask DisposeApplicationAsync()
-    {
-        await _shutdown.StopAsync();
         await base.DisposeAsync();
+        CatalogRedisBackend.RecordShutdown();
     }
 
     internal static bool IsSourceCatalogProfile => string.Equals(Environment.GetEnvironmentVariable("TENANTS_SOURCE_CATALOG_PROFILE"), "true", StringComparison.Ordinal);

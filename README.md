@@ -171,21 +171,11 @@ dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.cs
 
 Integration and server tests require DAPR initialization (`dapr init`) and the local runtime prerequisites documented in the quickstart.
 
-`Hexalith.Tenants.IntegrationTests` is the frozen bootstrap compatibility lane and
-uses the published EventStore Testing.Integration 3.128.4 harness in both package
-and source builds. Runtime libraries still use source references in the
-source-reference lane. The newer EventStore source harness consumes Platform
-environment descriptors exclusively; new suites for that API must declare runner
-bindings and run through `hexalith-module test` with
-`HEXALITH_TEST_ENVIRONMENT_PATH`. Existing fixture-owned failure injection and
-cold-bootstrap checks remain in the compatibility lane.
-Its disposable CI jobs also select EventStore host source
-`717a06e16c3afd81b904eaf4de646b74b13262d2`, the repository revision recorded by
-the published 3.128.4 packages. These non-packaged executable hosts therefore
-match the fixture/runtime baseline. The helper also exports SDK 3.128.4 to every
-subsequent domain/runtime/test build in those jobs. This legacy compatibility
-profile cannot pack publishable Tenants artifacts. The tracked submodule pin and the
-source-reference workflow continue to exercise current source.
+`Hexalith.Tenants.IntegrationTests` runs on .NET 11 using the EventStore family selected
+in the Builds catalog. Tenants owns the Aspire AppHost and local daprd test fixtures
+used for cold bootstrap, authenticated routes, failure injection, and bounded teardown.
+The CI setup verifies that the executable host source belongs to the same release as
+the packages. The integration suite uses EventStore's published diagnostics.
 
 ## License
 
