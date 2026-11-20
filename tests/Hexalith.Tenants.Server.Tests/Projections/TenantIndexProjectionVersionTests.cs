@@ -20,7 +20,7 @@ public sealed class TenantIndexProjectionVersionTests
         model.ProjectedAt = DateTimeOffset.UtcNow;
         model.ProjectionVersion = "untrusted-old-version";
         TenantIndexProjectionVersion.Create(model).ShouldBe(version);
-        version.ShouldStartWith("tenant-index:sha256:");
+        version.ShouldBe("tenant-index:sha256:2ba1b7ea2a8d1f6d2f0d8e0b2e091c45999e9a4bb960d8d5c528853e5446520a");
     }
 
     [Theory]

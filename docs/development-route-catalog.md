@@ -111,8 +111,21 @@ enrollment, the complete owner catalog, all generated HTTP cases, ordinary stale
 artifact refusals, and a fresh packed Contracts/Server consumer. The consumer
 checks source metadata and candidate archive/DLL hashes before discovering all
 24 routes, 24 operations and 13 command adapters through the public SDK APIs.
+
+The four blocking authenticated route suites resolve the Release AppHost's
+EventStore and McpCli defaults and pass them to the linked host builds. After
+the build, each suite checks that every restored AppHost target uses the
+selected EventStore.Aspire package and that the NuGet manifest identifies its
+producer. The active runtime target in the Release `.deps.json` for the AppHost,
+domain host, API and UI must load the shipping EventStore.Contracts and
+McpCli.Abstractions packages. The AppHost must also load the restored Aspire
+package with the same NuGet hash. Each suite includes `package-provenance.json`
+with its TRX results. It records the package producer commit, executable source
+gitlink, runtime package versions and hash of each checked manifest. The
+product integration hook records the same evidence before the ordinary tier.
+
 Binary qualification enables `HEXALITH_DEVELOPMENT_CATALOG_SOURCE`; the canonical
-4.x, 5.0.1, 5.1.x, 5.2.0 and 5.3.x package cohorts and an actual source graph also enable
+4.x, 5.0.1, 5.1.x, 5.2.0, 5.3.x and 5.4.0 package cohorts and an actual source graph also enable
 `HEXALITH_DEVELOPMENT_CATALOG_COHORT`. Only source graphs enable
 `HEXALITH_DEVELOPMENT_CATALOG_SOURCE_REFERENCE`.
 

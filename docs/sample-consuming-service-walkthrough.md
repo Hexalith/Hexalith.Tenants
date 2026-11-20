@@ -4,10 +4,8 @@
 
 This guide explains the existing sample consuming service in
 [`samples/Hexalith.Tenants.Sample/`](../samples/Hexalith.Tenants.Sample/).
-Use it as the source-backed path for copying tenant event subscription and
-local projection access checks into another service. The sample is not a new
-integration path; it uses the same `Hexalith.Tenants.Client` APIs that package
-consumers use.
+Use the sample to wire tenant event subscriptions and try the Development readouts.
+For a service that authorizes real requests, follow the [checkpointed consumer guidance](#production-store-guidance).
 
 ## File map
 
@@ -109,9 +107,9 @@ Sample-specific teaching surfaces:
 - `MemoriesSearchIndexEventPublisher` publishes one curated search-index entry per
   tenant lifecycle event to the Memories ingestion topic (search-as-index-only), showing
   how a consumer can fan tenant events out to a downstream index.
-- `/access/{tenantId}/{userId}` shows one projection-backed authorization check.
+- In Development, `/access/{tenantId}/{userId}` shows the demo decision for the supplied identifiers.
 - `/configuration/{tenantId}/sample` shows namespace-filtered configuration
-  reads from the local projection.
+  reads from the local projection in Development. Both teaching routes return 404 in other environments. The sample launch profile selects Development.
 
 `EventStoreDomainEventsOptions` supplies these subscription defaults:
 
@@ -178,8 +176,7 @@ The access check:
 - grants known active members with `TenantOwner`, `TenantContributor`, or
   `TenantReader`.
 
-That is sample policy, not a package-level authorization rule. Your service owns
-the mapping from tenant roles to capabilities.
+A real service must derive the caller identity from its authenticated principal, verify the requested tenant scope, and map roles to the specific operation. Restrict the demo and its sample data to a private Development environment.
 
 ## Configuration endpoint behavior
 
@@ -214,7 +211,7 @@ These pieces are safe starting points for a real consuming service:
 - CloudEvents middleware, `MapSubscribeHandler()`, and
   `MapEventStoreDomainEvents()`;
 - the `IEventStoreDomainEventHandler<TEvent>` handler shape;
-- reads from the `ITenantProjectionStore` abstraction;
+- reads from `ITenantProjectionSnapshotStore` for access decisions as described below;
 - idempotent dictionary set/remove projection operations for local state.
 
 ## Application-specific
@@ -259,12 +256,24 @@ and intentionally does not log the sample user ID or role.
 
 ## Production store guidance
 
-The default `InMemoryTenantProjectionStore` is suitable for local development,
-tests, and single-instance samples. It is not a scaled-out production store
-because each instance has its own memory. Production consumers should register a
-durable `ITenantProjectionStore` before `AddHexalithTenants()` so the default is
-not used, and should use bounded/shared deduplication for side effects.
+For a consumer that grants access from tenant membership, use the current Client
+package and call `AddHexalithTenantsDurableProjection("consumer-state")` alongside
+`AddHexalithTenants()`. This registers a durable `ITenantProjectionStore` and
+`ITenantProjectionSnapshotStore` backed by one shared record for state, health
+and the contiguous sequence. Supply the actual consumer-owned Dapr state-store
+name, optimistic concurrency, and an `IEventStoreGatewayClient` authorized to
+read tenant stream history for gap recovery. Keep the Tenants actor store private.
 
-Keep the service eventually consistent: process tenant events, update the local
-projection, and make local decisions with clear fallback behavior. For unknown
-tenants, disabled tenants, unknown status, and unknown roles, fail closed.
+The default `InMemoryTenantProjectionStore` supports the local walkthrough. A
+later business event can advance its last-seen sequence beyond a delayed
+revocation, and process restarts discard its state. Persisting that state with
+an ordinary get/save implementation retains the ordering problem. Older SDK
+cohorts with only the in-memory path need a checkpoint-capable release before
+using this guidance.
+
+Read a single snapshot for the authorized tenant and require `IsHealthy`, an
+active tenant and the caller's permitted role. Deny or defer on a missing or
+unhealthy snapshot, a read failure, or a checkpoint behind a known required
+tenant sequence. A healthy prefix can still lag an event the consumer has yet
+to observe. Use bounded/shared deduplication for side effects independently of
+the projection. See [checkpointed registration and policy examples](idempotent-event-processing.md#local-projection-semantics).

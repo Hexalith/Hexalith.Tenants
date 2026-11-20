@@ -95,6 +95,38 @@ public sealed class DurableTenantProjectionStoreTests {
     }
 
     [Fact]
+    public async Task DelayedRevocationBeforeAnUnrelatedUpdateDeniesAcrossRecoveryAndRedelivery()
+    {
+        var harness = new DurableTenantProjectionHarness();
+        EventStoreDomainEventEnvelope created = harness.Persist(new TenantCreated(Tenant, "Example", null, s_at), Tenant, 1);
+        EventStoreDomainEventEnvelope grant = harness.Persist(new UserAddedToTenant(Tenant, "reader", TenantRole.TenantReader), Tenant, 2);
+        EventStoreDomainEventEnvelope revoke = harness.Persist(new UserRemovedFromTenant(Tenant, "reader"), Tenant, 3);
+        EventStoreDomainEventEnvelope update = harness.Persist(new TenantUpdated(Tenant, "Renamed", null, s_at), Tenant, 4);
+        CancellationToken cancellationToken = TestContext.Current.CancellationToken;
+        using (ServiceProvider host = harness.CreateHost(withHistory: false))
+        {
+            _ = await DurableTenantProjectionHarness.ProcessAsync(host, created);
+            _ = await DurableTenantProjectionHarness.ProcessAsync(host, grant);
+            _ = await Should.ThrowAsync<CheckpointedProjectionUnavailableException>(
+                () => DurableTenantProjectionHarness.ProcessAsync(host, update));
+            (await host.GetRequiredService<ITenantProjectionStore>().GetAsync(Tenant, cancellationToken)).ShouldBeNull();
+        }
+
+        using ServiceProvider restarted = harness.CreateHost();
+        ITenantProjectionStore store = restarted.GetRequiredService<ITenantProjectionStore>();
+        (await store.GetAsync(Tenant, cancellationToken)).ShouldBeNull();
+        (await DurableTenantProjectionHarness.ProcessAsync(restarted, update)).ShouldBe(EventStoreDomainEventProcessingResult.Processed);
+        (await store.GetAsync(Tenant, cancellationToken)).ShouldNotBeNull().Members.ShouldNotContainKey("reader");
+        _ = await DurableTenantProjectionHarness.ProcessAsync(restarted, revoke);
+        _ = await DurableTenantProjectionHarness.ProcessAsync(restarted, grant);
+        CheckpointedProjectionRecord<TenantLocalState> persisted = harness.Record(Tenant).ShouldNotBeNull();
+        persisted.Health.ShouldBe(CheckpointedProjectionHealth.Healthy);
+        persisted.LastContiguousSequence.ShouldBe(4);
+        persisted.State.ShouldNotBeNull().Name.ShouldBe("Renamed");
+        persisted.State.Members.ShouldNotContainKey("reader");
+    }
+
+    [Fact]
     public async Task ConsumerGroupDeliveryAcrossTwoReplicasConvergesOnOneRecord() {
         var harness = new DurableTenantProjectionHarness();
         using ServiceProvider replicaA = harness.CreateHost();

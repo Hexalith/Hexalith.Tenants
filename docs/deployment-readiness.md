@@ -142,6 +142,10 @@ Required recovery controls:
 
 Use [Event Contract Reference](event-contract-reference.md), [Cross-Aggregate Timing](cross-aggregate-timing.md), [Idempotent Event Processing](idempotent-event-processing.md), and Story 7.6D evidence as the source material. Do not claim live subscriber catch-up unless a live assertion ran in the target environment.
 
+## Shared tenant index capacity
+
+The projection updates a single index at `projection:tenant-index:singleton`. Fingerprinting traverses the represented tenants, memberships and owner watermarks on each accepted update. An optimistic concurrency retry can repeat this work. To qualify capacity, replay a representative mix of tenant and membership changes with realistic concurrent writers. Record index size, change rate, projection latency (including p95), and the conflict and exhausted-retry counts for the index key. Compare the results with the deployment’s freshness target before considering index partitioning.
+
 ## AppHost and Operator Controls
 
 Operator controls:

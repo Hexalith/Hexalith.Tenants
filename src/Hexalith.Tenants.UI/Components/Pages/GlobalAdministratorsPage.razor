@@ -7,6 +7,7 @@
 @using Hexalith.Tenants.Contracts.Identity
 @using Microsoft.Extensions.Logging
 @using Microsoft.JSInterop
+@using System.Diagnostics.CodeAnalysis
 @inject IStringLocalizer<TenantsResources> Localizer
 @inject ITenantsBffComposition BffComposition
 @inject ITenantQueryGateway QueryGateway
@@ -1248,19 +1249,25 @@
         get
         {
             GlobalAdministratorGrantCommandSnapshot snapshot = _grantSnapshot;
-            GlobalAdministratorGrantPreview? preview = snapshot.PreviewEvidence;
-            TenantAggregateCommandLease? lease = _grantAdmissionLease;
-            string? messageId = snapshot.MessageId;
-            long previewGeneration = Volatile.Read(ref _grantPreviewGeneration);
-            return snapshot.IsSubmissionAmbiguous
-                && snapshot.CorrelationId is null
-                && preview?.IsComplete == true
-                && lease?.IsDispatchMarked == true
-                && messageId is not null
-                && MatchesGrantPreviewAttempt(snapshot, preview, lease, messageId, previewGeneration)
-                && AreGrantDispatchCapabilitiesCurrent();
+            return HasGrantRetryPrerequisites(
+                snapshot, snapshot.PreviewEvidence, _grantAdmissionLease, snapshot.MessageId,
+                Volatile.Read(ref _grantPreviewGeneration));
         }
     }
+
+    private bool HasGrantRetryPrerequisites(
+        GlobalAdministratorGrantCommandSnapshot snapshot,
+        [NotNullWhen(true)] GlobalAdministratorGrantPreview? preview,
+        TenantAggregateCommandLease? lease,
+        string? messageId,
+        long previewGeneration)
+        => snapshot.IsSubmissionAmbiguous
+            && snapshot.CorrelationId is null
+            && preview?.IsComplete == true
+            && lease?.IsDispatchMarked == true
+            && messageId is not null
+            && MatchesGrantPreviewAttempt(snapshot, preview, lease, messageId, previewGeneration)
+            && AreGrantDispatchCapabilitiesCurrent();
 
     private string GrantRefreshActionText
         => IsAmbiguousGrantDeliveryRetry
@@ -3651,34 +3658,11 @@
         long completionToken = 0;
         await InvokeAsync(() =>
         {
-            bool exactAttempt = MatchesGrantPreviewAttempt(
-                    expectedSnapshot,
-                    expectedPreview,
-                    expectedLease,
-                    expectedMessageId,
-                    previewGeneration);
-            if (!exactAttempt)
-            {
-                if (isRedispatch)
-                {
-                    SurfaceAmbiguousGrantRetryUnavailable(expectedSnapshot, expectedLease);
-                }
-                else
-                {
-                    InvalidateUndispatchedGrantPreview(expectedSnapshot, expectedLease);
-                    StateHasChanged();
-                }
-
-                return;
-            }
-
-            bool livePrerequisites = CanApplyGrantMutation(generation)
-                && AreGrantDispatchCapabilitiesCurrent()
-                && BffComposition.IsGlobalAdministratorGrantPreviewReady;
             if (isRedispatch)
             {
-                if (!livePrerequisites
-                    || !expectedLease.IsDispatchMarked
+                if (!CanApplyGrantMutation(generation)
+                    || !HasGrantRetryPrerequisites(
+                        expectedSnapshot, expectedPreview, expectedLease, expectedMessageId, previewGeneration)
                     || CreateReconciliation(expectedSnapshot) is not { } redispatchBasis
                     || !expectedLease.TryBeginReconciliationDispatch(
                         _fixedAggregateOwner,
@@ -3691,7 +3675,9 @@
 
                 requestSentSnapshot = expectedSnapshot;
             }
-            else if (!livePrerequisites
+            else if (!CanApplyGrantMutation(generation)
+                || !MatchesGrantPreviewAttempt(
+                    expectedSnapshot, expectedPreview, expectedLease, expectedMessageId, previewGeneration)
                 || !AreGrantPreviewPrerequisitesCurrent(expectedPreview)
                 || !_grantAcknowledged
                 || expectedLease.IsDispatchMarked)
@@ -3840,26 +3826,8 @@
                 return;
             }
 
-            if (activationPreview?.IsComplete != true
-                || activationLease?.IsDispatchMarked != true
-                || !MatchesGrantPreviewAttempt(
-                    activationSnapshot,
-                    activationPreview,
-                    activationLease,
-                    activationMessageId,
-                    activationPreviewGeneration))
-            {
-                if (activationLease is not null)
-                {
-                    await InvokeAsync(() => SurfaceAmbiguousGrantRetryUnavailable(
-                        activationSnapshot,
-                        activationLease)).ConfigureAwait(false);
-                }
-
-                return;
-            }
-
-            if (!AreGrantDispatchCapabilitiesCurrent())
+            if (!HasGrantRetryPrerequisites(
+                activationSnapshot, activationPreview, activationLease, activationMessageId, activationPreviewGeneration))
             {
                 await InvokeAsync(() => SurfaceAmbiguousGrantRetryUnavailable(
                     activationSnapshot,

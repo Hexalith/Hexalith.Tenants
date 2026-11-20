@@ -13,7 +13,7 @@ Multi-tenant management for the Hexalith ecosystem. Built on event sourcing, DAP
 - **Global Administration** — Bootstrap a global administrator to authorize initial tenant operations
 - **Tenant Configuration** — Set and manage per-tenant key-value configuration with domain events for every change
 - **Tenant Query and Audit APIs** — Query tenant lists, tenant details, user memberships, and tenant audit history through protected cursor-paginated endpoints
-- **Tenants Admin UI Foundation** — Blazor InteractiveServer UI host composed through FrontComposer for read-only tenant triage, detail, memberships, configuration, and support-safe copy
+- **Tenants Admin UI** — Inspect tenants, memberships, configuration, and audit history. Authorized operators can create and manage tenants, change membership and configuration, and track command outcomes. Global administrators can grant and withdraw administrator access.
 - **Event-Driven Integration** — Subscribe to tenant domain events (`TenantCreated`, `UserAddedToTenant`, etc.) in consuming services via DAPR pub/sub
 - **In-Memory Testing Fakes** — Production-parity domain logic with in-memory stores for fast, reliable tests without infrastructure dependencies
 
@@ -21,11 +21,11 @@ Multi-tenant management for the Hexalith ecosystem. Built on event sourcing, DAP
 
 Get from clone to your first tenant command after local prerequisites are installed:
 
-**[Quickstart Guide](docs/quickstart.md)** — prerequisite-validated path for .NET SDK 11.0.100 with the .NET 11 runtimes, Docker, full DAPR local runtime, AppHost startup, local auth, and the first EventStore command submission.
+**[Quickstart Guide](docs/quickstart.md)** — prerequisite-validated path for .NET SDK 11.0.100 with the .NET 11 runtimes, PowerShell 7, the Aspire CLI bundle, Docker, full DAPR local runtime, AppHost startup, local auth, and the first EventStore command submission.
 
 **[Deployment Readiness](docs/deployment-readiness.md)** — consolidated operator checklist and evidence template for production-like Tenants deployments, covering auth, DAPR, service invocation, health, command/query paths, and pub/sub recovery boundaries.
 
-**[Sample Consuming Service Walkthrough](docs/sample-consuming-service-walkthrough.md)** — source-backed guide for copying the sample service's event subscription, local projection, access-check, and configuration-read patterns.
+**[Sample Consuming Service Walkthrough](docs/sample-consuming-service-walkthrough.md)** — subscribe to tenant events, try Development access and configuration readouts, and configure a checkpointed projection for membership-based authorization.
 
 **[Cross-Aggregate Timing](docs/cross-aggregate-timing.md)** — timing-window and eventual-consistency guidance for command status, event publication, subscriber delivery, local projections, stale reads, diagnostics, and fail-closed consumers.
 

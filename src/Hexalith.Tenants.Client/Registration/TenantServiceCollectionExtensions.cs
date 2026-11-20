@@ -45,6 +45,11 @@ public static class TenantServiceCollectionExtensions {
     /// <summary>
     /// Registers the Tenants domain consumer (subscription plumbing + the built-in local projection).
     /// </summary>
+    /// <remarks>
+    /// The default in-memory projection assumes ordered tenant business events and loses state on restart.
+    /// Consumers making access decisions from event history should also register the checkpointed
+    /// <c>AddHexalithTenantsDurableProjection</c> store and a gateway with authorized history reads.
+    /// </remarks>
     /// <param name="services">The service collection.</param>
     /// <returns>The service collection for chaining.</returns>
     public static IServiceCollection AddHexalithTenants(this IServiceCollection services)

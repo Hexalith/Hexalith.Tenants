@@ -20,6 +20,17 @@ The current applications and consumers target `net11.0`. Verify `dotnet --list-r
 
 If not installed, download from [https://dot.net](https://dot.net/download).
 
+### PowerShell and the Aspire CLI
+
+The AppHost build invokes PowerShell 7 (`pwsh`) to generate the platform version catalog. It also resolves the Aspire 17 CLI bundle for the dashboard and orchestrator. Check both from the shell that will run the build.
+
+```bash
+pwsh --version
+aspire --version
+```
+
+Install [PowerShell 7](https://learn.microsoft.com/powershell/scripting/install/installing-powershell) and the [Aspire CLI](https://aspire.dev/get-started/install-cli/) if needed. Run `aspire setup` to extract the bundle. The pinned SDK can also provision it with `dnx --yes aspire.cli@17.0.0 -- setup`. For an existing installation outside the default location, set `AspireCliBundlePath` to the extracted bundle directory.
+
 ### DAPR CLI and Runtime
 
 ```bash

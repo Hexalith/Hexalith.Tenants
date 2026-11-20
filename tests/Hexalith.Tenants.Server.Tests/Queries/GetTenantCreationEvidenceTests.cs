@@ -6,14 +6,15 @@ using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.EventStore.DomainService;
 using Hexalith.EventStore.Testing.Fakes;
 using Hexalith.Tenants.Authorization;
+using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Events;
 using Hexalith.Tenants.Contracts.Events.Rejections;
-using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.Projections;
 using Hexalith.Tenants.Queries.Handlers;
 using Hexalith.Tenants.Server.Projections;
 using Hexalith.Tenants.Telemetry;
 
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Logging.Abstractions;
 
 using NSubstitute;
@@ -83,14 +84,49 @@ public sealed class GetTenantCreationEvidenceTests
         after.PayloadBytes.ShouldBeNull();
     }
 
-    private static async Task<QueryResult> QueryAsync(InMemoryReadModelStore store, bool administrator)
+    /// <summary>Only a created tenant exposes a roster and only to an authorized caller.</summary>
+    [Theory]
+    [InlineData(true, "Tenant not found")]
+    [InlineData(false, "Forbidden")]
+    public async Task RosterRequiresCreationAndCurrentAuthority(bool administrator, string expectedError)
+    {
+        var store = new InMemoryReadModelStore();
+        var projection = new TenantProjectionHandler(store);
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        QueryResult absent = await QueryAsync(store, administrator, roster: true);
+        absent.Success.ShouldBeFalse();
+        absent.ErrorMessage.ShouldBe(expectedError);
+        absent.PayloadBytes.ShouldBeNull();
+
+        ProjectionEventDto rejection = Event(new InsufficientPermissionsRejection(Tenant, "principal", null, "CreateTenant"), 1);
+        await projection.ProjectAsync(new("system", "tenants", Tenant, [rejection]), cancellationToken);
+        QueryResult rejected = await QueryAsync(store, administrator, roster: true);
+        rejected.Success.ShouldBeFalse();
+        rejected.ErrorMessage.ShouldBe(expectedError);
+        rejected.PayloadBytes.ShouldBeNull();
+
+        ProjectionEventDto creation = Event(new TenantCreated(Tenant, "Created later", null, DateTimeOffset.UnixEpoch), 2);
+        ProjectionEventDto membership = Event(new UserAddedToTenant(Tenant, "principal", TenantRole.TenantReader), 3);
+        await projection.ProjectAsync(new("system", "tenants", Tenant, [rejection, creation, membership]), cancellationToken);
+        QueryResult created = await QueryAsync(store, administrator, roster: true);
+        created.Success.ShouldBeTrue();
+        JsonElement members = JsonSerializer.Deserialize<JsonElement>(created.PayloadBytes!).GetProperty("items");
+        members.GetArrayLength().ShouldBe(1);
+        members[0].GetProperty("userId").GetString().ShouldBe("principal");
+    }
+
+    private static async Task<QueryResult> QueryAsync(InMemoryReadModelStore store, bool administrator, bool roster = false)
     {
         ITenantsGlobalAdministratorAuthority authority = Substitute.For<ITenantsGlobalAdministratorAuthority>();
         authority.IsCurrentGlobalAdministratorAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(administrator);
-        var handler = new GetTenantQueryHandler(store, authority, Substitute.For<IQueryCursorCodec>(),
-            new TenantTelemetry(new EventStoreDomainDiagnostics("tenants")), NullLogger<GetTenantQueryHandler>.Instance);
-        return await handler.ExecuteAsync(new QueryEnvelope(Tenant, GetTenantQuery.Domain, Tenant,
-            GetTenantQuery.QueryType, [], "query-correlation", "principal", Tenant, isGlobalAdmin: true), TestContext.Current.CancellationToken);
+        var codec = new QueryCursorCodec(new EphemeralDataProtectionProvider(), "tenant-creation-evidence");
+        var telemetry = new TenantTelemetry(new EventStoreDomainDiagnostics("tenants"));
+        TenantQueryHandlerBase handler = roster
+            ? new GetTenantUsersQueryHandler(store, authority, codec, telemetry, NullLogger<GetTenantUsersQueryHandler>.Instance)
+            : new GetTenantQueryHandler(store, authority, codec, telemetry, NullLogger<GetTenantQueryHandler>.Instance);
+        return await handler.ExecuteAsync(new QueryEnvelope(Tenant, handler.Domain, Tenant,
+            handler.QueryType, [], "query-correlation", "principal", Tenant, isGlobalAdmin: true), TestContext.Current.CancellationToken);
     }
 
     private static ProjectionEventDto Event(object payload, long sequence)

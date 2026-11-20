@@ -22,11 +22,14 @@ import xml.etree.ElementTree as ET
 
 IDENTITY = {"repository": "GITHUB_REPOSITORY", "runId": "GITHUB_RUN_ID",
             "runAttempt": "GITHUB_RUN_ATTEMPT", "job": "GITHUB_JOB"}
+RELEASE_PACKAGES = ("-p:Configuration=Release", "-p:UseHexalithProjectReferences=false",
+                    "-p:UseNuGetDeps=true", "-p:HexalithEventStoreFromSource=false")
+RUNTIME_HOSTS = ("Hexalith.Tenants.AppHost", "Hexalith.Tenants", "Hexalith.Tenants.Api", "Hexalith.Tenants.UI")
 
 
-def command(*arguments):
+def command(*arguments, env=None):
     # Docker inspect can contain credentials. Keep failed output out of diagnostics.
-    result = subprocess.run(arguments, text=True, capture_output=True, timeout=30, check=False)
+    result = subprocess.run(arguments, text=True, capture_output=True, timeout=30, check=False, env=env)
     if result.returncode:
         raise ValueError("A required catalog prerequisite inspection failed.")
     return result.stdout.strip()
@@ -187,11 +190,33 @@ def components(root, private, database):
     return target, hashes
 
 
+def shipping_versions(root):
+    """Read the release package defaults before building any linked host."""
+    apphost = root / "src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj"
+    environment = {key: value for key, value in os.environ.items()
+                   if key.lower() not in ("hexalitheventstoreversion", "hexalithmcpcliversion")}
+    properties = json.loads(command("dotnet", "msbuild", str(apphost), "-nologo",
+        "-getProperty:HexalithEventStoreVersion,HexalithMcpCliVersion", *RELEASE_PACKAGES,
+        env=environment))["Properties"]
+    versions = (properties["HexalithEventStoreVersion"], properties["HexalithMcpCliVersion"])
+    if not all(re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", version) for version in versions):
+        raise ValueError("The shipping profile requires exact stable EventStore and McpCli package versions.")
+    return versions
+
+
 def package_producer(root, version):
     """Bind the catalog package producer independently of executable source gitlinks."""
     assets = json.loads((root / "src/Hexalith.Tenants.AppHost/obj/project.assets.json").read_text(encoding="utf-8"),
                         object_pairs_hook=unique_object)
-    package = "Hexalith.EventStore.Aspire/" + version
+    package_id = "Hexalith.EventStore.Aspire"
+    package = package_id + "/" + version
+    targets = assets["targets"]
+    if not targets:
+        raise ValueError("The restored AppHost has no targets.")
+    for target in targets.values():
+        matches = [key for key in target if key.startswith(package_id + "/")]
+        if matches != [package] or target[package].get("type") != "package":
+            raise ValueError("The AppHost did not resolve the selected catalog package for every target.")
     entry = assets["libraries"].get(package)
     if (not isinstance(entry, dict) or entry.get("type") != "package"
             or not isinstance(entry.get("sha512"), str) or not entry["sha512"]):
@@ -203,12 +228,44 @@ def package_producer(root, version):
     candidates = [path for path in candidates if path.is_file() and not path.is_symlink()]
     if len(candidates) != 1:
         raise ValueError("The restored catalog package producer is ambiguous or absent.")
-    repository = ET.parse(candidates[0]).getroot().find("{*}metadata/{*}repository")
+    metadata = ET.parse(candidates[0]).getroot().find("{*}metadata")
+    if (metadata is None or metadata.findtext("{*}id") != package_id
+            or metadata.findtext("{*}version") != version):
+        raise ValueError("The restored catalog package manifest does not match the selected identity.")
+    repository = metadata.find("{*}repository")
     if (repository is None or repository.get("url", "").removesuffix(".git").rstrip("/") != "https://github.com/Hexalith/Hexalith.EventStore"
             or re.fullmatch(r"[0-9a-f]{40}", repository.get("commit", "")) is None):
         raise ValueError("The restored catalog package has no exact producer revision.")
-    return {"id": "Hexalith.EventStore.Aspire", "version": version, "sha512": entry["sha512"],
+    return {"id": package_id, "version": version, "sha512": entry["sha512"],
             "revision": repository.get("commit")}
+
+
+def shipping_runtime_evidence(root):
+    eventstore, mcpcli = shipping_versions(root)
+    producer = package_producer(root, eventstore)
+    manifests = {}
+    for host in RUNTIME_HOSTS:
+        project = root / "src" / host / (host + ".csproj")
+        deps_path = Path(command("dotnet", "msbuild", str(project), "-nologo",
+                                 "-getProperty:ProjectDepsFilePath", *RELEASE_PACKAGES))
+        data = deps_path.read_bytes()
+        deps = json.loads(data, object_pairs_hook=unique_object)
+        runtime = deps["runtimeTarget"]["name"]
+        target = deps["targets"][runtime]
+        expected = {"Hexalith.EventStore.Contracts": eventstore, "Hexalith.McpCli.Abstractions": mcpcli}
+        if host == "Hexalith.Tenants.AppHost":
+            expected[producer["id"]] = eventstore
+        for package_id, version in expected.items():
+            key = package_id + "/" + version
+            matches = [entry for entry in target if entry.startswith(package_id + "/")]
+            library = deps["libraries"].get(key, {})
+            if matches != [key] or library.get("type") != "package" or not target[key].get("runtime"):
+                raise ValueError(f"{host} does not load the shipping {key} package for {runtime}.")
+            if package_id == producer["id"] and library.get("sha512") != "sha512-" + producer["sha512"]:
+                raise ValueError("The built AppHost catalog package hash differs from its restore.")
+        manifests[host] = {"runtimeTarget": runtime, "manifestSha256": hashlib.sha256(data).hexdigest(), "packages": expected}
+    return {"sdkSource": command("git", "rev-parse", "HEAD:references/Hexalith.EventStore"),
+            "sdkPackageProducer": producer, "runtimeManifests": manifests}
 
 
 def active_processes(directory):
@@ -280,7 +337,17 @@ def main():
     parser.add_argument("--worker-backed-responses", choices=("true", "false"), default="false")
     parser.add_argument("--output", type=Path)
     parser.add_argument("--finish", type=Path)
+    parser.add_argument("--shipping-versions", action="store_true", help="Print the release package selection for GITHUB_ENV.")
+    parser.add_argument("--shipping-runtime-evidence", type=Path, help="Verify the built Release hosts and write their package identities.")
     args = parser.parse_args()
+    if args.shipping_versions:
+        eventstore, mcpcli = shipping_versions(Path(__file__).resolve().parents[1])
+        print("TENANTS_SOURCE_SDK_PRODUCER_VERSION=" + eventstore)
+        print("TENANTS_SHIPPING_MCPCLI_VERSION=" + mcpcli)
+        return
+    if args.shipping_runtime_evidence:
+        write_exclusive(args.shipping_runtime_evidence, shipping_runtime_evidence(Path(__file__).resolve().parents[1]))
+        return
     identity = job_identity()
     temporary = Path(os.environ["RUNNER_TEMP"])
     if not temporary.is_absolute() or temporary.resolve() != temporary or not temporary.is_dir():

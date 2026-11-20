@@ -217,6 +217,9 @@ public sealed class SnapshotPerformanceProgressTests
         try
         {
             WebApplicationBuilder builder = WebApplication.CreateBuilder(new WebApplicationOptions { Args = [] });
+            // Exercise each precedence case independently of appsettings copied to the test output.
+            builder.Configuration.Sources.Clear();
+            builder.Configuration.AddInMemoryCollection();
             if (domain.HasValue) builder.Configuration["EventStore:Snapshots:DomainIntervals:tenants"] = domain.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
             if (tenantDomain.HasValue) builder.Services.Configure<SnapshotOptions>(options => options.TenantDomainIntervals["system:tenants"] = tenantDomain.Value);
             MethodInfo configure = typeof(TenantsDaprTestFixture).GetMethod("ConfigureDomain", BindingFlags.Instance | BindingFlags.NonPublic)!;

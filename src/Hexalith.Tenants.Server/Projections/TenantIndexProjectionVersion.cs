@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Security.Cryptography;
 using System.Text.Json;
 
@@ -23,7 +24,7 @@ public static class TenantIndexProjectionVersion
             return null;
         }
 
-        using MemoryStream canonical = new();
+        var canonical = new ArrayBufferWriter<byte>();
         using (Utf8JsonWriter writer = new(canonical))
         {
             writer.WriteStartArray();
@@ -66,6 +67,6 @@ public static class TenantIndexProjectionVersion
             writer.WriteEndArray();
         }
 
-        return "tenant-index:sha256:" + Convert.ToHexStringLower(SHA256.HashData(canonical.ToArray()));
+        return "tenant-index:sha256:" + Convert.ToHexStringLower(SHA256.HashData(canonical.WrittenSpan));
     }
 }

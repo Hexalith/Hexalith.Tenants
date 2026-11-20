@@ -52,7 +52,7 @@ public sealed class GetTenantUsersQueryHandler(
         TenantReadModel? model = tenantEntry?.Value;
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (model is null) {
+        if (model is null || string.IsNullOrEmpty(model.TenantId)) {
             return await IsGlobalAdminAsync(envelope, cancellationToken).ConfigureAwait(false)
                 ? new QueryResult(false, default, ErrorMessage: "Tenant not found")
                 : new QueryResult(false, default, ErrorMessage: QueryAdapterFailureReason.Forbidden);

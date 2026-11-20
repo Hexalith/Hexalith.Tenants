@@ -27,16 +27,21 @@ class SourceCatalogProfileProvisioningTests(unittest.TestCase):
                             root / "src/Hexalith.Tenants.AppHost/DaprComponents")
             package_path = root / "feed/hexalith.eventstore.aspire/5.3.1"
             package_path.mkdir(parents=True)
+            package_id = "Hexalith.EventStore.Aspire" if scenario != "manifest-id-drift" else "Hexalith.EventStore.Client"
+            version = "5.3.1" if scenario != "manifest-version-drift" else "5.3.0"
+            revision = "f" * 40 if scenario != "producer-missing-revision" else ""
             (package_path / "hexalith.eventstore.aspire.nuspec").write_text(
-                '<package><metadata><repository url="https://github.com/Hexalith/Hexalith.EventStore" commit="' + 'f' * 40 + '" /></metadata></package>')
+                f'<package><metadata><id>{package_id}</id><version>{version}</version>'
+                f'<repository url="https://github.com/Hexalith/Hexalith.EventStore" commit="{revision}" /></metadata></package>')
             assets_path = root / "src/Hexalith.Tenants.AppHost/obj/project.assets.json"
             assets_path.parent.mkdir()
             assets = {"libraries": {"Hexalith.EventStore.Aspire/5.3.1": {"type": "package", "sha512": "fixture-hash",
-                      "path": "hexalith.eventstore.aspire/5.3.1"}}, "packageFolders": {str(root / "feed"): {}}}
+                      "path": "hexalith.eventstore.aspire/5.3.1"}}, "packageFolders": {str(root / "feed"): {}},
+                      "targets": {"net11.0": {"Hexalith.EventStore.Aspire/5.3.1": {"type": "package"}}}}
             if scenario == "producer-source": assets["libraries"]["Hexalith.EventStore.Aspire/5.3.1"]["type"] = "project"
             if scenario == "producer-mismatch": assets["libraries"] = {}
-            if scenario == "producer-missing-revision":
-                (package_path / "hexalith.eventstore.aspire.nuspec").write_text('<package><metadata><repository /></metadata></package>')
+            if scenario == "target-drift":
+                assets["targets"]["net11.0/another-runtime"] = {"Hexalith.EventStore.Aspire/5.3.0": {"type": "package"}}
             assets_path.write_text(json.dumps(assets))
             environment = root / "environment"
             environment.write_text("preserved=true\n", encoding="utf-8")
@@ -190,7 +195,9 @@ class SourceCatalogProfileProvisioningTests(unittest.TestCase):
                          "existing-evidence", "evidence-link", "wrong-job", "different-job", "no-producer", "incomplete-receipt",
                          "mismatched-receipt", "missing-created-redis", "preexisting-container", "non-utc", "reversed-time",
                          "malformed-receipt", "public-receipt", "receipt-link", "unfinished-profile", "used-database",
-                         "used-profile", "duplicate-db", "noncanonical-db", "commented-db", "quoted-db", "changed-host", "producer-source", "producer-mismatch", "producer-missing-revision", "server-identity-invalid"):
+                         "used-profile", "duplicate-db", "noncanonical-db", "commented-db", "quoted-db", "changed-host",
+                         "producer-source", "producer-mismatch", "producer-missing-revision", "manifest-version-drift",
+                         "manifest-id-drift", "target-drift", "server-identity-invalid"):
             with self.subTest(scenario=scenario): self.exercise(scenario)
 
     def test_private_container_inventory_binds_mounts_and_preserves_foreign_resources(self):

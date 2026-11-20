@@ -1,0 +1,64 @@
+# Sprint change proposal for the Tenants technical audit
+
+Approved on 20 November 2026. The product owner requested “Apply the fixes and update the sprint plan.” The audit examined commit `1806474afe48`.
+
+## Trigger and impact
+
+A compiled handler gave a successful empty roster for a tenant whose only history was a rejection. The consumer example used a projection that could skip a delayed revocation. The public API and the domain host accepted different Production authentication settings. The shipping EventStore package was 5.4.0 while the four authenticated CI profiles pinned 5.3.1. The audit also measured 31.4 MiB allocated per fingerprint for a synthetic index of 10,000 tenants with 50,000 memberships.
+
+These findings affect Epic 1 discovery, Epic 2 membership, Epic 3 onboarding and Epic 4 administrator controls. Epic 5 depends on the integrity of evidence from those workflows. PRD NFR-2 and the existing architecture decisions AD-6, AD-7, AD-12 and AD-14 already supply the intended behavior. The UX journeys retain their existing wording, focus transitions and confirmation steps. This is a moderate correction within the existing product scope.
+
+## Approved changes and acceptance
+
+| Work | Before | Accepted result and verification |
+| --- | --- | --- |
+| Downstream membership, Epic 2 | The walkthrough recommends a local store for access decisions. A newer business event can mask a delayed removal. | Direct enforcement consumers to the checkpointed store and authoritative history. Exercise out-of-order removal, retry, recovery and restart. Keep the simple demo clearly scoped. |
+| Release qualification | Live jobs pin an older SDK independently of the shipping packages. | Resolve the shipping SDK, verify the restored package version, and use it for provisioning, builds and live evidence. Run the existing cold bootstrap, persisted state, REST and UI profiles on the same revision. |
+| Public API identity, Epic 1 | Production can enter the development bearer-key path. | At startup require the domain's Production OIDC constraints and document configuration keys. Exercise positive and negative configuration cases and preserve development authentication. |
+| Roster, Epic 1 | A persisted checkpoint for a failed creation counts as an existing tenant. | Administrators receive missing and ordinary callers receive forbidden before creation, including after a rejection. After creation, authorized queries return the roster. |
+| Demonstration endpoints, Epic 3 | Any hosting environment maps the access and configuration teaching endpoints. | Expose these readouts only in Development and test the environment boundary. Keep Dapr subscription and health behavior. |
+| Tenant index, Epic 1 | Fingerprinting copies the complete canonical buffer. | Reduce allocation while preserving byte-for-byte versions. Compare fixed and concurrent replay cases. Operators measure capacity and contention before considering partitioning. |
+| Administrator controls, Epic 4 | A large component maintains grant availability and operation guards. | Share one existing grant decision between rendering and handling. Exercise caller, retry, preview and focus behavior. |
+| Onboarding | The prerequisites omit PowerShell and the README describes a read-only UI. | Document the executable prerequisite and actual permission-gated mutations. Check the documented entry points. |
+
+## Audit priorities and affected workflows
+
+Tenants serves platform operators through a Blazor UI and generated REST endpoints, and publishes tenant changes to downstream services. The AppHost composes the public API, domain service, EventStore gateway, identity provider and Dapr resources. Commands enter EventStore, the domain evaluates them, and committed events update query projections and flow to subscribers. A command receipt and a visible read-model update can occur at different times. Strong points include explicit scope checks, replay and concurrency tests, and independent checks against packed libraries.
+
+| Priority and severity | Risk at the audited revision | Local change or control |
+| --- | --- | --- |
+| 1 · High | The default subscriber skipped older deliveries after advancing its sequence. A service copying the demo for access enforcement could retain a removed member. `src/Hexalith.Tenants.Client/Handlers/TenantProjectionEventHandler.cs:112` | Use checkpointed, history-backed membership for authorization. The regression withholds a removal, restarts with the gap outstanding, repairs it and replays an old grant. Deployment verification requires a consumer-owned store and authorized history access. |
+| 2 · High | The REST, persisted and browser qualification jobs used EventStore 5.3.1 while the release selected 5.4.0. Green jobs could qualify a different package. `.github/workflows/ci.yml:275`, `Directory.Build.props:4` | Take the version from the release build, bind evidence to the selected packages and keep all four hosted profiles as a release-owner action. |
+| 3 · High | The external API could start in Production with a local shared signing key or insecure discovery. `src/Hexalith.Tenants.Api/Program.cs:51` | Reuse the platform bearer contract and validate configuration at startup. Check valid OIDC, rejected settings, authenticated routes and operator-supplied discovery in the target environment. |
+| 4 · Medium | A rejection-only checkpoint allowed a global administrator to retrieve a successful empty roster for a tenant that did not exist. `src/Hexalith.Tenants/Queries/Handlers/GetTenantUsersQueryHandler.cs:55` | Check the tenant ID as well as the record. Exercise absent, rejected and created histories for an administrator and a regular caller. |
+| 5 · Medium | Hosting the sample outside Development exposed its membership and configuration readouts to callers who supplied identifiers. `samples/Hexalith.Tenants.Sample/Program.cs:44` | Map the teaching endpoints only in Development and verify their absence using the real host in Staging and Production. Exposure depended on where the sample was deployed. |
+| 6 · Medium | Each accepted index update sorted and serialized the shared index and copied the canonical bytes before hashing. Retries could repeat that cost. `src/Hexalith.Tenants.Server/Projections/TenantIndexProjectionVersion.cs:26` | Hash the written buffer directly. Check a known digest, ordering invariance and replay. The operator measures contention and tail latency at deployment scale. |
+| 7 · Medium | The administrator retry button and dispatch handler maintained overlapping eligibility checks. A later edit could leave a stale or unavailable retry actionable. `src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1247` | Share the eligibility check, retain reauthorization and lease acquisition at dispatch, and exercise the full administrator component suite. No incorrect production grant was observed. |
+| 8 · Low | The quickstart omitted build prerequisites and the README described only read-only administration. New developers could hit a build failure and miss supported controls. `docs/quickstart.md:23`, `README.md:16` | Document PowerShell, the Aspire CLI bundle and the permission-gated operations. Verify the tools and build entry points. |
+
+## Sequence and ownership
+
+The developer owns the local fixes and focused regressions. The product owner tracks the correction in the sprint plan and preserves completed story history. The release owner verifies the deployed package cohort in hosted CI. Deployment owners supply OIDC settings and production workload observations. Schedule the query, documentation and demo restrictions first (1–2 engineer-days), then qualification and authentication (2–5 days), consumer integration (2–4 days per first deployment), and bounded index and UI improvements (2–4 days). The combined work can overlap across owners. Reopening the MVP or rolling back the published SDK would leave the independent defects unresolved. Partitioning would require coordinated migration and remains contingent on a demonstrated capacity shortfall.
+
+## Review and handoff
+
+The audit supplies the trigger, evidence and acceptance checks for all eight items. The PO and developer accepted a batch adjustment. Production ingress, IdP deployment and observed index contention require deployment-owner evidence. The sprint tracker distinguishes local verification from those external checks.
+
+## Local verification
+
+The working tree applies the corrections to main at `1806474afe48`. All ten root submodules match the gitlinks in that revision. The Release build uses published Tenants dependencies and the linked upstream executables required by AppHost. The Debug build exercises the canonical source graph.
+
+| Check | Evidence |
+| --- | --- |
+| `dotnet build Hexalith.Tenants.Standalone.slnx -c Release -warnaserror -m:1 -nr:false -p:UseNuGetDeps=true -p:HexalithFrontComposerFromSource=false` | Passed with SDK 11.0.100, PowerShell 7.7.0 and the Aspire 17.0.0 bundle. Existing Aspire API deprecation warnings appeared on recompilation. |
+| `dotnet build Hexalith.Tenants.slnx -c Debug -warnaserror -m:1 -nr:false -p:UseHexalithProjectReferences=true -p:UseNuGetDeps=false` | Built the source solution, including AppHost and the generated REST API. |
+| `dotnet test --project <project> -c Release --no-build --no-restore --fail-skips on` | Contracts 805, Client 104, Sample 43, Server 1,913, Testing 198, AppHost 66 and UI 8,085 passed. The administrator component alone covered 355 cases. |
+| Local integration | In Release, 746 cases passed with `--fail-skips on` for the selected in-process and socket fixtures. The selection excluded `Category=Performance`, the five Aspire/cold-profile classes selected separately by CI and the three live Dapr actor classes (end-to-end, restart and degradation). The source Debug run passed all 127 cases in `TenantsApiGeneratedControllerTests`, `TenantsApiProductionAuthenticationTests` and `ProjectionReplayIntegrityTests`. |
+| REST authentication | The 16 configuration cases passed in each of two concurrent runs. Invalid settings start the actual API process and must result in an options-validation failure before serving. The generated-controller suite exercised a real Kestrel endpoint with local asymmetric OIDC metadata. A full integration run exposed a test-host disposal race, prompting the process-based check. |
+| Snapshot interval precedence | The first broader integration run picked up the application's configured interval of 50 for the SDK-default case. The fixture now supplies its own configuration. All 28 snapshot-progress cases passed after the change. |
+| Release evidence | `python3 scripts/prepare-source-catalog-profile.py --shipping-runtime-evidence <fresh-file>` verified the four built host manifests. All selected EventStore.Contracts 5.4.0 and McpCli.Abstractions 3.0.0. The AppHost's EventStore.Aspire hash matched the restored 5.4.0 package from producer `2ec21f631a2e`. |
+| CI controls | `python3 -m unittest discover -s scripts/tests` passed 28 tests. The suite covers stale restore and runtime manifests, source/project substitutions and evidence from the wrong runtime target. Both authenticated navigation/evidence Node test files passed all six cases. |
+| Wider release-tool regression run | `python3 -m unittest discover -s tests/scripts` passed 164 of 165 on its first run. The existing offline NuGet v2 recovery fixture exhausted its zero-second polling allowance under concurrent test load. `python3 tests/scripts/test_partial_release_recovery.py PartialReleaseRecoveryTests.test_official_v2_packages_are_existing_and_never_pushed_again -v` passed in isolation. The Contracts suite also passed its wrapper for the full recovery module. The failure remains a timing-sensitive test limitation. |
+| Index cost and compatibility | The fixed canonical fixture retained its original SHA-256 digest. Three interleaved pairs of Release benchmark runs used the same CPU, fixture and binaries from before and after the change. Each run warmed up three times and recorded 15 samples. At 10,000 tenants and 50,000 memberships, median allocation fell from 31.4 to 27.2 MiB (13.4%). Per-run median hash time spanned 51.0–53.8 ms before and 49.4–50.2 ms after. These are single-process fingerprint costs. Deployment write contention and end-to-end latency still need measurement. |
+
+The [sprint tracker](../implementation-artifacts/sprint-status.yaml) records the four external checks. The hosted profile requires a GitHub Actions job identity and its own newly initialized Dapr backend. This checkout has Docker and the Dapr CLI, with no local Dapr runtime. The first real enforcement consumer must demonstrate its history permissions, shared state and recovery. The deployment owner verifies the real issuer, ingress and key rotation and measures the index under representative load.

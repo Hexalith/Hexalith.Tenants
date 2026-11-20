@@ -4,8 +4,8 @@ namespace Hexalith.Tenants.Client.Projections;
 
 /// <summary>
 /// Thread-safe in-memory implementation of <see cref="ITenantProjectionStore"/>.
-/// Suitable for single-instance services. For scaled-out services,
-/// consumers should implement <see cref="ITenantProjectionStore"/> against a durable store (DAPR state store, database, etc.).
+/// Holds demo and process-local state until restart. Membership-based authorization requires a checkpointed
+/// projection that can recover missing tenant events from authoritative history.
 /// </summary>
 public class InMemoryTenantProjectionStore : ITenantProjectionStore {
     private readonly ConcurrentDictionary<string, TenantLocalState> _states = new(StringComparer.Ordinal);

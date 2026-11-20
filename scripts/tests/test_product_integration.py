@@ -17,6 +17,77 @@ PRODUCT = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(PRODUCT)
 
 
+class ProductPackageSelectionTests(unittest.TestCase):
+    def write_manifest(self, root, host, scenario):
+        packages = ["Hexalith.EventStore.Contracts/5.4.0", "Hexalith.McpCli.Abstractions/3.0.0"]
+        if host == "Hexalith.Tenants.AppHost":
+            packages.append("Hexalith.EventStore.Aspire/5.4.0")
+        if scenario == "stale-domain" and host == "Hexalith.Tenants":
+            packages[0] = "Hexalith.EventStore.Contracts/5.3.1"
+        runtime = {key: {"runtime": {key.split("/")[0] + ".dll": {}}} for key in packages}
+        libraries = {key: {"type": "package", "sha512": "sha512-fixture-hash"} for key in packages}
+        targets = {"current": runtime.copy(), "other": runtime}
+        if host == "Hexalith.Tenants.Api" and scenario == "api-project":
+            libraries[packages[1]]["type"] = "project"
+        if host == "Hexalith.Tenants.UI" and scenario == "ui-inactive":
+            del targets["current"][packages[1]]
+        if host == "Hexalith.Tenants.AppHost" and scenario == "apphost-hash":
+            libraries[packages[2]]["sha512"] = "sha512-another-package"
+        (root / (host + ".deps.json")).write_text(json.dumps({
+            "runtimeTarget": {"name": "current"}, "targets": targets, "libraries": libraries}))
+
+    def test_only_the_restored_and_built_shipping_packages_can_start_the_product_profiles(self):
+        for scenario in ("current", "stale-restore", "stale-domain", "api-project", "ui-inactive", "apphost-hash"):
+            with self.subTest(scenario=scenario), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                restored = "5.3.1" if scenario == "stale-restore" else "5.4.0"
+                package = "Hexalith.EventStore.Aspire/" + restored
+                package_path = root / "feed" / package.lower()
+                package_path.mkdir(parents=True)
+                (package_path / "hexalith.eventstore.aspire.nuspec").write_text(
+                    f'<package><metadata><id>Hexalith.EventStore.Aspire</id><version>{restored}</version>'
+                    f'<repository url="https://github.com/Hexalith/Hexalith.EventStore" commit="{"e" * 40}" />'
+                    '</metadata></package>')
+                assets = root / "src/Hexalith.Tenants.AppHost/obj/project.assets.json"
+                assets.parent.mkdir(parents=True)
+                assets.write_text(json.dumps({"packageFolders": {str(root / "feed"): {}},
+                    "targets": {"net11.0": {package: {"type": "package"}}},
+                    "libraries": {package: {"type": "package", "path": package.lower(), "sha512": "fixture-hash"}}}))
+                for host in PRODUCT.PROFILE.RUNTIME_HOSTS:
+                    self.write_manifest(root, host, scenario)
+
+                def command(*arguments, env=None):
+                    if arguments[:2] == ("dotnet", "msbuild"):
+                        self.assertIn("-p:Configuration=Release", arguments)
+                        if "-getProperty:ProjectDepsFilePath" in arguments:
+                            return str(root / (Path(arguments[2]).stem + ".deps.json"))
+                        self.assertNotIn("HexalithEventStoreVersion", env)
+                        self.assertNotIn("HexalithMcpCliVersion", env)
+                        self.assertFalse(any(arg.startswith("-p:HexalithEventStoreVersion=") for arg in arguments))
+                        return json.dumps({"Properties": {"HexalithEventStoreVersion": "5.4.0", "HexalithMcpCliVersion": "3.0.0"}})
+                    self.assertEqual(arguments, ("git", "rev-parse", "HEAD:references/Hexalith.EventStore"))
+                    return "a" * 40
+
+                with mock.patch.object(PRODUCT, "ROOT", root), mock.patch.object(PRODUCT.PROFILE, "command", command), \
+                        mock.patch.object(PRODUCT.subprocess, "run") as ordinary, mock.patch.object(PRODUCT, "run_profile") as cold, \
+                        mock.patch.dict(os.environ, {"RUNNER_TEMP": temporary, "HexalithEventStoreVersion": "5.3.1",
+                                                     "HexalithMcpCliVersion": "2.0.1"}, clear=True):
+                    if scenario == "current":
+                        PRODUCT.main()
+                        ordinary.assert_called_once()
+                        self.assertEqual([call.args for call in cold.call_args_list], list(PRODUCT.PROFILES))
+                        self.assertTrue(all(call.kwargs["producer"] == restored for call in cold.call_args_list))
+                        report = json.loads((root / "tenants-product-profiles/package-provenance.json").read_text())
+                        self.assertEqual(set(report["runtimeManifests"]), set(PRODUCT.PROFILE.RUNTIME_HOSTS))
+                        self.assertNotIn(temporary, json.dumps(report))
+                    else:
+                        with self.assertRaises(ValueError):
+                            PRODUCT.main()
+                        ordinary.assert_not_called()
+                        cold.assert_not_called()
+                        self.assertFalse((root / "tenants-product-profiles").exists())
+
+
 class PrivateTopologyCleanupTests(unittest.TestCase):
     def test_cleanup_awaits_private_consumers_and_preserves_an_unrelated_process(self):
         with tempfile.TemporaryDirectory() as temporary:

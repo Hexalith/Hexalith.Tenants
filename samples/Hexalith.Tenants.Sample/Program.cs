@@ -40,9 +40,12 @@ app.MapSubscribeHandler().RequireEventStoreSidecarChannel();
 // 5. Map the tenant event subscription endpoint (platform A3 generic, configured for /tenants/events)
 app.MapEventStoreDomainEvents();
 
-// 6. Map sample access-check endpoint
-app.MapAccessCheckEndpoints();
-app.MapTenantConfigurationEndpoints();
+// 6. Expose the sample projection to the local Development walkthrough.
+if (app.Environment.IsDevelopment())
+{
+    app.MapAccessCheckEndpoints();
+    app.MapTenantConfigurationEndpoints();
+}
 
 // 7. The shared EventStore app may probe every configured app-id for admin metadata.
 //    This sample is a pub/sub consumer, so it explicitly reports no domain catalog.

@@ -46,6 +46,12 @@ builder.Services.AddEventStoreDevelopmentRouteCatalogBootstrap(builder.Configura
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
+        if (builder.Environment.IsProduction())
+        {
+            ProductionApiAuthentication.Configure(options, builder.Configuration, builder.Environment);
+            return;
+        }
+
         options.MapInboundClaims = false;
 
         string? issuer = builder.Configuration["EventStore:Authentication:Issuer"];
@@ -93,6 +99,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             options.TokenValidationParameters.IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(signingKey));
         }
     });
+if (builder.Environment.IsProduction())
+{
+    builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme).ValidateOnStart();
+}
 builder.Services.AddAuthorization();
 #if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
 builder.Services.AddEventStoreHttpHostSecurity();

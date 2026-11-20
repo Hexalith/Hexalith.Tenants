@@ -8,7 +8,7 @@ This page is not a production IdP provisioning guide. It assumes your deployment
 
 ## Required Production Settings
 
-Production authentication uses OIDC discovery. The committed `src/Hexalith.Tenants/appsettings.json` contains placeholders and is expected to fail startup validation until deployment overrides supply real values.
+The domain host (`tenants`) and public REST host (`tenants-api`) validate their Production OIDC configuration at startup. Configure each deployed process with the issuer, audience and signing algorithms for the access tokens it receives. Both accept the following settings. The committed domain-host settings require deployment overrides.
 
 | .NET key | Environment variable | Production expectation | Evidence | Redaction rule |
 | --- | --- | --- | --- | --- |
@@ -20,6 +20,8 @@ Production authentication uses OIDC discovery. The committed `src/Hexalith.Tenan
 | `Authentication:JwtBearer:SigningKey` | `Authentication__JwtBearer__SigningKey` | Empty or unset | Startup validation rejects any production signing key. | Never print, log, or commit signing-key values. |
 
 ASP.NET Core configuration providers are applied in order, so later providers override earlier `appsettings` values. Use double underscores in environment variables because they are the portable hierarchical-key separator across shells and container platforms.
+
+Deployments already using the REST host's `EventStore:Authentication` section can supply the same settings there, including `EventStore__Authentication__AllowedAlgorithms__0`. If `Authentication:JwtBearer` exists, the REST host reads that whole section. Otherwise it reads `EventStore:Authentication` and accepts `Oidc:Authority` as a fallback for its authority. Any nonempty `Authentication:JwtBearer:SigningKey`, `EventStore:Authentication:SigningKey` or `Jwt:SigningKey` prevents the REST host from starting in Production. Local Development continues to support its existing signing-key configuration.
 
 ## Required Token Contents
 
@@ -252,6 +254,14 @@ dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.cs
 Expected evidence: production startup/options validation fails safely for missing placeholders, invalid or missing `AllowedAlgorithms`, whitespace values, non-HTTPS authority, `RequireHttpsMetadata=false`, and production `SigningKey`, and succeeds for valid OIDC-style overrides.
 
 Redaction rule: validation assertions must name configuration keys only. They must not echo signing keys, bearer tokens, decoded payloads, or secret values.
+
+Run the public REST startup checks against the built integration project.
+
+```bash
+dotnet test --project tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Debug --no-build --filter-class Hexalith.Tenants.IntegrationTests.TenantsApiProductionAuthenticationTests
+```
+
+These tests start the REST host in Production and inspect its active bearer settings. They cover both deployment sections, the authority alias and rejection of unsafe settings before the first request. Live OIDC discovery and key rotation require deployment smoke evidence.
 
 ## API gateway caller credentials
 

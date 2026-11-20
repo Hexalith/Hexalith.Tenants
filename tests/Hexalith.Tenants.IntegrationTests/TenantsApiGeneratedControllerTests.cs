@@ -11,6 +11,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -1512,9 +1513,10 @@ public sealed class TenantsApiGeneratedControllerTests
         string issuer = JwtIssuer,
         string audience = JwtAudience,
         IReadOnlyList<string>? surfaces = null,
-        IReadOnlyList<string>? tenantGrants = null)
+        IReadOnlyList<string>? tenantGrants = null,
+        SigningCredentials? credentials = null)
     {
-        var credentials = new SigningCredentials(
+        credentials ??= new SigningCredentials(
             new SymmetricSecurityKey(Encoding.UTF8.GetBytes(JwtSigningKey)),
             SecurityAlgorithms.HmacSha256);
         string[] exactPermissions = permission == "commands:*"
@@ -1795,7 +1797,7 @@ public sealed class TenantsApiGeneratedControllerTests
             }
             finally
             {
-                await StopCatalogObservationHostAsync(process, output, error);
+                await TenantsApiProcess.StopAsync(process, output, error);
             }
         }
         finally
@@ -1849,7 +1851,7 @@ public sealed class TenantsApiGeneratedControllerTests
             }
             finally
             {
-                await StopCatalogObservationHostAsync(process, output, error);
+                await TenantsApiProcess.StopAsync(process, output, error);
             }
         }
         finally
@@ -1864,42 +1866,40 @@ public sealed class TenantsApiGeneratedControllerTests
     [InlineData("Production")]
     public async Task Unenrolled_api_host_is_unready_and_refuses_generated_requests(string environment)
     {
-        string directory = Path.Combine(Path.GetTempPath(), "tenants-api-unenrolled-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(directory);
-        var listener = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0);
-        listener.Start();
-        int port = ((IPEndPoint)listener.LocalEndpoint).Port;
-        listener.Stop();
-        try
+        const string authority = "https://identity.example.test";
+        using RSA rsa = RSA.Create(2048);
+        var key = new RsaSecurityKey(rsa) { KeyId = "catalog-fixture" };
+        var discovery = new OpenIdConnectConfiguration { Issuer = authority };
+        discovery.SigningKeys.Add(new RsaSecurityKey(rsa.ExportParameters(false)) { KeyId = key.KeyId });
+
+        // Boot the real, unenrolled API on Kestrel. Only OIDC discovery is supplied locally.
+        await using var factory = new WebApplicationFactory<TenantsApi::Program>().WithWebHostBuilder(builder =>
         {
-            using Process process = StartCatalogObservationHost(directory, null, out Task<string> output, out Task<string> error,
-                bootstrap: false, environment: environment, port: port);
-            try
-            {
-                using var client = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:" + port), Timeout = TimeSpan.FromSeconds(5) };
-                using var deadline = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
-                deadline.CancelAfter(TimeSpan.FromSeconds(10));
-                while (true)
-                {
-                    if (process.HasExited) throw new InvalidOperationException((await output) + (await error));
-                    try
-                    {
-                        using HttpResponseMessage alive = await client.GetAsync("/alive", deadline.Token);
-                        if (alive.IsSuccessStatusCode) break;
-                    }
-                    catch (HttpRequestException) { }
-                    await Task.Delay(20, deadline.Token);
-                }
-                using HttpResponseMessage readiness = await client.GetAsync("/ready", deadline.Token);
-                readiness.StatusCode.ShouldBe(HttpStatusCode.ServiceUnavailable);
-                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", CreateJwt("test-user", "queries:*", surfaces: ["ui"]));
-                client.DefaultRequestHeaders.Add("X-Hexalith-Scope", TenantPlatformScopes.Tenants);
-                using HttpResponseMessage query = await client.GetAsync("/api/tenants", deadline.Token);
-                query.StatusCode.ShouldBe(HttpStatusCode.ServiceUnavailable);
-            }
-            finally { await StopCatalogObservationHostAsync(process, output, error); }
-        }
-        finally { Directory.Delete(directory, recursive: true); }
+            builder.UseEnvironment(environment)
+                .UseSetting("EventStore:Authentication:Authority", authority)
+                .UseSetting("EventStore:Authentication:Issuer", authority)
+                .UseSetting("EventStore:Authentication:Audience", JwtAudience)
+                .UseSetting("EventStore:Authentication:AllowedAlgorithms:0", SecurityAlgorithms.RsaSha256)
+                .UseSetting("EventStore:RouteCatalog:DevelopmentBootstrap:Directory", string.Empty)
+                .UseSetting("DAPR_HTTP_ENDPOINT", "http://127.0.0.1:1");
+            builder.ConfigureTestServices(services => services.PostConfigure<JwtBearerOptions>(
+                JwtBearerDefaults.AuthenticationScheme,
+                options => options.ConfigurationManager = new StaticConfigurationManager<OpenIdConnectConfiguration>(discovery)));
+        });
+        factory.UseKestrel(0);
+        using HttpClient client = factory.CreateClient();
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        deadline.CancelAfter(TimeSpan.FromSeconds(10));
+        using HttpResponseMessage alive = await client.GetAsync("/alive", deadline.Token);
+        alive.StatusCode.ShouldBe(HttpStatusCode.OK);
+        using HttpResponseMessage readiness = await client.GetAsync("/ready", deadline.Token);
+        readiness.StatusCode.ShouldBe(HttpStatusCode.ServiceUnavailable);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer",
+            CreateJwt("test-user", "queries:*", issuer: authority, credentials: new SigningCredentials(key, SecurityAlgorithms.RsaSha256)));
+        client.DefaultRequestHeaders.Add("X-Hexalith-Scope", TenantPlatformScopes.Tenants);
+        using HttpResponseMessage query = await client.GetAsync("/api/tenants", deadline.Token);
+        query.StatusCode.ShouldBe(HttpStatusCode.ServiceUnavailable);
     }
 
     /// <summary>Schema-three owner policy admits public UI/agent queries with the matching signed surface.</summary>
@@ -2001,36 +2001,16 @@ public sealed class TenantsApiGeneratedControllerTests
     }
 
     /// <summary>Starts the actual API assembly with immutable startup inputs rather than late TestServer configuration.</summary>
-    private static Process StartCatalogObservationHost(string directory, string? appId, out Task<string> output, out Task<string> error,
-        bool bootstrap = true, string environment = "Development", int? port = null)
+    private static Process StartCatalogObservationHost(string directory, string? appId, out Task<string> output, out Task<string> error)
     {
-        var start = new ProcessStartInfo("dotnet")
-        {
-            WorkingDirectory = directory,
-            UseShellExecute = false,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-        };
-        foreach (string name in start.Environment.Keys.Where(name => name.StartsWith("EventStore__", StringComparison.OrdinalIgnoreCase)
-            || name.StartsWith("DAPR_", StringComparison.OrdinalIgnoreCase) || name.StartsWith("Authentication__", StringComparison.OrdinalIgnoreCase)
-            || name.StartsWith("Jwt__", StringComparison.OrdinalIgnoreCase) || name.StartsWith("Oidc__", StringComparison.OrdinalIgnoreCase)
-            || name.StartsWith("ASPNETCORE_", StringComparison.OrdinalIgnoreCase) || name.StartsWith("OTEL_", StringComparison.OrdinalIgnoreCase)).ToArray())
-        {
-            start.Environment.Remove(name);
-        }
-        start.Environment["DOTNET_ENVIRONMENT"] = environment;
+        ProcessStartInfo start = TenantsApiProcess.CreateStartInfo(directory, "Development");
         start.Environment["APP_API_TOKEN"] = "tenants-api-catalog-fixture-channel-token";
-        string testAssembly = typeof(TenantsApiGeneratedControllerTests).Assembly.Location;
         foreach (string argument in new[]
         {
-            "exec", "--runtimeconfig", Path.ChangeExtension(testAssembly, ".runtimeconfig.json"),
-            "--depsfile", Path.ChangeExtension(testAssembly, ".deps.json"), typeof(TenantsApi::Program).Assembly.Location,
-            "--urls=http://127.0.0.1:" + (port ?? 0), "--environment=" + environment,
-            "--DAPR_HTTP_ENDPOINT=http://127.0.0.1:1", "--EventStore:BaseUrl=http://127.0.0.1:1",
             "--EventStore:Authentication:Issuer=" + JwtIssuer, "--EventStore:Authentication:Audience=" + JwtAudience,
             "--EventStore:Authentication:SigningKey=" + JwtSigningKey,
         }) start.ArgumentList.Add(argument);
-        if (bootstrap) foreach (string argument in new[]
+        foreach (string argument in new[]
         {
             "--EventStore:RouteCatalog:DevelopmentBootstrap:Directory=" + directory,
             "--EventStore:RouteCatalog:DevelopmentBootstrap:HostId=tenants-api",
@@ -2052,18 +2032,7 @@ public sealed class TenantsApiGeneratedControllerTests
             start.ArgumentList.Add("--EventStore:DomainService:AppId=" + appId);
             start.ArgumentList.Add("--EventStore:RouteCatalog:DevelopmentBootstrap:AppId=" + appId);
         }
-        Process process = Process.Start(start) ?? throw new InvalidOperationException("The API observation host did not start.");
-        output = process.StandardOutput.ReadToEndAsync();
-        error = process.StandardError.ReadToEndAsync();
-        return process;
-    }
-
-    /// <summary>Reaps only the process owned by the observation fixture before deleting its directory.</summary>
-    private static async Task StopCatalogObservationHostAsync(Process process, Task<string> output, Task<string> error)
-    {
-        if (!process.HasExited) process.Kill(entireProcessTree: true);
-        await process.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(10));
-        await Task.WhenAll(output, error).WaitAsync(TimeSpan.FromSeconds(5));
+        return TenantsApiProcess.Start(start, out output, out error);
     }
 
     /// <summary>Missing catalog acquisition cannot reach the capturing transport.</summary>

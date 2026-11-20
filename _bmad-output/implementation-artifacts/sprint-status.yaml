@@ -17,7 +17,7 @@
 #   - done: Retrospective has been completed
 
 # Action Item Status:
-#   - open: Committed during a retrospective, not yet addressed
+#   - open: Agreed follow-up awaiting work
 #   - in-progress: Actively being worked on
 #   - done: Completed
 
@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 07-19-2026 16:57
-last_updated: 10-12-2026 17:06
+last_updated: 11-20-2026 12:26
 project: tenants
 project_key: NOKEY
 tracking_system: file-system
@@ -82,7 +82,7 @@ development_status:
   5-7-correct-global-administrator-authority-from-audit-evidence: done
   epic-5-retrospective: done
 
-# Action items committed during retrospectives (section created by the retrospective workflow)
+# Follow-up actions from retrospectives and approved sprint changes
 action_items:
   - id: code-review-2026-07-27-submodule-bump-in-story-commits
     epic: 1
@@ -347,3 +347,85 @@ action_items:
     status: done
     source: "_bmad-output/implementation-artifacts/deferred-work.md"
     resolution_source: "_bmad-output/planning-artifacts/sprint-change-proposal-2026-07-01-deferred-work-pagination-and-submodule-docs.md"
+
+  # Technical audit follow-up approved on 20 November 2026.
+  - id: audit-2026-11-20-roster
+    epic: 1
+    action: Return the expected authorization-scoped result before tenant creation and after rejection-only history. Verify the roster after successful creation.
+    owner: Developer
+    status: done
+    source: _bmad-output/planning-artifacts/sprint-change-proposal-2026-11-20.md
+    resolution: The rejection-only history regression passed with the Server suite (1,913 tests).
+  - id: audit-2026-11-20-sample-endpoints
+    epic: 3
+    action: Limit sample access and configuration readouts to Development. Verify route availability and keep subscription and health endpoints available.
+    owner: Developer
+    status: done
+    source: _bmad-output/planning-artifacts/sprint-change-proposal-2026-11-20.md
+    resolution: All 43 Sample tests and 66 AppHost tests passed.
+  - id: audit-2026-11-20-onboarding
+    epic: 3
+    action: Document PowerShell and the permission-gated operator mutations. Check the examples against their actual entry points.
+    owner: Developer
+    status: done
+    source: _bmad-output/planning-artifacts/sprint-change-proposal-2026-11-20.md
+    resolution: Verified SDK 11.0.100, PowerShell 7.7 and the Aspire 17 bundle against the documented prerequisites.
+  - id: audit-2026-11-20-release-cohort
+    epic: 5
+    action: Derive the live profiles' package version from the shipping cohort and verify the restored version in qualification evidence.
+    owner: Developer
+    status: done
+    source: _bmad-output/planning-artifacts/sprint-change-proposal-2026-11-20.md
+    resolution: All four Release host manifests matched EventStore 5.4.0 and McpCli 3.0.0. The 15 focused qualification checks passed, including stale-build cases.
+  - id: audit-2026-11-20-api-authentication
+    epic: 1
+    action: Apply the domain Production OIDC constraints to the public API and exercise valid, invalid and Development configuration.
+    owner: Developer
+    status: done
+    source: _bmad-output/planning-artifacts/sprint-change-proposal-2026-11-20.md
+    resolution: All 16 Production startup checks passed in two concurrent runs. Invalid settings terminated the actual API process before serving. The generated-controller suite also exercised authenticated routes.
+  - id: audit-2026-11-20-consumer
+    epic: 2
+    action: Demonstrate checkpointed consumer access and authoritative repair. Exercise delayed removal, duplicate delivery and restart.
+    owner: Developer
+    status: done
+    source: _bmad-output/planning-artifacts/sprint-change-proposal-2026-11-20.md
+    resolution: All 104 Client tests passed, including recovery across a new consumer instance.
+  - id: audit-2026-11-20-index-fingerprint
+    epic: 1
+    action: Reduce allocation for the index fingerprint. Compare canonical versions and allocated bytes against the same fixture.
+    owner: Developer
+    status: done
+    source: _bmad-output/planning-artifacts/sprint-change-proposal-2026-11-20.md
+    resolution: The golden digest matched. On the same 10,000-tenant, 50,000-membership fixture, allocation fell from 31.4 MiB to 27.2 MiB per fingerprint.
+  - id: audit-2026-11-20-grant-retry
+    epic: 4
+    action: Share the grant decision between rendering and dispatch. Verify caller, preview, retry and focus behavior.
+    owner: Developer
+    status: done
+    source: _bmad-output/planning-artifacts/sprint-change-proposal-2026-11-20.md
+    resolution: All 8,085 UI tests passed, including 355 administrator tests.
+  - id: audit-2026-11-20-hosted-qualification
+    epic: 5
+    action: Record the hosted cold bootstrap, persisted state, authenticated REST and authenticated UI results for the same source revision and shipping cohort.
+    owner: Release owner
+    status: open
+    source: _bmad-output/planning-artifacts/sprint-change-proposal-2026-11-20.md
+  - id: audit-2026-11-20-consumer-rollout
+    epic: 2
+    action: Verify the first enforcement consumer against its durable state store and authorized history service. Check access after a delayed removal and restart.
+    owner: Consumer deployment owner
+    status: open
+    source: _bmad-output/planning-artifacts/sprint-change-proposal-2026-11-20.md
+  - id: audit-2026-11-20-identity-rollout
+    epic: 1
+    action: Verify the deployed issuer, discovery TLS, audience and ingress against the published Production authorization requirements. Record the environment and outcome without credentials.
+    owner: Deployment owner
+    status: open
+    source: _bmad-output/planning-artifacts/sprint-change-proposal-2026-11-20.md
+  - id: audit-2026-11-20-index-capacity
+    epic: 1
+    action: Measure index size, write contention and update latency at representative deployment load before deciding whether partitioning warrants a migration.
+    owner: Deployment owner
+    status: open
+    source: _bmad-output/planning-artifacts/sprint-change-proposal-2026-11-20.md

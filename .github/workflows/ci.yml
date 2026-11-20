@@ -22,7 +22,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - profile: canonical scope 5.3.1
+          - profile: shipping package defaults
             sdk-argument: ''
             budget-minimum: 8
             runtime-minimum: 7
@@ -73,7 +73,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - profile: canonical scope 5.3.1
+          - profile: shipping package defaults
             sdk-argument: ''
             owner-source-minimum: 25
     env:
@@ -268,57 +268,25 @@ jobs:
               raise SystemExit("The Dapr CLI is not on PATH.")
           initialize_dapr(Path(binary), os.environ["DAPR_RUNTIME_VERSION"], Path.cwd())
           PY
-      - name: Restore the canonical AppHost package graph
-        run: >
-          dotnet restore src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj
-          -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true
-          -p:HexalithEventStoreFromSource=false -p:HexalithEventStoreVersion=5.3.1
-          -p:HexalithMcpCliVersion=3.0.0 -m:1 -nr:false
-      - name: Provision the canonical package catalog on the fresh backend
-        shell: bash
-        run: |
-          set -euo pipefail
-          source_sha="$(git rev-parse HEAD:references/Hexalith.EventStore)"
-          sdk_producer_version="$(dotnet msbuild src/Hexalith.Tenants/Hexalith.Tenants.csproj -nologo \
-            -getProperty:HexalithEventStoreVersion -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true \
-            -p:HexalithEventStoreFromSource=false -p:HexalithEventStoreVersion=5.3.1)"
-          if [[ "$sdk_producer_version" != '5.3.1' ]]; then
-            echo 'The authenticated package profile did not select its exact qualified SDK.' >&2
-            exit 1
-          fi
-          case "${{ matrix.suite }}" in
-            rest) redis_db=1; workers=false ;;
-            persisted) redis_db=2; workers=true ;;
-            anonymous-ui) redis_db=3; workers=false ;;
-            authenticated-ui) redis_db=4; workers=false ;;
-            *)
-              echo "Unsupported authenticated-routes suite '${{ matrix.suite }}'." >&2
-              exit 1
-              ;;
-          esac
-          export TENANTS_SOURCE_SDK_PRODUCER_VERSION="$sdk_producer_version"
-          printf 'TENANTS_SOURCE_SDK_PRODUCER_VERSION=%s\n' "$sdk_producer_version" >> "$GITHUB_ENV"
-          python3 scripts/prepare-source-catalog-profile.py \
-            --profile "${{ matrix.suite }}" --redis-db "$redis_db" \
-            --worker-backed-responses "$workers" --sdk-source-sha "$source_sha" \
-            --output "${RUNNER_TEMP}/tenants-package-backend.json"
+      - name: Select the shipping SDKs for all live hosts
+        run: python3 scripts/prepare-source-catalog-profile.py --shipping-versions >> "$GITHUB_ENV"
       - name: Verify bounded functional browser navigation and readiness
         if: ${{ matrix.suite == 'rest' }}
         run: node --test tests/Hexalith.Tenants.UI.Tests/Browser/authenticated-live-route-waits.test.mjs tests/Hexalith.Tenants.UI.Tests/Browser/authenticated-live-route-evidence.test.mjs
       - name: Build live hosts and focused suites against canonical-scope packages
-        id: live-build
         shell: bash
         run: |
           set -euo pipefail
           restore_properties=(
-            -p:HexalithEventStoreVersion=5.3.1 -p:HexalithMcpCliVersion=3.0.0
+            -p:HexalithEventStoreVersion="$TENANTS_SOURCE_SDK_PRODUCER_VERSION"
+            -p:HexalithMcpCliVersion="$TENANTS_SHIPPING_MCPCLI_VERSION" -p:HexalithEventStoreFromSource=false
             -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true
             -p:HexalithFrontComposerFromSource=false -p:HexalithMemoriesFromSource=false
           )
           # Live capture hashes the restored UI and UI.Tests package graphs. IntegrationTests
           # builds the UI host, but it never materializes tests/Hexalith.Tenants.UI.Tests/obj.
           dotnet restore tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj \
-            "${restore_properties[@]}" -m:1 -nr:false
+            -p:Configuration=Release "${restore_properties[@]}" -m:1 -nr:false
           for project in \
             references/Hexalith.EventStore/src/Hexalith.EventStore/Hexalith.EventStore.csproj \
             references/Hexalith.EventStore/src/Hexalith.EventStore.Admin.Server.Host/Hexalith.EventStore.Admin.Server.Host.csproj \
@@ -330,8 +298,31 @@ jobs:
               "${restore_properties[@]}" \
               -warnaserror -m:1 -nr:false
           done
+      - name: Verify the built package graph and provision the catalog on the fresh backend
+        id: live-profile
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_sha="$(git rev-parse HEAD:references/Hexalith.EventStore)"
+          results="TestResults/authenticated-routes/${{ matrix.suite }}"
+          mkdir -p "$results"
+          python3 scripts/prepare-source-catalog-profile.py --shipping-runtime-evidence "$results/package-provenance.json"
+          case "${{ matrix.suite }}" in
+            rest) redis_db=1; workers=false ;;
+            persisted) redis_db=2; workers=true ;;
+            anonymous-ui) redis_db=3; workers=false ;;
+            authenticated-ui) redis_db=4; workers=false ;;
+            *)
+              echo "Unsupported authenticated-routes suite '${{ matrix.suite }}'." >&2
+              exit 1
+              ;;
+          esac
+          python3 scripts/prepare-source-catalog-profile.py \
+            --profile "${{ matrix.suite }}" --redis-db "$redis_db" \
+            --worker-backed-responses "$workers" --sdk-source-sha "$source_sha" \
+            --output "${RUNNER_TEMP}/tenants-package-backend.json"
       - name: Verify unique app-channel ownership
-        if: ${{ !cancelled() && steps.live-build.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.live-profile.outcome == 'success' }}
         env:
           TENANTS_SOURCE_CATALOG_PROFILE: 'false'
         run: >
@@ -342,7 +333,7 @@ jobs:
           --results-directory TestResults/authenticated-routes/${{ matrix.suite }}
           --report-xunit-trx --report-xunit-trx-filename security-resource-graph-${{ matrix.suite }}.trx
       - name: Verify bounded TLS failure diagnostics
-        if: ${{ !cancelled() && steps.live-build.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.live-profile.outcome == 'success' }}
         run: >
           dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj
           --configuration Release --no-build
@@ -351,7 +342,7 @@ jobs:
           --results-directory TestResults/authenticated-routes/${{ matrix.suite }}
           --report-xunit-trx --report-xunit-trx-filename tls-diagnostics-${{ matrix.suite }}.trx
       - name: Verify bootstrap lifecycle and authority guards
-        if: ${{ !cancelled() && steps.live-build.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.live-profile.outcome == 'success' }}
         # This fake-HTTP suite checks default bootstrap behavior; the live catalog profile belongs to later socket checks.
         env:
           TENANTS_SOURCE_CATALOG_PROFILE: 'false'
@@ -385,7 +376,7 @@ jobs:
           path: ${{ runner.temp }}/tenants-dapr-*.json
           if-no-files-found: warn
       - name: Verify cold bootstrap, six REST reads, global-owner audit, public system denial and cursor recovery
-        if: ${{ !cancelled() && steps.live-build.outcome == 'success' && matrix.suite == 'rest' }}
+        if: ${{ !cancelled() && steps.live-profile.outcome == 'success' && matrix.suite == 'rest' }}
         run: >
           dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj
           --configuration Release --no-build
@@ -394,7 +385,7 @@ jobs:
           --results-directory TestResults/authenticated-routes/${{ matrix.suite }}
           --report-xunit-trx --report-xunit-trx-filename authenticated-rest-${{ matrix.suite }}.trx
       - name: Verify private failure evidence
-        if: ${{ !cancelled() && steps.live-build.outcome == 'success' && matrix.suite == 'rest' }}
+        if: ${{ !cancelled() && steps.live-profile.outcome == 'success' && matrix.suite == 'rest' }}
         run: >
           dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj
           --configuration Release --no-build
@@ -403,7 +394,7 @@ jobs:
           --results-directory TestResults/authenticated-routes/${{ matrix.suite }}
           --report-xunit-trx --report-xunit-trx-filename private-evidence-${{ matrix.suite }}.trx
       - name: Verify all hosted topology, background delivery, and persisted-state regressions without skips
-        if: ${{ !cancelled() && steps.live-build.outcome == 'success' && matrix.suite == 'persisted' }}
+        if: ${{ !cancelled() && steps.live-profile.outcome == 'success' && matrix.suite == 'persisted' }}
         env:
           TENANTS_SOURCE_CATALOG_INCLUDE_SAMPLE: 'true'
           EventStore__Projections__WorkersEnabled: 'true'
@@ -416,7 +407,7 @@ jobs:
           --results-directory TestResults/authenticated-routes/${{ matrix.suite }}
           --report-xunit-trx --report-xunit-trx-filename persisted-topology-${{ matrix.suite }}.trx
       - name: Preserve anonymous UI denial coverage
-        if: ${{ !cancelled() && steps.live-build.outcome == 'success' && matrix.suite == 'anonymous-ui' }}
+        if: ${{ !cancelled() && steps.live-profile.outcome == 'success' && matrix.suite == 'anonymous-ui' }}
         run: >
           dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj
           --configuration Release --no-build
@@ -425,7 +416,7 @@ jobs:
           --results-directory TestResults/authenticated-routes/${{ matrix.suite }}
           --report-xunit-trx --report-xunit-trx-filename anonymous-ui-${{ matrix.suite }}.trx
       - name: Verify authenticated UI, measured responsive modes and contextual audit Back
-        if: ${{ !cancelled() && steps.live-build.outcome == 'success' && matrix.suite == 'authenticated-ui' }}
+        if: ${{ !cancelled() && steps.live-profile.outcome == 'success' && matrix.suite == 'authenticated-ui' }}
         run: >
           dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj
           --configuration Release --no-build
@@ -438,7 +429,9 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: authenticated-route-test-results-${{ matrix.suite }}
-          path: TestResults/authenticated-routes/${{ matrix.suite }}/*.trx
+          path: |
+            TestResults/authenticated-routes/${{ matrix.suite }}/*.trx
+            TestResults/authenticated-routes/${{ matrix.suite }}/package-provenance.json
           if-no-files-found: warn
       - name: Retain support-safe live browser evidence
         if: always()

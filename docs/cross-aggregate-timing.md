@@ -113,7 +113,15 @@ The built-in `TenantProjectionEventHandler` updates `TenantLocalState` through `
 
 ## Security-Critical Decisions
 
-Current MVP consumers must design for eventual consistency and fail closed. The sample `/access/{tenantId}/{userId}` endpoint reads only local projection state. If the tenant is missing, disabled, unknown, has no membership, or has an invalid role, the endpoint denies access instead of synchronously calling Tenants or EventStore.
+Current MVP consumers must design for eventual consistency and fail closed. The Development-only sample `/access/{tenantId}/{userId}` endpoint reads process-local demo state. If the tenant is missing, disabled, unknown, has no membership, or has an invalid role, the endpoint denies access instead of synchronously calling Tenants or EventStore.
+
+A production membership check needs the checkpointed consumer. A late business
+event can otherwise advance the in-memory projection past a missing revocation.
+Read one healthy snapshot for the authenticated caller's tenant, require active
+membership with the needed role, and deny or defer when history or the record
+is unavailable. If the decision depends on a known tenant-stream sequence,
+require that checkpoint or later. The last healthy prefix can lag an unseen
+revocation. [Consumer registration and read policy](idempotent-event-processing.md#local-projection-semantics)
 
 For security-critical paths:
 
@@ -130,7 +138,7 @@ The planned EventStore authorization plugin is a future/optional synchronous pip
 
 `PublishFailed` means events were persisted but EventStore publication failed after the configured attempts. The persisted event stream remains authoritative. Drain recovery can republish the stored sequence range, and subscribers must handle duplicates.
 
-Subscriber failure does not roll back the stored event. `MapEventStoreDomainEvents()` returns success for processed, duplicate, unknown, or intentionally unhandled events. Invalid payloads or thrown handlers return an error so DAPR can redeliver according to the resiliency policy. The local and production `resiliency.yaml` files target the `pubsub` component with inbound retry/backoff. For subscriber failures, subscriber redelivery remains on `tenants.events`; no DAPR native dead-letter subscription is configured in this repository. Dead-lettering to the `deadletter.tenants.events` topic is an application-level concern handled by EventStore's dead-letter publisher (it routes command-processing infrastructure failures), not DAPR component metadata — DAPR's native dead-letter topic is a per-subscription setting and is not configured on the `pubsub` component. Keep the retry and dead-letter behavior reviewed together.
+Subscriber failure does not roll back the stored event. `MapEventStoreDomainEvents()` returns success for processed, duplicate, unknown, or intentionally unhandled events. The current SDK also acknowledges terminal invalid-payload results. In-progress deliveries, retryable capability mismatches and thrown handlers return an error so DAPR can redeliver according to the resiliency policy. The local and production `resiliency.yaml` files target the `pubsub` component with inbound retry/backoff. For subscriber failures, subscriber redelivery remains on `tenants.events`; no DAPR native dead-letter subscription is configured in this repository. Dead-lettering to the `deadletter.tenants.events` topic is an application-level concern handled by EventStore's dead-letter publisher (it routes command-processing infrastructure failures), not DAPR component metadata — DAPR's native dead-letter topic is a per-subscription setting and is not configured on the `pubsub` component. Keep the retry and dead-letter behavior reviewed together.
 
 When a local projection is stale:
 

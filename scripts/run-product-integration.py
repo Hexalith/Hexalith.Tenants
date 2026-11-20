@@ -136,18 +136,15 @@ def run_profile(profile, class_name, database, minimum, workers, sample, *, temp
 def main():
     if os.environ.get("TENANTS_SOURCE_CATALOG_PROFILE") == "true":
         raise ValueError("The ordinary integration tier cannot inherit a cold catalog profile.")
-    subprocess.run(["bash", "scripts/run-aspire-integration-tier.sh"], cwd=ROOT, check=True)
+    packages = PROFILE.shipping_runtime_evidence(ROOT)
     temporary = Path(os.environ["RUNNER_TEMP"]).resolve(strict=True)
     output = temporary / "tenants-product-profiles"
     output.mkdir(mode=0o700)
-    source = PROFILE.command("git", "rev-parse", "HEAD:references/Hexalith.EventStore")
-    producer = PROFILE.command("dotnet", "msbuild", "src/Hexalith.Tenants/Hexalith.Tenants.csproj", "-nologo",
-        "-getProperty:HexalithEventStoreVersion", "-p:Configuration=Release", "-p:UseHexalithProjectReferences=false",
-        "-p:UseNuGetDeps=true", "-p:HexalithEventStoreFromSource=false")
-    if producer != "5.3.1":
-        raise ValueError("The catalog profile did not select its exact qualified SDK.")
+    PROFILE.write_exclusive(output / "package-provenance.json", packages)
+    subprocess.run(["bash", "scripts/run-aspire-integration-tier.sh"], cwd=ROOT, check=True)
     for values in PROFILES:
-        run_profile(*values, temporary=temporary, output=output, producer=producer, source=source)
+        run_profile(*values, temporary=temporary, output=output,
+                    producer=packages["sdkPackageProducer"]["version"], source=packages["sdkSource"])
 
 
 if __name__ == "__main__":

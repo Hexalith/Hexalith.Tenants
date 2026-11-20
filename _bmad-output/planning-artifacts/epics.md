@@ -14,6 +14,20 @@ inputDocuments:
 
 This document provides the complete epic and story breakdown for tenants, decomposing the requirements from the PRD, UX Design if it exists, and Architecture requirements into implementable stories.
 
+## Sprint adjustment approved 20 November 2026
+
+The technical audit identified follow-up work for the delivered epics. The approved sequence starts with roster disclosure, Development-only sample endpoints and onboarding instructions. Release qualification, Production API authentication and downstream membership checks can proceed in parallel. The index allocation change and shared grant-retry decision each require a focused comparison with the shipped behavior.
+
+| Epic or workflow | Acceptance evidence |
+| --- | --- |
+| 1 · Discovery and access review | A roster query after a rejected creation conceals tenant existence from an ordinary caller and reports missing to an administrator. A subsequent creation returns the authorized roster. The REST API rejects unsafe Production identity settings at startup. Index fingerprints match existing versions and allocate fewer bytes on the same fixture. |
+| 2 · Membership | A consumer facing a sequence gap denies access until authoritative history proves membership. A delayed removal stays effective across duplicate delivery and restart. |
+| 3 · Onboarding | The sample serves its teaching readouts in Development. The quickstart names the tools its commands invoke and the README identifies permission-gated operations. |
+| 4 · Administrator controls | Rendering and dispatch consult the same grant decision. Caller changes, stale previews and duplicate attempts retain their existing behavior. |
+| Release qualification across epics | Each authenticated live profile runs the shipping EventStore package set on the same source revision. The release owner records the cohort and workflow run. |
+
+The release and deployment owners track hosted verification, first-consumer rollout, Production identity and index capacity separately. Work estimates and acceptance checks are in the [approved change proposal](sprint-change-proposal-2026-11-20.md). Owners and current status are in the [sprint tracker](../implementation-artifacts/sprint-status.yaml).
+
 ## Requirements Inventory
 
 ### Functional Requirements
