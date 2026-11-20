@@ -1,0 +1,16 @@
+# Architecture rubric review, 20 November 2026
+
+The reviewed draft preserves AD-1 through AD-14 and gives downstream access enforcement an explicit owner in AD-15. Before handoff, correct the command status key and close three ambiguities with the existing source contracts.
+
+| Priority | Finding | Required edit |
+| --- | --- | --- |
+| High | The API and communication sections identify the status lookup or deduplication key as the correlation ID. The BFF indexes the status URL by the message ID retained for the attempt, then verifies the returned identity. A client following the prose could lose track of an accepted command. | Use the original message ID for submission retries and status lookup. Describe the returned correlation ID separately. [TenantCommandGateway](../../../../../src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs) |
+| Medium | AD-15 requires atomic state and sequence persistence. Two writers could still replace a newer checkpoint with an older one under last-write-wins. | Specify optimistic concurrency for the shared checkpoint and preserve monotonic aggregate-local progress on replay. [Consumer checkpoint contract](../../../../../docs/idempotent-event-processing.md) |
+| Medium | AD-2 covers contextual audit navigation. Story 5.2 also distinguishes the tenant/date/category query from hints carried by user and command entry points. Different entry points could otherwise imply unsupported filtering or causal proof. | Require verified tenant scope and audit-read capability. Treat user and command origins as display hints. [Story 5.2](../../../../implementation-artifacts/spec-5-2-reach-scoped-audit-evidence-from-context.md) |
+| Medium | AD-12 covers membership-removal proof and the general gating rules cover previews. The operator also needs to see the tenant, target and current role as part of the approved ten facts. | Link the removal contract at the decision and state that missing required facts block submission. [Removal preview](../../../../../docs/tenants-ui-remove-user-from-tenant-journey-spec.md) |
+
+The working draft binds the canonical workspace routes, REST authorization boundaries, conditional freshness, UI redaction, cursor scope, command admission and downstream checkpoint recovery. The operational envelope distinguishes local implementation from hosted release qualification, consumer rollout, deployed identity and index capacity. Shared UI instrumentation, orchestration ownership, multi-replica evidence and the existing proof-field discrepancy have explicit closure conditions. The independent review compared the decisions with the November PRD, its validation findings and the linked handlers and stories.
+
+## Final verification
+
+Pass. The revised command contract uses the original message ID throughout status lookup and delivery retry. AD-15 requires contiguous checkpoint progress with optimistic concurrency and reload on conflict. AD-2 requires explicit, authorized tenant context and audit-read capability before enabling a link and defines which fields filter the audit query. AD-12 names the visible tenant, target and role and links the ten required removal-preview facts. All four review findings are resolved in the canonical document. Hosted and deployment checks keep their recorded owners and evidence requirements.

@@ -1,6 +1,10 @@
 ---
 stepsCompleted: [1, 2, 3, 4, 5, 6, 7, 8]
 inputDocuments:
+  - _bmad-output/planning-artifacts/sprint-change-proposal-2026-11-20.md
+  - _bmad-output/planning-artifacts/prds/prd-tenants-2026-06-02/reconcile-validation-2026-11-20.md
+  - _bmad-output/planning-artifacts/prds/prd-tenants-2026-06-02/validation-report.md
+  - _bmad-output/implementation-artifacts/story-5-1-performance-decision.md
   # --- PRD (final) + process artifacts ---
   - _bmad-output/planning-artifacts/prds/prd-tenants-2026-06-02/prd.md
   - _bmad-output/planning-artifacts/prds/prd-tenants-2026-06-02/addendum.md
@@ -47,13 +51,14 @@ inputDocuments:
   - docs/sample-consuming-service-walkthrough.md
   # --- Project context (AI agent rules) ---
   - _bmad-output/project-context.md
-  - references/Hexalith.Commons/_bmad-output/project-context.md
   - references/Hexalith.EventStore/_bmad-output/project-context.md
 workflowType: 'architecture'
 lastStep: 8
 status: 'complete'
 completedAt: '2026-06-03'
-updatedAt: '2026-07-15'
+updatedAt: '2026-11-20'
+architectureSpineStatus: 'final'
+architectureRun: '_bmad-output/planning-artifacts/architecture/architecture-tenants-2026-11-20'
 architectureSpineMerged: true
 architectureSpineArchive: '_bmad-output/archive/planning-artifacts/architecture-tenants-2026-06-25'
 project_name: 'Hexalith.Tenants'
@@ -66,11 +71,9 @@ date: '2026-06-02'
 **Approved McpCli course correction (2026-09-27):** `Hexalith.McpCli` is the target Hexalith-owned CLI/MCP surface for Tenants operations that pass contract enrollment and authorization. Any proprietary module CLI, MCP host, plug-in, or planned adapter described below is an obsolete migration source or historical design, not a new target. The module retains its domain, UI, and security semantics; replacement or approved withdrawal and parity evidence precede retirement. External development CLIs are unaffected.
 
 
-_This document builds collaboratively through step-by-step discovery. Sections are appended as we work through each architectural decision together._
-
 ## Canonical Architecture Spine
 
-This section merges the finalized feature-level architecture spine into the canonical architecture document. **AD-1 through AD-14 are the precedence layer for Tenants UI composition.** Earlier descriptive sections remain useful context and implementation history, but where their navigation, state-management, ownership, host, or operations wording conflicts with these ADs, the ADs govern.
+AD-1 through AD-15 govern Tenants UI composition and its contracts with the public API, the domain and downstream services. The November update incorporates the approved audit and the revised PRD. The [decision log](architecture/architecture-tenants-2026-11-20/.memlog.md) continues the [archived architecture run](../archive/planning-artifacts/architecture-tenants-2026-06-25/.memlog.md).
 
 ### Design Paradigm
 
@@ -86,7 +89,7 @@ Tenants Management UI is a **FrontComposer-composed domain UI**: FrontComposer o
 
 - **Binds:** `/tenants`, `/tenants/my`, `/tenants/users`, tenant detail, global-administrator, and audit return flows.
 - **Prevents:** shell navigation, route aliases, and return links from encoding incompatible information architecture.
-- **Rule:** `/tenants` plus `tab=tenants|users`, `scope=all|mine`, `userId`, `search`, `status`, `sort`, `desc`, and `cursor` is canonical workspace state. Invalid values normalize fail-safe; changing any tab/scope/filter/sort field resets cursor. `/tenants/my` and `/tenants/users` remain renderable compatibility routes, while generated navigation and return URLs use canonical `/tenants` state. `/tenants/{tenantId}`, `/tenants/{tenantId}/audit`, and `/global-administrators` are contextual routes and none registers another shell entry.
+- **Rule:** Register one shell entry at `/tenants`. Generate `/tenants/tenants` for All Tenants and My Tenants (`scope=mine`) and `/tenants/workspace-users` for user lookup. Honor legacy entry and tab aliases, including `/tenants/my` and `/tenants/users`. Normalize query state per surface and reset paging when its scope, filter, sort or page size changes. Ordinary list, My Tenants and lookup URLs may carry an opaque cursor. Search and search-fallback continuations stay in the circuit. Strip protected continuations from contextual audit return links. Detail, audit and global administration are contextual routes. Enable a tenant audit link only for an explicit, safe tenant with reliable current scope and authority and available audit-read capability. Tenant, date and category constrain the tenant audit query. User and command origins supply context hints and cannot establish exhaustive matches or command proof. [Workspace state](../../src/Hexalith.Tenants.UI/State/TenantList/TenantWorkspaceState.cs)
 
 ### AD-3 - FrontComposer And Fluent Are The First UI Composition Surface [ADOPTED]
 
@@ -110,7 +113,8 @@ Tenants Management UI is a **FrontComposer-composed domain UI**: FrontComposer o
 
 - **Binds:** FR-1..FR-9, FR-18, FR-20..FR-23, NFR-1, and NFR-3.
 - **Prevents:** routing tenant reads through the EventStore generic query gateway or retired projection-actor paths that drop projection metadata.
-- **Rule:** read composition calls direct Tenants REST endpoints through the BFF and preserves ETag, cursor, authorization, and read-model freshness metadata.
+- **Rule:** The server-side BFF sends caller-authorized reads to the generated `tenants-api` REST surface. The API forwards internally through EventStore to the Tenants handler. The BFF uses a separate EventStore client for command submission and status. Single-tenant detail, roster and audit use the canonical tenant in the route. Tenant list, user memberships and governance audit use `platform:tenants`. The administrator list and governance commands use `platform:global-administrators`. The catalog governs permissions and the domain verifies membership or persisted authority. [Public scope contract](../../docs/production-auth-claim-contract.md) · [Route catalog](../../src/Hexalith.Tenants.Contracts/Routing/TenantCatalogDeclarations.cs)
+- **Roster existence:** Until successful creation, including rejection-only history, the handler returns missing for a global administrator and forbidden for an ordinary caller. Only an authorized read of a created tenant can return a successful empty roster. [Roster handler](../../src/Hexalith.Tenants/Queries/Handlers/GetTenantUsersQueryHandler.cs)
 
 ### AD-7 - Projection-Confirmed Truth Is Shared Composition State [ADOPTED]
 
@@ -122,29 +126,21 @@ Tenants Management UI is a **FrontComposer-composed domain UI**: FrontComposer o
 
 - **Binds:** action availability, list states, badges, and stale/degraded behavior.
 - **Prevents:** duplicate Tenants freshness enums, `ServedAt` as projection age, search results as freshness proof, or 304 responses being treated as recovery without metadata.
-- **Rule:** Tenants UI uses `ReadModelFreshnessState`; `Refreshing` is client-transient; stale or unknown data fails closed where the safety contract requires it.
+- **Rule:** The BFF evaluates projection-backed provenance on each 200 and 304. Reuse cached data on 304 only for the same authorized request with a matching strong validator, usable projection version and supported freshness metadata. A valid 304 can still be stale. Missing, contradictory or degraded evidence cannot authorize a high-impact action. `ServedAt` is response time. `Refreshing` is UI-only. First creation allows unknown freshness only for a verified global administrator viewing an authoritatively empty first tenant list with no first-write timestamp. [REST client](../../src/Hexalith.Tenants.UI/Services/Gateways/TenantsRestQueryClient.cs)
 
 ### AD-9 - Domain Copy And Support Safety Stay Tenants-Owned [ADOPTED]
 
 - **Binds:** receipts, consequence previews, rejection text, copy actions, and resource files.
 - **Prevents:** shell-owned domain wording, fragment-assembled localization, and unsafe data leaking into rendered output.
-- **Rule:** domain-facing text uses Tenants-owned whole-string resources; the BFF assembles and redacts receipts, previews, and rejection text before anything reaches the DOM.
+- **Rule:** Tenants owns whole-string localized domain copy. A copy control receives only the exact value and identifier kind positively approved by its authorized surface. The BFF maps receipts and previews to support-safe fields before display. The PRD requires proof-only fields to stay outside rendered components. The server-side grid currently receives internal correlation and sequence fields. Keep that conformance finding open. [PRD validation](prds/prd-tenants-2026-06-02/validation-report.md)
+- **Configuration:** Apply deployment display policy in the BFF before browser-facing composition. Every key must match the exact display-safe set. Ordinary callers also require an ordinal prefix grant. Administrators bypass only the prefix check. Missing or malformed policy withholds configuration for everyone. The authorized API preserves the full consumer contract. [Configuration read policy](../../docs/tenant-configuration-read-policy.md)
 
 ### AD-10 - Memories Is Search-As-Index-Only [ADOPTED]
 
 - **Binds:** FR-1 cross-set tenant search and tenant-list search states.
 - **Prevents:** adding a Tenants/EventStore list-filter endpoint, rendering row truth from Memories, or blocking the tenant list on search outage.
-- **Rule:** Memories defines an offset result window and returns tenant ids from `tenants-index`; the BFF deduplicates ids in returned order, hydrates and authorization-filters them through the authoritative Tenants read path, and applies the requested deterministic visible sort within the page. The next offset advances by raw Memories hits consumed, including malformed, duplicate, unauthorized, or unhydrated hits; dropped hits are not backfilled and partial hydration is degraded. The search cursor is opaque and bound to the authenticated user plus normalized query/status/sort/page-size scope; mismatch resets page 1 with an honest notice. Memories outage degrades to the cursor list.
-
-### AD-10 Read-safety supersession — approved 2026-10-28
-
-The approved DW-117/118/127/599/618 spec supersedes the historical AD-10 no-backfill/partial-hydration rule above and Story 1.9's frozen rule for this work. The BFF fills visible pages from authoritative authorized rows and proves one authorized lookahead before enabling Next. Each load examines at most 1,000 raw positions, including replay and lookahead. Exhaustion or any operational hydration gap discards the incomplete search and uses the existing labelled authorized-list fallback. Missing, forbidden, malformed and status-filtered candidates do not independently enable or terminate rendered paging. Existing deterministic sort applies within each authorized page, not globally across pages.
-
-Continuations use a versioned numeric fixed-window start plus consumed returned-result count, protected by the platform cursor codec and bound to caller/query/status/sort/direction/page size. A partial window is replayed from its fixed start; returned ordinals never become raw offsets. Invalid, old or mismatched continuations restart page one with named recovery. Continuations remain server-held. Offset/index mutations retain their existing limitations; no snapshot isolation is promised.
-
-Privacy qualification covers rendered rows and pager for equal authorized results within the budget. Timing, amount of work, fallback-mode independence and completeness beyond the budget are excluded. Nonfatal provider/programming faults reach the workspace Error/Retry boundary with fixed diagnostic categories and no exception material; obsolete/cancelled/disposed loads are retired and fatal faults propagate. The gateway's deliberate null-versus-empty argument classification remains intact; wrapper inputs are nonblank by contract.
-
-FR-6 remains a server-side UI display policy. The BFF requires a valid deployment policy for every principal, including administrators; exact display-safe keys and ordinal prefix grants determine browser-safe rows. Global administrators bypass prefix grants, never the display-safe set. Missing/malformed policy makes UI configuration unavailable and strips raw configuration. The membership/current-administrator-authorized API preserves the complete configuration contract for consumers. This is an approved boundary decision, not an API filtering fix or a claim of assistive-technology/release qualification. Historical stories and findings remain unchanged.
+- **Rule:** Memories supplies candidate tenant IDs. The BFF deduplicates, reads each eligible row from Tenants under caller authority and sorts the visible page deterministically. Fill the page and require one additional authorized row before enabling Next. Each load may examine up to 1,000 raw positions, including replay and lookahead. Reaching the budget without resolving the page or encountering an operational hydration gap discards the partial search and shows the labelled authorized-list fallback. Missing, forbidden and filtered hits reveal no paging signal.
+- **Continuation:** Protect the fixed-window start and consumed-result count with the platform cursor codec. Bind it to caller, index, normalized search, status, sort, direction and page size. Replay a partial window from its fixed start. Keep continuations server-side and restart at page one with notice on invalidation. The index can change between pages. The privacy bound covers rendered rows and pager for equal authorized results within budget. [Read-safety decision](../implementation-artifacts/dw-117-118-127-599-618-validation-evidence.md)
 
 ### AD-11 - UI Conformance Tests Are Architectural Guardrails [ADOPTED]
 
@@ -156,7 +152,9 @@ FR-6 remains a server-side UI display policy. The BFF requires a valid deploymen
 
 - **Binds:** FR-10..FR-17, FR-19, FR-24..FR-25, and CP-2..CP-8.
 - **Prevents:** independent command flows choosing optimistic success, concurrent submits, bulk action, toast batching, or bypassing preview and gating.
-- **Rule:** command UX composes the shared gateway/lifecycle pattern and consequence preview where required. Lock scope is `(interactive circuit, AggregateIdentity)`: one command for that aggregate remains active from submit through accepted/projection-pending until terminal evidence, while unrelated aggregates may proceed. `confirmed` requires the expected postcondition plus projection-version advancement or safe command-specific audit evidence beyond the pre-submit baseline. A pre-existing expected state or NoOp is `already applied`, never `confirmed`; unavailable provenance is `unable to verify`. Unrelated projection data, command status, and SignalR nudges never confirm.
+- **Rule:** Tenants owns the admission gate keyed by interactive circuit and aggregate identity. FrontComposer supplies shared controls. Hold the lease across submission and projection-pending states, including an unverifiable outstanding attempt. Unrelated aggregates may proceed. Confirmation requires the command-specific postcondition and authoritative progress beyond the pre-submit baseline. NoOp or a pre-existing state is already applied. Grant rendering, submission and retry share eligibility. Recheck caller, authority and preview at dispatch, reuse the original command identity for an eligible delivery retry, and check status once a reference exists.
+- **Recovery:** First-member bootstrap requires an active tenant with no prior membership. Restoring an owner on a previously populated, ownerless tenant requires a global administrator. Removing the last tenant owner carries a warning and additional confirmation. Domain rules prohibit removing the last global administrator.
+- **Proof:** For a correction, verify the exact attempt and its committed sequence. Confirm only when a fresh, ordered projection of the same aggregate reaches or exceeds that sequence and shows the intended effect. Keep the original receipt. Tenant correction reports `MissingSupport` for pairing and clears the pair. Governance may link two receipts only after reauthorization in the originating circuit and independent protected evidence for the source and corrective attempt. For member removal, show the tenant, target and current role with the other seven [required preview facts](../../docs/tenants-ui-remove-user-from-tenant-journey-spec.md#21-preview-content-enumerated-exactly). Require proof capability before dispatch and stable, complete evidence for the exact attempt and sequence before exposing the receipt. A confirmed local change can outlive an inconclusive audit read. [Correction contracts and acceptance](prds/prd-tenants-2026-06-02/prd.md)
 
 ### AD-13 - The UI Host Is Domain-Owned; Orchestration Is Platform-Owned [ADOPTED]
 
@@ -168,18 +166,28 @@ FR-6 remains a server-side UI display policy. The BFF requires a valid deploymen
 
 - **Binds:** NFR-1..NFR-5, container deployment, configuration, secrets, health, telemetry, and replica count.
 - **Prevents:** embedding secrets, treating UI memory as durable truth, shipping bespoke observability, or scaling InteractiveServer with incompatible key/session/cursor assumptions.
-- **Rule:** externalize configuration and secrets; consume shared health, telemetry, and non-root SDK-container defaults; keep persistent truth outside the UI host; and do not scale InteractiveServer beyond one replica until shared DataProtection, circuit/session routing, and cursor durability are verified.
+- **Rule:** externalize configuration and secrets; consume shared health, telemetry, and non-root SDK-container defaults; keep persistent truth outside the UI host; and do not scale InteractiveServer beyond one replica until shared DataProtection, circuit/session routing, and cursor durability are verified. Both public REST and domain hosts require valid Production OIDC at startup. Release evidence covers cold bootstrap, persisted state, authenticated REST and authenticated UI on one revision with its shipping packages.
 
-### Architecture Conformance Finding - 2026-07-15
+### AD-15 - Downstream Access Requires a Verified Consumer Checkpoint [ADOPTED]
 
-The 2026-07-15 reality check found four active implementation divergences:
+- **Binds:** FR-12, NFR-2 and NFR-3, access-enforcing subscribers and membership revocation.
+- **Prevents:** a consumer granting protected access from an incomplete history after a delayed removal or restart.
+- **Rule:** Each enforcing consumer reads a durable, shared, consumer-owned checkpoint for the tenant. On a sequence gap, withhold usable state, recover from authorized stream history and persist recovered state and sequence together with optimistic concurrency. Commit only contiguous progress. On a conflicting write, reload and retry without regressing the sequence. Acknowledge a delivery only after its outcome is durable. Check the authenticated subject and required role against a healthy snapshot of an active tenant. If the snapshot is unavailable or behind a known required sequence, deny or defer protected work. A healthy snapshot covers the observed prefix. Local UI confirmation describes Tenants only. The sample's membership and configuration readouts are Development-only. [Consumer integration contract](../../docs/idempotent-event-processing.md)
 
-- **AD-6 / AD-8:** `TenantQueryGateway` currently calls `IEventStoreGatewayClient.SubmitQueryAsync`, and the configured generic handler route normalizes freshness provenance to `Unknown`. Before switching the BFF, the direct Tenants REST surface must propagate ETag/read-model freshness headers and metadata; a composing host must expose distinct Tenants-query and EventStore-command service references; then the UI BFF must split those clients.
-- **AD-13:** `src/Hexalith.Tenants.AppHost` remains repository-owned transitional orchestration and must migrate to a platform/composing host rather than expand.
-- **AD-14:** the UI host lacks shared health endpoint mapping and OpenTelemetry/ServiceDefaults integration; multi-replica InteractiveServer is not approved until those controls plus shared DataProtection, session routing, and cursor durability are verified.
-- **AD-10:** the implemented Memories cursor is a plaintext offset without authenticated-user/query scope binding; replace it with the opaque scoped cursor required by AD-10.
+### Conformance and qualification, 20 November 2026
 
-These are remediation items; they do not amend or weaken the ADs.
+The direct REST client and protected search cursor implement the July transport and paging decisions. Platform ownership of orchestration remains the target. The repository AppHost still composes the local topology. The standalone UI still lacks shared health and OpenTelemetry wiring. Keep it single-replica pending verified shared Data Protection, circuit routing and cursor durability.
+
+Both the public REST and domain hosts validate Production OIDC before serving. Require an HTTPS authority and discovery, expected issuer and audience, and an explicit asymmetric signing algorithm. Development signing keys are refused in Production. The UI host uses server-side OIDC sign-in and relays the caller's token. [Production authentication settings](../../docs/production-auth-readiness.md)
+
+| Open check | Owner | Evidence required |
+| --- | --- | --- |
+| Hosted release qualification | Release owner | Exercise cold bootstrap, persisted state, authenticated REST and authenticated UI on the same candidate revision and shipping package set. Local manifest checks identified EventStore.Contracts 5.4.0 and McpCli.Abstractions 3.0.0. |
+| First access-enforcing consumer | Consumer deployment owner | Demonstrate authorized history access, durable shared state and correct access after a delayed removal and restart. |
+| Deployed identity | Deployment owner | Verify real issuer, audience, discovery TLS, ingress and key rotation. Record redacted evidence. |
+| Tenant-index capacity | Deployment owner | Measure index size, write contention and update latency at representative load. Preserve the same index version for equivalent replayed state. Revisit partitioning when deployed measurements justify it. |
+
+The September audit-grid reference run passed for 500 entries and 50-row pages. The approved p75/p95 budgets are 2.5/4.0 seconds for initial render, 1.5/3.0 seconds for results and 200/500 milliseconds for feedback. Qualify the release candidate on the dedicated environment and repeat after relevant audit query, BFF, grid or paging changes. The audit-grid result and tenant-index capacity check measure different workloads. [Performance contract](../implementation-artifacts/story-5-1-performance-decision.md) · [November audit](sprint-change-proposal-2026-11-20.md) · [Open owner checks](../implementation-artifacts/sprint-status.yaml)
 
 ### Deferred Decisions
 
@@ -190,7 +198,7 @@ These are remediation items; they do not amend or weaken the ADs.
 - Remove the repository-owned AppHost when a platform/composing host owns the full Tenants topology.
 - Reconcile `_bmad-output/project-context.md` with AD-13 and the governing domain-module boundary in a separately authorized project-context update.
 - Claim RTL/WCAG 2.2 only after the pinned Fluent/FrontComposer behavior is verified.
-- Define sensitive-configuration masking, reveal, and audit policy before exposing it.
+- Any future sensitive-value reveal needs its own approval and audited display policy. AD-9 governs current configuration display.
 
 ## Project Context Analysis
 
@@ -201,9 +209,9 @@ The PRD defines FR-1..FR-25 as **UI composition over an already-built event-sour
 backend** (no backend endpoints, no contract reshaping). They collapse into two
 construction patterns:
 - **Read/projection surfaces** (FR-1..FR-9, FR-18; audit-read FR-20..FR-23) — compose
-  6 REST projection queries through the FrontComposer/DataGrid composition: cursor
-  pagination (never offset/limit), ETag→304 freshness, authorization-scoped results.
-  This is the entire MVP.
+  six REST read categories through the FrontComposer/DataGrid composition: cursor
+  pagination (never offset/limit), conditional ETag reads with verified freshness, and authorization-scoped results.
+  Phase 2a was the original read-only milestone. Later phases delivered permission-gated commands.
 - **Custom command flows** (FR-10..FR-17, FR-19, FR-24..FR-25) — *not generated CRUD*;
   each dispatches `POST /api/v1/commands` and tracks an async
   `accepted → projection-confirmed → audit-available` lifecycle, with server-side BFF-assembled
@@ -211,8 +219,8 @@ construction patterns:
 Phasing: **2a/MVP** (read: FR-1..9, FR-18) → **2b** (first commands: FR-10/11/13/14)
 → **2c** (high-impact + audit + recovery: FR-12/15/16/17/19/20–25). Epic 5 now provides
 backing stories for FR-20..FR-25, including the flat audit DataGrid, support-safe receipts,
-audit availability, tenant-domain correction preview/confirmation, and proof linking. Epic 4
-Stories 4.3 and 4.4 now provide FR-19 global-administrator grant/remove command support in the
+audit availability, tenant correction and independently verified governance proof (AD-12). Epic 4
+Stories 4.2 and 4.3 now provide FR-19 global-administrator grant/remove command support in the
 fixed `global-administrators` scope.
 
 **Non-Functional Requirements — the honesty contract is the architecture driver.**
@@ -222,9 +230,9 @@ fixed `global-administrators` scope.
   never resurrects optimistic success.
 - **NFR-2 Security/authorization:** server-enforced at API (L1) + domain RBAC (L2); the
   UI **reflects, never enforces**, and must stay safe even if it misjudges; role-scoping
-  read from JWT claims.
+  derived from authenticated scope, operation permissions and authoritative membership or governance state.
 - **NFR-1 Performance/freshness:** cursor pagination + conditional requests (ETag/304);
-  ~1s warm tenant-read target remains `[ASSUMPTION]`; audit performance has no numeric target until the Product/Operations §16.14 decision record approves the representative dataset, budgets, test method, and fallback trigger.
+  the approximately one-second warm tenant-read target is provisional. The September audit-specific budgets and candidate qualification are recorded above.
 - **NFR-4 Observability/testability:** stable automation selectors/component contracts —
   never keyed on row text or color.
 - **NFR-5 No data-store edits:** corrections are forward compensating commands only.
@@ -236,7 +244,7 @@ verbatim) — translating directly into a **shared typed UI truth-state model**.
 **Scale & Complexity:**
 - Primary domain: **Web frontend** — a Blazor InteractiveServer domain UI composed on the
   **Hexalith.FrontComposer** shell, consuming an event-sourced CQRS backend over
-  REST + DAPR/SignalR. .NET 10; Fluent UI Blazor v5 pinned `5.0.1`.
+  REST + DAPR/SignalR. .NET 11 and Fluent UI Blazor 5.1.0.
 - Complexity level: **HIGH.** Drivers: eventual-consistency correctness as the core
   thesis; a 5-dimension truth-state model with casing-significant canonical vocabularies
   (13 badge / 10 lifecycle / 10 feedback / 6 reasons / 5 freshness / 4 audit) and a strict
@@ -249,15 +257,15 @@ verbatim) — translating directly into a **shared typed UI truth-state model**.
 
 ### Technical Constraints & Dependencies
 
-- **Consume-only backend (fixed):** 6 read endpoints (`GET /api/tenants`,
-  `/api/tenants/{id}`, `/api/tenants/{id}/users`, `/api/users/{id}/tenants`,
-  `/api/tenants/{id}/audit`, `/api/global-administrators`) + `POST /api/v1/commands` +
-  `GET /api/v1/commands/status/{correlationId}`. No new endpoints; receipts/previews/
+- **Consume-only backend (fixed):** six read categories (`GET /api/tenants`,
+  `/api/tenants/{tenantId}`, `/api/tenants/{tenantId}/users`, `/api/users/{userId}/tenants`,
+  `/api/tenants/{tenantId}/audit`, `/api/global-administrators`, with governance audit at `/api/global-administrators/audit`) + `POST /api/v1/commands` +
+  `GET /api/v1/commands/status/{messageId}`. No new endpoints; receipts/previews/
   status, receipts, and previews assembled server-side in the BFF from safe read-model fields.
-- **FrontComposer is the mandated UI framework AND the critical path.** Per repo domain-
+- **FrontComposer owns shared UI.** Per repo domain-
   boundary policy, missing shared UI capability belongs in FrontComposer, not Tenants.
-  Readiness updated by Story 1.0 spike note (2026-06-05): `FC-LYT`, `FC-CMD`,
-  `FC-CNC`, `FC-A11Y`, `FC-L10N`, and `FC-DOC` are confirmed; `FC-TBL` is available
+  The June 5 Story 1.0 spike recorded that `FC-LYT`, `FC-CMD`,
+  `FC-CNC`, `FC-A11Y`, `FC-L10N`, and `FC-DOC` had shared contracts; `FC-TBL` is available
   with a resolved Tenants boundary; `FC-AUD` and `FC-CNS` remain covered by Product/UX-approved fallbacks;
   `FC-TOK` remains a missing shared capability covered by Tenants' canonical vocabulary
   and verified Fluent semantic/icon mapping until a shared token contract exists. The
@@ -267,20 +275,18 @@ verbatim) — translating directly into a **shared typed UI truth-state model**.
   states required by Tenants by itself. Story 1.2 resolved the Epic 1 path by composing a Tenants-specific
   `TenantDataGrid` from Fluent/FrontComposer primitives while keeping generic reusable
   cursor/pinning/list-state capability as a FrontComposer concern.
-- **Fluent UI Blazor v5 pinned `5.0.1`** — exact token/component/ARIA names
+- **Fluent UI Blazor 5.1.0** — exact token/component/ARIA names
   verified against the pinned package at build; none asserted available without check.
-- **Current workspace platform package baselines (2026-10-29):** Hexalith.FrontComposer `4.7.1`,
-  Hexalith.EventStore `3.128.4`, and Hexalith.Memories `3.0.10` from the effective sibling Builds catalog. Debug may consume source
-  references, but submodule revisions are implementation state rather than architecture invariants.
-- **Identity:** TenantId/UserId are meaningful caller-supplied strings, case-sensitive
-  (Ordinal), **NOT ULIDs** — never `Guid`/`Ulid.TryParse`; copy-full-id is literal.
+- **Build baseline, 20 November 2026.** SDK 11.0.100, target `net11.0`, Aspire 17.0.0, FrontComposer 6.0.1, Memories 4.1.0, EventStore 5.4.0 and McpCli 3.0.0. Debug source selection and Release package selection are separate. Qualify the actual restored shipping set. [SDK](../../global.json) · [Tenants build properties](../../Directory.Build.props) · [Central package catalog](../../references/Hexalith.Builds/Props/Directory.Packages.props)
+- **Identity.** Canonical public tenant IDs are 1–64 ASCII letters, digits or hyphens, with alphanumeric endpoints. Normalize to lowercase without trimming. User IDs retain their literal identity. Duplicate canonical grants, malformed grants and the reserved public tenant `system` fail closed. The client supplies the operation’s declared scope. The receiving service verifies it against the catalog. Internal stream identities stay private. [Identity and scope rules](../../docs/production-auth-claim-contract.md)
+
 - **Async, eventually-consistent integration:** commands return `202` + correlationId;
-  outcome proven only by status poll + projection re-query. DAPR pub/sub is at-least-once;
+  confirmation requires the command-specific evidence in AD-12. DAPR pub/sub is at-least-once;
   **SignalR projection notifications are freshness nudges only.**
-- **Cursors:** opaque, signed (DataProtection), scope-bound, session-scoped; multi-replica
+- **Cursors:** opaque, protected and scope-bound (AD-2 and AD-10); multi-replica
   durability is an open backend gap (Epic 11) — UI must handle cursor invalidation.
-- **Auth/claims:** JWT `sub` actor; tenant scope via `eventstore:tenant=system`; global-
-  admin via `global_admin`/`role` claim shapes; Keycloak (prod) or symmetric-key JWT (dev).
+- **Auth/claims:** Use the authenticated subject, catalog permissions, canonical tenant grants and persisted domain authority. A global-administrator role hint alone cannot grant access. Production bearer validation at both hosts follows AD-14.
+
 - **Repo/build conventions:** `.slnx` only; central package versions; no copyright headers;
   `ConfigureAwait(false)`; xUnit v3 + Shouldly (+ bunit/Playwright); SDK containers (no
   Dockerfiles); Conventional Commits.
@@ -309,7 +315,7 @@ verbatim) — translating directly into a **shared typed UI truth-state model**.
 7. **Canonical state vocabularies (CP-10)** — verbatim, casing-significant; a single shared
    enumeration source across components.
 8. **Command lifecycle & idempotency** — `messageId` idempotency key; async confirm;
-   duplicate-submit dedup; one-at-a-time policy (FC-CNC fallback).
+   eligible retries reuse the message ID. Tenants enforces admission per circuit and aggregate (AD-12).
 9. **FrontComposer dependency & fallback governance** — the build-readiness gate this
    architecture must convert into an actionable resolution + sequencing plan.
 10. **Testability/automation (NFR-4)** — stable selectors/component contracts pervade all
@@ -319,7 +325,7 @@ verbatim) — translating directly into a **shared typed UI truth-state model**.
 
 ### Primary Technology Domain
 
-.NET 10 Blazor web application (interactive, server-rendered) — a domain UI composed on the
+.NET 11 Blazor web application (interactive, server-rendered) — a domain UI composed on the
 **Hexalith.FrontComposer** shell with **Microsoft Fluent UI Blazor v5**, consuming the existing
 Tenants/EventStore REST + DAPR/SignalR backend. The implemented host is
 `src/Hexalith.Tenants.UI`; the starter evaluation below is retained as decision history.
@@ -340,13 +346,7 @@ foundations were evaluated, grounded in the initialized submodules:
 3. **Generic `dotnet new blazor`, no FrontComposer** — rejected; fails the composition mandate
    and would re-implement shared shell scaffolding inside Tenants.
 
-Verified ecosystem facts:
-- `Hexalith.FrontComposer.Cli` (`frontcomposer` dotnet tool) is an obsolete compatibility **inspect/migrate** tool; `Hexalith.McpCli` is the target Hexalith-owned CLI after generic migration/diagnostic contracts are approved,
-  **not a project scaffolder** — the host is created manually from the reference pattern.
-- Reference hosts `Hexalith.EventStore.Admin.UI` and `Hexalith.EventStore.Sample.BlazorUI` use
-  **Blazor Server / `InteractiveServer`** (no separate WASM `.Client` project).
-- FrontComposer.Shell + both reference UIs pin **Fluent UI Blazor `5.0.0-rc.5-26219.1`** (still
-  RC; no GA as of 2026-06).
+The June selection used the EventStore InteractiveServer reference hosts and a prerelease Fluent build. The current Tenants host uses the catalog versions above. `Hexalith.FrontComposer.Cli` provides local inspect/migrate tooling. Operator capabilities require a decorated contract, enrollment and authorization in McpCli. Hard deletion is outside the UI and has no approved operator enrollment.
 
 ### Selected Starter: `src/Hexalith.Tenants.UI` Blazor host composing the FrontComposer Shell
 
@@ -375,12 +375,11 @@ dotnet new blazor -n Hexalith.Tenants.UI -o src/Hexalith.Tenants.UI \
 
 **Architectural Decisions Provided by Starter:**
 
-**Language & Runtime:** C# / .NET 10 (`net10.0`, SDK `10.0.403` pinned), `Microsoft.NET.Sdk.Web`;
+**Language & Runtime:** C# / .NET 11 (`net11.0`, SDK `11.0.100`), `Microsoft.NET.Sdk.Web`;
 Nullable + ImplicitUsings + `TreatWarningsAsErrors` + `ConfigureAwait(false)` per repo props.
 
-**UI / Styling:** Microsoft Fluent UI Blazor v5 (`5.0.1`, GA), inherited
-through the FrontComposer shell; semantic theme roles, no bespoke palette; Fluent type ramp /
-shapes / elevation. Tenants tracks FrontComposer's transitive Fluent pin; tokens/ARIA verified
+**UI / Styling:** Microsoft Fluent UI Blazor v5 (`5.1.0`) from the central package catalog; semantic theme roles, no bespoke palette; Fluent type ramp /
+shapes / elevation. Tenants references the centrally selected Fluent package; tokens/ARIA verified
 against the pinned package at build. UI uses FrontComposer or Fluent v5 components, never raw
 `<button>/<input>/<select>/<textarea>`, and expresses page/section layout and spacing through
 Fluent layout primitives (`FluentStack`/`FluentGrid`) and Fluent design tokens rather than
@@ -398,9 +397,7 @@ in the integration spec).
 **State Management:** typed immutable Tenants snapshots and lifecycle models under `State/`;
 FrontComposer owns shell state, while Tenants owns domain truth state under AD-4 and AD-7.
 
-**Backend Access:** REST to the existing query API + `POST /api/v1/commands` (+ status poll),
-over DAPR service invocation (EventStore pattern) or HttpClient + Aspire service discovery
-(decided in step-4); SignalR client for freshness nudges only.
+**Backend access.** The BFF relays the caller through the generated REST API for reads and through the separately configured EventStore command/status endpoint for mutations. AD-6 and AD-8 govern scope and freshness.
 
 **Testing:** bunit (component) + Playwright (E2E) + xUnit v3 + Shouldly; NFR-4 stable automation
 selectors are first-class.
@@ -415,11 +412,9 @@ eventstore, memories, identity, and UI references. SDK container support
   (prerender→Server→WASM+reconnect), but the ecosystem reference UIs use InteractiveServer and
   Epic 1 implemented `AddInteractiveServerComponents` / `AddInteractiveServerRenderMode`.
 - **Use the Shell vs. fallback custom layout** — tied to FC-LYT readiness.
-- **Backend transport** — DAPR service invocation vs. HttpClient + Aspire service discovery.
+- **Backend transport** — AD-6 records the implemented Dapr read path and separate command gateway.
 
-**Note:** Project initialization using this recipe should be the **first implementation story**
-(the "Epic 1 / Story 1 bootstrap": shell composition, routing, auth, projection/SignalR client),
-per the implementation-readiness report's recommendation.
+Story 1.1 delivered the host and workspace bootstrap.
 
 ## Core Architectural Decisions
 
@@ -427,10 +422,9 @@ per the implementation-readiness report's recommendation.
 
 **Critical Decisions (made — block implementation):**
 - **D1 Runtime model:** Blazor **InteractiveServer** + a **server-side BFF** in the UI host.
-- **D2 Command confirmation:** on dispatch, run **status-poll and SignalR concurrently**;
-  the first terminal/projection-change signal triggers the **authoritative projection
-  re-query**; lifecycle flips to `confirmed` only on the re-queried projection.
-- **D3 FrontComposer posture:** **hybrid** — FC-LYT/FC-CMD/FC-CNC are confirmed contracts;
+- **D2 Command confirmation.** Track the accepted command under its original message ID. Status, refresh or a projection notification can trigger an authoritative re-query. Confirm only when command-specific evidence satisfies AD-12.
+
+- **D3 FrontComposer posture.** FrontComposer supplies layout and shared command controls. Tenants owns command-specific feedback, projection proof and the aggregate-scoped gate.
   FC-AUD/FC-CNS are delivered via the **approved fallbacks**
   (flat audit DataGrid, inline consequence text).
 - **D4 Localization ownership:** **Tenants-owned** whole-string `.resx` keys; inherit only
@@ -448,28 +442,24 @@ per the implementation-readiness report's recommendation.
   measures the last projection write (quiescence ≠ lag).
 - **D7 Authorization reflection:** **server-side** claims→action-availability service.
 - **D8 Support-safety:** **server-side** receipt/preview/redaction assembly.
-- **D9 Cursors:** opaque, **server-held** pass-through; page-1 re-query on invalidation.
+- **D9 Cursors:** opaque and scope-bound. Ordinary workspace paging can round-trip its cursor in the URL. Keep search and search-fallback continuations in circuit state. On invalidation reload page one.
 - **D10 UI host placement:** **`src/Hexalith.Tenants.UI`** in the Tenants repo, governed by AD-13.
 
 **Deferred Decisions (post-MVP, with rationale):**
-- NFR performance budgets (set against the real projection at implementation).
+- The warm tenant-read target awaits product acceptance. Story 5.1 owns the approved audit-specific budgets.
 - Freshness threshold tuning (product/ops input; code defaults stay conservative and config-owned).
 - RTL shipping (Open Q#6), WCAG 2.2 confirmation (against the pinned Fluent build),
-  sensitive-config display (Open Q#11) — none blocks the MVP.
+  and any future sensitive-value reveal. AD-9 governs display of approved configuration keys.
 
 ### Data Architecture
 
 No database decision — the UI **owns no datastore** and never writes one (NFR-5); it consumes
 existing projections only.
-- **Read access:** a typed query gateway in the BFF wrapping the 6 REST endpoints, using the
+- **Read access:** a typed query gateway in the BFF covering the six REST read categories, using the
   `Hexalith.Tenants.Client`/`.Contracts` DTOs (`PaginatedResult<T>`, `TenantSummary`,
   `TenantDetail`, `TenantMember`, `UserTenantMembership`, `TenantAuditEntry`).
-  - **Transport (regression guard, added 2026-06-06):** the BFF calls these `GET /api/tenants*`
-    endpoints on the Tenants domain service directly (DAPR service invocation, server-side, bearer
-    relayed). It MUST NOT route tenant reads through the EventStore generic query gateway
-    (`POST /api/v1/queries` → `QueryRouter` / `HandlerAwareQueryRouter`): the projection actor is
-    retired, and the handler-aware path drops projection ETags — breaking the D6 freshness contract
-    below. See `sprint-change-proposal-2026-06-06-tenant-query-routing.md`.
+  - **Transport:** `TenantsRestQueryClient` invokes `tenants-api` through Dapr. The generated REST controller uses the authenticated internal EventStore path. The UI consumes the exact REST routes and conditional metadata in AD-6 and AD-8. [BFF registrations](../../src/Hexalith.Tenants.UI/Extensions/TenantsUiServiceCollectionExtensions.cs)
+
 - **Freshness/caching (D6):** conditional requests executed server-side; freshness is classified
   server-side from the persisted projection timestamp via the shared `ReadModelFreshness.Classify`
   (EventStore Client) and surfaced as `QueryResponseMetadata.IsStale`. The Truth State Badge renders
@@ -477,8 +467,7 @@ existing projections only.
   transient; on the wire only `current/stale/unknown` are producible today (`aging` collapses to
   `current`). Thresholds are configuration, **no magic numbers**, defaulted conservatively;
   unmeasurable → `unknown` → fail-closed.
-- **Cursors (D9):** opaque, signed, scope-bound; held server-side, never surfaced as user-facing
-  ids; on invalidation re-query page 1 with an honest "list refreshed" notice; multi-replica
+- **Cursors (D9):** opaque and scope-bound. Ordinary workspace links can round-trip an opaque cursor. Search continuations stay in the circuit; on invalidation re-query page 1 with an honest "list refreshed" notice; multi-replica
   durability treated as **not-yet-guaranteed** (backend Epic 11).
 - **Client read-model:** typed server-side UI snapshots are the runtime cache; the re-queried
   projection is authoritative; **last-confirmed projection is retained separately from
@@ -486,12 +475,9 @@ existing projections only.
 
 ### Authentication & Security
 
-- **JWT bearer** at the UI host (Keycloak/OIDC `Authority` in prod; symmetric-key dev). Under
-  InteractiveServer the **access token stays server-side** — the browser never receives it.
-- **Authorization reflection (D7):** a server-side service maps the actor's claims
-  (`sub`, `eventstore:tenant=system`, `global_admin`/`role` shapes) + projection facts → per-action
-  availability and the 6-category **Unavailable Action Reason**. The UI **reflects only**; the
-  server remains the enforcing gate (NFR-2/CP-9). Indeterminate → fail-closed.
+- **UI sign-in.** When OIDC is configured, FrontComposer supplies the InteractiveServer authentication bridge and relays the signed-in user's access token server-side. Both bearer-protected hosts enforce their Production startup contract (AD-14).
+- **Authorization reflection (D7).** The UI derives availability from the trusted subject, operation-specific permissions, projection facts and current scope. The receiving service verifies the request and the domain enforces authority. Indeterminate authority blocks the action.
+
 - **Support-safety (D8):** NarrativePayload→receipt assembly, consequence-preview assembly, and
   rejection→text mapping all run in the BFF; only safe, localized, **redacted** projections reach
   the browser. Never client-side: tokens, payloads, correlation-ids, raw metadata, PII, stack
@@ -504,20 +490,18 @@ existing projections only.
   and the EventStore command endpoint, with AppHost/DAPR service discovery. **No new backend
   endpoints.** Query reads must not use the generic EventStore query gateway (AD-6).
 - **Command dispatch:** `POST /api/v1/commands` with a client-generated **`messageId` (ULID)**
-  idempotency key; envelope `tenant=system`, `domain ∈ {tenants, global-administrators}`,
-  `aggregateId`; returns `202` + `correlationId`.
-- **Confirmation (D2):** parallel `GET /api/v1/commands/status/{correlationId}` poll **+** SignalR
-  nudge → authoritative projection re-query; `confirmed` only from the re-query; SignalR never
-  advances lifecycle/audit (CP-4); duplicate submit/refresh dedups by `correlationId`. NoOp →
-  `already applied`; rejection → safe text; unverifiable → `unable to verify` (never success).
-- **Concurrency policy:** the confirmed FC-CNC posture is one active command per
+  idempotency key. Tenant-management commands use `platform:tenants` and governance commands use
+  `platform:global-administrators` with the exact catalog permission and target aggregate. Acceptance returns `202` + `correlationId`.
+- **Confirmation (D2).** Look up `GET /api/v1/commands/status/{messageId}` under the matching platform scope. Match the returned command identity, domain, aggregate and available correlation to the tracked attempt. Notifications may trigger a re-query. The authoritative projection and the flow-specific evidence in AD-12 determine confirmation. A NoOp is already applied. Unverified evidence yields `unable to verify`. [Command gateway](../../src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs)
+
+- **Concurrency policy:** the Tenants-owned admission gate admits one active command per
   `(interactive circuit, AggregateIdentity)` until terminal evidence; no bulk or toast-batching.
   A stronger shared concurrency contract may replace it later. `409 ConcurrencyConflict` (+`Retry-After`) →
   `retry status lookup`.
 - **Tenant search (Memories-backed, index-only; cc-2026-06-21):** cross-set list search is served by
   `Hexalith.Memories`, **not** a new EventStore endpoint (the read backend stays consume-only — no
   server-side filter on `ListTenantsQuery`). Data path: `MemoriesClient.SearchAsync(tenants-index,
-  syntactic)` returns a **match-set of tenant ids** (parsed from `ScoredResult.SourceUri` = `tenant:{id}`);
+  syntactic)` returns a **match-set of tenant ids** (parsed from `ScoredResult.SourceUri` = `tenant:{tenantId}`);
   the BFF then **hydrates each row through the existing ETag-fresh detail read** (D6). Memories decides
   *which* tenants appear; the read path decides *what each row shows*, so a stale index never renders wrong
   data. Index maintenance is a separate async flow: on tenant lifecycle events the Tenants consumer
@@ -526,9 +510,7 @@ existing projections only.
   **index-maintenance pattern** for feeding Memories without a raw-event ingestion adapter. This dissolves
   the FC-`IQueryService`-vs-REST/ETag tension: search bypasses the query-service abstraction entirely and
   reuses the ETag/freshness read path. Memories unavailable → non-blocking fallback to the cursor list.
-  Full end-to-end search is gated on the Memories server handoff
-  (`memories-search-index-handoff-2026-06-21.md`): upsert ingestion, attribute indexing + REST attribute
-  filter, `tenants-index` registration.
+  AD-10 specifies authorized hydration, paging and fallback. The June [Memories integration handoff](memories-search-index-handoff-2026-06-21.md) records the original provider contract.
 
 ### Frontend Architecture
 
@@ -553,18 +535,9 @@ existing projections only.
 
 ### Infrastructure & Deployment
 
-- **UI host (D10/AD-13):** `src/Hexalith.Tenants.UI` (`Microsoft.NET.Sdk.Web`, `net10.0`) in the
-  Tenants repo and added to `Hexalith.Tenants.slnx`. It consumes platform ServiceDefaults and is
-  wired by a platform/composing host. The existing repository AppHost is transitional migration
-  debt, not an architecture pattern to expand.
-- **Auth wiring:** AppHost wires the Keycloak realm + `Authentication:JwtBearer:*`;
-  `EnableKeycloak=false` → symmetric-key JWT locally.
-- **Containers:** SDK container support, `EnableContainer=true`,
-  `ContainerRepository=tenants-ui` → `registry.hexalith.com/tenants-ui`; no Dockerfile.
-- **CI/CD:** extend the existing pipeline (build Release `-warnaserror`); add bUnit unit + Playwright
-  E2E tiers (E2E likely non-blocking like the Aspire tier). The UI host ships as a **container
-  image, not a NuGet package** (unlike the 5 libraries). OpenTelemetry via ServiceDefaults; NFR-4
-  stable automation selectors as component contracts.
+- **UI host and orchestration.** Tenants publishes the InteractiveServer SDK container `tenants-ui`. The repository AppHost currently wires the UI, public API, domain, EventStore, Memories and identity provider. AD-13 assigns long-term topology ownership to the composing platform.
+- **Identity and operations.** Configure the UI's OIDC client separately from the REST and domain hosts' bearer validation. Shared health and telemetry integration on the standalone UI and the scaling evidence in AD-14 are outstanding.
+- **Release.** Package-mode Release qualification uses the four hosted profiles in the November conformance table. Local builds, unit suites and restored manifests provide separate evidence.
 
 ### Decision Impact Analysis
 
@@ -575,14 +548,12 @@ existing projections only.
 3. Add initial command flows for FR-10/11/13/14.
 4. Add high-impact, audit, and recovery flows for FR-12/15-17/19/20-25.
 
-The current architecture remediation priority is to bring `TenantQueryGateway` into AD-6
-conformance by routing reads directly to the Tenants REST query endpoints.
+The BFF now implements AD-6. Current release and deployment responsibilities are recorded in the [November conformance table](#conformance-and-qualification-20-november-2026).
 
 **Cross-Component Dependencies:**
 The **typed truth-state model**, **canonical-vocabulary library**, **BFF query/command gateway**,
 **authorization-reflection service**, and **support-safety/redaction layer** are shared foundations
-every surface depends on → built first. FrontComposer contract confirmations (FC-LYT/FC-CMD/FC-CNC)
-are closed by Story 1.0 (2026-06-05); the FC-AUD/FC-CNS/FC-CNC fallback **approvals are secured**
+every surface depends on → built first. Story 1.0 recorded the June FrontComposer integration baseline. The shared command gate admits one operation per circuit. Tenants supplies the aggregate-specific admission required by AD-12. The FC-AUD/FC-CNS/FC-CNC fallback **approvals are secured**
 (2026-06-03 - see `fallback-approval-record-2026-06-03.md`). The `FC-TBL` caveat is resolved for
 Tenants by Story 1.2 with Tenants-specific `TenantDataGrid` composition; reusable grid enhancement
 remains FrontComposer-owned future work.
@@ -591,7 +562,7 @@ remains FrontComposer-owned future work.
 - ✅ Product/UX approval for the **FC-AUD flat-audit**, **FC-CNS inline-consequence**, and
   **FC-CNC one-at-a-time** fallbacks — **secured 2026-06-03** (see `fallback-approval-record-2026-06-03.md`);
   the hybrid posture's fallback premise is confirmed.
-- ✅ Confirm **FC-LYT / FC-CMD / FC-CNC** contracts with the FrontComposer team - **closed by Story 1.0**
+- ✅ Record the **June FC-LYT / FC-CMD / FC-CNC baseline** with the FrontComposer team (Story 1.0)
   (2026-06-05; see `_bmad-output/implementation-artifacts/story-1-0-spike-note-2026-06-05.md`).
 - ✅ Resolve the **FC-TBL grid decision** before Story 1.2 tenant-list implementation — closed by
   Story 1.2 with Tenants-specific grid/table composition.
@@ -633,7 +604,7 @@ the concept — `Tenants.Freshness.Stale`, `Tenants.UnavailableReason.MissingPer
 named placeholders (`{userName}`, `{tenantName}`) — **never** concatenate localized fragments.
 
 **Automation selectors (NFR-4):** every interactive element/status carries
-`data-testid="tenants-{surface}-{element}"` (kebab) — `tenants-tenant-list-row`,
+a kebab-case `data-testid` built from `tenants-`, the surface and the element — `tenants-tenant-list-row`,
 `tenants-remove-user-confirm`, `tenants-truth-badge`. **Never** key a test on row text or color.
 
 ### Structure Patterns
@@ -650,7 +621,7 @@ src/Hexalith.Tenants.UI/
 ├── Services/             # BFF gateways (query/command), authorization-reflection,
 │                         #   support-safety/redaction, freshness, SignalR client
 ├── Resources/            # Tenants-owned .resx (D4)
-└── Program.cs _Imports.razor wwwroot/css/
+└── Program.cs _Imports.razor wwwroot/js/
 tests/Hexalith.Tenants.UI.Tests/   # bUnit + xUnit v3; {Class}Tests.cs (plural)
 ```
 
@@ -664,8 +635,7 @@ E2E in its own tier.
   Casing is significant — badge `audit pending` vs state-machine `audit_pending` stay distinct; **no
   agent unifies them**. The library is the single source.
 - **Timestamps:** absolute, culture-formatted, monospace; **never relative-only**.
-- **Identifiers:** literal caller-supplied strings, monospace; copy-full-id copies the literal;
-  never parsed as ULID/Guid.
+- **Identifiers.** Display tenant and user IDs as strings. Copy the complete approved literal only after the authorized surface approves its kind and value (AD-9). Public tenant routes use the canonical tenant ID (AD-6).
 - **Truth-state shape:** every status = `{ token + freshness + absolute-timestamp + accessible-name }`;
   color never the sole carrier (icon + text always present).
 
@@ -675,13 +645,8 @@ E2E in its own tier.
   BFF gateways/composition services. The **non-collapse invariant is enforced by the state model** —
   `accepted`, `confirmed`, and `audit available` are distinct fields and never overwrite the last
   confirmed projection with in-flight intent.
-- **Command confirmation (D2) — the ONE pattern:** submit → status-poll and SignalR nudge →
-  **authoritative projection re-query** → state transition. `confirmed` requires expected
-  postcondition plus new projection version or safe command-specific audit evidence beyond the
-  baseline; NoOp/pre-existing state is `already applied`, and missing provenance is `unable to verify`.
-  A SignalR nudge requests re-query only and never advances lifecycle state directly (CP-4).
-- **Idempotency:** one client `messageId` (ULID) per attempt; resubmit/refresh reuses it; dedup by
-  `correlationId`.
+- **Command confirmation (D2).** A status update, refresh or notification can trigger an authoritative re-query. For ordinary commands require the intended postcondition plus new qualifying evidence beyond the baseline. Corrections require the fresh, ordered projection of the same aggregate to reach the verified attempt's committed sequence and show its intended effect. Receipt availability follows its own proof contract (AD-12).
+- **Idempotency.** Allocate one ULID `messageId` per command attempt and reuse it for an eligible delivery retry and status lookup. Correlation is protected matching evidence and remains server-side.
 
 ### Process Patterns
 
@@ -709,9 +674,9 @@ E2E in its own tier.
   token or unify badge vs state-machine forms.
 - Route every backend call through a **BFF gateway**; never call the API from the browser or place
   tokens/payloads client-side.
-- Confirm commands **only** via the D2 parallel-poll+SignalR→re-query path; never optimistic success.
+- Apply D2 and AD-12 before announcing confirmation. A notification alone cannot confirm an attempt.
 - Localize via Tenants `.resx` whole-string keys; never assemble fragments.
-- Tag interactive elements `data-testid="tenants-{surface}-{element}"`.
+- Give interactive elements stable, surface-specific test IDs such as `tenants-remove-user-confirm`.
 - Render the six list states, the fail-closed gating order, and the recovery-verb mapping as the
   shared patterns.
 
@@ -743,9 +708,11 @@ tenants/
 ├── Hexalith.Tenants.slnx
 ├── src/
 │   ├── Hexalith.Tenants.AppHost/             # transitional local wiring; migrate to composing host
+│   ├── Hexalith.Tenants.Api/                 # generated public REST host
+│   ├── Hexalith.Tenants/                     # domain service host and query handlers
 │   ├── Hexalith.Tenants.Client/              # domain client contracts
 │   ├── Hexalith.Tenants.Contracts/           # DTOs, enums, commands, and events
-│   ├── Hexalith.Tenants.Server/              # domain-service and query handlers
+│   ├── Hexalith.Tenants.Server/              # aggregates and domain projections
 │   └── Hexalith.Tenants.UI/                  # InteractiveServer domain presentation host
 │       ├── Composition/                      # one FrontComposer domain registration and /tenants entry
 │       ├── Components/
@@ -767,8 +734,8 @@ tenants/
 ### Architectural Boundaries
 
 **API boundary (the trust edge):** the `Services/Gateways/` are the **only** egress to the backend
-— direct Tenants `GET /api/tenants*` reads plus EventStore `POST /api/v1/commands` and
-`GET /api/v1/commands/status/{id}`; projection notification is a nudge only. The
+— caller-scoped generated Tenants REST reads (AD-6) plus EventStore `POST /api/v1/commands` and
+`GET /api/v1/commands/status/{messageId}`; projection notification is a nudge only. The
 **browser never calls the backend** and never holds a token (InteractiveServer, D1). No new backend
 endpoints (NFR-5).
 
@@ -782,7 +749,7 @@ unsafe (tokens, payloads, correlation-ids, PII, stack traces) can cross into the
 
 **Data boundary:** the UI owns **no datastore**; the re-queried projection is the source of truth;
 typed UI snapshots are an ephemeral cache; **last-confirmed projection is held separately from
-in-flight intent** (non-collapse). Cursors are opaque and server-held (D9).
+in-flight intent** (non-collapse). D9 distinguishes ordinary opaque workspace cursors from circuit-held search continuations.
 
 **FrontComposer boundary:** Tenants composes the Shell with one `/tenants` entry and page-local
 workspace navigation. It consumes FrontComposer layout, registration, and reusable primitives and
@@ -815,19 +782,26 @@ immutable snapshot transition → component re-render. SignalR remains a re-quer
 **External integrations:** direct Tenants REST query API, EventStore command API and SignalR hub,
 Memories search index, and Keycloak/OIDC — all reached server-side through AppHost-wired references.
 
-**Data flow (command):** UI intent → `CommandGateway` (`POST /commands`, `messageId`) → 202 →
-parallel status-poll **+** SignalR → authoritative projection re-query → `confirmed` → audit re-query
-→ `audit available`. No optimistic path.
+```mermaid
+flowchart LR
+    Browser --> UI["Tenants UI / server-side BFF"]
+    UI -->|conditional read| API["tenants-api"]
+    API -->|caller-authorized query| ES["EventStore"]
+    UI -->|command or status| ES
+    ES --> Domain["Tenants handlers and projections"]
+    Domain -->|committed events| Consumer["Consumer-owned checkpoint"]
+    Consumer -->|repair from authorized history| ES
+```
+
+Command acceptance starts tracking. The UI re-queries the authoritative projection to confirm the expected effect. Receipt availability requires its own evidence. An enforcing consumer separately verifies its checkpoint (AD-15).
 
 ### File Organization Patterns
 
-- **Configuration:** `appsettings*.json` (UI host); AppHost supplies `Authentication:JwtBearer:*` +
-  service references; no secrets in the repo.
+- **Configuration:** `appsettings*.json` (UI host); AppHost supplies the UI OIDC client, API/domain bearer settings and service references; no secrets in the repo.
 - **Source:** by surface under `Components/`; shared view in `Components/Shared/`; logic split across
   `State/` (typed snapshots/lifecycle) and `Services/` (server-side BFF and safety concerns).
-- **Test:** separate `*.UI.Tests` (bUnit, Tier 1) mirroring src + `*.UI.E2E` (Playwright, Tier 3);
-  `{Class}Tests.cs` plural; never co-located.
-- **Assets:** `wwwroot/css/app.css`; Fluent bundle via the package's static web assets; no bespoke palette.
+- **Tests.** Focused component and gateway checks live in `tests/Hexalith.Tenants.UI.Tests`. Hosted integration profiles exercise the running services. The dedicated browser benchmark lives in `tests/performance/tenant-audit`.
+- **Assets.** The UI consumes Fluent static web assets, scoped component styles and host scripts under `wwwroot/js/`.
 
 ### Development Workflow Integration
 
@@ -838,157 +812,15 @@ parallel status-poll **+** SignalR → authoritative projection re-query → `co
 - **Deployment:** SDK container (`ContainerRepository=tenants-ui` → `registry.hexalith.com/tenants-ui`),
   no Dockerfile; ships as an **image, not a NuGet package** (unlike the 5 libraries).
 
-## Architecture Validation Results
+## Architecture Validation and Handoff
 
-### Coherence Validation ✅
+The canonical decisions cover the 25 functional requirements across Phases 2a–2c. Direct read transport, protected search continuation and aggregate-scoped command admission are implemented. Use the [revised PRD and addendum](prds/prd-tenants-2026-06-02/prd.md) for operation-specific acceptance and the [November conformance table](#conformance-and-qualification-20-november-2026) for outstanding release and rollout evidence.
 
-**Decision Compatibility:** D1–D10 are mutually reinforcing — InteractiveServer (D1) makes the
-server-side BFF the natural home for D2 confirm, D6 freshness, D7 authorization-reflection, D8
-redaction, and D9 cursors, so tokens/payloads never reach the browser and reconnect re-derives from
-server state. No contradictory decisions. One **recorded divergence** (not a contradiction): D1
-InteractiveServer vs. the UX `EXPERIENCE.md` "Auto" assumption — logged as a reconciliation action
-item (the UX named an assumption, not a hard requirement; NFR-3 holds either way, more simply under
-InteractiveServer). Versions consistent: .NET 10 (10.0.403) + Fluent v5 GA pin inherited from
-FrontComposer.
+| Remaining architecture question | Closure condition |
+| --- | --- |
+| Server-component audit data (AD-9) | Align the grid input with the approved PRD boundary, or obtain an explicit boundary change and verify it. Keep proof-only identifiers out of rendered output, clipboard, client serialization and logs. |
+| UI operations and topology (AD-13/14) | Migrate local composition to its platform owner and verify shared health/telemetry. Verify shared keys, circuit routing and cursor durability before adding replicas. |
+| Causal receipt pairing (AD-12) | Keep tenant pairing unavailable until a protected contract can establish a deterministic original/correction link. Governance pairing has its own delivered contract. |
+| Product acceptance | Product and Release still own the proposed SM-6 observation method. A cohort with no observed command journeys provides no false-success rate. RTL and WCAG 2.2 claims require evidence on the candidate's actual UI packages. |
 
-**Pattern Consistency:** patterns enforce the decisions — Vocabulary-verbatim (CP-10), BFF-only
-egress (D1/D8), the single D2 confirm path, the six list states, l10n keys (D4), stable selectors
-(NFR-4). No pattern contradicts a decision.
-
-**Structure Alignment:** the tree realizes the decisions — `Services/` (BFF, D6–D9), `State/`
-(typed truth and lifecycle models, D5), and `Resources/` (D4) — and the boundaries make the trust
-edge explicit.
-
-### Requirements Coverage Validation ✅
-
-**Feature Coverage:** all 9 PRD feature groups mapped to concrete surfaces; all six journeys
-(UJ-1..6) land on them.
-
-**Functional Requirements:** all **25 FRs** have an architectural home, including the previously
-story-less FR-22/24/25 (now structurally homed in `Components/Tenants/Audit/` and covered by Epic 5 stories).
-
-**Non-Functional Requirements:** NFR-1 (cursor + 304 + freshness; numeric budgets deferred), NFR-2
-(server-enforced + reflection, tokens server-side), NFR-3 (D2 confirm + InteractiveServer + non-
-collapse), NFR-4 (selectors + test tiers), NFR-5 (no datastore; compensating commands). CP-1..CP-10
-encoded in the truth-state model + Vocabulary + process patterns.
-
-### Implementation Readiness Validation ⚠️ design complete / implementation remediation required
-
-**Decision Completeness:** D1–D10 documented with the version posture. **Structure Completeness:**
-complete tree + boundaries + FR mapping. **Pattern Completeness:** naming/structure/format/
-communication/process + examples + anti-patterns; all conflict points addressed.
-
-> The architecture is complete as a decision set. FrontComposer dependencies are closed, but
-> AD-6/AD-8 query provenance, AD-10 search-cursor scope, AD-13 orchestration ownership, and AD-14
-> health/telemetry/scaling controls must be remediated before architecture conformance can be claimed.
-
-### Gap Analysis Results
-
-**Critical implementation conformance issues:**
-- **AD-6 / AD-8 query provenance - OPEN 2026-07-15.** `TenantQueryGateway` currently uses
-  `IEventStoreGatewayClient.SubmitQueryAsync`, and the configured handler route normalizes
-  freshness to `Unknown`. The platform REST surface must first propagate ETag and freshness
-  provenance; the composing host must then expose separate Tenants-query and EventStore-command
-  references; finally the UI BFF can split clients without losing metadata.
-- **AD-13 orchestration ownership - OPEN 2026-07-15.** The repository-owned AppHost is
-  transitional and must migrate to a platform/composing host rather than expand.
-- **AD-10 search cursor - OPEN 2026-07-15.** The current Memories cursor is a plaintext offset;
-  replace it with an opaque cursor bound to authenticated user and normalized search scope.
-- **AD-14 production operations - OPEN 2026-07-15.** Add shared health endpoint mapping and
-  OpenTelemetry/ServiceDefaults integration. InteractiveServer remains single-replica until shared
-  DataProtection, circuit/session routing, and cursor durability are verified.
-
-**Closed external/downstream gates:**
-- **FrontComposer readiness - CLOSED 2026-06-05 for FC-LYT/FC-CMD/FC-CNC.** D3 commits to a
-  hybrid posture. The FC-AUD/FC-CNS/FC-CNC fallback **approvals are secured** (2026-06-03 - see
-  `fallback-approval-record-2026-06-03.md`), and Story 1.0 confirms the shell/layout/command/
-  concurrency/accessibility/localization/docs contracts. Story 1.2 resolves the `FC-TBL`
-  tenant-list grid decision with Tenants-specific grid/table composition.
-- **FrontComposer Shell integration spec - CLOSED 2026-06-05.** Story 1.0 is complete; see
-  `_bmad-output/implementation-artifacts/story-1-0-spike-note-2026-06-05.md`.
-- **Epics & stories layer - CLOSED.** `epics.md` exists and covers FR1-FR25. The active handoff
-  risk is synchronization: `sprint-status.yaml` must match the canonical story IDs before the
-  next story is created.
-
-**Important (refine; non-blocking to the architecture):**
-- Deferred numerics — NFR performance budgets + freshness thresholds (product/ops input).
-- Doc reconciliations (action items) — UX "Auto"→InteractiveServer; Users-nav→contextual; ULID-vs-
-  string spec correction.
-- Fluent v5 **RC→GA** risk — track FrontComposer's pin; verify tokens at build.
-
-**Nice-to-have:**
-- Consider extracting canonical state contracts only if another package genuinely needs to consume them.
-- Deepen observability/telemetry + NFR test-design specifics.
-
-### Validation Issues Addressed
-
-No contradiction remains in the decision set after merging AD-1..AD-14. The render-mode source
-divergence is resolved in favor of InteractiveServer. The open AD-6/AD-8, AD-10, AD-13, and AD-14
-implementation divergences are recorded explicitly rather than weakening the architecture rules.
-
-### Architecture Completeness Checklist
-
-**Requirements Analysis**
-- [x] Project context thoroughly analyzed
-- [x] Scale and complexity assessed
-- [x] Technical constraints identified
-- [x] Cross-cutting concerns mapped
-
-**Architectural Decisions**
-- [x] Critical decisions documented with versions
-- [x] Technology stack fully specified
-- [x] Integration patterns defined
-- [x] Performance considerations addressed
-
-**Implementation Patterns**
-- [x] Naming conventions established
-- [x] Structure patterns defined
-- [x] Communication patterns specified
-- [x] Process patterns documented
-
-**Project Structure**
-- [x] Complete directory structure defined
-- [x] Component boundaries established
-- [x] Integration points mapped
-- [x] Requirements to structure mapping complete
-
-### Architecture Readiness Assessment
-
-**Overall Status:** READY WITH REMEDIATION *(architecture design)* — AD-1..AD-14 are canonical,
-FrontComposer contract readiness and fallback approvals are closed, and the epics/stories layer
-exists. AD-6/AD-8 query provenance, AD-10 search cursor scope, AD-13 orchestration ownership, and
-AD-14 health/telemetry/scaling controls remain open in the platform/implementation.
-
-**Confidence Level:** MEDIUM-HIGH — the decision set is coherent and covers the 25 FRs, NFRs, and
-CP contract, while the explicitly listed platform and implementation remediations remain open.
-
-**Key Strengths:**
-- The honesty/trust thesis is enforced **structurally** (server-side BFF + the D2 confirm path +
-  typed canonical state + non-collapse transitions), not left to per-surface discipline.
-- Tight alignment with the existing ecosystem (FrontComposer Shell, reference UIs, repo conventions,
-  fixed backend contract) — minimal new surface area, maximal reuse.
-- Every FR has a home; every cross-cutting concern has a single owner.
-
-**Areas for Future Enhancement:**
-- Keep the Story 1.0 gate-clearing evidence current as FrontComposer evolves.
-- Keep the resolved Story 1.2 `FC-TBL` tenant-list grid path synchronized with any future FrontComposer reusable grid enhancement.
-- Set the deferred numerics; reconcile the flagged doc items; track Fluent RC→GA.
-
-### Implementation Handoff
-
-**AI Agent Guidelines:**
-- Follow AD-1..AD-14, D1–D10 where complementary, and the patterns exactly; never optimistic
-  success; use canonical typed state; keep BFF-only egress; localize via Tenants `.resx`; tag
-  `data-testid`.
-- Respect the five boundaries; the projection re-query is the only source of truth.
-- Refer to this document for all architectural questions; record any change here + in `project-context.md`.
-
-**Current Implementation Priority:**
-
-1. Extend the platform REST path to preserve ETag and read-model freshness provenance.
-2. Move topology ownership to a platform/composing host with separate Tenants-query and
-   EventStore-command references.
-3. Split the UI BFF query and command clients, then route all six reads directly to Tenants.
-4. Replace the plaintext Memories search offset with an opaque, user/query-scoped cursor.
-5. Add shared health and OpenTelemetry/ServiceDefaults integration; keep InteractiveServer
-   single-replica until the remaining AD-14 operational prerequisites are proven.
+The hosted release profiles, first enforcing consumer, deployed identity and tenant-index capacity checks remain assigned in the [sprint tracker](../implementation-artifacts/sprint-status.yaml). The [dedicated audit-grid performance contract](../implementation-artifacts/story-5-1-performance-decision.md) applies separately to its documented candidate and changes.

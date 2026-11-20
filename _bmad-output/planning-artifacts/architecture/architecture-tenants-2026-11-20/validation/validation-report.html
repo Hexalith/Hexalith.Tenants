@@ -1,0 +1,93 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Hexalith.Tenants architecture validation</title><style>
+:root{color-scheme:light;--ink:#1b292c;--muted:#4a6061;--rule:#ccd8d4;--green:#236555}*{box-sizing:border-box}body{margin:0;background:#f3f6f2;color:var(--ink);font:16.5px/1.58 "Source Sans 3",system-ui,sans-serif}article{max-width:920px;margin:44px auto;padding:44px clamp(22px,6vw,70px) 60px;background:#fff;border-top:7px solid var(--green)}h1,h2,h3{line-height:1.22;text-wrap:balance}h1{font:600 clamp(34px,5vw,49px)/1.12 Georgia,serif;letter-spacing:-.035em;margin:0 0 8px}h1+p{color:var(--muted);margin-top:0}h2{font-size:26px;margin:42px 0 12px;border-bottom:1px solid var(--rule);padding-bottom:8px}h3{font-size:20px;margin:30px 0 8px}h3+p{margin-top:0}p{margin:10px 0 16px}strong{font-weight:650}code{font:0.87em "IBM Plex Mono",monospace;background:#edf3f0;padding:.08em .22em;overflow-wrap:anywhere}a{color:#145b51;text-underline-offset:.2em;overflow-wrap:anywhere}p:has(>a:first-child){font-size:14px}table{border-collapse:collapse;width:100%;font-size:.92em;margin:20px 0}th,td{border-bottom:1px solid var(--rule);padding:9px 11px;text-align:left!important;vertical-align:top}th{background:#eaf2ef}nav{border-top:1px solid var(--rule);margin-top:32px;padding-top:15px;display:flex;gap:22px;flex-wrap:wrap}nav a{font-weight:600}@media(max-width:640px){article{margin:0;padding-top:28px}th,td{padding:5px;font-size:.9em}}@media print{body{background:white}article{margin:0;padding:0;border:0;max-width:none}h2,h3{break-after:avoid}nav{display:none}}
+</style></head><body><main><article><h1 id="hexalithtenants-architecture-validation">Hexalith.Tenants architecture validation</h1>
+<p>20 November 2026 · Working tree based on <code>6627fc3d</code></p>
+<h2 id="verdict">Verdict</h2>
+<p><strong>Revise AD-12 and the high-impact action rules before using this document for implementation handoff.</strong> Both gaps can change what an operator sees or is allowed to submit. The other five findings concern integration behavior and UI contracts.</p>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: right;">Critical</th>
+<th style="text-align: right;">High</th>
+<th style="text-align: right;">Medium</th>
+<th style="text-align: right;">Mechanical findings</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">0</td>
+</tr>
+</tbody>
+</table>
+<h2 id="findings">Findings</h2>
+<h3 id="high--a-matching-value-cannot-establish-command-success">High · A matching value cannot establish command success</h3>
+<p>AD-12 treats a pre-existing state as already applied. FR-14 requires every successful tenant metadata edit to emit an update, even when the submitted values are identical. An unrelated update can advance the aggregate version while those values stay the same. The UI regression cases cover both outcomes: without evidence for this command the result is unverifiable; with matching audit provenance it can be confirmed.</p>
+<p><strong>Suggested correction.</strong> Reserve “already applied” for operations that define an authoritative NoOp. For an identical metadata edit, require the expected projection plus evidence attributable to that command before confirming. Carry this exception into the command confirmation guidance.</p>
+<p><a href="../../../architecture.md#L155">architecture.md L155</a> · <a href="../../../prds/prd-tenants-2026-06-02/prd.md#L275">prd.md L275</a> · <a href="../../../../../src/Hexalith.Tenants.UI/State/TenantCommands/TenantUpdateMetadataCommandSnapshot.cs#L254">TenantUpdateMetadataCommandSnapshot.cs L254</a> · <a href="../../../../../tests/Hexalith.Tenants.UI.Tests/State/TenantUpdateMetadataCommandSnapshotTests.cs#L124">TenantUpdateMetadataCommandSnapshotTests.cs L124</a> · <a href="../../../../../tests/Hexalith.Tenants.UI.Tests/State/TenantUpdateMetadataCommandSnapshotTests.cs#L143">TenantUpdateMetadataCommandSnapshotTests.cs L143</a></p>
+<h3 id="high--high-impact-actions-need-a-measured-safe-viewport">High · High-impact actions need a measured safe viewport</h3>
+<p>The shared eligibility recipe requires valid inputs, freshness and authority. A new flow following that recipe could permit submission after a resize hides critical facts or before layout measurement completes. The removal and administrator flows already check that the current viewport can present the safety context.</p>
+<p><strong>Suggested correction.</strong> Add measured viewport safety to preview, dispatch and retry eligibility for high-impact flows. An unknown or unsafe measurement blocks the action and gives the operator a visible reason. Preserve read-only triage and status recovery.</p>
+<p><a href="../../../architecture.md#L155">architecture.md L155</a> · <a href="../../../architecture.md#L657">architecture.md L657</a> · <a href="../../../prds/prd-tenants-2026-06-02/prd.md#L175">prd.md L175</a> · <a href="../../../../../src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor#L272">RemoveTenantMemberFlow.razor L272</a> · <a href="../../../../../src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor#L1149">GlobalAdministratorsPage.razor L1149</a> · <a href="../../../../../src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor#L1376">GlobalAdministratorsPage.razor L1376</a></p>
+<h3 id="medium--the-generated-rest-api-uses-camel-case-json">Medium · The generated REST API uses camel-case JSON</h3>
+<p>The naming guidance prescribes PascalCase on the wire. The generated-controller contract test reads the literal JSON properties <code>items</code> and <code>tenantId</code>. A case-sensitive client following the document would look for different keys.</p>
+<p><strong>Suggested correction.</strong> Distinguish C# property names from public JSON names. Cite the generated REST contract and include one literal response example.</p>
+<p><a href="../../../architecture.md#L589">architecture.md L589</a> · <a href="../../../../../tests/Hexalith.Tenants.IntegrationTests/TenantsApiGeneratedControllerTests.cs#L156">TenantsApiGeneratedControllerTests.cs L156</a></p>
+<h3 id="medium--command-recovery-depends-on-where-the-conflict-occurred">Medium · Command recovery depends on where the conflict occurred</h3>
+<p>The retry guidance groups HTTP 409 and the tracked failure reason <code>ConcurrencyConflict</code> under one recovery action. The gateway distinguishes transport status, a domain rejection during submission, and a verified command-status result. Receiving HTTP 409 alone cannot establish that a retryable tracked command exists.</p>
+<p><strong>Suggested correction.</strong> Document submission and status lookup separately. Select recovery from the operation result and verified reason. Keep the original message ID for a permitted retry or status lookup.</p>
+<p><a href="../../../architecture.md#L499">architecture.md L499</a> · <a href="../../../architecture.md#L661">architecture.md L661</a> · <a href="../../../../../src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs#L565">TenantCommandGateway.cs L565</a> · <a href="../../../../../src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs#L718">TenantCommandGateway.cs L718</a> · <a href="../../../../../src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs#L949">TenantCommandGateway.cs L949</a> · <a href="../../../../../src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs#L1310">TenantCommandGateway.cs L1310</a> · <a href="../../../../../tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayTests.cs#L2143">TenantCommandGatewayTests.cs L2143</a></p>
+<h3 id="medium--memories-search-needs-a-deployed-index-publisher">Medium · Memories search needs a deployed index publisher</h3>
+<p>The architecture assigns index maintenance to a Tenants consumer. In this checkout, only the sample host registers the four lifecycle handlers that publish curated entries. AppHost can start Memories while omitting the sample. In that topology, the search service can be reachable while new or renamed tenants are absent from its candidate set. Authoritative hydration still protects returned rows.</p>
+<p><strong>Suggested correction.</strong> Name the registered publisher and distinguish sample composition from the production deployment decision. For search-enabled deployments, assign an owner for event delivery and verify that a tenant creation and rename reach the index.</p>
+<p><a href="../../../architecture.md#L507">architecture.md L507</a> · <a href="../../../../../samples/Hexalith.Tenants.Sample/Program.cs#L18">Program.cs L18</a> · <a href="../../../../../src/Hexalith.Tenants.AppHost/Program.cs#L183">Program.cs L183</a> · <a href="../../../../../src/Hexalith.Tenants.AppHost/Program.cs#L238">Program.cs L238</a></p>
+<h3 id="medium--the-state-lists-omit-operator-visible-outcomes">Medium · The state lists omit operator-visible outcomes</h3>
+<p>The architecture calls four audit states and six list states canonical. Audit availability has four non-success states plus <code>Available</code>. The shared list view also distinguishes <code>Unauthorized</code> and <code>SearchPageEmpty</code>. Treating either list as exhaustive could hide a verified receipt or present an authorization denial as an empty result.</p>
+<p><strong>Suggested correction.</strong> Identify the enumerations as the source of truth. Label subsets by purpose and retain separate rendering for verified evidence, authorization denial and an empty search page.</p>
+<p><a href="../../../architecture.md#L250">architecture.md L250</a> · <a href="../../../architecture.md#L527">architecture.md L527</a> · <a href="../../../architecture.md#L653">architecture.md L653</a> · <a href="../../../../../src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditAvailabilityState.cs#L5">TenantAuditAvailabilityState.cs L5</a> · <a href="../../../../../src/Hexalith.Tenants.UI/Components/Shared/ListSurfaceStates.razor#L43">ListSurfaceStates.razor L43</a></p>
+<h3 id="medium--localization-examples-use-the-wrong-placeholder-syntax">Medium · Localization examples use the wrong placeholder syntax</h3>
+<p>The naming guidance shows literal named placeholders such as <code>{tenantName}</code>. The English and French resource files use indexed composite formatting, and Razor passes ordered arguments through <code>IStringLocalizer</code>. Copying the documented syntax into a resource can cause a format error when the operator opens that view.</p>
+<p><strong>Suggested correction.</strong> Keep whole-string localized resources and use indexed placeholders such as <code>{0}</code> and <code>{1}</code> consistently across cultures. Show a resource value beside the call that supplies its arguments.</p>
+<p><a href="../../../architecture.md#L533">architecture.md L533</a> · <a href="../../../architecture.md#L604">architecture.md L604</a> · <a href="../../../../../src/Hexalith.Tenants.UI/Resources/TenantsResources.resx#L424">TenantsResources.resx L424</a> · <a href="../../../../../src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx#L115">TenantsResources.fr.resx L115</a> · <a href="../../../../../src/Hexalith.Tenants.UI/Components/Tenants/Configuration/SetTenantConfigurationFlow.razor#L18">SetTenantConfigurationFlow.razor L18</a></p>
+<h2 id="verified-decisions-and-open-evidence">Verified decisions and open evidence</h2>
+<p>The direct read path through <code>tenants-api</code>, separate command/status egress, scoped search continuation and per-circuit, per-aggregate command admission agree with the implementation. The project targets .NET 11 with SDK 11.0.100. The declared package baseline agrees with the repository build files. <a href="../../../../../src/Hexalith.Tenants.UI/Extensions/TenantsUiServiceCollectionExtensions.cs#L139">TenantsUiServiceCollectionExtensions.cs L139</a> · <a href="../../../../../src/Hexalith.Tenants.UI/Services/Gateways/TenantSearchCursorCodec.cs#L9">TenantSearchCursorCodec.cs L9</a> · <a href="../../../../../src/Hexalith.Tenants.UI/State/TenantCommands/TenantAggregateCommandAdmissionGate.cs#L6">TenantAggregateCommandAdmissionGate.cs L6</a> · <a href="../../../../../global.json">global.json</a> · <a href="../../../../../Directory.Build.props">Directory.Build.props</a></p>
+<p>The September audit-grid reference run met its documented budgets. Candidate qualification still applies after relevant changes. The four November checks below already have owners in the sprint tracker and are excluded from the seven new findings. <a href="../../../../implementation-artifacts/story-5-1-performance-decision.md#L3">story-5-1-performance-decision.md L3</a> · <a href="../../../../implementation-artifacts/sprint-status.yaml#L408">sprint-status.yaml L408</a></p>
+<table>
+<thead>
+<tr class="header">
+<th>Open check</th>
+<th>Owner</th>
+<th>Evidence still due</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Hosted qualification</td>
+<td>Release owner</td>
+<td>Cold bootstrap, persisted state, authenticated REST and authenticated UI on the same candidate and shipping package set.</td>
+</tr>
+<tr class="even">
+<td>First enforcing consumer</td>
+<td>Consumer deployment owner</td>
+<td>Durable state, authorized history and correct access after delayed removal and restart.</td>
+</tr>
+<tr class="odd">
+<td>Deployed identity</td>
+<td>Deployment owner</td>
+<td>Redacted verification of issuer, audience, discovery TLS, ingress and key rotation.</td>
+</tr>
+<tr class="even">
+<td>Tenant-index capacity</td>
+<td>Deployment owner</td>
+<td>Index size, write contention and update latency under representative load.</td>
+</tr>
+</tbody>
+</table>
+<p>The canonical handoff also records the server-component audit-data boundary, UI health and telemetry, platform topology and scale-out prerequisites, and tenant receipt pairing. Those items retain their existing closure conditions. <a href="../../../architecture.md#L818">architecture.md L818</a></p>
+<h2 id="scope-and-checks">Scope and checks</h2>
+<p>This standalone validation reviewed the uncommitted canonical document at SHA-256 <code>a8f30660db2f0a45cd38fc0b2fe571b9c87b69e3c78abdf6fa344bde3828d021</code>. AD-1 through AD-15 are consecutive. BMAD lint returned zero findings. All 46 listed input files and all 50 previously linked local references in the architecture and its update reviews resolved. <a href="../../../architecture.md">Canonical architecture</a></p>
+<p>Three fresh reviews assessed requirement coverage, technology and implementation, and the places where independent teams could interpret a rule differently. Findings shared by more than one reviewer are counted once. Priority reflects the effect on a future implementation. This review inspected source and existing test assertions. It did not execute product suites or hosted profiles.</p>
+<p><a href="reviews/review-rubric.md">Requirements review</a> · <a href="reviews/review-technology.md">Technology review</a> · <a href="reviews/review-divergence.md">Independent implementation review</a></p>
+<nav aria-label="Report downloads"><a href="validation-report.md" download>Download Markdown</a><a href="validation-report.html" download>Download HTML</a></nav></article></main></body></html>
