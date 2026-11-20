@@ -1,6 +1,7 @@
 ---
 stepsCompleted: [1, 2, 3, 4, 5, 6, 7, 8]
 inputDocuments:
+  - _bmad-output/planning-artifacts/architecture/architecture-tenants-2026-11-20/validation/validation-report.md
   - _bmad-output/planning-artifacts/sprint-change-proposal-2026-11-20.md
   - _bmad-output/planning-artifacts/prds/prd-tenants-2026-06-02/reconcile-validation-2026-11-20.md
   - _bmad-output/planning-artifacts/prds/prd-tenants-2026-06-02/validation-report.md
@@ -113,14 +114,16 @@ Tenants Management UI is a **FrontComposer-composed domain UI**: FrontComposer o
 
 - **Binds:** FR-1..FR-9, FR-18, FR-20..FR-23, NFR-1, and NFR-3.
 - **Prevents:** routing tenant reads through the EventStore generic query gateway or retired projection-actor paths that drop projection metadata.
-- **Rule:** The server-side BFF sends caller-authorized reads to the generated `tenants-api` REST surface. The API forwards internally through EventStore to the Tenants handler. The BFF uses a separate EventStore client for command submission and status. Single-tenant detail, roster and audit use the canonical tenant in the route. Tenant list, user memberships and governance audit use `platform:tenants`. The administrator list and governance commands use `platform:global-administrators`. The catalog governs permissions and the domain verifies membership or persisted authority. [Public scope contract](../../docs/production-auth-claim-contract.md) · [Route catalog](../../src/Hexalith.Tenants.Contracts/Routing/TenantCatalogDeclarations.cs)
+- **Rule:** The server-side BFF sends caller-authorized reads to the generated `tenants-api` REST surface. Generated REST responses use camelCase JSON. The API forwards internally through EventStore to the Tenants handler. The BFF uses a separate EventStore client for command submission and status. Single-tenant detail, roster and audit use the canonical tenant in the route. Tenant list, user memberships and governance audit use `platform:tenants`. The administrator list and governance commands use `platform:global-administrators`. The catalog governs permissions and the domain verifies membership or persisted authority. [Public scope contract](../../docs/production-auth-claim-contract.md) · [Route catalog](../../src/Hexalith.Tenants.Contracts/Routing/TenantCatalogDeclarations.cs)
 - **Roster existence:** Until successful creation, including rejection-only history, the handler returns missing for a global administrator and forbidden for an ordinary caller. Only an authorized read of a created tenant can return a successful empty roster. [Roster handler](../../src/Hexalith.Tenants/Queries/Handlers/GetTenantUsersQueryHandler.cs)
 
 ### AD-7 - Projection-Confirmed Truth Is Shared Composition State [ADOPTED]
 
 - **Binds:** truth badges, command lifecycle panels, list/detail/member/audit/global-administrator surfaces, and command flows.
 - **Prevents:** optimistic success, per-surface state vocabularies, and collapsing `accepted`, `confirmed`, and `audit available`.
-- **Rule:** every actionable surface renders from typed shared truth, freshness, lifecycle, audit, and authorization state; SignalR and command status are nudges until an authoritative projection re-query confirms.
+- **Rule:** Every actionable surface uses shared truth, freshness, lifecycle, audit and authorization types. SignalR and status can trigger a projection re-query. AD-12 defines what confirms a command.
+- **Audit availability.** `Available` requires a complete, support-safe receipt matched to the attempt. `Pending`, `Delayed`, `Unavailable` and `MissingSupport` describe distinct outcomes without verified proof. Render command confirmation independently. [Audit availability enum](../../src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditAvailabilityState.cs)
+- **Tenant list.** `TenantListSurfaceKind` governs the list presentation. Show access denial, an empty authorized list, an empty filtered list and a search page without visible authorized hits as distinct outcomes. [List enum](../../src/Hexalith.Tenants.UI/State/TenantList/TenantListSurfaceKind.cs) · [Shared presentation](../../src/Hexalith.Tenants.UI/Components/Shared/ListSurfaceStates.razor)
 
 ### AD-8 - Freshness Comes From EventStore Read-Model Metadata [ADOPTED]
 
@@ -132,7 +135,7 @@ Tenants Management UI is a **FrontComposer-composed domain UI**: FrontComposer o
 
 - **Binds:** receipts, consequence previews, rejection text, copy actions, and resource files.
 - **Prevents:** shell-owned domain wording, fragment-assembled localization, and unsafe data leaking into rendered output.
-- **Rule:** Tenants owns whole-string localized domain copy. A copy control receives only the exact value and identifier kind positively approved by its authorized surface. The BFF maps receipts and previews to support-safe fields before display. The PRD requires proof-only fields to stay outside rendered components. The server-side grid currently receives internal correlation and sequence fields. Keep that conformance finding open. [PRD validation](prds/prd-tenants-2026-06-02/validation-report.md)
+- **Rule:** Tenants owns whole-string localized domain copy. Parameterized resources use indexed .NET composite formatting, with the same meaning for each argument index in every culture. A copy control receives only the exact value and identifier kind positively approved by its authorized surface. The BFF maps receipts and previews to support-safe fields before display. The PRD requires proof-only fields to stay outside rendered components. The server-side grid currently receives internal correlation and sequence fields. Keep that conformance finding open. [PRD validation](prds/prd-tenants-2026-06-02/validation-report.md)
 - **Configuration:** Apply deployment display policy in the BFF before browser-facing composition. Every key must match the exact display-safe set. Ordinary callers also require an ordinal prefix grant. Administrators bypass only the prefix check. Missing or malformed policy withholds configuration for everyone. The authorized API preserves the full consumer contract. [Configuration read policy](../../docs/tenant-configuration-read-policy.md)
 
 ### AD-10 - Memories Is Search-As-Index-Only [ADOPTED]
@@ -140,6 +143,7 @@ Tenants Management UI is a **FrontComposer-composed domain UI**: FrontComposer o
 - **Binds:** FR-1 cross-set tenant search and tenant-list search states.
 - **Prevents:** adding a Tenants/EventStore list-filter endpoint, rendering row truth from Memories, or blocking the tenant list on search outage.
 - **Rule:** Memories supplies candidate tenant IDs. The BFF deduplicates, reads each eligible row from Tenants under caller authority and sorts the visible page deterministically. Fill the page and require one additional authorized row before enabling Next. Each load may examine up to 1,000 raw positions, including replay and lookahead. Reaching the budget without resolving the page or encountering an operational hydration gap discards the partial search and shows the labelled authorized-list fallback. Missing, forbidden and filtered hits reveal no paging signal.
+- **Index maintenance.** Only the sample host registers `MemoriesSearchIndexEventPublisher` for `TenantCreated`, `TenantUpdated`, `TenantDisabled` and `TenantEnabled`. It publishes `SearchIndexEntryChanged` to `memories-events` as an upsert keyed by `(tenants-index, tenantId)`. Each search-enabled deployment owner must connect these lifecycle events to an active publisher and verify that a created tenant and its subsequent rename reach the index and appear through authorized BFF search. AppHost can start Memories independently of the sample. A reachable but stale index can omit candidates. [Sample registration](../../samples/Hexalith.Tenants.Sample/Program.cs) · [Publisher](../../samples/Hexalith.Tenants.Sample/Handlers/MemoriesSearchIndexEventPublisher.cs) · [AppHost composition](../../src/Hexalith.Tenants.AppHost/Program.cs)
 - **Continuation:** Protect the fixed-window start and consumed-result count with the platform cursor codec. Bind it to caller, index, normalized search, status, sort, direction and page size. Replay a partial window from its fixed start. Keep continuations server-side and restart at page one with notice on invalidation. The index can change between pages. The privacy bound covers rendered rows and pager for equal authorized results within budget. [Read-safety decision](../implementation-artifacts/dw-117-118-127-599-618-validation-evidence.md)
 
 ### AD-11 - UI Conformance Tests Are Architectural Guardrails [ADOPTED]
@@ -152,7 +156,9 @@ Tenants Management UI is a **FrontComposer-composed domain UI**: FrontComposer o
 
 - **Binds:** FR-10..FR-17, FR-19, FR-24..FR-25, and CP-2..CP-8.
 - **Prevents:** independent command flows choosing optimistic success, concurrent submits, bulk action, toast batching, or bypassing preview and gating.
-- **Rule:** Tenants owns the admission gate keyed by interactive circuit and aggregate identity. FrontComposer supplies shared controls. Hold the lease across submission and projection-pending states, including an unverifiable outstanding attempt. Unrelated aggregates may proceed. Confirmation requires the command-specific postcondition and authoritative progress beyond the pre-submit baseline. NoOp or a pre-existing state is already applied. Grant rendering, submission and retry share eligibility. Recheck caller, authority and preview at dispatch, reuse the original command identity for an eligible delivery retry, and check status once a reference exists.
+- **Rule:** Tenants admits one active command per interactive circuit and aggregate. FrontComposer supplies the shared controls. Hold the lease through submission, projection pending and an unverifiable outstanding attempt. Other aggregates may proceed. Grant controls use the same eligibility rules for rendering, dispatch and delivery retry.
+- **Confirmation.** Require the command-specific postcondition on an authoritative read and qualifying evidence beyond the pre-submit baseline. Use `already applied` only when the operation explicitly defines that outcome and authoritative evidence establishes it. Examples include an authorized same-role NoOp and a `UserNotInTenant` removal rejection followed by a fresh read proving the target is absent. Both describe the observed state without attributing a change to this attempt. `UpdateTenant` emits `TenantUpdated` even for identical metadata. If the submitted values already matched the baseline, confirmation requires matching tenant detail and qualifying audit evidence attributable to this attempt. Without that audit evidence, matching values and an unrelated version advance leave the outcome `unable to verify`. [Metadata confirmation](../../src/Hexalith.Tenants.UI/State/TenantCommands/TenantUpdateMetadataCommandSnapshot.cs) · [Same-value regression cases](../../tests/Hexalith.Tenants.UI.Tests/State/TenantUpdateMetadataCommandSnapshotTests.cs) · [Removal rejection and re-query](../../tests/Hexalith.Tenants.UI.Tests/State/TenantRemoveMemberCommandSnapshotTests.cs)
+- **High-impact actions.** Before opening the preview, dispatching or retrying delivery, recheck caller authority, projection freshness under AD-8, input validity, required gateway capabilities, circuit and aggregate admission, and a measured viewport that can show the complete safety context. At dispatch and retry, also match the reviewed preview to the current target and consequences. Phone layouts are read-only for these actions. An unknown or unsafe measurement, including after resize, blocks the write and displays the reason. Authorized read-only triage and status lookup remain available. [Responsive requirements](prds/prd-tenants-2026-06-02/prd.md) · [Member removal](../../src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor) · [Administrator controls](../../src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor)
 - **Recovery:** First-member bootstrap requires an active tenant with no prior membership. Restoring an owner on a previously populated, ownerless tenant requires a global administrator. Removing the last tenant owner carries a warning and additional confirmation. Domain rules prohibit removing the last global administrator.
 - **Proof:** For a correction, verify the exact attempt and its committed sequence. Confirm only when a fresh, ordered projection of the same aggregate reaches or exceeds that sequence and shows the intended effect. Keep the original receipt. Tenant correction reports `MissingSupport` for pairing and clears the pair. Governance may link two receipts only after reauthorization in the originating circuit and independent protected evidence for the source and corrective attempt. For member removal, show the tenant, target and current role with the other seven [required preview facts](../../docs/tenants-ui-remove-user-from-tenant-journey-spec.md#21-preview-content-enumerated-exactly). Require proof capability before dispatch and stable, complete evidence for the exact attempt and sequence before exposing the receipt. A confirmed local change can outlive an inconclusive audit read. [Correction contracts and acceptance](prds/prd-tenants-2026-06-02/prd.md)
 
@@ -247,7 +253,7 @@ verbatim) — translating directly into a **shared typed UI truth-state model**.
   REST + DAPR/SignalR. .NET 11 and Fluent UI Blazor 5.1.0.
 - Complexity level: **HIGH.** Drivers: eventual-consistency correctness as the core
   thesis; a 5-dimension truth-state model with casing-significant canonical vocabularies
-  (13 badge / 10 lifecycle / 10 feedback / 6 reasons / 5 freshness / 4 audit) and a strict
+  for badges, lifecycle, feedback, reasons, freshness and audit (AD-7) and a strict
   non-collapse invariant; role-scoped multi-tenant authorization reflection; a heavy,
   partly-missing external dependency (FrontComposer) gating even the MVP; first-class
   a11y/l10n/responsive-fail-closed; hard support-safety rules.
@@ -271,13 +277,13 @@ verbatim) — translating directly into a **shared typed UI truth-state model**.
   and verified Fluent semantic/icon mapping until a shared token contract exists. The
   FC-AUD/FC-CNS/FC-CNC fallbacks are Product/UX-approved (2026-06-03 - see the
   Fallback Approval Record, `fallback-approval-record-2026-06-03.md`). `FC-TBL` does
-  not provide cursor pagination, safety-column pinning, or the six non-collapsing list
-  states required by Tenants by itself. Story 1.2 resolved the Epic 1 path by composing a Tenants-specific
+  not provide cursor pagination, safety-column pinning, or the distinct tenant-list
+  presentations required by AD-7. Story 1.2 resolved the Epic 1 path by composing a Tenants-specific
   `TenantDataGrid` from Fluent/FrontComposer primitives while keeping generic reusable
   cursor/pinning/list-state capability as a FrontComposer concern.
 - **Fluent UI Blazor 5.1.0** — exact token/component/ARIA names
   verified against the pinned package at build; none asserted available without check.
-- **Build baseline, 20 November 2026.** SDK 11.0.100, target `net11.0`, Aspire 17.0.0, FrontComposer 6.0.1, Memories 4.1.0, EventStore 5.4.0 and McpCli 3.0.0. Debug source selection and Release package selection are separate. Qualify the actual restored shipping set. [SDK](../../global.json) · [Tenants build properties](../../Directory.Build.props) · [Central package catalog](../../references/Hexalith.Builds/Props/Directory.Packages.props)
+- **Build baseline, 20 November 2026.** Tenants targets `net11.0` with SDK 11.0.100, Aspire 17.0.0, EventStore 5.4.0 and McpCli 3.0.0. The pinned catalog defaults to FrontComposer 6.0.0 and Memories 4.0.0. The default build consumes packages. Source debugging is opt-in. Qualify the restored package set used for Release. [SDK](../../global.json) · [Tenants build properties](../../Directory.Build.props) · [Central package catalog](../../references/Hexalith.Builds/Props/Directory.Packages.props)
 - **Identity.** Canonical public tenant IDs are 1–64 ASCII letters, digits or hyphens, with alphanumeric endpoints. Normalize to lowercase without trimming. User IDs retain their literal identity. Duplicate canonical grants, malformed grants and the reserved public tenant `system` fail closed. The client supplies the operation’s declared scope. The receiving service verifies it against the catalog. Internal stream identities stay private. [Identity and scope rules](../../docs/production-auth-claim-contract.md)
 
 - **Async, eventually-consistent integration:** commands return `202` + correlationId;
@@ -309,9 +315,7 @@ verbatim) — translating directly into a **shared typed UI truth-state model**.
 5. **Accessibility (WCAG 2.1 AA; conditional 2.2)** — no-color-only, live-region politeness
    (assertive reserved for failures), complete-or-exit every workflow; non-removable even
    under fallback.
-6. **Localization** — whole-string resources with named placeholders (no runtime fragment
-   assembly), culture-aware; **resource ownership (shell vs. Tenants) routed to this
-   architecture** (Open Q#4).
+6. **Localization** — Tenants owns whole-string domain resources with indexed composite-format arguments. FrontComposer owns shell copy (AD-9).
 7. **Canonical state vocabularies (CP-10)** — verbatim, casing-significant; a single shared
    enumeration source across components.
 8. **Command lifecycle & idempotency** — `messageId` idempotency key; async confirm;
@@ -492,25 +496,11 @@ existing projections only.
 - **Command dispatch:** `POST /api/v1/commands` with a client-generated **`messageId` (ULID)**
   idempotency key. Tenant-management commands use `platform:tenants` and governance commands use
   `platform:global-administrators` with the exact catalog permission and target aggregate. Acceptance returns `202` + `correlationId`.
-- **Confirmation (D2).** Look up `GET /api/v1/commands/status/{messageId}` under the matching platform scope. Match the returned command identity, domain, aggregate and available correlation to the tracked attempt. Notifications may trigger a re-query. The authoritative projection and the flow-specific evidence in AD-12 determine confirmation. A NoOp is already applied. Unverified evidence yields `unable to verify`. [Command gateway](../../src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs)
+- **Confirmation (D2).** Look up `GET /api/v1/commands/status/{messageId}` under the matching platform scope. Match the returned command identity, domain, aggregate and available correlation to the tracked attempt. Notifications may trigger a re-query. The authoritative projection and the flow-specific evidence in AD-12 determine confirmation. Report `already applied` only under the operation-specific rules in AD-12. Unverified evidence yields `unable to verify`. [Command gateway](../../src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs)
 
-- **Concurrency policy:** the Tenants-owned admission gate admits one active command per
-  `(interactive circuit, AggregateIdentity)` until terminal evidence; no bulk or toast-batching.
-  A stronger shared concurrency contract may replace it later. `409 ConcurrencyConflict` (+`Retry-After`) →
-  `retry status lookup`.
-- **Tenant search (Memories-backed, index-only; cc-2026-06-21):** cross-set list search is served by
-  `Hexalith.Memories`, **not** a new EventStore endpoint (the read backend stays consume-only — no
-  server-side filter on `ListTenantsQuery`). Data path: `MemoriesClient.SearchAsync(tenants-index,
-  syntactic)` returns a **match-set of tenant ids** (parsed from `ScoredResult.SourceUri` = `tenant:{tenantId}`);
-  the BFF then **hydrates each row through the existing ETag-fresh detail read** (D6). Memories decides
-  *which* tenants appear; the read path decides *what each row shows*, so a stale index never renders wrong
-  data. Index maintenance is a separate async flow: on tenant lifecycle events the Tenants consumer
-  publishes **one curated `SearchIndexEntryChanged` per tenant** (upsert by `(tenants-index, tenantId)`,
-  searchable text = name + id, `status` attribute) to the `memories-events` topic — the cross-domain
-  **index-maintenance pattern** for feeding Memories without a raw-event ingestion adapter. This dissolves
-  the FC-`IQueryService`-vs-REST/ETag tension: search bypasses the query-service abstraction entirely and
-  reuses the ETag/freshness read path. Memories unavailable → non-blocking fallback to the cursor list.
-  AD-10 specifies authorized hydration, paging and fallback. The June [Memories integration handoff](memories-search-index-handoff-2026-06-21.md) records the original provider contract.
+- **Submission recovery.** Use the operation-specific rejection when the gateway identifies one. For `TenantAlreadyExists`, refresh the list or open the visible tenant. A bare HTTP 409 on membership submission with no delivery-uncertainty signal is a failed submission. A bare 409 alone supplies no tracking reference or basis for resending the command. An eligible retry after ambiguous delivery uses the original `messageId` and repeats the admission checks in AD-12. [Gateway classifications](../../src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs) · [Membership cases](../../tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayTests.cs)
+- **Status recovery.** Once a tracking reference exists, look up the original `messageId` under the same authorized scope. HTTP 409 from that GET leaves the status unknown. A successful, identity-matched status response carrying the verified reason `ConcurrencyConflict` directs the operator to retry status lookup. [Command gateway](../../src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs)
+- **Tenant search.** `MemoriesClient.SearchAsync` returns candidate IDs in `ScoredResult.SourceUri`. The BFF hydrates eligible rows through the authorized Tenants detail read. AD-10 governs lifecycle-event publication, paging and fallback. The [Memories integration handoff](memories-search-index-handoff-2026-06-21.md) records the provider contract.
 
 ### Frontend Architecture
 
@@ -522,16 +512,10 @@ existing projections only.
   Global Administrators, and Audit remain contextual or policy-gated routes (AD-1 and AD-2).
   Story 1.2 resolved the FC-TBL caveat with Tenants-specific grid/table components while generic
   reusable grid capability remains FrontComposer-owned.
-- **Truth-state model (D5):** shared typed immutable state is the one source for the 5 truth
-  dimensions and the canonical vocabularies (13 badge / 10 lifecycle / 10 feedback / 6
-  reasons / 5 freshness / 4 audit), exposed as a typed, **casing-faithful** library used verbatim
-  by every component (CP-10); **non-collapse enforced in the model** (`accepted`≠`confirmed`≠
-  `audit available`; `degraded`/`unable to verify` success-prohibited). The 10 DESIGN.md
-  components bind to this model.
+- **Truth-state model (D5).** Components use the shared, casing-faithful types for badge, lifecycle, feedback, reason, freshness and audit outcomes. Preserve the distinction between accepted, projection-confirmed and audit-available. AD-7 defines receipt and list presentation. Degraded and unverifiable results cannot announce success.
 - **Routing:** shell-managed routes + deep-linkable tenant detail; selection/filters/scroll
   preserved across navigation.
-- **Localization (D4):** Tenants-owned whole-string `.resx` (named placeholders, no fragment
-  assembly), culture-aware via `IStringLocalizer`; inherits only `FcShellResources` chrome.
+- **Localization (D4).** Tenants owns whole-string domain `.resx` resources and supplies ordered arguments through `IStringLocalizer`. FrontComposer supplies `FcShellResources` for shell chrome.
 
 ### Infrastructure & Deployment
 
@@ -576,17 +560,14 @@ remains FrontComposer-owned future work.
 
 **Critical conflict points:** ~10 areas where agents building surfaces could diverge — most
 dangerously the **canonical state vocabularies**, **localization keys**, **automation selectors**,
-the **six list-surface states**, and the **command-confirmation flow**. C# language/style is **not
+the **tenant-list presentations**, and the **command-confirmation flow**. C# language/style is **not
 re-stated** here — it is governed by `project-context.md` (file-scoped namespaces, Allman,
 `_camelCase` fields, `I`-prefix, `Async` suffix, namespace=folder, no copyright headers,
 `ConfigureAwait(false)`, central package versions, `.slnx` only) and inherited verbatim.
 
 ### Naming Patterns
 
-**Backend contract (consume verbatim — never redefine):** routes, DTO shapes, enum values
-(`TenantRole`/`TenantStatus`/`AuditEventCategory`, by name), and rejection types are backend-owned.
-Agents bind to `Hexalith.Tenants.Client`/`.Contracts` types — never re-declare a DTO, re-case a
-wire field (PascalCase on the wire), or `Guid`/`Ulid.TryParse` a `TenantId`/`UserId`.
+**Backend contract.** Bind to the backend-owned routes, DTOs, enums and rejection types in `Hexalith.Tenants.Client` and `.Contracts`. C# DTO properties use PascalCase. Generated REST responses use camelCase, as in the list response fragment `{"items":[{"tenantId":"tenant-alpha"}]}`. Preserve the declared enum names and treat `TenantId` and `UserId` according to their domain identity rules. [Generated-controller contract test](../../tests/Hexalith.Tenants.IntegrationTests/TenantsApiGeneratedControllerTests.cs#L156)
 
 **Razor components:** `PascalCase.razor`, one per file. Implemented shared/domain primitives include
 `TruthStateBadge`, `AuditEvidenceReceipt`, `TenantDataGrid`, and `AuditDataGrid`; command flows are
@@ -598,10 +579,7 @@ named by domain intent. Folders are organized by actual surface: route component
 methods; request and result models remain surface-specific while shared truth, freshness,
 lifecycle, and audit vocabularies remain canonical across surfaces.
 
-**Localization keys (D4 — Tenants-owned):** dotted `PascalCase` under a `Tenants.` root mirroring
-the concept — `Tenants.Freshness.Stale`, `Tenants.UnavailableReason.MissingPermission`,
-`Tenants.Rejection.UserAlreadyInTenant`, `Tenants.Journey.RemoveUser.Confirm`. Whole strings with
-named placeholders (`{userName}`, `{tenantName}`) — **never** concatenate localized fragments.
+**Localization keys (D4).** Use dotted PascalCase keys under `Tenants.` and localize each message as a whole string. The English resource `Tenants.Configuration.Set.Description` reads `Prepare a scoped configuration change for tenant {0} with projection confirmation.` The Razor call `@Localizer["Tenants.Configuration.Set.Description", Context.TenantId]` supplies the tenant ID at index zero. Translations can reorder indexed arguments while preserving their meanings. [English resources](../../src/Hexalith.Tenants.UI/Resources/TenantsResources.resx) · [French resources](../../src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx) · [Configuration flow](../../src/Hexalith.Tenants.UI/Components/Tenants/Configuration/SetTenantConfigurationFlow.razor#L18)
 
 **Automation selectors (NFR-4):** every interactive element/status carries
 a kebab-case `data-testid` built from `tenants-`, the surface and the element — `tenants-tenant-list-row`,
@@ -645,22 +623,14 @@ E2E in its own tier.
   BFF gateways/composition services. The **non-collapse invariant is enforced by the state model** —
   `accepted`, `confirmed`, and `audit available` are distinct fields and never overwrite the last
   confirmed projection with in-flight intent.
-- **Command confirmation (D2).** A status update, refresh or notification can trigger an authoritative re-query. For ordinary commands require the intended postcondition plus new qualifying evidence beyond the baseline. Corrections require the fresh, ordered projection of the same aggregate to reach the verified attempt's committed sequence and show its intended effect. Receipt availability follows its own proof contract (AD-12).
+- **Command confirmation (D2).** A status update, refresh or notification can trigger an authoritative re-query. For ordinary commands require the intended postcondition plus qualifying evidence beyond the baseline. An identical metadata edit also requires audit proof for this attempt (AD-12). Corrections require the fresh, ordered projection of the same aggregate to reach the verified attempt's committed sequence and show its intended effect. Receipt availability follows its own proof contract (AD-12).
 - **Idempotency.** Allocate one ULID `messageId` per command attempt and reuse it for an eligible delivery retry and status lookup. Correlation is protected matching evidence and remains server-side.
 
 ### Process Patterns
 
-- **Six list-surface states (every grid, non-collapsible):** `loading`, `empty`, `filtered-empty`,
-  `error`, `stale`, `degraded` — a shared component; `filtered-empty` offers reset, `stale` a refresh
-  path, `degraded` explains what still works; **empty is authorization-safe**. Agents use the shared
-  component; they never collapse or re-invent these.
-- **Fail-closed gating ORDER (load-bearing):** validation **+** freshness **+** authorization all
-  `eligible` **before** a consequence preview opens — not only at submit; missing any → blocked with
-  the inline `UnavailableActionReason`.
-- **Error/rejection handling:** domain rejections → safe localized text via the Tenants rejection
-  catalog (keyed by safe reason code); `409 ConcurrencyConflict` → `retry status lookup`; **never**
-  render raw problem-details/payloads/stack traces. Every failure → a **named recovery verb** (never
-  a dead end); prohibited words `undo`/`rollback`/`hidden edit` never appear.
+- **Tenant-list presentation.** Render `Ready` rows and route `Loading`, `Empty`, `FilteredEmpty`, `Error`, `Unauthorized`, `Stale`, `Degraded` and `SearchPageEmpty` through the shared list-state presentation (AD-7). Offer reset for filtered results, refresh for stale data, and the available actions for degraded data. A search page with no visible hits says nothing about the complete tenant list.
+- **Preview eligibility.** Validate inputs, authority and freshness before opening any consequence preview. For high-impact actions, apply AD-12 at preview, dispatch and delivery retry. Recheck measured viewport safety after resize and display the reason whenever required safety context cannot fit.
+- **Error and rejection handling.** Select a localized reason and a named recovery action for each failure under the API recovery rules. Offer forward corrections. Keep undo, rollback, hidden edits, raw problem details, payloads and stack traces out of operator-facing recovery copy.
 - **Live-region politeness:** bound to a **dedicated announcement-intent field**, never derived from
   `BadgeColor`/`MessageBarIntent`; `assertive` reserved for rejection/failure/`unable to verify`/
   `degraded`/destructive-block; else `polite`; **never announce success before projection confirm**.
@@ -677,10 +647,9 @@ E2E in its own tier.
 - Apply D2 and AD-12 before announcing confirmation. A notification alone cannot confirm an attempt.
 - Localize via Tenants `.resx` whole-string keys; never assemble fragments.
 - Give interactive elements stable, surface-specific test IDs such as `tenants-remove-user-confirm`.
-- Render the six list states, the fail-closed gating order, and the recovery-verb mapping as the
-  shared patterns.
+- Render the typed list outcomes in AD-7 and apply AD-12 to action availability and recovery.
 
-**Pattern Enforcement:** bUnit asserts non-collapse + the six states + no-color-only; Playwright
+**Pattern Enforcement:** bUnit checks distinct list and audit outcomes and accessible cues beyond color. Playwright
 asserts the required acceptance scenarios (stale projection, rejected command, unknown
 confirmation, audit unavailable, last-owner warning, permission-missing, command accepted but still
 projection-pending, focus escape/cancel no-commit, and data unavailable but not authorization-denied)
@@ -692,7 +661,7 @@ Pattern changes are recorded here + in `project-context.md`.
 ### Pattern Examples
 
 **Good:** `badge.Token = TruthState.Freshness.Stale;` + `Localizer["Tenants.Freshness.Stale"]` +
-`data-testid="tenants-tenant-list-stale"`; command shows `confirmed` only after the re-query action.
+`data-testid="tenants-tenant-list-stale"`; command shows `confirmed` only after the re-query supplies the evidence required by AD-12.
 
 **Anti-patterns:** typing `"audit_pending"` inline; merging `accepted` and `confirmed` into one
 "success"; `string.Format` over localized fragments; `Ulid.TryParse(tenantId)`; a grid showing
