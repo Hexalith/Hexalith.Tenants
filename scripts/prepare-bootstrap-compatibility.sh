@@ -27,9 +27,6 @@ print(version, release["commit"])
 PYCODE
 )
 
-git -C "$reference_root" status --short --branch
-git -C "$reference_root" remote -v
-git -C "$reference_root" log --oneline --max-count=3
 if [ -n "$(git -C "$reference_root" status --porcelain)" ]; then
     echo 'The compatibility host checkout contains changes; refusing to replace them.' >&2
     exit 1
@@ -44,15 +41,9 @@ if [ "$#" -ne 0 ] || [ "${GITHUB_ACTIONS:-}" != true ]; then
     exit 1
 fi
 case "${GITHUB_JOB:-}" in
-    build-and-test)
-        # This reusable job runs package/unit checks, including current-source
-        # tooling checks, and never launches the compatibility topology.
-        echo 'Keeping tracked EventStore source for the build-and-test job.'
-        exit 0
-        ;;
-    authenticated-routes|aspire-tests|performance-tests) ;;
+    build-and-test|authenticated-routes|aspire-tests|performance-tests) ;;
     *)
-        echo 'Host selection is limited to the declared compatibility topology jobs.' >&2
+        echo 'Host selection is limited to the declared CI jobs.' >&2
         exit 1
         ;;
 esac

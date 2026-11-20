@@ -205,7 +205,7 @@ def shipping_versions(root):
 
 
 def package_producer(root, version):
-    """Bind the catalog package producer independently of executable source gitlinks."""
+    """Read the official source revision from the restored catalog package."""
     assets = json.loads((root / "src/Hexalith.Tenants.AppHost/obj/project.assets.json").read_text(encoding="utf-8"),
                         object_pairs_hook=unique_object)
     package_id = "Hexalith.EventStore.Aspire"
@@ -240,6 +240,14 @@ def package_producer(root, version):
             "revision": repository.get("commit")}
 
 
+def verified_host_revision(root, producer):
+    checkout = root / "references/Hexalith.EventStore"
+    revision = command("git", "-C", str(checkout), "rev-parse", "HEAD")
+    if revision != producer["revision"]:
+        raise ValueError("The EventStore host checkout differs from the restored package producer.")
+    return revision
+
+
 def shipping_runtime_evidence(root):
     eventstore, mcpcli = shipping_versions(root)
     producer = package_producer(root, eventstore)
@@ -264,7 +272,7 @@ def shipping_runtime_evidence(root):
             if package_id == producer["id"] and library.get("sha512") != "sha512-" + producer["sha512"]:
                 raise ValueError("The built AppHost catalog package hash differs from its restore.")
         manifests[host] = {"runtimeTarget": runtime, "manifestSha256": hashlib.sha256(data).hexdigest(), "packages": expected}
-    return {"sdkSource": command("git", "rev-parse", "HEAD:references/Hexalith.EventStore"),
+    return {"sdkSource": verified_host_revision(root, producer),
             "sdkPackageProducer": producer, "runtimeManifests": manifests}
 
 
@@ -363,20 +371,24 @@ def main():
     if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+(?:[.+-][0-9A-Za-z.-]+)?", producer):
         raise ValueError("The exact selected package producer identity is required.")
     root = Path(command("git", "rev-parse", "--show-toplevel"))
+    producer_package = package_producer(root, producer)
     for module in ("Hexalith.EventStore", "Hexalith.Builds"):
         relative = f"references/{module}"
         if command("git", "config", "--file", ".gitmodules", "--get", f"submodule.{module}.path") != relative:
             raise ValueError("A source prerequisite is not root-declared.")
+        if module == "Hexalith.EventStore":
+            if verified_host_revision(root, producer_package) != args.sdk_source_sha:
+                raise ValueError("The selected EventStore host revision differs from the checkout.")
+            continue
         expected = command("git", "rev-parse", f"HEAD:{relative}")
         actual = command("git", "-C", str(root / relative), "rev-parse", "HEAD")
-        if actual != expected or module == "Hexalith.EventStore" and actual != args.sdk_source_sha:
+        if actual != expected:
             raise ValueError("The actual source prerequisite differs from the selected gitlink.")
     if args.output.exists() or args.output.is_symlink():
         raise ValueError("Existing source qualification evidence must remain unchanged.")
     if (not args.output.is_absolute() or args.output.parent.resolve() != args.output.parent
             or not args.output.is_relative_to(temporary)):
         raise ValueError("Profile evidence must be beneath RUNNER_TEMP.")
-    producer_package = package_producer(root, producer)
     receipt_path, backend, volumes = initialization(temporary, identity)
     active = temporary / "tenants-catalog-active.json"
     reservation = temporary / f"tenants-catalog-database-{args.redis_db}.json"
