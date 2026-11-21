@@ -29,11 +29,11 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 07-19-2026 16:57
-last_updated: 11-20-2026 12:26
+last_updated: 11-21-2026 17:09
 project: tenants
 project_key: NOKEY
 tracking_system: file-system
-story_location: /home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts
+story_location: _bmad-output/implementation-artifacts
 development_status:
   epic-1: done
   1-0-reverify-frontcomposer-shell-and-fluent-contracts: done
@@ -407,19 +407,21 @@ action_items:
     resolution: All 8,085 UI tests passed, including 355 administrator tests.
   - id: audit-2026-11-20-hosted-qualification
     epic: 5
-    action: Record the hosted cold bootstrap, persisted state, authenticated REST and authenticated UI results for the same source revision and shipping cohort.
+    action: Record all four hosted suites on one Tenants revision and shipping package set, including cold bootstrap in REST and denial of anonymous UI access.
     owner: Release owner
-    status: open
+    status: done
     source: _bmad-output/planning-artifacts/sprint-change-proposal-2026-11-20.md
+    resolution: All four live-route jobs and their package verification steps passed on Tenants 9196587b with EventStore 5.4.0 and McpCli 3.0.0. The overall workflow was cancelled.
+    resolution_source: _bmad-output/planning-artifacts/sprint-change-proposal-2026-11-21.md
   - id: audit-2026-11-20-consumer-rollout
     epic: 2
-    action: Verify the first enforcement consumer against its durable state store and authorized history service. Check access after a delayed removal and restart.
+    action: Verify the first enforcement consumer against its durable state store and authorized history service. Record the denied access decision after recovering a delayed removal, restarting the consumer and replaying the earlier grant.
     owner: Consumer deployment owner
     status: open
     source: _bmad-output/planning-artifacts/sprint-change-proposal-2026-11-20.md
   - id: audit-2026-11-20-identity-rollout
     epic: 1
-    action: Verify the deployed issuer, discovery TLS, audience and ingress against the published Production authorization requirements. Record the environment and outcome without credentials.
+    action: Verify issuer, audience, discovery TLS, signing-key rotation and protected responses through the deployed ingress. Record the environment alias and redacted outcomes.
     owner: Deployment owner
     status: open
     source: _bmad-output/planning-artifacts/sprint-change-proposal-2026-11-20.md

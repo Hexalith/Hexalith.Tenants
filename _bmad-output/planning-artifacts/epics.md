@@ -8,7 +8,7 @@ inputDocuments:
   - _bmad-output/planning-artifacts/ux-designs/ux-tenants-2026-06-02/EXPERIENCE.md
 ---
 
-# tenants - Epic Breakdown
+# Tenants delivery plan
 
 ## Overview
 
@@ -26,7 +26,7 @@ The technical audit identified follow-up work for the delivered epics. The appro
 | 4 · Administrator controls | Rendering and dispatch consult the same grant decision. Caller changes, stale previews and duplicate attempts retain their existing behavior. |
 | Release qualification across epics | Each authenticated live profile runs the shipping EventStore package set on the same source revision. The release owner records the cohort and workflow run. |
 
-The release and deployment owners track hosted verification, first-consumer rollout, Production identity and index capacity separately. Work estimates and acceptance checks are in the [approved change proposal](sprint-change-proposal-2026-11-20.md). Owners and current status are in the [sprint tracker](../implementation-artifacts/sprint-status.yaml).
+The release and deployment owners track hosted verification, first-consumer rollout, Production identity and index capacity separately. Work estimates and acceptance checks are in the [approved change proposal](sprint-change-proposal-2026-11-20.md). The four hosted suites passed for Tenants `9196587b`. The three deployment checks remain open. [Qualification evidence](sprint-change-proposal-2026-11-21.md) · [Sprint tracker](../implementation-artifacts/sprint-status.yaml)
 
 ## Requirements Inventory
 
@@ -257,7 +257,7 @@ FR24: Epic 5 - Start a forward compensating command from audit evidence.
 
 FR25: Epic 5 - Preview corrections against current state and link original and corrective evidence.
 
-## Epic List
+## Delivery sequence
 
 ### Epic 1: Trustworthy Tenant Discovery and Access Review
 
