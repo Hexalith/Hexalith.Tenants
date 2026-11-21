@@ -1242,23 +1242,16 @@ public class PackageGovernanceTests {
         try {
             File.WriteAllText(Path.Combine(contractsDirectory, "Hexalith.EventStore.Contracts.csproj"), "<Project />");
             string projectPath = nestedReference
-                ? Path.Combine(nestedDirectory, "External.proj")
-                : Path.Combine(fixtureRoot, "PackageFloor.proj");
+                ? Path.Combine(nestedDirectory, "External.csproj")
+                : Path.Combine(fixtureRoot, "PackageFloor.csproj");
             if (nestedReference) _ = Directory.CreateDirectory(Path.GetDirectoryName(projectPath)!);
-            new XDocument(new XElement("Project",
+            new XDocument(new XElement("Project", new XAttribute("Sdk", "Microsoft.NET.Sdk"),
                 new XElement("PropertyGroup",
-                    new XElement("HexalithVersionsLoaded", "true"),
                     new XElement("HexalithEventStoreVersion", selectedVersion),
                     new XElement("HexalithEventStoreRoot", fixtureRoot),
                     new XElement("UseHexalithProjectReferences", useSource ? "true" : "false")),
-                new XElement("ItemGroup",
-                    new[] { "Contracts", "DomainService", "Gateway" }.Select(package => new XElement("PackageVersion",
-                        new XAttribute("Include", $"Hexalith.EventStore.{package}"),
-                        new XAttribute("Version", selectedVersion)))),
                 new XElement("Import", new XAttribute("Project", Path.Combine(repoRoot, "Directory.Build.props"))),
-                new XElement("Import", new XAttribute("Project", Path.Combine(repoRoot, "Directory.Build.targets"))),
-                new XElement("Target", new XAttribute("Name", "CollectPackageReferences")),
-                new XElement("Target", new XAttribute("Name", "PrepareForBuild"))))
+                new XElement("Import", new XAttribute("Project", Path.Combine(repoRoot, "Directory.Build.targets")))))
                 .Save(projectPath);
 
             var startInfo = new ProcessStartInfo("dotnet") {
@@ -1275,6 +1268,7 @@ public class PackageGovernanceTests {
             }
             foreach (string argument in new[] {
                 "msbuild", projectPath, "-nologo",
+                "-p:ImportDirectoryBuildProps=false", "-p:ImportDirectoryBuildTargets=false", "-p:ImportDirectoryPackagesProps=false",
                 entryTarget is not null ? $"-target:{entryTarget}" : requireSdkSelection ? "-target:ValidateCatalogSdkSelection"
                     : requireCatalogPackage ? "-target:ValidatePublishedCatalogSdk" : "-target:ValidateEventStorePackageFloor",
                 "-getProperty:HexalithEventStoreVersion,HexalithEventStoreFromSource,HexalithTenantsCatalogArtifactsAvailable,HexalithTenantsCatalogSdkVersion,DefineConstants", "-getItem:PackageVersion",
@@ -1369,7 +1363,10 @@ public class PackageGovernanceTests {
                         .ShouldBe(string.Join(".", expectedVersion.Split('+')[0].Split('.').Take(3)));
                 }
             }
-            JsonElement[] packages = evaluation.RootElement.GetProperty("Items").GetProperty("PackageVersion").EnumerateArray().ToArray();
+            JsonElement[] packages = evaluation.RootElement.GetProperty("Items").GetProperty("PackageVersion").EnumerateArray()
+                .Where(static package => package.GetProperty("Identity").GetString() is
+                    "Hexalith.EventStore.Contracts" or "Hexalith.EventStore.DomainService" or "Hexalith.EventStore.Gateway")
+                .ToArray();
             packages.Length.ShouldBe(3);
             foreach (JsonElement package in packages) {
                 package.GetProperty("Version").GetString().ShouldBe(expectedVersion, package.GetProperty("Identity").GetString());
