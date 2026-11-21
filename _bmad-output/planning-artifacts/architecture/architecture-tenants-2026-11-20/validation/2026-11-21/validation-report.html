@@ -1,0 +1,223 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Hexalith.Tenants architecture validation · 21 November 2026</title><style>*{box-sizing:border-box}html{background:#f2f3ef;color:#182624}body{max-width:57rem;margin:2.5rem auto;padding:clamp(1.2rem,5vw,4.5rem);background:#fff;border-top:6px solid #235d50;font:17px/1.6 system-ui,sans-serif}h1,h2,h3{line-height:1.22;text-wrap:balance}h1{font-family:Georgia,serif;font-size:clamp(2rem,6vw,3.5rem);letter-spacing:-.035em;margin:0}h1+p{color:#526561}h2{margin-top:2rem;color:#173f36}h3{font-size:1.18rem;margin:2rem 0 .75rem;padding-top:1rem;border-top:1px solid #d2ded8}h3[id^=high]{color:#8a3028}p{margin:.65rem 0}table{width:100%;border-collapse:collapse;margin:1.4rem 0;background:#eef4ef}th,td{padding:.55rem .35rem;text-align:center!important;font-variant-numeric:tabular-nums}th{font-size:.88rem}td{font-size:1.4rem;font-weight:650}code{overflow-wrap:anywhere;font-size:.88em}a{color:#145c50;text-underline-offset:.15em}a:focus-visible{outline:2px solid #814500}a:hover{color:#812e24}@media(max-width:550px){body{margin:0}th{font-size:.75rem}}@media print{body{margin:0;max-width:none;padding:0;border:0}h2,h3{break-after:avoid}html{background:white}}</style></head><body><main><h1 id="hexalithtenants-architecture-validation">Hexalith.Tenants
+architecture validation</h1>
+<p>21 November 2026 · Standalone review of the working tree based on
+<code>f15f6170</code>.</p>
+<h2 id="verdict">Verdict</h2>
+<p><strong>Revise AD-8 and AD-12 before implementation handoff.</strong>
+The PRD settles how stale reads affect high-impact writes. Product and
+Architecture still need to reconcile when a tenant becomes writable
+again after an operator stops tracking an unresolved command.</p>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: right;">Critical</th>
+<th style="text-align: right;">High</th>
+<th style="text-align: right;">Medium</th>
+<th style="text-align: right;">Low</th>
+<th style="text-align: right;">Spine lint findings</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">0</td>
+</tr>
+</tbody>
+</table>
+<h3
+id="high--decide-when-an-unresolved-command-releases-the-tenant-lock">High
+· Decide when an unresolved command releases the tenant lock</h3>
+<p>AD-12 and the PRD addendum hold the aggregate lock until terminal
+evidence arrives. After a possibly delivered enable or disable command,
+<strong>Stop tracking</strong> discards the local attempt and releases
+the lock. The remote outcome remains unknown. Configuration edits also
+release tracking on explicit abandonment or retention expiry. A second
+command can then acquire admission on that tenant.</p>
+<p>Product and Architecture need to agree when another write is
+admissible after abandonment or expiry, what evidence it requires, and
+which recovery actions remain available. Record the rule in AD-12 and
+the PRD addendum. Preserve the distinction between ending local tracking
+and cancelling or confirming the remote command. <a
+href="../../../../architecture.md#L159">AD-12</a> · <a
+href="../../../../prds/prd-tenants-2026-06-02/addendum.md#L28">PRD
+addendum</a> · <a
+href="../../../../../../src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleActionAvailability.razor#L445">Lifecycle
+release</a> · <a
+href="../../../../../../tests/Hexalith.Tenants.UI.Tests/Components/TenantLifecycleActionAvailabilityTests.cs#L2206">Ambiguous
+delivery test</a> · <a
+href="../../../../../../src/Hexalith.Tenants.UI/Components/Tenants/Configuration/SetTenantConfigurationFlow.razor#L946">Configuration
+release</a></p>
+<h3
+id="high--a-valid-stale-304-can-support-display-while-a-high-impact-write-remains-blocked">High
+· A valid stale 304 can support display while a high-impact write
+remains blocked</h3>
+<p>AD-8 permits reuse of a cached projection after a valid stale HTTP
+304. Its blocking rule covers missing, contradictory and degraded
+evidence. AD-12 asks the caller to recheck freshness without specifying
+the result for well-formed stale evidence. A new surface could therefore
+enable a destructive preview from a cached row that is safe to display.
+The PRD and the current availability evaluator both block that
+action.</p>
+<p>State the stale and unknown outcomes explicitly at preview, dispatch
+and delivery retry. Keep the narrowly scoped first-tenant creation
+exception in AD-8. For the lifecycle and configuration controls,
+refreshing requires a current baseline. <a
+href="../../../../architecture.md#L132">AD-8</a> · <a
+href="../../../../architecture.md#L161">AD-12 high-impact actions</a> ·
+<a href="../../../../prds/prd-tenants-2026-06-02/prd.md#L188">PRD
+CP-2</a> · <a
+href="../../../../../../src/Hexalith.Tenants.UI/State/TenantDetail/TenantHighImpactActionAvailabilityEvaluator.cs#L34">High-impact
+evaluator</a></p>
+<h3 id="medium--use-one-lock-per-circuit-and-aggregate">Medium · Use one
+lock per circuit and aggregate</h3>
+<p>AD-12 permits two unrelated tenants to proceed in one circuit. The
+cross-component guidance says the shared gate admits one operation per
+circuit, and the sibling-control test guidance leaves the aggregate
+unspecified.</p>
+<p>Scope both instructions to the same aggregate. The regression case
+acquires locks for tenants alpha and beta concurrently and releases them
+independently. <a href="../../../../architecture.md#L159">AD-12</a> · <a
+href="../../../../architecture.md#L543">Cross-component guidance</a> ·
+<a href="../../../../architecture.md#L660">Sibling controls</a> · <a
+href="../../../../../../tests/Hexalith.Tenants.UI.Tests/State/TenantAggregateCommandAdmissionGateTests.cs#L90">Two-tenant
+regression</a></p>
+<h3
+id="medium--include-projection-lifecycle-in-conditional-read-validation">Medium
+· Include projection lifecycle in conditional-read validation</h3>
+<p>D6 describes current, stale and unknown freshness. The REST client
+also reads projection lifecycle. Rebuilding, Degraded, Unavailable and
+LocalOnly each invalidate a 304, even with a matching validator. A
+client following only the freshness description could reuse an invalid
+response.</p>
+<p>Document the lifecycle check and its relationship to the stale flag.
+Verify the four invalid lifecycle cases independently of the valid stale
+display case. <a href="../../../../architecture.md#L443">D6</a> · <a
+href="../../../../../../src/Hexalith.Tenants.UI/Services/Gateways/TenantsRestQueryClient.cs#L406">REST
+metadata handling</a> · <a
+href="../../../../../../tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantsRestQueryClientTests.cs#L1111">304
+regression cases</a></p>
+<h3
+id="medium--separate-a-status-observation-from-proof-of-a-correction">Medium
+· Separate a status observation from proof of a correction</h3>
+<p>The status guidance requires the returned domain to match for every
+lookup. For an ordinary tracked command the gateway rejects an
+explicitly wrong domain, yet can accept a status with the field absent
+when the other identity checks pass. The same incomplete response
+supplies no committed sequence for correction proof.</p>
+<p>Describe ordinary status lookup, governance recovery and correction
+proof separately. Retain the full scope and sequence checks before using
+a result as proof. <a href="../../../../architecture.md#L502">Status
+guidance</a> · <a
+href="../../../../../../src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs#L630">Status
+identity checks</a> · <a
+href="../../../../../../src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs#L678">Correction
+proof checks</a> · <a
+href="../../../../../../tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayTests.cs#L2102">Incomplete-scope
+regression</a></p>
+<h3
+id="medium--require-elevated-confirmation-for-a-tenant-member-with-verified-platform-authority">Medium
+· Require elevated confirmation for a tenant member with verified
+platform authority</h3>
+<p>AD-12 names the last-owner case. The PRD independently raises the
+level of confirmation when the target also holds global-administrator
+authority, even if other tenant owners remain. The membership UI
+implements both conditions.</p>
+<p>Include this second trigger in AD-12. Reflect verified standing,
+present unresolved standing as unknown, and keep the command scoped to
+tenant membership. <a href="../../../../architecture.md#L162">AD-12</a>
+· <a href="../../../../prds/prd-tenants-2026-06-02/prd.md#L192">PRD
+CP-6</a> · <a
+href="../../../../../../src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor#L598">Removal
+risk checks</a> · <a
+href="../../../../../../src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor#L744">Confirmation
+copy</a></p>
+<h3
+id="medium--check-authority-before-explaining-a-blocked-action">Medium ·
+Check authority before explaining a blocked action</h3>
+<p>AD-12 lists admission checks without specifying which reason to
+display when several fail. For lifecycle and configuration controls,
+missing or indeterminate authority takes precedence over stale data or
+domain state. Returning a tenant-specific reason first could reveal
+state to a caller whose authority is unverified.</p>
+<p>Bind these controls to the existing evaluator. Report missing
+permission and suppress domain outcomes until authority is established.
+<a href="../../../../architecture.md#L161">AD-12</a> · <a
+href="../../../../../../src/Hexalith.Tenants.UI/State/TenantDetail/TenantHighImpactActionAvailabilityEvaluator.cs#L24">Reason
+precedence</a> · <a
+href="../../../../../../tests/Hexalith.Tenants.UI.Tests/State/TenantHighImpactActionAvailabilityTests.cs#L50">Multiple-failure
+test</a></p>
+<h3 id="low--align-the-prd-with-the-localization-format-in-ad-9">Low ·
+Align the PRD with the localization format in AD-9</h3>
+<p>The architecture and resources use indexed .NET placeholders such as
+<code>{0}</code>. The PRD still calls for named placeholders. A
+translator following that instruction could produce a string that fails
+to format.</p>
+<p>Correct the PRD wording. Keep each argument index and its meaning
+stable across cultures. <a
+href="../../../../architecture.md#L138">AD-9</a> · <a
+href="../../../../architecture.md#L585">Worked resource example</a> · <a
+href="../../../../prds/prd-tenants-2026-06-02/prd.md#L354">PRD
+localization</a></p>
+<h3 id="low--describe-the-supported-local-dapr-startup">Low · Describe
+the supported local Dapr startup</h3>
+<p>The architecture describes slim mode as the development startup. The
+quickstart calls for full initialization to supply local services, while
+the AppHost configures a private control plane including Sentry,
+placement and scheduler.</p>
+<p>Point developers to the quickstart and state the prerequisites for an
+intentional slim setup. <a
+href="../../../../architecture.md#L782">Development workflow</a> · <a
+href="../../../../../../docs/quickstart.md#L42">Quickstart</a> · <a
+href="../../../../../../src/Hexalith.Tenants.AppHost/Program.cs#L33">AppHost
+setup</a></p>
+<h2 id="verified-in-this-checkout">Verified in this checkout</h2>
+<p>All 15 decision IDs match the committed architecture. All 47 declared
+inputs and 51 relative file references in the canonical document
+resolve. The BMAD spine linter reported zero findings. The reviewed
+working copy has SHA-256
+<code>2e218ac1fd0e96522ffd084bce9bfbff8440161616739f088121260e34fc5042</code>.
+<a href="../../../../architecture.md">Canonical architecture</a></p>
+<p>The authenticated-routes workflow defines the four suites named in
+AD-14: <code>rest</code>, <code>persisted</code>,
+<code>anonymous-ui</code> and <code>authenticated-ui</code>. The local
+host-selection check located the declared EventStore 5.4.0 source commit
+<code>2ec21f63</code>. All 15 Python tests in the source-catalog and
+product-integration profile suites passed. These exercise evidence and
+lifecycle handling. Hosted runs and .NET product suites were outside
+this validation. <a
+href="../../../../../../.github/workflows/ci.yml#L188">Hosted matrix</a>
+· <a
+href="../../../../../../scripts/prepare-bootstrap-compatibility.sh#L23">Selection
+check</a> · <a
+href="../../../../../../scripts/prepare-source-catalog-profile.py#L252">Runtime
+evidence</a></p>
+<p>The refreshed Builds checkout <code>e1380b8</code> selects EventStore
+5.4.0, FrontComposer 6.0.1 and Memories 4.1.0. The committed Tenants
+revision still points to Builds <code>a8e2ae29</code>, which lacks the
+release declaration the selector requires. The local check used the
+refreshed checkout. <a href="../../../../architecture.md#L288">Catalog
+comparison</a></p>
+<h2 id="evidence-still-owed-by-owners">Evidence still owed by
+owners</h2>
+<p>Release owns the four hosted results on the same candidate and
+shipping packages. The first access-enforcing consumer owns checkpoint
+and restart evidence. Deployment owns the production identity and
+tenant-index capacity checks. The architecture also tracks the
+audit-component data boundary, UI telemetry, topology and replica
+prerequisites, and causal pairing of tenant correction receipts. These
+previously recorded items are separate from the nine findings. <a
+href="../../../../architecture.md#L184">Conformance and
+qualification</a> · <a
+href="../../../../architecture.md#L787">Handoff</a> · <a
+href="../../../../../implementation-artifacts/sprint-status.yaml#L408">Sprint
+tracker</a></p>
+<h2 id="independent-reviews">Independent reviews</h2>
+<p><a href="reviews/review-rubric.md">Requirements and
+enforceability</a> · <a href="reviews/review-technology.md">Technology
+and implementation</a> · <a
+href="reviews/review-divergence.md">Independent implementation
+choices</a></p>
+</main></body></html>

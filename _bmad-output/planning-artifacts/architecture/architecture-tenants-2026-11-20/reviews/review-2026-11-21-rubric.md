@@ -1,0 +1,7 @@
+# Architecture rubric review, 21 November 2026
+
+**Pass on the architecture decisions.** AD-1 through AD-15 retain their identifiers. The amendment to AD-14 makes host selection independently verifiable. A release owner can compare the EventStore host checkout with the producer revision in the restored Aspire package and check the AppHost, domain, API and UI runtime manifests. The release owner still needs hosted evidence on the same Tenants candidate for cold bootstrap, persisted state, authenticated REST and authenticated UI. [Host selection](../../../../../scripts/prepare-bootstrap-compatibility.sh) · [Package and manifest checks](../../../../../scripts/prepare-source-catalog-profile.py) · [Release criteria](../../../architecture.md#conformance-and-qualification-20-november-2026)
+
+The integration fixture owns local Aspire and daprd lifecycle for Tenants tests. AD-13 assigns production topology to the composing platform. The update preserves the four operational checks and the existing conditions for audit data, replica scaling, UI telemetry and causal receipt pairing. [Test project](../../../../../tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj) · [Architecture handoff](../../../architecture.md#architecture-validation-and-handoff)
+
+**Minor citation finding.** The Builds Dapr 1.19.2 report exists at the refreshed upstream revision. The Tenants commit `f15f6170` records an earlier Builds tree where that path is absent. A permalink to the upstream revision keeps the evidence accessible from both checkouts.

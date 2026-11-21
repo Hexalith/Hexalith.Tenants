@@ -1,6 +1,7 @@
 ---
 stepsCompleted: [1, 2, 3, 4, 5, 6, 7, 8]
 inputDocuments:
+  - _bmad-output/planning-artifacts/architecture/architecture-tenants-2026-11-20/validation/2026-11-21/validation-report.md
   - _bmad-output/planning-artifacts/architecture/architecture-tenants-2026-11-20/validation/validation-report.md
   - _bmad-output/planning-artifacts/sprint-change-proposal-2026-11-20.md
   - _bmad-output/planning-artifacts/prds/prd-tenants-2026-06-02/reconcile-validation-2026-11-20.md
@@ -57,7 +58,7 @@ workflowType: 'architecture'
 lastStep: 8
 status: 'complete'
 completedAt: '2026-06-03'
-updatedAt: '2026-11-20'
+updatedAt: '2026-11-21'
 architectureSpineStatus: 'final'
 architectureRun: '_bmad-output/planning-artifacts/architecture/architecture-tenants-2026-11-20'
 architectureSpineMerged: true
@@ -129,7 +130,9 @@ Tenants Management UI is a **FrontComposer-composed domain UI**: FrontComposer o
 
 - **Binds:** action availability, list states, badges, and stale/degraded behavior.
 - **Prevents:** duplicate Tenants freshness enums, `ServedAt` as projection age, search results as freshness proof, or 304 responses being treated as recovery without metadata.
-- **Rule:** The BFF evaluates projection-backed provenance on each 200 and 304. Reuse cached data on 304 only for the same authorized request with a matching strong validator, usable projection version and supported freshness metadata. A valid 304 can still be stale. Missing, contradictory or degraded evidence cannot authorize a high-impact action. `ServedAt` is response time. `Refreshing` is UI-only. First creation allows unknown freshness only for a verified global administrator viewing an authoritatively empty first tenant list with no first-write timestamp. [REST client](../../src/Hexalith.Tenants.UI/Services/Gateways/TenantsRestQueryClient.cs)
+- **Rule:** On a 200 or 304, validate projection provenance and freshness. A 304 can reuse the cached row for the same authorized request only with a matching strong ETag, a usable projection version and consistent, non-degraded metadata. A valid stale 304 can display that row as stale.
+- **Conditional reads.** Accept projection lifecycle `Current` or `Stale` when consistent with the other headers. If lifecycle is absent, use a definite `IsStale` value from the projection-backed response. Reject a 304 with malformed or conflicting evidence or with lifecycle `Rebuilding`, `Degraded`, `Unavailable` or `LocalOnly`. `ServedAt` records response time. [REST client](../../src/Hexalith.Tenants.UI/Services/Gateways/TenantsRestQueryClient.cs) · [304 regression cases](../../tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantsRestQueryClientTests.cs#L1111)
+- **Write eligibility.** Stale, unknown, contradictory or degraded evidence blocks high-impact preview, dispatch and delivery retry. During a UI refresh, lifecycle and configuration controls require a current baseline and current projection lifecycle. The first-create exception allows unknown freshness only for a verified global administrator on an authoritatively empty first tenant list with no first-write timestamp. Other eligibility checks still apply. [High-impact action evaluator](../../src/Hexalith.Tenants.UI/State/TenantDetail/TenantHighImpactActionAvailabilityEvaluator.cs)
 
 ### AD-9 - Domain Copy And Support Safety Stay Tenants-Owned [ADOPTED]
 
@@ -156,10 +159,13 @@ Tenants Management UI is a **FrontComposer-composed domain UI**: FrontComposer o
 
 - **Binds:** FR-10..FR-17, FR-19, FR-24..FR-25, and CP-2..CP-8.
 - **Prevents:** independent command flows choosing optimistic success, concurrent submits, bulk action, toast batching, or bypassing preview and gating.
-- **Rule:** Tenants admits one active command per interactive circuit and aggregate. FrontComposer supplies the shared controls. Hold the lease through submission, projection pending and an unverifiable outstanding attempt. Other aggregates may proceed. Grant controls use the same eligibility rules for rendering, dispatch and delivery retry.
+- **Rule:** Admit one active command per interactive circuit and aggregate. A pending command holds its aggregate lease while unrelated aggregates may proceed. FrontComposer supplies the shared controls. Tenants checks admission for rendering, dispatch and eligible delivery retry.
+- **Unresolved attempts.** Continue tracking the original message until terminal evidence or an operation-specific end to local tracking. A membership projection timeout changes the displayed outcome to `UnableToVerify`. Add-member, change-role and remove-member keep the lease and the original recovery handle, including across read-only navigation. [Membership recovery](../../docs/quickstart.md#ui-membership-projection-wait)
+- **Ending local tracking.** Enable, disable, set-configuration and remove-configuration can release their own lease on explicit abandonment or expiry of their bounded retention period. Set-configuration holds its lease while the local dispatch is running, even if its retention window expires. Remove-configuration invalidates outstanding local work before releasing its lease so a late completion cannot affect a newer attempt. The remote outcome stays unknown. [Set-configuration release](../../src/Hexalith.Tenants.UI/Components/Tenants/Configuration/SetTenantConfigurationFlow.razor) · [Remove-configuration release](../../src/Hexalith.Tenants.UI/Components/Tenants/Configuration/RemoveTenantConfigurationFlow.razor)
+- **Recovery after release.** Ending local tracking neither cancels nor resends the remote command. Authorized reads and audit remain available subject to their own evidence rules. A late result belongs to the original attempt. Before a subsequent write, obtain current authoritative evidence for that action, repeat its admission checks and review a new preview wherever required. Give the new attempt its own message ID. [Lifecycle decision](../implementation-artifacts/spec-3-4-disable-or-enable-tenant-with-complete-preview.md) · [Configuration set](../implementation-artifacts/spec-3-5-set-namespaced-configuration-with-complete-preview.md) · [Configuration removal](../implementation-artifacts/spec-3-6-remove-configuration-key-with-complete-preview.md)
 - **Confirmation.** Require the command-specific postcondition on an authoritative read and qualifying evidence beyond the pre-submit baseline. Use `already applied` only when the operation explicitly defines that outcome and authoritative evidence establishes it. Examples include an authorized same-role NoOp and a `UserNotInTenant` removal rejection followed by a fresh read proving the target is absent. Both describe the observed state without attributing a change to this attempt. `UpdateTenant` emits `TenantUpdated` even for identical metadata. If the submitted values already matched the baseline, confirmation requires matching tenant detail and qualifying audit evidence attributable to this attempt. Without that audit evidence, matching values and an unrelated version advance leave the outcome `unable to verify`. [Metadata confirmation](../../src/Hexalith.Tenants.UI/State/TenantCommands/TenantUpdateMetadataCommandSnapshot.cs) · [Same-value regression cases](../../tests/Hexalith.Tenants.UI.Tests/State/TenantUpdateMetadataCommandSnapshotTests.cs) · [Removal rejection and re-query](../../tests/Hexalith.Tenants.UI.Tests/State/TenantRemoveMemberCommandSnapshotTests.cs)
-- **High-impact actions.** Before opening the preview, dispatching or retrying delivery, recheck caller authority, projection freshness under AD-8, input validity, required gateway capabilities, circuit and aggregate admission, and a measured viewport that can show the complete safety context. At dispatch and retry, also match the reviewed preview to the current target and consequences. Phone layouts are read-only for these actions. An unknown or unsafe measurement, including after resize, blocks the write and displays the reason. Authorized read-only triage and status lookup remain available. [Responsive requirements](prds/prd-tenants-2026-06-02/prd.md) · [Member removal](../../src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor) · [Administrator controls](../../src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor)
-- **Recovery:** First-member bootstrap requires an active tenant with no prior membership. Restoring an owner on a previously populated, ownerless tenant requires a global administrator. Removing the last tenant owner carries a warning and additional confirmation. Domain rules prohibit removing the last global administrator.
+- **High-impact actions.** Before opening the preview, dispatching or retrying delivery, recheck caller authority, projection freshness under AD-8, input validity, required gateway capabilities, circuit and aggregate admission, and a measured viewport that can show the complete safety context. For lifecycle and configuration controls, check reflected authority first. When it is missing or indeterminate, show the permission reason and withhold tenant freshness, state and domain outcomes. At dispatch and retry, also match the reviewed preview to the current target and consequences. Phone layouts are read-only for these actions. An unknown or unsafe measurement, including after resize, blocks the write and displays the reason. Authorized read-only triage and status lookup remain available. [Responsive requirements](prds/prd-tenants-2026-06-02/prd.md) · [Member removal](../../src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor) · [Administrator controls](../../src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor)
+- **Recovery:** First-member bootstrap requires an active tenant with no prior membership. Restoring an owner on a previously populated, ownerless tenant requires a global administrator. Removing the last tenant owner carries a warning and additional confirmation. Independently, verified global-administrator standing of the target member also requires elevated confirmation, even when other owners remain. Show unresolved platform standing as unknown. The removal changes tenant membership only. Removing platform authority is a separate governance command, and the domain prohibits removing the last global administrator. [Member removal requirements](../../docs/tenants-ui-remove-user-from-tenant-journey-spec.md#32-cases-requiring-elevated-friction)
 - **Proof:** For a correction, verify the exact attempt and its committed sequence. Confirm only when a fresh, ordered projection of the same aggregate reaches or exceeds that sequence and shows the intended effect. Keep the original receipt. Tenant correction reports `MissingSupport` for pairing and clears the pair. Governance may link two receipts only after reauthorization in the originating circuit and independent protected evidence for the source and corrective attempt. For member removal, show the tenant, target and current role with the other seven [required preview facts](../../docs/tenants-ui-remove-user-from-tenant-journey-spec.md#21-preview-content-enumerated-exactly). Require proof capability before dispatch and stable, complete evidence for the exact attempt and sequence before exposing the receipt. A confirmed local change can outlive an inconclusive audit read. [Correction contracts and acceptance](prds/prd-tenants-2026-06-02/prd.md)
 
 ### AD-13 - The UI Host Is Domain-Owned; Orchestration Is Platform-Owned [ADOPTED]
@@ -172,7 +178,8 @@ Tenants Management UI is a **FrontComposer-composed domain UI**: FrontComposer o
 
 - **Binds:** NFR-1..NFR-5, container deployment, configuration, secrets, health, telemetry, and replica count.
 - **Prevents:** embedding secrets, treating UI memory as durable truth, shipping bespoke observability, or scaling InteractiveServer with incompatible key/session/cursor assumptions.
-- **Rule:** externalize configuration and secrets; consume shared health, telemetry, and non-root SDK-container defaults; keep persistent truth outside the UI host; and do not scale InteractiveServer beyond one replica until shared DataProtection, circuit/session routing, and cursor durability are verified. Both public REST and domain hosts require valid Production OIDC at startup. Release evidence covers cold bootstrap, persisted state, authenticated REST and authenticated UI on one revision with its shipping packages.
+- **Rule:** externalize configuration and secrets; consume shared health, telemetry, and non-root SDK-container defaults; keep persistent truth outside the UI host; and do not scale InteractiveServer beyond one replica until shared DataProtection, circuit/session routing, and cursor durability are verified. Both public REST and domain hosts require valid Production OIDC at startup. Run all four hosted suites in the conformance table on one Tenants revision with its shipping packages.
+- **Executable host provenance.** In disposable package-mode CI, select the EventStore host commit declared by Builds for the shipping EventStore version. Require that checkout to match the producer commit in the restored `Hexalith.EventStore.Aspire` package. Verify the AppHost package hash against the restore. For AppHost, domain, API and UI, record each runtime target, manifest SHA-256 and verified package identities. [Host selection](../../scripts/prepare-bootstrap-compatibility.sh) · [Package and runtime verification](../../scripts/prepare-source-catalog-profile.py)
 
 ### AD-15 - Downstream Access Requires a Verified Consumer Checkpoint [ADOPTED]
 
@@ -188,7 +195,7 @@ Both the public REST and domain hosts validate Production OIDC before serving. R
 
 | Open check | Owner | Evidence required |
 | --- | --- | --- |
-| Hosted release qualification | Release owner | Exercise cold bootstrap, persisted state, authenticated REST and authenticated UI on the same candidate revision and shipping package set. Local manifest checks identified EventStore.Contracts 5.4.0 and McpCli.Abstractions 3.0.0. |
+| Hosted release qualification | Release owner | Require `rest` (cold bootstrap and authenticated REST), `persisted` (worker-backed delivery and persisted state), `anonymous-ui` (access denial) and `authenticated-ui` (authorized browser flows) on the same candidate and shipping package set. Verify the EventStore producer, restored packages and runtime manifests as required by AD-14. The 20 November manifest checks covered EventStore.Contracts 5.4.0 and McpCli.Abstractions 3.0.0 on the earlier checkout. |
 | First access-enforcing consumer | Consumer deployment owner | Demonstrate authorized history access, durable shared state and correct access after a delayed removal and restart. |
 | Deployed identity | Deployment owner | Verify real issuer, audience, discovery TLS, ingress and key rotation. Record redacted evidence. |
 | Tenant-index capacity | Deployment owner | Measure index size, write contention and update latency at representative load. Preserve the same index version for equivalent replayed state. Revisit partitioning when deployed measurements justify it. |
@@ -283,7 +290,9 @@ verbatim) — translating directly into a **shared typed UI truth-state model**.
   cursor/pinning/list-state capability as a FrontComposer concern.
 - **Fluent UI Blazor 5.1.0** — exact token/component/ARIA names
   verified against the pinned package at build; none asserted available without check.
-- **Build baseline, 20 November 2026.** Tenants targets `net11.0` with SDK 11.0.100, Aspire 17.0.0, EventStore 5.4.0 and McpCli 3.0.0. The pinned catalog defaults to FrontComposer 6.0.0 and Memories 4.0.0. The default build consumes packages. Source debugging is opt-in. Qualify the restored package set used for Release. [SDK](../../global.json) · [Tenants build properties](../../Directory.Build.props) · [Central package catalog](../../references/Hexalith.Builds/Props/Directory.Packages.props)
+- **Build baseline, 21 November 2026.** Tenants targets `net11.0` with SDK 11.0.100 and Aspire AppHost SDK 17.0.0. The default package build inherits the EventStore family from Builds and selects McpCli 3.0.0 in Tenants. Source debugging is opt-in. [SDK](../../global.json) · [Tenants build properties](../../Directory.Build.props) · [Central package catalog](../../references/Hexalith.Builds/Props/Directory.Packages.props)
+- **Catalog revisions.** Tenants `f15f6170` records Builds `a8e2ae29`, which defaults to EventStore 5.3.1, FrontComposer 6.0.0 and Memories 4.0.0. That revision lacks the release declaration required by host selection. The refreshed Builds checkout `e1380b8` selects EventStore 5.4.0, FrontComposer 6.0.1 and Memories 4.1.0 and supplies the declaration. Qualify each candidate with its recorded Builds revision under AD-14. [Refreshed catalog](https://github.com/Hexalith/Hexalith.Builds/blob/e1380b813b230022db0b8656ac3a0480e57c07e8/Props/Directory.Packages.props) · [Release declarations](https://github.com/Hexalith/Hexalith.Builds/blob/e1380b813b230022db0b8656ac3a0480e57c07e8/Props/release-declarations.json)
+- **Dapr profile.** The pulled Builds catalog declares runtime 1.19.2 and CLI 1.19.1. The Tenants authenticated-routes job installs runtime 1.18.7 and CLI 1.18.2. Record the pair exercised by the candidate when reporting hosted results. [Builds runtime qualification](https://github.com/Hexalith/Hexalith.Builds/blob/e1380b813b230022db0b8656ac3a0480e57c07e8/docs/dapr-runtime-1.19.2.md) · [Tenants CI](../../.github/workflows/ci.yml)
 - **Identity.** Canonical public tenant IDs are 1–64 ASCII letters, digits or hyphens, with alphanumeric endpoints. Normalize to lowercase without trimming. User IDs retain their literal identity. Duplicate canonical grants, malformed grants and the reserved public tenant `system` fail closed. The client supplies the operation’s declared scope. The receiving service verifies it against the catalog. Internal stream identities stay private. [Identity and scope rules](../../docs/production-auth-claim-contract.md)
 
 - **Async, eventually-consistent integration:** commands return `202` + correlationId;
@@ -437,13 +446,7 @@ Story 1.1 delivered the host and workspace bootstrap.
 **Important Decisions (made — cascade from D1–D4):**
 - **D5 Truth-state model:** shared typed immutable truth/lifecycle snapshots plus a
   casing-faithful **canonical-vocabulary library**; no specific state framework is required.
-- **D6 Freshness:** **server-side** conditional reads (`If-None-Match`→`304`); freshness is
-  classified **server-side** from a **persisted projection timestamp** (`IReadModelFreshness.ProjectedAt`,
-  EventStore Client) against **configurable thresholds**; the wire (`QueryResponseMetadata`) carries
-  **`current`/`stale`/`unknown`** only (`refreshing` is a client transient; `aging` collapses into
-  `current` until a `QueryResponseMetadata.ProjectedAt` wire field exists — future EventStore handoff);
-  `unknown` when unmeasurable (fail-closed). Thresholds default **conservative** because `ProjectedAt`
-  measures the last projection write (quiescence ≠ lag).
+- **D6 Freshness.** The server classifies the persisted projection write time (`IReadModelFreshness.ProjectedAt`) using configurable age thresholds. An idle projection can age without delivery lag. The BFF combines the wire stale flag with separate projection-lifecycle evidence under AD-8. The stale flag maps aging to current. `Refreshing` is a UI state.
 - **D7 Authorization reflection:** **server-side** claims→action-availability service.
 - **D8 Support-safety:** **server-side** receipt/preview/redaction assembly.
 - **D9 Cursors:** opaque and scope-bound. Ordinary workspace paging can round-trip its cursor in the URL. Keep search and search-fallback continuations in circuit state. On invalidation reload page one.
@@ -464,13 +467,7 @@ existing projections only.
   `TenantDetail`, `TenantMember`, `UserTenantMembership`, `TenantAuditEntry`).
   - **Transport:** `TenantsRestQueryClient` invokes `tenants-api` through Dapr. The generated REST controller uses the authenticated internal EventStore path. The UI consumes the exact REST routes and conditional metadata in AD-6 and AD-8. [BFF registrations](../../src/Hexalith.Tenants.UI/Extensions/TenantsUiServiceCollectionExtensions.cs)
 
-- **Freshness/caching (D6):** conditional requests executed server-side; freshness is classified
-  server-side from the persisted projection timestamp via the shared `ReadModelFreshness.Classify`
-  (EventStore Client) and surfaced as `QueryResponseMetadata.IsStale`. The Truth State Badge renders
-  the shared `ReadModelFreshnessState` (`current/aging/stale/unknown`) plus a client-only `refreshing`
-  transient; on the wire only `current/stale/unknown` are producible today (`aging` collapses to
-  `current`). Thresholds are configuration, **no magic numbers**, defaulted conservatively;
-  unmeasurable → `unknown` → fail-closed.
+- **Freshness and caching (D6).** The server issues conditional reads. The BFF applies AD-8 to both the stale flag and the projection lifecycle before reusing a cached result or enabling an action. The badge uses the shared freshness states and the UI's transient refreshing state.
 - **Cursors (D9):** opaque and scope-bound. Ordinary workspace links can round-trip an opaque cursor. Search continuations stay in the circuit; on invalidation re-query page 1 with an honest "list refreshed" notice; multi-replica
   durability treated as **not-yet-guaranteed** (backend Epic 11).
 - **Client read-model:** typed server-side UI snapshots are the runtime cache; the re-queried
@@ -496,7 +493,8 @@ existing projections only.
 - **Command dispatch:** `POST /api/v1/commands` with a client-generated **`messageId` (ULID)**
   idempotency key. Tenant-management commands use `platform:tenants` and governance commands use
   `platform:global-administrators` with the exact catalog permission and target aggregate. Acceptance returns `202` + `correlationId`.
-- **Confirmation (D2).** Look up `GET /api/v1/commands/status/{messageId}` under the matching platform scope. Match the returned command identity, domain, aggregate and available correlation to the tracked attempt. Notifications may trigger a re-query. The authoritative projection and the flow-specific evidence in AD-12 determine confirmation. Report `already applied` only under the operation-specific rules in AD-12. Unverified evidence yields `unable to verify`. [Command gateway](../../src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs)
+- **Tracked status (D2).** Look up the original message ID under its platform scope. For an ordinary lookup require the tracked correlation. Verify the message and aggregate before treating an aggregate-specific status as belonging to the attempt. The gateway accepts an ordinary status with an omitted tenant, domain or numeric status code when the other checks pass. An explicitly conflicting field invalidates the match.
+- **Governance recovery and correction proof.** To recover a missing correlation for global administration, require the original message ID, internal tenant, governance domain, fixed aggregate and a nonblank returned correlation. To use a committed sequence as correction evidence, require verified identity and explicit matching tenant, domain and aggregate, completed status with its matching numeric code, and a positive event count no greater than the positive committed sequence. An ordinary status observation can trigger a re-query. Confirmation still requires the projection and operation-specific evidence in AD-12. [Command gateway](../../src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs) · [Incomplete-scope regression](../../tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayTests.cs#L2102)
 
 - **Submission recovery.** Use the operation-specific rejection when the gateway identifies one. For `TenantAlreadyExists`, refresh the list or open the visible tenant. A bare HTTP 409 on membership submission with no delivery-uncertainty signal is a failed submission. A bare 409 alone supplies no tracking reference or basis for resending the command. An eligible retry after ambiguous delivery uses the original `messageId` and repeats the admission checks in AD-12. [Gateway classifications](../../src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs) · [Membership cases](../../tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayTests.cs)
 - **Status recovery.** Once a tracking reference exists, look up the original `messageId` under the same authorized scope. HTTP 409 from that GET leaves the status unknown. A successful, identity-matched status response carrying the verified reason `ConcurrencyConflict` directs the operator to retry status lookup. [Command gateway](../../src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs)
@@ -537,7 +535,7 @@ The BFF now implements AD-6. Current release and deployment responsibilities are
 **Cross-Component Dependencies:**
 The **typed truth-state model**, **canonical-vocabulary library**, **BFF query/command gateway**,
 **authorization-reflection service**, and **support-safety/redaction layer** are shared foundations
-every surface depends on → built first. Story 1.0 recorded the June FrontComposer integration baseline. The shared command gate admits one operation per circuit. Tenants supplies the aggregate-specific admission required by AD-12. The FC-AUD/FC-CNS/FC-CNC fallback **approvals are secured**
+every surface depends on → built first. Story 1.0 recorded the June FrontComposer integration baseline. Tenants applies the per-circuit, per-aggregate admission rule in AD-12. The FC-AUD/FC-CNS/FC-CNC fallback **approvals are secured**
 (2026-06-03 - see `fallback-approval-record-2026-06-03.md`). The `FC-TBL` caveat is resolved for
 Tenants by Story 1.2 with Tenants-specific `TenantDataGrid` composition; reusable grid enhancement
 remains FrontComposer-owned future work.
@@ -654,8 +652,7 @@ asserts the required acceptance scenarios (stale projection, rejected command, u
 confirmation, audit unavailable, last-owner warning, permission-missing, command accepted but still
 projection-pending, focus escape/cancel no-commit, and data unavailable but not authorization-denied)
 keyed on `data-testid`; a guard test fails any surface that references a raw state literal instead of
-the Vocabulary library. Command-flow tests must prove sibling command surfaces stay unavailable
-through `accepted` and `projection_pending` until projection truth or a terminal non-pending state.
+the Vocabulary library. Command-flow tests must show that a retained attempt blocks siblings on the same aggregate while another aggregate can proceed. Exercise the operation-specific release and recovery rules in AD-12.
 Pattern changes are recorded here + in `project-context.md`.
 
 ### Pattern Examples
@@ -769,14 +766,12 @@ Command acceptance starts tracking. The UI re-queries the authoritative projecti
 - **Configuration:** `appsettings*.json` (UI host); AppHost supplies the UI OIDC client, API/domain bearer settings and service references; no secrets in the repo.
 - **Source:** by surface under `Components/`; shared view in `Components/Shared/`; logic split across
   `State/` (typed snapshots/lifecycle) and `Services/` (server-side BFF and safety concerns).
-- **Tests.** Focused component and gateway checks live in `tests/Hexalith.Tenants.UI.Tests`. Hosted integration profiles exercise the running services. The dedicated browser benchmark lives in `tests/performance/tenant-audit`.
+- **Tests.** Focused component and gateway checks live in `tests/Hexalith.Tenants.UI.Tests`. Tenants owns the integration fixtures that start and stop its local Aspire topology and daprd for cold bootstrap, authenticated routes and failure injection. The fixtures consume EventStore diagnostics from the selected package family. AD-13 governs production orchestration. The dedicated browser benchmark lives in `tests/performance/tenant-audit`. [Integration project](../../tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj) · [Aspire harness](../../tests/Hexalith.Tenants.IntegrationTests/Fixtures/TenantsAspireHarness.cs)
 - **Assets.** The UI consumes Fluent static web assets, scoped component styles and host scripts under `wwwroot/js/`.
 
 ### Development Workflow Integration
 
-- **Dev server:** currently launched by the transitional `Hexalith.Tenants.AppHost` (`aspire run`)
-  alongside tenants/eventstore/keycloak; the target is an external platform/composing host.
-  Placement+scheduler start first in slim mode; `EnableKeycloak=false` enables local symmetric-key JWT.
+- **Dev server.** Follow the local quickstart with full `dapr init`, then launch the transitional Tenants AppHost with `aspire run`. For local runs the AppHost configures its private mTLS Sentry, placement and scheduler. A slim installation requires separately provisioned state-store, pub/sub and control-plane prerequisites. `EnableKeycloak=false` selects local symmetric-key JWT with a configured signing key. [Quickstart](../../docs/quickstart.md) · [AppHost](../../src/Hexalith.Tenants.AppHost/Program.cs)
 - **Build:** `.slnx` restore/build (`-warnaserror`); per-project `dotnet test`; coverage gates as configured.
 - **Deployment:** SDK container (`ContainerRepository=tenants-ui` → `registry.hexalith.com/tenants-ui`),
   no Dockerfile; ships as an **image, not a NuGet package** (unlike the 5 libraries).
