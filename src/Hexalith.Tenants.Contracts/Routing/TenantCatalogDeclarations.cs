@@ -32,7 +32,7 @@ public static class TenantCatalogDeclarations
         string eligibility = route.MessageType switch
         {
             "set-global-administrator" or "remove-global-administrator" => "confirmation-required",
-            "get-global-administrators" => "UI-only",
+            "get-global-administrators" or "get-global-administrator-audit" => "UI-only",
             _ => "agent-eligible",
         };
         Type request = route.Kind == "projection" ? typeof(EventStore.Contracts.Projections.ProjectionRequest)
