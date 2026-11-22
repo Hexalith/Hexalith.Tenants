@@ -1922,17 +1922,18 @@ public sealed class TenantsApiGeneratedControllerTests
 
     /// <summary>The actual owner UI-only policy refuses absent, agent and service surfaces before gateway effects.</summary>
     [Theory]
-    [InlineData(null)]
-    [InlineData("agent")]
-    [InlineData("service")]
-    public async Task Schema_three_owner_policy_refuses_ineligible_generated_queries(string? surface)
+    [InlineData("/api/global-administrators", null)]
+    [InlineData("/api/global-administrators", "agent")]
+    [InlineData("/api/global-administrators", "service")]
+    [InlineData("/api/global-administrators/audit", "agent")]
+    public async Task Schema_three_owner_policy_refuses_ineligible_generated_queries(string path, string? surface)
     {
         CapturingEventStoreGatewayClient gateway = new();
         await using var factory = new TenantsApiWebApplicationFactory(gateway, configureServices: services =>
             services.AddSingleton(CreateCatalogAuthority(includeCommands: true, schemaThree: true)));
         using HttpClient client = CreateScopedClient(factory);
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", CreateJwt("test-user", "queries:*", surfaces: surface is null ? [] : [surface]));
-        using HttpResponseMessage response = await client.GetAsync("/api/global-administrators", TestContext.Current.CancellationToken);
+        using HttpResponseMessage response = await client.GetAsync(path, TestContext.Current.CancellationToken);
         response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         gateway.SubmittedQueries.ShouldBeEmpty();
     }
