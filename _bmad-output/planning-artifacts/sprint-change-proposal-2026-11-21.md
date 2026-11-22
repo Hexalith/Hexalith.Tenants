@@ -21,6 +21,21 @@ CI run 44920915317, attempt 1, ran on Tenants `9196587bf7b94b9f8eb5e235934ca124b
 
 The overall workflow concluded **cancelled**. The separate Aspire job was cancelled and the performance job was skipped. The four live-route results close the November audit action for this revision. The subsequent `main` commit `c1387ebb` changed package settings and submodule revisions and has its own CI run. [Workflow conclusion](https://github.com/Hexalith/Hexalith.Tenants/actions/runs/44920915317) · [Subsequent candidate](https://github.com/Hexalith/Hexalith.Tenants/actions/runs/44922720931)
 
+## Hosted qualification for 118293e1
+
+CI run 44900478179, attempt 1, tested Tenants `118293e1ac0c6f4a50d2d440dd9958f371637212`. Each profile passed its designated test step. The table counts the profile-specific tests. The shared bootstrap, resource graph and TLS checks also passed. The SHA-256 of each downloaded archive matched the digest published by GitHub. [CI run 44900478179](https://github.com/Hexalith/Hexalith.Tenants/actions/runs/44900478179)
+
+| Profile | Tests passed / executed | Job | Test results and package provenance |
+| --- | ---: | --- | --- |
+| Cold bootstrap and authenticated REST | 9 / 9 | [REST job](https://github.com/Hexalith/Hexalith.Tenants/actions/runs/44900478179/job/136835186897) | [REST artifact](https://github.com/Hexalith/Hexalith.Tenants/actions/runs/44900478179/artifacts/14706396952) |
+| Worker-backed delivery and persisted state | 7 / 7 | [Persisted job](https://github.com/Hexalith/Hexalith.Tenants/actions/runs/44900478179/job/136835186841) | [Persisted artifact](https://github.com/Hexalith/Hexalith.Tenants/actions/runs/44900478179/artifacts/14705962633) |
+| Anonymous UI access denial | 6 / 6 | [Anonymous UI job](https://github.com/Hexalith/Hexalith.Tenants/actions/runs/44900478179/job/136835186945) | [Anonymous UI artifact](https://github.com/Hexalith/Hexalith.Tenants/actions/runs/44900478179/artifacts/14706640169) |
+| Authenticated browser flows | 3 / 3 | [Authenticated UI job](https://github.com/Hexalith/Hexalith.Tenants/actions/runs/44900478179/job/136835186840) | [Authenticated UI artifact](https://github.com/Hexalith/Hexalith.Tenants/actions/runs/44900478179/artifacts/14706755632) |
+
+All four archives identify EventStore.Aspire 5.4.0 from producer `2ec21f631a2e292fba8c5537fe665ab275ed1081`. Each contains runtime manifest hashes for the AppHost, domain, API and UI. Each host selected EventStore.Contracts 5.4.0 and McpCli.Abstractions 3.0.0. This evidence qualifies the committed dependency revisions on that Tenants candidate. Later candidates have their own hosted results. [Architecture decision AD-14](architecture.md#ad-14---production-operations-and-scaling-are-platform-governed-adopted)
+
+Overall CI failed on five EventStore package-version assertions in `PackageGovernanceTests`. The separate source-reference integration run failed when its EventStore host checkout differed from the restored package producer. These failures describe the earlier revision. [Build and test](https://github.com/Hexalith/Hexalith.Tenants/actions/runs/44900478179/job/136835186929) · [Source-reference integration](https://github.com/Hexalith/Hexalith.Tenants/actions/runs/44900477964/job/136835177870)
+
 ## Applied changes
 
 | Artifact | Previous record | Correction |
@@ -35,8 +50,10 @@ This was a minor, direct adjustment to the planning records. It required one doc
 
 | Open check | Owner | Evidence that closes it |
 | --- | --- | --- |
-| First enforcing consumer | Consumer deployment owner | Identify the deployment by a safe alias. Using its durable shared store and authorized history, demonstrate that the consumer repairs a delayed removal and denies access after restart and replay of the earlier grant. [Consumer walkthrough](../../docs/sample-consuming-service-walkthrough.md) |
+| First enforcing consumer | Consumer deployment owner | Identify the deployment by a safe alias. Using its durable shared store and authorized history, record the denied access decision during a sequence gap, the repaired checkpoint sequence, and continued denial after restart and replay of the earlier grant. [Consumer walkthrough](../../docs/sample-consuming-service-walkthrough.md) |
 | Production identity | Deployment owner | Record redacted outcomes through the deployed ingress for TLS discovery, the configured issuer and audience, signing-key rotation, and authorized and denied requests. [Production authentication guide](../../docs/production-auth-readiness.md) |
-| Tenant-index capacity | Deployment owner | Record the tenant and membership counts, write load, contention and update latency over a representative observation window. Use those measurements to decide whether partitioning warrants migration. [Audit baseline](sprint-change-proposal-2026-11-20.md) |
+| Tenant-index capacity | Deployment owner | Record the tenant and membership counts, index size, change rate, concurrent writers, write conflicts, exhausted retries and p95 update latency over a representative observation window. Compare latency with the deployment freshness target to decide whether partitioning warrants migration. [Audit baseline](sprint-change-proposal-2026-11-20.md) |
+
+The latest GitHub deployment record available at the 21 November review was created on 18 November, before the audit. For each observation, record the environment alias, revision or package, time and reviewer. [Deployment history](https://api.github.com/repos/Hexalith/Hexalith.Tenants/deployments) · [Evidence template](../../docs/deployment-readiness.md#evidence-template)
 
 The deployment owners can collect these observations independently. The user confirmed that deployment reports were unavailable at this review. The Product Owner can update each existing action when its evidence is available. [Sprint tracker](../implementation-artifacts/sprint-status.yaml)

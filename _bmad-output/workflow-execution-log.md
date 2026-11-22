@@ -32,3 +32,5 @@ The Production API startup checks passed in two concurrent runs using isolated p
 ## 2026-11-21 — Hosted qualification and deployment handoff
 
 The four live-route jobs passed on Tenants `9196587b`. The tracker records those results and the three outstanding deployment checks. The epic outline now distinguishes its two introductory headings from numbered work items. [Sprint change proposal and job evidence](planning-artifacts/sprint-change-proposal-2026-11-21.md)
+
+For the earlier Tenants revision `118293e1`, the four archived test reports and package manifests confirmed the same hosted qualification. Overall CI and source-reference integration failed on that revision. [Archived results and job links](planning-artifacts/sprint-change-proposal-2026-11-21.md#hosted-qualification-for-118293e1)

@@ -162,7 +162,7 @@ The sample’s in-memory access and configuration readouts are available only in
 
 | Qualification check | Owner | Acceptance evidence |
 | --- | --- | --- |
-| Hosted release qualification | Release owner | For each candidate, run `rest` (including cold bootstrap), `persisted`, `anonymous-ui` and `authenticated-ui` on its shipping package set. All four passed for Tenants `9196587b`. [Job results](../../sprint-change-proposal-2026-11-21.md) |
+| Hosted release qualification | Release owner | For each candidate, run `rest` (including cold bootstrap), `persisted`, `anonymous-ui` and `authenticated-ui` on its shipping package set. All four passed for Tenants `118293e1` and `9196587b`. [Job results](../../sprint-change-proposal-2026-11-21.md) |
 | First enforcement consumer | Consumer deployment owner | With its deployed shared store and history permissions, demonstrate that a delayed removal survives restart and replay of an earlier grant. |
 | Production identity | Deployment owner | Verify issuer, discovery over TLS, audience, key rotation, and ingress in the target environment. Record the outcome without credentials. |
 | Tenant-index capacity | Deployment owner | Measure index size, write contention, and update latency under representative load before deciding on partitioning. |

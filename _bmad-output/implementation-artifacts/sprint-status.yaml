@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 07-19-2026 16:57
-last_updated: 11-21-2026 17:09
+last_updated: 11-22-2026 09:38
 project: tenants
 project_key: NOKEY
 tracking_system: file-system
@@ -411,11 +411,11 @@ action_items:
     owner: Release owner
     status: done
     source: _bmad-output/planning-artifacts/sprint-change-proposal-2026-11-20.md
-    resolution: All four live-route jobs and their package verification steps passed on Tenants 9196587b with EventStore 5.4.0 and McpCli 3.0.0. The overall workflow was cancelled.
+    resolution: All four live-route jobs and their package verification steps passed on Tenants 9196587b with EventStore 5.4.0 and McpCli 3.0.0. The overall workflow was cancelled. Run 44900478179 also qualified all four profiles on 118293e1 with the same package versions.
     resolution_source: _bmad-output/planning-artifacts/sprint-change-proposal-2026-11-21.md
   - id: audit-2026-11-20-consumer-rollout
     epic: 2
-    action: Verify the first enforcement consumer against its durable state store and authorized history service. Record the denied access decision after recovering a delayed removal, restarting the consumer and replaying the earlier grant.
+    action: Verify the first enforcement consumer against its durable state store and authorized history service. Record denial during the gap, the repaired checkpoint, and continued denial after restart and replay of the earlier grant.
     owner: Consumer deployment owner
     status: open
     source: _bmad-output/planning-artifacts/sprint-change-proposal-2026-11-20.md
@@ -427,7 +427,7 @@ action_items:
     source: _bmad-output/planning-artifacts/sprint-change-proposal-2026-11-20.md
   - id: audit-2026-11-20-index-capacity
     epic: 1
-    action: Measure index size, write contention and update latency at representative deployment load before deciding whether partitioning warrants a migration.
+    action: Measure index size, write conflicts, exhausted retries and p95 update latency at representative deployment load. Compare latency with the deployment freshness target before deciding on partitioning.
     owner: Deployment owner
     status: open
     source: _bmad-output/planning-artifacts/sprint-change-proposal-2026-11-20.md

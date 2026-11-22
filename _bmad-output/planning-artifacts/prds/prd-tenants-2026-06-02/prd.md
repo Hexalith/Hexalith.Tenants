@@ -399,7 +399,7 @@ The operator previews against current state. The correction is confirmed when a 
 
 Phase 2a defined the original read-only MVP. The current UI also supports permission-gated commands (§2).
 
-**Release and deployment evidence, 21 November 2026.** Eight audit corrections passed local verification. The four hosted live-route suites passed for Tenants `9196587b`. Three deployment checks remain open for recovery in the first service that enforces membership, production identity through ingress, and tenant-index capacity under representative load. [Owners and acceptance evidence](addendum.md#j-release-and-deployment-evidence) · [Hosted job results](../../sprint-change-proposal-2026-11-21.md)
+**Release and deployment evidence, 21 November 2026.** Eight audit corrections passed local verification. The four hosted live-route suites passed for Tenants `118293e1` and `9196587b`. Three deployment checks remain open for recovery in the first service that enforces membership, production identity through ingress, and tenant-index capacity under representative load. [Owners and acceptance evidence](addendum.md#j-release-and-deployment-evidence) · [Hosted job results](../../sprint-change-proposal-2026-11-21.md)
 
 > On July 15, the readiness review required fresh evidence for the revised read, search and production contracts. Story 1.10 subsequently verified the direct-read transport. Each UI story still requires its applicable accessibility, localization, responsive and documentation evidence. [July readiness decision](../../sprint-change-proposal-2026-07-15.md) · [Current prerequisite status](addendum.md#i-prerequisite-work-packages-2026-07-15-readiness-correction)
 
