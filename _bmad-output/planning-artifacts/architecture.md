@@ -70,6 +70,9 @@ date: '2026-06-02'
 
 # Architecture Decision Document
 
+> **Current McpCli disposition (Story 5.11 candidate):** The FrontComposer inspect/migrate compiler is retained K13 local tooling under merged AI.Tools plan 1.2.0. It requires no generic McpCli migration/diagnostic transport and is never counted retired.
+
+
 **Approved McpCli course correction (2026-09-27):** `Hexalith.McpCli` is the target Hexalith-owned CLI/MCP surface for Tenants operations that pass contract enrollment and authorization. Any proprietary module CLI, MCP host, plug-in, or planned adapter described below is an obsolete migration source or historical design, not a new target. The module retains its domain, UI, and security semantics; replacement or approved withdrawal and parity evidence precede retirement. External development CLIs are unaffected.
 
 
