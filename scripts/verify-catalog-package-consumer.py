@@ -111,6 +111,7 @@ def verify(directory, expected_source=None, output=None, target_framework="net11
             candidate_prefixes.add(prefix)
     with tempfile.TemporaryDirectory(prefix='tenants-packed-catalog-consumer-') as temporary:
         root = Path(temporary)
+        shutil.copyfile(ROOT / 'global.json', root / 'global.json')
         packages = root / 'packages'
         project = ET.Element('Project', Sdk='Microsoft.NET.Sdk')
         properties = ET.SubElement(project, 'PropertyGroup')

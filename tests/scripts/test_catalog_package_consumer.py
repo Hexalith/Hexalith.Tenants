@@ -51,6 +51,27 @@ class CatalogPackageMetadataTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'framework is not qualified'):
             CONSUMER.verify(Path('/unused'), target_framework='net12.0')
 
+    def test_consumer_workspace_pins_sdk_over_an_ancestor_global_json(self):
+        with tempfile.TemporaryDirectory(prefix='tenants-catalog-sdk-') as temporary:
+            root = Path(temporary)
+            for package_id in CONSUMER.IDS:
+                self.write_package(root, package_id)
+            ancestor_pin = '{"sdk":{"version":"99.0.100","rollForward":"disable"}}'
+            (root / 'global.json').write_text(ancestor_pin)
+
+            def inspect_restore(arguments, **kwargs):
+                consumer = kwargs['cwd']
+                self.assertEqual(consumer.parent, root)
+                self.assertEqual((consumer / 'global.json').read_bytes(), (ROOT / 'global.json').read_bytes())
+                self.assertEqual((root / 'global.json').read_text(), ancestor_pin)
+                raise InterruptedError('Verified SDK pin before restore')
+
+            with patch.object(CONSUMER.tempfile, 'tempdir', str(root)):
+                with patch.object(CONSUMER.subprocess, 'run', side_effect=inspect_restore) as run:
+                    with self.assertRaisesRegex(InterruptedError, 'Verified SDK pin before restore'):
+                        CONSUMER.verify(root, 'a' * 40)
+                    run.assert_called_once()
+
     def test_wrong_source_refuses_before_restore(self):
         self.reject(server={'source': 'b' * 40}, message='reviewed source')
 
