@@ -39,6 +39,31 @@ namespace Hexalith.Tenants.Server.Tests.Bootstrap;
 /// <summary>Exercises bootstrap policy isolation through real ServiceDefaults and HttpClientFactory composition.</summary>
 public sealed class TenantBootstrapCommandTransportTests
 {
+    /// <summary>Prevents unread command responses from draining without changing the other clients.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task OnlyCommandTransportDisablesResponseDraining(bool bootstrapFirst)
+    {
+        HostApplicationBuilder builder = CreateBuilder(bootstrapFirst);
+        await using ServiceProvider provider = builder.Services.BuildServiceProvider();
+        IHttpMessageHandlerFactory factory = provider.GetRequiredService<IHttpMessageHandlerFactory>();
+
+        GetSocketHandler(TenantBootstrapServiceCollectionExtensions.CommandClientName).MaxResponseDrainSize.ShouldBe(0);
+        GetSocketHandler(TenantBootstrapServiceCollectionExtensions.CredentialClientName).MaxResponseDrainSize.ShouldBeGreaterThan(0);
+        GetSocketHandler(string.Empty).MaxResponseDrainSize.ShouldBeGreaterThan(0);
+
+        SocketsHttpHandler GetSocketHandler(string name)
+        {
+            HttpMessageHandler handler = factory.CreateHandler(name);
+            while (handler is DelegatingHandler { InnerHandler: { } inner })
+            {
+                handler = inner;
+            }
+            return handler.ShouldBeOfType<SocketsHttpHandler>();
+        }
+    }
+
     /// <summary>Retains ordinary resilience and the independent readiness timeout in either registration order.</summary>
     [Theory]
     [InlineData(false)]
@@ -101,6 +126,11 @@ public sealed class TenantBootstrapCommandTransportTests
     [InlineData(true, "exception", false)]
     [InlineData(false, "shutdown", false)]
     [InlineData(true, "shutdown", false)]
+    [InlineData(true, "accepted-unread-body", true)]
+    [InlineData(true, "oversized-body", true)]
+    [InlineData(true, "known-oversized-body", true)]
+    [InlineData(true, "body-deadline", true)]
+    [InlineData(true, "body-shutdown", true)]
     public async Task HostedCommandUsesOneAttemptAndRecordsOnlyTheActualResponse(bool bootstrapFirst, string scenario, bool boundWorkload)
     {
         using RSA proofKey = RSA.Create(2048);
@@ -117,6 +147,12 @@ public sealed class TenantBootstrapCommandTransportTests
         HttpRequestMessage? sent = null;
         bool sendCancelled = false;
         int sends = 0;
+        using BootstrapTokenResponseStream? responseStream = scenario switch
+        {
+            "accepted-unread-body" or "body-deadline" or "body-shutdown" => new([], blockReads: true),
+            "oversized-body" or "known-oversized-body" => new(new byte[16_384]),
+            _ => null,
+        };
         HostApplicationBuilder builder = CreateBuilder(bootstrapFirst);
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
@@ -151,7 +187,7 @@ public sealed class TenantBootstrapCommandTransportTests
             .ConfigureHttpClient(client =>
             {
                 client.Timeout.ShouldBe(TimeSpan.FromSeconds(30));
-                if (scenario == "deadline") client.Timeout = TimeSpan.FromMilliseconds(200);
+                if (scenario is "deadline" or "body-deadline") client.Timeout = TimeSpan.FromMilliseconds(500);
             })
             .ConfigurePrimaryHttpMessageHandler(() => new BootstrapCommandHttpMessageHandler(async (request, token) =>
             {
@@ -211,13 +247,16 @@ public sealed class TenantBootstrapCommandTransportTests
                 if (scenario == "exception") throw new HttpRequestException("Ambiguous synthetic command delivery.");
                 // This exceeds the real general client's shortened one-second attempt limit.
                 if (scenario == "accepted") await Task.Delay(TimeSpan.FromMilliseconds(1500), token);
+                HttpContent responseContent = responseStream is null ? new StringContent("{}") : new StreamContent(responseStream);
+                if (scenario == "known-oversized-body")
+                    responseContent.Headers.ContentLength = 16_384;
                 return new HttpResponseMessage(scenario switch
                 {
-                    "unhealthy" => HttpStatusCode.InternalServerError,
+                    "unhealthy" or "oversized-body" or "known-oversized-body" or "body-deadline" or "body-shutdown" => HttpStatusCode.InternalServerError,
                     "unavailable" => HttpStatusCode.ServiceUnavailable,
                     "denied" => HttpStatusCode.Forbidden,
                     _ => HttpStatusCode.Accepted,
-                }) { Content = new StringContent("{}") };
+                }) { Content = responseContent };
             }));
         ServiceProvider? provider = null;
         bool bootstrapScheduled = false;
@@ -230,32 +269,46 @@ public sealed class TenantBootstrapCommandTransportTests
             bootstrapScheduled = true;
             started.Cancel();
             await entered.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
-            if (scenario == "shutdown") stopping.Cancel();
+            bool shutdown = scenario is "shutdown" or "body-shutdown";
+            if (scenario is "body-deadline" or "body-shutdown")
+                await responseStream!.ReadStarted.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+            if (shutdown) stopping.Cancel();
             await completed.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
-            if (scenario != "shutdown")
+            if (!shutdown)
             {
                 int diagnostic = await outcome.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
-                diagnostic.ShouldBe(scenario switch { "accepted" => 2001, "unhealthy" or "unavailable" or "denied" => 2003, _ => 2002 });
+                diagnostic.ShouldBe(scenario switch
+                {
+                    "accepted" or "accepted-unread-body" => 2001,
+                    "unhealthy" or "unavailable" or "denied" or "oversized-body" or "known-oversized-body" => 2003,
+                    _ => 2002,
+                });
             }
             else outcome.Task.IsCompleted.ShouldBeFalse();
 
             sends.ShouldBe(1);
             sendCancelled.ShouldBe(scenario is "deadline" or "shutdown");
-            stopping.IsCancellationRequested.ShouldBe(scenario == "shutdown");
+            stopping.IsCancellationRequested.ShouldBe(shutdown);
+            if (responseStream is not null)
+            {
+                responseStream.IsDisposed.ShouldBeTrue();
+                responseStream.BytesRead.ShouldBe(scenario == "oversized-body" ? 8193 : 0);
+                responseStream.ReadStarted.IsCompleted.ShouldBe(scenario is "oversized-body" or "body-deadline" or "body-shutdown");
+            }
             if (boundWorkload)
             {
                 var receipt = JsonSerializer.Deserialize<TenantBootstrapReceipt>(await File.ReadAllBytesAsync(
                     Path.Combine(directory, "tenants.bootstrap.json"), TestContext.Current.CancellationToken)).ShouldNotBeNull();
                 receipt.Phase.ShouldBe(scenario switch
                 {
-                    "accepted" => "accepted",
-                    "unhealthy" or "unavailable" or "denied" => "response-received",
+                    "accepted" or "accepted-unread-body" => "accepted",
+                    "unhealthy" or "unavailable" or "denied" or "oversized-body" or "known-oversized-body" => "response-received",
                     _ => "attempted",
                 });
                 receipt.HttpStatus.ShouldBe(scenario switch
                 {
-                    "accepted" => 202,
-                    "unhealthy" => 500,
+                    "accepted" or "accepted-unread-body" => 202,
+                    "unhealthy" or "oversized-body" or "known-oversized-body" => 500,
                     "unavailable" => 503,
                     "denied" => 403,
                     _ => (int?)null,

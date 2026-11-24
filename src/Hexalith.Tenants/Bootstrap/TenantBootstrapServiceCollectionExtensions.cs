@@ -26,7 +26,12 @@ internal static class TenantBootstrapServiceCollectionExtensions
         services.TryAddSingleton(static _ => new TenantBootstrapAppReadiness());
         // Standard resilience disables HttpClient.Timeout. Remove replay and restore the finite send budget.
         services.AddHttpClient(CommandClientName)
-            .ConfigurePrimaryHttpMessageHandler(static () => new SocketsHttpHandler { AllowAutoRedirect = false })
+            .ConfigurePrimaryHttpMessageHandler(static () => new SocketsHttpHandler
+            {
+                AllowAutoRedirect = false,
+                // A discarded body must not drain after the command's transport budget ends.
+                MaxResponseDrainSize = 0,
+            })
             .ConfigureAdditionalHttpMessageHandlers(static (handlers, _) =>
             {
                 for (int index = handlers.Count - 1; index >= 0; index--)

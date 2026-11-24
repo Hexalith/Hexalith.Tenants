@@ -35,7 +35,7 @@ public partial class TenantBootstrapHostedService(
     TimeProvider? timeProvider = null) : IHostedService
 {
     private const string CommandEndpoint = "api/v1/commands";
-    private const long MaxExpectedRejectionProbeBytes = 8192;
+    private const int MaxExpectedRejectionProbeBytes = 8192;
     private const string DomainRejectionProblemPrefix = "https://hexalith.io/problems/domain-rejections/";
 
     public Task StartAsync(CancellationToken cancellationToken)
@@ -155,7 +155,12 @@ public partial class TenantBootstrapHostedService(
                 Log.BootstrapAttempt(logger, messageId, correlationId);
                 using HttpClient commandClient = httpClientFactory.CreateClient(TenantBootstrapServiceCollectionExtensions.CommandClientName);
                 cancellationToken.ThrowIfCancellationRequested();
-                using HttpResponseMessage httpResponse = await commandClient.SendAsync(httpRequest, cancellationToken).ConfigureAwait(false);
+                // ResponseHeadersRead ends HttpClient's timeout at headers. Keep the same command
+                // deadline for both delivery and the small diagnostic probe.
+                using var transportDeadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                transportDeadline.CancelAfter(commandClient.Timeout);
+                using HttpResponseMessage httpResponse = await commandClient
+                    .SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead, transportDeadline.Token).ConfigureAwait(false);
 
                 if (httpResponse.StatusCode == HttpStatusCode.Accepted)
                 {
@@ -165,7 +170,7 @@ public partial class TenantBootstrapHostedService(
                 }
 
                 phase = "command-response";
-                string errorBody = await ReadExpectedRejectionProbeAsync(httpResponse.Content, cancellationToken).ConfigureAwait(false);
+                string errorBody = await ReadExpectedRejectionProbeAsync(httpResponse.Content, transportDeadline.Token).ConfigureAwait(false);
 
                 // Bootstrap is idempotent at the domain level. The GlobalAdminAlreadyBootstrappedRejection
                 // type in a 409 body means the global admin was already registered (typical on every restart
@@ -203,10 +208,14 @@ public partial class TenantBootstrapHostedService(
         try
         {
             if (content.Headers.ContentLength is > MaxExpectedRejectionProbeBytes) return string.Empty;
-            await content.LoadIntoBufferAsync(MaxExpectedRejectionProbeBytes, cancellationToken).ConfigureAwait(false);
-            string body = await content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
-            // Already-buffered content can bypass LoadIntoBufferAsync's limit. Keep the
-            // diagnostic/parser input bounded even when the transport supplied a buffer.
+            byte[] bytes = new byte[MaxExpectedRejectionProbeBytes + 1];
+            Stream stream = await content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+            int read = await stream.ReadAtLeastAsync(bytes, bytes.Length, throwOnEndOfStream: false, cancellationToken).ConfigureAwait(false);
+            if (read > MaxExpectedRejectionProbeBytes) return string.Empty;
+
+            using HttpContent buffered = new ByteArrayContent(bytes, 0, read);
+            buffered.Headers.ContentType = content.Headers.ContentType;
+            string body = await buffered.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
             return body.Length <= MaxExpectedRejectionProbeBytes && Encoding.UTF8.GetByteCount(body) <= MaxExpectedRejectionProbeBytes
                 ? body : string.Empty;
         }
