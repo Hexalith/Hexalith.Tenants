@@ -52,6 +52,7 @@ public sealed class TenantBootstrapBoundCommandTests
     [InlineData("selected-caller")]
 #if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
     [InlineData("finite-catalog-ready")]
+    [InlineData("transient-catalog-observations")]
     [InlineData("infinite-catalog-ready")]
     [InlineData("finite-catalog-timeout")]
     [InlineData("infinite-catalog-cancel")]
@@ -108,6 +109,8 @@ public sealed class TenantBootstrapBoundCommandTests
         TimeProvider clock = TimeProvider.System;
 #if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
         var readStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        int catalogObservations = 0;
+        CancellationToken observedReadinessToken = default;
         Action? fireReadinessDeadline = null;
         TimeSpan? timerDueTime = null;
         TimeSpan? timerPeriod = null;
@@ -134,6 +137,28 @@ public sealed class TenantBootstrapBoundCommandTests
                 readStarted.TrySetResult();
                 if (scenario is "finite-catalog-timeout" or "infinite-catalog-cancel" or "infinite-catalog-deadline")
                     await Task.Delay(Timeout.InfiniteTimeSpan, call.Arg<CancellationToken>());
+                if (scenario == "transient-catalog-observations")
+                {
+                    CancellationToken deadline = call.Arg<CancellationToken>();
+                    deadline.CanBeCanceled.ShouldBeTrue();
+                    deadline.ShouldNotBe(callerCancellation.Token);
+                    switch (Interlocked.Increment(ref catalogObservations))
+                    {
+                        case 1:
+                            observedReadinessToken = deadline;
+                            return new RouteCatalogGenerationReadback(1, 1, "bootstrap-root", "routes", "admission", "development", [], false);
+                        case 2:
+                            deadline.ShouldBe(observedReadinessToken);
+                            return new RouteCatalogGenerationReadback(1, 1, "another-root", "routes", "admission", "development", [], true);
+                        case 3:
+                            deadline.ShouldBe(observedReadinessToken);
+                            throw new RouteCatalogUnavailableException("Synthetic transient catalog transport failure.");
+                        default:
+                            deadline.ShouldBe(observedReadinessToken);
+                            break;
+                    }
+                }
+
                 return new RouteCatalogGenerationReadback(1, 1, "bootstrap-root", "routes", "admission", "development", [], true);
             });
             services.AddSingleton(authority);
@@ -159,7 +184,7 @@ public sealed class TenantBootstrapBoundCommandTests
             JsonSerializer.SerializeToElement(new BootstrapGlobalAdmin(scenario == "payload" ? "foreign" : "bootstrap-administrator"), scenario is "web-payload" or "loopback-web" ? JsonSerializerOptions.Web : JsonSerializerOptions.Default), "01ARZ3NDEKTSV4RRFFQ69G5FAW");
         TimeSpan readinessTimeout = scenario.StartsWith("infinite", StringComparison.Ordinal)
             ? provider.GetRequiredService<IHttpClientFactory>().CreateClient().Timeout
-            : TimeSpan.FromSeconds(1);
+            : TimeSpan.FromSeconds(scenario == "transient-catalog-observations" ? 5 : 1);
         if (scenario.StartsWith("infinite", StringComparison.Ordinal)) readinessTimeout.ShouldBe(Timeout.InfiniteTimeSpan);
         if (scenario == "buffer-limit")
         {
@@ -204,7 +229,13 @@ public sealed class TenantBootstrapBoundCommandTests
         }
 #endif
         using var request = await creation;
-        if (scenario is not ("valid" or "web-payload" or "infinite-timeout" or "finite-catalog-ready" or "infinite-catalog-ready" or "loopback" or "loopback-web" or "selected-target" or "selected-caller")) { request.ShouldBeNull(); return; }
+#if HEXALITH_DEVELOPMENT_CATALOG_SOURCE
+        if (scenario == "transient-catalog-observations")
+        {
+            Volatile.Read(ref catalogObservations).ShouldBe(4);
+        }
+#endif
+        if (scenario is not ("valid" or "web-payload" or "infinite-timeout" or "finite-catalog-ready" or "infinite-catalog-ready" or "transient-catalog-observations" or "loopback" or "loopback-web" or "selected-target" or "selected-caller")) { request.ShouldBeNull(); return; }
         request.ShouldNotBeNull(); request.RequestUri!.AbsolutePath.ShouldEndWith("/api/v1/commands/bound/workload");
         request.RequestUri.AbsolutePath.ShouldContain("/invoke/" + (scenario == "selected-target" ? "eventstore-isolated" : "eventstore") + "/method/");
         request.Headers.Authorization!.Scheme.ShouldBe("Bearer");
