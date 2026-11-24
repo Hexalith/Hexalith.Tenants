@@ -113,6 +113,69 @@ public sealed class TenantRetainedCommandFlowTests : FluentBunitContext
         }
     }
 
+    /// <summary>Cancellation callback failures still release each component's ownership of the retained flow.</summary>
+    [Theory]
+    [InlineData("create", false)]
+    [InlineData("create", true)]
+    [InlineData("add", false)]
+    [InlineData("change", false)]
+    [InlineData("remove", false)]
+    [InlineData("metadata", false)]
+    public async Task ThrowingAuthorizationCancellationStillDetachesRetainedFlow(string kind, bool refreshAlsoThrows)
+    {
+        TenantAggregateCommandAdmissionGate gate = new();
+        using TenantCommandAttemptTracker tracker = new(gate);
+        Services.AddSingleton(gate);
+        Services.AddSingleton(tracker);
+        Services.AddSingleton(new TenantCreateAttemptTracker(tracker));
+        RegisterGateway((_, id) => Task.FromResult(TenantCommandSubmissionResult.Failed("Delivery is uncertain.")
+            with { MessageId = id, IsAmbiguousFailure = true }));
+        (IRenderedComponent<IComponent> cut, object component) = RenderFlow(kind);
+        Submit(kind, cut, send: false);
+        await InvokeSubmissionAsync(cut, component);
+        TenantRetainedCommandAttempt attempt = RetainedAttempt(component);
+        object evidence = Snapshot(component);
+        tracker.IsAttached(attempt, component).ShouldBeTrue();
+        IsSubscribed(tracker, component).ShouldBeTrue();
+
+        using CancellationTokenSource authorization = new();
+        var callbackError = new InvalidOperationException("Synthetic authorization cancellation callback failure.");
+        using CancellationTokenRegistration cancellation = authorization.Token.Register(() => throw callbackError);
+        FieldInfo authority = component.GetType()
+            .GetField("_authorityCancellation", BindingFlags.Instance | BindingFlags.NonPublic).ShouldNotBeNull();
+        authority.GetValue(component).ShouldBeNull();
+        FieldInfo? refreshSetup = refreshAlsoThrows
+            ? component.GetType().GetField("_readRefreshSetup", BindingFlags.Instance | BindingFlags.NonPublic).ShouldNotBeNull()
+            : null;
+        using CancellationTokenSource? refresh = refreshAlsoThrows ? new() : null;
+        var refreshError = new InvalidOperationException("Synthetic refresh cancellation callback failure.");
+        using CancellationTokenRegistration? refreshCancellation = refresh?.Token.Register(() => throw refreshError);
+        authority.SetValue(component, authorization);
+        refreshSetup?.SetValue(component, refresh);
+        try
+        {
+            Should.Throw<AggregateException>(((IDisposable)component).Dispose)
+                .InnerExceptions.ShouldHaveSingleItem().ShouldBeSameAs(refreshAlsoThrows ? refreshError : callbackError);
+        }
+        finally
+        {
+            authority.SetValue(component, null);
+            refreshSetup?.SetValue(component, null);
+        }
+
+        authorization.IsCancellationRequested.ShouldBeTrue();
+        if (refresh is not null) refresh.IsCancellationRequested.ShouldBeTrue();
+        IsSubscribed(tracker, component).ShouldBeFalse();
+        tracker.IsAttached(attempt, component).ShouldBeFalse();
+        ReadRetained(tracker, kind).ShouldBeSameAs(evidence);
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeTrue();
+        object replacement = new();
+        tracker.TryAdopt<object>("tenant.alpha", replacement, out TenantRetainedCommandAttempt? adopted, out object? adoptedEvidence)
+            .ShouldBeTrue();
+        adopted.ShouldBeSameAs(attempt);
+        adoptedEvidence.ShouldBeSameAs(evidence);
+    }
+
     /// <summary>A changed provider cannot redirect cleanup, including create's facade-selected attempt store.</summary>
     [Theory]
     [InlineData("create")]

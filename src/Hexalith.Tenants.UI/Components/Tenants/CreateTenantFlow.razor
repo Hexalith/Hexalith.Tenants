@@ -1300,14 +1300,39 @@
         {
             _viewportObservation.StateChanged -= OnViewportStateChanged;
         }
-        RetireReadRefresh();
-        InvalidateAdmission();
-        if (_subscribedAttempts is not null)
+        Exception? refreshFailure = null;
+        try
         {
-            _subscribedAttempts.StateChanged -= OnRetainedAttemptChanged;
+            try
+            {
+                RetireReadRefresh();
+            }
+            catch (Exception failure)
+            {
+                refreshFailure = failure;
+                throw;
+            }
+            finally
+            {
+                try
+                {
+                    InvalidateAdmission();
+                }
+                catch (Exception) when (refreshFailure is not null)
+                {
+                    // Preserve the first cancellation failure after attempting both cleanups.
+                }
+            }
         }
-        _attemptGeneration++;
-        _subscribedAttempts?.Detach(_retainedAttempt, this);
+        finally
+        {
+            if (_subscribedAttempts is not null)
+            {
+                _subscribedAttempts.StateChanged -= OnRetainedAttemptChanged;
+            }
+            _attemptGeneration++;
+            _subscribedAttempts?.Detach(_retainedAttempt, this);
+        }
     }
 
     // Returns null when baseline absence can be neither proved nor disproved, so the caller fails closed

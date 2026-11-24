@@ -2005,18 +2005,24 @@
     public void Dispose()
     {
         _disposed = true;
-        InvalidateAdmission();
-        if (_viewportObservation is not null)
+        try
         {
-            _viewportObservation.StateChanged -= OnViewportStateChanged;
+            InvalidateAdmission();
         }
-        if (_subscribedAttempts is not null)
+        finally
         {
-            _subscribedAttempts.StateChanged -= OnRetainedAttemptChanged;
+            if (_viewportObservation is not null)
+            {
+                _viewportObservation.StateChanged -= OnViewportStateChanged;
+            }
+            if (_subscribedAttempts is not null)
+            {
+                _subscribedAttempts.StateChanged -= OnRetainedAttemptChanged;
+            }
+            _attemptGeneration++;
+            _subscribedAttempts?.Detach(_retainedAttempt, this);
+            _ = Interlocked.Increment(ref _proofGeneration);
+            CancelProofSearch();
         }
-        _attemptGeneration++;
-        _subscribedAttempts?.Detach(_retainedAttempt, this);
-        _ = Interlocked.Increment(ref _proofGeneration);
-        CancelProofSearch();
     }
 }

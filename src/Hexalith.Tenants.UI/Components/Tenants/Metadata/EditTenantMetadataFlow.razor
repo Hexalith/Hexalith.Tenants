@@ -1406,12 +1406,18 @@
     public void Dispose()
     {
         _disposed = true;
-        InvalidateAdmission();
-        if (_subscribedAttempts is not null)
+        try
         {
-            _subscribedAttempts.StateChanged -= OnRetainedAttemptChanged;
+            InvalidateAdmission();
         }
-        _attemptGeneration++;
-        _subscribedAttempts?.Detach(_retainedAttempt, this);
+        finally
+        {
+            if (_subscribedAttempts is not null)
+            {
+                _subscribedAttempts.StateChanged -= OnRetainedAttemptChanged;
+            }
+            _attemptGeneration++;
+            _subscribedAttempts?.Detach(_retainedAttempt, this);
+        }
     }
 }
