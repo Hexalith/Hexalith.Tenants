@@ -1,7 +1,7 @@
 <Project>
     <PropertyGroup>
         <!-- Keep canonical package cohorts exact; other family defaults come from the Builds catalog. -->
-        <HexalithCommonsVersion Condition="'$(HexalithCommonsVersion)' == ''">3.0.3</HexalithCommonsVersion>
+        <HexalithCommonsVersion Condition="'$(HexalithCommonsVersion)' == ''">3.0.4</HexalithCommonsVersion>
         <HexalithPolymorphicSerializationsVersion Condition="'$(HexalithPolymorphicSerializationsVersion)' == ''">2.0.2</HexalithPolymorphicSerializationsVersion>
         <HexalithMcpCliVersion Condition="'$(HexalithMcpCliVersion)' == ''">3.0.0</HexalithMcpCliVersion>
         <HexalithBuildPackageVersions1>$(MSBuildThisFileDirectory)references/Hexalith.Builds/Props/Directory.Packages.props</HexalithBuildPackageVersions1>
