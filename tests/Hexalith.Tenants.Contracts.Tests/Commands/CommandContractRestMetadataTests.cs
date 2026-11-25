@@ -44,6 +44,18 @@ public sealed class CommandContractRestMetadataTests
         typeof(BootstrapGlobalAdmin).GetCustomAttribute<RestRouteAttribute>().ShouldBeNull();
     }
 
+    [Fact]
+    public void CreateSyntheticTenant_HasAnInternalCommandContract()
+    {
+        var command = new CreateSyntheticTenant("tenant-a");
+
+        typeof(ICommandContract).IsAssignableFrom(typeof(CreateSyntheticTenant)).ShouldBeTrue();
+        CreateSyntheticTenant.Domain.ShouldBe(TenantIdentity.Domain);
+        CreateSyntheticTenant.CommandType.ShouldBe("create-synthetic-tenant");
+        command.AggregateId.ShouldBe("tenant-a");
+        typeof(CreateSyntheticTenant).GetCustomAttribute<RestRouteAttribute>().ShouldBeNull();
+    }
+
     private static void AssertTenantCommand<TCommand>(
         TCommand command,
         string commandType,

@@ -5,6 +5,7 @@ global-administrators-remove-global-administrator
 global-administrators-set-global-administrator
 tenants-add-user-to-tenant
 tenants-change-user-role
+tenants-create-synthetic-tenant
 tenants-create-tenant
 tenants-disable-tenant
 tenants-enable-tenant

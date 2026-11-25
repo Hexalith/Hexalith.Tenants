@@ -4,6 +4,7 @@ using Hexalith.EventStore.Client.Aggregates;
 using Hexalith.EventStore.Client.Attributes;
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Commands;
+using Hexalith.EventStore.Contracts.Identity;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Events;
@@ -35,6 +36,35 @@ public class TenantAggregate : EventStoreAggregate<TenantState> {
             : state is not null
                 ? DomainResult.Rejection([new TenantAlreadyExistsRejection(tenantId)])
                 : DomainResult.Success([new TenantCreated(tenantId, command.Name, command.Description, DateTimeOffset.UtcNow)]);
+    }
+
+    /// <summary>Creates a synthetic tenant after checking the verified actor and the addressed tenant stream.</summary>
+    /// <param name="command">The synthetic tenant creation command.</param>
+    /// <param name="state">The current aggregate state.</param>
+    /// <param name="envelope">The authoritative tenant address and acting identity.</param>
+    /// <returns>The creation, no-op, or rejection result.</returns>
+    public static DomainResult Handle(CreateSyntheticTenant command, TenantState? state, CommandEnvelope envelope)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        ArgumentNullException.ThrowIfNull(envelope);
+        string tenantId = envelope.AggregateId;
+        if (!IsGlobalAdmin(envelope))
+        {
+            return GlobalAdminRequired(tenantId, envelope, state, nameof(CreateSyntheticTenant));
+        }
+
+        if (!TenantCanonicalizer.TryCanonicalize(tenantId, out string canonicalId) || canonicalId != tenantId)
+        {
+            return DomainResult.Rejection([new SyntheticTenantIdInvalidRejection(tenantId)]);
+        }
+
+        return state switch
+        {
+            { IsSynthetic: true } => DomainResult.NoOp(),
+            { TenantId.Length: > 0 } => DomainResult.Rejection([new TenantAlreadyExistsRejection(tenantId)]),
+            // A replay of rejection events alone has no created tenant.
+            _ => DomainResult.Success([new TenantCreated(tenantId, tenantId, null, DateTimeOffset.UtcNow, IsSynthetic: true)]),
+        };
     }
 
     public static DomainResult Handle(UpdateTenant command, TenantState? state, CommandEnvelope envelope) {

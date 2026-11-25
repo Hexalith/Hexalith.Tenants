@@ -64,9 +64,101 @@ public class TenantAggregateTests {
         ((TenantCreated)evt).TenantId.ShouldBe("acme");
         ((TenantCreated)evt).Name.ShouldBe("Acme Corp");
         ((TenantCreated)evt).Description.ShouldBe("Test tenant");
+        ((TenantCreated)evt).IsSynthetic.ShouldBeNull();
         ((TenantCreated)evt).CreatedAt.ShouldBeInRange(
             DateTimeOffset.UtcNow.AddSeconds(-5),
             DateTimeOffset.UtcNow.AddSeconds(1));
+    }
+
+    [Fact]
+    public async Task CreateSyntheticTenant_creates_an_active_synthetic_tenant() {
+        var command = new CreateSyntheticTenant("local-ci-1");
+        CommandEnvelope envelope = CreateCommand(command, isGlobalAdmin: true) with { CommandType = CreateSyntheticTenant.CommandType };
+        DomainResult result = await new TenantAggregate().ProcessAsync(envelope, currentState: null);
+
+        result.IsSuccess.ShouldBeTrue();
+        TenantCreated created = result.Events.Single().ShouldBeOfType<TenantCreated>();
+        created.TenantId.ShouldBe(command.TenantId);
+        created.IsSynthetic.ShouldBe(true);
+
+        var state = new TenantState();
+        state.Apply(created);
+        state.Status.ShouldBe(TenantStatus.Active);
+        state.IsSynthetic.ShouldBe(true);
+    }
+
+    [Fact]
+    public async Task CreateSyntheticTenant_replays_as_no_op_and_CreateTenant_rejects_the_same_id() {
+        var command = new CreateSyntheticTenant("local-ci-1");
+        var aggregate = new TenantAggregate();
+        CommandEnvelope envelope = CreateCommand(command, isGlobalAdmin: true);
+        DomainResult created = await aggregate.ProcessAsync(envelope, currentState: null);
+
+        DomainResult rerun = await aggregate.ProcessAsync(envelope, currentState: created.Events);
+        rerun.IsNoOp.ShouldBeTrue();
+        rerun.Events.ShouldBeEmpty();
+
+        var state = new TenantState();
+        TenantCreated creation = created.Events.Single().ShouldBeOfType<TenantCreated>();
+        state.Apply(creation);
+        state.Apply(creation with { IsSynthetic = null });
+        state.Apply(new TenantDisabled(command.TenantId, DateTimeOffset.UtcNow));
+        JsonElement snapshot = JsonSerializer.SerializeToElement(state);
+        (await aggregate.ProcessAsync(envelope, snapshot)).IsNoOp.ShouldBeTrue();
+
+        DomainResult normalCreate = await aggregate.ProcessAsync(
+            CreateCommand(new CreateTenant(command.TenantId, "Tenant", null), isGlobalAdmin: true),
+            currentState: created.Events);
+        normalCreate.IsRejection.ShouldBeTrue();
+        normalCreate.Events.Single().ShouldBeOfType<TenantAlreadyExistsRejection>();
+    }
+
+    [Fact]
+    public async Task CreateSyntheticTenant_rejects_collision_with_a_real_tenant() {
+        var command = new CreateSyntheticTenant("acme");
+        DomainResult result = await new TenantAggregate().ProcessAsync(
+            CreateCommand(command, isGlobalAdmin: true), CreateStateWithRoles());
+
+        result.IsRejection.ShouldBeTrue();
+        result.Events.Single().ShouldBeOfType<TenantAlreadyExistsRejection>().TenantId.ShouldBe(command.TenantId);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("TRUE")]
+    public async Task CreateSyntheticTenant_requires_verified_global_admin_before_checking_the_id(string? hint) {
+        var command = new CreateSyntheticTenant("system");
+        DomainResult result = await new TenantAggregate().ProcessAsync(
+            CreateCommand(command, globalAdminExtensionValue: hint), currentState: null);
+
+        result.IsRejection.ShouldBeTrue();
+        result.Events.Single().ShouldBeOfType<InsufficientPermissionsRejection>().CommandName.ShouldBe(nameof(CreateSyntheticTenant));
+    }
+
+    [Theory]
+    [InlineData("system")]
+    [InlineData("Tenant")]
+    [InlineData("bad_id")]
+    [InlineData("test.tenant")]
+    public async Task CreateSyntheticTenant_rejects_an_invalid_aggregate_id_before_checking_state(string invalidId) {
+        var command = new CreateSyntheticTenant("valid-id");
+        DomainResult result = await new TenantAggregate().ProcessAsync(
+            CreateCommand(command, isGlobalAdmin: true, aggregateId: invalidId), CreateStateWithRoles());
+
+        result.IsRejection.ShouldBeTrue();
+        result.Events.Single().ShouldBeOfType<SyntheticTenantIdInvalidRejection>().TenantId.ShouldBe(invalidId);
+    }
+
+    [Fact]
+    public async Task CreateSyntheticTenant_can_follow_a_rejected_attempt() {
+        var command = new CreateSyntheticTenant("local-ci-1");
+        var aggregate = new TenantAggregate();
+        DomainResult denied = await aggregate.ProcessAsync(CreateCommand(command), currentState: null);
+        DomainResult admitted = await aggregate.ProcessAsync(
+            CreateCommand(command, isGlobalAdmin: true), currentState: denied.Events);
+
+        admitted.IsSuccess.ShouldBeTrue();
+        admitted.Events.Single().ShouldBeOfType<TenantCreated>().IsSynthetic.ShouldBe(true);
     }
 
     // Test 2: CreateTenant when tenant already exists → Rejection (AC #2)

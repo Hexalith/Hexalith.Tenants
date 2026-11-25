@@ -28,7 +28,8 @@ public static class TenantCatalogDeclarations
             Converters = { new Serialization.TenantStatusJsonConverter(), new System.Text.Json.Serialization.JsonStringEnumConverter() },
         };
         bool internalOperation = route.Kind == "projection" || route.Execution!.RequiresDelegatedContext
-            || route.MessageType == BootstrapGlobalAdmin.CommandType;
+            || route.MessageType == BootstrapGlobalAdmin.CommandType
+            || route.MessageType == CreateSyntheticTenant.CommandType;
         string eligibility = route.MessageType switch
         {
             "set-global-administrator" or "remove-global-administrator" => "confirmation-required",
@@ -69,6 +70,7 @@ public static class TenantCatalogDeclarations
     /// <summary>Gets the explicit MessageId v1, Mutation/24-hour command policies.</summary>
     public static IReadOnlyList<CommandIntentDeclaration> Commands { get; } = [
         Command<CreateTenant>("create", false, [new("name", "string"), new("description-is-null", "boolean"), new("description", "string")]),
+        Command<CreateSyntheticTenant>("create", false, []),
         Command<UpdateTenant>("update", false, [new("name", "string"), new("description-is-null", "boolean"), new("description", "string")]),
         Command<DisableTenant>("disable", false, []),
         Command<EnableTenant>("enable", false, []),

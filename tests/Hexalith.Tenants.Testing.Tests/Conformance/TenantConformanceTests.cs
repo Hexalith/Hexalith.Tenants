@@ -103,6 +103,11 @@ public sealed class TenantConformanceTests {
             ctx.ExecuteTenant(new CreateTenant("acme", "Acme Again", null), "acme", "admin", isGlobalAdmin: true);
         });
 
+        yield return Scenario("CreateSyntheticTenant creation and rerun", typeof(CreateSyntheticTenant), ctx => {
+            ctx.ExecuteTenant(new CreateSyntheticTenant("synthetic"), "synthetic", "admin", isGlobalAdmin: true);
+            ctx.ExecuteTenant(new CreateSyntheticTenant("synthetic"), "synthetic", "admin", isGlobalAdmin: true);
+        });
+
         yield return Scenario("RefreshTenantAccess global-admin snapshot", typeof(RefreshTenantAccess), ctx => {
             ctx.CreateActiveTenant("acme");
             ctx.AddUser("acme", "reader", TenantRole.TenantReader);
@@ -1580,6 +1585,7 @@ public sealed class TenantConformanceTests {
 
             DomainResult aggregateResult = command switch {
                 CreateTenant c => TenantAggregate.Handle(c, state, envelope),
+                CreateSyntheticTenant c => TenantAggregate.Handle(c, state, envelope),
                 DisableTenant c => TenantAggregate.Handle(c, state, envelope),
                 EnableTenant c => TenantAggregate.Handle(c, state, envelope),
                 UpdateTenant c => TenantAggregate.Handle(c, state, envelope),
@@ -1636,6 +1642,7 @@ public sealed class TenantConformanceTests {
             _ = _observedTenantIds.Add(aggregateId);
             string? payloadTenantId = command switch {
                 CreateTenant c => c.TenantId,
+                CreateSyntheticTenant c => c.TenantId,
                 DisableTenant c => c.TenantId,
                 EnableTenant c => c.TenantId,
                 UpdateTenant c => c.TenantId,
@@ -1781,6 +1788,7 @@ public sealed class TenantConformanceTests {
             ValuesEqual(actual.Name, expected.Name).ShouldBeTrue($"{scenarioName}: TenantState.Name differed for '{tenantId}'.");
             ValuesEqual(actual.Description, expected.Description).ShouldBeTrue($"{scenarioName}: TenantState.Description differed for '{tenantId}'.");
             actual.Status.ShouldBe(expected.Status, $"{scenarioName}: TenantState.Status differed for '{tenantId}'.");
+            actual.IsSynthetic.ShouldBe(expected.IsSynthetic, $"{scenarioName}: TenantState.IsSynthetic differed for '{tenantId}'.");
             actual.HasMembershipHistory.ShouldBe(expected.HasMembershipHistory, $"{scenarioName}: TenantState.HasMembershipHistory differed for '{tenantId}'.");
             DictionariesEqual(actual.Users, expected.Users).ShouldBeTrue($"{scenarioName}: TenantState.Users differed for '{tenantId}'.");
             DictionariesEqual(actual.Configuration, expected.Configuration).ShouldBeTrue($"{scenarioName}: TenantState.Configuration differed for '{tenantId}'.");

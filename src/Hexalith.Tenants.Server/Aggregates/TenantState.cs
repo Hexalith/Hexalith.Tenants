@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Events;
 using Hexalith.Tenants.Contracts.Events.Rejections;
@@ -14,8 +16,17 @@ public sealed class TenantState {
     public Dictionary<string, string> Configuration { get; set; } = [];
     public DateTimeOffset CreatedAt { get; set; }
 
+    /// <summary>Gets the creation-time marker for synthetic tenants.</summary>
+    [JsonInclude]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? IsSynthetic { get; private set; }
+
     public void Apply(TenantCreated e) {
         ArgumentNullException.ThrowIfNull(e);
+        if (string.IsNullOrEmpty(TenantId)) {
+            IsSynthetic = e.IsSynthetic;
+        }
+
         TenantId = e.TenantId;
         Name = e.Name;
         Description = e.Description;
@@ -86,6 +97,14 @@ public sealed class TenantState {
     }
 
     public void Apply(TenantAlreadyExistsRejection e) {
+        ArgumentNullException.ThrowIfNull(e);
+        MarkReplayOnlyEventHandled();
+    }
+
+    /// <summary>Replays a rejected create attempt without changing state.</summary>
+    /// <param name="e">The invalid tenant identifier rejection.</param>
+    public void Apply(SyntheticTenantIdInvalidRejection e)
+    {
         ArgumentNullException.ThrowIfNull(e);
         MarkReplayOnlyEventHandled();
     }

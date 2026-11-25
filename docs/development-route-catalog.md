@@ -110,7 +110,7 @@ version override. Its lane requires compiled
 enrollment, the complete owner catalog, all generated HTTP cases, ordinary stale
 artifact refusals, and a fresh packed Contracts/Server consumer. The consumer
 checks source metadata and candidate archive/DLL hashes before discovering all
-24 routes, 24 operations and 13 command adapters through the public SDK APIs.
+25 routes, 25 operations and 14 command adapters through the public SDK APIs.
 
 The four blocking authenticated route suites resolve the Release AppHost's
 EventStore and McpCli defaults and pass them to the linked host builds. After
@@ -129,9 +129,8 @@ Binary qualification enables `HEXALITH_DEVELOPMENT_CATALOG_SOURCE`; the canonica
 `HEXALITH_DEVELOPMENT_CATALOG_COHORT`. Only source graphs enable
 `HEXALITH_DEVELOPMENT_CATALOG_SOURCE_REFERENCE`.
 
-The current compiled consumer requires exactly 24 routes, 24 operations and 13
-adapters for either runtime target. Finite historical metadata admission does not
-qualify an older 23-route archive against this inventory. Historical end-to-end
+The current compiled consumer requires exactly 25 routes, 25 operations and 14
+adapters for either runtime target. Historical end-to-end
 qualification uses the verifier revision recorded in its original receipt;
 `--target-framework net10.0` only changes the runtime target.
 

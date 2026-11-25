@@ -826,6 +826,23 @@ public partial class TenantProjectionHandlerTests {
     }
 
     [Fact]
+    public async Task ProjectAsync_LegacyTenantCreatedWithoutSyntheticMarkerCertifiesAuditReplayAsync()
+    {
+        ProjectionEventDto[] history = CanonicalAuditHistory();
+        history[0] = history[0] with
+        {
+            Payload = """{"TenantId":"tenant-1","Name":"Acme","Description":null,"CreatedAt":"2026-01-15T10:00:00Z"}"""u8.ToArray(),
+        };
+        JsonSerializer.Deserialize<TenantCreated>(history[0].Payload).ShouldNotBeNull().IsSynthetic.ShouldBeNull();
+        var store = AuditAuthorityStore();
+
+        _ = await CreateHandler(store).ProjectAsync(new("tenant-1", "tenants", "tenant-1", history));
+
+        SavedAudit(store).ProjectionVersion.ShouldBe("tenant-sequence:3");
+        SavedAudit(store).Entries.Select(row => row.EventId).ShouldBe(["evt-created", "evt-owner", "evt-reader"]);
+    }
+
+    [Fact]
     public async Task ProjectAsync_CompleteAuditReplayCertifiesItsOwnPrefixWithoutBorrowingNewerDetailAuthorityAsync()
     {
         ProjectionEventDto[] history = CanonicalAuditHistory();

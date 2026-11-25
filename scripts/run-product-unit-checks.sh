@@ -7,6 +7,7 @@ for suite in \
     test_bootstrap_handoff.py \
     test_catalog_artifact_guards.py \
     test_catalog_package_consumer.py \
+    test_create_synthetic_tenant.py \
     test_dapr_read_policy_evidence.py \
     test_hosted_package_profile.py \
     test_release_validation_context.py \

@@ -28,7 +28,7 @@ public class TenantCatalogTests
         CompiledRouteCatalogDeclarations.Read([typeof(TenantCatalogDeclarations).Assembly])
             .Select(route => route.RouteId).Order(StringComparer.Ordinal).ShouldBe(approved.Order(StringComparer.Ordinal));
         var adapters = TenantIntentAdapters.Create();
-        adapters.Count.ShouldBe(13);
+        adapters.Count.ShouldBe(14);
         adapters.Select(adapter => adapter.Declaration.Route.RouteId).Order(StringComparer.Ordinal)
             .ShouldBe(TenantCatalogDeclarations.Commands.Select(command => command.Route.RouteId).Order(StringComparer.Ordinal));
     }
@@ -42,6 +42,10 @@ public class TenantCatalogTests
         operations.Count(o => o.Ingress == "public" && o.Eligibility == "confirmation-required").ShouldBe(2);
         operations.Single(o => o.RouteId == "global-administrators-get-global-administrators").Eligibility.ShouldBe("UI-only");
         operations.Single(o => o.RouteId == "global-administrators-bootstrap-global-admin").Ingress.ShouldBe("internal");
+        var synthetic = operations.Single(o => o.RouteId == "tenants-create-synthetic-tenant");
+        synthetic.Ingress.ShouldBe("internal");
+        var agent = new ClaimsPrincipal(new ClaimsIdentity([new Claim(RouteCatalogSurfacePolicy.ClaimType, "agent")], "test"));
+        RouteCatalogSurfacePolicy.Allows(synthetic, agent).ShouldBeFalse();
         typeof(TenantIntentAdapters).Assembly.GetCustomAttributes<RouteCatalogAdapterSourceAttribute>()
             .Select(source => source.SourceType).ShouldContain(typeof(TenantIntentAdapters));
     }

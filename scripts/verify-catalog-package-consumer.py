@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Qualify current archives against the exact 24-route, 24-operation, 13-adapter inventory.
+"""Qualify current archives against the exact 25-route, 25-operation, 14-adapter inventory.
 
 Finite historical metadata admission is retained. Full discovery of older archives
 uses the verifier revision recorded by their historical qualification receipt.
@@ -201,7 +201,7 @@ if __name__ == '__main__':
     parser.add_argument('--expected-source-sha', default=os.environ.get('GITHUB_SHA'))
     parser.add_argument('--output', type=Path)
     parser.add_argument('--target-framework', choices=('net10.0', 'net11.0'), default='net11.0',
-                        help='Runtime target only: both targets require the current exact 24 routes/24 operations/13 adapters. Historical inventories use their recorded verifier revision.')
+                        help='Runtime target only: both targets require the current exact 25 routes/25 operations/14 adapters. Historical inventories use their recorded verifier revision.')
     arguments = parser.parse_args()
     if arguments.expected_source_sha is not None and not re.fullmatch('[0-9a-f]{40}', arguments.expected_source_sha):
         parser.error('An exact lowercase source SHA is required.')

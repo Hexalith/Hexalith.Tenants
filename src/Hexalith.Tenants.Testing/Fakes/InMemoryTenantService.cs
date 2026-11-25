@@ -245,6 +245,7 @@ public sealed class InMemoryTenantService {
 
         DomainResult result = command switch {
             CreateTenant c => TenantAggregate.Handle(c, state, envelope),
+            CreateSyntheticTenant c => TenantAggregate.Handle(c, state, envelope),
             DisableTenant c => TenantAggregate.Handle(c, state, envelope),
             EnableTenant c => TenantAggregate.Handle(c, state, envelope),
             UpdateTenant c => TenantAggregate.Handle(c, state, envelope),

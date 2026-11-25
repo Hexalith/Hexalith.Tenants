@@ -113,6 +113,7 @@ The package also declares the Hexalith McpCli module `tenants` (String identifie
 | Contract | Package | Owning aggregate/domain | Fields | Intended caller | Success or rejection outcome |
 | --- | --- | --- | --- | --- | --- |
 | `CreateTenant` | `Hexalith.Tenants.Contracts` | `TenantAggregate` / `tenants` | `TenantId`, `Name`, `Description?` | Trusted global administrator through the command gateway | `TenantCreated`; `TenantAlreadyExistsRejection`, `InsufficientPermissionsRejection` |
+| `CreateSyntheticTenant` | `Hexalith.Tenants.Contracts` | `TenantAggregate` / `tenants` | `TenantId` | Verified global administrator through the internal lifecycle task | `TenantCreated` with `IsSynthetic` true or no-op. Rejects with `TenantAlreadyExistsRejection`, `SyntheticTenantIdInvalidRejection`, or `InsufficientPermissionsRejection` |
 | `UpdateTenant` | `Hexalith.Tenants.Contracts` | `TenantAggregate` / `tenants` | `TenantId`, `Name`, `Description?` | Tenant contributor/owner or trusted global administrator | `TenantUpdated`; `TenantNotFoundRejection`, `TenantDisabledRejection`, `InsufficientPermissionsRejection` |
 | `DisableTenant` | `Hexalith.Tenants.Contracts` | `TenantAggregate` / `tenants` | `TenantId` | Trusted global administrator | `TenantDisabled`; `TenantNotFoundRejection`, `TenantLifecycleStateAlreadySetRejection`, `InsufficientPermissionsRejection` |
 | `EnableTenant` | `Hexalith.Tenants.Contracts` | `TenantAggregate` / `tenants` | `TenantId` | Trusted global administrator | `TenantEnabled`; `TenantNotFoundRejection`, `TenantLifecycleStateAlreadySetRejection`, `InsufficientPermissionsRejection` |
@@ -132,7 +133,7 @@ Every success event below is published to `tenants.events`. The EventStore envel
 
 | Contract | Package | Producing command(s) | Payload fields | Timestamp fields | Intended consumer use |
 | --- | --- | --- | --- | --- | --- |
-| `TenantCreated` | `Hexalith.Tenants.Contracts` | `CreateTenant` | `TenantId`, `Name`, `Description?`, `CreatedAt` | `CreatedAt` | Create or refresh local tenant lifecycle/configuration projections |
+| `TenantCreated` | `Hexalith.Tenants.Contracts` | `CreateTenant`, `CreateSyntheticTenant` | `TenantId`, `Name`, `Description?`, `CreatedAt`, `IsSynthetic?` | `CreatedAt` | Create or refresh local tenant lifecycle/configuration projections |
 | `TenantUpdated` | `Hexalith.Tenants.Contracts` | `UpdateTenant` | `TenantId`, `Name`, `Description?`, `UpdatedAt` | `UpdatedAt` | Refresh tenant display metadata |
 | `TenantDisabled` | `Hexalith.Tenants.Contracts` | `DisableTenant` | `TenantId`, `DisabledAt` | `DisabledAt` | Stop tenant-scoped access or background work |
 | `TenantEnabled` | `Hexalith.Tenants.Contracts` | `EnableTenant` | `TenantId`, `EnabledAt` | `EnabledAt` | Resume tenant-scoped access or background work |
@@ -316,6 +317,7 @@ Creates a new tenant. Requires trusted global administrator authority from the s
 | `Name`        | string         | Display name                        |
 | `Description` | string?        | Optional description                |
 | `CreatedAt`   | DateTimeOffset | Server-generated creation timestamp |
+| `IsSynthetic` | bool?         | Optional creation-time marker. Only `CreateSyntheticTenant` sets it to true. |
 
 Published on topic: `tenants.events`
 
@@ -790,6 +792,7 @@ Rejection events are produced when a command violates a business rule. All rejec
 | Rejection                                      | Fields                                                       | HTTP Status | HTTP Boundary Corrective Action                                                                 |
 | ---------------------------------------------- | ------------------------------------------------------------ | ----------- | ----------------------------------------------------------------------------------------------- |
 | `TenantAlreadyExistsRejection`                 | `TenantId`                                                   | 409         | Use a different identifier or treat the existing resource as the current state.                  |
+| `SyntheticTenantIdInvalidRejection`             | `TenantId`                                                   | 422         | Supply a canonical synthetic tenant identifier. |
 | `TenantNotFoundRejection`                      | `TenantId`                                                   | 404         | Verify the identifier and tenant context, then retry with an existing resource.                  |
 | `TenantDisabledRejection`                      | `TenantId`                                                   | 422         | Review the rejection detail, correct the request, and retry when appropriate.                    |
 | `TenantLifecycleStateAlreadySetRejection`      | `TenantId`, `CurrentStatus`, `RequestedStatus`, `CommandName` | 409         | Use a different identifier or treat the existing resource as the current state.                  |

@@ -49,6 +49,7 @@ public class McpCliDecorationTests {
     private static readonly Type[] ExcludedOperations =
     [
         typeof(BootstrapGlobalAdmin),
+        typeof(CreateSyntheticTenant),
         typeof(SetGlobalAdministrator),
         typeof(RemoveGlobalAdministrator),
         typeof(GetGlobalAdministratorsQuery),
@@ -95,7 +96,7 @@ public class McpCliDecorationTests {
     }
 
     [Fact]
-    public void Global_administrator_and_owner_authority_operations_stay_undecorated() {
+    public void Internal_and_global_administrator_operations_stay_undecorated() {
         foreach (Type type in ExcludedOperations) {
             type.GetCustomAttribute<HexalithCommandAttribute>(inherit: false).ShouldBeNull(type.Name);
             type.GetCustomAttribute<HexalithQueryAttribute>(inherit: false).ShouldBeNull(type.Name);

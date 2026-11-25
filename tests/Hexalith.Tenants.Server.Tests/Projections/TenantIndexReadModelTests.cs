@@ -9,6 +9,23 @@ namespace Hexalith.Tenants.Server.Tests.Projections;
 public class TenantIndexReadModelTests {
 
     [Fact]
+    public void Apply_SyntheticMarkerSurvivesReplayAndLifecycleChanges() {
+        var model = new TenantIndexReadModel();
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        model.Apply(new TenantCreated("synthetic", "Synthetic", null, now, IsSynthetic: true));
+        model.Apply(new TenantCreated("ordinary", "Ordinary", null, now));
+        model.Apply(new TenantUpdated("synthetic", "Updated", null, now));
+        model.Apply(new TenantDisabled("synthetic", now));
+        model.Apply(new TenantCreated("synthetic", "Duplicate", null, now));
+        model.Apply(new UserAddedToTenant("synthetic", "reader", TenantRole.TenantReader));
+
+        model.Tenants["synthetic"].IsSynthetic.ShouldBe(true);
+        model.Tenants["synthetic"].Status.ShouldBe(TenantStatus.Disabled);
+        model.Tenants["ordinary"].IsSynthetic.ShouldBeNull();
+        model.UserTenants["reader"]["synthetic"].ShouldBe(TenantRole.TenantReader);
+    }
+
+    [Fact]
     public void Apply_DuplicateTenantCreated_PreservesExistingTenantState() {
         var model = new TenantIndexReadModel();
         model.Apply(new TenantCreated("acme", "Acme Corp", null, DateTimeOffset.UtcNow));
