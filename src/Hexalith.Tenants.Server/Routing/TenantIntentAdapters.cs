@@ -15,6 +15,7 @@ public static class TenantIntentAdapters
     /// <summary>Constructs all approved per-operation adapters.</summary>
     public static IReadOnlyList<IDeclaredIdempotencyIntentAdapter> Create() => [
         Adapter<CreateTenant>(c => Description(c.Name, c.Description)),
+        Adapter<CreateSyntheticTenant>(_ => Fields()),
         Adapter<UpdateTenant>(c => Description(c.Name, c.Description)),
         Adapter<DisableTenant>(_ => Fields()), Adapter<EnableTenant>(_ => Fields()),
         Adapter<RefreshTenantAccess>(_ => Fields()),

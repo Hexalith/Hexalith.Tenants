@@ -98,9 +98,9 @@ public sealed partial class TenantQueryHandlerGlobalAdminClaimTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task List_tenants_current_global_administrator_sees_all_tenants(bool isGlobalAdmin) {
+    public async Task List_tenants_current_global_administrator_sees_only_real_tenants(bool isGlobalAdmin) {
         IReadModelStore store = Substitute.For<IReadModelStore>();
-        SeedTenantIndex(store);
+        SeedTenantIndex(store, includeSyntheticTenant: true);
         SeedGlobalAdministrators(store, ClaimAdmin);
 
         QueryResult result = await TenantQueryTestHarness.ExecuteAsync(
@@ -111,6 +111,20 @@ public sealed partial class TenantQueryHandlerGlobalAdminClaimTests {
         result.Success.ShouldBeTrue();
         PaginatedResult<TenantSummary> page = Deserialize<PaginatedResult<TenantSummary>>(result);
         page.Items.Select(static i => i.TenantId).ShouldBe(["tenant.alpha", "tenant.beta"], ignoreOrder: true);
+    }
+
+    [Fact]
+    public async Task List_tenants_synthetic_member_sees_their_tenant() {
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        SeedTenantIndex(store, includeSyntheticTenant: true);
+        SeedEmptyGlobalAdministrators(store);
+
+        QueryResult result = await TenantQueryTestHarness.ExecuteAsync(
+            store, CreateCursorCodec(), ListTenantsEnvelope(TargetUser, isGlobalAdmin: false));
+
+        result.Success.ShouldBeTrue();
+        Deserialize<PaginatedResult<TenantSummary>>(result).Items.Select(static item => item.TenantId)
+            .ShouldBe(["synthetic-tenant", "tenant.alpha"], ignoreOrder: true);
     }
 
     [Theory]
@@ -381,7 +395,7 @@ public sealed partial class TenantQueryHandlerGlobalAdminClaimTests {
             TenantIdentity.GlobalAdministratorsAggregateId,
             isGlobalAdmin);
 
-    private static void SeedTenantIndex(IReadModelStore store) {
+    private static void SeedTenantIndex(IReadModelStore store, bool includeSyntheticTenant = false) {
         var model = new TenantIndexReadModel {
             Tenants = {
                 ["tenant.alpha"] = new TenantIndexEntry("Tenant Alpha", TenantStatus.Active),
@@ -393,6 +407,11 @@ public sealed partial class TenantQueryHandlerGlobalAdminClaimTests {
                 },
             },
         };
+
+        if (includeSyntheticTenant) {
+            model.Tenants["synthetic-tenant"] = new TenantIndexEntry("Synthetic", TenantStatus.Active) { IsSynthetic = true };
+            model.UserTenants[TargetUser]["synthetic-tenant"] = TenantRole.TenantReader;
+        }
 
         _ = store.GetAsync<TenantIndexReadModel>(
                 TenantQueryHandlerBase.StateStoreName,

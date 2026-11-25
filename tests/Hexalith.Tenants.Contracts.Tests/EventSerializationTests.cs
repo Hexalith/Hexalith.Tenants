@@ -56,6 +56,15 @@ public class EventSerializationTests {
     }
 
     [Fact]
+    public void TenantCreated_serializes_the_marker_only_for_an_explicit_value() {
+        var ordinary = new TenantCreated("ordinary", "Ordinary", null, DateTimeOffset.UnixEpoch);
+        var synthetic = new TenantCreated("synthetic", "Synthetic", null, DateTimeOffset.UnixEpoch, IsSynthetic: true);
+
+        JsonSerializer.SerializeToElement(ordinary).TryGetProperty("IsSynthetic", out _).ShouldBeFalse();
+        JsonSerializer.Deserialize<TenantCreated>(JsonSerializer.Serialize(synthetic)).ShouldBe(synthetic);
+    }
+
+    [Fact]
     public void UserRemovedFromTenant_payload_contains_only_tenant_and_user_ids() {
         string[] propertyNames = typeof(UserRemovedFromTenant)
             .GetProperties(BindingFlags.Instance | BindingFlags.Public)
@@ -111,6 +120,10 @@ public class EventSerializationTests {
 
         if (paramType == typeof(DateTimeOffset)) {
             return DateTimeOffset.Parse("2026-01-15T10:30:00+00:00");
+        }
+
+        if (paramType == typeof(bool?)) {
+            return true;
         }
 
         if (paramType == typeof(TenantRole)) {

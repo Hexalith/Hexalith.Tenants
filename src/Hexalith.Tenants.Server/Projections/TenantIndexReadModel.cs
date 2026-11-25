@@ -22,7 +22,7 @@ public sealed class TenantIndexReadModel : IReadModelFreshness {
             return;
         }
 
-        Tenants[e.TenantId] = new TenantIndexEntry(e.Name, TenantStatus.Active);
+        Tenants[e.TenantId] = new TenantIndexEntry(e.Name, TenantStatus.Active) { IsSynthetic = e.IsSynthetic };
     }
 
     public void Apply(TenantUpdated e) {

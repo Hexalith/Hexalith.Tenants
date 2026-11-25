@@ -23,6 +23,17 @@ public sealed class TenantIndexProjectionVersionTests
         version.ShouldBe("tenant-index:sha256:2ba1b7ea2a8d1f6d2f0d8e0b2e091c45999e9a4bb960d8d5c528853e5446520a");
     }
 
+    [Fact]
+    public void OnlyTheTrueSyntheticMarkerChangesAuthority()
+    {
+        TenantIndexReadModel model = CompleteIndex();
+        string version = TenantIndexProjectionVersion.Create(model).ShouldNotBeNull();
+        model.Tenants["alpha"] = model.Tenants["alpha"] with { IsSynthetic = false };
+        TenantIndexProjectionVersion.Create(model).ShouldBe(version);
+        model.Tenants["alpha"] = model.Tenants["alpha"] with { IsSynthetic = true };
+        TenantIndexProjectionVersion.Create(model).ShouldNotBeNull().ShouldNotBe(version);
+    }
+
     [Theory]
     [InlineData("name")]
     [InlineData("status")]

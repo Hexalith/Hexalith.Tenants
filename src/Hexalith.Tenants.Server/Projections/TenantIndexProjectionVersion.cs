@@ -35,6 +35,11 @@ public static class TenantIndexProjectionVersion
                 writer.WriteStringValue(owner);
                 writer.WriteStringValue(tenant.Name);
                 writer.WriteNumberValue((int)tenant.Status);
+                if (tenant.IsSynthetic == true)
+                {
+                    writer.WriteBooleanValue(true);
+                }
+
                 writer.WriteEndArray();
             }
             writer.WriteEndArray();

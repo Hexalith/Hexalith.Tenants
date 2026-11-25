@@ -13,7 +13,7 @@ namespace Hexalith.Tenants.Queries.Handlers;
 
 /// <summary>
 /// Serves the <c>list-tenants</c> query: the paginated set of tenants visible to the authenticated user
-/// (all tenants for a global administrator, otherwise the user's own tenants).
+/// (all real tenants for a global administrator, otherwise the user's own tenants).
 /// </summary>
 public sealed class ListTenantsQueryHandler(
     IReadModelStore store,
@@ -66,7 +66,7 @@ public sealed class ListTenantsQueryHandler(
 
         IEnumerable<KeyValuePair<string, TenantIndexEntry>> tenants;
         if (isGlobalAdmin) {
-            tenants = indexModel.Tenants;
+            tenants = indexModel.Tenants.Where(t => t.Value.IsSynthetic != true);
         }
         else {
             HashSet<string> userTenantIds = GetUserTenantIds(indexModel, envelope.UserId);

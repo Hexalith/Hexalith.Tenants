@@ -48,6 +48,7 @@ public sealed class TenantProjectionHandler {
         typeof(TenantLifecycleStateAlreadySetRejection), typeof(InsufficientPermissionsRejection),
         typeof(RoleEscalationRejection), typeof(UserAlreadyInTenantRejection), typeof(UserNotInTenantRejection),
         typeof(ConfigurationLimitExceededRejection), typeof(ConfigurationKeyNotFoundRejection),
+        typeof(SyntheticTenantIdInvalidRejection),
         typeof(TenantAccessRefreshed), typeof(TenantAccessSnapshotLimitExceededRejection),
     ];
 
@@ -482,6 +483,8 @@ public sealed class TenantProjectionHandler {
                 => JsonSerializer.Deserialize<TenantNotFoundRejection>(evt.Payload, s_options)?.TenantId,
             nameof(InsufficientPermissionsRejection) or "Hexalith.Tenants.Contracts.Events.Rejections.InsufficientPermissionsRejection"
                 => JsonSerializer.Deserialize<InsufficientPermissionsRejection>(evt.Payload, s_options)?.TenantId,
+            nameof(SyntheticTenantIdInvalidRejection) or "Hexalith.Tenants.Contracts.Events.Rejections.SyntheticTenantIdInvalidRejection"
+                => JsonSerializer.Deserialize<SyntheticTenantIdInvalidRejection>(evt.Payload, s_options)?.TenantId,
             _ => null,
         };
         return string.Equals(tenantId, aggregateId, StringComparison.Ordinal);

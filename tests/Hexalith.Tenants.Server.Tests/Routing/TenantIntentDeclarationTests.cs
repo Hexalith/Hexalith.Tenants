@@ -12,6 +12,7 @@ public class TenantIntentDeclarationTests
 {
     [Theory]
     [InlineData("create-tenant")]
+    [InlineData("create-synthetic-tenant")]
     [InlineData("update-tenant")]
     [InlineData("disable-tenant")]
     [InlineData("enable-tenant")]
@@ -93,7 +94,7 @@ public class TenantIntentDeclarationTests
         TenantCatalogDeclarations.Queries.Count(q => q.Execution!.RequiresDelegatedContext).ShouldBe(2);
         TenantCatalogDeclarations.Queries.Where(q => q.Execution!.RequiresDelegatedContext).ShouldAllBe(q => q.Execution!.QueryKind == "computed" && q.ProjectionType == null);
         TenantCatalogDeclarations.Commands.Select(c => c.Route.PlatformAdmission!.RequiredHumanPermission).Order().ShouldBe(new[] {
-            "tenants:create", "tenants:update", "tenants:disable", "tenants:enable", "tenants:add-user", "tenants:remove-user", "tenants:change-user-role",
+            "tenants:create", "tenants:create", "tenants:update", "tenants:disable", "tenants:enable", "tenants:add-user", "tenants:remove-user", "tenants:change-user-role",
             "tenants:set-configuration", "tenants:remove-configuration", "tenants:refresh-access", "global-administrators:bootstrap", "global-administrators:set", "global-administrators:remove" }.Order());
     }
 
