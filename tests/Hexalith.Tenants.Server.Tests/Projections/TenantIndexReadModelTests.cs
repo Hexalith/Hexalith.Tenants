@@ -1,3 +1,6 @@
+using System.Text.Json;
+using System.Text.Json.Nodes;
+
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Events;
 using Hexalith.Tenants.Server.Projections;
@@ -7,6 +10,23 @@ using Shouldly;
 namespace Hexalith.Tenants.Server.Tests.Projections;
 
 public class TenantIndexReadModelTests {
+    // The Dapr read-model store serializes with DaprClient.JsonSerializerOptions, which default to the web profile.
+    private static readonly JsonSerializerOptions s_stateStoreOptions = new(JsonSerializerDefaults.Web);
+
+    [Fact]
+    public void SyntheticMarkerSurvivesTheStoredIndexRoundTrip() {
+        var model = new TenantIndexReadModel();
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        model.Apply(new TenantCreated("synthetic", "Synthetic", null, now, IsSynthetic: true));
+        model.Apply(new TenantCreated("ordinary", "Ordinary", null, now));
+
+        string json = JsonSerializer.Serialize(model, s_stateStoreOptions);
+        TenantIndexReadModel stored = JsonSerializer.Deserialize<TenantIndexReadModel>(json, s_stateStoreOptions).ShouldNotBeNull();
+
+        stored.Tenants["synthetic"].IsSynthetic.ShouldBe(true);
+        stored.Tenants["ordinary"].IsSynthetic.ShouldBeNull();
+        JsonNode.Parse(json)!["tenants"]!["ordinary"]!.AsObject().ContainsKey("isSynthetic").ShouldBeFalse();
+    }
 
     [Fact]
     public void Apply_SyntheticMarkerSurvivesReplayAndLifecycleChanges() {
