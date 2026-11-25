@@ -510,6 +510,7 @@ public partial class CommandApiRuntimeIntegrationTests {
         yield return [typeof(ConfigurationKeyNotFoundRejection), HttpStatusCode.NotFound, "configuration-key-not-found-rejection"];
         yield return [typeof(UserNotInTenantRejection), HttpStatusCode.UnprocessableEntity, "user-not-in-tenant-rejection"];
         yield return [typeof(LastGlobalAdministratorRejection), HttpStatusCode.UnprocessableEntity, "last-global-administrator-rejection"];
+        yield return [typeof(SyntheticTenantIdInvalidRejection), HttpStatusCode.UnprocessableEntity, "synthetic-tenant-id-invalid-rejection"];
     }
 
     public static IEnumerable<object[]> ReaderRejectedTenantStateChangingCommands() {
