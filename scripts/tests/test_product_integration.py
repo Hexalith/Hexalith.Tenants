@@ -19,9 +19,9 @@ SPEC.loader.exec_module(PRODUCT)
 
 class ProductPackageSelectionTests(unittest.TestCase):
     def write_manifest(self, root, host, scenario):
-        packages = ["Hexalith.EventStore.Contracts/5.4.0", "Hexalith.McpCli.Abstractions/3.0.0"]
+        packages = ["Hexalith.EventStore.Contracts/5.5.2", "Hexalith.McpCli.Abstractions/3.0.0"]
         if host == "Hexalith.Tenants.AppHost":
-            packages.append("Hexalith.EventStore.Aspire/5.4.0")
+            packages.append("Hexalith.EventStore.Aspire/5.5.2")
         if scenario == "stale-domain" and host == "Hexalith.Tenants":
             packages[0] = "Hexalith.EventStore.Contracts/5.3.1"
         runtime = {key: {"runtime": {key.split("/")[0] + ".dll": {}}} for key in packages}
@@ -40,7 +40,7 @@ class ProductPackageSelectionTests(unittest.TestCase):
         for scenario in ("current", "stale-restore", "stale-domain", "api-project", "ui-inactive", "apphost-hash", "stale-host"):
             with self.subTest(scenario=scenario), tempfile.TemporaryDirectory() as temporary:
                 root = Path(temporary)
-                restored = "5.3.1" if scenario == "stale-restore" else "5.4.0"
+                restored = "5.3.1" if scenario == "stale-restore" else "5.5.2"
                 package = "Hexalith.EventStore.Aspire/" + restored
                 package_path = root / "feed" / package.lower()
                 package_path.mkdir(parents=True)
@@ -64,7 +64,7 @@ class ProductPackageSelectionTests(unittest.TestCase):
                         self.assertNotIn("HexalithEventStoreVersion", env)
                         self.assertNotIn("HexalithMcpCliVersion", env)
                         self.assertFalse(any(arg.startswith("-p:HexalithEventStoreVersion=") for arg in arguments))
-                        return json.dumps({"Properties": {"HexalithEventStoreVersion": "5.4.0", "HexalithMcpCliVersion": "3.0.0"}})
+                        return json.dumps({"Properties": {"HexalithEventStoreVersion": "5.5.2", "HexalithMcpCliVersion": "3.0.0"}})
                     self.assertEqual(arguments, ("git", "-C", str(root / "references/Hexalith.EventStore"), "rev-parse", "HEAD"))
                     return ("a" if scenario == "stale-host" else "e") * 40
 

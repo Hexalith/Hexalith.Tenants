@@ -86,12 +86,12 @@ result records are uploaded; raw observations and key material remain private.
 
 ## Published SDK qualification
 
-The current default package selection is public stable EventStore `5.4.0` with
+The current default package selection is public stable EventStore `5.5.2` with
 McpCli.Abstractions `3.0.0`. Tenant-access recovery requires its snapshot-budget
 API. Catalog archive admission retains the exact canonical-scope cohorts
-`4.0.0`, `4.0.1`, `4.0.2`, `4.0.3`, `4.0.4`, `4.1.0`, `4.2.0`, `5.0.1`, `5.1.0`, `5.1.1`, `5.2.0`, `5.3.0`, `5.3.1` and `5.4.0`.
-Ordinary release preparation uses the `5.4.0`/`3.0.0` default. Current package production requires
-EventStore `5.3.0`, `5.3.1` or `5.4.0`, including packing without a build; older archive
+`4.0.0`, `4.0.1`, `4.0.2`, `4.0.3`, `4.0.4`, `4.1.0`, `4.2.0`, `5.0.1`, `5.1.0`, `5.1.1`, `5.2.0`, `5.3.0`, `5.3.1`, `5.4.0`, `5.5.1` and `5.5.2`.
+Ordinary release preparation uses the `5.5.2`/`3.0.0` default. Current package production requires
+EventStore `5.3.0`, `5.3.1`, `5.4.0`, `5.5.1` or `5.5.2`, including packing without a build; older archive
 cohorts remain verification inputs and cannot produce current Tenants packages.
 The retained finite compatibility set is `3.129.0`, `3.129.1`, `3.130.0`, `3.130.1`,
 `3.130.2`, `3.131.0`, `3.132.0`, `3.132.1`, `3.132.2` and `3.133.0`;
@@ -125,7 +125,7 @@ gitlink, runtime package versions and hash of each checked manifest. The
 product integration hook records the same evidence before the ordinary tier.
 
 Binary qualification enables `HEXALITH_DEVELOPMENT_CATALOG_SOURCE`; the canonical
-4.x, 5.0.1, 5.1.x, 5.2.0, 5.3.x and 5.4.0 package cohorts and an actual source graph also enable
+4.x, 5.0.1, 5.1.x, 5.2.0, 5.3.x, 5.4.0 and 5.5.x package cohorts and an actual source graph also enable
 `HEXALITH_DEVELOPMENT_CATALOG_COHORT`. Only source graphs enable
 `HEXALITH_DEVELOPMENT_CATALOG_SOURCE_REFERENCE`.
 
