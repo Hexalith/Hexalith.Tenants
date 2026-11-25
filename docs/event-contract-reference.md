@@ -113,7 +113,7 @@ The package also declares the Hexalith McpCli module `tenants` (String identifie
 | Contract | Package | Owning aggregate/domain | Fields | Intended caller | Success or rejection outcome |
 | --- | --- | --- | --- | --- | --- |
 | `CreateTenant` | `Hexalith.Tenants.Contracts` | `TenantAggregate` / `tenants` | `TenantId`, `Name`, `Description?` | Trusted global administrator through the command gateway | `TenantCreated`; `TenantAlreadyExistsRejection`, `InsufficientPermissionsRejection` |
-| `CreateSyntheticTenant` | `Hexalith.Tenants.Contracts` | `TenantAggregate` / `tenants` | `TenantId` | Verified global administrator through the internal lifecycle task | `TenantCreated` with `IsSynthetic` true or no-op. Rejects with `TenantAlreadyExistsRejection`, `SyntheticTenantIdInvalidRejection`, or `InsufficientPermissionsRejection` |
+| `CreateSyntheticTenant` | `Hexalith.Tenants.Contracts` | `TenantAggregate` / `tenants` | `TenantId` | Verified global administrator through the internal lifecycle task | `TenantCreated` with `IsSynthetic` true, or no-op on rerun; `TenantAlreadyExistsRejection`, `SyntheticTenantIdInvalidRejection`, `InsufficientPermissionsRejection` |
 | `UpdateTenant` | `Hexalith.Tenants.Contracts` | `TenantAggregate` / `tenants` | `TenantId`, `Name`, `Description?` | Tenant contributor/owner or trusted global administrator | `TenantUpdated`; `TenantNotFoundRejection`, `TenantDisabledRejection`, `InsufficientPermissionsRejection` |
 | `DisableTenant` | `Hexalith.Tenants.Contracts` | `TenantAggregate` / `tenants` | `TenantId` | Trusted global administrator | `TenantDisabled`; `TenantNotFoundRejection`, `TenantLifecycleStateAlreadySetRejection`, `InsufficientPermissionsRejection` |
 | `EnableTenant` | `Hexalith.Tenants.Contracts` | `TenantAggregate` / `tenants` | `TenantId` | Trusted global administrator | `TenantEnabled`; `TenantNotFoundRejection`, `TenantLifecycleStateAlreadySetRejection`, `InsufficientPermissionsRejection` |
@@ -336,6 +336,24 @@ Published on topic: `tenants.events`
 </details>
 
 **Rejections:** `TenantAlreadyExistsRejection`, `InsufficientPermissionsRejection`
+
+---
+
+#### CreateSyntheticTenant
+
+Creates the environment's synthetic tenant. The command is internal and has no REST route; the `create-synthetic-tenant` lifecycle task submits it (see [Create the environment's synthetic tenant](synthetic-tenant-task.md)). The aggregate checks the verified global administrator authority first, then requires the envelope aggregate ID to be canonical and not `system`, then checks existing state.
+
+**Command fields:**
+
+| Field      | Type   | Description                                  |
+| ---------- | ------ | -------------------------------------------- |
+| `TenantId` | string | Canonical identifier of the synthetic tenant |
+
+**Success event:** `TenantCreated` with `IsSynthetic` set to `true`, the tenant ID as `Name`, and no `Description`. The marker is set only at creation and never changes. A rerun for a tenant that is already synthetic is a no-op and produces no event.
+
+Global administrator tenant lists omit synthetic tenants. Members still see their own synthetic tenant.
+
+**Rejections:** `InsufficientPermissionsRejection`, `SyntheticTenantIdInvalidRejection`, `TenantAlreadyExistsRejection` (the ID belongs to a tenant that is not synthetic)
 
 ---
 
@@ -906,6 +924,7 @@ Public tenant audit reads isolate their canonical tenant. Global-administrator a
 | Command                     | Success Event                | Possible Rejections                                                                                                                                 |
 | --------------------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `CreateTenant`              | `TenantCreated`              | `TenantAlreadyExistsRejection`, `InsufficientPermissionsRejection`                                                                                  |
+| `CreateSyntheticTenant`     | `TenantCreated` or no-op     | `InsufficientPermissionsRejection`, `SyntheticTenantIdInvalidRejection`, `TenantAlreadyExistsRejection`                                             |
 | `UpdateTenant`              | `TenantUpdated`              | `TenantNotFoundRejection`, `TenantDisabledRejection`, `InsufficientPermissionsRejection`                                                            |
 | `DisableTenant`             | `TenantDisabled`             | `TenantNotFoundRejection`, `TenantLifecycleStateAlreadySetRejection`, `InsufficientPermissionsRejection`                                            |
 | `EnableTenant`              | `TenantEnabled`              | `TenantNotFoundRejection`, `TenantLifecycleStateAlreadySetRejection`, `InsufficientPermissionsRejection`                                            |

@@ -4,6 +4,9 @@
 # Force LF for shell scripts (must not have CRLF on Unix)
 *.sh text eol=lf
 
+# Force LF for Python scripts; operator tasks run through their shebang
+*.py text eol=lf
+
 # Force LF for other common text formats
 *.md text eol=lf
 *.yml text eol=lf

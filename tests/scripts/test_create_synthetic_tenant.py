@@ -118,6 +118,36 @@ class CreateSyntheticTenantTests(unittest.TestCase):
                     self.assertIn("SyntheticTenantIdInvalidRejection", result.stderr)
         self.assertEqual(requests, [])
 
+    def test_refused_gateway_url_and_missing_invocation_exit_two_without_request(self):
+        with gateway(accepted()) as (url, requests):
+            for gateway_url in ("ftp://127.0.0.1", "http://user@127.0.0.1", url + "?x=1", url + "#f",
+                                "http://127.0.0.1:0", url + "/ gateway", None):
+                with self.subTest(gateway_url=gateway_url):
+                    self.assertEqual(self.run_task(url, gatewayUrl=gateway_url).returncode, 2)
+            env = {key: value for key, value in os.environ.items() if key != "HEXALITH_TASK_INVOCATION_PATH"}
+            result = subprocess.run([str(TASK)], env=env, capture_output=True, text=True, timeout=10)
+            self.assertEqual(result.returncode, 2)
+        self.assertEqual(requests, [])
+
+    def test_gateway_reported_invalid_id_exits_two(self):
+        rejection = "Hexalith.Tenants.Contracts.Events.Rejections.SyntheticTenantIdInvalidRejection"
+        for submit, statuses in (
+            ((422, {"rejectionType": rejection, "detail": TOKEN}), []),
+            (accepted(), [status("Rejected", 5, rejectionEventType=rejection)]),
+        ):
+            with self.subTest(code=submit[0]), gateway(submit, statuses) as (url, _):
+                result = self.run_task(url)
+                self.assertEqual(result.returncode, 2)
+                self.assertIn("SyntheticTenantIdInvalidRejection", result.stderr)
+
+    def test_retryable_terminal_status_keeps_polling(self):
+        retry = status("Rejected", 5, retryable=True,
+                       rejectionEventType="Hexalith.Tenants.Contracts.Events.Rejections.TenantAlreadyExistsRejection")
+        with gateway(accepted(), [retry, status("Completed", 4)]) as (url, requests):
+            result = self.run_task(url)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(sum(method == "GET" for method, *_ in requests), 2)
+
     def test_bad_invocation_diagnostic_omits_secret(self):
         with gateway(accepted()) as (url, requests):
             result = self.run_task(url, headers={"Bad\nHeader": TOKEN})
@@ -141,9 +171,9 @@ class CreateSyntheticTenantTests(unittest.TestCase):
             result = self.run_task(url)
         self.assertEqual(result.returncode, 3)
         self.assertIn("GlobalAdminRequired", result.stderr)
-        with gateway((403, {"detail": TOKEN})) as (url, _):
-            result = self.run_task(url)
-        self.assertEqual(result.returncode, 3)
+        for code in (401, 403):
+            with self.subTest(code=code), gateway((code, {"detail": TOKEN})) as (url, _):
+                self.assertEqual(self.run_task(url).returncode, 3)
 
     def test_gateway_failure_and_unverifiable_status_exit_one_without_printing_details(self):
         for submit, statuses in (
@@ -151,6 +181,7 @@ class CreateSyntheticTenantTests(unittest.TestCase):
             (accepted(), [status("Rejected", 5, failureReason=BINDING)]),
             (accepted(), [status("Completed", 4, messageId="foreign", correlationId="foreign")]),
             (accepted(), [status("PublishFailed", 6, failureReason=TOKEN)]),
+            ((202, {"messageId": MESSAGE_ID, "correlationId": CORRELATION_ID, "padding": "x" * 70_000}), []),
         ):
             with self.subTest(code=submit[0], statuses=statuses), gateway(submit, statuses) as (url, _):
                 result = self.run_task(url)

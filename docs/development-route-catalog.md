@@ -130,7 +130,8 @@ Binary qualification enables `HEXALITH_DEVELOPMENT_CATALOG_SOURCE`; the canonica
 `HEXALITH_DEVELOPMENT_CATALOG_SOURCE_REFERENCE`.
 
 The current compiled consumer requires exactly 25 routes, 25 operations and 14
-adapters for either runtime target. Historical end-to-end
+adapters for either runtime target. Finite historical metadata admission does not
+qualify an older 23- or 24-route archive against this inventory. Historical end-to-end
 qualification uses the verifier revision recorded in its original receipt;
 `--target-framework net10.0` only changes the runtime target.
 
