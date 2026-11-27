@@ -87,7 +87,7 @@ Credential acquisition never follows HTTP redirects, including same-origin redir
 
 `Tenants:BootstrapGlobalAdminEnabled` defaults to `true`. When enabled with a configured user ID, the hosted service makes **one startup attempt** after listening; it does not retry in process. Set `Tenants__BootstrapGlobalAdminEnabled=false` to suppress another startup submission while recovering uncertain delivery. This preserves the configured user ID and existing state. A later restart with bootstrap enabled makes one new attempt, so do not restart blindly after failure.
 
-In production, supply the administrator password from a secret store for the bootstrap run only and remove it afterwards. If the IdP does not permit password grants, disable hosted bootstrap and have the designated administrator submit the one-time command with their own IdP-issued token, correct system/domain/permission claims and a supported global-administrator claim. The target must equal that authenticated subject. Never fabricate a token or change the administrator target to work around failed credentials.
+In production, supply the administrator password from a secret store for the bootstrap run only and remove it afterwards. On the canonical scope boundary, recover the designated administrator's credential through a trusted endpoint supported by your IdP and keep bootstrap on the bound workload path. The target must equal the authenticated subject. The public manual bootstrap example below applies to the retained legacy scope.
 
 Global-administrator authority is verified from the `global-administrators` read model after `GlobalAdministratorSet` has been projected. Wire administrator hints alone do not grant domain authority. Use the [quickstart membership and human handoff commands](quickstart.md#get-an-access-token) against `tenants-api`; a successful full-page membership lookup under the configured subject is the authoritative handoff check.
 
@@ -144,9 +144,13 @@ retain_startup_attempt
 resume_bootstrap
 ```
 
-`resume_bootstrap` only queries the retained correlation status and qualifying projected membership; it never dispatches. A `404`, missing IDs, `403`, stale/degraded/missing/mixed-version projection evidence or timeout does not establish non-delivery. If identity/status cannot be established, investigate without submitting a fresh command or restarting with bootstrap enabled. An already-bootstrapped rejection with the configured subject absent requires an existing administrator's investigation.
+`resume_bootstrap` queries status by the retained message ID and verifies qualifying projected membership. A `404`, missing IDs, `403`, stale/degraded/missing/mixed-version projection evidence or timeout does not establish non-delivery. If identity/status cannot be established, investigate without submitting a fresh command or restarting with bootstrap enabled. An already-bootstrapped rejection with the configured subject absent requires an existing administrator's investigation.
 
-4. Only after proving that no bootstrap was delivered and the state is unbootstrapped, correct configuration and explicitly perform the following **state-changing recovery** as the same configured identity. `BOOTSTRAP_UNBOOTSTRAPPED_CONFIRMED` is an operator evidence gate: set it only after that proof, never because a membership read failed. Existing retained handles prohibit a new submission even if this flag is set. Initial bootstrap needs the configured identity; subsequent human grants additionally require qualifying administrator membership.
+4. After proving non-delivery and an unbootstrapped state on the canonical scope boundary, correct configuration and repeat bootstrap only through the bound hosted path under the same configured identity.
+
+#### Legacy public bootstrap recovery
+
+Use the following state-changing example only against the retained public `system` cohort, with the quickstart helpers from that release. Confirm non-delivery and an unbootstrapped state before setting `BOOTSTRAP_UNBOOTSTRAPPED_CONFIRMED`. Existing retained handles prohibit a new submission even if this flag is set.
 
 ```bash
 recover_bootstrap() {

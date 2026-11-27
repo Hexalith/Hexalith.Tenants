@@ -35,21 +35,57 @@ class CatalogPackageMetadataTests(unittest.TestCase):
             archive.writestr(package_id + '.nuspec', ET.tostring(package))
             archive.writestr('lib/' + framework + '/' + package_id + '.dll', b'not executable')
 
-    def test_current_net11_and_explicit_retained_net10_consumers_keep_distinct_frameworks(self):
-        for framework in ('net11.0', 'net10.0'):
-            with self.subTest(framework=framework), tempfile.TemporaryDirectory(prefix='tenants-catalog-framework-') as temporary:
+    def test_current_and_retained_consumers_select_distinct_inventories_and_dependencies(self):
+        profiles = (
+            ('net11.0', '5.6.0', '3.0.0', 'approved-route-ids.txt', 25),
+            ('net10.0', '4.0.4', '2.0.0', 'approved-route-ids-net10.txt', 23),
+            ('net10.0', '4.1.0', '2.0.0', 'approved-route-ids-net10.txt', 23),
+            ('net10.0', '4.2.0', '2.0.1', 'approved-route-ids-net10.txt', 23),
+        )
+        for framework, sdk, mcp, manifest, route_count in profiles:
+            with self.subTest(framework=framework, sdk=sdk), tempfile.TemporaryDirectory(prefix='tenants-catalog-framework-') as temporary:
                 root = Path(temporary)
                 for package_id in CONSUMER.IDS:
-                    self.write_package(root, package_id, framework=framework)
+                    self.write_package(root, package_id, sdk=sdk, mcp=mcp, framework=framework)
+
                 def inspect_restore(arguments, **kwargs):
-                    self.assertEqual(ET.parse(arguments[2]).findtext('.//TargetFramework'), framework)
-                    raise InterruptedError('Verified framework boundary')
-                with patch.object(CONSUMER.subprocess, 'run', side_effect=inspect_restore):
-                    with self.assertRaisesRegex(InterruptedError, 'Verified framework boundary'):
+                    project = ET.parse(arguments[2])
+                    self.assertEqual(project.findtext('.//TargetFramework'), framework)
+                    for package_id, version in (('Hexalith.EventStore.DomainService', sdk), ('Hexalith.McpCli.Abstractions', mcp)):
+                        reference = project.find(f'.//PackageReference[@Include="{package_id}"]')
+                        self.assertEqual(reference.get('Version'), f'[{version}]')
+                    consumer = kwargs['cwd']
+                    self.assertEqual([path.name for path in consumer.glob('approved-route-ids*.txt')], [manifest])
+                    route_ids = (consumer / manifest).read_text().splitlines()
+                    self.assertEqual(len(route_ids), route_count)
+                    self.assertEqual(len(set(route_ids)), route_count)
+                    for later_route in ('tenants-refresh-tenant-access', 'tenants-create-synthetic-tenant'):
+                        self.assertEqual(later_route in route_ids, framework == 'net11.0')
+                    raise InterruptedError('Verified catalog profile before restore')
+
+                with patch.object(CONSUMER.subprocess, 'run', side_effect=inspect_restore) as run:
+                    with self.assertRaisesRegex(InterruptedError, 'Verified catalog profile before restore'):
                         options = {} if framework == 'net11.0' else {'target_framework': framework}
                         CONSUMER.verify(root, 'a' * 40, **options)
+                    run.assert_called_once()
         with self.assertRaisesRegex(ValueError, 'framework is not qualified'):
             CONSUMER.verify(Path('/unused'), target_framework='net12.0')
+
+    def test_retained_consumer_rejects_incompatible_producer_pairs_before_restore(self):
+        for sdk, mcp, diagnostic in (
+                ('4.2.0', '2.0.0', 'qualified EventStore and McpCli dependency pair'),
+                ('4.1.0', '2.0.1', 'qualified EventStore and McpCli dependency pair'),
+                ('5.6.0', '2.0.1', 'qualified EventStore and McpCli dependency pair'),
+                ('5.6.0', '3.0.0', 'coordinated McpCli 2.0.0 or 2.0.1'),
+                ('3.133.0', '1.1.0', 'coordinated McpCli 2.0.0 or 2.0.1')):
+            with self.subTest(sdk=sdk, mcp=mcp), tempfile.TemporaryDirectory(prefix='tenants-catalog-framework-') as temporary:
+                root = Path(temporary)
+                for package_id in CONSUMER.IDS:
+                    self.write_package(root, package_id, sdk=sdk, mcp=mcp, framework='net10.0')
+                with patch.object(CONSUMER.subprocess, 'run') as run:
+                    with self.assertRaisesRegex(ValueError, diagnostic):
+                        CONSUMER.verify(root, 'a' * 40, target_framework='net10.0')
+                    run.assert_not_called()
 
     def test_consumer_workspace_pins_sdk_over_an_ancestor_global_json(self):
         with tempfile.TemporaryDirectory(prefix='tenants-catalog-sdk-') as temporary:

@@ -18,7 +18,8 @@ python3 -m unittest discover -s scripts/tests -p 'test_*.py' -v
 node --test \
     tests/Hexalith.Tenants.UI.Tests/Browser/authenticated-live-route-waits.test.mjs \
     tests/Hexalith.Tenants.UI.Tests/Browser/authenticated-live-route-evidence.test.mjs \
-    tests/Hexalith.Tenants.UI.Tests/Browser/published-frontcomposer-evidence.test.mjs
+    tests/Hexalith.Tenants.UI.Tests/Browser/published-frontcomposer-evidence.test.mjs \
+    tests/Hexalith.Tenants.UI.Tests/Browser/workspace-focus-host-identity.test.mjs
 
 # Use the browser installed centrally for the locked functional workspace.
 export CHROMIUM_BIN

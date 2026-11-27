@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
-"""Qualify current archives against the exact 25-route, 25-operation, 14-adapter inventory.
-
-Finite historical metadata admission is retained. Full discovery of older archives
-uses the verifier revision recorded by their historical qualification receipt.
-Selecting net10.0 changes the runtime target only, never the required inventory.
-"""
+"""Qualify compiled catalogs from current net11 and retained canonical net10 archives."""
 
 import argparse
 import hashlib
@@ -22,12 +17,22 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 IDS = ('Hexalith.Tenants.Contracts', 'Hexalith.Tenants.Server')
 NORMALIZE_RANGE = runpy.run_path(str(ROOT / 'scripts/validate-nuget-packages.py'))['normalize_range']
+RETAINED_NET10_COHORTS = {
+    '4.0.0': '2.0.0',
+    '4.0.1': '2.0.0',
+    '4.0.2': '2.0.0',
+    '4.0.3': '2.0.0',
+    '4.0.4': '2.0.0',
+    '4.1.0': '2.0.0',
+    '4.2.0': '2.0.1',
+}
 
 
 def verify(directory, expected_source=None, output=None, target_framework="net11.0"):
-    # The runtime target never relaxes the exact current discovery inventory.
     if target_framework not in ("net10.0", "net11.0"):
         raise ValueError("The catalog consumer framework is not qualified.")
+    retained = target_framework == 'net10.0'
+    allowed_mcp = ('2.0.0', '2.0.1') if retained else ('3.0.0',)
     archives = {}
     version = None
     sdk = None
@@ -64,8 +69,9 @@ def verify(directory, expected_source=None, output=None, target_framework="net11
             except ValueError as error:
                 raise ValueError('Catalog package requires a well-formed inclusive McpCli dependency range.') from error
             selected_mcp = mcp_range[1:].split(',')[0].rstrip(']') if mcp_range.startswith('[') else None
-            if selected_mcp not in ('3.0.0',) or mcp is not None and selected_mcp != mcp:
-                raise ValueError('Catalog package requires one coordinated McpCli 3.0.0 dependency cohort.')
+            if selected_mcp not in allowed_mcp or mcp is not None and selected_mcp != mcp:
+                raise ValueError('Catalog package requires one coordinated McpCli '
+                                 + ' or '.join(allowed_mcp) + ' dependency cohort.')
             mcp = selected_mcp
             for dependency in metadata.findall('.//{*}dependency'):
                 if dependency.get('id', '').startswith('Hexalith.EventStore.'):
@@ -87,6 +93,8 @@ def verify(directory, expected_source=None, output=None, target_framework="net11
                                     'dll_sha256': hashlib.sha256(dll).hexdigest(), 'source': source}
     if set(archives) != set(IDS) or sdk is None:
         raise ValueError('Both actual Contracts and Server archives and their SDK dependencies are required.')
+    if retained and RETAINED_NET10_COHORTS.get(sdk) != mcp:
+        raise ValueError('Retained net10 catalog archives require a qualified EventStore and McpCli dependency pair.')
     # A coordinated local candidate feed may contain the unpublished SDK and McpCli
     # packages. Bind every restored package from either producer to those exact bytes.
     candidate_archives = {}
@@ -147,7 +155,8 @@ def verify(directory, expected_source=None, output=None, target_framework="net11
             ET.SubElement(local, 'package', pattern=prefix + '*')
         ET.SubElement(ET.SubElement(mappings, 'packageSource', key='nuget'), 'package', pattern='*')
         ET.ElementTree(configuration).write(root / 'NuGet.Config', encoding='unicode')
-        for name in ('Program.cs', 'approved-route-ids.txt'):
+        route_ids = 'approved-route-ids-net10.txt' if retained else 'approved-route-ids.txt'
+        for name in ('Program.cs', route_ids):
             shutil.copyfile(ROOT / 'tools/catalog-package-consumer' / name, root / name)
         environment = os.environ.copy()
         for key in ('CustomBeforeDirectoryBuildProps', 'CustomAfterMicrosoftCommonProps', 'CustomBeforeDirectoryBuildTargets',
@@ -219,7 +228,8 @@ if __name__ == '__main__':
     parser.add_argument('--expected-source-sha', default=os.environ.get('GITHUB_SHA'))
     parser.add_argument('--output', type=Path)
     parser.add_argument('--target-framework', choices=('net10.0', 'net11.0'), default='net11.0',
-                        help='Runtime target only: both targets require the current exact 25 routes/25 operations/14 adapters. Historical inventories use their recorded verifier revision.')
+                        help='net11.0 checks the current 25 routes/25 operations/14 adapters; '
+                             'net10.0 checks the retained canonical 23 routes/23 operations/12 adapters.')
     arguments = parser.parse_args()
     if arguments.expected_source_sha is not None and not re.fullmatch('[0-9a-f]{40}', arguments.expected_source_sha):
         parser.error('An exact lowercase source SHA is required.')

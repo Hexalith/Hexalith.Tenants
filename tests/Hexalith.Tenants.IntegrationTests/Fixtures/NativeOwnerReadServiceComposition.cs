@@ -1,7 +1,6 @@
 using System.Security.Cryptography;
 using System.Text.Json;
 
-using Hexalith.EventStore.Client.Streams;
 using Hexalith.EventStore.ServiceDefaults;
 using Hexalith.EventStore.Contracts.Routing;
 using Hexalith.EventStore.ServiceDefaults.Authentication;
@@ -59,12 +58,7 @@ internal static class NativeOwnerReadServiceComposition
         services.AddSingleton(TimeProvider.System);
         services.AddEventStoreWorkloadAssertionIssuer(configuration);
         services.AddEventStoreRouteCatalog(configuration);
-        services.AddTenantOwnerSourceGateway();
-        services.AddScoped<IAuthoritativeEventStreamReader>(provider => new AuthoritativeEventStreamReader(
-            provider.GetRequiredService<TenantOwnerSourceGateway>(), TimeProvider.System,
-            TimeSpan.FromSeconds(30), requireNativeProof: true));
-        services.AddScoped<INativeSourceMetadataReader>(provider => new GatewayNativeSourceMetadataReader(
-            provider.GetRequiredService<TenantOwnerSourceGateway>(), TimeProvider.System, TimeSpan.FromSeconds(8)));
+        services.AddTenantOwnerSourceAuthority();
         return services;
     }
 

@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Globalization;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.EventStore.Server.Events;
 using System.Net.Http.Headers;
@@ -14,6 +15,7 @@ using Hexalith.EventStore.Contracts.Identity;
 using Hexalith.EventStore.Contracts.Streams;
 using Hexalith.EventStore.DomainService;
 using Hexalith.EventStore.ServiceDefaults.Authentication;
+using Hexalith.EventStore.ServiceDefaults.Routing;
 using Hexalith.EventStore.Testing.Fakes;
 using Hexalith.Tenants.Authorization;
 using Hexalith.Tenants.Contracts.Commands;
@@ -30,6 +32,7 @@ using Hexalith.FrontComposer.Shell.Extensions;
 using Hexalith.FrontComposer.Shell.Options;
 using Hexalith.FrontComposer.Shell.Services.Auth;
 using Hexalith.Memories.Client.Rest;
+using Hexalith.Tenants.Contracts.Projections;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.IntegrationTests.Fixtures;
 using Hexalith.Tenants.UI.Services.Gateways;
@@ -86,39 +89,67 @@ public sealed class AuthenticatedTenantsRouteTests(AuthenticatedRouteTopologyFix
 
         // Use the same bound proof, genuine workload issuer, owner gateway and durable admission as production.
         using ServiceProvider nativeReads = await fixture.CreateNativeOwnerReadServicesAsync(timeout.Token);
-        using IServiceScope nativeScope = nativeReads.CreateScope();
-        var stream = nativeScope.ServiceProvider.GetRequiredService<IAuthoritativeEventStreamReader>();
-        var metadata = nativeScope.ServiceProvider.GetRequiredService<INativeSourceMetadataReader>();
-        var invocation = nativeScope.ServiceProvider.GetRequiredService<Hexalith.EventStore.ServiceDefaults.Routing.RouteCatalogInvocationScope>();
-        var configuration = nativeScope.ServiceProvider.GetRequiredService<IConfiguration>();
-        Task<AuthoritativeStreamReadResult> ReadSourceAsync() => invocation.ExecuteNativeSourceReadAsync("eventstore",
-            () => stream.ReadAsync(new AggregateIdentity("system", "global-administrators", "global-administrators"), timeout.Token), timeout.Token);
+        var identity = new AggregateIdentity("system", "global-administrators", "global-administrators");
         var cursor = new QueryCursorCodec(new EphemeralDataProtectionProvider(), "live-native-revocation");
         var telemetry = new TenantTelemetry(new EventStoreDomainDiagnostics("tenants"));
         var envelope = new QueryEnvelope("system", "global-administrators", "global-administrators",
             GetGlobalAdministratorsQuery.QueryType, [], "live-native-revocation", administrator, isGlobalAdmin: true);
-        GetGlobalAdministratorsQueryHandler Handler() => new(retained,
-            new TenantsGlobalAdministratorAuthority(stream, metadata, TimeProvider.System, invocation, configuration), cursor, telemetry,
-            NullLogger<GetGlobalAdministratorsQueryHandler>.Instance);
-        var beforeSource = await ReadSourceAsync();
-        beforeSource.IsAuthoritative.ShouldBeTrue(beforeSource.FailureReason);
-        (await Handler().ExecuteAsync(envelope, timeout.Token)).Success.ShouldBeTrue();
+        var before = await ReadCommittedAsync(grant.CommittedEventSequence!.Value);
+        before.Event.EventTypeName.ShouldBe(typeof(GlobalAdministratorSet).FullName);
+        JsonSerializer.Deserialize<GlobalAdministratorSet>(before.Event.Payload, JsonSerializerOptions.Web)
+            .ShouldNotBeNull().UserId.ShouldBe(administrator);
+        QueryResult granted = await ReadRetainedProjectionAsync();
+        granted.Success.ShouldBeTrue();
+        granted.PayloadBytes.ShouldNotBeNull();
 
         var removal = await AspireTopologyTests.SubmitAndWaitForTerminalStatusAsync(fixture.CommandApiClient,
             AspireTopologyTests.CreateCommand("global-administrators", "global-administrators", nameof(RemoveGlobalAdministrator),
                 new RemoveGlobalAdministrator(administrator)), token, timeout.Token);
-        removal.Status.ShouldBe("Completed"); removal.CommittedEventSequence.ShouldNotBeNull().ShouldBeGreaterThan(grant.CommittedEventSequence!.Value);
-        var source = (await ReadSourceAsync())
-            .Stream.ShouldNotBeNull();
-        var committed = source.Events.Single(item => item.SequenceNumber == removal.CommittedEventSequence);
-        committed.EventTypeName.ShouldContain(nameof(GlobalAdministratorRemoved));
-        JsonSerializer.Deserialize<GlobalAdministratorRemoved>(committed.Payload, JsonSerializerOptions.Web)!.UserId.ShouldBe(administrator);
-        source.NativeProof.ShouldNotBeNull().HeadSequence.ShouldBeGreaterThanOrEqualTo(removal.CommittedEventSequence!.Value);
-        var refused = await Handler().ExecuteAsync(envelope, timeout.Token);
-        refused.Success.ShouldBeFalse(); refused.ErrorMessage.ShouldBe(QueryAdapterFailureReason.Forbidden);
+        removal.Status.ShouldBe("Completed");
+        long removalSequence = removal.CommittedEventSequence.ShouldNotBeNull();
+        removalSequence.ShouldBeGreaterThan(before.Proof.HeadSequence);
+        var after = await ReadCommittedAsync(removalSequence);
+        after.Event.EventTypeName.ShouldBe(typeof(GlobalAdministratorRemoved).FullName);
+        JsonSerializer.Deserialize<GlobalAdministratorRemoved>(after.Event.Payload, JsonSerializerOptions.Web)
+            .ShouldNotBeNull().UserId.ShouldBe(administrator);
+        after.Proof.SourceIncarnation.ShouldBe(before.Proof.SourceIncarnation);
+        after.Proof.CumulativeDigest.ShouldNotBe(before.Proof.CumulativeDigest);
+        QueryResult refused = await ReadRetainedProjectionAsync();
+        refused.Success.ShouldBeFalse();
+        refused.ErrorMessage.ShouldBe(QueryAdapterFailureReason.Forbidden);
+        refused.PayloadBytes.ShouldBeNull();
         (await retained.GetAsync<GlobalAdministratorReadModel>("statestore", "projection:global-administrators:singleton", timeout.Token))
             .Value.ShouldNotBeNull().Administrators.ShouldContain(administrator);
-        TestContext.Current.TestOutputHelper?.WriteLine("Native removal control: committed removal present, production stream/final metadata readers verified, retained granting projection refused.");
+
+        async Task<(StreamReadEvent Event, NativeSourceProof Proof)> ReadCommittedAsync(long sequence)
+        {
+            using IServiceScope scope = nativeReads.CreateScope();
+            IServiceProvider services = scope.ServiceProvider;
+            var stream = services.GetRequiredKeyedService<IAuthoritativeEventStreamReader>("native-tenant-source");
+            var metadata = services.GetRequiredService<INativeSourceMetadataReader>().ShouldBeOfType<GatewayNativeSourceMetadataReader>();
+            return await services.GetRequiredService<RouteCatalogInvocationScope>().ExecuteNativeSourceReadAsync("eventstore", async () =>
+            {
+                AuthoritativeStreamReadResult result = await stream.ReadAsync(identity, timeout.Token);
+                result.IsAuthoritative.ShouldBeTrue(result.FailureReason);
+                var source = result.Stream.ShouldNotBeNull();
+                source.Identity.ShouldBe(identity);
+                NativeSourceProof proof = source.NativeProof.ShouldNotBeNull();
+                proof.HeadSequence.ShouldBeGreaterThanOrEqualTo(sequence);
+                NativeSourceObservation observed = (await metadata.ReadAsync(identity, timeout.Token)).ShouldNotBeNull();
+                observed.Proof.ShouldBe(proof);
+                observed.ObservedAt.ShouldBeGreaterThanOrEqualTo(source.ObservedAt);
+                return (source.Events.Single(item => item.SequenceNumber == sequence), proof);
+            }, timeout.Token);
+        }
+
+        async Task<QueryResult> ReadRetainedProjectionAsync()
+        {
+            using IServiceScope scope = nativeReads.CreateScope();
+            var handler = new GetGlobalAdministratorsQueryHandler(retained,
+                scope.ServiceProvider.GetRequiredService<ITenantsGlobalAdministratorAuthority>(), cursor, telemetry,
+                NullLogger<GetGlobalAdministratorsQueryHandler>.Instance);
+            return await handler.ExecuteAsync(envelope, timeout.Token);
+        }
     }
 
     [DaprFact]
@@ -126,6 +157,11 @@ public sealed class AuthenticatedTenantsRouteTests(AuthenticatedRouteTopologyFix
     {
         fixture.SkipIfUnavailable();
         using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+        using var redis = await CatalogRedisBackend.ConnectAsync(timeout.Token);
+        var database = CatalogRedisBackend.Database(redis);
+#if HEXALITH_CHECKPOINTED_TENANT_PROJECTION
+        using var consumer = await TenantRecoveryConsumerProbe.CreateAsync(database, timeout.Token);
+#endif
         // The existing fixture owns the complete topology and its teardown; this test creates
         // only its unique tenant and disposes every request, Redis connection and caller scope.
         AuthenticatedRouteState state = await AuthenticatedRouteState.CreateAsync(fixture.CommandApiClient, timeout.Token);
@@ -134,56 +170,105 @@ public sealed class AuthenticatedTenantsRouteTests(AuthenticatedRouteTopologyFix
             new ChangeUserRole(state.TenantId, state.TargetUserId, TenantRole.TenantOwner));
         var promoted = await AspireTopologyTests.SubmitAndWaitForTerminalStatusAsync(fixture.CommandApiClient, promote, adminToken, timeout.Token);
         promoted.Status.ShouldBe("Completed");
-        long sequence = promoted.CommittedEventSequence.ShouldNotBeNull();
-        TenantReadModel before = await AspireTopologyTests.WaitForPersistedTenantAsync(state.TenantId, "tenant-sequence:" + sequence, timeout.Token);
+        const string configurationKey = "sample.theme";
+        const string configurationValue = "recovery-regression-value";
+        var configure = AspireTopologyTests.CreateCommand("tenants", state.TenantId, nameof(SetTenantConfiguration),
+            new SetTenantConfiguration(state.TenantId, configurationKey, configurationValue));
+        var configured = await AspireTopologyTests.SubmitAndWaitForTerminalStatusAsync(fixture.CommandApiClient, configure, adminToken, timeout.Token);
+        configured.Status.ShouldBe("Completed");
+        long sequence = configured.CommittedEventSequence.ShouldNotBeNull();
         string ownerToken = OwnerToken(true);
         string deniedToken = OwnerToken(false);
-        using var redis = await CatalogRedisBackend.ConnectAsync(timeout.Token);
+        using ServiceProvider reads = CreateProductionReadServices(state.Token);
+        using IServiceScope readScope = reads.CreateScope();
+        var readsClient = readScope.ServiceProvider.GetRequiredService<ITenantsRestQueryClient>();
         var identity = new AggregateIdentity("system", "tenants", state.TenantId);
         string eventPrefix = $"eventstore||AggregateActor||{identity.ActorId}||{identity.EventStreamKeyPrefix}";
         foreach (bool disabled in new[] { false, true })
         {
             if (disabled)
             {
+                var remove = AspireTopologyTests.CreateCommand("tenants", state.TenantId, nameof(RemoveUserFromTenant),
+                    new RemoveUserFromTenant(state.TenantId, AuthenticatedRouteState.CallerId));
+                var removed = await AspireTopologyTests.SubmitAndWaitForTerminalStatusAsync(fixture.CommandApiClient, remove, adminToken, timeout.Token);
+                removed.Status.ShouldBe("Completed");
                 var disable = AspireTopologyTests.CreateCommand("tenants", state.TenantId, nameof(DisableTenant), new DisableTenant(state.TenantId));
                 var status = await AspireTopologyTests.SubmitAndWaitForTerminalStatusAsync(fixture.CommandApiClient, disable, adminToken, timeout.Token);
                 status.Status.ShouldBe("Completed");
                 sequence = status.CommittedEventSequence.ShouldNotBeNull();
-                before = await AspireTopologyTests.WaitForPersistedTenantAsync(state.TenantId, "tenant-sequence:" + sequence, timeout.Token);
             }
+            var before = await AspireTopologyTests.WaitForPersistedTenantAsync(state.TenantId, ProjectionVersion(sequence), timeout.Token);
             before.Status.ShouldBe(disabled ? TenantStatus.Disabled : TenantStatus.Active);
-            var request = AspireTopologyTests.CreateCommand("tenants", state.TenantId, nameof(RefreshTenantAccess), new RefreshTenantAccess(state.TenantId));
+            before.Configuration[configurationKey].ShouldBe(configurationValue);
+            before.Members.ContainsKey(AuthenticatedRouteState.CallerId).ShouldBe(!disabled);
+            before.Members[state.TargetUserId].ShouldBe(TenantRole.TenantOwner);
+#if HEXALITH_CHECKPOINTED_TENANT_PROJECTION
+            await consumer.ConsumeThroughAsync(state.TenantId, sequence, timeout.Token);
+            await consumer.AssertProjectionAsync(before, sequence, timeout.Token);
+#endif
+            var request = AspireTopologyTests.CreateCommand(RefreshTenantAccess.Domain, state.TenantId, RefreshTenantAccess.CommandType,
+                new RefreshTenantAccess(state.TenantId));
             using (var denied = new HttpRequestMessage(HttpMethod.Post, "/api/v1/commands") { Content = JsonContent.Create(request) })
             {
                 denied.Headers.Authorization = new AuthenticationHeaderValue("Bearer", deniedToken);
+                denied.Headers.Add("X-Hexalith-Scope", request.Tenant);
                 using HttpResponseMessage response = await fixture.CommandApiClient.SendAsync(denied, timeout.Token);
                 response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
             }
-            (await CatalogRedisBackend.Database(redis).HashGetAsync(eventPrefix + (sequence + 1), "data").WaitAsync(timeout.Token)).IsNull.ShouldBeTrue();
+            (await database.HashGetAsync(eventPrefix + (sequence + 1), "data").WaitAsync(timeout.Token)).IsNull.ShouldBeTrue();
             var recovered = await AspireTopologyTests.SubmitAndWaitForTerminalStatusAsync(fixture.CommandApiClient, request, ownerToken, timeout.Token);
             recovered.Status.ShouldBe("Completed");
             recovered.EventCount.ShouldBe(1);
             recovered.CommittedEventSequence.ShouldBe(sequence + 1);
             sequence++;
-            var bytes = await CatalogRedisBackend.Database(redis).HashGetAsync(eventPrefix + sequence, "data").WaitAsync(timeout.Token);
+            var bytes = await database.HashGetAsync(eventPrefix + sequence, "data").WaitAsync(timeout.Token);
             bytes.IsNull.ShouldBeFalse();
             EventEnvelope stored = JsonSerializer.Deserialize<EventEnvelope>(bytes.ToString(), JsonSerializerOptions.Web).ShouldNotBeNull();
+            stored.Identity.ShouldBe(identity);
+            stored.SequenceNumber.ShouldBe(sequence);
             stored.EventTypeName.ShouldBe(typeof(TenantAccessRefreshed).FullName);
             stored.UserId.ShouldBe(state.TargetUserId);
             stored.CorrelationId.ShouldBe(recovered.CorrelationId);
+            stored.CausationId.ShouldBe(request.MessageId);
             TenantAccessRefreshed snapshot = JsonSerializer.Deserialize<TenantAccessRefreshed>(stored.Payload, JsonSerializerOptions.Web).ShouldNotBeNull();
             snapshot.TenantId.ShouldBe(state.TenantId);
             snapshot.Status.ShouldBe(before.Status);
-            snapshot.Members.OrderBy(member => member.Key).ShouldBe(before.Members.OrderBy(member => member.Key));
-            snapshot.ConfigurationKeys.Order().ShouldBe(before.Configuration.Keys.Order());
-            TenantReadModel after = await AspireTopologyTests.WaitForPersistedTenantAsync(state.TenantId, "tenant-sequence:" + sequence, timeout.Token);
+            snapshot.Members.OrderBy(member => member.Key, StringComparer.Ordinal)
+                .ShouldBe(before.Members.OrderBy(member => member.Key, StringComparer.Ordinal));
+            snapshot.ConfigurationKeys.ShouldBe([configurationKey]);
+            Encoding.UTF8.GetString(stored.Payload).ShouldNotContain(configurationValue);
+            TenantReadModel after = await AspireTopologyTests.WaitForPersistedTenantAsync(state.TenantId, ProjectionVersion(sequence), timeout.Token);
             after.Name.ShouldBe(before.Name);
             after.Description.ShouldBe(before.Description);
             after.Status.ShouldBe(before.Status);
-            after.Members.OrderBy(member => member.Key).ShouldBe(before.Members.OrderBy(member => member.Key));
-            after.Configuration.OrderBy(item => item.Key).ShouldBe(before.Configuration.OrderBy(item => item.Key));
-            (await CatalogRedisBackend.Database(redis).HashGetAsync(eventPrefix + (sequence + 1), "data").WaitAsync(timeout.Token)).IsNull.ShouldBeTrue();
+            after.Members.OrderBy(member => member.Key, StringComparer.Ordinal)
+                .ShouldBe(before.Members.OrderBy(member => member.Key, StringComparer.Ordinal));
+            after.Configuration.OrderBy(item => item.Key, StringComparer.Ordinal)
+                .ShouldBe(before.Configuration.OrderBy(item => item.Key, StringComparer.Ordinal));
+            (await database.HashGetAsync(eventPrefix + (sequence + 1), "data").WaitAsync(timeout.Token)).IsNull.ShouldBeTrue();
+#if HEXALITH_CHECKPOINTED_TENANT_PROJECTION
+            var delivery = await consumer.ConsumeThroughAsync(state.TenantId, sequence, timeout.Token);
+            delivery.MessageId.ShouldBe(stored.MessageId);
+            delivery.CorrelationId.ShouldBe(stored.CorrelationId);
+            delivery.CausationId.ShouldBe(stored.CausationId);
+            delivery.TenantId.ShouldBe(stored.TenantId);
+            delivery.Domain.ShouldBe(stored.Domain);
+            delivery.EventTypeName.ShouldBe(stored.EventTypeName);
+            delivery.Payload.ShouldBe(stored.Payload);
+            await consumer.AssertProjectionAsync(after, sequence, timeout.Token);
+#endif
+
+            var audit = await AssertReadAsync(tag => readsClient.GetTenantAuditAsync(
+                new GetTenantAuditQuery { TenantId = state.TenantId, PageSize = 100 }, tag, timeout.Token),
+                page => page.Items.Any(item => item.EventId == stored.MessageId), expectedVersion: after.ProjectionVersion);
+            TenantAuditEntry receipt = audit.Items.Single(item => item.EventId == stored.MessageId);
+            receipt.EventType.ShouldBe(nameof(TenantAccessRefreshed));
+            receipt.ActorId.ShouldBe(state.TargetUserId);
+            receipt.NarrativePayload.ShouldHaveSingleItem().ShouldBe(KeyValuePair.Create("operation", RefreshTenantAccess.CommandType));
         }
+
+        static string ProjectionVersion(long sequence)
+            => TenantProjectionVersionFormat.SequencePrefix + sequence.ToString(CultureInfo.InvariantCulture);
 
         string OwnerToken(bool mayRefresh)
         {

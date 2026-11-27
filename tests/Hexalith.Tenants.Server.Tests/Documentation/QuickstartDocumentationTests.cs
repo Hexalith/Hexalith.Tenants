@@ -38,7 +38,8 @@ public class QuickstartDocumentationTests {
         quickstart.ShouldContain("dotnet run --project src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj");
         quickstart.ShouldContain("EventStore command gateway");
         quickstart.ShouldContain("Keycloak");
-        quickstart.ShouldContain("eventstore:tenant=system");
+        quickstart.ShouldContain("-p:HexalithEventStoreVersion=5.6.0 -p:HexalithMcpCliVersion=3.0.0");
+        quickstart.ShouldContain("TENANTS_SOURCE_CATALOG_PROFILE=true");
         quickstart.ShouldContain("Validate Before the First Command");
     }
 
@@ -82,14 +83,16 @@ public class QuickstartDocumentationTests {
         commandsController.ShouldContain("[Route(\"api/v1/commands\")]");
         commandStatusController.ShouldContain("[Route(\"api/v1/commands/status\")]");
         quickstart.ShouldContain("POST /api/v1/commands");
-        quickstart.ShouldContain("GET /api/v1/commands/status/{correlationId}");
-        quickstart.ShouldContain("curl --connect-timeout 2 --max-time 5 -fsS \"{eventstore-url}/swagger/v1/swagger.json\" | rg '\"/api/v1/commands\"'");
+        quickstart.ShouldContain("GET /api/v1/commands/status/{messageId}");
+        quickstart.ShouldContain("platform_api \"$TOKEN\" -fsS \"$EVENTSTORE_URL/openapi/v1.json\"");
+        quickstart.ShouldContain("X-Hexalith-Scope: platform:tenants");
+        quickstart.ShouldContain("https://hexalith.io/problems/command-status-not-found");
         quickstart.ShouldNotContain("POST /api/commands");
         quickstart.ShouldNotContain("GET /api/commands/status");
     }
 
     [Fact]
-    public void Quickstart_token_request_matches_generated_realm_credentials_and_current_development_settings() {
+    public void Quickstart_distinguishes_hosted_bootstrap_credentials_from_an_approved_interactive_token() {
         string quickstart = ReadQuickstart();
         using JsonDocument realm = JsonDocument.Parse(File.ReadAllText(RepositoryPath(
             "src", "Hexalith.Tenants.AppHost", "KeycloakRealms", "hexalith-realm.json")));
@@ -97,6 +100,9 @@ public class QuickstartDocumentationTests {
             .Single(item => item.GetProperty("clientId").GetString() == "hexalith-eventstore");
         client.GetProperty("publicClient").GetBoolean().ShouldBeTrue();
         client.GetProperty("directAccessGrantsEnabled").GetBoolean().ShouldBeTrue();
+        client.GetProperty("protocolMappers").EnumerateArray().Any(mapper =>
+            mapper.GetProperty("config").TryGetProperty("claim.name", out JsonElement name)
+            && name.GetString() == "eventstore:surface").ShouldBeFalse();
         JsonElement generatedAdministrator = realm.RootElement.GetProperty("users").EnumerateArray()
             .Single(item => item.TryGetProperty("id", out JsonElement id)
                 && id.GetString() == "11111111-1111-1111-1111-111111111111");
@@ -109,17 +115,20 @@ public class QuickstartDocumentationTests {
         eventStoreDevelopmentSettings.RootElement.TryGetProperty("Authentication", out _).ShouldBeFalse();
 
         quickstart.ShouldContain("unless you supply the secret parameters below");
-        quickstart.ShouldContain("provision a separate local realm user");
-        quickstart.ShouldContain("bootstraps its generated service administrator at startup");
+        quickstart.ShouldContain("Provision a separate local realm user");
+        quickstart.ShouldContain("bound workload path to bootstrap the configured service administrator at startup");
         quickstart.ShouldContain("GlobalAdminAlreadyBootstrappedRejection");
         quickstart.ShouldNotContain("This registers `admin-user` as a global administrator");
-        quickstart.ShouldContain("grant_type=password");
-        quickstart.ShouldContain("client_id=hexalith-eventstore");
-        quickstart.ShouldContain("--data-urlencode \"username@/dev/fd/3\"");
-        quickstart.ShouldContain("--data-urlencode \"password@/dev/fd/4\"");
-        quickstart.ShouldContain("jq -er .access_token");
-        quickstart.ShouldContain("eventstore:tenant=system");
-        quickstart.ShouldContain("references/Hexalith.EventStore/src/Hexalith.EventStore/appsettings.Development.json");
+        quickstart.ShouldContain("eventstore:surface=ui");
+        quickstart.ShouldContain("global-administrators:bootstrap");
+        quickstart.ShouldContain("global-administrators:read");
+        quickstart.ShouldContain("global-administrators:set");
+        quickstart.ShouldContain("tenants:create");
+        quickstart.ShouldContain("tenants:add-user");
+        quickstart.ShouldContain("tenants:read");
+        quickstart.ShouldContain("A retained `eventstore:tenant=system` invalidates the public grant set");
+        quickstart.ShouldContain("read -r -s -p \"Configured administrator access token: \" ADMIN_TOKEN");
+        quickstart.ShouldNotContain("grant_type=password");
         quickstart.ShouldNotContain("-d \"password=admin-pass\"");
         quickstart.ShouldNotContain("DevOnlySigningKey-AtLeast32Chars!");
         quickstart.ShouldNotContain("openssl dgst -sha256 -hmac");
@@ -131,7 +140,7 @@ public class QuickstartDocumentationTests {
 
         JsonElement createTenant = commands["CreateTenant"];
         CreateTenant createTenantPayload = DeserializePayload<CreateTenant>(createTenant);
-        createTenant.GetProperty("tenant").GetString().ShouldBe("system");
+        createTenant.GetProperty("tenant").GetString().ShouldBe("platform:tenants");
         createTenant.GetProperty("domain").GetString().ShouldBe("tenants");
         createTenant.GetProperty("aggregateId").GetString().ShouldBe("my-first-tenant");
         createTenant.GetProperty("payload").GetProperty("TenantId").GetString().ShouldBe(createTenant.GetProperty("aggregateId").GetString());
@@ -142,7 +151,7 @@ public class QuickstartDocumentationTests {
 
         JsonElement addUser = commands["AddUserToTenant"];
         AddUserToTenant addUserPayload = DeserializePayload<AddUserToTenant>(addUser);
-        addUser.GetProperty("tenant").GetString().ShouldBe("system");
+        addUser.GetProperty("tenant").GetString().ShouldBe("platform:tenants");
         addUser.GetProperty("domain").GetString().ShouldBe("tenants");
         addUser.GetProperty("aggregateId").GetString().ShouldBe("my-first-tenant");
         addUser.GetProperty("payload").GetProperty("TenantId").GetString().ShouldBe(addUser.GetProperty("aggregateId").GetString());
@@ -160,7 +169,7 @@ public class QuickstartDocumentationTests {
         quickstart.ShouldContain("Location");
         quickstart.ShouldContain("status polling endpoint");
         quickstart.ShouldContain("status: \"Completed\"");
-        quickstart.ShouldContain("statusCode\": 4");
+        quickstart.ShouldContain("status code `4`");
         quickstart.ShouldContain("eventCount: 1");
         quickstart.ShouldContain("GET /api/tenants/{tenantId}");
         quickstart.ShouldContain("status: \"Rejected\"");
@@ -187,7 +196,7 @@ public class QuickstartDocumentationTests {
         quickstart.ShouldContain(".hasMore == false");
         quickstart.ShouldContain(".cursor | select");
         quickstart.ShouldContain("commandType:\"SetGlobalAdministrator\"");
-        quickstart.ShouldContain("wait_command_completed \"$ADMIN_TOKEN\" \"$HANDOFF_CORRELATION_ID\"");
+        quickstart.ShouldContain("wait_command_completed \"$ADMIN_TOKEN\" \"$HANDOFF_MESSAGE_ID\" platform:global-administrators");
         quickstart.ShouldContain("wait_admin_membership \"$ADMIN_TOKEN\" \"$HANDOFF_SUBJECT\"");
         quickstart.ShouldContain("has_admin_membership \"$TOKEN\" \"$HANDOFF_SUBJECT\"");
         quickstart.ShouldContain("same** retained handles");

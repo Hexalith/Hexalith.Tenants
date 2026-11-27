@@ -7,7 +7,6 @@ using FluentValidation;
 using Hexalith.EventStore.Authentication;
 using Hexalith.EventStore.Authorization;
 using Hexalith.EventStore.Client.Projections;
-using Hexalith.EventStore.Client.Streams;
 using Hexalith.EventStore.Client.Registration;
 using Hexalith.EventStore.Configuration;
 using Hexalith.EventStore.Contracts.Projections;
@@ -64,26 +63,14 @@ builder.Services.AddEventStoreDevelopmentDomainCatalog(builder.Configuration, ty
 #endif
 builder.Services.TryAddSingleton(TimeProvider.System);
 // Current TenantOwner evidence is rebuilt from the authoritative tenant stream on every request.
-builder.Services.AddTenantOwnerSourceGateway();
+builder.Services.AddTenantOwnerSourceAuthority();
 TenantOwnerSourceReadDevelopmentEnrollment.Add(builder.Services, builder.Configuration, builder.Environment);
-builder.Services.AddScoped<IAuthoritativeEventStreamReader>(provider =>
-    new AuthoritativeEventStreamReader(provider.GetRequiredService<TenantOwnerSourceGateway>(),
-        provider.GetRequiredService<TimeProvider>(), TimeSpan.FromSeconds(30)));
-builder.Services.AddKeyedScoped<IAuthoritativeEventStreamReader>("native-tenant-source", (provider, _) =>
-    new AuthoritativeEventStreamReader(provider.GetRequiredService<TenantOwnerSourceGateway>(),
-        provider.GetRequiredService<TimeProvider>(), TimeSpan.FromSeconds(30), requireNativeProof: true));
-// The final native observation uses the same enrolled bound workload transport. Raw actor
-// HTTP has no typed catalog scope and is deliberately refused by the shared invocation guard.
-builder.Services.AddScoped<INativeSourceMetadataReader>(provider =>
-    new GatewayNativeSourceMetadataReader(provider.GetRequiredService<TenantOwnerSourceGateway>(),
-        provider.GetRequiredService<TimeProvider>(), TimeSpan.FromSeconds(8)));
 builder.Services.AddValidatorsFromAssembly(typeof(TenantSubmitCommandValidator).Assembly);
 builder.Services.AddValidatorsFromAssembly(typeof(TenantAggregate).Assembly);
 builder.Services.AddTenantBootstrap();
 // Wire administrator flags are untrusted at the domain-service boundary (EventStore Story 5.5): the SDK keeps
 // command hints only after a final verified native source observation. Query hints are stripped;
 // every query handler independently establishes its native grant or existing tenant permission.
-builder.Services.AddScoped<ITenantsGlobalAdministratorAuthority, TenantsGlobalAdministratorAuthority>();
 builder.Services.AddScoped<IDomainServiceAdministratorVerifier, TenantsGlobalAdministratorVerifier>();
 // Domain telemetry instruments (query/projection duration histograms), sourced from the platform
 // convention-named diagnostics registered by AddEventStoreDomainService. Tenants hosts more than one

@@ -108,6 +108,13 @@ class CatalogArtifactPackTests(unittest.TestCase):
             self.assertEqual(selected.returncode, 0, selected.stdout + selected.stderr)
             self.assertEqual(selected.stdout.strip(), '5.6.0')
             for package in PACKAGES:
+                with self.subTest(old_mcpcli_current_package=package):
+                    output = parent / ('old-mcpcli-rejected-' + package)
+                    packed = run('pack', project(package), '--no-build', '--no-restore', *common,
+                                 '-p:HexalithMcpCliVersion=1.1.0', '--output', str(output))
+                    self.assertNotEqual(packed.returncode, 0, packed.stdout + packed.stderr)
+                    self.assertIn('Canonical Tenants packages require McpCli.Abstractions 3.0.0', packed.stdout + packed.stderr)
+                    self.assertFalse(list(output.glob('*.nupkg')))
                 for sdk in ('3.128.4', '3.133.0', '4.0.4', '4.1.0', '4.2.0', '5.0.1', '5.1.1', '5.2.0'):
                     with self.subTest(old_sdk_current_package=package, sdk=sdk):
                         output = parent / ('old-sdk-rejected-' + package + '-' + sdk)

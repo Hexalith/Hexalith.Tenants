@@ -178,8 +178,15 @@ public sealed class AuthenticatedRouteFixtureIsolationTests
         var inheritedPolicy = policies.Get("-standard");
         inheritedPolicy.AttemptTimeout.Timeout.ShouldBe(TimeSpan.FromSeconds(10));
         inheritedPolicy.TotalRequestTimeout.Timeout.ShouldBe(TimeSpan.FromSeconds(30));
-        provider.GetRequiredService<IAuthoritativeEventStreamReader>().ShouldBeOfType<AuthoritativeEventStreamReader>();
-        provider.GetRequiredService<INativeSourceMetadataReader>().ShouldBeOfType<GatewayNativeSourceMetadataReader>();
+        using IServiceScope ownerScope = provider.CreateScope();
+        ownerScope.ServiceProvider.GetRequiredService<IAuthoritativeEventStreamReader>()
+            .ShouldBeOfType<AuthoritativeEventStreamReader>();
+        ownerScope.ServiceProvider.GetRequiredKeyedService<IAuthoritativeEventStreamReader>("native-tenant-source")
+            .ShouldBeOfType<AuthoritativeEventStreamReader>();
+        ownerScope.ServiceProvider.GetRequiredService<INativeSourceMetadataReader>()
+            .ShouldBeOfType<GatewayNativeSourceMetadataReader>();
+        ownerScope.ServiceProvider.GetRequiredService<ITenantsGlobalAdministratorAuthority>()
+            .ShouldBeOfType<TenantsGlobalAdministratorAuthority>();
         var issuer = provider.GetRequiredService<IWorkloadAssertionIssuer>();
         issuer.ShouldBeOfType<JwtWorkloadAssertionIssuer>();
         string? assertion = await issuer.IssueAsync(new WorkloadAssertionRequest("eventstore", "eventstore:stream-read"),

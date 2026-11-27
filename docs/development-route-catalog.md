@@ -149,11 +149,15 @@ Binary qualification enables `HEXALITH_DEVELOPMENT_CATALOG_SOURCE`; the canonica
 `HEXALITH_DEVELOPMENT_CATALOG_COHORT`. Only source graphs enable
 `HEXALITH_DEVELOPMENT_CATALOG_SOURCE_REFERENCE`.
 
-The current compiled consumer requires exactly 25 routes, 25 operations and 14
-adapters for either runtime target. Finite historical metadata admission does not
-qualify an older 23- or 24-route archive against this inventory. Historical end-to-end
-qualification uses the verifier revision recorded in its original receipt;
-`--target-framework net10.0` only changes the runtime target.
+The default `net11.0` compiled consumer requires exactly 25 routes, 25 operations
+and 14 command adapters. Use `--target-framework net10.0` for retained canonical
+archives with 23 routes, 23 operations and 12 command adapters. That mode requires
+EventStore `4.0.0` through `4.0.4` or `4.1.0` with McpCli.Abstractions `2.0.0`, or
+EventStore `4.2.0` with McpCli.Abstractions `2.0.1`. For other dated archive
+inventories or pairs published with different producer minima, use the verifier
+revision recorded in the original qualification receipt. The initial Tenants
+`7.0.0` Contracts and Server archives used separate source revisions and SDK
+minima and retain their original qualification procedure.
 
 Reproduce the public package checks from this repository with .NET pinned by
 `global.json`, using the root-declared Builds and Platform inputs (no nested

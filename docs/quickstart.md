@@ -78,11 +78,11 @@ Expected: each line starts with a commit hash or a leading space. A leading `-` 
 
 ### About platform scopes and `system` storage
 
-Hexalith.Tenants stores its existing tenant histories in EventStore's shared `system` partition. That partition is not a managed tenant or a public request scope. Source-level platform commands and cross-tenant reads now request the cataloged `platform:tenants` scope; single-tenant reads request the canonical tenant ID. The gateway maps an authorized request to retained storage after checking the catalog and the caller's permission.
+Hexalith.Tenants stores its existing tenant histories in EventStore's shared `system` partition. The public catalog uses `platform:tenants` for tenant commands and cross-tenant reads and `platform:global-administrators` for administrator handoff and membership reads. Single-tenant reads use the canonical tenant ID in the route. The gateway maps authorized requests to retained storage after checking the catalog and the caller's permission.
 
-The manual `system` request and claim examples later in this guide describe the currently published legacy package. They must be replaced and requalified with the coordinated EventStore, McpCli, and Tenants package release before use against the new boundary.
+Use this checkout with the coordinated EventStore `5.6.0` and Hexalith.McpCli.Abstractions `3.0.0` packages. The walkthrough requires an active routing catalog and local IdP credentials authorized for the operations below. The [development routing catalog profile](development-route-catalog.md#retained-backend-and-key-custody) describes the AppHost's opt-in and the custody settings to supply for your selected backend.
 
-For local development, the Aspire AppHost topology handles the retained storage configuration automatically. By default it starts a local Keycloak realm. AppHost generates the service administrator credentials for each run unless you supply the secret parameters below, and wires them into the realm and services. Do not extract generated credentials from resource environments or logs. You do not need to manually deploy EventStore or configure JWT tenant claims.
+The shipped Keycloak realm's public password-grant client does not issue a UI-surface credential. Before starting a fresh walkthrough, arrange the approved local IdP mappings in [Get an Access Token](#get-an-access-token) and access to tokens from an authorized interactive client. AppHost generates the service administrator's login for each fresh realm unless you supply the secret parameters below.
 
 ## Clone and Build
 
@@ -101,12 +101,18 @@ Do not add `--recursive`.
 Verify the build:
 
 ```bash
-dotnet build Hexalith.Tenants.slnx --configuration Release
+catalog_packages=(-p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true
+  -p:HexalithEventStoreVersion=5.6.0 -p:HexalithMcpCliVersion=3.0.0)
+dotnet build Hexalith.Tenants.slnx --configuration Release "${catalog_packages[@]}"
 ```
 
 ## Run the Application
 
-For the manual administrator handoff, choose credentials before starting a **fresh, non-persistent local realm**. These existing shared parameters override generation; keep the values in your local shell, never in tracked settings or transcripts. In the terminal that will launch AppHost:
+Load the catalog custody settings for your chosen backend as described in the [development routing catalog profile](development-route-catalog.md#retained-backend-and-key-custody).
+
+The catalog profile uses the bound workload path to bootstrap the configured service administrator at startup with the fixed subject `11111111-1111-1111-1111-111111111111`. The shipped Keycloak realm imports legacy permissions and a `system` tenant grant. Before launch, configure the fixed subject's hosted bootstrap credential in the local realm import or the existing local IdP. Its access token needs a recognized global-administrator hint such as `global_admin=true`, exactly one `eventstore:permission=global-administrators:bootstrap` claim and a canonical tenant grant set. An empty grant set is valid for bootstrap. [Canonical claim contract](production-auth-claim-contract.md#current-7x-canonical-scope-contract)
+
+For a fresh, non-persistent local realm, choose the hosted bootstrap credentials before launch. These existing shared parameters override generation. Keep the values in your local shell and out of tracked settings or transcripts. In the terminal that ran the build:
 
 ```bash
 set +x
@@ -119,16 +125,17 @@ printf '\n'
 Bash cannot export variable names containing hyphens. Pass the exact Aspire parameter keys through `env` when starting AppHost (the values are the ones you entered):
 
 ```bash
-env "Parameters__security-eventstore-client-username=$Parameters__security_eventstore_client_username" \
+env TENANTS_SOURCE_CATALOG_PROFILE=true \
+    "Parameters__security-eventstore-client-username=$Parameters__security_eventstore_client_username" \
     "Parameters__security-eventstore-client-password=$Parameters__security_eventstore_client_password" \
-    dotnet run --project src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj
+    dotnet run --project src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj "${catalog_packages[@]}"
 ```
 
-Keep this terminal running. Use a second terminal for the remaining steps and enter the same chosen credentials when prompted. The parameter values are secrets; do not record the expanded invocation or enable shell tracing.
+Keep this terminal running. Use a second terminal for the API commands.
 
 With `KeycloakPersistent=true`, realm import does **not** update an existing realm/user. Changing these parameters will not rotate its stored credentials. Authenticate the existing configured subject with its current credentials, or reconcile the same subject through your IdP administration process, then verify membership below. Do not delete Keycloak/Redis state or change the fixed subject to force this walkthrough. If the configured account cannot authenticate, stop and repair that identity first.
 
-The single AppHost launch above starts the EventStore command gateway, Tenants, tenants-api, tenants-ui, Keycloak, Redis, DAPR sidecars and the sample consuming service.
+The AppHost starts the EventStore command gateway, Tenants, tenants-api, tenants-ui, Keycloak and DAPR sidecars. It uses the Redis backend selected in the catalog profile. The profile can also include the [sample consumer](development-route-catalog.md).
 
 > **Note:** The first run takes longer than usual because .NET restores NuGet packages and Docker pulls container images for Redis, Keycloak, and the DAPR sidecars.
 
@@ -138,11 +145,10 @@ Before sending a command, confirm the dashboard shows these local resources as r
 
 - `eventstore`: EventStore command gateway, including `POST /api/v1/commands`
 - `tenants`: Tenants domain processor for `/process` and query endpoints
+- `tenants-api`: Generated REST endpoints for administrator membership and tenant reads
 - `tenants-ui`: Blazor InteractiveServer Tenants workspace composed through FrontComposer
 - `security`: local Keycloak-backed identity provider for the token-based steps below
-- `redis`: local state store backing DAPR actor and projection state
-- `sample`: consuming service subscribed to tenant events
-- DAPR sidecars for `eventstore`, `tenants`, and `sample`
+- DAPR sidecars for `eventstore`, `tenants`, and `tenants-api`
 
 If `eventstore` or `tenants` is missing or unhealthy, do not submit the first command yet. Check the AppHost resource details first; common causes are Docker not running, DAPR not initialized, port conflicts from old sidecars, or uninitialized submodules.
 
@@ -188,9 +194,16 @@ inventing an outcome or releasing unresolved admission.
 
 ## Get an Access Token
 
-The default AppHost bootstraps its generated service administrator at startup, using the fixed subject `11111111-1111-1111-1111-111111111111`. Running resources do not prove bootstrap succeeded. First authenticate that configured subject using the operator-selected credentials above, then verify authoritative projected membership. Never invent a token or submit bootstrap as a probe.
+Obtain short-lived access tokens from your configured IdP and approved interactive client. Each token needs the configured issuer and audience, the exact IdP subject and a single issuer-signed `eventstore:surface=ui` claim for the administrator operations. Use the following exact `eventstore:permission` claims, with one occurrence per permission:
 
-The following Bash examples require `curl`, `jq` and `python3`. Find `security`, `eventstore`, and **`tenants-api`** URLs in the Aspire dashboard. Commands/status belong to EventStore; generated REST reads belong to tenants-api. First define **all shared helpers** in the second terminal, before authentication or membership checks. Every actual token/API request has a two-second connection limit and five-second request limit. Each status/projection polling phase has a 60-second elapsed budget, shared across all pages, and each request uses at most its remaining budget. A stalled response returns unresolved; page/attempt limits alone are insufficient.
+| Caller | Permissions for this walkthrough | Tenant grants |
+| --- | --- | --- |
+| Configured administrator | `global-administrators:read`, `global-administrators:set` | No tenant grant needed for handoff |
+| Provisioned human administrator | `global-administrators:read`, `tenants:create`, `tenants:read`, and `tenants:add-user` for the optional follow-up | `my-first-tenant` for the detail and roster reads |
+
+Include the applicable `eventstore:domain` claims (`global-administrators` and `tenants`). The human token used to submit `CreateTenant` also needs a recognized global-administrator hint such as `global_admin=true`. These claims are checked independently of persisted administrator authority. Emit only valid, distinct canonical tenant grants. A retained `eventstore:tenant=system` invalidates the public grant set. Keep the approved interactive client as the source of the UI-surface claim.
+
+The Bash examples require `curl`, `jq` and `python3`. Find `eventstore` and **`tenants-api`** in the Aspire dashboard. EventStore serves commands and status. The generated REST reads use tenants-api. Define all shared helpers in the second terminal before checking membership. Each request has a two-second connection limit and a five-second total limit. Each status or projection polling phase has a 60-second budget shared across all requests and pages.
 
 ```bash
 set +x
@@ -202,18 +215,10 @@ POLL_SECONDS=60
 platform_api() {
   local bearer="$1"
   shift
+  [[ "$bearer" =~ ^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$ ]] || return 1
   printf 'header = "Authorization: Bearer %s"\n' "$bearer" |
     curl --connect-timeout "$CONNECT_TIMEOUT" --max-time "$REQUEST_TIMEOUT" --config - "$@"
 }
-request_token() (
-  set -o pipefail
-  curl --connect-timeout "$CONNECT_TIMEOUT" --max-time "$REQUEST_TIMEOUT" -fsS -X POST \
-    "$SECURITY_URL/realms/hexalith/protocol/openid-connect/token" \
-    -d "grant_type=password" -d "client_id=hexalith-eventstore" \
-    --data-urlencode "username@/dev/fd/3" --data-urlencode "password@/dev/fd/4" \
-    3< <(printf '%s' "$LOCAL_PLATFORM_USERNAME") 4< <(printf '%s' "$LOCAL_PLATFORM_PASSWORD") |
-    jq -er .access_token
-)
 # Local inspection is a consistency check; the API validates the token itself.
 token_subject() {
   TOKEN_TO_INSPECT="$1" python3 - <<'PYTHON'
@@ -288,6 +293,7 @@ has_admin_membership() {
     budget=$(request_budget "$deadline") || return 1
     headers=$(mktemp) || return 1
     body=$(platform_api "$bearer" --max-time "$budget" -fsS --dump-header "$headers" --get \
+      -H 'X-Hexalith-Scope: platform:global-administrators' \
       "$TENANTS_API_URL/api/global-administrators" --data-urlencode "pageSize=100" \
       --data-urlencode "cursor=$cursor") || { rm -f "$headers"; return 1; }
     next_version=$(projection_version "$headers") || { rm -f "$headers"; return 1; }
@@ -302,21 +308,33 @@ has_admin_membership() {
   return 1
 }
 wait_command_completed() {
-  local bearer="$1" correlation="$2" deadline=$((SECONDS + POLL_SECONDS)) body state budget
+  local bearer="$1" message_id="$2" scope="$3" correlation_id="${4:-}"
+  local deadline=$((SECONDS + POLL_SECONDS)) body state budget
   while ((SECONDS < deadline)); do
     budget=$(request_budget "$deadline") || return 1
     body=$(platform_api "$bearer" --max-time "$budget" -fsS \
-      "$EVENTSTORE_URL/api/v1/commands/status/$correlation") || return 1
-    state=$(jq -er '.status' <<< "$body") || return 1
+      -H "X-Hexalith-Scope: $scope" \
+      "$EVENTSTORE_URL/api/v1/commands/status/$message_id") || return 1
+    state=$(jq -er --arg id "$message_id" --arg correlation "$correlation_id" \
+      'select(.messageId == $id and ($correlation == "" or .correlationId == $correlation)) | .status' \
+      <<< "$body") || return 1
     case "$state" in
-      Completed) return 0 ;;
-      Rejected|PublishFailed|TimedOut) return 1 ;;
+      Completed) printf '%s\n' "$body"; return 0 ;;
+      Rejected|PublishFailed|TimedOut) printf '%s\n' "$body" >&2; return 1 ;;
       Received|Processing|EventsStored|EventsPublished) ;;
       *) return 1 ;;
     esac
     sleep 1
   done
   return 1
+}
+submit_tenant_command() {
+  local message_id="$1" command_file="$2" body
+  body=$(jq -ce --arg messageId "$message_id" '.messageId = $messageId' "$command_file") || return 1
+  platform_api "$TOKEN" --fail-with-body -isS \
+    -H 'X-Hexalith-Scope: platform:tenants' \
+    -H 'Content-Type: application/json' --data-binary @/dev/fd/3 \
+    "$EVENTSTORE_URL/api/v1/commands" 3<<< "$body"
 }
 wait_admin_membership() {
   local bearer="$1" subject="$2" deadline=$((SECONDS + POLL_SECONDS))
@@ -330,7 +348,7 @@ resume_handoff() {
   HANDOFF_PROJECTED=false
   [[ -n "${HANDOFF_MESSAGE_ID:-}" && -n "${HANDOFF_CORRELATION_ID:-}" && -n "${HANDOFF_SUBJECT:-}" ]] || return 1
   verify_configured_identity && has_admin_membership "$ADMIN_TOKEN" "$ADMIN_SUBJECT" || return 1
-  wait_command_completed "$ADMIN_TOKEN" "$HANDOFF_CORRELATION_ID" || return 1
+  wait_command_completed "$ADMIN_TOKEN" "$HANDOFF_MESSAGE_ID" platform:global-administrators "$HANDOFF_CORRELATION_ID" >/dev/null || return 1
   wait_admin_membership "$ADMIN_TOKEN" "$HANDOFF_SUBJECT" || return 1
   HANDOFF_PROJECTED=true
 }
@@ -338,7 +356,7 @@ resume_bootstrap() {
   BOOTSTRAP_PROJECTED=false
   [[ -n "${BOOTSTRAP_MESSAGE_ID:-}" && -n "${BOOTSTRAP_CORRELATION_ID:-}" ]] || return 1
   verify_configured_identity || return 1
-  wait_command_completed "$ADMIN_TOKEN" "$BOOTSTRAP_CORRELATION_ID" || return 1
+  wait_command_completed "$ADMIN_TOKEN" "$BOOTSTRAP_MESSAGE_ID" platform:global-administrators "$BOOTSTRAP_CORRELATION_ID" >/dev/null || return 1
   wait_admin_membership "$ADMIN_TOKEN" "$ADMIN_SUBJECT" || return 1
   BOOTSTRAP_PROJECTED=true
 }
@@ -346,27 +364,21 @@ resume_bootstrap() {
 
 The membership helper consumes the existing REST projection metadata: `X-Hexalith-Query-Provenance=ProjectionBacked`, current lifecycle (or the existing absent-lifecycle compatibility signal `X-Hexalith-Is-Stale=false`), no explicit degradation and a non-empty projection version. The producer may omit the optional `X-Hexalith-Is-Degraded` header for ordinary current projections; absence follows the existing client contract. It rejects stale/degraded/unknown/missing/contradictory evidence and duplicate metadata headers. All pages must report the same projection version. This establishes qualifying projected membership under the existing contract; it adds no bounded revocation guarantee.
 
-Authenticate the configured administrator without printing credentials or tokens:
+Enter the configured administrator's issued access token without echoing it:
 
 ```bash
-read -r -p "Security base URL: " SECURITY_URL
 read -r -p "EventStore base URL: " EVENTSTORE_URL
 read -r -p "Tenants API base URL: " TENANTS_API_URL
 ADMIN_SUBJECT=11111111-1111-1111-1111-111111111111
 authenticate_configured_admin() {
-  read -r -s -p "Chosen local service administrator username: " LOCAL_PLATFORM_USERNAME
+  read -r -s -p "Configured administrator access token: " ADMIN_TOKEN || return 1
   printf '\n'
-  read -r -s -p "Chosen local service administrator password: " LOCAL_PLATFORM_PASSWORD
-  printf '\n'
-  ADMIN_TOKEN=$(request_token)
-  local result=$?
-  unset LOCAL_PLATFORM_PASSWORD LOCAL_PLATFORM_USERNAME
-  ((result == 0)) && verify_configured_identity
+  verify_configured_identity || { unset ADMIN_TOKEN; return 1; }
 }
 authenticate_configured_admin
 ```
 
-A nonzero result stops progress; keep the shell open. The realm import at `src/Hexalith.Tenants.AppHost/KeycloakRealms/hexalith-realm.json` defines the public `hexalith-eventstore` client, direct access grants and claim mappings.
+A nonzero result stops progress. The API independently validates the token's signature and authority when you check membership.
 
 ### Verify configured administrator membership
 
@@ -378,11 +390,11 @@ else
 fi
 ```
 
-This check preserves the authenticated shell and every recovery helper on missing membership. A `403`, absent membership, invalid metadata, timeout or unavailable projection is **not** proof bootstrap never ran. Stop before granting authority and follow [explicit recovery](production-auth-readiness.md#explicit-bootstrap-recovery). `202 Accepted`, `GlobalAdminAlreadyBootstrappedRejection`, resource health and UI badges alone do not prove this subject is an administrator.
+This check preserves the authenticated shell and every recovery helper on missing membership. A `403`, absent membership, invalid metadata, timeout or unavailable projection leaves bootstrap unresolved. Stop before granting authority and follow the read-only steps in [explicit recovery](production-auth-readiness.md#explicit-bootstrap-recovery). `202 Accepted`, `GlobalAdminAlreadyBootstrappedRejection`, resource health and UI badges alone do not prove this subject is an administrator.
 
 ### Grant a provisioned human administrator access
 
-Through your local IdP administration process, provision a separate local realm user with a stable subject and obtain that exact subject from the IdP. It needs `eventstore:tenant=system`, `eventstore:domain=global-administrators` and `eventstore:domain=tenants`, plus command and query permissions (for example `command:submit` and `query:read`). For UI administrator reflection, also map `global_admin=true` or a supported administrator role. These claims do not grant persisted Tenants membership by themselves.
+Provision a separate local realm user with the claims above and obtain the exact stable subject from the IdP. Confirm that this is the intended recipient of administrator authority before running the grant.
 
 The mutation rechecks the configured identity and qualifying administrator membership. Any retained IDs block replacement **before** changing the subject or IDs. A successful dispatch is followed by status and projection checks through `resume_handoff`:
 
@@ -398,8 +410,9 @@ grant_human_access() {
   HANDOFF_CORRELATION_ID=$(new_ulid)
   HANDOFF_BODY=$(jq -nc --arg messageId "$HANDOFF_MESSAGE_ID" --arg correlationId "$HANDOFF_CORRELATION_ID" \
     --arg subject "$HANDOFF_SUBJECT" \
-    '{messageId:$messageId,correlationId:$correlationId,tenant:"system",domain:"global-administrators",aggregateId:"global-administrators",commandType:"SetGlobalAdministrator",payload:{UserId:$subject}}')
+    '{messageId:$messageId,correlationId:$correlationId,tenant:"platform:global-administrators",domain:"global-administrators",aggregateId:"global-administrators",commandType:"SetGlobalAdministrator",payload:{UserId:$subject}}') || return 1
   HANDOFF_HTTP=$(platform_api "$ADMIN_TOKEN" -sS -o /dev/null -w '%{http_code}' \
+    -H 'X-Hexalith-Scope: platform:global-administrators' \
     -H 'Content-Type: application/json' --data-binary @/dev/fd/3 \
     "$EVENTSTORE_URL/api/v1/commands" 3<<< "$HANDOFF_BODY") || return 1
   [[ "$HANDOFF_HTTP" == 202 ]] || return 1
@@ -421,22 +434,20 @@ Only a successful handoff permits the following executable human-authentication 
 ```bash
 authenticate_human() {
   [[ "${HANDOFF_PROJECTED:-false}" == true && -n "${HANDOFF_SUBJECT:-}" ]] || return 1
-  read -r -p "Local platform username: " LOCAL_PLATFORM_USERNAME
-  read -r -s -p "Local platform password: " LOCAL_PLATFORM_PASSWORD
+  read -r -s -p "Provisioned human access token: " TOKEN || return 1
   printf '\n'
-  TOKEN=$(request_token)
-  local result=$?
-  unset LOCAL_PLATFORM_PASSWORD LOCAL_PLATFORM_USERNAME
-  ((result == 0)) || return 1
-  [[ "$(token_subject "$TOKEN")" == "$HANDOFF_SUBJECT" ]] || return 1
-  has_admin_membership "$TOKEN" "$HANDOFF_SUBJECT"
+  if [[ "$(token_subject "$TOKEN")" != "$HANDOFF_SUBJECT" ]] ||
+    ! has_admin_membership "$TOKEN" "$HANDOFF_SUBJECT"; then
+    unset TOKEN
+    return 1
+  fi
 }
 authenticate_human
 ```
 
-Use `TOKEN` for the remaining API walkthrough only after this function succeeds, or sign into tenants-ui as that human. Keep tokens in this local shell and clear them when finished. The UI recognizes exact `system` membership among valid multivalued tenant claims such as the shipped administrator's `system`, `tenant-a`, `tenant-b`; malformed values or ambiguous identities fail closed.
+Use `TOKEN` for the remaining API walkthrough after this function succeeds. Keep tokens in this local shell and clear them with `unset ADMIN_TOKEN TOKEN` when finished.
 
-`EnableKeycloak=false` is outside this token walkthrough. The tracked `references/Hexalith.EventStore/src/Hexalith.EventStore/appsettings.Development.json` does not provide a static signing key or audience for a handwritten HMAC token, so disabling Keycloak does not make the old development-token command valid. For production IdP mappings, see [Production Auth Claim Contract](production-auth-claim-contract.md).
+This walkthrough uses IdP-issued tokens. For production mappings, see [Production Auth Claim Contract](production-auth-claim-contract.md).
 
 > **Production note:** Production deployments use OIDC authority-based JWT validation. Before release, run the [Production Auth Readiness](production-auth-readiness.md) checklist and smoke tests.
 
@@ -446,56 +457,49 @@ Do these checks before you submit your first tenant command. They catch the comm
 
 ### Verify the EventStore command gateway
 
-Find the `eventstore` service URL in the Aspire dashboard, then confirm the OpenAPI document exposes the command gateway route:
+Confirm the authenticated OpenAPI document exposes the command gateway route when OpenAPI is enabled:
 
 ```bash
-curl --connect-timeout 2 --max-time 5 -fsS "{eventstore-url}/swagger/v1/swagger.json" | rg '"/api/v1/commands"'
+platform_api "$TOKEN" -fsS "$EVENTSTORE_URL/openapi/v1.json" |
+  jq -e '.paths["/api/v1/commands"].post != null'
 ```
 
-Expected: a match for `/api/v1/commands`. If the request fails, the EventStore resource is not reachable yet; check AppHost health, Docker, DAPR initialization, and port conflicts before continuing. Do not switch to a Tenants-specific command URL; tenant commands are submitted through the EventStore-owned `POST /api/v1/commands` route.
+Expected output is `true`. Submit tenant commands through EventStore's `POST /api/v1/commands` route.
 
-### Verify the token and `system` tenant claim
+### Verify tenant command status access
 
-Use the token from the previous step to call the status endpoint with a correlation ID that has not been used:
+Use a fresh ID to check status access without submitting a command:
 
 ```bash
-curl --connect-timeout 2 --max-time 5 -i -H "Authorization: Bearer $TOKEN" \
-  "{eventstore-url}/api/v1/commands/status/01JQK000000000000000009999"
+STATUS_PROBE_ID=$(new_ulid)
+platform_api "$TOKEN" -isS -H 'X-Hexalith-Scope: platform:tenants' \
+  "$EVENTSTORE_URL/api/v1/commands/status/$STATUS_PROBE_ID"
 ```
 
-Expected: `404 Not Found` with a problem-details body saying no command status exists for that correlation ID. That proves the gateway accepted the token and searched the authorized tenant scope.
+Expect `404 Not Found` with problem type `https://hexalith.io/problems/command-status-not-found`. The response confirms a status lookup under `platform:tenants`. The catalog and domain still authorize each command separately.
 
 Fix these outcomes before submitting a tenant command:
 
 | Result | Meaning | Fix |
 | ------ | ------- | --- |
-| `401 Unauthorized` | Missing, expired, malformed, wrong issuer, wrong audience, or wrong signing key token | Re-acquire the local Keycloak token and confirm the issuer, audience, and signing algorithm match the AppHost OIDC configuration. |
-| `403 Forbidden` with no tenant authorization claims | Token lacks an effective `eventstore:tenant=system` claim | Use your provisioned local platform account with an effective `eventstore:tenant=system` claim. |
-| `403 Forbidden` with tenant mismatch | Token tenant is not exactly `system` for the platform command path | Use the local platform administrator token; do not submit tenant-management commands under `tenant-a`, `tenant-b`, or differently cased `System`. |
+| `401 Unauthorized` | Missing, expired, malformed, wrong issuer, wrong audience, or wrong signing key token | Obtain a fresh token from the approved interactive client and confirm it matches the AppHost OIDC configuration. |
+| `403 Forbidden` | The selected scope or principal is unauthorized | Confirm that you sent the single `platform:tenants` scope header, the token contains exactly one `tenants:read` permission, and all tenant grants are valid and distinct. |
 | Connection failure | EventStore is not reachable | Wait for the AppHost resource, then check Docker, DAPR full init, and AppHost resource details. |
 
 ## Send Your First Commands
 
-### Open Swagger UI
-
-Find the `eventstore` service in the Aspire dashboard and open its URL. Append `/swagger` to the URL to open the Swagger UI.
-
-1. Click the **Authorize** button at the top of the page
-2. In the **Value** field, paste the token you generated — do not include the `Bearer` prefix, Swagger adds it automatically
-3. Click **Authorize**, then **Close**
-
 ### Step 1: Confirm administrator handoff
 
-The membership checks above replace the former bootstrap-write probe. Confirm they succeeded for both the configured administrator and the provisioned human. Do not submit `BootstrapGlobalAdmin` to test access; it is a one-time state-changing command, and its target must equal the authenticated actor.
+Confirm the membership checks succeeded for both subjects. The bound hosted bootstrap is a one-time state-changing operation.
 
 ### Step 2: Create Your First Tenant
 
-Now create a tenant. In the same **POST /api/v1/commands** endpoint, submit:
+Save this request as `create-tenant.json`:
 
 ```json
 {
     "messageId": "01JQK7YQ7YQ7YQ7YQ7YQ7YQ7Y2",
-    "tenant": "system",
+    "tenant": "platform:tenants",
     "domain": "tenants",
     "aggregateId": "my-first-tenant",
     "commandType": "CreateTenant",
@@ -507,58 +511,50 @@ Now create a tenant. In the same **POST /api/v1/commands** endpoint, submit:
 }
 ```
 
-> **Important:** `aggregateId` and `payload.TenantId` must match — the aggregate ID is the managed tenant ID per the identity scheme (`system:tenants:{aggregateId}`). If they don't match, the command will be rejected with a validation error.
+Set `aggregateId` and `payload.TenantId` to the same canonical managed tenant ID. The submit helper replaces the illustrative message ID and sends the matching `X-Hexalith-Scope: platform:tenants` header.
 
-Click **Execute**. The API returns `202 Accepted`. The response body contains a correlation ID:
+Generate and retain a fresh message ID for this attempt:
 
-```json
-{ "correlationId": "01JQK7YQ7YQ7YQ7YQ7YQ7YQ7Y2" }
+```bash
+CREATE_MESSAGE_ID=$(new_ulid)
+submit_tenant_command "$CREATE_MESSAGE_ID" create-tenant.json
 ```
 
-The `Location` header points to the status polling endpoint (`/api/v1/commands/status/{correlationId}`). You can poll this endpoint until you see a terminal status:
+The API returns `202 Accepted` with the message and correlation IDs. The `Location` header identifies the message at the status polling endpoint. Poll `GET /api/v1/commands/status/{messageId}` on EventStore with the same scope header and the retained ID:
 
-```json
-{
-    "correlationId": "01JQK7YQ7YQ7YQ7YQ7YQ7YQ7Y2",
-    "status": "Completed",
-    "statusCode": 4,
-    "timestamp": "2026-03-19T12:00:01Z",
-    "aggregateId": "my-first-tenant",
-    "eventCount": 1,
-    "rejectionEventType": null,
-    "failureReason": null
-}
+```bash
+wait_command_completed "$TOKEN" "$CREATE_MESSAGE_ID" platform:tenants
 ```
 
-`status: "Completed"` with `eventCount: 1` confirms the `TenantCreated` event was stored and published. A `status: "Rejected"` response means a business rule rejected the command; check `rejectionEventType` for the reason and use the corrective actions below. Infrastructure failures use `failureReason` instead.
+`status: "Completed"` (status code `4`) with `eventCount: 1` confirms that the `TenantCreated` event was stored and published. For `status: "Rejected"`, check `rejectionEventType` for a business-rule rejection or `failureReason` for infrastructure failure. If submission or polling leaves the outcome unresolved, use the same message ID for recovery before issuing a replacement.
 
 ### Verify the Event
 
-Verify the tenant was created by querying the read model. Expand the **GET /api/tenants/{tenantId}** endpoint, enter `my-first-tenant` as the tenant ID, and execute.
+Verify the tenant through the generated `GET /api/tenants/{tenantId}` endpoint on tenants-api. The route supplies the canonical tenant. Send the authorized bearer with the matching tenant grant and omit scope headers.
 
-The response should contain the tenant details including the name and description you provided.
+```bash
+platform_api "$TOKEN" -fsS "$TENANTS_API_URL/api/tenants/my-first-tenant"
+```
 
-> **Note:** If the query returns 404, retry after the projection catches up. Projections are eventually consistent — the read model processes events asynchronously. If 404 persists across retries, check the Aspire dashboard for service errors and verify the command reached `status: "Completed"` via the status endpoint.
-
-You can also check the command status via the URL in the `Location` header from the previous response, or query it directly: `GET /api/v1/commands/status/{correlationId}`.
+The response should contain the tenant ID, name, and description you submitted. If the projection is still catching up, retry the read. If it remains unavailable, check the command status and AppHost resource health before proceeding.
 
 ### Running the Quickstart Again
 
 If you've run this before:
 
 - Reauthenticate the configured administrator and verify projected membership before repeating the human handoff. `GlobalAdminAlreadyBootstrappedRejection` alone does not establish membership for the configured subject.
-- **CreateTenant** with the same ID may reach `status: "Rejected"` with `rejectionEventType` ending in `TenantAlreadyExistsRejection`. Use a different `aggregateId` and matching `payload.TenantId`, e.g., `my-second-tenant`.
+- **CreateTenant** with the same tenant ID may reach `status: "Rejected"` with `rejectionEventType` ending in `TenantAlreadyExistsRejection`. Use a different `aggregateId` and matching `payload.TenantId`. Update the read URL and the caller's tenant grant to that same ID.
 
 ### Try More Commands
 
 Create a multi-step workflow — add a user to your new tenant:
 
-**1. Add a user to the tenant:**
+Save this request as `add-user.json`. Use the exact IdP subject of the user to add in `payload.UserId`.
 
 ```json
 {
     "messageId": "01JQK7YQ7YQ7YQ7YQ7YQ7YQ7Y3",
-    "tenant": "system",
+    "tenant": "platform:tenants",
     "domain": "tenants",
     "aggregateId": "my-first-tenant",
     "commandType": "AddUserToTenant",
@@ -572,9 +568,19 @@ Create a multi-step workflow — add a user to your new tenant:
 
 > **Roles:** Use the enum names `TenantOwner`, `TenantContributor`, or `TenantReader`. `Unknown` is the fail-closed sentinel and is rejected by the aggregate.
 
-**2. Verify the user was added:**
+Submit with a new message ID, then check the status in `platform:tenants`:
 
-Expand `GET /api/tenants/{tenantId}/users`, enter `my-first-tenant`, and execute. The response lists users and their roles in the tenant.
+```bash
+ADD_USER_MESSAGE_ID=$(new_ulid)
+submit_tenant_command "$ADD_USER_MESSAGE_ID" add-user.json
+wait_command_completed "$TOKEN" "$ADD_USER_MESSAGE_ID" platform:tenants
+```
+
+After completion, the generated `GET /api/tenants/{tenantId}/users` route lists the user's subject and role:
+
+```bash
+platform_api "$TOKEN" -fsS "$TENANTS_API_URL/api/tenants/my-first-tenant/users"
+```
 
 ## Next Steps
 
@@ -706,7 +712,7 @@ git config --system core.longpaths true
 
 | Error                            | Meaning                      | Action                                       |
 | -------------------------------- | ---------------------------- | -------------------------------------------- |
-| `GlobalAdminAlreadyBootstrappedRejection` | Bootstrap already ran        | Safe to proceed — the admin exists           |
+| `GlobalAdminAlreadyBootstrappedRejection` | An administrator was already bootstrapped | Verify projected membership for the configured subject before proceeding |
 | `TenantAlreadyExistsRejection`            | Tenant ID already used       | Use a different `aggregateId` and `TenantId` |
-| `401 Unauthorized`               | JWT token expired or invalid | Re-generate the token using the script above |
-| `403 Forbidden`                  | Token lacks the effective `eventstore:tenant=system` authorization | Confirm the token has `tenants: ["system"]` locally or a production mapping that normalizes to `eventstore:tenant=system` |
+| `401 Unauthorized`               | Access token expired or invalid | Obtain a fresh token from the approved interactive client and enter it again in [Get an Access Token](#get-an-access-token) |
+| `403 Forbidden`                  | Scope, catalog permission, authenticated surface, or domain authority was refused | Check the operation's scope and exact claims above, then verify persisted authority and the applicable tenant grant |

@@ -6,7 +6,15 @@ using Hexalith.EventStore.ServiceDefaults.Routing;
 using Hexalith.Tenants.Contracts.Routing;
 using Hexalith.Tenants.Server.Routing;
 
-string[] expected = File.ReadAllLines("approved-route-ids.txt").Order(StringComparer.Ordinal).ToArray();
+#if NET10_0
+const string expectedRouteIdsFile = "approved-route-ids-net10.txt";
+const int expectedCommandCount = 12;
+#else
+const string expectedRouteIdsFile = "approved-route-ids.txt";
+const int expectedCommandCount = 14;
+#endif
+
+string[] expected = File.ReadAllLines(expectedRouteIdsFile).Order(StringComparer.Ordinal).ToArray();
 Assembly contracts = typeof(TenantCatalogDeclarations).Assembly;
 Assembly server = typeof(TenantIntentAdapters).Assembly;
 if (contracts.GetCustomAttributes<RouteCatalogDeclarationSourceAttribute>().Single().SourceType != typeof(TenantCatalogDeclarations)) throw new InvalidDataException("Wrong packaged declaration source.");
@@ -17,8 +25,8 @@ var operations = CompiledRouteCatalogDeclarations.ReadOperations([contracts]);
 var adapters = ((IEnumerable<IDeclaredIdempotencyIntentAdapter>)source.SourceType.GetMethod("Create")!.Invoke(null, null)!).ToArray();
 if (!routes.Select(route => route.RouteId).Order(StringComparer.Ordinal).SequenceEqual(expected, StringComparer.Ordinal)
     || !operations.Select(operation => operation.RouteId).Order(StringComparer.Ordinal).SequenceEqual(expected, StringComparer.Ordinal)
-    || routes.Count(route => route.Kind == "command") != 14 || routes.Count(route => route.Kind == "query") != 9 || routes.Count(route => route.Kind == "projection") != 2
-    || adapters.Length != 14 || !adapters.Select(adapter => adapter.Declaration.Route.RouteId).Order(StringComparer.Ordinal)
+    || routes.Count(route => route.Kind == "command") != expectedCommandCount || routes.Count(route => route.Kind == "query") != 9 || routes.Count(route => route.Kind == "projection") != 2
+    || adapters.Length != expectedCommandCount || !adapters.Select(adapter => adapter.Declaration.Route.RouteId).Order(StringComparer.Ordinal)
         .SequenceEqual(routes.Where(route => route.Kind == "command").Select(route => route.RouteId).Order(StringComparer.Ordinal), StringComparer.Ordinal)
     || operations.Any(operation => operation.Digest != RouteCatalogCodec.ComputeOperationContractDigest(operation))) throw new InvalidDataException("The actual packages differ from the approved complete catalog inventory.");
 Console.WriteLine(JsonSerializer.Serialize(new { routes = routes.Count, operations = operations.Count, adapters = adapters.Length,

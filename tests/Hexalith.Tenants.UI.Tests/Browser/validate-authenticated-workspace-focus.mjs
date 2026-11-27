@@ -1,5 +1,6 @@
-// Run against the real local Aspire UI. Reuse the pinned Playwright install from
-// tests/performance/tenant-audit (npm ci there), or supply an existing module path.
+// Run against the local Linux Aspire UI using its registered HTTP(S) origin.
+// Reuse the pinned Playwright install from tests/performance/tenant-audit
+// (npm ci there), or supply an existing module path.
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
@@ -7,31 +8,17 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { captureWorkspaceFocusHost, requireSameWorkspaceFocusHost, workspaceFocusOrigin } from './workspace-focus-host-identity.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
-const require = createRequire(new URL('../../performance/tenant-audit/package.json', import.meta.url));
-const playwrightModule = process.env.TENANTS_BROWSER_PLAYWRIGHT_MODULE || 'playwright';
-const { chromium } = require(playwrightModule);
-const base = new URL(process.env.TENANTS_BROWSER_BASE_URL);
-assert.ok(['localhost', '127.0.0.1', '[::1]'].includes(base.hostname), 'Use a local Aspire endpoint');
-const username = process.env.TENANTS_BROWSER_USERNAME;
-const password = process.env.TENANTS_BROWSER_PASSWORD;
-assert.ok(username && password, 'Supply the credentials chosen before starting the local realm');
 const output = process.argv[2];
 assert.ok(output, 'Supply a safe result JSON path');
-const git = (...args) => execFileSync('git', args, { cwd: root, encoding: 'utf8' }).trim();
-const hash = value => createHash('sha256').update(value).digest('hex');
 const evidence = {
-    sourceBaseRevision: git('rev-parse', 'HEAD'),
-    sourceDiffSha256: hash(git('diff', '--binary', 'HEAD', '--', 'src/Hexalith.Tenants.UI')),
-    validatorSha256: hash(await readFile(fileURLToPath(import.meta.url))),
-    localUiAssemblySha256: hash(await readFile(resolve(root, 'src/Hexalith.Tenants.UI/bin/Debug/net11.0/Hexalith.Tenants.UI.dll'))),
-    playwrightVersion: require(`${playwrightModule}/package.json`).version,
     startedUtc: new Date().toISOString(),
-    records: ['DW-333', 'DW-335', 'DW-336', 'DW-357', 'DW-359'],
+    records: ['DW-333', 'DW-335', 'DW-336', 'DW-357', 'DW-359', 'DW-679'],
     cases: [],
 };
-let phase = 'launch';
+let phase = 'host-identity';
 let browser;
 let context;
 let page;
@@ -64,6 +51,30 @@ const observeFocus = async () => page.evaluate(controls => {
 // Report only fixed assertion labels and measured UI facts. Never persist login
 // URLs, cookies, storage state, screenshots, network bodies or exception stacks.
 try {
+    const base = workspaceFocusOrigin(process.env.TENANTS_BROWSER_BASE_URL);
+    const host = await captureWorkspaceFocusHost(root, base);
+    evidence.localUiAssemblySha256 = host.sha256;
+    evidence.runningUiAssemblySha256 = host.sha256;
+    // Git metadata identifies the observed checkout. The runtime binding above
+    // independently identifies the DLL bytes mapped by the Aspire process.
+    evidence.sourceMetadataScope = 'observed-checkout';
+    const git = (...args) => execFileSync('git', args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+    const hash = value => createHash('sha256').update(value).digest('hex');
+    evidence.sourceBaseRevision = git('rev-parse', 'HEAD');
+    evidence.sourceDiffSha256 = hash(git('diff', '--binary', 'HEAD', '--', 'src/Hexalith.Tenants.UI'));
+    evidence.validatorSha256 = hash(await readFile(new URL(import.meta.url)));
+    evidence.hostBindingValidatorSha256 = hash(await readFile(new URL('./workspace-focus-host-identity.mjs', import.meta.url)));
+
+    phase = 'launch';
+    const username = process.env.TENANTS_BROWSER_USERNAME;
+    const password = process.env.TENANTS_BROWSER_PASSWORD;
+    if (!username || !password) throw Object.assign(new Error(), {
+        safeLabel: 'Supply the credentials chosen before starting the local realm',
+    });
+    const require = createRequire(new URL('../../performance/tenant-audit/package.json', import.meta.url));
+    const playwrightModule = process.env.TENANTS_BROWSER_PLAYWRIGHT_MODULE || 'playwright';
+    const { chromium } = require(playwrightModule);
+    evidence.playwrightVersion = require(`${playwrightModule}/package.json`).version;
     browser = await chromium.launch({
         executablePath: process.env.CHROMIUM_BIN || undefined,
         args: ['--no-sandbox'],
@@ -104,6 +115,9 @@ try {
 
     phase = 'authenticate';
     await page.goto(new URL('/authentication/challenge?returnUrl=%2Ftenants', base).href);
+    phase = 'host-identity';
+    await requireSameWorkspaceFocusHost(root, base, host);
+    phase = 'authenticate';
     await page.locator('#username').fill(username);
     await page.locator('#password').fill(password);
     await page.locator('#kc-login').click();
@@ -269,6 +283,9 @@ try {
         'Preview and cancellation must leave the grant lifecycle idle');
     evidence.cases.push({ scenario: 'phone-layout', width: await page.evaluate(() => innerWidth), initiationHidden: true, lifecycleIdle: true });
     check(circuitErrors.length === 0, 'The interactive Blazor circuit reported an error');
+    phase = 'host-identity';
+    await requireSameWorkspaceFocusHost(root, base, host);
+    evidence.runningUiAssemblyVerified = true;
     evidence.status = 'passed';
 } catch (error) {
     // Playwright exceptions can contain filled values or OIDC URLs. Keep them local
