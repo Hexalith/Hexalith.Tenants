@@ -5,6 +5,7 @@ created: '2026-11-27'
 status: 'done'
 route: 'oneshot'
 review_loop_iteration: 1
+baseline_commit: '5adf9feeb59812f6aa49a8f128fed78ce4a5d6e9'
 context: []
 ---
 
