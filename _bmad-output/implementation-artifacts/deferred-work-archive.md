@@ -13871,3 +13871,190 @@ dependencies: create authority reflection
 next-action: None for this finding; validated B7 closure does not imply release readiness.
 closure-evidence: `_bmad-output/implementation-artifacts/b7-validation-evidence.md`; `_bmad-output/implementation-artifacts/spec-b7-live-admission.md`
 related: DW-206, DW-235
+
+### DW-658: Unverified medium, pre-existing: establish the bootstrap credential HTTP handler's redirect policy for password-grant requests.
+
+origin: migrated from legacy ledger ("Deferred from: bootstrap handoff independent review (2026-10-23)"), 2026-11-16
+location: bootstrap credential HTTP handler / HttpClient.SendAsync
+reason: Unverified medium, pre-existing: establish the bootstrap credential HTTP handler's redirect policy for password-grant requests.
+status: done 2026-10-28
+archived: 2026-11-27
+source_spec: `spec-dw-551-556-575-576-597-bootstrap-handoff.md`
+summary: Unverified medium, pre-existing: establish the bootstrap credential HTTP handler's redirect policy for password-grant requests.
+evidence: The provider's HttpClient.SendAsync and default handler ownership predate this batch; initial destination validation does not itself establish 307/308 handling. A real-handler redirect fixture must determine whether credentials can be reposted to a different destination, then the owning transport contract must choose and qualify its redirect policy. This follow-up does not change the five numbered closures or authorize a new redirect policy.
+outcome: fixed
+resolution: A real-handler matrix reproduced same/cross-origin default 307/308 password-form replay. The explicitly recorded transport decision now disables all automatic redirects only for delegated credential acquisition; command dispatch retains the existing default client. Production registration, exact client selection, ten no-replay redirect cases and a direct-token success pass.
+resolution-spec: spec-five-deferred-runtime-followups.md
+resolution-evidence: five-deferred-runtime-followups-validation-evidence.md
+
+### DW-659: Pre-existing medium; synchronize the late-subscription cancellation test with actual asynchronous cleanup completion.
+
+origin: migrated from legacy ledger ("Deferred from: navigation accessibility verification (2026-10-23)"), 2026-11-16
+location: TenantReadRefreshSubscriptionTests.Cancellation_after_late_backend_setup_cleans_up_without_retaining_a_callback
+reason: Pre-existing medium; synchronize the late-subscription cancellation test with actual asynchronous cleanup completion.
+status: done 2026-10-27
+archived: 2026-11-27
+source_spec: `_bmad-output/implementation-artifacts/spec-dw-119-211-212-213-444-navigation-accessibility.md`
+summary: Pre-existing medium; synchronize the late-subscription cancellation test with actual asynchronous cleanup completion.
+evidence: `TenantReadRefreshSubscriptionTests.Cancellation_after_late_backend_setup_cleans_up_without_retaining_a_callback` immediately asserts `UnsubscribeAsync` after the caller's cancellation exception, while unchanged `TenantReadRefreshSubscription.cs` starts `CleanupFailedSetupAsync` without awaiting it before rethrowing. One full 7,504-case run observed no unsubscribe yet; the isolated 37-case class and subsequent full 7,504-case run passed. Use a deterministic unsubscribe-completion signal while preserving exactly-one-unsubscribe and no-retained-callback assertions; this records test timing rather than a proven production cleanup failure.
+resolution: The cancellation test now observes caller cancellation before releasing late setup, holds unsubscribe to verify callback retirement, releases cleanup in finally and awaits bounded unsubscribe completion before exactly-once/no-callback assertions. Production cleanup is unchanged; the current full UI run passes 7,839/7,839.
+resolution-spec: `_bmad-output/implementation-artifacts/spec-dw-114-137-144-514-523-read-and-recovery-contracts.md`
+resolution-evidence: `_bmad-output/implementation-artifacts/dw-114-137-144-514-523-validation-evidence.md`
+
+### DW-661: Unverified medium — qualify removal-modal containment when pre-submit focus interop fails while the browser and command delivery remain connected.
+
+origin: migrated from legacy ledger ("Deferred from: five UI safety items independent review (2026-10-25)"), 2026-11-16
+location: PrepareSubmissionFocusAsync / FocusSafelyAsync
+reason: Unverified medium — qualify removal-modal containment when pre-submit focus interop fails while the browser and command delivery remain connected.
+status: done 2026-10-28
+archived: 2026-11-27
+source_spec: `_bmad-output/implementation-artifacts/spec-dw-194-201-221-267-609-ui-safety.md`
+summary: Unverified medium — qualify removal-modal containment when pre-submit focus interop fails while the browser and command delivery remain connected.
+evidence: PrepareSubmissionFocusAsync awaits FocusSafelyAsync, which catches interop failures before the exact lifetime/admission checks. The lifecycle target exists throughout normal connected rendering, and the final browser lane proves normal and pending native containment; no connected failure/bypass was reproduced. Settle with production-component browser fault injection that rejects the focus operation, continues held delivery and checks Escape/overlay containment plus retained ownership.
+outcome: fixed
+verification-date: 2026-10-28
+verification: The earlier negative result allowed later focus repair and is superseded. The corrected diagnostic rejects the first lifecycle focus, holds subsequent programmatic recovery effects, verifies exact synthetic member payload and tenant/domain/aggregate, then observes body focus and native Escape closing the dialog while one simulated delivery remains pending. Zero circuit errors and cleanup source equality hold; the native containment assertion fails. Overlay and subsequent same-message status checks remain unqualified because this earlier assertion stops the run.
+pre-fix-blocker: A qualified owning fix for native containment before focus recovery; the earlier closure is withdrawn.
+verification-evidence: five-deferred-runtime-followups-validation-evidence.md
+resolution: Rejected private focus preparation now refuses admission before changing attempts, leases or dispatch. Initial/retained retry regressions preserve confirmation, snapshot and tracking identity. Fresh uninstrumented focused browser passes: Escape and overlay after rejection send zero commands, then successful focus admits one exact member command with repeated same-message status lookup and zero circuit errors. Arbitrary interop failures and the separate external grid fault remain outside this closure.
+resolution-spec: spec-five-deferred-runtime-followups.md
+resolution-evidence: five-deferred-runtime-followups-validation-evidence.md
+
+### DW-663: Medium, unverified — qualify a fresh generic blocking Aspire CI run after the published EventStore routing contracts can compile.
+
+origin: migrated from legacy ledger ("Deferred from: release-governance independent review (2026-10-27)"), 2026-11-16
+location: generic blocking Aspire CI
+reason: Medium, unverified — qualify a fresh generic blocking Aspire CI run after the published EventStore routing contracts can compile.
+status: done 2026-10-29
+archived: 2026-11-27
+source_spec: `_bmad-output/implementation-artifacts/spec-dw-540-554-570-584-593-release-governance.md`
+summary: Medium, unverified — qualify a fresh generic blocking Aspire CI run after the published EventStore routing contracts can compile.
+evidence: The new browser/TLS/Dapr prerequisite and result-gate definitions have local contract checks, but no fresh full generic Aspire provisioning run is claimed. Current default and Release/package Contracts builds fail with ten missing EventStore routing-type errors in TenantCatalogDeclarations.cs; pre-review Debug/source Contracts passed 704/704 and both real workflow closures passed immutable-snapshot checks. Retain those distinct results and the existing release holds. Capture a fresh package-mode generic tier with installed prerequisites, executed tests and no skips after the upstream package prerequisite is available.
+resolution-date: 2026-10-29
+resolution-spec: spec-five-deferred-authority-and-read-bounds.md
+resolution: Actual push CI 40809733133 on 516267c9675dc48bc35bf92f14a712f5ddc1a504 passed the main build/test job and complete generic Aspire job 123242100351:530 executed, 530 passed, zero failures/skips. Browser/TLS/Dapr prerequisites, workers-enabled default, strict MTP command and executed/no-skips gate all succeeded under actual Builds workflow e909ffd9fe9a6097e36d932010b983d029396968. Generic FrontComposer/Memories source exceptions and separate published-profile evidence remain distinct; no all-source or broad release acceptance is claimed. Earlier compile, CI and browser failures remain retained.
+resolution-evidence: five-deferred-authority-and-read-bounds-validation-evidence.md
+
+### DW-664: Medium, pre-existing: qualify fatal dependency failure precedence when the authenticated caller retires concurrently.
+
+origin: migrated from legacy ledger ("Deferred from: five read-safety items independent review (2026-10-28)"), 2026-11-16
+location: CallerBoundTenantsRestQueryClient.ReadAsync / TenantQueryGateway.ReadForAuthenticatedCallerAsync
+reason: Medium, pre-existing: qualify fatal dependency failure precedence when the authenticated caller retires concurrently.
+status: done 2026-10-28
+archived: 2026-11-27
+source_spec: `spec-dw-117-118-127-599-618-read-safety.md`
+summary: Medium, pre-existing: qualify fatal dependency failure precedence when the authenticated caller retires concurrently.
+evidence: CallerBoundTenantsRestQueryClient.ReadAsync verifies cancellation/current authority in finally, and TenantQueryGateway.ReadForAuthenticatedCallerAsync contains caller-transition failures. Those unchanged entry paths can replace a fatal dependency exception with cancellation or authorization failure before workspace classification. Establish a held fatal read plus caller/cancellation transition regression and an owning precedence decision before changing this security boundary. This is separate from the selected workspace/search fixes and numbered totals.
+resolution-date: 2026-10-28
+resolution-spec: spec-five-deferred-authority-and-read-bounds.md
+resolution: The approved original-fatal precedence now survives caller retirement/cancellation, fatal wrappers and completed canceled tasks; pre-cancelled work never starts. Fatal transport, enrichment and timing/callback regressions preserve original identity without returning retired-caller evidence.
+resolution-evidence: five-deferred-authority-and-read-bounds-validation-evidence.md
+
+### DW-665: Unverified medium: measure elapsed latency of bounded authorized backfill against a slow upstream before choosing a whole-load deadline.
+
+origin: migrated from legacy ledger ("Deferred from: five read-safety items independent review (2026-10-28)"), 2026-11-16
+location: bounded authorized backfill whole-load deadline
+reason: Unverified medium: measure elapsed latency of bounded authorized backfill against a slow upstream before choosing a whole-load deadline.
+status: done 2026-10-28
+archived: 2026-11-27
+source_spec: `spec-dw-117-118-127-599-618-read-safety.md`
+summary: Unverified medium: measure elapsed latency of bounded authorized backfill against a slow upstream before choosing a whole-load deadline.
+evidence: The approved scan examines at most 1,000 raw positions and honors caller cancellation and existing request timeouts, but multiple sequential windows can multiply latency. No unacceptable-duration threshold or controlled slow-upstream incident was established. Capture per-window/whole-load timing and cancellation with a deterministic slow fixture, then choose the owning timeout/fallback contract. Rendered privacy/completeness qualification does not claim a latency SLA; numbered totals are unchanged.
+resolution-date: 2026-10-28
+resolution-spec: spec-five-deferred-authority-and-read-bounds.md
+resolution: The approved configurable ten-second whole-load budget covers windows, hydration and fallback, cancels outstanding work and discards late evidence. Manual-clock slow-window/seam controls, nondefault production-DI binding, cursor recovery and safe expiry diagnostics pass; controlled populated-list timing is retained without claiming a general latency SLA.
+resolution-evidence: five-deferred-authority-and-read-bounds-validation-evidence.md
+
+### DW-666: Unverified medium — determine the cause of the published-profile browser timeout before the 1440-pixel tenant-list check.
+
+origin: migrated from legacy ledger ("Deferred from: native authority CI qualification (2026-10-29)"), 2026-11-16
+location: tenant-list-layout-1440-none / native actor admission window
+reason: Unverified medium — determine the cause of the published-profile browser timeout before the 1440-pixel tenant-list check.
+status: done 2026-10-29
+archived: 2026-11-27
+source_spec: `_bmad-output/implementation-artifacts/spec-five-deferred-authority-and-read-bounds.md`
+summary: Unverified medium — determine the cause of the published-profile browser timeout before the 1440-pixel tenant-list check.
+evidence: Exact-source CI40783107965 on22644726 passed16 authenticated route/layout cases, then reported browser-timeout under tenant-list-layout-1440-none. That phase covered both navigation/network-idle and seeded Current readiness; finer fixed phase labels now distinguish them without changing waits or assertions. Native transport responses in the captured logs were200, which does not prove a cause. Preserve the original safe result and compare a fresh exact-source run plus a same-corpus baseline/control if it recurs before changing production behavior or timeouts. Generic and explicit published qualification profiles remain distinct; this unnumbered risk is excluded from numbered totals.
+resolution-date: 2026-10-29
+resolution-spec: spec-five-deferred-authority-and-read-bounds.md
+resolution: Exact-order four-CPU controls reproduce native actor admission-window pressure with retained cursor flags,995 completed known callbacks in22.224s and a31.219s queued cancellation at maximum queue depth one. Independent test groups now observe the unchanged60-second policy window; fresh reads, seeded Current assertions and existing deadlines remain mandatory. Both method orders pass25 browser cases and the complete local strict generic tier passes530/530 with zero skips. This resolves the cause investigation; actual post-push generic CI acceptance remains separately open.
+resolution-evidence: five-deferred-authority-and-read-bounds-validation-evidence.md
+
+### DW-667: Reconcile the long-lived EventStore spec gitlink audit scope while preserving its original baseline and unrelated committed dependency updates.
+
+origin: migrated from legacy ledger ("Deferred from: latest EventStore package verification (2026-10-29)"), 2026-11-16
+location: spec-eventstore-3-117-1.md / validate-story-gitlinks.py
+reason: Reconcile the long-lived EventStore spec gitlink audit scope while preserving its original baseline and unrelated committed dependency updates.
+status: done 2026-10-29
+archived: 2026-11-27
+source_spec: `_bmad-output/implementation-artifacts/spec-eventstore-3-117-1.md`
+summary: Reconcile the long-lived EventStore spec gitlink audit scope while preserving its original baseline and unrelated committed dependency updates.
+evidence: Review R1. The retained historical endpoint ef4b7f2f99b2a60910b94481a198f591c51bfe5c passes with --ref, while the default validate-story-gitlinks.py command exits 1 for eight intervening undeclared pointers since baseline 9e9e04308ea1060010a64bb8b800e755c4aaf99d. This continuation starts at 03615cc91d940ca37b47fb13413a90a31151dd71 and has zero gitlink diff. Package currency, both Release builds and 10887 tests pass. Resolve historical attribution without resetting the baseline, reverting independent changes or inventing story ownership; exact commands/logs are in dependency-refresh-eventstore-3.128.4-evidence-2026-10-29.json and its raw-log archive.
+resolution: done — Restored the creation snapshot's original 1846c7128cf0f6b16f9e62f38032bcab78e26e38 start instead of the narrowed October 10 checkpoint, retired the incompatible active historical endpoint, and inventoried all nine exact current range targets without claiming independent commits as story-owned. Default guard, original-range/history verifier with 23 controls, guard suite 77/77 and changed-story suite 78/78 pass. Evidence: eventstore-gitlink-reconciliation-2026-10-29.md; original review evidence above is preserved.
+
+### DW-669: Pre-existing verification gap: qualify bootstrap catalog readiness across a wrong-root to matching-root transition and cancellation.
+
+origin: migrated from legacy ledger ("Deferred from: merged-main CI repair independent review (2026-11-01)"), 2026-11-16
+location: src/Hexalith.Tenants/Bootstrap/TenantBootstrapBoundCommand.cs; tests/Hexalith.Tenants.Server.Tests/Bootstrap/TenantBootstrapBoundCommandTests.cs
+reason: Pre-existing verification gap: qualify bootstrap catalog readiness across a wrong-root to matching-root transition and cancellation.
+status: done 2026-11-27
+archived: 2026-11-27
+source_spec: `_bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md`
+summary: Pre-existing verification gap: qualify bootstrap catalog readiness across a wrong-root to matching-root transition and cancellation.
+evidence: tests/Hexalith.Tenants.Server.Tests/Bootstrap/TenantBootstrapBoundCommandTests.cs constructs its service provider without IRouteCatalogAuthority or the expected development root. Its existing authenticated bound-command assertions therefore do not exercise the readiness loop in src/Hexalith.Tenants/Bootstrap/TenantBootstrapBoundCommand.cs; neither delayed matching-root readiness nor cancellation during catalog waiting has distinguishing coverage.
+classification: pre-existing-test-coverage-gap
+production-impact: Unverified; no readiness or authenticated bound-command failure is demonstrated or claimed.
+next-action: Register a controlled IRouteCatalogAuthority and expected root in focused tests; prove no bound command is issued while a different root is serving, progress after the matching root becomes serving, and cancellation interrupts waiting without issuing a command. Retain all existing identity, administrator and workload proof checks.
+scope: Deferred from this bounded CI compatibility repair; excluded from numbered totals. Production and test behavior remain unchanged by this record.
+evidence-review: Independent review of spec-ci-repair-2026-11-01.md; verification-gap finding explicitly triaged as defer.
+resolution: The bound-command tests require all four catalog observations before returning a request, including refusal of a serving wrong root. The hosted-service dispatch tests verify that cancellation during catalog readiness produces zero command POSTs, workload assertions and receipts. The two focused classes passed 51 tests on a Debug source build at `5b97ef94de2d94f79da177817cfb8b9d371a6faa`. [Verification details](spec-reconcile-deferred-work-evidence.md)
+
+### DW-683: Verify unknown historical event handling across durable consumer upgrades before trusting access state.
+
+origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
+location: TenantProjectionCheckpointTransition.Decode
+reason: Verify unknown historical event handling across durable consumer upgrades before trusting access state.
+status: done 2026-11-27
+archived: 2026-11-27
+source_spec: `_bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md`
+summary: Verify unknown historical event handling across durable consumer upgrades before trusting access state.
+evidence: Unverified high impact, pre-existing later-story concern (BH-4). TenantProjectionCheckpointTransition.Decode treats unknown event types as checkpoint-only evidence. No currently emitted unknown access-changing event was demonstrated. A producer-upgrade replay with an actual supported newer event must establish whether stale membership can remain healthy; retain explicit harmless rejection behavior and fail-closed access semantics when deciding the policy.
+resolution: `TenantProjectionCheckpointTransition` now requires every live and replayed tenant event to match the explicit supported projected or rejection event allowlist, explicit `"json"` serialization format, and declared payload version (`EventPayloadVersionResolver.GetDeclaredVersion`). Unknown contracts (such as an unsupported revocation or excluded `GlobalAdministrator*` contract) fail with `TransitionFailed`, keeping the checkpoint at the last trusted position, releasing the recovery lease, and withholding access state across restarts while retaining checkpoint-only handling for known rejections and `TenantAccessRefreshed`. Verified in `DurableTenantProjectionStoreTests` and `TenantProjectionTransitionTests` and documented with coordinated rebuild guidance in `docs/idempotent-event-processing.md`. [Spec](spec-dw-684-dw-683-durable-tenant-history.md)
+
+### DW-684: Qualify payload-to-stream tenant identity integrity during durable history recovery.
+
+origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
+location: TenantServiceCollectionExtensions / TenantProjectionCheckpointTransition / generic history adapter
+reason: Qualify payload-to-stream tenant identity integrity during durable history recovery.
+status: done 2026-11-27
+archived: 2026-11-27
+source_spec: `_bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md`
+summary: Qualify payload-to-stream tenant identity integrity during durable history recovery.
+evidence: Unverified high impact, pre-existing later-story concern (BH-5). Live TenantServiceCollectionExtensions registers PayloadAggregateIdPropertyName=TenantId, but TenantProjectionCheckpointTransition decodes history without that check and the generic history adapter fingerprints bytes without domain payload validation. Demonstrate whether a persisted authoritative event with a foreign payload TenantId can reach the transition and assert refusal/unavailable health if reachable; no observed cross-tenant history corruption is claimed.
+resolution: `TenantProjectionCheckpointTransition` pre-resolves each supported contract's public readable `string TenantId` property and enforces ordinal equality against `@event.Stream.AggregateId` for both replayed history payloads and live deliveries, rejecting foreign, case-mismatched, empty, whitespace, null, or missing `TenantId` payloads with `InvalidDataException` (`TransitionFailed`) before advancing the checkpoint or exposing access state. Verified across membership events, `TenantAccessRefreshed`, pre-creation rejections, and direct `ITenantProjectionSnapshotStore.ApplyAsync` calls in `DurableTenantProjectionStoreTests` and `TenantProjectionTransitionTests`. [Spec](spec-dw-684-dw-683-durable-tenant-history.md)
+
+### DW-712: Fix the upstream EventStore transition fixture test that mistakes a later step's environment expressions for shell interpolation after an earlier run block was added.
+
+origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
+location: test_phase_4_transition.py:793
+reason: Fix the upstream EventStore transition fixture test that mistakes a later step's environment expressions for shell interpolation after an earlier run block was added.
+status: done 2026-11-27
+archived: 2026-11-27
+source_spec: `_bmad-output/implementation-artifacts/spec-synchronize-update-release-2026-11-14.md`
+summary: Fix the upstream EventStore transition fixture test that mistakes a later step's environment expressions for shell interpolation after an earlier run block was added.
+evidence: Exact source fbed6cd32e0497bf8dd82a2ab7681e15e268234f run43857136989 has37/38passing tests; unchanged test_phase_4_transition.py:793 uses content.split('run: |')[1] across step boundaries. Upstreamceb43c78dca2a0f350eb98efe9f4a376b5de2114 introduced the earlier run block; this release only changed credential fixtures. The optional transition workflow is absent from main required contexts, and the required Phase4 gate risk matrix fixtures job133264190388 succeeded. Keep the failure visible; shared CI instructions direct pipeline defects to report rather than module fixes.
+resolution: EventStore replaced the split-based check with per-run-block parsing and added regression cases. The hosted fixture workflow passed on the repair at `8b6d5bee5217b3f4bbd8fd689ad887aca863961b` and the Tenants pin at `5484fae6c284cd8fe70b51bf921c5b31509b6c27`, closing the same defect tracked in DW-713. [Repair run](https://github.com/Hexalith/Hexalith.EventStore/actions/runs/43862075403) · [Pinned revision run](https://github.com/Hexalith/Hexalith.EventStore/actions/runs/45965786177)
+
+### DW-713: The EventStore optional transition workflow-test defect recorded above is addressed by its existing owning scanner repair; fresh hosted verification remains pending.
+
+origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
+location: EventStore optional transition workflow / workflow_run_bodies
+reason: The EventStore optional transition workflow-test defect recorded above is addressed by its existing owning scanner repair; fresh hosted verification remains pending.
+status: done 2026-11-27
+archived: 2026-11-27
+source_spec: `_bmad-output/implementation-artifacts/spec-synchronize-update-release-2026-11-14.md`
+summary: The EventStore optional transition workflow-test defect recorded above is addressed by its existing owning scanner repair; fresh hosted verification remains pending.
+evidence: Upstream8b6d5bee5217b3f4bbd8fd689ad887aca863961b replaces content.split('run: |')[1] with workflow_run_bodies and checks every run block, including single-line, later-body, compact-expression and commented-header refusal cases. This release preserves and integrates that existing repair; source and current run IDs are in resumed-parent-integration/eventstore-upstream-scanner-repair-integration.json.
+resolution: Hosted optional transition run43862075403 succeeded on the selected8b6d5bee5217b3f4bbd8fd689ad887aca863961b source. The earlier failing run remains historical.
+verification-evidence: The Phase 4 transition fixture workflow and job both report success on `8b6d5bee5217b3f4bbd8fd689ad887aca863961b` and the current Tenants EventStore pin `5484fae6c284cd8fe70b51bf921c5b31509b6c27`. See DW-712 for the original defect. [Repair run](https://github.com/Hexalith/Hexalith.EventStore/actions/runs/43862075403) · [Pinned revision run](https://github.com/Hexalith/Hexalith.EventStore/actions/runs/45965786177)
+
