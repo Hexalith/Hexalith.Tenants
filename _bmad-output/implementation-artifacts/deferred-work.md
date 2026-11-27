@@ -1,5 +1,7 @@
 # Deferred Work
 
+**Verification reconciliation (2026-11-27).** DW-669 closes with passing bootstrap tests for catalog root matching and cancellation. DW-712 and DW-713 close with successful hosted runs on the scanner repair and the EventStore revision pinned by Tenants. The active ledger has 666 done and 49 open entries. [Verification details](spec-reconcile-deferred-work-evidence.md)
+
 **Native-speech run and approved dispositions (2026-10-30):** DW-137 closes as an accepted contract limitation: reversible-identifier support is withdrawn and current refusals remain. DW-466 closes as an accepted unresolved historical incident, with its missing method/root-cause evidence and reopening conditions retained. These are user-approved dispositions, with no implemented route feature or causal fix. DW-116/DW-446/DW-459 remain open pending independently accepted native speech evidence. All 657 IDs remain: 654 done/3 open across three maintenance rows. See [execution evidence](five-deferred-native-speech-validation-evidence.md).
 
 **DW-367 accepted-disposition closure (2026-10-29):** Explicit user approval closes this tracking item while retaining deliberate role selection and the absence of historical role information. Only separately approved contract/product work requiring historical role evidence can reopen it. All 657 numbered IDs remain: 652 done/5 open across five maintenance rows. All 656 other numbered bodies, original DW-367 fields and unrelated holds remain preserved. This documentation-only closure does not qualify runtime or release readiness. See [decision and validation](dw-367-accepted-disposition-validation-evidence.md).
@@ -5609,7 +5611,7 @@ evidence-review: RBH10; five-remaining-speech-and-browser-resumed-validation-evi
 origin: migrated from legacy ledger ("Deferred from: merged-main CI repair independent review (2026-11-01)"), 2026-11-16
 location: src/Hexalith.Tenants/Bootstrap/TenantBootstrapBoundCommand.cs; tests/Hexalith.Tenants.Server.Tests/Bootstrap/TenantBootstrapBoundCommandTests.cs
 reason: Pre-existing verification gap: qualify bootstrap catalog readiness across a wrong-root to matching-root transition and cancellation.
-status: open
+status: done 2026-11-27
 source_spec: `_bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md`
 summary: Pre-existing verification gap: qualify bootstrap catalog readiness across a wrong-root to matching-root transition and cancellation.
 evidence: tests/Hexalith.Tenants.Server.Tests/Bootstrap/TenantBootstrapBoundCommandTests.cs constructs its service provider without IRouteCatalogAuthority or the expected development root. Its existing authenticated bound-command assertions therefore do not exercise the readiness loop in src/Hexalith.Tenants/Bootstrap/TenantBootstrapBoundCommand.cs; neither delayed matching-root readiness nor cancellation during catalog waiting has distinguishing coverage.
@@ -5618,6 +5620,7 @@ production-impact: Unverified; no readiness or authenticated bound-command failu
 next-action: Register a controlled IRouteCatalogAuthority and expected root in focused tests; prove no bound command is issued while a different root is serving, progress after the matching root becomes serving, and cancellation interrupts waiting without issuing a command. Retain all existing identity, administrator and workload proof checks.
 scope: Deferred from this bounded CI compatibility repair; excluded from numbered totals. Production and test behavior remain unchanged by this record.
 evidence-review: Independent review of spec-ci-repair-2026-11-01.md; verification-gap finding explicitly triaged as defer.
+resolution: The bound-command tests require all four catalog observations before returning a request, including refusal of a serving wrong root. The hosted-service dispatch tests verify that cancellation during catalog readiness produces zero command POSTs, workload assertions and receipts. The two focused classes passed 51 tests on a Debug source build at `5b97ef94de2d94f79da177817cfb8b9d371a6faa`. [Verification details](spec-reconcile-deferred-work-evidence.md)
 
 ### DW-670: Verify no-build publication cohort enforcement for non-Contracts packages against formerly qualified EventStore and McpCli selections.
 
@@ -6044,21 +6047,23 @@ evidence: Current upstream epic-16-context.md:199 reopens the16.2 story row and 
 origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
 location: test_phase_4_transition.py:793
 reason: Fix the upstream EventStore transition fixture test that mistakes a later step's environment expressions for shell interpolation after an earlier run block was added.
-status: open
+status: done 2026-11-27
 source_spec: `_bmad-output/implementation-artifacts/spec-synchronize-update-release-2026-11-14.md`
 summary: Fix the upstream EventStore transition fixture test that mistakes a later step's environment expressions for shell interpolation after an earlier run block was added.
 evidence: Exact source fbed6cd32e0497bf8dd82a2ab7681e15e268234f run43857136989 has37/38passing tests; unchanged test_phase_4_transition.py:793 uses content.split('run: |')[1] across step boundaries. Upstreamceb43c78dca2a0f350eb98efe9f4a376b5de2114 introduced the earlier run block; this release only changed credential fixtures. The optional transition workflow is absent from main required contexts, and the required Phase4 gate risk matrix fixtures job133264190388 succeeded. Keep the failure visible; shared CI instructions direct pipeline defects to report rather than module fixes.
+resolution: EventStore replaced the split-based check with per-run-block parsing and added regression cases. The hosted fixture workflow passed on the repair at `8b6d5bee5217b3f4bbd8fd689ad887aca863961b` and the Tenants pin at `5484fae6c284cd8fe70b51bf921c5b31509b6c27`, closing the same defect tracked in DW-713. [Repair run](https://github.com/Hexalith/Hexalith.EventStore/actions/runs/43862075403) · [Pinned revision run](https://github.com/Hexalith/Hexalith.EventStore/actions/runs/45965786177)
 
 ### DW-713: The EventStore optional transition workflow-test defect recorded above is addressed by its existing owning scanner repair; fresh hosted verification remains pending.
 
 origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
 location: EventStore optional transition workflow / workflow_run_bodies
 reason: The EventStore optional transition workflow-test defect recorded above is addressed by its existing owning scanner repair; fresh hosted verification remains pending.
-status: open
+status: done 2026-11-27
 source_spec: `_bmad-output/implementation-artifacts/spec-synchronize-update-release-2026-11-14.md`
 summary: The EventStore optional transition workflow-test defect recorded above is addressed by its existing owning scanner repair; fresh hosted verification remains pending.
 evidence: Upstream8b6d5bee5217b3f4bbd8fd689ad887aca863961b replaces content.split('run: |')[1] with workflow_run_bodies and checks every run block, including single-line, later-body, compact-expression and commented-header refusal cases. This release preserves and integrates that existing repair; source and current run IDs are in resumed-parent-integration/eventstore-upstream-scanner-repair-integration.json.
 resolution: Hosted optional transition run43862075403 succeeded on the selected8b6d5bee5217b3f4bbd8fd689ad887aca863961b source. The earlier failing run remains historical.
+verification-evidence: The Phase 4 transition fixture workflow and job both report success on `8b6d5bee5217b3f4bbd8fd689ad887aca863961b` and the current Tenants EventStore pin `5484fae6c284cd8fe70b51bf921c5b31509b6c27`. See DW-712 for the original defect. [Repair run](https://github.com/Hexalith/Hexalith.EventStore/actions/runs/43862075403) · [Pinned revision run](https://github.com/Hexalith/Hexalith.EventStore/actions/runs/45965786177)
 
 ### DW-714: EventStore Development transport can select the same ephemeral port for two owned control-plane endpoints.
 

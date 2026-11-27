@@ -1,5 +1,7 @@
 # Maintenance backlog
 
+**Current count (2026-11-27).** The ledger has 49 open entries after closing DW-669, DW-712 and DW-713. This page records the older maintenance index. The November migration added 58 numbered entries to the ledger. [Deferred-work ledger](../_bmad-output/implementation-artifacts/deferred-work.md) · [November migration](../_bmad-output/implementation-artifacts/deferred-work-migration-2026-11-16.json)
+
 **Resumed native assessment (2026-10-30):** Only DW-116 closes for its independently accepted 16 EN/FR Search queued-notice windows on NVDA/Chrome and NVDA/Firefox. Repeated dismiss labels, English dismiss labels in FR and audible-completion/localization limits remain. DW-446/DW-459 stay open for duplicated first-Unavailable and same-state Refresh output, with cause unassigned and an approved fix/requalification required. All 657 IDs remain: 655 done/2 open across two maintenance rows. The grant history and external grid follow-ups remain open. [Independent assessment and evidence](../_bmad-output/implementation-artifacts/five-remaining-speech-and-browser-resumed-validation-evidence.md).
 
 **Native-speech run and approved dispositions (2026-10-30):** DW-137 closes as an accepted contract limitation: reversible-identifier support is withdrawn and current refusals remain. DW-466 closes as an accepted unresolved historical incident, with its missing method/root-cause evidence and reopening conditions retained. These are user-approved dispositions, with no implemented route feature or causal fix. DW-116/DW-446/DW-459 remain open pending independently accepted native speech evidence. All 657 IDs remain: 654 done/3 open across three maintenance rows. See [execution evidence](../_bmad-output/implementation-artifacts/five-deferred-native-speech-validation-evidence.md).
@@ -256,7 +258,7 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 **DW-470 acceptance reconciliation (2026-10-16):** Existing AddMember/ChangeRole initial and retry key propagation now has 12 actual Fluent EN/FR keyed-only failure regressions, including failed resubmission and ambiguous same-ID delivery retry. Independent review/recheck, final Debug focused207/full UI5979 pass with zero failures/skips. [Exact commands, initial compilation failure and limits](../_bmad-output/implementation-artifacts/dw-470-validation-evidence.md). Only DW-470 and its row close:339 done/304 open across643 IDs,272 rows;135 reconciled done/216 actionable. Original findings and pre-closure verification/actions, all earlier closures/decisions, archive/sprint, dependencies and release holds remain preserved. Release remains not ready.
 
-| Disposition | Records |
+| Disposition before the October 30 resumed assessment | Records |
 | --- | ---: |
 | done | 654 |
 | actionable | 0 |
@@ -265,7 +267,7 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | accepted-limitation | 0 |
 | uncertain | 2 |
 
-**Remaining: 3 open records across 3 index rows.**
+This snapshot had three open records. DW-116 closed in the resumed assessment later that day. [Current ledger](../_bmad-output/implementation-artifacts/deferred-work.md)
 
 **Unnumbered cleanup follow-up resolved, 2026-10-27:** The original navigation-verification finding remains in the ledger with its resolution. Its explicit unsubscribe completion and held-cleanup callback checks are qualified; numbered DW totals exclude this unnumbered item. Disposition counts cover all 657 numbered records. P1 means correctness, confidentiality or command ownership; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. `unassigned` preserves the absence of an established owner.
 
@@ -295,7 +297,7 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 ## Verified defects and gaps
 
-No numbered verified defect or gap remains open in this index. Historical findings and their resolutions remain in the deferred ledger.
+This October index recorded zero open numbered verified defects or gaps. See the deferred-work ledger for the November entries and their current status.
 
 ## Unverified risks and recommendations
 
@@ -308,10 +310,10 @@ No numbered verified defect or gap remains open in this index. Historical findin
 
 No accepted limitation remains open. DW-367 and DW-137 are closed by explicit user decisions, retaining their historical findings, deliberate role-selection/current identifier boundaries and reopening conditions. DW-466 is closed as an accepted unresolved historical incident, retaining the missing method/root-cause evidence and reopening on an identified failure or causal reproduction. None of these closures claims a newly implemented feature or causal fix. See the [deferred ledger](../_bmad-output/implementation-artifacts/deferred-work.md).
 
-**Additional unnumbered verification follow-up (2026-10-24):** One grant Escape focus timeout remains unverified after a passing instrumented trace and final normal nine-case browser run. Its cause and distinguishing reproduction are retained in the deferred ledger and [focus diagnostic](../_bmad-output/implementation-artifacts/dw-391-focus-diagnostic.json). Numbered DW totals and exact index coverage exclude this follow-up until migration.
+**DW-660 remains open.** One grant Escape focus timeout remains unverified after a passing instrumented trace and final normal nine-case browser run. [DW-660](../_bmad-output/implementation-artifacts/deferred-work.md#dw-660-unverified-medium-isolate-one-administrator-grant-escape-focus-timeout-before-changing-production-restoration-behavior) · [Focus diagnostic](../_bmad-output/implementation-artifacts/dw-391-focus-diagnostic.json)
 
 
-**Additional unnumbered CI qualification follow-up (updated 2026-10-28):** Local generic Release restore/build and complete-tier qualification have passed; actual passing post-push CI remains required before this record closes. Published and generic source-exception graphs remain separately evidenced. Numbered DW totals exclude this follow-up; existing runtime/release holds remain.
+**DW-663 closed on 2026-10-29.** The hosted generic Aspire job passed all 530 cases. [DW-663](../_bmad-output/implementation-artifacts/deferred-work.md#dw-663-medium-unverified--qualify-a-fresh-generic-blocking-aspire-ci-run-after-the-published-eventstore-routing-contracts-can-compile) · [Qualification evidence](../_bmad-output/implementation-artifacts/five-deferred-authority-and-read-bounds-validation-evidence.md)
 
 
-**Additional unnumbered browser qualification risk (2026-10-29):** The published-profile CI browser run timed out before its 1440-pixel tenant-list check after16 passing cases. Its cause is unverified; the deferred ledger retains the exact run and distinguishing control. Fixed phase labels now separate navigation/network-idle from Current-row readiness without changing acceptance. Numbered totals remain unchanged.
+**DW-666 closed on 2026-10-29.** Exact-order controls reproduced native actor admission-window pressure after the earlier browser run timed out before its 1440-pixel tenant-list check. Independent test groups passed within the existing policy window. [DW-666](../_bmad-output/implementation-artifacts/deferred-work.md#dw-666-unverified-medium--determine-the-cause-of-the-published-profile-browser-timeout-before-the-1440-pixel-tenant-list-check) · [Qualification evidence](../_bmad-output/implementation-artifacts/five-deferred-authority-and-read-bounds-validation-evidence.md)
