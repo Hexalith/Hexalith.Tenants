@@ -192,6 +192,68 @@ class CatalogArtifactPackTests(unittest.TestCase):
                 self.assertEqual(selected.returncode, 0, selected.stdout + selected.stderr)
                 self.assertEqual(selected.stdout.strip(), '3.128.4')
 
+    def test_domain_host_enforces_canonical_eventstore_cohort_floor(self):
+        builds = next(path for path in (ROOT / 'references/Hexalith.Builds', ROOT.parent / 'Hexalith.Builds')
+                      if (path / 'Props/Directory.Packages.props').is_file())
+        with tempfile.TemporaryDirectory(prefix='tenants-host-cohort-guard-') as temporary:
+            parent = Path(temporary)
+            fixture = parent / 'Hexalith.Tenants'
+            fixture.mkdir()
+            shutil.copytree(builds / 'Props', parent / 'Hexalith.Builds/Props')
+            for name in ('Directory.Build.props', 'Directory.Build.targets', 'Directory.Packages.props', 'README.md', 'global.json'):
+                shutil.copyfile(ROOT / name, fixture / name)
+            host_directory = fixture / 'src/Hexalith.Tenants'
+            host_directory.mkdir(parents=True)
+            shutil.copyfile(ROOT / 'src/Hexalith.Tenants/Hexalith.Tenants.csproj', host_directory / 'Hexalith.Tenants.csproj')
+
+            environment = os.environ.copy()
+            for key in ('CustomBeforeDirectoryBuildProps', 'CustomAfterMicrosoftCommonProps', 'CustomBeforeDirectoryBuildTargets',
+                        'CustomAfterDirectoryBuildTargets', 'AfterMicrosoftNETSdkTargets', 'HEXALITH_SOURCE_MAPPING_HASH'):
+                environment.pop(key, None)
+
+            host_project = 'src/Hexalith.Tenants/Hexalith.Tenants.csproj'
+            cohort_diagnostic = 'Current Tenants packages require EventStore 5.3.0, 5.3.1, 5.4.0, 5.5.1, 5.5.2 or 5.6.0'
+            mcp_diagnostic = 'Canonical Tenants packages require McpCli.Abstractions 3.0.0'
+
+            def evaluate(entry, sdk, use_published_sdk, *extra_args):
+                return subprocess.run(
+                    ['dotnet', 'msbuild', host_project, '-nologo', '-nr:false', '-target:' + entry,
+                     '-p:UseHexalithProjectReferences=false', '-p:UseNuGetDeps=true',
+                     '-p:HexalithEventStoreFromSource=false', '-p:HexalithEventStoreVersion=' + sdk,
+                     '-p:HexalithUsePublishedSdkForHostedTests=' + use_published_sdk, *extra_args],
+                    cwd=fixture, env=environment, capture_output=True, text=True, timeout=60)
+
+            for use_published_sdk in ('false', 'true'):
+                for sdk in ('4.0.4', '5.0.1', '5.2.0'):
+                    for entry in ('CollectPackageReferences', 'PrepareForBuild'):
+                        with self.subTest(rejected_host_sdk=sdk, entry=entry, use_published_sdk=use_published_sdk):
+                            rejected = evaluate(entry, sdk, use_published_sdk)
+                            self.assertNotEqual(rejected.returncode, 0, rejected.stdout + rejected.stderr)
+                            self.assertIn(cohort_diagnostic, rejected.stdout + rejected.stderr)
+
+                for sdk in ('4.0.4', '5.0.1'):
+                    for entry in ('Publish', 'PublishContainer'):
+                        with self.subTest(rejected_host_nobuild=sdk, entry=entry, use_published_sdk=use_published_sdk):
+                            rejected = evaluate(entry, sdk, use_published_sdk, '-p:NoBuild=true')
+                            self.assertNotEqual(rejected.returncode, 0, rejected.stdout + rejected.stderr)
+                            self.assertIn(cohort_diagnostic, rejected.stdout + rejected.stderr)
+
+                for entry in ('CollectPackageReferences', 'PrepareForBuild', 'Publish', 'PublishContainer'):
+                    with self.subTest(rejected_host_mcpcli=entry, use_published_sdk=use_published_sdk):
+                        extra = ('-p:HexalithMcpCliVersion=2.0.0', '-p:NoBuild=true') if entry in ('Publish', 'PublishContainer') else ('-p:HexalithMcpCliVersion=2.0.0',)
+                        rejected = evaluate(entry, '5.6.0', use_published_sdk, *extra)
+                        self.assertNotEqual(rejected.returncode, 0, rejected.stdout + rejected.stderr)
+                        self.assertIn(mcp_diagnostic, rejected.stdout + rejected.stderr)
+
+            for sdk in ('5.3.0', '5.3.1', '5.4.0', '5.5.1', '5.5.2', '5.6.0'):
+                entries = ('CollectPackageReferences', 'PrepareForBuild') if sdk in ('5.3.0', '5.6.0') else ('CollectPackageReferences',)
+                hosted_modes = ('false', 'true') if sdk in ('5.3.0', '5.6.0') else ('false',)
+                for use_published_sdk in hosted_modes:
+                    for entry in entries:
+                        with self.subTest(accepted_host_sdk=sdk, entry=entry, use_published_sdk=use_published_sdk):
+                            accepted = evaluate(entry, sdk, use_published_sdk)
+                            self.assertEqual(accepted.returncode, 0, accepted.stdout + accepted.stderr)
+
 
 if __name__ == '__main__':
     unittest.main()

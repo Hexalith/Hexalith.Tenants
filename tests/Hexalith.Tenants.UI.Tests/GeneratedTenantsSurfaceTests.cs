@@ -196,7 +196,7 @@ public sealed class GeneratedTenantsSurfaceTests : FrontComposerTestBase
     {
         ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
         gateway.ListTenantsAsync(
-                Arg.Any<TenantListRequest>(),
+                Arg.Is<TenantListRequest>(request => !request.IncludeRowEnrichment),
                 null,
                 Arg.Any<CancellationToken>())
             .Returns(TenantListSnapshot.Ready(
@@ -295,7 +295,7 @@ public sealed class GeneratedTenantsSurfaceTests : FrontComposerTestBase
     {
         ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
         gateway.ListTenantsAsync(
-                Arg.Any<TenantListRequest>(),
+                Arg.Is<TenantListRequest>(request => !request.IncludeRowEnrichment),
                 null,
                 Arg.Any<CancellationToken>())
             .Returns(

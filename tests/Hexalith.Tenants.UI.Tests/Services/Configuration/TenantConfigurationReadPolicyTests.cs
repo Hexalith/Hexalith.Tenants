@@ -2,6 +2,7 @@ using System.Security.Claims;
 using System.Text;
 
 using Hexalith.FrontComposer.Contracts.Rendering;
+using Hexalith.FrontComposer.Shell.Options;
 using Hexalith.FrontComposer.Shell.Services.Auth;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
@@ -14,6 +15,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 using NSubstitute;
 
@@ -1518,6 +1520,43 @@ public sealed class TenantConfigurationReadPolicyTests
         evidence.Subject.ShouldBeNull();
     }
 
+    [Fact]
+    public async Task Same_subject_revocation_during_corroboration_fails_closed_with_real_circuit_user_context()
+    {
+        ClaimsPrincipal privileged = Principal(
+            new Claim("sub", "operator.alpha"),
+            new Claim("eventstore:tenant", "system"),
+            new Claim("global_admin", "true"));
+        ClaimsPrincipal revoked = Principal(
+            new Claim("sub", "operator.alpha"),
+            new Claim("eventstore:tenant", "system"),
+            new Claim("roles", "tenant-reader"));
+        SameSubjectRevokingAuthenticationStateProvider provider = new(privileged, revoked);
+
+        CircuitServicesAccessor circuit = new();
+        ServiceCollection services = new();
+        services.AddSingleton<AuthenticationStateProvider>(provider);
+        using ServiceProvider serviceProvider = services.BuildServiceProvider();
+        circuit.Services = serviceProvider;
+
+        FrontComposerAuthenticationOptions options = new();
+        options.TenantClaimTypes.Add("eventstore:tenant");
+        options.UserClaimTypes.Add("sub");
+        ServerCircuitUserContextAccessor userContextAccessor = new(
+            new HttpContextAccessor(),
+            circuit,
+            Microsoft.Extensions.Options.Options.Create(options),
+            NullLogger<ServerCircuitUserContextAccessor>.Instance);
+        TenantConfigurationPrincipalResolver resolver = new(circuit, userContextAccessor);
+
+        TenantConfigurationPrincipalEvidence evidence = await resolver.ResolveAsync();
+
+        provider.CallCount.ShouldBe(2);
+        revoked.FindFirst("sub")?.Value.ShouldBe("operator.alpha");
+        evidence.State.ShouldBe(TenantConfigurationPrincipalEvidenceState.Indeterminate);
+        evidence.Subject.ShouldBeNull();
+    }
+
     private static TenantConfigurationPrincipalResolver Resolver(
         ClaimsPrincipal? circuitPrincipal = null,
         AuthenticationStateProvider? circuitProvider = null,
@@ -1657,6 +1696,32 @@ public sealed class TenantConfigurationReadPolicyTests
             return _completion.Task;
         }
 
+    }
+
+    private sealed class SameSubjectRevokingAuthenticationStateProvider(
+        ClaimsPrincipal privileged,
+        ClaimsPrincipal revoked) : AuthenticationStateProvider
+    {
+        private int _callCount;
+
+        public int CallCount => Volatile.Read(ref _callCount);
+
+        public override Task<AuthenticationState> GetAuthenticationStateAsync()
+        {
+            int call = Interlocked.Increment(ref _callCount);
+            if (call == 1)
+            {
+                return Task.FromResult(new AuthenticationState(privileged));
+            }
+
+            Task<AuthenticationState> revokedTask = Task.FromResult(new AuthenticationState(revoked));
+            if (call == 2)
+            {
+                NotifyAuthenticationStateChanged(revokedTask);
+            }
+
+            return revokedTask;
+        }
     }
 
     private sealed class CapturingLogger<T> : ILogger<T>

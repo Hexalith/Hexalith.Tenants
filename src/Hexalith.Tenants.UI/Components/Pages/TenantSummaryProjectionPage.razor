@@ -78,7 +78,7 @@
         try
         {
             snapshot = await QueryGateway.ListTenantsAsync(
-                new TenantListRequest(),
+                new TenantListRequest(IncludeRowEnrichment: false),
                 previous: null,
                 cancellationToken);
         }

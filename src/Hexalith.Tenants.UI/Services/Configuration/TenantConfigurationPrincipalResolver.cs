@@ -85,9 +85,17 @@ internal sealed class TenantConfigurationPrincipalResolver(
             }
 
             // Corroborate against the independently resolved user context, without an HTTP-principal fallback.
+            string? corroboratedSubject = userContextAccessor.UserId;
+            if (Volatile.Read(ref authenticationChanged) != 0)
+            {
+                // A live circuit identity change during corroboration (including same-subject role revocation)
+                // invalidates the previously read authentication state.
+                return TenantConfigurationPrincipalEvidence.Indeterminate();
+            }
+
             return TenantsGlobalAdministratorClaims.ResolvePrincipalEvidence(
                 state.User,
-                userContextAccessor.UserId,
+                corroboratedSubject,
                 requireCorroboration: true);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

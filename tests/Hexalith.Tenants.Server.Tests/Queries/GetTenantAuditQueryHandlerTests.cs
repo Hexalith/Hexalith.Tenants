@@ -3,9 +3,13 @@ using System.Text.Json;
 
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Client.Queries;
+using Hexalith.EventStore.Contracts.Projections;
 using Hexalith.EventStore.Contracts.Queries;
+using Hexalith.EventStore.Testing.Fakes;
 using Hexalith.Tenants.Contracts.Enums;
+using Hexalith.Tenants.Contracts.Events;
 using Hexalith.Tenants.Contracts.Queries;
+using Hexalith.Tenants.Projections;
 using Hexalith.Tenants.Queries.Handlers;
 using Hexalith.Tenants.Server.Projections;
 using Hexalith.Tenants.Server.Tests.Support;
@@ -848,6 +852,293 @@ public sealed class GetTenantAuditQueryHandlerTests
             TenantAuditStreams.GlobalAdministratorsKey, Arg.Any<CancellationToken>());
         _ = await store.DidNotReceive().GetAsync<TenantAuditReadModel>(TenantQueryHandlerBase.StateStoreName,
             TenantAuditStreams.SystemTenantKey, Arg.Any<CancellationToken>());
+    }
+
+    /// <summary>Continues across persisted multi-row global-administrator audit pages with pageSize 1 using protected cursors.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task PersistedGlobalAdministratorAuditContinuesAcrossProtectedCursorPagesAsync(bool useEnvelopePaging)
+    {
+        CancellationToken cancellationToken = TestContext.Current.CancellationToken;
+        InMemoryReadModelStore store = await CreatePersistedGlobalAdministratorAuditStoreAsync(cancellationToken);
+        IQueryCursorCodec codec = CreateCursorCodec();
+
+        ReadModelEntry<GlobalAdministratorReadModel> persistedAuthority = await store.GetAsync<GlobalAdministratorReadModel>(
+            TenantQueryHandlerBase.StateStoreName,
+            TenantQueryHandlerBase.GlobalAdminProjectionKey,
+            cancellationToken);
+        persistedAuthority.Value.ShouldNotBeNull().Administrators.ToArray().ShouldBe(["admin-1"]);
+
+        ReadModelEntry<TenantAuditReadModel> persistedAudit = await store.GetAsync<TenantAuditReadModel>(
+            TenantQueryHandlerBase.StateStoreName,
+            TenantAuditStreams.GlobalAdministratorsKey,
+            cancellationToken);
+        persistedAudit.Value.ShouldNotBeNull().Entries.Select(entry => entry.EventId).ToArray()
+            .ShouldBe(["global-evt-1", "global-evt-2", "global-evt-3"]);
+
+        QueryResult first = await ExecuteSystemAuditAsync(
+            store,
+            codec,
+            GetGlobalAdministratorAuditQuery.QueryType,
+            pageSize: 1,
+            cursor: null,
+            stream: null,
+            useEnvelopePaging,
+            cancellationToken);
+
+        ReadEventIds(first).ShouldBe(["global-evt-1"]);
+        string firstCursor = ReadProtectedCursor(first, expectedHasMore: true, useEnvelopePaging, expectedPageSize: 1).ShouldNotBeNull();
+        firstCursor.ShouldNotContain("global-evt-1");
+        firstCursor.ShouldNotContain("admin-1");
+        firstCursor.ShouldNotContain(GetGlobalAdministratorAuditQuery.QueryType);
+
+        QueryResult second = await ExecuteSystemAuditAsync(
+            store,
+            codec,
+            GetGlobalAdministratorAuditQuery.QueryType,
+            pageSize: 1,
+            cursor: firstCursor,
+            stream: null,
+            useEnvelopePaging,
+            cancellationToken);
+
+        ReadEventIds(second).ShouldBe(["global-evt-2"]);
+        string secondCursor = ReadProtectedCursor(second, expectedHasMore: true, useEnvelopePaging, expectedPageSize: 1).ShouldNotBeNull();
+        secondCursor.ShouldNotBe(firstCursor);
+        secondCursor.ShouldNotContain("global-evt-2");
+
+        QueryResult third = await ExecuteSystemAuditAsync(
+            store,
+            codec,
+            GetGlobalAdministratorAuditQuery.QueryType,
+            pageSize: 1,
+            cursor: secondCursor,
+            stream: null,
+            useEnvelopePaging,
+            cancellationToken);
+
+        ReadEventIds(third).ShouldBe(["global-evt-3"]);
+        ReadProtectedCursor(third, expectedHasMore: false, useEnvelopePaging, expectedPageSize: 1).ShouldBeNull();
+    }
+
+    /// <summary>Refuses cursor replay in both directions between dedicated global-administrator audit and system tenant audit.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task GlobalAdministratorAndSystemTenantAuditRefuseCrossQueryCursorReplayAsync(bool useEnvelopePaging)
+    {
+        CancellationToken cancellationToken = TestContext.Current.CancellationToken;
+        InMemoryReadModelStore store = await CreatePersistedGlobalAdministratorAuditStoreAsync(cancellationToken);
+        IQueryCursorCodec codec = CreateCursorCodec();
+
+        QueryResult globalFirst = await ExecuteSystemAuditAsync(
+            store,
+            codec,
+            GetGlobalAdministratorAuditQuery.QueryType,
+            pageSize: 1,
+            cursor: null,
+            stream: null,
+            useEnvelopePaging,
+            cancellationToken);
+
+        ReadEventIds(globalFirst).ShouldBe(["global-evt-1"]);
+        string globalCursor = ReadProtectedCursor(globalFirst, expectedHasMore: true, useEnvelopePaging, expectedPageSize: 1).ShouldNotBeNull();
+
+        QueryResult globalCursorOnTenantAudit = await ExecuteSystemAuditAsync(
+            store,
+            codec,
+            GetTenantAuditQuery.QueryType,
+            pageSize: 1,
+            cursor: globalCursor,
+            stream: TenantAuditStreams.GlobalAdministrators,
+            useEnvelopePaging,
+            cancellationToken);
+
+        AssertInvalidCursor(globalCursorOnTenantAudit);
+
+        QueryResult tenantFirst = await ExecuteSystemAuditAsync(
+            store,
+            codec,
+            GetTenantAuditQuery.QueryType,
+            pageSize: 1,
+            cursor: null,
+            stream: TenantAuditStreams.GlobalAdministrators,
+            useEnvelopePaging,
+            cancellationToken);
+
+        ReadEventIds(tenantFirst).ShouldBe(["global-evt-1"]);
+        string tenantCursor = ReadProtectedCursor(tenantFirst, expectedHasMore: true, useEnvelopePaging, expectedPageSize: 1).ShouldNotBeNull();
+
+        QueryResult tenantSecond = await ExecuteSystemAuditAsync(
+            store,
+            codec,
+            GetTenantAuditQuery.QueryType,
+            pageSize: 1,
+            cursor: tenantCursor,
+            stream: TenantAuditStreams.GlobalAdministrators,
+            useEnvelopePaging,
+            cancellationToken);
+
+        ReadEventIds(tenantSecond).ShouldBe(["global-evt-2"]);
+
+        QueryResult tenantCursorOnGlobalAuditImplicitStream = await ExecuteSystemAuditAsync(
+            store,
+            codec,
+            GetGlobalAdministratorAuditQuery.QueryType,
+            pageSize: 1,
+            cursor: tenantCursor,
+            stream: null,
+            useEnvelopePaging,
+            cancellationToken);
+
+        AssertInvalidCursor(tenantCursorOnGlobalAuditImplicitStream);
+
+        QueryResult tenantCursorOnGlobalAuditExplicitStream = await ExecuteSystemAuditAsync(
+            store,
+            codec,
+            GetGlobalAdministratorAuditQuery.QueryType,
+            pageSize: 1,
+            cursor: tenantCursor,
+            stream: TenantAuditStreams.GlobalAdministrators,
+            useEnvelopePaging,
+            cancellationToken);
+
+        AssertInvalidCursor(tenantCursorOnGlobalAuditExplicitStream);
+    }
+
+    private static async Task<InMemoryReadModelStore> CreatePersistedGlobalAdministratorAuditStoreAsync(
+        CancellationToken cancellationToken)
+    {
+        var store = new InMemoryReadModelStore();
+        DateTimeOffset start = new(2026, 5, 14, 10, 0, 0, TimeSpan.Zero);
+        ProjectionEventDto[] events =
+        [
+            CreateProjectionEvent(
+                new GlobalAdministratorSet("system", "admin-1", "bootstrapper", start),
+                "global-evt-1",
+                1,
+                start,
+                "bootstrapper"),
+            CreateProjectionEvent(
+                new GlobalAdministratorSet("system", "admin-2", "admin-1", start.AddMinutes(5)),
+                "global-evt-2",
+                2,
+                start.AddMinutes(5),
+                "admin-1"),
+            CreateProjectionEvent(
+                new GlobalAdministratorRemoved("system", "admin-2", "admin-1", start.AddMinutes(10)),
+                "global-evt-3",
+                3,
+                start.AddMinutes(10),
+                "admin-1"),
+        ];
+
+        ProjectionRequest request = new("system", "global-administrators", "global-administrators", events);
+        _ = await new GlobalAdministratorProjectionHandler(store).ProjectAsync(request, cancellationToken);
+        return store;
+    }
+
+    private static ProjectionEventDto CreateProjectionEvent(
+        object payload,
+        string messageId,
+        long sequenceNumber,
+        DateTimeOffset timestamp,
+        string userId)
+        => new(
+            payload.GetType().FullName!,
+            JsonSerializer.SerializeToUtf8Bytes(payload, payload.GetType()),
+            "json",
+            sequenceNumber,
+            timestamp,
+            $"global-audit-corr-{sequenceNumber}",
+            messageId,
+            userId);
+
+    private static Task<QueryResult> ExecuteSystemAuditAsync(
+        IReadModelStore store,
+        IQueryCursorCodec codec,
+        string queryType,
+        int pageSize,
+        string? cursor,
+        string? stream,
+        bool useEnvelopePaging,
+        CancellationToken cancellationToken)
+    {
+        var payloadFields = new Dictionary<string, object>();
+        if (stream is not null)
+        {
+            payloadFields["stream"] = stream;
+        }
+
+        if (!useEnvelopePaging)
+        {
+            payloadFields["pageSize"] = pageSize;
+            if (cursor is not null)
+            {
+                payloadFields["cursor"] = cursor;
+            }
+        }
+
+        byte[] payload = JsonSerializer.SerializeToUtf8Bytes(payloadFields);
+        string domain = queryType == GetGlobalAdministratorAuditQuery.QueryType
+            ? GetGlobalAdministratorAuditQuery.Domain
+            : GetTenantAuditQuery.Domain;
+        QueryEnvelope envelope = new(
+            "system",
+            domain,
+            "system",
+            queryType,
+            payload,
+            "global-audit-continuation",
+            "admin-1",
+            "system");
+        if (useEnvelopePaging)
+        {
+            envelope = envelope with { Paging = new QueryPagingOptions(PageSize: pageSize, Cursor: cursor) };
+        }
+
+        return TenantQueryTestHarness.ExecuteAsync(store, codec, envelope, cancellationToken);
+    }
+
+    private static string? ReadProtectedCursor(
+        QueryResult result,
+        bool expectedHasMore,
+        bool useEnvelopePaging,
+        int expectedPageSize)
+    {
+        using JsonDocument page = JsonDocument.Parse(result.PayloadBytes.ShouldNotBeNull());
+        page.RootElement.GetProperty("hasMore").GetBoolean().ShouldBe(expectedHasMore);
+        JsonElement cursorElement = page.RootElement.GetProperty("cursor");
+        string? cursor;
+        if (expectedHasMore)
+        {
+            cursor = cursorElement.GetString().ShouldNotBeNull();
+            cursor.ShouldNotBeNullOrWhiteSpace();
+        }
+        else
+        {
+            cursorElement.ValueKind.ShouldBe(JsonValueKind.Null);
+            cursor = null;
+        }
+
+        if (useEnvelopePaging)
+        {
+            QueryPagingMetadata paging = result.Metadata.ShouldNotBeNull().Paging.ShouldNotBeNull();
+            paging.PageSize.ShouldBe(expectedPageSize);
+            paging.HasMore.ShouldBe(expectedHasMore);
+            paging.NextCursor.ShouldBe(cursor);
+        }
+
+        return cursor;
+    }
+
+    private static void AssertInvalidCursor(QueryResult result)
+    {
+        result.Success.ShouldBeFalse();
+        result.ErrorMessage.ShouldBe(QueryAdapterFailureReason.InvalidCursor);
+        result.PayloadBytes.ShouldBeNull();
+        result.Metadata.ShouldBeNull();
     }
 
     private static async Task AssertOnlyAuthorityWasReadAsync(IReadModelStore store)

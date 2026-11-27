@@ -127,17 +127,30 @@ public sealed class TenantAccessRecoveryTests
     [Fact]
     public async Task RejectionOnlyHistoryStillReturnsNotFoundAndPreservesPayloadTargetRefusal()
     {
+        var aggregate = new TenantAggregate();
         var state = new TenantState();
         state.Apply(new TenantNotFoundRejection("acme"));
         state.TenantId.ShouldBeEmpty();
         string before = JsonSerializer.Serialize(state);
-        var result = await new TenantAggregate().ProcessAsync(Envelope("owner"), state);
+        var result = await aggregate.ProcessAsync(Envelope("owner"), state);
         result.IsRejection.ShouldBeTrue();
         result.Events.ShouldHaveSingleItem().ShouldBeOfType<TenantNotFoundRejection>().TenantId.ShouldBe("acme");
         CommandEnvelope substituted = Envelope("owner") with { Payload = JsonSerializer.SerializeToUtf8Bytes(new RefreshTenantAccess("foreign")) };
-        (await new TenantAggregate().ProcessAsync(substituted, state)).Events.ShouldHaveSingleItem()
+        (await aggregate.ProcessAsync(substituted, state)).Events.ShouldHaveSingleItem()
             .ShouldBeOfType<InsufficientPermissionsRejection>();
         JsonSerializer.Serialize(state).ShouldBe(before);
+
+        var firstResult = await aggregate.ProcessAsync(Envelope("owner"), currentState: null);
+        firstResult.IsRejection.ShouldBeTrue();
+        firstResult.Events.ShouldHaveSingleItem().ShouldBeOfType<TenantNotFoundRejection>().TenantId.ShouldBe("acme");
+
+        var replayedResult = await aggregate.ProcessAsync(Envelope("owner"), currentState: firstResult.Events);
+        replayedResult.IsRejection.ShouldBeTrue();
+        replayedResult.Events.ShouldHaveSingleItem().ShouldBeOfType<TenantNotFoundRejection>().TenantId.ShouldBe("acme");
+
+        var replayedSubstituted = await aggregate.ProcessAsync(substituted, currentState: firstResult.Events);
+        replayedSubstituted.IsRejection.ShouldBeTrue();
+        replayedSubstituted.Events.ShouldHaveSingleItem().ShouldBeOfType<InsufficientPermissionsRejection>().TenantId.ShouldBe("acme");
     }
 
     [Theory]

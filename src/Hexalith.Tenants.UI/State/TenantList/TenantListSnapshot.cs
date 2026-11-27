@@ -30,6 +30,9 @@ public sealed record TenantListSnapshot(
     /// <summary>Gets the observed authority revision qualifying retained rows and validators.</summary>
     internal long AuthorizationRevision { get; init; }
 
+    /// <summary>Gets whether the retained rows were produced with supplementary row enrichment enabled.</summary>
+    internal bool IncludesRowEnrichment { get; init; } = true;
+
     public static TenantListSnapshot Loading()
         => new(
             TenantListSurfaceKind.Loading,

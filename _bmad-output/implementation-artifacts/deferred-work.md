@@ -5602,7 +5602,8 @@ evidence: scripts/verify-release-artifacts.sh sets one five-second cohort deadli
 origin: migrated from legacy ledger ("Deferred from: merged-main CI repair independent review (2026-11-01)"), 2026-11-16
 location: TenantConfigurationPrincipalResolver.ResolveAsync / ServerCircuitUserContextAccessor.UserId
 reason: Investigate an unverified same-subject authentication-change race while corroborating configuration principal evidence.
-status: open
+status: done 2026-11-27
+resolution: Reproduced with real ServerCircuitUserContextAccessor and fixed in TenantConfigurationPrincipalResolver.ResolveAsync by re-checking Volatile.Read(ref authenticationChanged) after reading userContextAccessor.UserId before resolving principal evidence; verified in TenantConfigurationReadPolicyTests (UI.Tests 8,104/8,104) under spec-dw-674-675-680-685-689-693-694-699-700-batch.md.
 source_spec: `_bmad-output/implementation-artifacts/spec-align-native-read-timeout-budgets.md`
 summary: Investigate an unverified same-subject authentication-change race while corroborating configuration principal evidence.
 evidence: Unverified medium finding outside the timeout repair. TenantConfigurationPrincipalResolver.ResolveAsync checks authenticationChanged before userContextAccessor.UserId; ServerCircuitUserContextAccessor.UserId can call GetAuthenticationStateAsync again. A deterministic provider control must establish whether revocation during that second resolution can return the earlier principal's privileged evidence, then verify fail-closed behavior if reproduced. The resolver change belongs to later commit dc33fda90beea8ee9352b15cb061bf01dbf5f178.
@@ -5612,7 +5613,8 @@ evidence: Unverified medium finding outside the timeout repair. TenantConfigurat
 origin: migrated from legacy ledger ("Deferred from: merged-main CI repair independent review (2026-11-01)"), 2026-11-16
 location: TenantQueryGateway.EnrichRowsAsync / FrontComposerGatewayAuthorizationHandler / FrontComposerTokenSession.ReadPrincipalAsync
 reason: Qualify and enforce supplementary-page completion when an enrichment dependency ignores cancellation.
-status: open
+status: done 2026-11-27
+resolution: Enforced per-row detailTask.WaitAsync(pageDeadline.Token) in TenantQueryGateway.EnrichRowsAsync with atomic degradation, late-fault observation, fatal/surfacing-defect sibling cancellation, and fatal-sibling preservation; qualified with uncooperative transport, GC UnobservedTaskException, and composed FrontComposerGatewayAuthorizationHandler pending-auth tests in TenantQueryGatewayTests.Deadlines (UI.Tests 8,104/8,104) under spec-dw-674-675-680-685-689-693-694-699-700-batch.md.
 source_spec: `_bmad-output/implementation-artifacts/spec-align-native-read-timeout-budgets.md`
 summary: Qualify and enforce supplementary-page completion when an enrichment dependency ignores cancellation.
 evidence: Medium, pre-existing boundary limitation. Both original baseline cea24f9a2cc513beef36d42805634e21ffe217a4 and current TenantQueryGateway.EnrichRowsAsync await detail tasks directly inside Task.WhenAll; cancelling the page token alone cannot complete an uncooperative task. The current production FrontComposerGatewayAuthorizationHandler awaits FrontComposerTokenSession.ReadPrincipalAsync, which awaits AuthenticationStateProvider without a cancellation-aware wait. Add a controlled pending-authentication/provider case and preserve caller isolation, fatal failures, late-task observation and bounded concurrency when selecting a fix. Existing deadline tests establish cooperative transport cancellation; no observed business-topology hang is claimed.
@@ -5662,7 +5664,8 @@ evidence: Review B7 confirmed that validate-authenticated-workspace-focus.mjs re
 origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
 location: Directory.Build.targets / TenantAggregate.RefreshTenantAccess
 reason: Align the current Server SDK build floor with its snapshot-budget API dependency.
-status: open
+status: done 2026-11-27
+resolution: ValidateCanonicalBoundaryPackageCohort already enforces EventStore 5.3.0-5.6.0 across all 5 packages (since 8aa6f169..e4e28904) and now also guards domain host Hexalith.Tenants (including --no-build Publish and PublishContainer targets); verified via test_catalog_artifact_guards.py (3/3) and Contracts.Tests (856/856) while preserving historical cohort metadata under spec-dw-674-675-680-685-689-693-694-699-700-batch.md.
 source_spec: `_bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md`
 summary: Align the current Server SDK build floor with its snapshot-budget API dependency.
 evidence: Medium, pre-existing later-story issue (BH-1). Directory.Build.targets admits EventStore 4.0.4 through 5.0.1, while TenantAggregate.RefreshTenantAccess unconditionally uses ProjectionSnapshotLimits and ProjectionSnapshotLimitExceededException introduced in 5.1.0. Current installed Client XML confirms the older API absence. Qualify actual admitted package builds and preserve explicitly historical archive cohorts rather than silently claiming current-source compatibility.
@@ -5706,7 +5709,8 @@ archived: 2026-11-27
 origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
 location: TenantQueryGateway.EnrichRowsAsync
 reason: Assess the user-visible delay from the later 90-second supplementary list enrichment budget.
-status: open
+status: done 2026-11-27
+resolution: Approved decision retains the 90-second default enrichment upper bound for workspace callers (preserving cold 20-row live CI and 75s/90s test contracts) and adds TenantListRequest.IncludeRowEnrichment (default true) so TenantSummaryProjectionPage opts out without degrading; TenantListSnapshot tracks IncludesRowEnrichment so 304/outage retention never substitutes unenriched rows for enriched reads (UI.Tests 8,104/8,104) under spec-dw-674-675-680-685-689-693-694-699-700-batch.md.
 source_spec: `_bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md`
 summary: Assess the user-visible delay from the later 90-second supplementary list enrichment budget.
 evidence: Medium, pre-existing later-story issue (BH-7). TenantQueryGateway.EnrichRowsAsync awaits every supplemental detail read before returning a confirmed list; its production timer increased to 90 seconds on November 3. Slow cooperative reads can therefore delay list rendering for that budget. Evaluate the intended latency and progressive/degraded rendering while preserving bounded concurrency and caller isolation.
@@ -5746,7 +5750,8 @@ evidence: Medium, pre-existing later-story issue (BH-10). verify-catalog-package
 origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
 location: GetGlobalAdministratorAuditQueryHandler / GetTenantAuditQueryHandler / protected cursor codec
 reason: Verify protected cursor continuation through the dedicated global-administrator audit query type.
-status: open
+status: done 2026-11-27
+resolution: Production query handlers confirmed correct; added persisted 3-row pageSize=1 continuation and bidirectional cross-query cursor refusal tests (payload and envelope paging) using real QueryCursorCodec and InMemoryReadModelStore in GetTenantAuditQueryHandlerTests (Server.Tests 1,941/1,941) under spec-dw-674-675-680-685-689-693-694-699-700-batch.md.
 source_spec: `_bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md`
 summary: Verify protected cursor continuation through the dedicated global-administrator audit query type.
 evidence: Medium regression gap, pre-existing later-story issue (VG-1). GetGlobalAdministratorAuditQueryHandler overrides QueryType; GetTenantAuditQueryHandler now uses that derived value for cursor decode/protection. Existing global-audit handler, REST client, generated route and live tests read page one only. A mutation protecting the cursor with the old tenant QueryType would pass them and fail continuation. Add a persisted multi-row, page-size-one test using the real codec and assert that the returned cursor resumes the next global row.
@@ -5786,7 +5791,8 @@ evidence: Medium, pre-existing later-story coverage gap (R4): the decorated reco
 origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
 location: CommandAuthorizationEvaluator / TryGetContext / AuthorizeAsync / Revalidate
 reason: Revalidate the tenant snapshot after delayed command authorization completes.
-status: open
+status: done 2026-11-27
+resolution: Fixed in Hexalith.FrontComposer commit e87f649d3b9af50740106ab67524737d128e7b9d (CommandAuthorizationEvaluator.EvaluateAsync revalidates tenant snapshot including TenantId/UserId/IsAuthenticated parity before and after LogPolicySuccess, failing closed to StaleTenantContext); verified in CommandAuthorizationEvaluatorTests (31/31), FluxorRegistrationTests (6/6), and FrontComposer governance tests under spec-dw-674-675-680-685-689-693-694-699-700-batch.md.
 source_spec: `_bmad-output/implementation-artifacts/spec-complete-dotnet-11-source-graph.md`
 summary: Revalidate the tenant snapshot after delayed command authorization completes.
 evidence: Medium, pre-existing behavior (R6): CommandAuthorizationEvaluator captures TryGetContext before AuthorizeAsync but does not call the existing Revalidate seam afterward. Demonstrate a context-only transition and fail closed without changing the migration authority contract incidentally.
@@ -5796,7 +5802,8 @@ evidence: Medium, pre-existing behavior (R6): CommandAuthorizationEvaluator capt
 origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
 location: EvaluateAsync authentication and policy waits / authentication observer cleanup
 reason: Qualify cancellation and observer cleanup with uncooperative authentication and policy tasks.
-status: open
+status: done 2026-11-27
+resolution: Fixed in Hexalith.FrontComposer commit e87f649d3b9af50740106ab67524737d128e7b9d (EvaluateAsync awaits GetAuthenticationStateAsync and AuthorizeAsync with WaitAsync(cancellationToken), returns Blocked(Canceled), unsubscribes AuthenticationStateChanged immediately in finally, observes late faults, and propagates fatal exceptions); verified in CommandAuthorizationEvaluatorTests (31/31) under spec-dw-674-675-680-685-689-693-694-699-700-batch.md.
 source_spec: `_bmad-output/implementation-artifacts/spec-complete-dotnet-11-source-graph.md`
 summary: Qualify cancellation and observer cleanup with uncooperative authentication and policy tasks.
 evidence: Medium, pre-existing wait contract (R7): EvaluateAsync waits external tasks without WaitAsync and checks cancellation after completion; its finally removes the authentication observer only then. Keep a held provider/handler pending, cancel, and qualify the intended completion/cleanup contract before changing it.
@@ -5846,7 +5853,8 @@ evidence: Resumed blind review 4; baseline binding-mismatch.yaml and down-run.js
 origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
 location: Directory.Build.targets / TenantAggregate / ProjectionSnapshotLimits
 reason: Older admitted EventStore packages lack the new recovery snapshot API.
-status: open
+status: done 2026-11-27
+resolution: Duplicate of DW-680; ValidateCanonicalBoundaryPackageCohort rejects EventStore <= 5.2.0 across all 5 packages and domain host Hexalith.Tenants (including --no-build Publish and PublishContainer targets); verified via test_catalog_artifact_guards.py (3/3) and Contracts.Tests (856/856) under spec-dw-674-675-680-685-689-693-694-699-700-batch.md.
 source_spec: `_bmad-output/implementation-artifacts/spec-align-native-read-timeout-budgets.md`
 summary: Older admitted EventStore packages lack the new recovery snapshot API.
 evidence: 2026-11-15 resumed review B1, medium; Directory.Build.targets still admits 4.0.4/4.1.0/4.2.0/5.0.1 while TenantAggregate unconditionally uses ProjectionSnapshotLimits. Four dotnet-inspect API diffs confirm the type was added in 5.1.0. Recovery was introduced by 6fcff842a8e48fc843d7b2df942d369f99f92b6b; package selections are explicitly excluded from this timeout repair.
@@ -5856,7 +5864,8 @@ evidence: 2026-11-15 resumed review B1, medium; Directory.Build.targets still ad
 origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
 location: TenantState / TenantNotFoundRejection.Apply / RefreshTenantAccess
 reason: Rejection-only tenant state receives a different recovery refusal.
-status: open
+status: done 2026-11-27
+resolution: Production fix already landed in 8aa6f169 (TenantAggregate.Handle(RefreshTenantAccess, ...) returns TenantNotFoundRejection for empty TenantId while preserving foreign-target InsufficientPermissionsRejection); hardened TenantAccessRecoveryTests.RejectionOnlyHistoryStillReturnsNotFoundAndPreservesPayloadTargetRefusal with end-to-end SDK event-replay assertions (Server.Tests 1,941/1,941) under spec-dw-674-675-680-685-689-693-694-699-700-batch.md.
 source_spec: `_bmad-output/implementation-artifacts/spec-align-native-read-timeout-budgets.md`
 summary: Rejection-only tenant state receives a different recovery refusal.
 evidence: 2026-11-15 resumed review B3, medium; TenantState starts with an empty TenantId; its TenantNotFoundRejection Apply leaves it empty, and SDK replay constructs a state object. RefreshTenantAccess checks foreign TenantId before checking for an uncreated aggregate, so a subsequent attempt returns InsufficientPermissionsRejection. This belongs to later recovery commit 6fcff842a8e48fc843d7b2df942d369f99f92b6b.
@@ -6004,3 +6013,12 @@ status: open
 source_spec: `_bmad-output/implementation-artifacts/spec-synchronize-update-release-2026-11-14.md`
 summary: Apply the approved shared release policy and CiCd-adoption condition in a separate maintainer change; keep pipeline modernization outside this release.
 evidence: Approved sprint-change-proposal-2026-11-16-pragmatic-release-policy.md sections4B/4C assign AI.Tools policy changes to its maintainer and CiCd adoption to the pipeline track. The release-scoped checker exception ends with completion bookkeeping. The new Dapr evidence-only workflow step was deferred under4A; its existing regression test and the original release gates are retained. No shared policy edit or CiCd adoption is claimed by the completed8.0.1 release.
+
+### DW-716: Observe late faults on canceled GetAuthenticationStateAsync tasks and propagate fatal exceptions in TenantConfigurationPrincipalResolver.
+
+origin: code review of spec-dw-674-675-680-685-689-693-694-699-700-batch.md, 2026-11-27
+location: src/Hexalith.Tenants.UI/Services/Configuration/TenantConfigurationPrincipalResolver.cs:38-43,77-108
+source_spec: `_bmad-output/implementation-artifacts/spec-dw-674-675-680-685-689-693-694-699-700-batch.md`
+severity: medium
+reason: Pre-existing in untouched resolver paths: WaitAsync(cancellationToken) does not capture the underlying GetAuthenticationStateAsync task to observe late faults after cancellation, and bare catch blocks swallow fatal exceptions into Indeterminate().
+status: open

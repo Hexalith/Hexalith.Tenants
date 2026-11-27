@@ -1586,7 +1586,8 @@ internal sealed class TenantQueryGateway(
                     && previous.AuthorizationRevision == gateway.CapturedAuthorizationRevision
                     && string.Equals(previous.CallerScope, scope, StringComparison.Ordinal)
                     && MatchesRetainedValidator(request.ETag, previous.ETag)
-                    && (previous is not null && MatchesPageScope(previous.RequestCursor, previous.RequestPageSize, request.Cursor, request.PageSize));
+                    && (!request.IncludeRowEnrichment || previous.IncludesRowEnrichment)
+                    && MatchesPageScope(previous.RequestCursor, previous.RequestPageSize, request.Cursor, request.PageSize);
                 return gateway.ListTenantsReadCoreAsync(
                     request with { ETag = matches ? request.ETag : null },
                     matches ? previous : null,
@@ -2386,6 +2387,7 @@ internal sealed class TenantQueryGateway(
             SignalReadFailure(TenantListReadName, TenantsRestQueryFailureKind.Unavailable);
             return previous is not null
                 && IsRetainableTenantList(previous)
+                && (!request.IncludeRowEnrichment || previous.IncludesRowEnrichment)
                 && MatchesPageScope(
                     previous.RequestCursor,
                     previous.RequestPageSize,
@@ -2412,6 +2414,7 @@ internal sealed class TenantQueryGateway(
 
         bool hasMatchingPrevious = previous is not null
             && IsRetainableTenantList(previous)
+            && (!request.IncludeRowEnrichment || previous.IncludesRowEnrichment)
             && MatchesPageScope(
                 previous.RequestCursor,
                 previous.RequestPageSize,
@@ -2468,11 +2471,27 @@ internal sealed class TenantQueryGateway(
         }
         ReadModelFreshnessState freshness = ResolveFreshness(result.Metadata);
         ProjectionLifecycleState lifecycle = ResolveLifecycle(result.Metadata);
-        (IReadOnlyList<TenantListRow> rows, bool enrichmentDegraded) = await EnrichRowsAsync(
-            payload.Items,
-            freshness,
-            lifecycle,
-            cancellationToken).ConfigureAwait(false);
+        IReadOnlyList<TenantListRow> rows;
+        bool enrichmentDegraded;
+        if (request.IncludeRowEnrichment)
+        {
+            (rows, enrichmentDegraded) = await EnrichRowsAsync(
+                payload.Items,
+                freshness,
+                lifecycle,
+                cancellationToken).ConfigureAwait(false);
+        }
+        else
+        {
+            rows = payload.Items
+                .Select(summary => TenantListRow.FromSummary(summary) with
+                {
+                    Freshness = freshness,
+                    Lifecycle = lifecycle,
+                })
+                .ToArray();
+            enrichmentDegraded = false;
+        }
         bool projectionDegraded = result.Metadata?.IsDegraded == true;
         bool isDegraded = enrichmentDegraded || projectionDegraded;
 
@@ -2493,6 +2512,7 @@ internal sealed class TenantQueryGateway(
                 ProjectionVersion = result.Metadata?.ProjectionVersion,
                 RequestCursor = request.Cursor,
                 RequestPageSize = request.PageSize,
+                IncludesRowEnrichment = request.IncludeRowEnrichment,
             };
         }
 
@@ -2509,6 +2529,7 @@ internal sealed class TenantQueryGateway(
                     ProjectionVersion = result.Metadata?.ProjectionVersion,
                     RequestCursor = request.Cursor,
                     RequestPageSize = request.PageSize,
+                    IncludesRowEnrichment = request.IncludeRowEnrichment,
                 };
         }
 
@@ -2521,6 +2542,7 @@ internal sealed class TenantQueryGateway(
                 ProjectionVersion = result.Metadata?.ProjectionVersion,
                 RequestCursor = request.Cursor,
                 RequestPageSize = request.PageSize,
+                IncludesRowEnrichment = request.IncludeRowEnrichment,
             };
         }
 
@@ -2535,6 +2557,7 @@ internal sealed class TenantQueryGateway(
                 ProjectionVersion = result.Metadata?.ProjectionVersion,
                 RequestCursor = request.Cursor,
                 RequestPageSize = request.PageSize,
+                IncludesRowEnrichment = request.IncludeRowEnrichment,
             };
     }
 
@@ -2552,9 +2575,15 @@ internal sealed class TenantQueryGateway(
         IReadOnlyList<TenantSummary> summaries,
         ReadModelFreshnessState freshness,
         ProjectionLifecycleState lifecycle,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken)
+    {
+        if (summaries.Count == 0)
+        {
+            return ([], false);
+        }
+
         TenantListRow[] rows = new TenantListRow[summaries.Count];
-        bool degraded = false;
+        int degraded = 0;
 
         using var pageDeadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         using ITimer enrichmentTimer = (timeProvider ?? TimeProvider.System).CreateTimer(
@@ -2562,34 +2591,62 @@ internal sealed class TenantQueryGateway(
 
         using var concurrency = new SemaphoreSlim(MaximumListEnrichmentConcurrency, MaximumListEnrichmentConcurrency);
 
-        await Task.WhenAll(summaries.Select(async (summary, index) => {
-            TenantListRow row = TenantListRow.FromSummary(summary) with {
+        Task[] rowTasks = summaries.Select(async (summary, index) =>
+        {
+            TenantListRow row = TenantListRow.FromSummary(summary) with
+            {
                 Freshness = freshness,
                 Lifecycle = lifecycle,
             };
 
-            try {
+            try
+            {
                 await concurrency.WaitAsync(pageDeadline.Token).ConfigureAwait(false);
-                try {
-                    TenantDetail? detail = await LoadTenantDetailAsync(summary.TenantId, pageDeadline.Token)
-                        .ConfigureAwait(false);
+                try
+                {
+                    pageDeadline.Token.ThrowIfCancellationRequested();
+                    Task<TenantDetail?> detailTask = LoadTenantDetailAsync(summary.TenantId, pageDeadline.Token);
+                    TenantDetail? detail;
+                    try
+                    {
+                        detail = await detailTask.WaitAsync(pageDeadline.Token).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException exception) when (!TenantWorkspaceReadDiagnostics.IsFatal(exception)
+                        && pageDeadline.IsCancellationRequested)
+                    {
+                        // A dependency (for example an uncooperative transport or pending auth lookup) may ignore
+                        // cancellation. Observe any later fault before checking fatal completions or unwinding.
+                        _ = detailTask.ContinueWith(
+                            static task => _ = task.Exception,
+                            CancellationToken.None,
+                            TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
+                            TaskScheduler.Default);
+                        CallerGuard?.ThrowIfFatal();
+                        TenantWorkspaceReadDiagnostics.ThrowIfFatal(detailTask);
+                        throw;
+                    }
 
                     // Identity is verified here as it is at every sibling call site. The count is written
                     // onto a row whose identity came from the *list* summary, so a cache or proxy mix-up, a
                     // server routing defect, or route confusion would otherwise display tenant B's member
                     // and owner counts on tenant A's row with no signal at all.
                     if (detail is not null
-                        && !string.Equals(detail.TenantId, summary.TenantId, StringComparison.Ordinal)) {
-                        degraded = true;
+                        && !string.Equals(detail.TenantId, summary.TenantId, StringComparison.Ordinal))
+                    {
+                        _ = Interlocked.Exchange(ref degraded, 1);
                     }
-                    else if (detail is not null) {
+                    else if (detail is not null)
+                    {
                         // The ordinary list path dereferences the same detail payload as authoritative
                         // search hydration, so it applies the identical null-shape rejection.
-                        if (!HasUsableMembers(detail)) {
-                            degraded = true;
+                        if (!HasUsableMembers(detail))
+                        {
+                            _ = Interlocked.Exchange(ref degraded, 1);
                         }
-                        else {
-                            row = row with {
+                        else
+                        {
+                            row = row with
+                            {
                                 MemberCount = TenantCountValue.Known(detail.Members.Count),
                                 OwnerCount = TenantCountValue.Known(
                                     detail.Members.Count(static m => m.Role == TenantRole.TenantOwner)),
@@ -2597,9 +2654,19 @@ internal sealed class TenantQueryGateway(
                         }
                     }
                 }
-                finally {
+                finally
+                {
                     _ = concurrency.Release();
                 }
+            }
+            catch (Exception ex) when (IsSurfacingDefect(ex))
+            {
+                if (summaries.Count > 1)
+                {
+                    ObserveCancellation(pageDeadline);
+                }
+
+                throw;
             }
 
             // Every per-row failure degrades that row only -- including the enrichment deadline elapsing.
@@ -2610,21 +2677,42 @@ internal sealed class TenantQueryGateway(
             // required". A supplementary read must never be able to collapse a confirmed page. The caller's
             // own cancellation still propagates.
             catch (OperationCanceledException exception) when (!TenantWorkspaceReadDiagnostics.IsFatal(exception)
-                && !cancellationToken.IsCancellationRequested) {
-                degraded = true;
+                && !cancellationToken.IsCancellationRequested)
+            {
+                _ = Interlocked.Exchange(ref degraded, 1);
             }
             // IsSurfacingDefect is excluded for the same reason the search hydration path excludes it: a
             // NullReferenceException or ObjectDisposedException in row mapping is a defect in this code, not
             // an outage. Swallowed, it rendered "row enrichment unavailable" on every row forever, with no
             // log and nothing able to tell it apart from the Tenants API being down.
-            catch (Exception ex) when (ex is not OperationCanceledException && !IsSurfacingDefect(ex)) {
-                degraded = true;
+            catch (Exception ex) when (ex is not OperationCanceledException && !IsSurfacingDefect(ex))
+            {
+                _ = Interlocked.Exchange(ref degraded, 1);
             }
 
             rows[index] = row;
-        })).ConfigureAwait(false);
+        }).ToArray();
 
-        return (rows, degraded);
+        Task enrichment = Task.WhenAll(rowTasks);
+        try
+        {
+            await enrichment.ConfigureAwait(false);
+        }
+        catch (Exception exception) when (!TenantWorkspaceReadDiagnostics.IsFatal(exception))
+        {
+            // Await surfaces one failure only. Preserve fatal siblings (including fatal cancellation wrappers)
+            // that would otherwise be hidden by a nonfatal cancellation or surfacing defect.
+            CallerGuard?.ThrowIfFatal();
+            foreach (Task rowTask in rowTasks)
+            {
+                TenantWorkspaceReadDiagnostics.ThrowIfFatal(rowTask);
+            }
+
+            throw;
+        }
+
+        CallerGuard?.ThrowIfFatal();
+        return (rows, Volatile.Read(ref degraded) != 0);
     }
 
     private async Task<TenantDetail?> LoadTenantDetailAsync(string tenantId, CancellationToken cancellationToken) {
@@ -3402,6 +3490,7 @@ internal sealed class TenantQueryGateway(
         => previous is not null
             && IsRetainableTenantList(previous)
             && IsRetainableReadFailure(exception)
+            && (!request.IncludeRowEnrichment || previous.IncludesRowEnrichment)
             && MatchesPageScope(
                 previous.RequestCursor,
                 previous.RequestPageSize,
