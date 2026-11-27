@@ -182,11 +182,17 @@ public sealed class DurableTenantProjectionStoreTests {
     }
 
     [Theory]
-    [InlineData("json", 2)]
-    [InlineData("json", 0)]
-    [InlineData("json", -1)]
-    [InlineData("binary", 1)]
-    public async Task UnsupportedTenantHistoryMetadataKeepsTheRecordGapped(string format, int version) {
+    [InlineData("json", 2, CheckpointedProjectionUnavailableReason.TransitionFailed)]
+    [InlineData("json", 0, CheckpointedProjectionUnavailableReason.TransitionFailed)]
+    [InlineData("json", -1, CheckpointedProjectionUnavailableReason.TransitionFailed)]
+    [InlineData("binary", 1, CheckpointedProjectionUnavailableReason.TransitionFailed)]
+    [InlineData("", 1, CheckpointedProjectionUnavailableReason.HistoryUnavailable)]
+    [InlineData(" ", 1, CheckpointedProjectionUnavailableReason.HistoryUnavailable)]
+    [InlineData(null, 1, CheckpointedProjectionUnavailableReason.HistoryUnavailable)]
+    public async Task UnsupportedTenantHistoryMetadataKeepsTheRecordGapped(
+        string? format,
+        int version,
+        CheckpointedProjectionUnavailableReason expectedReason) {
         var harness = new DurableTenantProjectionHarness();
         using ServiceProvider host = harness.CreateHost();
         _ = await DurableTenantProjectionHarness.ProcessAsync(
@@ -198,13 +204,205 @@ public sealed class DurableTenantProjectionStoreTests {
         CheckpointedProjectionUnavailableException failure = await Should.ThrowAsync<CheckpointedProjectionUnavailableException>(
             () => DurableTenantProjectionHarness.ProcessAsync(host, future));
 
-        failure.Reason.ShouldBe(CheckpointedProjectionUnavailableReason.TransitionFailed);
+        failure.Reason.ShouldBe(expectedReason);
         CheckpointedProjectionRecord<TenantLocalState> record = harness.Record(Tenant).ShouldNotBeNull();
         record.Health.ShouldBe(CheckpointedProjectionHealth.Gapped);
         record.CorruptionReason.ShouldBeNull();
         record.Lease.ShouldBeNull();
         record.LastContiguousSequence.ShouldBe(1);
         (await host.GetRequiredService<ITenantProjectionStore>().GetAsync(Tenant, TestContext.Current.CancellationToken)).ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task HistoricalRefreshInsideAGapRecoversWithoutAlteringBusinessState() {
+        var harness = new DurableTenantProjectionHarness();
+        EventStoreDomainEventEnvelope created = harness.Persist(new TenantCreated(Tenant, "Before refresh", "Kept", s_at), Tenant, 1);
+        EventStoreDomainEventEnvelope grant = harness.Persist(new UserAddedToTenant(Tenant, "reader", TenantRole.TenantReader), Tenant, 2);
+        _ = harness.Persist(new TenantAccessRefreshed(
+            Tenant,
+            TenantStatus.Disabled,
+            new Dictionary<string, TenantRole> { ["snapshot-only"] = TenantRole.TenantOwner },
+            []), Tenant, 3);
+        EventStoreDomainEventEnvelope updated = harness.Persist(new TenantUpdated(Tenant, "After refresh", "Kept", s_at), Tenant, 4);
+        CancellationToken cancellationToken = TestContext.Current.CancellationToken;
+
+        using (ServiceProvider host = harness.CreateHost()) {
+            (await DurableTenantProjectionHarness.ProcessAsync(host, created)).ShouldBe(EventStoreDomainEventProcessingResult.Processed);
+            (await DurableTenantProjectionHarness.ProcessAsync(host, grant)).ShouldBe(EventStoreDomainEventProcessingResult.Processed);
+            (await DurableTenantProjectionHarness.ProcessAsync(host, updated)).ShouldBe(EventStoreDomainEventProcessingResult.Processed);
+        }
+
+        harness.Gateway.Reads.ShouldBe(1);
+        CheckpointedProjectionRecord<TenantLocalState> persisted = harness.Record(Tenant).ShouldNotBeNull();
+        persisted.Health.ShouldBe(CheckpointedProjectionHealth.Healthy);
+        persisted.LastContiguousSequence.ShouldBe(4);
+        persisted.State.ShouldNotBeNull().Name.ShouldBe("After refresh");
+        persisted.State.Status.ShouldBe(TenantStatus.Active);
+        persisted.State.Members.Keys.ShouldBe(["reader"]);
+        persisted.State.Members.ShouldNotContainKey("snapshot-only");
+
+        using ServiceProvider restarted = harness.CreateHost(withHistory: false);
+        TenantProjectionSnapshot snapshot = (await restarted.GetRequiredService<ITenantProjectionSnapshotStore>()
+            .GetSnapshotAsync(Tenant, cancellationToken)).ShouldNotBeNull();
+        snapshot.IsHealthy.ShouldBeTrue();
+        snapshot.Checkpoint.ShouldBe(4);
+        snapshot.State.ShouldNotBeNull().Members["reader"].ShouldBe(TenantRole.TenantReader);
+    }
+
+    [Fact]
+    public async Task HistoricalRefreshWithForeignTenantIdentityKeepsTheRecordGapped() {
+        var harness = new DurableTenantProjectionHarness();
+        EventStoreDomainEventEnvelope foreignRefresh = DurableTenantProjectionHarness.Envelope(
+            new TenantAccessRefreshed("different-tenant", TenantStatus.Active, new Dictionary<string, TenantRole>(), []),
+            Tenant,
+            3);
+        await VerifyBlockedHistoryAsync(harness, foreignRefresh);
+    }
+
+    [Fact]
+    public async Task HistoricalRejectionAfterCreationAdvancesCheckpointWithoutChangingState() {
+        var harness = new DurableTenantProjectionHarness();
+        EventStoreDomainEventEnvelope created = harness.Persist(new TenantCreated(Tenant, "Original", null, s_at), Tenant, 1);
+        _ = harness.Persist(new TenantAlreadyExistsRejection(Tenant), Tenant, 2);
+        EventStoreDomainEventEnvelope grant = harness.Persist(new UserAddedToTenant(Tenant, "reader", TenantRole.TenantReader), Tenant, 3);
+        CancellationToken cancellationToken = TestContext.Current.CancellationToken;
+
+        using (ServiceProvider host = harness.CreateHost()) {
+            (await DurableTenantProjectionHarness.ProcessAsync(host, created)).ShouldBe(EventStoreDomainEventProcessingResult.Processed);
+            (await DurableTenantProjectionHarness.ProcessAsync(host, grant)).ShouldBe(EventStoreDomainEventProcessingResult.Processed);
+        }
+
+        harness.Gateway.Reads.ShouldBe(1);
+        CheckpointedProjectionRecord<TenantLocalState> persisted = harness.Record(Tenant).ShouldNotBeNull();
+        persisted.Health.ShouldBe(CheckpointedProjectionHealth.Healthy);
+        persisted.LastContiguousSequence.ShouldBe(3);
+        persisted.State.ShouldNotBeNull().Name.ShouldBe("Original");
+        persisted.State.Members["reader"].ShouldBe(TenantRole.TenantReader);
+
+        using ServiceProvider restarted = harness.CreateHost(withHistory: false);
+        TenantProjectionSnapshot snapshot = (await restarted.GetRequiredService<ITenantProjectionSnapshotStore>()
+            .GetSnapshotAsync(Tenant, cancellationToken)).ShouldNotBeNull();
+        snapshot.IsHealthy.ShouldBeTrue();
+        snapshot.Checkpoint.ShouldBe(3);
+        snapshot.State.ShouldNotBeNull().Name.ShouldBe("Original");
+    }
+
+    [Fact]
+    public async Task UnsupportedHistoricalRevocationWithholdsPreviouslyGrantedAccessAfterRestart() {
+        var harness = new DurableTenantProjectionHarness();
+        EventStoreDomainEventEnvelope revocation = DurableTenantProjectionHarness.Envelope(
+            new UserRemovedFromTenant(Tenant, "reader"), Tenant, 3) with {
+            EventTypeName = "Hexalith.Tenants.Contracts.Events.TenantMembershipRevokedV2",
+        };
+        await VerifyBlockedHistoryAsync(harness, revocation);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task ExcludedGlobalAdministratorEventsInTenantHistoryKeepTheRecordGapped(bool useRejection) {
+        var harness = new DurableTenantProjectionHarness();
+        EventStoreDomainEventEnvelope excluded = useRejection
+            ? DurableTenantProjectionHarness.Envelope(new GlobalAdministratorNotFoundRejection(Tenant, "admin-1"), Tenant, 3)
+            : DurableTenantProjectionHarness.Envelope(new GlobalAdministratorSet(Tenant, "admin-1"), Tenant, 3);
+        await VerifyBlockedHistoryAsync(harness, excluded);
+    }
+
+    [Theory]
+    [InlineData("{not-json")]
+    [InlineData("null")]
+    [InlineData("{}")]
+    public async Task MalformedOrIncompleteHistoricalPayloadKeepsTheRecordGapped(string rawJson) {
+        var harness = new DurableTenantProjectionHarness();
+        EventStoreDomainEventEnvelope invalid = DurableTenantProjectionHarness.Envelope(
+            new UserAddedToTenant(Tenant, "reader-2", TenantRole.TenantReader), Tenant, 3) with {
+            Payload = System.Text.Encoding.UTF8.GetBytes(rawJson),
+        };
+        await VerifyBlockedHistoryAsync(harness, invalid);
+    }
+
+    [Theory]
+    [InlineData("different-tenant")]
+    [InlineData("TENANT-DURABLE")]
+    [InlineData("")]
+    [InlineData(" ")]
+    [InlineData(null)]
+    public async Task HistoricalMembershipPayloadMustNameItsExactStreamTenant(string? payloadTenantId) {
+        var harness = new DurableTenantProjectionHarness();
+        EventStoreDomainEventEnvelope foreign = DurableTenantProjectionHarness.Envelope(
+            new UserAddedToTenant(payloadTenantId!, "foreign-owner", TenantRole.TenantOwner), Tenant, 3);
+        using (ServiceProvider host = harness.CreateHost()) {
+            (await DurableTenantProjectionHarness.ProcessAsync(host, foreign))
+                .ShouldBe(EventStoreDomainEventProcessingResult.SkippedAggregateMismatch);
+            harness.Record(Tenant).ShouldBeNull();
+        }
+
+        await VerifyBlockedHistoryAsync(harness, foreign);
+    }
+
+    [Fact]
+    public async Task HistoricalRejectionMustNameItsStreamTenantEvenBeforeCreation() {
+        var harness = new DurableTenantProjectionHarness();
+        _ = harness.Persist(new TenantNotFoundRejection("different-tenant"), Tenant, 1);
+        EventStoreDomainEventEnvelope created = harness.Persist(new TenantCreated(Tenant, "Later", null, s_at), Tenant, 2);
+        CancellationToken cancellationToken = TestContext.Current.CancellationToken;
+        using (ServiceProvider host = harness.CreateHost()) {
+            CheckpointedProjectionUnavailableException failure = await Should.ThrowAsync<CheckpointedProjectionUnavailableException>(
+                () => DurableTenantProjectionHarness.ProcessAsync(host, created));
+
+            failure.Reason.ShouldBe(CheckpointedProjectionUnavailableReason.TransitionFailed);
+        }
+
+        harness.Gateway.Reads.ShouldBe(1);
+        CheckpointedProjectionRecord<TenantLocalState> record = harness.Record(Tenant).ShouldNotBeNull();
+        record.Health.ShouldBe(CheckpointedProjectionHealth.Gapped);
+        record.LastContiguousSequence.ShouldBe(0);
+        record.Expected.ShouldBe(1);
+        record.RecoveryThrough.ShouldBe(2);
+        record.CorruptionReason.ShouldBeNull();
+        record.State.ShouldBeNull();
+        record.Lease.ShouldBeNull();
+
+        using ServiceProvider restarted = harness.CreateHost();
+        TenantProjectionSnapshot snapshot = (await restarted.GetRequiredService<ITenantProjectionSnapshotStore>()
+            .GetSnapshotAsync(Tenant, cancellationToken)).ShouldNotBeNull();
+        snapshot.Health.ShouldBe(CheckpointedProjectionHealth.Gapped);
+        snapshot.Checkpoint.ShouldBe(0);
+        snapshot.State.ShouldBeNull();
+        (await restarted.GetRequiredService<ITenantProjectionStore>().GetAsync(Tenant, cancellationToken)).ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task DirectLiveDeliveryRejectsMismatchedTenantIdentityAndUnsupportedContracts() {
+        var harness = new DurableTenantProjectionHarness();
+        CancellationToken cancellationToken = TestContext.Current.CancellationToken;
+        using ServiceProvider host = harness.CreateHost(withHistory: false);
+        ITenantProjectionSnapshotStore store = host.GetRequiredService<ITenantProjectionSnapshotStore>();
+        (await DurableTenantProjectionHarness.ProcessAsync(host, harness.Persist(new TenantCreated(Tenant, "Trusted", null, s_at), Tenant, 1)))
+            .ShouldBe(EventStoreDomainEventProcessingResult.Processed);
+
+        var foreignContext = new EventStoreDomainEventContext("system", Tenant, "msg-foreign", 2, s_at, "corr-foreign") {
+            Domain = "tenants",
+            EventType = typeof(UserAddedToTenant).FullName,
+            PayloadFingerprint = new string('a', 64),
+        };
+        CheckpointedProjectionUnavailableException foreignFailure = await Should.ThrowAsync<CheckpointedProjectionUnavailableException>(
+            () => store.ApplyAsync(new UserAddedToTenant("different-tenant", "mallory", TenantRole.TenantOwner), foreignContext, cancellationToken));
+        foreignFailure.Reason.ShouldBe(CheckpointedProjectionUnavailableReason.TransitionFailed);
+
+        var unsupportedContext = new EventStoreDomainEventContext("system", Tenant, "msg-unsupported", 2, s_at, "corr-unsupported") {
+            Domain = "tenants",
+            EventType = typeof(GlobalAdministratorSet).FullName,
+            PayloadFingerprint = new string('b', 64),
+        };
+        CheckpointedProjectionUnavailableException unsupportedFailure = await Should.ThrowAsync<CheckpointedProjectionUnavailableException>(
+            () => store.ApplyAsync(new GlobalAdministratorSet(Tenant, "mallory"), unsupportedContext, cancellationToken));
+        unsupportedFailure.Reason.ShouldBe(CheckpointedProjectionUnavailableReason.TransitionFailed);
+
+        CheckpointedProjectionRecord<TenantLocalState> record = harness.Record(Tenant).ShouldNotBeNull();
+        record.Health.ShouldBe(CheckpointedProjectionHealth.Healthy);
+        record.LastContiguousSequence.ShouldBe(1);
+        record.State.ShouldNotBeNull().Members.ShouldBeEmpty();
     }
 
     [Fact]
@@ -467,6 +665,54 @@ public sealed class DurableTenantProjectionStoreTests {
         record.LastContiguousSequence.ShouldBe(3);
         record.State.ShouldNotBeNull().Members["user-1"].ShouldBe(TenantRole.TenantReader);
         harness.Gateway.Reads.ShouldBe(0, "no history was needed");
+    }
+
+    private static async Task VerifyBlockedHistoryAsync(DurableTenantProjectionHarness harness, EventStoreDomainEventEnvelope invalid) {
+        EventStoreDomainEventEnvelope created = harness.Persist(new TenantCreated(Tenant, "Before gap", null, s_at), Tenant, 1);
+        EventStoreDomainEventEnvelope grant = harness.Persist(new UserAddedToTenant(Tenant, "reader", TenantRole.TenantReader), Tenant, 2);
+        harness.Gateway.Append(invalid);
+        EventStoreDomainEventEnvelope updated = harness.Persist(new TenantUpdated(Tenant, "After gap", null, s_at), Tenant, 4);
+        CancellationToken cancellationToken = TestContext.Current.CancellationToken;
+
+        using (ServiceProvider host = harness.CreateHost()) {
+            (await DurableTenantProjectionHarness.ProcessAsync(host, created)).ShouldBe(EventStoreDomainEventProcessingResult.Processed);
+            (await DurableTenantProjectionHarness.ProcessAsync(host, grant)).ShouldBe(EventStoreDomainEventProcessingResult.Processed);
+            (await host.GetRequiredService<ITenantProjectionStore>().GetAsync(Tenant, cancellationToken))
+                .ShouldNotBeNull().Members["reader"].ShouldBe(TenantRole.TenantReader);
+            CheckpointedProjectionUnavailableException failure = await Should.ThrowAsync<CheckpointedProjectionUnavailableException>(
+                () => DurableTenantProjectionHarness.ProcessAsync(host, updated));
+            failure.Reason.ShouldBe(CheckpointedProjectionUnavailableReason.TransitionFailed);
+        }
+
+        harness.Gateway.Reads.ShouldBe(1);
+        CheckpointedProjectionRecord<TenantLocalState> record = harness.Record(Tenant).ShouldNotBeNull();
+        record.Health.ShouldBe(CheckpointedProjectionHealth.Gapped);
+        record.LastContiguousSequence.ShouldBe(2);
+        record.Expected.ShouldBe(3);
+        record.RecoveryThrough.ShouldBe(4);
+        record.CorruptionReason.ShouldBeNull();
+        record.Pending.Count.ShouldBe(1);
+        record.Lease.ShouldBeNull();
+        record.State.ShouldNotBeNull().Name.ShouldBe("Before gap");
+        record.State.Members.Keys.ShouldBe(["reader"]);
+
+        using ServiceProvider restarted = harness.CreateHost();
+        TenantProjectionSnapshot snapshot = (await restarted.GetRequiredService<ITenantProjectionSnapshotStore>()
+            .GetSnapshotAsync(Tenant, cancellationToken)).ShouldNotBeNull();
+        snapshot.Health.ShouldBe(CheckpointedProjectionHealth.Gapped);
+        snapshot.Checkpoint.ShouldBe(2);
+        snapshot.State.ShouldBeNull();
+        (await restarted.GetRequiredService<ITenantProjectionStore>().GetAsync(Tenant, cancellationToken)).ShouldBeNull();
+
+        CheckpointedProjectionUnavailableException retryFailure = await Should.ThrowAsync<CheckpointedProjectionUnavailableException>(
+            () => DurableTenantProjectionHarness.ProcessAsync(restarted, updated));
+        retryFailure.Reason.ShouldBe(CheckpointedProjectionUnavailableReason.TransitionFailed);
+        CheckpointedProjectionRecord<TenantLocalState> retried = harness.Record(Tenant).ShouldNotBeNull();
+        retried.Health.ShouldBe(CheckpointedProjectionHealth.Gapped);
+        retried.LastContiguousSequence.ShouldBe(2);
+        retried.Expected.ShouldBe(3);
+        retried.RecoveryThrough.ShouldBe(4);
+        retried.Lease.ShouldBeNull();
     }
 }
 #endif

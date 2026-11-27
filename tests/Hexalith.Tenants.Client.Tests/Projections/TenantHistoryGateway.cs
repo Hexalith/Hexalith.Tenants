@@ -37,11 +37,11 @@ internal sealed class TenantHistoryGateway : IEventStoreGatewayClient {
         }
     }
 
-    public void ReplaceHistoryMetadata(string aggregateId, long sequence, string serializationFormat, int? payloadVersion) {
+    public void ReplaceHistoryMetadata(string aggregateId, long sequence, string? serializationFormat, int? payloadVersion) {
         lock (_gate) {
             StreamReadEvent original = _streams[aggregateId][sequence];
             _streams[aggregateId][sequence] = original with {
-                SerializationFormat = serializationFormat,
+                SerializationFormat = serializationFormat!,
                 PayloadVersion = payloadVersion,
             };
         }

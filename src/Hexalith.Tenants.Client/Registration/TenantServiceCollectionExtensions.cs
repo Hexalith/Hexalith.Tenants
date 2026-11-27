@@ -80,7 +80,7 @@ public static class TenantServiceCollectionExtensions {
             options => {
                 options.TopicName = TopicName;
                 options.SubscriptionRoute = SubscriptionRoute;
-                options.PayloadAggregateIdPropertyName = "TenantId";
+                options.PayloadAggregateIdPropertyName = nameof(TenantCreated.TenantId);
                 configureOptions(options);
             });
 

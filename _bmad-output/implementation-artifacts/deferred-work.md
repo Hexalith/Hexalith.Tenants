@@ -5757,20 +5757,22 @@ evidence: Medium, pre-existing later-story issue (BH-3). AppHost Program.cs gain
 origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
 location: TenantProjectionCheckpointTransition.Decode
 reason: Verify unknown historical event handling across durable consumer upgrades before trusting access state.
-status: open
+status: done 2026-11-27
 source_spec: `_bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md`
 summary: Verify unknown historical event handling across durable consumer upgrades before trusting access state.
 evidence: Unverified high impact, pre-existing later-story concern (BH-4). TenantProjectionCheckpointTransition.Decode treats unknown event types as checkpoint-only evidence. No currently emitted unknown access-changing event was demonstrated. A producer-upgrade replay with an actual supported newer event must establish whether stale membership can remain healthy; retain explicit harmless rejection behavior and fail-closed access semantics when deciding the policy.
+resolution: `TenantProjectionCheckpointTransition` now requires every live and replayed tenant event to match the explicit supported projected or rejection event allowlist, explicit `"json"` serialization format, and declared payload version (`EventPayloadVersionResolver.GetDeclaredVersion`). Unknown contracts (such as an unsupported revocation or excluded `GlobalAdministrator*` contract) fail with `TransitionFailed`, keeping the checkpoint at the last trusted position, releasing the recovery lease, and withholding access state across restarts while retaining checkpoint-only handling for known rejections and `TenantAccessRefreshed`. Verified in `DurableTenantProjectionStoreTests` and `TenantProjectionTransitionTests` and documented with coordinated rebuild guidance in `docs/idempotent-event-processing.md`. [Spec](spec-dw-684-dw-683-durable-tenant-history.md)
 
 ### DW-684: Qualify payload-to-stream tenant identity integrity during durable history recovery.
 
 origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
 location: TenantServiceCollectionExtensions / TenantProjectionCheckpointTransition / generic history adapter
 reason: Qualify payload-to-stream tenant identity integrity during durable history recovery.
-status: open
+status: done 2026-11-27
 source_spec: `_bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md`
 summary: Qualify payload-to-stream tenant identity integrity during durable history recovery.
 evidence: Unverified high impact, pre-existing later-story concern (BH-5). Live TenantServiceCollectionExtensions registers PayloadAggregateIdPropertyName=TenantId, but TenantProjectionCheckpointTransition decodes history without that check and the generic history adapter fingerprints bytes without domain payload validation. Demonstrate whether a persisted authoritative event with a foreign payload TenantId can reach the transition and assert refusal/unavailable health if reachable; no observed cross-tenant history corruption is claimed.
+resolution: `TenantProjectionCheckpointTransition` pre-resolves each supported contract's public readable `string TenantId` property and enforces ordinal equality against `@event.Stream.AggregateId` for both replayed history payloads and live deliveries, rejecting foreign, case-mismatched, empty, whitespace, null, or missing `TenantId` payloads with `InvalidDataException` (`TransitionFailed`) before advancing the checkpoint or exposing access state. Verified across membership events, `TenantAccessRefreshed`, pre-creation rejections, and direct `ITenantProjectionSnapshotStore.ApplyAsync` calls in `DurableTenantProjectionStoreTests` and `TenantProjectionTransitionTests`. [Spec](spec-dw-684-dw-683-durable-tenant-history.md)
 
 ### DW-685: Assess the user-visible delay from the later 90-second supplementary list enrichment budget.
 
