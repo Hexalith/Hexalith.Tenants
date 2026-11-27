@@ -2,6 +2,8 @@
 // Nothing is forwarded to a domain service. Control input is stdin, never HTTP.
 import { randomUUID } from 'node:crypto';
 
+const tenantScope = 'platform:tenants';
+
 export function createDeferredHandoffFixture(searchToken) {
     const events = [];
     let state;
@@ -64,7 +66,7 @@ export function createDeferredHandoffFixture(searchToken) {
             send({ query: 'needle', totalCount: 60, hasIndexedMemoryUnits: true, axesUsed: ['syntactic'],
                 results: Array.from({ length: Math.min(20, Math.max(0, 60 - offset)) }, (_, index) => ({
                     memoryUnitId: `handoff-${offset + index}`, score: 1, contentSnippet: 'fixture',
-                    sourceUri: `tenant:tenant.search.${offset + index}`, sourceType: 'projection', axis: 'syntactic' })) });
+                    sourceUri: `tenant:tenant-search-${offset + index}`, sourceType: 'projection', axis: 'syntactic' })) });
             return;
         }
         // Authentication is performed by the production OIDC/cookie/circuit stack. Like the
@@ -82,8 +84,8 @@ export function createDeferredHandoffFixture(searchToken) {
             let command;
             try { command = JSON.parse(body); } catch { send({}, 400); return; }
             if (!command || typeof command !== 'object' || Array.isArray(command)) { send({}, 400); return; }
-            if (state.command || command.commandType !== 'CreateTenant' || command.tenant !== 'system'
-                || command.domain !== 'tenants' || !/^tenant\.speech\.[a-z0-9-]+$/.test(command.aggregateId)
+            if (state.command || command.commandType !== 'CreateTenant' || command.tenant !== tenantScope
+                || command.domain !== 'tenants' || !/^tenant-speech-[a-z0-9]+(?:-[a-z0-9]+)*$/.test(command.aggregateId)
                 || command.payload?.TenantId !== command.aggregateId || !command.messageId || !command.payload.Name) {
                 send({ reason: 'commands-prohibited' }, 405); return;
             }
@@ -95,7 +97,8 @@ export function createDeferredHandoffFixture(searchToken) {
             send({ reason: 'commands-prohibited' }, 405); return;
         }
         if (url.pathname.startsWith('/api/v1/commands/status/')) {
-            if (!state.command || decodeURIComponent(url.pathname.split('/').at(-1)) !== state.command.messageId) { send({}, 409); return; }
+            if (request.headers['x-hexalith-scope'] !== tenantScope || !state.command
+                || decodeURIComponent(url.pathname.split('/').at(-1)) !== state.command.messageId) { send({}, 409); return; }
             state.statusReads++; record(`status-delivered-${state.status}`);
             if (state.status === 'wait') { send({}, 404); return; }
             if (state.status === 'unavailable') { send({}, 200); return; }
@@ -113,7 +116,7 @@ export function createDeferredHandoffFixture(searchToken) {
                 state.awaitingRecovery = false; state.recoveryPages++; record('authorized-first-page-recovery');
             }
             if (cursor) { state.continuations++; record('continuation-permitted'); }
-            const items = [tenant(cursor ? 'tenant.secondary' : 'tenant.alpha')];
+            const items = [tenant(cursor ? 'tenant-secondary' : 'tenant-alpha')];
             if (visibleCommand()) items.push(commandTenant());
             record(`list-projection-${state.projection}`);
             send({ items, cursor: cursor ? null : 'handoff-page-2', hasMore: !cursor });
@@ -125,7 +128,7 @@ export function createDeferredHandoffFixture(searchToken) {
             if (state.command && id === state.command.aggregateId) {
                 record(`detail-projection-${state.projection}`);
                 send(visibleCommand() ? commandTenant() : {}, visibleCommand() ? 200 : 404);
-            } else if (id === 'tenant.alpha' || id === 'tenant.secondary' || /^tenant\.search\.\d+$/.test(id)) send(tenant(id));
+            } else if (id === 'tenant-alpha' || id === 'tenant-secondary' || /^tenant-search-\d+$/.test(id)) send(tenant(id));
             else send({}, 404);
         } else if (url.pathname === '/api/global-administrators') {
             send({ items: [{ userId: claims.sub }], cursor: null, hasMore: false });

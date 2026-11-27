@@ -98,7 +98,7 @@ export async function runDeferredHandoff({ manual, fixture, newSession, evidence
         assert.equal(fixture.snapshot().rejectedCursors, 1);
         assert.equal(fixture.snapshot().recoveryPages, 1);
         assert.equal(fixture.snapshot().rejectCursor, false);
-        assert.ok((await id('tenants-list-tenant-id').allTextContents()).some(text => text.includes('tenant.alpha')));
+        assert.ok((await id('tenants-list-tenant-id').allTextContents()).some(text => text.includes('tenant-alpha')));
         record(`${culture}: S3 exactly one rejected continuation and authorized cursorless recovery`);
         await id('tenants-list-next').click();
         await wait(() => id('tenants-list-next').evaluate(element => element.hasAttribute('disabled')), 'Subsequent continuation succeeds');
@@ -117,7 +117,20 @@ export async function runDeferredHandoff({ manual, fixture, newSession, evidence
                 const initialHosts = await page.locator('[data-testid^="tenants-create-audit-live-"]').elementHandles();
                 assert.equal(initialHosts.length, 2);
                 for (const host of initialHosts) assert.equal((await host.textContent()).trim(), '');
-                await id('tenants-create-tenant-id').locator('input').fill(`tenant.speech.${culture}-${status}`);
+                const lifecycleHosts = await Promise.all(['polite', 'assertive'].map(async mode => {
+                    const selector = `section[aria-labelledby="tenants-create-lifecycle"] [data-create-lifecycle-live="${mode}"]`;
+                    const host = page.locator(selector);
+                    assert.equal(await host.count(), 1);
+                    assert.equal(await host.getAttribute('aria-live'), mode);
+                    return { selector, handle: await host.elementHandle() };
+                }));
+                const assertLifecycleHosts = async () => {
+                    for (const { selector, handle } of lifecycleHosts) {
+                        assert.equal(await handle.evaluate((node, selector) => node === document.querySelector(selector), selector),
+                            true, 'Lifecycle host survives with its original node');
+                    }
+                };
+                await id('tenants-create-tenant-id').locator('input').fill(`tenant-speech-${culture}-${status}`);
                 await id('tenants-create-name').locator('input').fill('Speech fixture tenant');
                 await page.keyboard.press('Tab');
                 await wait(() => id('tenants-create-submit').evaluate(element => !element.hasAttribute('disabled')), 'Create enabled');
@@ -134,7 +147,12 @@ export async function runDeferredHandoff({ manual, fixture, newSession, evidence
                 const politeness = status === 'events' ? 'polite' : 'assertive';
                 assert.equal(await id(`tenants-create-audit-live-${politeness}`).getAttribute('aria-live'), politeness);
                 assert.ok((await id(`tenants-create-audit-live-${politeness}`).innerText()).includes(label));
-                assert.ok(await id('tenants-create-live-region').isVisible());
+                await assertLifecycleHosts();
+                const activeLifecycle = id('tenants-create-live-region');
+                assert.ok(await activeLifecycle.isVisible());
+                assert.equal(await activeLifecycle.getAttribute('data-create-lifecycle-live'), politeness);
+                const lifecycleContent = await activeLifecycle.locator(':scope > div').elementHandle();
+                const lifecycleText = await lifecycleContent.textContent();
                 record(`${culture}: ${status} first insertion, projection unable to confirm`);
                 const prior = fixture.snapshot().statusReads;
                 await wait(() => page.locator(refresh).evaluate(element => !element.hasAttribute('disabled')), 'Refresh enabled');
@@ -145,6 +163,11 @@ export async function runDeferredHandoff({ manual, fixture, newSession, evidence
                 assert.equal(fixture.snapshot().simulatedCommands, 1);
                 assert.equal(fixture.snapshot().projection, 'hold');
                 assert.equal(fixture.snapshot().unexpectedCommands, 0);
+                await assertLifecycleHosts();
+                assert.equal(await lifecycleContent.evaluate(node =>
+                    node.isConnected && node.parentElement === document.querySelector('[data-testid="tenants-create-live-region"]')),
+                true, 'Same-state Refresh preserves the active lifecycle content node');
+                assert.equal(await lifecycleContent.textContent(), lifecycleText);
                 record(`${culture}: ${status} same-state ${refresh === lifecycleRefresh ? 'lifecycle' : 'availability'} Refresh without redispatch`);
                 if (status === 'events' && refresh === lifecycleRefresh) {
                     fixture.apply('projection deliver');

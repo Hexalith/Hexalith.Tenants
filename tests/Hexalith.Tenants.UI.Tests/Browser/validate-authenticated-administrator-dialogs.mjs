@@ -209,7 +209,8 @@ try {
     evidence.sourceBeforeBuild = sourceBeforeBuild;
     const privateDirectory = await mkdtemp(resolve(tmpdir(), 'tenants-admin-dialog-browser-'));
     const buildArguments = ['build', 'src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj', '-c', 'Debug', '-m:1', '-p:UseNuGetDeps=false'];
-    if (readSafety || handoff) buildArguments.push('-p:HexalithMcpCliFromSource=false', '-p:NuGetAudit=false');
+    if (readSafety || handoff) buildArguments.push('-p:HexalithMcpCliFromSource=false');
+    if (readSafety) buildArguments.push('-p:NuGetAudit=false');
     evidence.build = { executable: 'dotnet', arguments: buildArguments, succeeded: false,
         skippedForDevelopment: process.env.TENANTS_BROWSER_SKIP_BUILD === '1',
         reusedBuild: process.env.TENANTS_BROWSER_SKIP_BUILD === '1' };
@@ -367,7 +368,12 @@ try {
         .split('\0').filter(Boolean).map(entry => { const index = entry.indexOf('='); return [entry.slice(0, index), entry.slice(index + 1)]; }));
     const environment = { ...originalEnvironment, ...process.env, ASPNETCORE_URLS: fixtureBase, ASPNETCORE_HTTPS_PORT: String(uiPort),
         Tenants__BaseAddress: upstreamBase, EventStore__BaseAddress: upstreamBase, Memories__BaseAddress: upstreamBase };
-    if (handoff) Object.assign(environment, { HEXALITH_MEMORIES_API_TOKEN: searchToken, DAPR_HTTP_ENDPOINT: upstreamBase });
+    if (handoff) {
+        environment.HEXALITH_MEMORIES_API_TOKEN = searchToken;
+        // The loopback fixture serves the command gateway directly. Keep its address distinct
+        // from the Dapr sidecar configuration so the production routing guard can do its job.
+        delete environment.DAPR_HTTP_ENDPOINT;
+    }
     if (standaloneOidc) Object.assign(environment, { ASPNETCORE_ENVIRONMENT: 'Development',
         Authentication__OpenIdConnect__Authority: oidcFixture.authority,
         Authentication__OpenIdConnect__ClientId: 'tenants-browser-fixture', Authentication__OpenIdConnect__ClientSecret: randomUUID() });

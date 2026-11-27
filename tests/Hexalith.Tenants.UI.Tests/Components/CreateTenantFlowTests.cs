@@ -795,6 +795,54 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         gateway.CreateTenantCallCount.ShouldBe(1);
     }
 
+    [Theory]
+    [InlineData("tenants-create-refresh", false)]
+    [InlineData("tenants-create-refresh", true)]
+    [InlineData("tenants-audit-availability-recovery-refresh", false)]
+    [InlineData("tenants-audit-availability-recovery-refresh", true)]
+    public async Task UnavailableRefreshRequestsHeadingFocusOnlyWhenReasonChanges(string refreshId, bool reasonChanges)
+    {
+        const string initialReason = "Command status response did not match the tracked command.";
+        const string newReason = "Command status response was unavailable.";
+        string reason = initialReason;
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-123"),
+            StatusAsync = _ => Task.FromResult(TenantCommandStatusResult.Unknown(reason)),
+        };
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(gateway);
+        IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
+            .Add(p => p.BaselineTenantAbsent, true));
+
+        cut.Find("[data-testid='tenants-create-tenant-id']").Change("tenant-alpha");
+        cut.Find("[data-testid='tenants-create-name']").Change("Alpha");
+        await cut.Find("form").SubmitAsync();
+        cut.WaitForAssertion(() => LastFocusedReferenceId().ShouldBe(LifecycleReferenceId(cut)));
+        cut.Instance.Snapshot.LiveRegionPoliteness.ShouldBe(TenantCommandLiveRegionPoliteness.Assertive);
+        cut.Find("[data-testid='tenants-create-lifecycle']").LocalName.ShouldBe("h3");
+        cut.Find("[data-testid='tenants-create-safe-message']").TextContent.ShouldBe(initialReason);
+        int focusCalls = FocusCallCount();
+
+        reason = reasonChanges ? newReason : initialReason;
+        await cut.Find($"[data-testid='{refreshId}']").ClickAsync(new MouseEventArgs());
+
+        cut.WaitForAssertion(() =>
+        {
+            gateway.StatusCallCount.ShouldBe(2);
+            cut.Find("[data-testid='tenants-create-safe-message']").TextContent.ShouldBe(reason);
+            FocusCallCount().ShouldBe(focusCalls + (reasonChanges ? 1 : 0));
+            LastFocusedReferenceId().ShouldBe(LifecycleReferenceId(cut));
+        });
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        cut.Instance.Snapshot.LiveRegionPoliteness.ShouldBe(TenantCommandLiveRegionPoliteness.Assertive);
+        cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
+        gateway.CreateTenantCallCount.ShouldBe(1);
+    }
+
     [Fact]
     public void Ambiguous_failure_without_a_correlation_id_offers_no_refresh_that_cannot_requery()
     {

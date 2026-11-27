@@ -97,48 +97,61 @@
         </FluentStack>
     </EditForm>
 
-    <section class="tenants-create-flow__lifecycle"
-             @ref="_lifecycleElement"
-             tabindex="-1"
-             id="tenants-create-lifecycle" data-testid="tenants-create-lifecycle"
-             aria-labelledby="tenants-create-state-label">
-        <h3 id="tenants-create-state-label">@Localizer["Tenants.Create.Lifecycle.Title"]</h3>
-        <p class="@StateClass" data-testid="tenants-create-state">
-            <span aria-hidden="true">@StateSymbol</span>
-            <span>@StateText</span>
-        </p>
-        @if (CanOpenExistingTenant)
-        {
-            <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-create-open-existing"
-                          Disabled="@_checkingExistingTenant" OnClick="OpenExistingTenantAsync">
-                @Localizer["Tenants.Create.Action.OpenExisting"]
-            </FluentButton>
-        }
-        <div data-testid="tenants-create-audit">
-            @if (ShouldRenderAuditEntryPoint)
+    <div class="tenants-create-flow__lifecycle">
+        <h3 @ref="_lifecycleElement" tabindex="-1"
+            id="tenants-create-lifecycle" data-testid="tenants-create-lifecycle">@Localizer["Tenants.Create.Lifecycle.Title"]</h3>
+        <section class="tenants-create-flow__lifecycle" aria-labelledby="tenants-create-lifecycle">
+            <p class="@StateClass" data-testid="tenants-create-state">
+                <span aria-hidden="true">@StateSymbol</span>
+                <span>@StateText</span>
+            </p>
+            @if (CanOpenExistingTenant)
             {
-                <AuditAvailabilityState AuditState="@_snapshot.AuditState"
-                                        Source="create-tenant"
-                                        AnnounceChanges="false"
-                                        OwnerRefreshIncludesAuditAuthority="true"
-                                        OnRefresh="@(CanRequeryAudit ? EventCallback.Factory.Create(this, RefreshFromAuditControlAsync) : default(EventCallback))"
-                                        OnContinueReadOnly="@(CanContinueReadOnly ? EventCallback.Factory.Create(this, ContinueReadOnly) : default(EventCallback))"
-                                        InspectAuditAction="@CommandAuditEntryPoint" />
+                <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-create-open-existing"
+                              Disabled="@_checkingExistingTenant" OnClick="OpenExistingTenantAsync">
+                    @Localizer["Tenants.Create.Action.OpenExisting"]
+                </FluentButton>
             }
-        </div>
-        @* The reason lives inside the live region: announcing the state alone left a screen-reader
-           user with "Unable to verify" and no explanation of why. *@
-        <section class="tenants-create-flow__live"
-                 data-testid="tenants-create-live-region"
-                 aria-live="@LiveRegionMode"
-                 aria-atomic="true">
-            <p>@StateText</p>
-            @if (!string.IsNullOrWhiteSpace(SafeMessageText))
+            <div data-testid="tenants-create-audit">
+                @if (ShouldRenderAuditEntryPoint)
+                {
+                    <AuditAvailabilityState AuditState="@_snapshot.AuditState"
+                                            Source="create-tenant"
+                                            AnnounceChanges="false"
+                                            OwnerRefreshIncludesAuditAuthority="true"
+                                            OnRefresh="@(CanRequeryAudit ? EventCallback.Factory.Create(this, RefreshFromAuditControlAsync) : default(EventCallback))"
+                                            OnContinueReadOnly="@(CanContinueReadOnly ? EventCallback.Factory.Create(this, ContinueReadOnly) : default(EventCallback))"
+                                            InspectAuditAction="@CommandAuditEntryPoint" />
+                }
+            </div>
+            @* Use a stable host for each politeness. Announce each lifecycle message as a unit
+               when its state or reason changes. *@
+            @foreach (TenantCommandLiveRegionPoliteness politeness in new[] { TenantCommandLiveRegionPoliteness.Polite, TenantCommandLiveRegionPoliteness.Assertive })
             {
-                <p data-testid="tenants-create-safe-message">@SafeMessageText</p>
+                bool isCurrent = _snapshot.LiveRegionPoliteness == politeness;
+                string mode = politeness is TenantCommandLiveRegionPoliteness.Assertive ? "assertive" : "polite";
+                <section @key="politeness"
+                         class="tenants-create-flow__live"
+                         data-create-lifecycle-live="@mode"
+                         data-testid="@(isCurrent ? "tenants-create-live-region" : null)"
+                         aria-live="@mode"
+                         aria-atomic="true">
+                    @if (isCurrent)
+                    {
+                        string state = StateText;
+                        string? reason = SafeMessageText;
+                        <div @key="(state, reason)">
+                            <p>@state</p>
+                            @if (!string.IsNullOrWhiteSpace(reason))
+                            {
+                                <p data-testid="tenants-create-safe-message">@reason</p>
+                            }
+                        </div>
+                    }
+                </section>
             }
         </section>
-    </section>
+    </div>
     @* The visual recovery control intentionally unmounts at NotStarted. Keep these text-only hosts mounted
        before first evidence; inserting a populated polite region missed Pending in native NVDA qualification. *@
     @{
@@ -594,9 +607,6 @@
     private bool ShouldRenderAuditEntryPoint
         => _snapshot.AuditState is not TenantCommandAuditState.NotStarted;
 
-    private string LiveRegionMode
-        => _snapshot.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Assertive ? "assertive" : "polite";
-
     private string TenantIdDescribedBy
         => string.IsNullOrWhiteSpace(_validationMessage)
             ? "tenants-create-tenant-id-help"
@@ -754,7 +764,7 @@
 
     // Honours the lifecycle FocusTarget for fail-closed/non-success transitions: when the command
     // surface becomes blocked, rejected, failed, degraded, or unable-to-verify, the submit button
-    // may disable, so focus is moved to the lifecycle region to keep it recoverable (AC6). Routine
+    // may disable, so focus is moved to the lifecycle heading to keep it recoverable (AC6). Routine
     // polite progress (request sent, accepted, projection pending, confirmed) never steals focus.
     private void SetSnapshot(TenantCreateCommandSnapshot snapshot)
     {
@@ -815,7 +825,12 @@
         }
 
         _snapshot = result;
-        if (result.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Assertive)
+        // Re-reading the same status leaves the operator on Refresh. A new failure
+        // still moves focus to the heading without reading the whole recovery region.
+        if (result.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Assertive
+            && (delivery || expected.LiveRegionPoliteness != result.LiveRegionPoliteness
+                || expected.State != result.State || expected.SafeMessageKey != result.SafeMessageKey
+                || expected.SafeMessage != result.SafeMessage))
         {
             _focusLifecyclePending = true;
         }

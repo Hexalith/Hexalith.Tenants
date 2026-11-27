@@ -52,6 +52,46 @@ export async function awaitNativeAcknowledgement(pending, milliseconds = acknowl
     } finally { clearTimeout(timer); }
 }
 
+async function observeCreateAnnouncements(page) {
+    return page.evaluateHandle(() => {
+        const regions = ['polite', 'assertive'].flatMap(mode => [
+            [`tenants-create-lifecycle-live-${mode}`, `[data-create-lifecycle-live="${mode}"]`],
+            [`tenants-create-audit-live-${mode}`, `[data-testid="tenants-create-audit-live-${mode}"]`],
+        ]);
+        const previous = new Map();
+        const trace = [];
+        const record = event => {
+            trace.push(event);
+            window.__recordHandoff({ utc: new Date().toISOString(), ...event });
+        };
+        for (const [type, kind] of [['focusin', 'create-focus'], ['focusout', 'create-focusout']]) {
+            document.addEventListener(type, event => {
+                const control = event.composedPath().find(node => node?.getAttribute?.('data-testid')?.startsWith('tenants-'));
+                record({ kind, control: control?.getAttribute('data-testid') ?? event.target.localName });
+            });
+        }
+        window.addEventListener('blur', () => record({ kind: 'create-window-blur' }));
+        new MutationObserver(mutations => {
+            for (const [region, selector] of regions) {
+                const node = document.querySelector(selector);
+                const prior = previous.get(region);
+                if (!node && !prior) continue;
+                const text = node?.innerText.replace(/\s+/g, ' ').trim() ?? '';
+                const live = node?.getAttribute('aria-live') ?? null;
+                const changes = mutations.filter(mutation => node?.contains(mutation.target)
+                    || (prior?.node && [...mutation.removedNodes].some(removed => removed.contains(prior.node))))
+                    .map(mutation => mutation.type);
+                if (node !== prior?.node || text !== prior?.text || live !== prior?.live || changes.length) {
+                    previous.set(region, { node, text, live });
+                    record({ kind: 'create-live', region, text, live, changes });
+                }
+            }
+        }).observe(document, { subtree: true, childList: true, characterData: true, attributes: true,
+            attributeFilter: ['aria-live', 'aria-atomic', 'data-testid', 'data-create-lifecycle-live'] });
+        return trace;
+    });
+}
+
 export async function runDeferredNativeSpeech({ fixture, newSession, enterWorkspace, evidence, wait }) {
     assert.equal(process.platform, 'win32', 'Native speech qualification requires Windows');
     assert.equal(process.env.TENANTS_NATIVE_SPEECH_CAPTURE, '1', 'Use capture-deferred-nvda-speech.ps1');
@@ -102,13 +142,15 @@ export async function runDeferredNativeSpeech({ fixture, newSession, enterWorksp
         await page.bringToFront();
         await exchange({ kind: 'session', culture, entryDocument: blankEntry ? 'authenticated-blank' : 'workspace' });
     };
-    const observe = async (trial, culture, action, state) => {
+    const observe = async (trial, culture, action, state, verifyWindow) => {
         await exchange({ kind: 'arm', trial, culture, focus: await focus() });
         await exchange({ kind: 'quiet', trial });
         await exchange({ kind: 'trigger', trial, focus: await focus() });
         await action();
         await state();
         const result = await exchange({ kind: 'observe', trial, stateUtc: new Date().toISOString(), focus: await focus(), fixture: fixture.snapshot() });
+        const productFocus = await focus();
+        await verifyWindow?.();
         // A product focus announcement after the window is an omission control.
         // It is retained separately and cannot satisfy the live-announcement gate.
         await exchange({ kind: 'control-start', trial, culture });
@@ -120,8 +162,9 @@ export async function runDeferredNativeSpeech({ fixture, newSession, enterWorksp
         assert.equal(control.interruption?.verified, true, 'NVDA cancellation response remains unverified');
         evidence.nativeSpeechTrials ??= [];
         evidence.nativeSpeechTrials.push({ trial, culture, observation: result.observation, control: control.control, interruption: control.interruption,
-            focus: await focus(), fixture: fixture.snapshot() });
+            productFocus, focus: await focus(), fixture: fixture.snapshot() });
         completedTrials.push(trial);
+        return productFocus;
     };
     const search = async () => {
         await id('tenants-list-search').locator('input').fill('needle');
@@ -181,6 +224,10 @@ export async function runDeferredNativeSpeech({ fixture, newSession, enterWorksp
                 const refreshTrial = `C3-${status}-${refresh}-${culture}`;
                 if (!wants(trial) && !wants(refreshTrial)) continue;
                 await session(culture);
+                const announcementTrace = await observeCreateAnnouncements(page);
+                const { sessionOrdinal } = fixture.snapshot();
+                const deliveredStatuses = () => fixture.events.filter(event =>
+                    event.sessionOrdinal === sessionOrdinal && event.kind.startsWith('status-delivered-'));
                 fixture.apply(`status ${status}`);
                 fixture.apply('projection hold');
                 await id('tenants-create-accordion').getByRole('button').click();
@@ -188,34 +235,62 @@ export async function runDeferredNativeSpeech({ fixture, newSession, enterWorksp
                 const initialHosts = await page.locator('[data-testid^="tenants-create-audit-live-"]').elementHandles();
                 assert.equal(initialHosts.length, 2);
                 for (const host of initialHosts) assert.equal((await host.textContent()).trim(), '');
-                await id('tenants-create-tenant-id').locator('input').fill(`tenant.speech.${culture}-${status}-${refresh}`);
+                await id('tenants-create-tenant-id').locator('input').fill(`tenant-speech-${culture}-${status}-${refresh}`);
                 await id('tenants-create-name').locator('input').fill('Speech fixture tenant');
                 await page.keyboard.press('Tab');
-                await tabTo(id('tenants-create-submit'));
+                try {
+                    await tabTo(id('tenants-create-submit'));
+                } catch (error) {
+                    evidence.createAdmissionFailure = await page.evaluate(() => ({
+                        reason: document.querySelector('[data-testid="tenants-create-unavailable-reason"]')?.textContent.trim(),
+                        viewport: { width: innerWidth, height: innerHeight, devicePixelRatio },
+                    }));
+                    throw error;
+                }
                 const expected = status === 'events' ? 'pending' : 'unavailable';
-                await observe(trial, culture, () => page.keyboard.press('Enter'), async () => {
+                const insertionFocus = await observe(trial, culture, () => page.keyboard.press('Enter'), async () => {
                     await availability(expected).waitFor();
                     for (const host of initialHosts) assert.equal(await host.evaluate(node => node.isConnected), true, 'Audit host survives first insertion');
-                    assert.equal((await page.evaluate(() => window.__handoffStates))[0]?.state, expected);
+                    const [firstState] = await page.evaluate(() => window.__handoffStates);
+                    assert.equal(firstState?.state, expected);
+                    const [firstStatus] = deliveredStatuses();
+                    assert.equal(firstStatus?.kind, `status-delivered-${status}`, 'The intended exact-attempt status was delivered');
+                    assert.ok(firstStatus.utc <= firstState.utc, 'The controlled response precedes the first audit state');
                     assert.equal(fixture.snapshot().projection, 'hold');
                     assert.equal(fixture.snapshot().simulatedCommands, 1);
                 });
+                if (status === 'unavailable') {
+                    assert.equal(insertionFocus.element, 'h3', 'First Unavailable focuses the lifecycle heading');
+                    assert.equal(insertionFocus.ancestry[0], 'tenants-create-lifecycle');
+                } else {
+                    assert.ok(!insertionFocus.ancestry.includes('tenants-create-lifecycle'), 'First Pending does not move lifecycle focus');
+                }
                 if (!wants(refreshTrial)) continue;
                 const button = refresh === 'lifecycle' ? id('tenants-create-refresh')
                     : page.locator('[data-testid="tenants-create-audit"] [data-testid="tenants-audit-availability-recovery-refresh"]');
                 await tabTo(button);
                 let prior;
-                await observe(refreshTrial, culture, async () => {
-                    prior = fixture.snapshot().statusReads;
+                let traceStart;
+                const refreshFocus = await observe(refreshTrial, culture, async () => {
+                    traceStart = await announcementTrace.evaluate(trace => trace.length);
+                    prior = deliveredStatuses().length;
                     await page.keyboard.press('Enter');
                 }, async () => {
-                    await wait(() => fixture.snapshot().statusReads > prior, 'Selected Refresh performs a status read');
+                    await wait(() => deliveredStatuses().length > prior, 'Selected Refresh delivers the exact-attempt status');
+                    assert.equal(deliveredStatuses()[prior].kind, `status-delivered-${status}`);
                     await wait(() => button.evaluate(node => !node.hasAttribute('disabled')), 'Selected Refresh completes');
                     await availability(expected).waitFor();
                     assert.equal(fixture.snapshot().simulatedCommands, 1);
                     assert.equal(fixture.snapshot().unexpectedCommands, 0);
                     assert.equal(fixture.snapshot().projection, 'hold');
+                }, async () => {
+                    const changes = await announcementTrace.evaluate((trace, start) => trace.slice(start), traceStart);
+                    assert.deepEqual(changes.map(({ kind, region, control }) => ({ kind, region, control })), [],
+                        'Same-state Refresh must not replay a live region or move focus during the observation');
                 });
+                assert.equal(refreshFocus.ancestry[0], refresh === 'lifecycle'
+                    ? 'tenants-create-refresh' : 'tenants-audit-availability-recovery-refresh',
+                'Same-state Refresh keeps focus on the triggering control');
             }
         }
     }
