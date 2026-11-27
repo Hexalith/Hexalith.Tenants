@@ -5723,7 +5723,8 @@ archived: 2026-11-27
 origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
 location: production Tenants compilation / ProjectionSnapshotLimits / ProjectionSnapshotLimitExceededException
 reason: Qualify production Tenants compilation against each older advertised EventStore package cohort.
-status: open
+status: done 2026-11-27
+resolution: Qualified real production Release/package compilation across all six advertised EventStore cohorts (5.3.0, 5.3.1, 5.4.0, 5.5.1, 5.5.2, 5.6.0) and wired tests/scripts/test_eventstore_cohort_compilation.py into scripts/run-product-unit-checks.sh in commits 96958cbdd7fd4b16518dee17c0f93344128d9217 and 25a549e628bd614f5f8282b3410ee544be8a556e (spec-dw-690-canonical-boundary-qualification-sweep.md).
 source_spec: `_bmad-output/implementation-artifacts/spec-complete-dotnet-11-source-graph.md`
 summary: Qualify production Tenants compilation against each older advertised EventStore package cohort.
 evidence: Medium, unverified (R1): later tenant-access recovery uses ProjectionSnapshotLimits and ProjectionSnapshotLimitExceededException. The current 5.1.0 source graph passes, but real older package builds are needed to establish compatibility; synthetic marker assemblies do not establish it.
@@ -5899,7 +5900,8 @@ evidence: Unchanged ValidateDefaultValueType combines the root filePath with att
 origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
 location: authoritative tenant snapshot refresh / historical actor-state certification
 reason: Unverified medium concern: determine the supported recovery policy for malformed historical authoritative tenant status, membership roles or configuration keys.
-status: open
+status: done 2026-11-27
+resolution: Implemented user-approved fail-closed TenantAccessStateMalformedRejection in RefreshTenantAccess (status, null/blank/non-assignable members, null/blank configuration keys) with TenantProjectionHandler allowlist certification, null-safe GetActorRole reuse, docs, and Contracts/Server/Client/Integration tests in commits 00c7b01923849501be72da7949db1f7b42a1601a and bfe3f8fa9f0d223bea333e82ffa4cce735e58503 (spec-dw-690-canonical-boundary-qualification-sweep.md).
 source_spec: `_bmad-output/implementation-artifacts/spec-synchronize-update-release-2026-11-14.md`
 summary: Unverified medium concern: determine the supported recovery policy for malformed historical authoritative tenant status, membership roles or configuration keys.
 evidence: The refresh producer preserves existing authoritative data while audit certification refuses malformed snapshots. Valid current commands initialize Active/Disabled and real assignable roles; cited Unknown-role historical events already fail full-history certification before recovery. A real persisted historical actor-state fixture and owner-selected repair/rejection policy would determine whether refresh creates a new loss of previously valid certification; no production occurrence or new rejection contract is asserted.
