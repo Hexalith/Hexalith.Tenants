@@ -23,6 +23,11 @@ class SourceCatalogProfileProvisioningTests(unittest.TestCase):
     def exercise(self, scenario, *, database="1", worker="false"):
         with tempfile.TemporaryDirectory(prefix="tenants-source-material-test-") as temporary:
             root = Path(temporary)
+            source_job = scenario.startswith("development-")
+            source_checkout = ("d" if source_job or scenario == "source-drift" else "f") * 40
+            selected_source = ("c" * 40 if scenario in ("selected-host-drift", "development-selected-host-drift")
+                               else source_checkout if source_job else "f" * 40)
+            profile_name = "catalog-owner" if source_job else "rest"
             shutil.copytree(REPOSITORY / "src/Hexalith.Tenants.AppHost/DaprComponents",
                             root / "src/Hexalith.Tenants.AppHost/DaprComponents")
             package_path = root / "feed/hexalith.eventstore.aspire/5.3.1"
@@ -57,7 +62,8 @@ class SourceCatalogProfileProvisioningTests(unittest.TestCase):
             }
             volume = {"Name": "owned-volume", "Driver": "local", "Scope": "local", "Mountpoint": mount["Source"],
                       "CreatedAt": "2026-10-31T21:00:02Z"}
-            identity = {"repository": "Hexalith/Hexalith.Tenants", "runId": "42", "runAttempt": "2", "job": "integration"}
+            identity = {"repository": "Hexalith/Hexalith.Tenants", "runId": "42", "runAttempt": "2",
+                        "job": "development-catalog" if source_job else "integration"}
             receipt = {"schema": "hexalith.dapr-initialization.v1", "status": "complete", "identity": identity,
                        "runtimeVersion": "1.19.1", "startedAt": "2026-10-31T21:00:01.900+00:00",
                        "completedAt": "2026-10-31T21:00:05+00:00", "preexistingVolumes": ["retained-volume"],
@@ -106,6 +112,12 @@ class SourceCatalogProfileProvisioningTests(unittest.TestCase):
             settings = {variable: identity[key] for key, variable in profile.IDENTITY.items()}
             settings.update(GITHUB_ACTIONS="true", RUNNER_TEMP=str(root), GITHUB_ENV=str(environment),
                             HEXALITH_DAPR_INITIALIZATION_RECEIPT=str(receipt_path), TENANTS_SOURCE_SDK_PRODUCER_VERSION="5.3.1")
+            if source_job:
+                settings.update(UseHexalithProjectReferences="true", UseNuGetDeps="false")
+            if scenario == "development-project-references-disabled":
+                settings["UseHexalithProjectReferences"] = "false"
+            if scenario == "development-package-dependencies-enabled":
+                settings["UseNuGetDeps"] = "true"
             if scenario == "wrong-job": settings["GITHUB_JOB"] = "invalid/job"
             if scenario == "different-job": settings["GITHUB_JOB"] = "another_shared_job"
             if scenario == "no-producer": settings.pop("TENANTS_SOURCE_SDK_PRODUCER_VERSION")
@@ -116,10 +128,12 @@ class SourceCatalogProfileProvisioningTests(unittest.TestCase):
                 if arguments == ("git", "rev-parse", "--show-toplevel"): return str(root)
                 if arguments[:4] == ("git", "config", "--file", ".gitmodules"):
                     return "references/" + arguments[-1].split(".", 1)[1].removesuffix(".path")
+                if arguments == ("git", "rev-parse", "HEAD:references/Hexalith.EventStore"):
+                    return ("c" * 40 if scenario == "development-gitlink-drift" else source_checkout)
                 if arguments[:2] == ("git", "rev-parse"): return "c" * 40
                 if arguments[:2] == ("git", "-C"):
                     if arguments[2].endswith("/Hexalith.EventStore"):
-                        return ("d" if scenario == "source-drift" else "f") * 40
+                        return source_checkout
                     return ("d" if scenario == "builds-drift" else "c") * 40
                 if arguments == ("docker", "inspect", "dapr_redis"): return json.dumps([copy.deepcopy(backend)])
                 if arguments[:3] == ("docker", "volume", "inspect"): return json.dumps([copy.deepcopy(volume)])
@@ -130,16 +144,17 @@ class SourceCatalogProfileProvisioningTests(unittest.TestCase):
                 raise AssertionError("Unexpected boundary command: " + repr(arguments))
 
             with mock.patch.dict(os.environ, settings, clear=True), mock.patch.object(profile, "command", command), \
-                    mock.patch("sys.argv", ["prepare", "--sdk-source-sha", ("c" if scenario == "selected-host-drift" else "f") * 40, "--profile", "rest",
+                    mock.patch("sys.argv", ["prepare", "--sdk-source-sha", selected_source, "--profile", profile_name,
                                             "--redis-db", database, "--worker-backed-responses", worker, "--output", str(output)]), \
                     contextlib.redirect_stdout(io.StringIO()) as diagnostics:
-                if scenario in ("fresh", "finish", "shutdown-missing", "shutdown-running", "shutdown-container", "shutdown-changed-component"):
+                if scenario in ("fresh", "development-fresh", "finish", "shutdown-missing", "shutdown-running", "shutdown-container", "shutdown-changed-component"):
                     profile.main()
                     evidence = json.loads(output.read_text(encoding="utf-8"))
                     self.assertTrue(evidence["materialProvisionedWithFreshBackend"])
                     self.assertEqual(evidence["backend"]["initialDatabaseSize"], 0)
                     self.assertEqual(evidence["sdkProducerVersion"], "5.3.1")
                     self.assertEqual(evidence["sdkPackageProducer"]["revision"], "f" * 40)
+                    self.assertEqual(evidence["sdkSource"], source_checkout)
                     self.assertEqual(evidence["database"], int(database))
                     self.assertEqual(evidence["initializationSha256"], profile.digest(receipt_path))
                     self.assertNotIn("DigestKeys", output.read_text(encoding="utf-8"))
@@ -156,7 +171,7 @@ class SourceCatalogProfileProvisioningTests(unittest.TestCase):
                     private_components = Path(evidence["privateDirectory"]) / "components"
                     self.assertEqual((private_components / "secrets.json").read_bytes(), (source.parent / "secrets.json").read_bytes())
                     self.assertIn(str(private_components / "secrets.json"), (private_components / "secretstore.memories.yaml").read_text())
-                    if scenario != "fresh":
+                    if scenario not in ("fresh", "development-fresh"):
                         private = Path(evidence["privateDirectory"])
                         if scenario != "shutdown-missing":
                             profile.write_exclusive(private / "shutdown.json", {"provisioningSha256": profile.digest(output), "disposed": True})
@@ -187,6 +202,12 @@ class SourceCatalogProfileProvisioningTests(unittest.TestCase):
     def test_shared_receipt_provisions_a_private_complete_component_set_for_each_worker_profile(self):
         for database, worker in (("1", "false"), ("5", "true"), ("15", "false")):
             with self.subTest(database=database, worker=worker): self.exercise("fresh", database=database, worker=worker)
+
+    def test_development_profile_records_source_gitlink_and_package_producer_independently(self):
+        self.exercise("development-fresh", database="5")
+        for scenario in ("development-gitlink-drift", "development-selected-host-drift",
+                         "development-project-references-disabled", "development-package-dependencies-enabled"):
+            with self.subTest(scenario=scenario): self.exercise(scenario, database="5")
 
     def test_reserved_noncanonical_and_out_of_range_databases_refuse_before_minting(self):
         for database in ("0", "01", "-1", "16", "1.0", "1,2", " 1", "1\n"):

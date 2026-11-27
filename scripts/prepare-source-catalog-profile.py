@@ -372,18 +372,23 @@ def main():
         raise ValueError("The exact selected package producer identity is required.")
     root = Path(command("git", "rev-parse", "--show-toplevel"))
     producer_package = package_producer(root, producer)
+    # Only the development catalog job runs hosts built from the committed gitlink.
+    source_catalog_job = (identity["job"] == "development-catalog" and args.profile == "catalog-owner"
+                          and os.environ.get("UseHexalithProjectReferences") == "true"
+                          and os.environ.get("UseNuGetDeps") == "false")
     for module in ("Hexalith.EventStore", "Hexalith.Builds"):
         relative = f"references/{module}"
         if command("git", "config", "--file", ".gitmodules", "--get", f"submodule.{module}.path") != relative:
             raise ValueError("A source prerequisite is not root-declared.")
-        if module == "Hexalith.EventStore":
-            if verified_host_revision(root, producer_package) != args.sdk_source_sha:
-                raise ValueError("The selected EventStore host revision differs from the checkout.")
-            continue
-        expected = command("git", "rev-parse", f"HEAD:{relative}")
-        actual = command("git", "-C", str(root / relative), "rev-parse", "HEAD")
-        if actual != expected:
-            raise ValueError("The actual source prerequisite differs from the selected gitlink.")
+        if module == "Hexalith.EventStore" and not source_catalog_job:
+            actual = verified_host_revision(root, producer_package)
+        else:
+            expected = command("git", "rev-parse", f"HEAD:{relative}")
+            actual = command("git", "-C", str(root / relative), "rev-parse", "HEAD")
+            if actual != expected:
+                raise ValueError("The actual source prerequisite differs from the selected gitlink.")
+        if module == "Hexalith.EventStore" and actual != args.sdk_source_sha:
+            raise ValueError("The selected EventStore host revision differs from the checkout.")
     if args.output.exists() or args.output.is_symlink():
         raise ValueError("Existing source qualification evidence must remain unchanged.")
     if (not args.output.is_absolute() or args.output.parent.resolve() != args.output.parent
