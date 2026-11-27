@@ -9,6 +9,7 @@ for suite in \
     test_catalog_package_consumer.py \
     test_create_synthetic_tenant.py \
     test_dapr_read_policy_evidence.py \
+    test_eventstore_cohort_compilation.py \
     test_hosted_package_profile.py \
     test_release_validation_context.py \
     test_tenant_audit_source_provenance.py; do
