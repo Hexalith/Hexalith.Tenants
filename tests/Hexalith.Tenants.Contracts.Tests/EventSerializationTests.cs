@@ -95,6 +95,16 @@ public class EventSerializationTests {
             .ToArray();
 
         propertyNames.ShouldBe(["Field", "TenantId"]);
+
+        var rejection = new TenantAccessStateMalformedRejection("tenant-abc", "status");
+        using JsonDocument document = JsonDocument.Parse(JsonSerializer.Serialize(rejection));
+        string[] jsonPropertyNames = document.RootElement
+            .EnumerateObject()
+            .Select(property => property.Name)
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+
+        jsonPropertyNames.ShouldBe(["Field", "TenantId"]);
     }
 
     private static IEventPayload CreateTestInstance(Type eventType) {
@@ -125,6 +135,7 @@ public class EventSerializationTests {
                 "Key" => "config-key-1",
                 "Value" => "config-value-1",
                 "LimitType" => "max-configs",
+                "Field" => "status",
                 _ => $"test-{name}",
             };
         }

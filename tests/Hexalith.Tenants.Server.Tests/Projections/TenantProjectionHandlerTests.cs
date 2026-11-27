@@ -907,14 +907,19 @@ public partial class TenantProjectionHandlerTests {
     }
 
     [Theory]
-    [InlineData("status", true)]
-    [InlineData("members", true)]
-    [InlineData("configurationKeys", true)]
-    [InlineData(" ", false)]
-    public async Task ProjectAsync_RecoveryMalformedStateRejectionCertifiesCompleteHistoryOnlyWhenPayloadIsWellFormedAsync(string field, bool complete)
+    [InlineData("tenant-1", "status", true)]
+    [InlineData("tenant-1", "members", true)]
+    [InlineData("tenant-1", "configurationKeys", true)]
+    [InlineData("tenant-1", " ", false)]
+    [InlineData("tenant-1", "arbitrary", false)]
+    [InlineData("foreign", "status", false)]
+    public async Task ProjectAsync_RecoveryMalformedStateRejectionCertifiesCompleteHistoryOnlyWhenPayloadIsWellFormedAsync(
+        string tenantId,
+        string field,
+        bool complete)
     {
         ProjectionEventDto rejection = CreateEvent(
-            new TenantAccessStateMalformedRejection("tenant-1", field),
+            new TenantAccessStateMalformedRejection(tenantId, field),
             "evt-malformed-rejection",
             ProjectionTime.AddMinutes(1),
             sequenceNumber: 2);

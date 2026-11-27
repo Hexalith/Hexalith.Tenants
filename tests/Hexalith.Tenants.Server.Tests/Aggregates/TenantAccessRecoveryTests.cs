@@ -342,7 +342,84 @@ public sealed class TenantAccessRecoveryTests
         var result = await new TenantAggregate().ProcessAsync(Envelope("reader"), state);
 
         result.IsRejection.ShouldBeTrue();
-        result.Events.ShouldHaveSingleItem().ShouldBeOfType<InsufficientPermissionsRejection>().TenantId.ShouldBe("acme");
+        InsufficientPermissionsRejection rejection = result.Events.ShouldHaveSingleItem()
+            .ShouldBeOfType<InsufficientPermissionsRejection>();
+        rejection.TenantId.ShouldBe("acme");
+        rejection.ActorRole.ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData("reader", TenantRole.TenantReader)]
+    [InlineData("unknown-member", TenantRole.Unknown)]
+    public async Task UnprivilegedOrUnknownRoleCallerOnNonNullMalformedUsersReceivesInsufficientPermissions(
+        string actor,
+        TenantRole expectedRole)
+    {
+        TenantState state = State(TenantStatus.Unknown);
+        state.Users["unknown-member"] = TenantRole.Unknown;
+        state.Users[" "] = TenantRole.TenantReader;
+
+        var result = await new TenantAggregate().ProcessAsync(Envelope(actor), state);
+
+        result.IsRejection.ShouldBeTrue();
+        InsufficientPermissionsRejection rejection = result.Events.ShouldHaveSingleItem()
+            .ShouldBeOfType<InsufficientPermissionsRejection>();
+        rejection.TenantId.ShouldBe("acme");
+        rejection.ActorRole.ShouldBe(expectedRole);
+    }
+
+    [Fact]
+    public async Task ReplayingMalformedStateRejectionThroughProcessAsyncPreservesAuthoritativeState()
+    {
+        DateTimeOffset createdAt = DateTimeOffset.Parse("2026-01-01T00:00:00Z");
+        object[] history =
+        [
+            new TenantCreated("acme", "Acme", "unchanged", createdAt),
+            new UserAddedToTenant("acme", "owner", TenantRole.TenantOwner),
+            new TenantConfigurationSet("acme", "projects.allowed", "true"),
+            new TenantAccessStateMalformedRejection("acme", "members"),
+        ];
+
+        var result = await new TenantAggregate().ProcessAsync(Envelope("owner"), currentState: history);
+
+        result.IsSuccess.ShouldBeTrue();
+        TenantAccessRefreshed snapshot = result.Events.ShouldHaveSingleItem().ShouldBeOfType<TenantAccessRefreshed>();
+        snapshot.TenantId.ShouldBe("acme");
+        snapshot.Status.ShouldBe(TenantStatus.Active);
+        snapshot.Members.ShouldBe(new Dictionary<string, TenantRole> { ["owner"] = TenantRole.TenantOwner });
+        snapshot.ConfigurationKeys.ShouldBe(["projects.allowed"]);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task MalformedStatusPrecedesEntryBudgetWhileEntryBudgetPrecedesElementLevelValidation(bool malformedStatus)
+    {
+        TenantState state = State(malformedStatus ? TenantStatus.Unknown : TenantStatus.Active);
+        state.Users[" "] = TenantRole.Unknown;
+        state.Configuration[" "] = "secret-value";
+        for (int i = 0; i <= ProjectionSnapshotLimits.Default.MaxEntries; i++)
+        {
+            state.Users["reader-" + i] = TenantRole.TenantReader;
+        }
+
+        var result = await new TenantAggregate().ProcessAsync(Envelope("owner"), state);
+
+        result.IsRejection.ShouldBeTrue();
+        if (malformedStatus)
+        {
+            TenantAccessStateMalformedRejection rejection = result.Events.ShouldHaveSingleItem()
+                .ShouldBeOfType<TenantAccessStateMalformedRejection>();
+            rejection.TenantId.ShouldBe("acme");
+            rejection.Field.ShouldBe("status");
+        }
+        else
+        {
+            TenantAccessSnapshotLimitExceededRejection rejection = result.Events.ShouldHaveSingleItem()
+                .ShouldBeOfType<TenantAccessSnapshotLimitExceededRejection>();
+            rejection.TenantId.ShouldBe("acme");
+            rejection.Limit.ShouldBe("entries");
+        }
     }
 
     private static TenantState State(TenantStatus status = TenantStatus.Active)

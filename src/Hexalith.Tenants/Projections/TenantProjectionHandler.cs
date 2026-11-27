@@ -374,6 +374,12 @@ public sealed class TenantProjectionHandler {
                 ProjectionSnapshotLimits.Default.Validate(snapshot, (long)snapshot.Members.Count + snapshot.ConfigurationKeys.Count);
             }
 
+            if (payload is TenantAccessStateMalformedRejection malformed
+                && malformed.Field is not ("status" or "members" or "configurationKeys"))
+            {
+                return false;
+            }
+
             foreach (System.Reflection.PropertyInfo property in contract.GetProperties())
             {
                 bool present = AuditPayloadProperty(root, property.Name, out JsonElement value);

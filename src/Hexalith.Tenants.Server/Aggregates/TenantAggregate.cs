@@ -136,7 +136,7 @@ public class TenantAggregate : EventStoreAggregate<TenantState> {
                 && !IsAuthorized(state, envelope.UserId, TenantRole.TenantOwner)
                 => DomainResult.Rejection([new InsufficientPermissionsRejection(
                     tenantId, envelope.UserId,
-                    state.Users.TryGetValue(envelope.UserId, out TenantRole addRole) ? addRole : null,
+                    GetActorRole(state, envelope.UserId),
                     nameof(AddUserToTenant))]),
             _ when !IsAssignableRole(command.Role)
                 => DomainResult.Rejection([new RoleEscalationRejection(tenantId, command.UserId, command.Role)]),
@@ -158,7 +158,7 @@ public class TenantAggregate : EventStoreAggregate<TenantState> {
                 && !IsAuthorized(state, envelope.UserId, TenantRole.TenantOwner)
                 => DomainResult.Rejection([new InsufficientPermissionsRejection(
                     tenantId, envelope.UserId,
-                    state.Users.TryGetValue(envelope.UserId, out TenantRole removeRole) ? removeRole : null,
+                    GetActorRole(state, envelope.UserId),
                     nameof(RemoveUserFromTenant))]),
             _ when !state.Users.ContainsKey(command.UserId)
                 => DomainResult.Rejection([new UserNotInTenantRejection(tenantId, command.UserId)]),
@@ -180,7 +180,7 @@ public class TenantAggregate : EventStoreAggregate<TenantState> {
                 && !IsAuthorized(state, envelope.UserId, TenantRole.TenantOwner)
                 => DomainResult.Rejection([new InsufficientPermissionsRejection(
                     tenantId, envelope.UserId,
-                    state.Users.TryGetValue(envelope.UserId, out TenantRole role) ? role : null,
+                    GetActorRole(state, envelope.UserId),
                     nameof(SetTenantConfiguration))]),
             // Limit: key length (FR23)
             _ when command.Key.Length > MaxKeyLength
@@ -216,7 +216,7 @@ public class TenantAggregate : EventStoreAggregate<TenantState> {
                 && !IsAuthorized(state, envelope.UserId, TenantRole.TenantOwner)
                 => DomainResult.Rejection([new InsufficientPermissionsRejection(
                     tenantId, envelope.UserId,
-                    state.Users.TryGetValue(envelope.UserId, out TenantRole role) ? role : null,
+                    GetActorRole(state, envelope.UserId),
                     nameof(RemoveTenantConfiguration))]),
             // Missing key is a business rejection; consumers may rely on this as corrective feedback.
             _ when !state.Configuration.ContainsKey(command.Key)
@@ -237,7 +237,7 @@ public class TenantAggregate : EventStoreAggregate<TenantState> {
                 && !IsAuthorized(state, envelope.UserId, TenantRole.TenantOwner)
                 => DomainResult.Rejection([new InsufficientPermissionsRejection(
                     tenantId, envelope.UserId,
-                    state.Users.TryGetValue(envelope.UserId, out TenantRole changeRole) ? changeRole : null,
+                    GetActorRole(state, envelope.UserId),
                     nameof(ChangeUserRole))]),
             _ when !IsAssignableRole(command.NewRole)
                 => DomainResult.Rejection([new RoleEscalationRejection(tenantId, command.UserId, command.NewRole)]),

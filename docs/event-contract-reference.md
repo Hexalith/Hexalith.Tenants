@@ -67,10 +67,13 @@ EventStore's reusable snapshot budget allows at most 4096 combined member/key en
 UTF-8 JSON bytes. Rejection emits only `TenantAccessSnapshotLimitExceededRejection`, with `TenantId`,
 `Limit` (`entries` or `serialized-bytes`), `Actual` (an observed cost, possibly a lower bound), and
 `Maximum`. If authoritative historical tenant state contains a malformed `Status` (other than
-`Active` or `Disabled`), a blank member key or non-assignable member role, or a blank configuration
-key, recovery fails closed and emits only `TenantAccessStateMalformedRejection`, with `TenantId` and
-`Field` (`status`, `members`, or `configurationKeys`). No partial access snapshot or raw secret value
-is emitted and replay changes no business state.
+`Active` or `Disabled`), a `null` `Users` or `Configuration` collection, a blank member key or
+non-assignable member role, or a blank configuration key, recovery fails closed and emits only
+`TenantAccessStateMalformedRejection`, with `TenantId` and `Field` (`status`, `members`, or
+`configurationKeys`). Evaluation checks `Status` and `null` `Users`/`Configuration` collections before
+the `entries > MaxEntries` budget guard, which in turn precedes element-level member and configuration
+key scanning. No partial access snapshot or raw secret value is emitted and replay changes no business
+state.
 
 Use one fresh operation/message ID for a recovery and reuse that ID across all retries of that
 operation. A later recovery requires a new ID, including after a subscriber marker survived a lost
@@ -933,6 +936,7 @@ Public tenant audit reads isolate their canonical tenant. Global-administrator a
 | `UpdateTenant`              | `TenantUpdated`              | `TenantNotFoundRejection`, `TenantDisabledRejection`, `InsufficientPermissionsRejection`                                                            |
 | `DisableTenant`             | `TenantDisabled`             | `TenantNotFoundRejection`, `TenantLifecycleStateAlreadySetRejection`, `InsufficientPermissionsRejection`                                            |
 | `EnableTenant`              | `TenantEnabled`              | `TenantNotFoundRejection`, `TenantLifecycleStateAlreadySetRejection`, `InsufficientPermissionsRejection`                                            |
+| `RefreshTenantAccess`       | `TenantAccessRefreshed`      | `TenantNotFoundRejection`, `InsufficientPermissionsRejection`, `TenantAccessSnapshotLimitExceededRejection`, `TenantAccessStateMalformedRejection`  |
 | `AddUserToTenant`           | `UserAddedToTenant`          | `TenantNotFoundRejection`, `TenantDisabledRejection`, `UserAlreadyInTenantRejection`, `RoleEscalationRejection`, `InsufficientPermissionsRejection` |
 | `RemoveUserFromTenant`      | `UserRemovedFromTenant`      | `TenantNotFoundRejection`, `TenantDisabledRejection`, `UserNotInTenantRejection`, `InsufficientPermissionsRejection`                                |
 | `ChangeUserRole`            | `UserRoleChanged`            | `TenantNotFoundRejection`, `TenantDisabledRejection`, `UserNotInTenantRejection`, `RoleEscalationRejection`, `InsufficientPermissionsRejection`     |
