@@ -148,5 +148,13 @@ public sealed class TenantState {
         MarkReplayOnlyEventHandled();
     }
 
+    /// <summary>A malformed-state recovery rejection changes no tenant state.</summary>
+    /// <param name="e">The malformed-state recovery rejection.</param>
+    public void Apply(TenantAccessStateMalformedRejection e)
+    {
+        ArgumentNullException.ThrowIfNull(e);
+        MarkReplayOnlyEventHandled();
+    }
+
     private void MarkReplayOnlyEventHandled() => _ = TenantId;
 }

@@ -272,6 +272,21 @@ public class TenantAggregate : EventStoreAggregate<TenantState> {
             return GlobalAdminRequired(tenantId, envelope, state, nameof(RefreshTenantAccess));
         }
 
+        if (state.Status is not (TenantStatus.Active or TenantStatus.Disabled))
+        {
+            return DomainResult.Rejection([new TenantAccessStateMalformedRejection(tenantId, "status")]);
+        }
+
+        if (state.Users is null)
+        {
+            return DomainResult.Rejection([new TenantAccessStateMalformedRejection(tenantId, "members")]);
+        }
+
+        if (state.Configuration is null)
+        {
+            return DomainResult.Rejection([new TenantAccessStateMalformedRejection(tenantId, "configurationKeys")]);
+        }
+
         long entries = (long)state.Users.Count + state.Configuration.Count;
         // Check the count before copying large collections. A disabled tenant is deliberately
         // allowed through this command: the emitted status must still deny consumer access.
@@ -279,6 +294,16 @@ public class TenantAggregate : EventStoreAggregate<TenantState> {
         {
             return DomainResult.Rejection([new TenantAccessSnapshotLimitExceededRejection(
                 tenantId, "entries", entries, ProjectionSnapshotLimits.Default.MaxEntries)]);
+        }
+
+        if (state.Users.Any(static member => string.IsNullOrWhiteSpace(member.Key) || !IsAssignableRole(member.Value)))
+        {
+            return DomainResult.Rejection([new TenantAccessStateMalformedRejection(tenantId, "members")]);
+        }
+
+        if (state.Configuration.Keys.Any(string.IsNullOrWhiteSpace))
+        {
+            return DomainResult.Rejection([new TenantAccessStateMalformedRejection(tenantId, "configurationKeys")]);
         }
 
         // Validate the bounded view before sorting keys: oversized historical identifiers
@@ -308,7 +333,7 @@ public class TenantAggregate : EventStoreAggregate<TenantState> {
         => role is TenantRole.TenantOwner or TenantRole.TenantContributor or TenantRole.TenantReader;
 
     private static bool IsAuthorized(TenantState state, string actorUserId, TenantRole minimumRole)
-        => state.Users.TryGetValue(actorUserId, out TenantRole actorRole) && MeetsMinimumRole(actorRole, minimumRole);
+        => state.Users is not null && state.Users.TryGetValue(actorUserId, out TenantRole actorRole) && MeetsMinimumRole(actorRole, minimumRole);
 
     private static DomainResult GlobalAdminRequired(
         string tenantId,
@@ -322,7 +347,7 @@ public class TenantAggregate : EventStoreAggregate<TenantState> {
             commandName)]);
 
     private static TenantRole? GetActorRole(TenantState? state, string actorUserId)
-        => state is not null && state.Users.TryGetValue(actorUserId, out TenantRole role) ? role : null;
+        => state?.Users is not null && state.Users.TryGetValue(actorUserId, out TenantRole role) ? role : null;
 
     /// <summary>
     /// Checks if the actor's role meets or exceeds the minimum required role.

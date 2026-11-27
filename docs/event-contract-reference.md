@@ -66,7 +66,11 @@ business-state checkpoint so delayed membership revocations remain applicable. P
 EventStore's reusable snapshot budget allows at most 4096 combined member/key entries and 262144
 UTF-8 JSON bytes. Rejection emits only `TenantAccessSnapshotLimitExceededRejection`, with `TenantId`,
 `Limit` (`entries` or `serialized-bytes`), `Actual` (an observed cost, possibly a lower bound), and
-`Maximum`. No partial access snapshot is emitted and replay changes no business state.
+`Maximum`. If authoritative historical tenant state contains a malformed `Status` (other than
+`Active` or `Disabled`), a blank member key or non-assignable member role, or a blank configuration
+key, recovery fails closed and emits only `TenantAccessStateMalformedRejection`, with `TenantId` and
+`Field` (`status`, `members`, or `configurationKeys`). No partial access snapshot or raw secret value
+is emitted and replay changes no business state.
 
 Use one fresh operation/message ID for a recovery and reuse that ID across all retries of that
 operation. A later recovery requires a new ID, including after a subscriber marker survived a lost
@@ -117,7 +121,7 @@ The package also declares the Hexalith McpCli module `tenants` (String identifie
 | `UpdateTenant` | `Hexalith.Tenants.Contracts` | `TenantAggregate` / `tenants` | `TenantId`, `Name`, `Description?` | Tenant contributor/owner or trusted global administrator | `TenantUpdated`; `TenantNotFoundRejection`, `TenantDisabledRejection`, `InsufficientPermissionsRejection` |
 | `DisableTenant` | `Hexalith.Tenants.Contracts` | `TenantAggregate` / `tenants` | `TenantId` | Trusted global administrator | `TenantDisabled`; `TenantNotFoundRejection`, `TenantLifecycleStateAlreadySetRejection`, `InsufficientPermissionsRejection` |
 | `EnableTenant` | `Hexalith.Tenants.Contracts` | `TenantAggregate` / `tenants` | `TenantId` | Trusted global administrator | `TenantEnabled`; `TenantNotFoundRejection`, `TenantLifecycleStateAlreadySetRejection`, `InsufficientPermissionsRejection` |
-| `RefreshTenantAccess` | `Hexalith.Tenants.Contracts` | `TenantAggregate` / `tenants` | `TenantId` | Current tenant owner or verified global administrator, including disabled tenants | `TenantAccessRefreshed`; `TenantNotFoundRejection`, `InsufficientPermissionsRejection`, `TenantAccessSnapshotLimitExceededRejection` |
+| `RefreshTenantAccess` | `Hexalith.Tenants.Contracts` | `TenantAggregate` / `tenants` | `TenantId` | Current tenant owner or verified global administrator, including disabled tenants | `TenantAccessRefreshed`; `TenantNotFoundRejection`, `InsufficientPermissionsRejection`, `TenantAccessSnapshotLimitExceededRejection`, `TenantAccessStateMalformedRejection` |
 | `AddUserToTenant` | `Hexalith.Tenants.Contracts` | `TenantAggregate` / `tenants` | `TenantId`, `UserId`, `Role` | Tenant owner or trusted global administrator; first tenant member bootstrap is allowed | `UserAddedToTenant`; `TenantNotFoundRejection`, `TenantDisabledRejection`, `UserAlreadyInTenantRejection`, `RoleEscalationRejection`, `InsufficientPermissionsRejection` |
 | `RemoveUserFromTenant` | `Hexalith.Tenants.Contracts` | `TenantAggregate` / `tenants` | `TenantId`, `UserId` | Tenant owner or trusted global administrator | `UserRemovedFromTenant`; `TenantNotFoundRejection`, `TenantDisabledRejection`, `UserNotInTenantRejection`, `InsufficientPermissionsRejection` |
 | `ChangeUserRole` | `Hexalith.Tenants.Contracts` | `TenantAggregate` / `tenants` | `TenantId`, `UserId`, `NewRole` | Tenant owner or trusted global administrator | `UserRoleChanged`; `TenantNotFoundRejection`, `TenantDisabledRejection`, `UserNotInTenantRejection`, `RoleEscalationRejection`, `InsufficientPermissionsRejection` |
@@ -824,6 +828,7 @@ Rejection events are produced when a command violates a business rule. All rejec
 | `InsufficientPermissionsRejection`             | `TenantId`, `ActorUserId`, `ActorRole?`, `CommandName`        | 422         | Review the rejection detail, correct the request, and retry when appropriate.                    |
 | `ConfigurationLimitExceededRejection`          | `TenantId`, `LimitType`, `CurrentCount`, `MaxAllowed`         | 422         | Review the rejection detail, correct the request, and retry when appropriate.                    |
 | `TenantAccessSnapshotLimitExceededRejection` | `TenantId`, `Limit`, `Actual`, `Maximum` | 422 | Reduce source access snapshot size before starting a fresh recovery. |
+| `TenantAccessStateMalformedRejection` | `TenantId`, `Field` | 422 | Remediate malformed historical tenant access state before starting a fresh recovery. |
 | `ConfigurationKeyNotFoundRejection`            | `TenantId`, `Key`                                             | 404         | Verify the configuration key and tenant context, then retry with an existing key.                |
 
 <details>

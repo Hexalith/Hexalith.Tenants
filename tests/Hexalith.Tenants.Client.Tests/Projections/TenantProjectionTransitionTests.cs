@@ -130,6 +130,7 @@ public sealed class TenantProjectionTransitionTests {
             new RoleEscalationRejection(Tenant, "user-1", TenantRole.TenantOwner),
             new SyntheticTenantIdInvalidRejection(Tenant),
             new TenantAccessSnapshotLimitExceededRejection(Tenant, "members", 101, 100),
+            new TenantAccessStateMalformedRejection(Tenant, "status"),
             new TenantAlreadyExistsRejection(Tenant),
             new TenantDisabledRejection(Tenant),
             new TenantLifecycleStateAlreadySetRejection(Tenant, TenantStatus.Active, TenantStatus.Active, "EnableTenant"),

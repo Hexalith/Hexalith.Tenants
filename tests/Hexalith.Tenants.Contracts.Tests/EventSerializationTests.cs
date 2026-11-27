@@ -86,6 +86,17 @@ public class EventSerializationTests {
         propertyNames.ShouldBe(["CurrentCount", "LimitType", "MaxAllowed", "TenantId"]);
     }
 
+    [Fact]
+    public void TenantAccessStateMalformedRejection_payload_contains_only_structured_support_safe_fields() {
+        string[] propertyNames = typeof(TenantAccessStateMalformedRejection)
+            .GetProperties(BindingFlags.Instance | BindingFlags.Public)
+            .Select(p => p.Name)
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+
+        propertyNames.ShouldBe(["Field", "TenantId"]);
+    }
+
     private static IEventPayload CreateTestInstance(Type eventType) {
         ConstructorInfo? ctor = eventType.GetConstructors().FirstOrDefault();
         _ = ctor.ShouldNotBeNull($"Type {eventType.Name} has no public constructor");

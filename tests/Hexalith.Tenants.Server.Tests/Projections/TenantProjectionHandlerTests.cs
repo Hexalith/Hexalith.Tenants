@@ -907,6 +907,27 @@ public partial class TenantProjectionHandlerTests {
     }
 
     [Theory]
+    [InlineData("status", true)]
+    [InlineData("members", true)]
+    [InlineData("configurationKeys", true)]
+    [InlineData(" ", false)]
+    public async Task ProjectAsync_RecoveryMalformedStateRejectionCertifiesCompleteHistoryOnlyWhenPayloadIsWellFormedAsync(string field, bool complete)
+    {
+        ProjectionEventDto rejection = CreateEvent(
+            new TenantAccessStateMalformedRejection("tenant-1", field),
+            "evt-malformed-rejection",
+            ProjectionTime.AddMinutes(1),
+            sequenceNumber: 2);
+        var store = AuditAuthorityStore();
+
+        _ = await CreateHandler(store).ProjectAsync(new("tenant-1", "tenants", "tenant-1", [CanonicalAuditHistory()[0], rejection]));
+
+        TenantAuditReadModel audit = SavedAudit(store);
+        audit.ProjectionVersion.ShouldBe(complete ? "tenant-sequence:2" : null);
+        audit.Entries.Select(row => row.EventId).ShouldBe(["evt-created"]);
+    }
+
+    [Theory]
     [InlineData("null")]
     [InlineData("gap")]
     [InlineData("unknown")]

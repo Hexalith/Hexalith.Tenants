@@ -225,6 +225,126 @@ public sealed class TenantAccessRecoveryTests
         JsonSerializer.Serialize(state).ShouldBe(before);
     }
 
+    [Theory]
+    [InlineData(TenantStatus.Unknown)]
+    [InlineData((TenantStatus)99)]
+    public async Task MalformedHistoricalStatusRejectsWithoutEmittingSnapshot(TenantStatus malformedStatus)
+    {
+        TenantState state = State(malformedStatus);
+        string before = JsonSerializer.Serialize(state);
+
+        var result = await new TenantAggregate().ProcessAsync(Envelope("owner"), state);
+
+        result.IsRejection.ShouldBeTrue();
+        TenantAccessStateMalformedRejection rejection = result.Events.ShouldHaveSingleItem()
+            .ShouldBeOfType<TenantAccessStateMalformedRejection>();
+        rejection.TenantId.ShouldBe("acme");
+        rejection.Field.ShouldBe("status");
+        JsonSerializer.Serialize(rejection).ShouldNotContain("secret-value");
+        state.Apply(rejection);
+        JsonSerializer.Serialize(state).ShouldBe(before);
+    }
+
+    [Theory]
+    [InlineData("empty-key")]
+    [InlineData("whitespace-key")]
+    [InlineData("unknown-role")]
+    [InlineData("undefined-role")]
+    [InlineData("null-users")]
+    public async Task MalformedHistoricalMembersRejectWithoutEmittingSnapshotOrLeakingRawKeys(string shape)
+    {
+        TenantState state = State();
+        bool useGlobalAdmin = false;
+        switch (shape)
+        {
+            case "empty-key":
+                state.Users[string.Empty] = TenantRole.TenantReader;
+                break;
+            case "whitespace-key":
+                state.Users["   "] = TenantRole.TenantReader;
+                break;
+            case "unknown-role":
+                state.Users["corrupt-member-key"] = TenantRole.Unknown;
+                break;
+            case "undefined-role":
+                state.Users["corrupt-member-key"] = (TenantRole)99;
+                break;
+            case "null-users":
+                state.Users = null!;
+                useGlobalAdmin = true;
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(shape));
+        }
+
+        string before = JsonSerializer.Serialize(state);
+
+        var result = await new TenantAggregate().ProcessAsync(
+            Envelope(useGlobalAdmin ? "administrator" : "owner", hint: useGlobalAdmin),
+            state);
+
+        result.IsRejection.ShouldBeTrue();
+        TenantAccessStateMalformedRejection rejection = result.Events.ShouldHaveSingleItem()
+            .ShouldBeOfType<TenantAccessStateMalformedRejection>();
+        rejection.TenantId.ShouldBe("acme");
+        rejection.Field.ShouldBe("members");
+        string serialized = JsonSerializer.Serialize(rejection);
+        serialized.ShouldNotContain("corrupt-member-key");
+        serialized.ShouldNotContain("secret-value");
+        state.Apply(rejection);
+        JsonSerializer.Serialize(state).ShouldBe(before);
+    }
+
+    [Theory]
+    [InlineData("empty-key")]
+    [InlineData("whitespace-key")]
+    [InlineData("null-configuration")]
+    public async Task MalformedHistoricalConfigurationKeysRejectWithoutEmittingSnapshotOrLeakingSecrets(string shape)
+    {
+        TenantState state = State();
+        switch (shape)
+        {
+            case "empty-key":
+                state.Configuration[string.Empty] = "top-secret-config-value";
+                break;
+            case "whitespace-key":
+                state.Configuration[" \t "] = "top-secret-config-value";
+                break;
+            case "null-configuration":
+                state.Configuration = null!;
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(shape));
+        }
+
+        string before = JsonSerializer.Serialize(state);
+
+        var result = await new TenantAggregate().ProcessAsync(Envelope("owner"), state);
+
+        result.IsRejection.ShouldBeTrue();
+        TenantAccessStateMalformedRejection rejection = result.Events.ShouldHaveSingleItem()
+            .ShouldBeOfType<TenantAccessStateMalformedRejection>();
+        rejection.TenantId.ShouldBe("acme");
+        rejection.Field.ShouldBe("configurationKeys");
+        string serialized = JsonSerializer.Serialize(rejection);
+        serialized.ShouldNotContain("top-secret-config-value");
+        serialized.ShouldNotContain("secret-value");
+        state.Apply(rejection);
+        JsonSerializer.Serialize(state).ShouldBe(before);
+    }
+
+    [Fact]
+    public async Task UnprivilegedCallerStillReceivesInsufficientPermissionsEvenOnMalformedState()
+    {
+        TenantState state = State(TenantStatus.Unknown);
+        state.Users = null!;
+
+        var result = await new TenantAggregate().ProcessAsync(Envelope("reader"), state);
+
+        result.IsRejection.ShouldBeTrue();
+        result.Events.ShouldHaveSingleItem().ShouldBeOfType<InsufficientPermissionsRejection>().TenantId.ShouldBe("acme");
+    }
+
     private static TenantState State(TenantStatus status = TenantStatus.Active)
         => new()
         {
