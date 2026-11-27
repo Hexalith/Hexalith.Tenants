@@ -31,11 +31,12 @@ internal sealed class TenantConfigurationPrincipalResolver(
             provider = circuitServices?.GetService(typeof(AuthenticationStateProvider))
                 as AuthenticationStateProvider;
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException exception) when (!TenantWorkspaceReadDiagnostics.IsFatal(exception)
+            && cancellationToken.IsCancellationRequested)
         {
             throw;
         }
-        catch
+        catch (Exception exception) when (!TenantWorkspaceReadDiagnostics.IsFatal(exception))
         {
             // A disposed circuit scope or a service-provider lookup fault is missing identity evidence,
             // never permission to fall through to another principal source.
@@ -72,10 +73,11 @@ internal sealed class TenantConfigurationPrincipalResolver(
         int authenticationChanged = 0;
         void OnAuthenticationChanged(Task<AuthenticationState> _) => Interlocked.Exchange(ref authenticationChanged, 1);
         provider.AuthenticationStateChanged += OnAuthenticationChanged;
+        Task<AuthenticationState>? authenticationStateTask = null;
         try
         {
-            AuthenticationState state = await provider
-                .GetAuthenticationStateAsync()
+            authenticationStateTask = provider.GetAuthenticationStateAsync();
+            AuthenticationState state = await authenticationStateTask
                 .WaitAsync(cancellationToken)
                 .ConfigureAwait(false);
             if (Volatile.Read(ref authenticationChanged) != 0)
@@ -98,17 +100,45 @@ internal sealed class TenantConfigurationPrincipalResolver(
                 corroboratedSubject,
                 requireCorroboration: true);
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException exception) when (!TenantWorkspaceReadDiagnostics.IsFatal(exception)
+            && cancellationToken.IsCancellationRequested)
         {
+            ObserveAbandonedFault(authenticationStateTask);
             throw;
         }
-        catch
+        catch (Exception exception) when (!TenantWorkspaceReadDiagnostics.IsFatal(exception))
         {
+            ObserveAbandonedFault(authenticationStateTask);
             return TenantConfigurationPrincipalEvidence.Indeterminate();
         }
         finally
         {
             provider.AuthenticationStateChanged -= OnAuthenticationChanged;
         }
+    }
+
+    private static void ObserveAbandonedFault(Task? task)
+    {
+        if (task is null || task.IsCompletedSuccessfully)
+        {
+            return;
+        }
+
+        // An uncooperative authentication provider may ignore caller cancellation and fault later.
+        // Observe any late fault before checking fatal completions or unwinding.
+        if (task.IsFaulted)
+        {
+            _ = task.Exception;
+        }
+        else if (!task.IsCompleted)
+        {
+            _ = task.ContinueWith(
+                static faultedTask => _ = faultedTask.Exception,
+                CancellationToken.None,
+                TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
+                TaskScheduler.Default);
+        }
+
+        TenantWorkspaceReadDiagnostics.ThrowIfFatal(task);
     }
 }

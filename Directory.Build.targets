@@ -1,5 +1,8 @@
 <Project>
-  <!-- Normalize only qualified stable binaries; metadata suffixes do not change their API. -->
+  <!-- Normalize only qualified stable binaries for catalog SDK selection and historical archive checks;
+       metadata suffixes do not change their API. Current canonical package production
+       (ValidateCanonicalBoundaryPackageCohort) intentionally requires exact 3-part canonical SemVer
+       literals with no .0 fourth-revision or +metadata aliases. -->
   <PropertyGroup>
     <_TenantsNestedReferenceRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)references/'))</_TenantsNestedReferenceRoot>
     <HexalithTenantsCatalogArtifactsAvailable>false</HexalithTenantsCatalogArtifactsAvailable>
@@ -39,13 +42,16 @@
   </Target>
 
   <!-- Every current Tenants archive and the domain host must retain the coordinated major-version cohort,
-       including packing without a build against a DLL produced with different global properties. -->
+       including packing without a build against a DLL produced with different global properties.
+       Canonical package production requires exact 3-part canonical SemVer literals (no .0 fourth-revision
+       or +metadata aliases), aligning with Directory.Build.props, McpCli.Abstractions 3.0.0, and
+       Hexalith.Builds ValidateHexalithEventStoreReferences. -->
   <Target Name="ValidateCanonicalBoundaryPackageCohort" BeforeTargets="CollectPackageReferences;PrepareForBuild;GenerateNuspec;BuildOnlySettings;Publish;ComputeContainerBaseImage;ComputeContainerConfig;PublishContainer"
           Condition="'$(MSBuildProjectName)' == 'Hexalith.Tenants' or '$(MSBuildProjectName)' == 'Hexalith.Tenants.Contracts' or '$(MSBuildProjectName)' == 'Hexalith.Tenants.Server' or '$(MSBuildProjectName)' == 'Hexalith.Tenants.Client' or '$(MSBuildProjectName)' == 'Hexalith.Tenants.Testing' or '$(MSBuildProjectName)' == 'Hexalith.Tenants.Aspire'">
     <Error Condition="!('$(HexalithEventStoreVersion)' != '' and '$(HexalithEventStoreVersion)' == '$(HexalithCatalogEventStoreVersion)') and '$(HexalithEventStoreFromSource)' != 'true' and '$(HexalithEventStoreVersion)' != '5.3.0' and '$(HexalithEventStoreVersion)' != '5.3.1' and '$(HexalithEventStoreVersion)' != '5.4.0' and '$(HexalithEventStoreVersion)' != '5.5.1' and '$(HexalithEventStoreVersion)' != '5.5.2' and '$(HexalithEventStoreVersion)' != '5.6.0'"
-           Text="Current Tenants packages require EventStore 5.3.0, 5.3.1, 5.4.0, 5.5.1, 5.5.2 or 5.6.0 in package mode for tenant-access recovery. Historical archive admission does not qualify current package production." />
+           Text="Current Tenants packages require EventStore 5.3.0, 5.3.1, 5.4.0, 5.5.1, 5.5.2 or 5.6.0 as an exact 3-part canonical SemVer literal in package mode for tenant-access recovery (.0 fourth-revision and +metadata aliases are rejected). Historical archive admission does not qualify current package production." />
     <Error Condition="'$(HexalithMcpCliFromSource)' != 'true' and '$(HexalithMcpCliVersion)' != '3.0.0'"
-           Text="Canonical Tenants packages require McpCli.Abstractions 3.0.0 in package mode." />
+           Text="Canonical Tenants packages require McpCli.Abstractions 3.0.0 as an exact 3-part canonical SemVer literal in package mode (.0 fourth-revision and +metadata aliases are rejected)." />
   </Target>
 
   <!-- Foreign repositories can inherit this targets file while generating their own packages. -->

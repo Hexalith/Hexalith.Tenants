@@ -249,6 +249,229 @@ class CatalogPackageMetadataTests(unittest.TestCase):
         self.reject(contracts={'sdk': '5.0.1'}, server={'sdk': '4.2.0'}, message='qualified stable cohort')
         self.reject(contracts={'sdk': '4.2.0'}, server={'sdk': '5.0.1'}, message='qualified stable cohort')
 
+    def write_local_candidate(self, root, package_id, version, filename=None, content=b'local candidate payload'):
+        package = ET.Element('package')
+        metadata = ET.SubElement(package, 'metadata')
+        ET.SubElement(metadata, 'id').text = package_id
+        ET.SubElement(metadata, 'version').text = version
+        target = root / (filename or (package_id + '.' + version + '.nupkg'))
+        with zipfile.ZipFile(target, 'w') as archive:
+            archive.writestr(package_id + '.nuspec', ET.tostring(package))
+            archive.writestr('lib/net11.0/' + package_id + '.dll', content)
+        return target
+
+    def test_lowercased_local_candidates_emit_canonical_source_mapping_and_bind_bytes(self):
+        for restored_eventstore_id, restored_mcp_id in (
+                ('hexalith.eventstore.contracts', 'hexalith.mcpcli.abstractions'),
+                ('Hexalith.EventStore.Contracts', 'Hexalith.McpCli.Abstractions')):
+            with self.subTest(eventstore_id=restored_eventstore_id, mcp_id=restored_mcp_id), \
+                    tempfile.TemporaryDirectory(prefix='tenants-catalog-candidate-casing-') as temporary:
+                root = Path(temporary)
+                for package_id in CONSUMER.IDS:
+                    self.write_package(root, package_id, sdk='5.6.0', mcp='3.0.0')
+                sdk_archive = self.write_local_candidate(root, 'hexalith.eventstore.contracts', '5.6.0', content=b'sdk bytes')
+                mcp_archive = self.write_local_candidate(root, 'hexalith.mcpcli.abstractions', '3.0.0', content=b'mcp bytes')
+
+                def restore(arguments, **kwargs):
+                    if arguments[:2] == ['dotnet', 'build']:
+                        raise InterruptedError('Verified build boundary')
+                    self.assertEqual(arguments[:2], ['dotnet', 'restore'])
+                    config = ET.parse(arguments[arguments.index('--configfile') + 1])
+                    packed_patterns = {
+                        item.get('pattern')
+                        for item in config.findall('.//packageSourceMapping/packageSource[@key="packed"]/package')
+                    }
+                    self.assertEqual(
+                        packed_patterns,
+                        {'Hexalith.Tenants.Contracts', 'Hexalith.Tenants.Server', 'Hexalith.EventStore.*', 'Hexalith.McpCli.*'},
+                    )
+                    consumer_root = Path(arguments[2]).parent
+                    (consumer_root / 'obj').mkdir()
+                    libraries = {
+                        restored_eventstore_id + '/5.6.0': {'type': 'package'},
+                        restored_mcp_id + '/3.0.0': {'type': 'package'},
+                    }
+                    for package_id in CONSUMER.IDS:
+                        libraries[package_id + '/7.0.0'] = {'type': 'package'}
+                        destination = consumer_root / 'packages' / package_id.lower() / '7.0.0' / (package_id.lower() + '.7.0.0.nupkg')
+                        destination.parent.mkdir(parents=True)
+                        shutil.copyfile(root / (package_id + '.7.0.0.nupkg'), destination)
+                    for restored_id, version, source_archive in (
+                            (restored_eventstore_id, '5.6.0', sdk_archive),
+                            (restored_mcp_id, '3.0.0', mcp_archive)):
+                        destination = (consumer_root / 'packages' / restored_id.lower() / version.lower()
+                                       / (restored_id.lower() + '.' + version.lower() + '.nupkg'))
+                        destination.parent.mkdir(parents=True)
+                        shutil.copyfile(source_archive, destination)
+                    (consumer_root / 'obj/project.assets.json').write_text(json.dumps({'libraries': libraries}))
+
+                with patch.object(CONSUMER.subprocess, 'run', side_effect=restore) as run:
+                    with self.assertRaisesRegex(InterruptedError, 'Verified build boundary'):
+                        CONSUMER.verify(root, 'a' * 40)
+                    self.assertEqual(run.call_count, 2)
+
+    def test_lowercased_local_candidate_tampered_bytes_rejected_before_build(self):
+        for tampered_target in ('eventstore', 'mcpcli'):
+            with self.subTest(tampered_target=tampered_target), \
+                    tempfile.TemporaryDirectory(prefix='tenants-catalog-candidate-tamper-') as temporary:
+                root = Path(temporary)
+                for package_id in CONSUMER.IDS:
+                    self.write_package(root, package_id, sdk='5.6.0', mcp='3.0.0')
+                sdk_archive = self.write_local_candidate(root, 'hexalith.eventstore.contracts', '5.6.0', content=b'expected sdk')
+                mcp_archive = self.write_local_candidate(root, 'hexalith.mcpcli.abstractions', '3.0.0', content=b'expected mcp')
+
+                def restore(arguments, **kwargs):
+                    self.assertEqual(arguments[:2], ['dotnet', 'restore'])
+                    consumer_root = Path(arguments[2]).parent
+                    (consumer_root / 'obj').mkdir()
+                    libraries = {
+                        'hexalith.eventstore.contracts/5.6.0': {'type': 'package'},
+                        'hexalith.mcpcli.abstractions/3.0.0': {'type': 'package'},
+                    }
+                    for package_id in CONSUMER.IDS:
+                        libraries[package_id + '/7.0.0'] = {'type': 'package'}
+                        destination = consumer_root / 'packages' / package_id.lower() / '7.0.0' / (package_id.lower() + '.7.0.0.nupkg')
+                        destination.parent.mkdir(parents=True)
+                        shutil.copyfile(root / (package_id + '.7.0.0.nupkg'), destination)
+                    for key_name, restored_id, version, source_archive in (
+                            ('eventstore', 'hexalith.eventstore.contracts', '5.6.0', sdk_archive),
+                            ('mcpcli', 'hexalith.mcpcli.abstractions', '3.0.0', mcp_archive)):
+                        destination = (consumer_root / 'packages' / restored_id.lower() / version.lower()
+                                       / (restored_id.lower() + '.' + version.lower() + '.nupkg'))
+                        destination.parent.mkdir(parents=True)
+                        if key_name == tampered_target:
+                            destination.write_bytes(b'tampered archive bytes')
+                        else:
+                            shutil.copyfile(source_archive, destination)
+                    (consumer_root / 'obj/project.assets.json').write_text(json.dumps({'libraries': libraries}))
+
+                with patch.object(CONSUMER.subprocess, 'run', side_effect=restore) as run:
+                    with self.assertRaisesRegex(ValueError, 'Restored dependency differs from the local candidate bytes'):
+                        CONSUMER.verify(root, 'a' * 40)
+                    run.assert_called_once()
+
+    def test_mixed_case_duplicate_local_candidates_rejected_before_restore(self):
+        for canonical_id, lowercased_id, version in (
+                ('Hexalith.EventStore.Contracts', 'hexalith.eventstore.contracts', '5.6.0'),
+                ('Hexalith.McpCli.Abstractions', 'hexalith.mcpcli.abstractions', '3.0.0')):
+            with self.subTest(canonical_id=canonical_id), \
+                    tempfile.TemporaryDirectory(prefix='tenants-catalog-candidate-dup-') as temporary:
+                root = Path(temporary)
+                for package_id in CONSUMER.IDS:
+                    self.write_package(root, package_id, sdk='5.6.0', mcp='3.0.0')
+                self.write_local_candidate(root, canonical_id, version, filename='candidate-canonical.nupkg')
+                self.write_local_candidate(root, lowercased_id, version, filename='candidate-lowercased.nupkg')
+                with patch.object(CONSUMER.subprocess, 'run', side_effect=AssertionError('Duplicate candidate reached restore')) as run:
+                    with self.assertRaisesRegex(ValueError, 'Duplicate local dependency candidate'):
+                        CONSUMER.verify(root, 'a' * 40)
+                    run.assert_not_called()
+
+    def test_lowercased_wrong_cohort_local_candidates_rejected_before_restore(self):
+        for candidate_id, wrong_version, message in (
+                ('hexalith.eventstore.contracts', '5.5.2', 'Local SDK candidate differs from the catalog dependency cohort'),
+                ('hexalith.mcpcli.abstractions', '2.0.2', 'Local McpCli candidate differs from the catalog dependency cohort')):
+            with self.subTest(candidate_id=candidate_id, wrong_version=wrong_version), \
+                    tempfile.TemporaryDirectory(prefix='tenants-catalog-candidate-cohort-') as temporary:
+                root = Path(temporary)
+                for package_id in CONSUMER.IDS:
+                    self.write_package(root, package_id, sdk='5.6.0', mcp='3.0.0')
+                self.write_local_candidate(root, candidate_id, wrong_version)
+                with patch.object(CONSUMER.subprocess, 'run', side_effect=AssertionError('Wrong-cohort candidate reached restore')) as run:
+                    with self.assertRaisesRegex(ValueError, message):
+                        CONSUMER.verify(root, 'a' * 40)
+                    run.assert_not_called()
+
+    def test_missing_local_candidate_for_restored_package_rejected_before_build(self):
+        for present_id, present_version, extra_restored_key in (
+                ('hexalith.eventstore.contracts', '5.6.0', 'hexalith.eventstore.domainservice/5.6.0'),
+                ('hexalith.mcpcli.abstractions', '3.0.0', 'hexalith.mcpcli.extra/3.0.0')):
+            with self.subTest(extra_restored_key=extra_restored_key), \
+                    tempfile.TemporaryDirectory(prefix='tenants-catalog-candidate-missing-') as temporary:
+                root = Path(temporary)
+                for package_id in CONSUMER.IDS:
+                    self.write_package(root, package_id, sdk='5.6.0', mcp='3.0.0')
+                present_archive = self.write_local_candidate(root, present_id, present_version)
+
+                def restore(arguments, **kwargs):
+                    self.assertEqual(arguments[:2], ['dotnet', 'restore'])
+                    consumer_root = Path(arguments[2]).parent
+                    (consumer_root / 'obj').mkdir()
+                    libraries = {
+                        'Hexalith.McpCli.Abstractions/3.0.0': {'type': 'package'},
+                        present_id + '/' + present_version: {'type': 'package'},
+                        extra_restored_key: {'type': 'package'},
+                    }
+                    if present_id == 'hexalith.mcpcli.abstractions':
+                        libraries.pop('Hexalith.McpCli.Abstractions/3.0.0')
+                    for package_id in CONSUMER.IDS:
+                        libraries[package_id + '/7.0.0'] = {'type': 'package'}
+                        destination = consumer_root / 'packages' / package_id.lower() / '7.0.0' / (package_id.lower() + '.7.0.0.nupkg')
+                        destination.parent.mkdir(parents=True)
+                        shutil.copyfile(root / (package_id + '.7.0.0.nupkg'), destination)
+                    destination = (consumer_root / 'packages' / present_id.lower() / present_version.lower()
+                                   / (present_id.lower() + '.' + present_version.lower() + '.nupkg'))
+                    destination.parent.mkdir(parents=True)
+                    shutil.copyfile(present_archive, destination)
+                    (consumer_root / 'obj/project.assets.json').write_text(json.dumps({'libraries': libraries}))
+
+                with patch.object(CONSUMER.subprocess, 'run', side_effect=restore) as run:
+                    with self.assertRaisesRegex(ValueError, 'local dependency candidate was missing'):
+                        CONSUMER.verify(root, 'a' * 40)
+                    run.assert_called_once()
+
+    def test_restored_mcpcli_without_local_candidates_checks_casing_and_other_mcpcli_packages(self):
+        cases = (
+            ('lowercased_abstractions_passes', {'hexalith.mcpcli.abstractions/3.0.0': {'type': 'package'}}, True),
+            ('wrong_version_extra_rejected', {
+                'hexalith.mcpcli.abstractions/3.0.0': {'type': 'package'},
+                'hexalith.mcpcli.extra/2.0.2': {'type': 'package'},
+            }, False),
+            ('project_extra_rejected', {
+                'hexalith.mcpcli.abstractions/3.0.0': {'type': 'package'},
+                'hexalith.mcpcli.extra/3.0.0': {'type': 'project'},
+            }, False),
+        )
+        for label, mcp_libraries, accepted in cases:
+            with self.subTest(case=label), tempfile.TemporaryDirectory(prefix='tenants-catalog-mcp-public-') as temporary:
+                root = Path(temporary)
+                for package_id in CONSUMER.IDS:
+                    self.write_package(root, package_id, sdk='5.6.0', mcp='3.0.0')
+
+                def restore(arguments, **kwargs):
+                    if arguments[:2] == ['dotnet', 'build']:
+                        raise InterruptedError('Verified build boundary')
+                    self.assertEqual(arguments[:2], ['dotnet', 'restore'])
+                    consumer_root = Path(arguments[2]).parent
+                    (consumer_root / 'obj').mkdir()
+                    libraries = dict(mcp_libraries)
+                    for package_id in CONSUMER.IDS:
+                        libraries[package_id + '/7.0.0'] = {'type': 'package'}
+                        destination = consumer_root / 'packages' / package_id.lower() / '7.0.0' / (package_id.lower() + '.7.0.0.nupkg')
+                        destination.parent.mkdir(parents=True)
+                        shutil.copyfile(root / (package_id + '.7.0.0.nupkg'), destination)
+                    (consumer_root / 'obj/project.assets.json').write_text(json.dumps({'libraries': libraries}))
+
+                with patch.object(CONSUMER.subprocess, 'run', side_effect=restore) as run:
+                    if accepted:
+                        with self.assertRaisesRegex(InterruptedError, 'Verified build boundary'):
+                            CONSUMER.verify(root, 'a' * 40)
+                        self.assertEqual(run.call_count, 2)
+                    else:
+                        with self.assertRaisesRegex(ValueError, 'Restored McpCli dependency differs'):
+                            CONSUMER.verify(root, 'a' * 40)
+                        run.assert_called_once()
+
+        with tempfile.TemporaryDirectory(prefix='tenants-catalog-malformed-candidate-') as temporary:
+            root = Path(temporary)
+            for package_id in CONSUMER.IDS:
+                self.write_package(root, package_id, sdk='5.6.0', mcp='3.0.0')
+            with zipfile.ZipFile(root / 'malformed.nupkg', 'w') as archive:
+                archive.writestr('malformed.nuspec', b'<package />')
+            with patch.object(CONSUMER.subprocess, 'run', side_effect=AssertionError('Malformed candidate reached restore')) as run:
+                with self.assertRaisesRegex(ValueError, 'has no package metadata'):
+                    CONSUMER.verify(root, 'a' * 40)
+                run.assert_not_called()
+
     def reject(self, server, message, contracts=None):
         with tempfile.TemporaryDirectory(prefix='tenants-catalog-metadata-') as temporary:
             root = Path(temporary)

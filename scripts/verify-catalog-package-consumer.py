@@ -38,6 +38,8 @@ def verify(directory, expected_source=None, output=None, target_framework="net11
             if len(names) != 1:
                 raise ValueError('A single package specification is required.')
             metadata = ET.fromstring(archive.read(names[0])).find('{*}metadata')
+            if metadata is None:
+                raise ValueError('Package specification has no package metadata.')
             package_id = metadata.findtext('{*}id')
             if package_id not in IDS:
                 continue
@@ -95,18 +97,25 @@ def verify(directory, expected_source=None, output=None, target_framework="net11
             if len(names) != 1:
                 raise ValueError('A single package specification is required.')
             metadata = ET.fromstring(archive.read(names[0])).find('{*}metadata')
-            package_id = metadata.findtext('{*}id')
-            package_version = metadata.findtext('{*}version')
+            if metadata is None:
+                raise ValueError('Local dependency candidate has no package metadata.')
+            package_id = (metadata.findtext('{*}id') or '').strip()
+            package_version = (metadata.findtext('{*}version') or '').strip()
             if not package_id or not package_version:
                 raise ValueError('Local dependency candidate has no package identity or version.')
-            prefix = next((value for value in ('Hexalith.EventStore.', 'Hexalith.McpCli.') if package_id.startswith(value)), None)
+            folded_id = package_id.casefold()
+            folded_version = package_version.casefold()
+            prefix = next((value for value in ('Hexalith.EventStore.', 'Hexalith.McpCli.')
+                           if folded_id.startswith(value.casefold())), None)
             if prefix is None:
                 continue
-            if prefix == 'Hexalith.EventStore.' and package_version != sdk:
+            if prefix == 'Hexalith.EventStore.' and folded_version != sdk.casefold():
                 raise ValueError('Local SDK candidate differs from the catalog dependency cohort.')
-            key = package_id + '/' + package_version
+            if prefix == 'Hexalith.McpCli.' and folded_version != mcp.casefold():
+                raise ValueError('Local McpCli candidate differs from the catalog dependency cohort.')
+            key = folded_id + '/' + folded_version
             if key in candidate_archives:
-                raise ValueError('Duplicate local dependency candidate: ' + key)
+                raise ValueError('Duplicate local dependency candidate: ' + package_id + '/' + package_version)
             candidate_archives[key] = path
             candidate_prefixes.add(prefix)
     with tempfile.TemporaryDirectory(prefix='tenants-packed-catalog-consumer-') as temporary:
@@ -147,15 +156,20 @@ def verify(directory, expected_source=None, output=None, target_framework="net11
         subprocess.run(['dotnet', 'restore', str(root / 'Consumer.csproj'), '--configfile', str(root / 'NuGet.Config'),
                         '--packages', str(packages), '--no-cache'], cwd=root, env=environment, check=True, timeout=180)
         assets = json.loads((root / 'obj/project.assets.json').read_text())
-        restored_mcp = {key: library for key, library in assets['libraries'].items()
-                        if key.partition('/')[0].casefold() == 'hexalith.mcpcli.abstractions'}
-        if (len(restored_mcp) != 1 or 'Hexalith.McpCli.Abstractions/' + mcp not in restored_mcp
-                or next(iter(restored_mcp.values()))['type'] != 'package'):
+        restored_mcp = [(key, library) for key, library in assets['libraries'].items()
+                        if key.partition('/')[0].casefold() == 'hexalith.mcpcli.abstractions']
+        if (len(restored_mcp) != 1
+                or restored_mcp[0][0].partition('/')[2].casefold() != mcp.casefold()
+                or restored_mcp[0][1]['type'] != 'package'):
             raise ValueError('Restored McpCli dependency differs from the admitted package cohort.')
         for key, library in assets['libraries'].items():
             package_id, _, package_version = key.partition('/')
-            if package_id.casefold().startswith('hexalith.eventstore.'):
-                if package_version != sdk or library['type'] != 'package':
+            folded_id = package_id.casefold()
+            if folded_id.startswith('hexalith.mcpcli.'):
+                if package_version.casefold() != mcp.casefold() or library['type'] != 'package':
+                    raise ValueError('Restored McpCli dependency differs from the admitted package cohort.')
+            elif folded_id.startswith('hexalith.eventstore.'):
+                if package_version.casefold() != sdk.casefold() or library['type'] != 'package':
                     raise ValueError('Restored EventStore dependency differs from the admitted package cohort.')
         for package_id, record in archives.items():
             key = package_id + '/' + version
@@ -164,13 +178,17 @@ def verify(directory, expected_source=None, output=None, target_framework="net11
             restored = packages / package_id.lower() / version.lower() / (package_id.lower() + '.' + version.lower() + '.nupkg')
             if hashlib.sha256(restored.read_bytes()).hexdigest() != record['sha256']:
                 raise ValueError('Restored catalog archive differs from the actual candidate bytes.')
+        folded_candidate_prefixes = tuple(prefix.casefold() for prefix in candidate_prefixes)
         for key, library in assets['libraries'].items():
-            if not any(key.startswith(prefix) for prefix in candidate_prefixes):
+            package_id, separator, package_version = key.partition('/')
+            folded_id = package_id.casefold()
+            if not any(folded_id.startswith(prefix) for prefix in folded_candidate_prefixes):
                 continue
-            path = candidate_archives.get(key)
+            if not separator or not package_version:
+                raise ValueError('A local dependency candidate was missing from the package-only restore.')
+            path = candidate_archives.get(folded_id + '/' + package_version.casefold())
             if path is None or library['type'] != 'package':
                 raise ValueError('A local dependency candidate was missing from the package-only restore.')
-            package_id, package_version = key.split('/', 1)
             restored = packages / package_id.lower() / package_version.lower() / (package_id.lower() + '.' + package_version.lower() + '.nupkg')
             if hashlib.sha256(restored.read_bytes()).digest() != hashlib.sha256(path.read_bytes()).digest():
                 raise ValueError('Restored dependency differs from the local candidate bytes.')

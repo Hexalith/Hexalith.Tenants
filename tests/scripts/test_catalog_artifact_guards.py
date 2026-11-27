@@ -1,5 +1,6 @@
 """Exercise the ordinary pack lifecycle against real stale and qualified DLLs."""
 
+import json
 import os
 from pathlib import Path
 import shutil
@@ -253,6 +254,115 @@ class CatalogArtifactPackTests(unittest.TestCase):
                         with self.subTest(accepted_host_sdk=sdk, entry=entry, use_published_sdk=use_published_sdk):
                             accepted = evaluate(entry, sdk, use_published_sdk)
                             self.assertEqual(accepted.returncode, 0, accepted.stdout + accepted.stderr)
+
+    def test_canonical_boundary_cohort_enforces_exact_three_part_semver_policy(self):
+        builds = next(path for path in (ROOT / 'references/Hexalith.Builds', ROOT.parent / 'Hexalith.Builds')
+                      if (path / 'Props/Directory.Packages.props').is_file())
+        with tempfile.TemporaryDirectory(prefix='tenants-canonical-alias-policy-') as temporary:
+            parent = Path(temporary)
+            fixture = parent / 'Hexalith.Tenants'
+            fixture.mkdir()
+            shutil.copytree(builds / 'Props', parent / 'Hexalith.Builds/Props')
+            for name in ('Directory.Build.props', 'Directory.Build.targets', 'Directory.Packages.props', 'README.md', 'global.json'):
+                shutil.copyfile(ROOT / name, fixture / name)
+
+            projects = {}
+            for package in PACKAGES:
+                directory = fixture / ('src/Hexalith.Tenants.' + package)
+                directory.mkdir(parents=True)
+                project_path = directory / ('Hexalith.Tenants.' + package + '.csproj')
+                project_path.write_text('<Project Sdk="Microsoft.NET.Sdk" />')
+                projects['Hexalith.Tenants.' + package] = str(project_path.relative_to(fixture))
+
+            host_directory = fixture / 'src/Hexalith.Tenants'
+            host_directory.mkdir(parents=True)
+            shutil.copyfile(ROOT / 'src/Hexalith.Tenants/Hexalith.Tenants.csproj', host_directory / 'Hexalith.Tenants.csproj')
+            projects['Hexalith.Tenants'] = 'src/Hexalith.Tenants/Hexalith.Tenants.csproj'
+
+            environment = os.environ.copy()
+            for key in ('CustomBeforeDirectoryBuildProps', 'CustomAfterMicrosoftCommonProps', 'CustomBeforeDirectoryBuildTargets',
+                        'CustomAfterDirectoryBuildTargets', 'AfterMicrosoftNETSdkTargets', 'HEXALITH_SOURCE_MAPPING_HASH'):
+                environment.pop(key, None)
+
+            eventstore_diagnostic = 'Current Tenants packages require EventStore 5.3.0, 5.3.1, 5.4.0, 5.5.1, 5.5.2 or 5.6.0'
+            exact_semver_diagnostic = 'exact 3-part canonical SemVer'
+            mcp_diagnostic = 'Canonical Tenants packages require McpCli.Abstractions 3.0.0'
+
+            def evaluate(project_path, target, sdk, *extra_args):
+                return subprocess.run(
+                    ['dotnet', 'msbuild', project_path, '-nologo', '-nr:false', '-target:' + target,
+                     '-p:UseHexalithProjectReferences=false', '-p:UseNuGetDeps=true',
+                     '-p:HexalithEventStoreFromSource=false', '-p:HexalithMcpCliFromSource=false',
+                     '-p:HexalithEventStoreVersion=' + sdk, *extra_args],
+                    cwd=fixture, env=environment, capture_output=True, text=True, timeout=60)
+
+            # ValidateCatalogSdkSelection and ValidatePublishedCatalogSdk retain alias normalization.
+            for alias, normalized in (
+                    ('5.3.0.0', '5.3.0'),
+                    ('5.6.0+sha', '5.6.0'),
+                    ('5.6.0.0+sha', '5.6.0'),
+                    ('5.1.0.0', '5.1.0'),
+                    ('5.1.0+sha', '5.1.0'),
+                    ('5.2.0.0', '5.2.0'),
+                    ('5.2.0+sha', '5.2.0')):
+                with self.subTest(normalized_alias=alias):
+                    result = evaluate(
+                        projects['Hexalith.Tenants.Contracts'],
+                        'ValidateCatalogSdkSelection;ValidatePublishedCatalogSdk',
+                        alias,
+                        '-getProperty:HexalithTenantsCatalogSdkVersion,HexalithTenantsCatalogArtifactsAvailable')
+                    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                    properties = json.loads(result.stdout)['Properties']
+                    self.assertEqual(properties['HexalithTenantsCatalogSdkVersion'], normalized)
+                    self.assertEqual(properties['HexalithTenantsCatalogArtifactsAvailable'], 'true')
+
+            for malformed in ('5.3.0.1', '5.6.0-rc.1', '5.6.0+'):
+                with self.subTest(malformed_sdk_selection=malformed):
+                    rejected_selection = evaluate(projects['Hexalith.Tenants.Contracts'], 'ValidateCatalogSdkSelection', malformed)
+                    self.assertNotEqual(rejected_selection.returncode, 0, rejected_selection.stdout + rejected_selection.stderr)
+                    self.assertIn('is not qualified', rejected_selection.stdout + rejected_selection.stderr)
+                    rejected_published = evaluate(projects['Hexalith.Tenants.Contracts'], 'ValidatePublishedCatalogSdk', malformed)
+                    self.assertNotEqual(rejected_published.returncode, 0, rejected_published.stdout + rejected_published.stderr)
+                    self.assertIn('Published Tenants packages require the qualified EventStore', rejected_published.stdout + rejected_published.stderr)
+
+            # ValidateCanonicalBoundaryPackageCohort accepts only exact 3-part canonical 5.3.0..5.6.0
+            # and rejects aliases, historical cohorts/aliases, and malformed versions across all 5 packages + host.
+            rejected_versions = (
+                '5.3.0.0', '5.6.0+sha', '5.6.0.0+sha',
+                '5.1.0', '5.1.0.0', '5.1.0+sha',
+                '5.2.0', '5.2.0.0', '5.2.0+sha',
+                '5.3.0.1', '5.6.0-rc.1', '5.6.0+',
+            )
+            for name, project_path in projects.items():
+                for sdk in ('5.3.0', '5.6.0'):
+                    with self.subTest(project=name, canonical_sdk=sdk):
+                        accepted = evaluate(project_path, 'ValidateCanonicalBoundaryPackageCohort', sdk)
+                        self.assertEqual(accepted.returncode, 0, accepted.stdout + accepted.stderr)
+                for sdk in rejected_versions:
+                    with self.subTest(project=name, rejected_sdk=sdk):
+                        rejected = evaluate(project_path, 'ValidateCanonicalBoundaryPackageCohort', sdk)
+                        self.assertNotEqual(rejected.returncode, 0, rejected.stdout + rejected.stderr)
+                        output = rejected.stdout + rejected.stderr
+                        self.assertIn(eventstore_diagnostic, output)
+                        self.assertIn(exact_semver_diagnostic, output)
+                for mcp_alias in ('3.0.0.0', '3.0.0+sha', '3.0.0.0+sha'):
+                    with self.subTest(project=name, rejected_mcp_alias=mcp_alias):
+                        rejected = evaluate(project_path, 'ValidateCanonicalBoundaryPackageCohort', '5.6.0',
+                                            '-p:HexalithMcpCliVersion=' + mcp_alias)
+                        self.assertNotEqual(rejected.returncode, 0, rejected.stdout + rejected.stderr)
+                        output = rejected.stdout + rejected.stderr
+                        self.assertIn(mcp_diagnostic, output)
+                        self.assertIn(exact_semver_diagnostic, output)
+
+            # Prove aliases are blocked in the real restore/build lifecycle even though catalog selection normalizes them.
+            for name in ('Hexalith.Tenants.Contracts', 'Hexalith.Tenants'):
+                for alias in ('5.3.0.0', '5.6.0+sha', '5.6.0.0+sha', '5.1.0.0', '5.2.0+sha'):
+                    with self.subTest(lifecycle_project=name, alias=alias):
+                        rejected = evaluate(projects[name], 'CollectPackageReferences', alias)
+                        self.assertNotEqual(rejected.returncode, 0, rejected.stdout + rejected.stderr)
+                        output = rejected.stdout + rejected.stderr
+                        self.assertIn(eventstore_diagnostic, output)
+                        self.assertIn(exact_semver_diagnostic, output)
 
 
 if __name__ == '__main__':

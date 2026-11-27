@@ -1,3 +1,6 @@
+using System.Collections;
+using System.Security.Cryptography;
+
 using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Testing;
@@ -11,6 +14,7 @@ using YamlDotNet.RepresentationModel;
 namespace Hexalith.Tenants.AppHost.Tests;
 
 /// <summary>Checks security and read endpoint wiring in the AppHost model without starting services.</summary>
+[Collection("LocalDaprIdentity")]
 public sealed class AppHostSecurityResourceGraphTests
 {
     [Fact]
@@ -62,6 +66,223 @@ public sealed class AppHostSecurityResourceGraphTests
         builder.ExecutionContext.IsRunMode.ShouldBeTrue();
         builder.Resources.ShouldNotContain(resource => resource.Name == "routing-tenants-owner");
         await AssertAppChannelTokensAsync(builder);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("false")]
+    [InlineData("")]
+    public async Task CustodyConfigurationWithoutSourceCatalogProfileOptInSkipsCatalogActivation(string? profileValue)
+    {
+        await WithIsolatedCatalogEnvironmentAsync(
+            profileEnvironmentValue: null,
+            workerBackedEnvironmentValue: null,
+            clearCustodyEnvironment: true,
+            async () =>
+            {
+                List<string> args =
+                [
+                    "--EnableKeycloak=true",
+                    "--EnableMemories=false",
+                    "--TENANTS_SOURCE_WORKER_BACKED_RESPONSES_ENABLED=true",
+                    .. CreateCustodyArgs(),
+                ];
+                if (profileValue is not null)
+                {
+                    args.Add($"--TENANTS_SOURCE_CATALOG_PROFILE={profileValue}");
+                }
+
+                await using IDistributedApplicationTestingBuilder builder = await DistributedApplicationTestingBuilder
+                    .CreateAsync<Projects.Hexalith_Tenants_AppHost>([.. args]);
+
+                builder.ExecutionContext.IsRunMode.ShouldBeTrue();
+                builder.Resources.ShouldNotContain(resource => resource.Name == "routing-tenants-owner");
+                builder.Resources.OfType<ProjectResource>().Select(resource => resource.Name).ShouldContain("sample");
+
+                ProjectResource tenantsApi = builder.Resources.OfType<ProjectResource>()
+                    .Single(static resource => resource.Name == "tenants-api");
+                DaprSidecarOptions apiSidecar = tenantsApi.Annotations.OfType<DaprSidecarAnnotation>()
+                    .ShouldHaveSingleItem().Sidecar.Annotations.OfType<DaprSidecarOptionsAnnotation>()
+                    .ShouldHaveSingleItem().Options;
+                Path.GetFileName(apiSidecar.Config).ShouldBe("accesscontrol.tenants-api.yaml");
+
+                IReadOnlyDictionary<string, object> tenantsEnvironment = await GetEnvironmentAsync(
+                    builder.Resources.Single(static resource => resource.Name == "tenants"),
+                    builder.ExecutionContext);
+                tenantsEnvironment.ContainsKey("Tenants__BootstrapBoundWorkloadEnabled").ShouldBeFalse();
+                tenantsEnvironment.ContainsKey("Tenants__BootstrapBoundWorkloadReceiptPath").ShouldBeFalse();
+
+                IReadOnlyDictionary<string, object> gatewayEnvironment = await GetEnvironmentAsync(
+                    builder.Resources.Single(static resource => resource.Name == "eventstore"),
+                    builder.ExecutionContext);
+                gatewayEnvironment.ContainsKey("Authentication__BoundCommand__AllowedDomains__tenants").ShouldBeFalse();
+                gatewayEnvironment.ContainsKey("EventStore__Projections__WorkerBackedResponsesEnabled").ShouldBeFalse();
+                gatewayEnvironment.ContainsKey("Logging__LogLevel__Hexalith.EventStore.ServiceDefaults.Routing.TechnicalHttpRouteCatalogReceiver").ShouldBeFalse();
+            });
+    }
+
+    [Theory]
+    [InlineData("true", false)]
+    [InlineData("TRUE", false)]
+    [InlineData("true", true)]
+    [InlineData("TRUE", true)]
+    public async Task SourceCatalogProfileWithoutCustodyRefusesStartup(string profileValue, bool viaEnvironment)
+    {
+        await WithIsolatedCatalogEnvironmentAsync(
+            profileEnvironmentValue: viaEnvironment ? profileValue : null,
+            workerBackedEnvironmentValue: null,
+            clearCustodyEnvironment: true,
+            async () =>
+            {
+                List<string> args = ["--EnableKeycloak=true", "--EnableMemories=false"];
+                if (!viaEnvironment)
+                {
+                    args.Add($"--TENANTS_SOURCE_CATALOG_PROFILE={profileValue}");
+                }
+
+                InvalidOperationException failure = await Should.ThrowAsync<InvalidOperationException>(async () =>
+                {
+                    await using IDistributedApplicationTestingBuilder builder = await DistributedApplicationTestingBuilder
+                        .CreateAsync<Projects.Hexalith_Tenants_AppHost>([.. args]);
+                });
+
+                failure.Message.ShouldContain("Tenants:DevelopmentRouteCatalog");
+            });
+    }
+
+    [Theory]
+    [InlineData("true", null, false, false)]
+    [InlineData("TRUE", null, false, false)]
+    [InlineData("true", "false", false, false)]
+    [InlineData("true", "true", true, false)]
+    [InlineData("TRUE", "TRUE", true, false)]
+    [InlineData("true", null, false, true)]
+    [InlineData("TRUE", "TRUE", true, true)]
+    public async Task SourceCatalogProfileHonorsCaseInsensitiveConfigurationSwitches(
+        string profileValue, string? workerBackedResponsesValue, bool expectedWorkerBackedResponses, bool viaEnvironment)
+    {
+        await WithIsolatedCatalogEnvironmentAsync(
+            profileEnvironmentValue: viaEnvironment ? profileValue : null,
+            workerBackedEnvironmentValue: viaEnvironment ? workerBackedResponsesValue : null,
+            clearCustodyEnvironment: true,
+            async () =>
+            {
+                List<string> args =
+                [
+                    "--EnableKeycloak=true",
+                    "--EnableMemories=false",
+                    .. CreateCustodyArgs(),
+                ];
+                if (!viaEnvironment)
+                {
+                    args.Add($"--TENANTS_SOURCE_CATALOG_PROFILE={profileValue}");
+                    if (workerBackedResponsesValue is not null)
+                    {
+                        args.Add($"--TENANTS_SOURCE_WORKER_BACKED_RESPONSES_ENABLED={workerBackedResponsesValue}");
+                    }
+                }
+
+                await using IDistributedApplicationTestingBuilder builder = await DistributedApplicationTestingBuilder
+                    .CreateAsync<Projects.Hexalith_Tenants_AppHost>([.. args]);
+
+                builder.ExecutionContext.IsRunMode.ShouldBeTrue();
+                builder.Resources.ShouldContain(resource => resource.Name == "routing-tenants-owner");
+                builder.Resources.OfType<ProjectResource>().Select(resource => resource.Name).ShouldNotContain("sample");
+
+                ProjectResource tenantsApi = builder.Resources.OfType<ProjectResource>()
+                    .Single(static resource => resource.Name == "tenants-api");
+                DaprSidecarOptions apiSidecar = tenantsApi.Annotations.OfType<DaprSidecarAnnotation>()
+                    .ShouldHaveSingleItem().Sidecar.Annotations.OfType<DaprSidecarOptionsAnnotation>()
+                    .ShouldHaveSingleItem().Options;
+                Path.GetFileName(apiSidecar.Config).ShouldBe("tenants-api.configuration.json");
+
+                IReadOnlyDictionary<string, object> tenantsEnvironment = await GetEnvironmentAsync(
+                    builder.Resources.Single(static resource => resource.Name == "tenants"),
+                    builder.ExecutionContext);
+                tenantsEnvironment["Tenants__BootstrapBoundWorkloadEnabled"].ShouldBe("true");
+                tenantsEnvironment["Tenants__BootstrapBoundWorkloadReceiptPath"].ShouldBeOfType<string>()
+                    .ShouldEndWith("tenants.bootstrap.json");
+
+                IReadOnlyDictionary<string, object> gatewayEnvironment = await GetEnvironmentAsync(
+                    builder.Resources.Single(static resource => resource.Name == "eventstore"),
+                    builder.ExecutionContext);
+                gatewayEnvironment["Authentication__BoundCommand__AllowedDomains__tenants"].ShouldBe("global-administrators");
+                gatewayEnvironment["Logging__LogLevel__Hexalith.EventStore.ServiceDefaults.Routing.TechnicalHttpRouteCatalogReceiver"].ShouldBe("Debug");
+                gatewayEnvironment["Logging__LogLevel__Hexalith.EventStore.Server.Commands.CommandRouter"].ShouldBe("Debug");
+                gatewayEnvironment["Logging__LogLevel__Hexalith.EventStore.Server.Pipeline.SubmitCommandHandler"].ShouldBe("Debug");
+                gatewayEnvironment["Logging__LogLevel__Hexalith.EventStore.Controllers.CommandsController"].ShouldBe("Debug");
+
+                if (expectedWorkerBackedResponses)
+                {
+                    gatewayEnvironment["EventStore__Projections__WorkerBackedResponsesEnabled"].ShouldBe("true");
+                }
+                else
+                {
+                    gatewayEnvironment.ContainsKey("EventStore__Projections__WorkerBackedResponsesEnabled").ShouldBeFalse();
+                }
+            });
+    }
+
+    private static string[] CreateCustodyArgs()
+    {
+        string custodyDirectory = Path.Combine(Path.GetTempPath(), $"tenants-model-custody-{Guid.NewGuid():N}");
+        string digestKey = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+        return
+        [
+            $"--Tenants:DevelopmentRouteCatalog:CustodyDirectory={custodyDirectory}",
+            "--Tenants:DevelopmentRouteCatalog:AuthorityComponentName=routing-tenants-owner",
+            "--Tenants:DevelopmentRouteCatalog:AuthorityStateKey=tenants-owner-authority",
+            "--Tenants:DevelopmentRouteCatalog:ActiveDigestKeyGeneration=development-v1",
+            $"--Tenants:DevelopmentRouteCatalog:DigestKeys:development-v1={digestKey}",
+            "--Tenants:DevelopmentRouteCatalog:SecretMapGeneration=development-v1",
+        ];
+    }
+
+    private static async Task WithIsolatedCatalogEnvironmentAsync(
+        string? profileEnvironmentValue,
+        string? workerBackedEnvironmentValue,
+        bool clearCustodyEnvironment,
+        Func<Task> action)
+    {
+        Dictionary<string, string?> saved = new(StringComparer.Ordinal);
+        void SaveAndSet(string key, string? value)
+        {
+            if (!saved.ContainsKey(key))
+            {
+                saved[key] = Environment.GetEnvironmentVariable(key);
+            }
+
+            Environment.SetEnvironmentVariable(key, value);
+        }
+
+        try
+        {
+            SaveAndSet("TENANTS_SOURCE_CATALOG_PROFILE", profileEnvironmentValue);
+            SaveAndSet("TENANTS_SOURCE_WORKER_BACKED_RESPONSES_ENABLED", workerBackedEnvironmentValue);
+            SaveAndSet("TENANTS_SOURCE_CATALOG_INCLUDE_SAMPLE", null);
+
+            if (clearCustodyEnvironment)
+            {
+                foreach (DictionaryEntry entry in Environment.GetEnvironmentVariables())
+                {
+                    if (entry.Key is string key
+                        && (key.StartsWith("Tenants__DevelopmentRouteCatalog", StringComparison.OrdinalIgnoreCase)
+                            || key.StartsWith("Tenants:DevelopmentRouteCatalog", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        SaveAndSet(key, null);
+                    }
+                }
+            }
+
+            await action();
+        }
+        finally
+        {
+            foreach ((string key, string? original) in saved)
+            {
+                Environment.SetEnvironmentVariable(key, original);
+            }
+        }
     }
 
     [Theory]

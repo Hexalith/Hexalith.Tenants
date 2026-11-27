@@ -9,7 +9,13 @@ import { fileURLToPath } from 'node:url';
 import { capturePublishedFrontComposer } from './published-frontcomposer-evidence.mjs';
 import { assertStableCapture } from './authenticated-live-source-capture.mjs';
 import { createFunctionalNavigation } from './authenticated-live-route-waits.mjs';
-import { captureLauncherFocusState, createLiveRouteCheckpoint } from './authenticated-live-route-evidence.mjs';
+import {
+    captureFailureDiagnostic,
+    captureFailureScreenshot,
+    captureLauncherFocusState,
+    createLiveRouteCheckpoint,
+    recordFailureDiagnostics,
+} from './authenticated-live-route-evidence.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const require = createRequire(new URL('../../performance/tenant-audit/package.json', import.meta.url));
@@ -257,7 +263,7 @@ try {
                 check(dimensions.scrollAfter > dimensions.scrollBefore + 2, 'narrow-list-requires-measured-scroll-movement');
             }
             const remainPinned = leftBefore.every((left, index) => Math.abs(leftAfter[index] - left) <= 2);
-            if (!remainPinned) await page.screenshot({ path: output.replace(/\.json$/, '.png') });
+            if (!remainPinned) await captureFailureScreenshot(page, output.replace(/\.json$/, '.png'));
             check(remainPinned, 'identity-status-freshness-remain-pinned');
             await checkpoint(`${layoutPhase}-hit-content`);
             evidence.lastListContentHits = [];
@@ -269,7 +275,7 @@ try {
                 });
                 const hit = await intersectsAndReceivesPointer(content);
                 evidence.lastListContentHits.push({ id, ...bounds, hit });
-                if (!hit) await page.screenshot({ path: output.replace(/\.json$/, '.png') });
+                if (!hit) await captureFailureScreenshot(page, output.replace(/\.json$/, '.png'));
                 check(hit, `pinned-content-hit-${id}`);
             }
             check((await row.getByTestId('tenants-list-status').getAttribute('class') || '').includes('--active'), 'seeded-status-active');
@@ -314,7 +320,7 @@ try {
                     visible: bounds.left >= container.left - 2 && bounds.right <= container.right + 2 };
             });
             evidence.lastListActionMeasurement = actionMeasurement;
-            if (!actionMeasurement.visible) await page.screenshot({ path: output.replace(/\.json$/, '.png') });
+            if (!actionMeasurement.visible) await captureFailureScreenshot(page, output.replace(/\.json$/, '.png'));
             check(actionMeasurement.visible, 'list-overflow-action-in-scrollport');
             check(await intersectsAndReceivesPointer(overflowAction), 'list-overflow-action-hit-testable');
             await completeCase({ name: layoutPhase, ...dimensions, pinned: true, keyboardFocus: true, copyAccessible: true, overflowAccessible: true, passed: true });
@@ -350,7 +356,7 @@ try {
         try {
             await waitUntil(async () => Boolean(await launcher.getAttribute('href')), 'contextual-audit-launcher-authorized');
         } catch (error) {
-            await page.screenshot({ path: output.replace(/\.json$/, '.png') });
+            await captureFailureScreenshot(page, output.replace(/\.json$/, '.png'));
             throw error;
         }
         await launcher.click();
@@ -377,7 +383,7 @@ try {
         try {
             await waitUntil(() => focused(launcher), 'audit-back-restores-source-launcher-focus');
         } catch (error) {
-            evidence.auditReturnFocusState = await page.evaluate(() => {
+            evidence.auditReturnFocusState = await captureFailureDiagnostic(() => page.evaluate(() => {
                 const origin = document.querySelector('[data-testid="tenants-detail-audit-origin"]');
                 const launcher = origin?.querySelector('[data-testid="tenants-audit-entrypoint"]');
                 const heading = document.getElementById('tenants-detail-identity');
@@ -389,6 +395,7 @@ try {
                     return false;
                 };
                 return {
+                    available: true,
                     terminal: origin?.getAttribute('data-audit-focus-terminal')?.toLowerCase() === 'true',
                     launcherIsLink: launcher?.tagName.toLowerCase() === 'fluent-anchor-button',
                     launcherHasHref: Boolean(launcher?.getAttribute('href')),
@@ -398,7 +405,7 @@ try {
                     missingNotice: Boolean(document.querySelector('[data-testid="tenants-audit-return-notice"]')),
                     stalledNotice: Boolean(document.querySelector('[data-testid="tenants-audit-stalled-return"]')),
                 };
-            });
+            }));
             await checkpoint(`${contextPhase}-focus-diagnostic`);
             throw error;
         }
@@ -495,15 +502,7 @@ try {
         : 'live-browser-assertion-failed';
     evidence.failure = { phase, label: error.safeLabel || category };
     await checkpoint(phase);
-    if (captureFocus) {
-        try { evidence.focus = await captureFocus(); }
-        catch { evidence.focus = { available: false }; }
-        await checkpoint(phase);
-    }
-    if (captureReadiness) {
-        try { evidence.readiness = await captureReadiness(); }
-        catch { evidence.readiness = { available: false }; }
-    }
+    await recordFailureDiagnostics(evidence, { phase, checkpoint, captureFocus, captureReadiness });
     process.exitCode = 1;
 } finally {
     evidence.finishedUtc = new Date().toISOString();

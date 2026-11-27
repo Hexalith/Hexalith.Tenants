@@ -5592,7 +5592,8 @@ evidence: Resumed review at 401d926eb7d51bdf332696ed3f0fe39a812b3501 confirms ne
 origin: migrated from legacy ledger ("Deferred from: merged-main CI repair independent review (2026-11-01)"), 2026-11-16
 location: scripts/verify-release-artifacts.sh
 reason: Preserve every package's immediate acquisition probe when zero-poll release verification includes slow signature checks.
-status: open
+status: done 2026-11-27
+resolution: Decoupled zero-poll per-package 1-second immediate acquisition probes from signature verification time and short-circuited dead clock reads on zero-poll failure in scripts/verify-release-artifacts.sh while preserving fail-fast per-package comparison and the shared positive wait_seconds cohort budget; added deterministic signature-verifier clock-advance controls and zero-poll/v3-to-v2 shared-budget/positive-wait tests in tests/scripts/test_partial_release_recovery.py and tests/scripts/test_release_artifact_verification.py (Contracts.Tests 858/858) under spec-dw-673-681-682-687-688-692-701-702-704-716-batch.md.
 source_spec: `_bmad-output/implementation-artifacts/spec-align-native-read-timeout-budgets.md`
 summary: Preserve every package's immediate acquisition probe when zero-poll release verification includes slow signature checks.
 evidence: scripts/verify-release-artifacts.sh sets one five-second cohort deadline before its five-package loop, then runs comparison/native signature validation between acquisitions. Verification taking most of that interval prevents later already-published packages receiving their documented one-second immediate probe. This belongs to separate release-verification commit 8eaf6f601d82bcb4a92ed89aa1c2dcdc8815baa8; add a delayed-verifier control before choosing how acquisition and verification share the bound.
@@ -5675,7 +5676,8 @@ evidence: Medium, pre-existing later-story issue (BH-1). Directory.Build.targets
 origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
 location: ValidateCanonicalBoundaryPackageCohort
 reason: Reconcile canonical package-boundary admission with catalog SDK alias normalization.
-status: open
+status: done 2026-11-27
+resolution: Reconciled and documented the canonical package-boundary cohort policy in Directory.Build.targets and docs/development-route-catalog.md: ValidateCanonicalBoundaryPackageCohort enforces exact 3-part canonical SemVer literals (5.3.0..5.6.0 for EventStore and 3.0.0 for McpCli.Abstractions, rejecting .0 fourth-revision and +metadata aliases in alignment with Directory.Build.props and Hexalith.Builds ValidateHexalithEventStoreReferences), while ValidateCatalogSdkSelection/ValidatePublishedCatalogSdk retain alias normalization; added alias/historical/malformed guard tests in tests/scripts/test_catalog_artifact_guards.py (4/4 OK) under spec-dw-673-681-682-687-688-692-701-702-704-716-batch.md.
 source_spec: `_bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md`
 summary: Reconcile canonical package-boundary admission with catalog SDK alias normalization.
 evidence: Medium, pre-existing later-story issue (BH-2). ValidateCanonicalBoundaryPackageCohort compares raw HexalithEventStoreVersion literals although the catalog selector normalizes zero-revision and metadata aliases. Evaluate the actual target for 5.1.0.0 and 5.1.0+metadata and decide one consistent documented policy without broadening unqualified SDK admission.
@@ -5685,7 +5687,8 @@ evidence: Medium, pre-existing later-story issue (BH-2). ValidateCanonicalBounda
 origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
 location: AppHost Program.cs / TENANTS_SOURCE_CATALOG_PROFILE / docs/development-route-catalog.md
 reason: Make configured source AppHost catalog activation agree with its developer instructions.
-status: open
+status: done 2026-11-27
+resolution: Documented TENANTS_SOURCE_CATALOG_PROFILE=true opt-in and TENANTS_SOURCE_WORKER_BACKED_RESPONSES_ENABLED in docs/development-route-catalog.md, aligned src/Hexalith.Tenants.AppHost/TenantsDevelopmentRoutingCatalog.cs with Program.cs case-insensitive builder.Configuration lookups, and added CI-environment-isolated tests covering omitted/false/empty opt-in with custody, missing-custody startup refusal via CLI and env vars, and case-insensitive switch activation in tests/Hexalith.Tenants.AppHost.Tests/AppHostSecurityResourceGraphTests.cs (AppHost.Tests 80/80 normally and under simulated CI ambient custody env vars) under spec-dw-673-681-682-687-688-692-701-702-704-716-batch.md.
 source_spec: `_bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md`
 summary: Make configured source AppHost catalog activation agree with its developer instructions.
 evidence: Medium, pre-existing later-story issue (BH-3). AppHost Program.cs gained a TENANTS_SOURCE_CATALOG_PROFILE condition on November 2, while docs/development-route-catalog.md describes source custody configuration without that required switch. An ordinary source run with custody alone does not create the catalog. Document and validate the intended opt-in or repair the enrollment condition while preserving custody ownership.
@@ -5730,7 +5733,8 @@ evidence: Medium, pre-existing later-story issue (BH-8). docs/quickstart.md expl
 origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
 location: recover-partial-release.yml / prepare-partial-release.sh / ValidateCanonicalPlatformSource
 reason: Initialize the required root-declared Platform dependency before clean partial-release preparation.
-status: open
+status: done 2026-11-27
+resolution: Updated .github/workflows/recover-partial-release.yml to initialize references/Hexalith.Platform non-recursively (-c submodule.recurse=false) alongside the other five root-declared solution dependencies, added clean-standalone checkout refusal/acceptance coverage in scripts/tests/test_platform_source_root.py (scripts/tests 30/30), and verified a clean temporary checkout initialized with only those six root submodules builds Hexalith.Tenants.slnx in Release with zero nested submodules initialized under spec-dw-673-681-682-687-688-692-701-702-704-716-batch.md.
 source_spec: `_bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md`
 summary: Initialize the required root-declared Platform dependency before clean partial-release preparation.
 evidence: Medium, pre-existing later-story issue (BH-9 and EC-1, same root cause). recover-partial-release.yml initializes a fixed solution-dependency list without references/Hexalith.Platform; prepare-partial-release.sh builds the solution and AppHost ValidateCanonicalPlatformSource requires Platform's solution and Dapr identity files. A fresh runner therefore cannot prepare recovery packages. Add the root dependency nonrecursively and validate the clean-checkout preparation boundary without publishing.
@@ -5740,7 +5744,8 @@ evidence: Medium, pre-existing later-story issue (BH-9 and EC-1, same root cause
 origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
 location: verify-catalog-package-consumer.py
 reason: Normalize optional coordinated candidate package identities before archive byte binding.
-status: open
+status: done 2026-11-27
+resolution: Case-normalized optional coordinated local candidate classification, duplicate detection, cohort validation, missing-metadata guards, restored hexalith.mcpcli.* checks, and SHA-256 archive byte-binding lookups in scripts/verify-catalog-package-consumer.py while emitting canonical packageSourceMapping patterns; added casing-control positive, tampered-bytes, duplicate, wrong-cohort, missing-candidate, and non-local McpCli tests in tests/scripts/test_catalog_package_consumer.py (21/21 OK) under spec-dw-673-681-682-687-688-692-701-702-704-716-batch.md.
 source_spec: `_bmad-output/implementation-artifacts/spec-ci-repair-2026-11-01.md`
 summary: Normalize optional coordinated candidate package identities before archive byte binding.
 evidence: Medium, pre-existing later-story issue (BH-10). verify-catalog-package-consumer.py uses case-sensitive SDK/McpCli prefixes and dictionary keys for local candidate archives but case-folds restored SDK identities elsewhere. A lowercased candidate is omitted from candidate source mapping and byte matching. Add a distinguishing casing control and normalize classification, duplicate detection and restored-byte lookup consistently.
@@ -5781,7 +5786,8 @@ evidence: Medium, pre-existing later-story issue (R2): the current consumer copi
 origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
 location: McpCli RefreshTenantAccess conformance vectors
 reason: Add a dedicated McpCli conformance vector for the later RefreshTenantAccess operation.
-status: open
+status: done 2026-11-27
+resolution: Added canonical McpCli v1 conformance vector tests/conformance-vectors/mcpcli-v1/refresh-tenant-access.json (platform:tenants commands, canonical <tenantId> postcondition, echoed ULID idempotencyKey), strict schema/contract/deserialization and exact 15-vector coexistence tests in tests/Hexalith.Tenants.Contracts.Tests/McpCliConformanceVectorTests.cs (Contracts.Tests 858/858), and docs/event-contract-reference.md update; verified exit 0 with references/Hexalith.McpCli/tools/conformance-vectors/v1/validate.py against a packed Hexalith.Tenants.Contracts.8.1.0.nupkg under spec-dw-673-681-682-687-688-692-701-702-704-716-batch.md.
 source_spec: `_bmad-output/implementation-artifacts/spec-complete-dotnet-11-source-graph.md`
 summary: Add a dedicated McpCli conformance vector for the later RefreshTenantAccess operation.
 evidence: Medium, pre-existing later-story coverage gap (R4): the decorated recovery command is absent from the 14 previous operation vectors. Qualify wire routing and operation identity in the recovery feature lane.
@@ -5875,7 +5881,8 @@ evidence: 2026-11-15 resumed review B3, medium; TenantState starts with an empty
 origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
 location: RetainBrowserProgressAsync / File.WriteAllTextAsync
 reason: C# wrapper can truncate the browser progress checkpoint.
-status: open
+status: done 2026-11-27
+resolution: Replaced direct File.WriteAllTextAsync writes in RetainBrowserProgressAsync and WriteWrapperEvidenceAsync in tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsUiRouteTests.cs with atomic sibling-temp staging (FileMode.CreateNew, 0600 Unix mode, Flush(flushToDisk: true), File.Move overwrite, finally cleanup), guarded WithSafeEvidenceAsync from overwriting intact in-progress checkpoints on retention failure, and added atomic replacement, UnauthorizedAccessException, WithSafeEvidenceAsync preservation, and wrapper atomic-write tests in tests/Hexalith.Tenants.IntegrationTests/AuthenticatedRouteEvidenceTests.cs (IntegrationTests 124/124) under spec-dw-673-681-682-687-688-692-701-702-704-716-batch.md.
 source_spec: `_bmad-output/implementation-artifacts/spec-align-native-read-timeout-budgets.md`
 summary: C# wrapper can truncate the browser progress checkpoint.
 evidence: 2026-11-15 resumed review B5, medium; RetainBrowserProgressAsync reads the retained snapshot then writes directly to the same path with File.WriteAllTextAsync. Interruption during that write can destroy the complete checkpoint. This later evidence-wrapper change is owned by 7066cbaeff0a34624250542eb4954fbb8c623027, outside the native timeout behavior.
@@ -5885,7 +5892,8 @@ evidence: 2026-11-15 resumed review B5, medium; RetainBrowserProgressAsync reads
 origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
 location: captureFocus / captureReadiness failure diagnostics
 reason: Failure diagnostics can outlive the functional browser deadline.
-status: open
+status: done 2026-11-27
+resolution: Exported hardened captureFailureDiagnostic (5_000 ms default timeout, null/invalid-timeout/timer-throw/non-record guards, late-rejection suppression, safe { available: false } fallback), recordFailureDiagnostics, and captureFailureScreenshot in tests/Hexalith.Tenants.UI.Tests/Browser/authenticated-live-route-evidence.mjs, wired them across captureFocus, captureReadiness, inner-catch auditReturnFocusState, and failure-path screenshots in validate-authenticated-live-routes.mjs, and added deterministic manual-clock node:test suites in authenticated-live-route-evidence.test.mjs (9/9 passed) under spec-dw-673-681-682-687-688-692-701-702-704-716-batch.md.
 source_spec: `_bmad-output/implementation-artifacts/spec-align-native-read-timeout-budgets.md`
 summary: Failure diagnostics can outlive the functional browser deadline.
 evidence: 2026-11-15 resumed review B6, medium; The failure path directly awaits captureFocus/captureReadiness; those execute page evaluation without a separate cancellation race. A wedged renderer can therefore keep failure cleanup pending until the outer test timeout. The original baseline already contains the unbounded captureReadiness call; no native budget increase introduced it.
@@ -5905,7 +5913,8 @@ evidence: 2026-11-15 resumed review B7, low; The unrelated untracked fix-firefox
 origin: migrated from legacy ledger ("Deferred from: November 1 CI repair resumed review (2026-11-15)"), 2026-11-16
 location: AuthenticatedRouteState.CreateCorpusReadTokenAsync
 reason: Live corpus credential creation has no total corpus or encoded-token limit.
-status: open
+status: done 2026-11-27
+resolution: Enforced MaxCorpusPages = 10, MaxCorpusTenants = 100, and MaxEncodedTokenLength = 8_192 in tests/Hexalith.Tenants.IntegrationTests/Fixtures/AuthenticatedRouteState.cs CreateCorpusReadTokenAsync with fail-closed non-leaking InvalidOperationException refusal and added page-count, tenant-count, and tight +/-100-char encoded-JWT boundary tests in tests/Hexalith.Tenants.IntegrationTests/AuthenticatedRouteCorpusTokenTests.cs (IntegrationTests 124/124) under spec-dw-673-681-682-687-688-692-701-702-704-716-batch.md.
 source_spec: `_bmad-output/implementation-artifacts/spec-align-native-read-timeout-budgets.md`
 summary: Live corpus credential creation has no total corpus or encoded-token limit.
 evidence: 2026-11-15 resumed review B8, medium; AuthenticatedRouteState.CreateCorpusReadTokenAsync limits each page to 100 but continues for any fresh cursor, growing exactIds and cursors until caller cancellation. A sufficiently large valid corpus also becomes one JWT and then a browser session. This is separate scoped-live-credential work introduced by 5db9648cfd0456896c1c549dcd1021f4c216bf2d.
@@ -6021,4 +6030,5 @@ location: src/Hexalith.Tenants.UI/Services/Configuration/TenantConfigurationPrin
 source_spec: `_bmad-output/implementation-artifacts/spec-dw-674-675-680-685-689-693-694-699-700-batch.md`
 severity: medium
 reason: Pre-existing in untouched resolver paths: WaitAsync(cancellationToken) does not capture the underlying GetAuthenticationStateAsync task to observe late faults after cancellation, and bare catch blocks swallow fatal exceptions into Indeterminate().
-status: open
+status: done 2026-11-27
+resolution: Captured GetAuthenticationStateAsync task in src/Hexalith.Tenants.UI/Services/Configuration/TenantConfigurationPrincipalResolver.cs, observed late faults on abandoned tasks without redundant ContinueWith allocations for already-completed tasks, propagated fatal exceptions via TenantWorkspaceReadDiagnostics.IsFatal and ThrowIfFatal across circuit lookup, provider, and user-context seams, and added WeakReference-proven GC/unobserved-fault and fatal-propagation tests (including concurrent cancellation) in tests/Hexalith.Tenants.UI.Tests/Services/Configuration/TenantConfigurationReadPolicyTests.cs (UI.Tests 8,147/8,147) under spec-dw-673-681-682-687-688-692-701-702-704-716-batch.md.

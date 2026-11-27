@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Net;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
@@ -228,7 +229,13 @@ public sealed class AuthenticatedTenantsUiRouteTests(AuthenticatedTenantsTopolog
     }
 
     /// <summary>Preserves bounded qualification evidence before sign-in, seeding, or browser launch can fail.</summary>
-    internal static async Task WithSafeEvidenceAsync(TimeSpan limit, Func<string, Action<string>, CancellationToken, Task> qualification)
+    /// <param name="limit">Maximum duration for the qualification run.</param>
+    /// <param name="qualification">Qualification callback receiving output path, phase updater, and cancellation token.</param>
+    /// <param name="beforeRetainMoveAsync">Optional test hook forwarded to <see cref="RetainBrowserProgressAsync"/>.</param>
+    internal static async Task WithSafeEvidenceAsync(
+        TimeSpan limit,
+        Func<string, Action<string>, CancellationToken, Task> qualification,
+        Func<string, Task>? beforeRetainMoveAsync = null)
     {
         string directory = Path.Combine(Path.GetTempPath(), $"tenants-live-routes-{Guid.NewGuid():N}");
         if (OperatingSystem.IsWindows())
@@ -257,7 +264,9 @@ public sealed class AuthenticatedTenantsUiRouteTests(AuthenticatedTenantsTopolog
         {
             TestContext.Current.TestOutputHelper?.WriteLine($"Live qualification exception category: {exception.GetType().Name}.");
             string label = exception is OperationCanceledException or TimeoutException ? "qualification-timeout" : "qualification-failed";
-            if (!await RetainBrowserProgressAsync(outputPath, phase, label) && !await HasBrowserEvidenceAsync(outputPath))
+            if (!await RetainBrowserProgressAsync(outputPath, phase, label, beforeRetainMoveAsync)
+                && !await HasBrowserEvidenceAsync(outputPath)
+                && !await HasBrowserProgressAsync(outputPath))
             {
                 await WriteWrapperEvidenceAsync(outputPath, phase, label, passed: false);
             }
@@ -272,29 +281,66 @@ public sealed class AuthenticatedTenantsUiRouteTests(AuthenticatedTenantsTopolog
         }
     }
 
-    private static async Task<bool> RetainBrowserProgressAsync(string outputPath, string wrapperPhase, string label)
+    /// <summary>Atomically updates an in-progress browser checkpoint with wrapper failure metadata.</summary>
+    /// <param name="outputPath">The checkpoint file path.</param>
+    /// <param name="wrapperPhase">The enclosing wrapper phase.</param>
+    /// <param name="label">The bounded failure label.</param>
+    /// <param name="beforeMoveAsync">Optional test hook invoked after flushing the sibling temporary file and before atomic replacement.</param>
+    /// <returns><see langword="true"/> when the checkpoint was updated; otherwise, <see langword="false"/>.</returns>
+    internal static async Task<bool> RetainBrowserProgressAsync(
+        string outputPath,
+        string wrapperPhase,
+        string label,
+        Func<string, Task>? beforeMoveAsync = null)
     {
         try
         {
-            if (JsonNode.Parse(await File.ReadAllTextAsync(outputPath)) is not JsonObject snapshot
-                || snapshot["mode"] is not JsonValue mode || !mode.TryGetValue(out string? _)
-                || snapshot["cases"] is not JsonArray
-                || snapshot["progress"] is not JsonObject progress
-                || progress["phase"] is not JsonValue phaseValue || !phaseValue.TryGetValue(out string? phase)
-                || phase is not { Length: > 0 and <= 96 }
-                || !phase.All(character => character is >= 'a' and <= 'z' or >= '0' and <= '9' or '-'))
+            if (TryParseBrowserProgress(await File.ReadAllTextAsync(outputPath)) is not { } parsed)
             {
                 return false;
             }
 
+            (JsonObject snapshot, string phase) = parsed;
             snapshot["passed"] = false;
             snapshot["failure"] ??= JsonSerializer.SerializeToNode(new { phase, label });
             snapshot["wrapperFailure"] = JsonSerializer.SerializeToNode(new { phase = wrapperPhase, label });
             snapshot["finishedUtc"] = JsonSerializer.SerializeToNode(DateTimeOffset.UtcNow);
-            await File.WriteAllTextAsync(outputPath, snapshot.ToJsonString() + "\n");
+            byte[] payload = Encoding.UTF8.GetBytes(snapshot.ToJsonString() + "\n");
+            await WriteFileAtomicallyAsync(
+                outputPath,
+                stream => stream.WriteAsync(payload).AsTask(),
+                beforeMoveAsync);
             return true;
         }
-        catch (Exception exception) when (exception is IOException or JsonException)
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or JsonException)
+        {
+            return false;
+        }
+    }
+
+    private static (JsonObject Snapshot, string Phase)? TryParseBrowserProgress(string json)
+    {
+        if (JsonNode.Parse(json) is JsonObject snapshot
+            && snapshot["mode"] is JsonValue mode && mode.TryGetValue(out string? _)
+            && snapshot["cases"] is JsonArray
+            && snapshot["progress"] is JsonObject progress
+            && progress["phase"] is JsonValue phaseValue && phaseValue.TryGetValue(out string? phase)
+            && phase is { Length: > 0 and <= 96 }
+            && phase.All(character => character is >= 'a' and <= 'z' or >= '0' and <= '9' or '-'))
+        {
+            return (snapshot, phase);
+        }
+
+        return null;
+    }
+
+    private static async Task<bool> HasBrowserProgressAsync(string outputPath)
+    {
+        try
+        {
+            return TryParseBrowserProgress(await File.ReadAllTextAsync(outputPath)) is not null;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or JsonException)
         {
             return false;
         }
@@ -311,29 +357,91 @@ public sealed class AuthenticatedTenantsUiRouteTests(AuthenticatedTenantsTopolog
                 && root.TryGetProperty("passed", out _)
                 && root.TryGetProperty("cases", out _);
         }
-        catch (Exception exception) when (exception is IOException or JsonException)
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or JsonException)
         {
             return false;
         }
     }
 
-    private static async Task WriteWrapperEvidenceAsync(string outputPath, string phase, string label, bool passed)
-    {
-        var options = new FileStreamOptions { Mode = FileMode.Create, Access = FileAccess.Write, Share = FileShare.None, Options = FileOptions.Asynchronous };
-        if (!OperatingSystem.IsWindows())
-        {
-            options.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
-        }
+    /// <summary>Atomically writes wrapper-owned qualification evidence with private file permissions.</summary>
+    /// <param name="outputPath">The evidence file path.</param>
+    /// <param name="phase">The bounded qualification phase.</param>
+    /// <param name="label">The bounded failure or completion label.</param>
+    /// <param name="passed">Whether the qualification passed.</param>
+    /// <param name="beforeMoveAsync">Optional test hook invoked after flushing the sibling temporary file and before atomic replacement.</param>
+    internal static Task WriteWrapperEvidenceAsync(
+        string outputPath,
+        string phase,
+        string label,
+        bool passed,
+        Func<string, Task>? beforeMoveAsync = null)
+        => WriteFileAtomicallyAsync(
+            outputPath,
+            stream => JsonSerializer.SerializeAsync(stream, new
+            {
+                producer = "wrapper",
+                passed,
+                cases = Array.Empty<object>(),
+                failure = passed ? null : new { phase, label },
+                finishedUtc = DateTimeOffset.UtcNow,
+            }),
+            beforeMoveAsync);
 
-        await using var output = new FileStream(outputPath, options);
-        await JsonSerializer.SerializeAsync(output, new
+    private static async Task WriteFileAtomicallyAsync(
+        string destinationPath,
+        Func<FileStream, Task> writeContentAsync,
+        Func<string, Task>? beforeMoveAsync = null)
+    {
+        string fullDestinationPath = Path.GetFullPath(destinationPath);
+        string directory = Path.GetDirectoryName(fullDestinationPath)
+            ?? throw new InvalidOperationException("Evidence path requires a parent directory.");
+        string tempPath = Path.Combine(directory, $"{Path.GetFileName(fullDestinationPath)}.{Guid.NewGuid():N}.tmp");
+        bool moved = false;
+        try
         {
-            producer = "wrapper",
-            passed,
-            cases = Array.Empty<object>(),
-            failure = passed ? null : new { phase, label },
-            finishedUtc = DateTimeOffset.UtcNow,
-        });
+            var options = new FileStreamOptions
+            {
+                Mode = FileMode.CreateNew,
+                Access = FileAccess.Write,
+                Share = FileShare.None,
+                Options = FileOptions.Asynchronous,
+            };
+            if (!OperatingSystem.IsWindows())
+            {
+                options.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+            }
+
+            await using (var stream = new FileStream(tempPath, options))
+            {
+                await writeContentAsync(stream);
+                await stream.FlushAsync();
+                stream.Flush(flushToDisk: true);
+            }
+
+            if (beforeMoveAsync is not null)
+            {
+                await beforeMoveAsync(tempPath);
+            }
+
+            File.Move(tempPath, fullDestinationPath, overwrite: true);
+            moved = true;
+        }
+        finally
+        {
+            if (!moved)
+            {
+                try
+                {
+                    File.Delete(tempPath);
+                }
+                catch (IOException)
+                {
+                }
+                catch (UnauthorizedAccessException)
+                {
+                }
+            }
+        }
     }
 
     private async Task<string> GetReadyMarkupAsync(string route, string cookie, string marker, AuthenticatedRouteState state, CancellationToken cancellationToken)

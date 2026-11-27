@@ -58,7 +58,7 @@ class PlatformSourceRootTests(unittest.TestCase):
             (tenants / "references/Hexalith.Builds").symlink_to(self.builds, target_is_directory=True)
             yield tenants, self.canonical(selected), base
 
-    def evaluate(self, tenants, configuration, explicit=None):
+    def evaluate(self, tenants, configuration, explicit=None, version=None):
         command = [
             "dotnet", "msbuild", str(tenants / APPHOST), "-nologo",
             "-target:ValidateCanonicalPlatformSource",
@@ -68,6 +68,8 @@ class PlatformSourceRootTests(unittest.TestCase):
         ]
         if explicit is not None:
             command.append("-p:HexalithPlatformRoot=" + str(explicit))
+        if version is not None:
+            command.append("-p:Version=" + version)
         environment = dict(os.environ)
         environment.pop("HexalithPlatformRoot", None)
         return subprocess.run(command, cwd=REPOSITORY, env=environment, text=True,
@@ -138,6 +140,24 @@ class PlatformSourceRootTests(unittest.TestCase):
             with self.subTest(configuration=configuration), self.layout("nested") as (tenants, _, base):
                 explicit = self.canonical(base / "selected-platform")
                 self.assert_selected(self.evaluate(tenants, configuration, explicit), explicit)
+
+    def test_clean_standalone_checkout_refuses_uninitialized_platform_gitlink_and_accepts_non_recursive_init(self):
+        for configuration in ("Release", "Debug"):
+            with self.subTest(configuration=configuration), self.layout("nested") as (tenants, platform, _):
+                shutil.rmtree(platform)
+                # Mirror a clean checkout with submodules disabled: empty gitlink directory and no sibling Platform.
+                platform.mkdir()
+                self.assertFalse((tenants.parent / "Hexalith.Platform").exists())
+                version = "1.2.3" if configuration == "Release" else None
+                refused = self.evaluate(tenants, configuration, version=version)
+                self.assertNotEqual(refused.returncode, 0)
+                self.assertIn("requires the canonical Platform checkout", refused.stdout + refused.stderr)
+
+                # Non-recursive root initialization populates Platform root files without nested submodules.
+                self.canonical(platform)
+                (platform / "references").mkdir()
+                self.assertEqual(list((platform / "references").iterdir()), [])
+                self.assert_selected(self.evaluate(tenants, configuration, version=version), platform)
 
 
 if __name__ == "__main__":

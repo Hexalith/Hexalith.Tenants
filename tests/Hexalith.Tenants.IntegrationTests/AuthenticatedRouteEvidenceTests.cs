@@ -162,4 +162,260 @@ public sealed class AuthenticatedRouteEvidenceTests
             if (artifact is not null) Directory.Delete(Path.GetDirectoryName(artifact)!, recursive: true);
         }
     }
+
+    [Fact]
+    public async Task RetainBrowserProgressReplacesCheckpointAtomicallyWithPrivateModeAndCleanDirectory()
+    {
+        string directory = CreatePrivateTempDirectory();
+        string outputPath = Path.Combine(directory, "result.json");
+        try
+        {
+            string initialJson = JsonSerializer.Serialize(new
+            {
+                mode = "synthetic browser progress",
+                passed = false,
+                cases = new[] { new { name = "protected-route-1", passed = true } },
+                progress = new { phase = "tenant-list-layout-768-none-ready", completedCases = 1, elapsedMilliseconds = 1200 },
+            });
+            await File.WriteAllTextAsync(outputPath, initialJson);
+            byte[] originalBytes = await File.ReadAllBytesAsync(outputPath);
+
+            string? stagedTempPath = null;
+            bool retained = await AuthenticatedTenantsUiRouteTests.RetainBrowserProgressAsync(
+                outputPath,
+                "browser-run",
+                "qualification-timeout",
+                async tempPath =>
+                {
+                    stagedTempPath = tempPath;
+                    Path.GetDirectoryName(tempPath).ShouldBe(directory);
+                    tempPath.ShouldEndWith(".tmp");
+                    File.Exists(tempPath).ShouldBeTrue();
+                    if (!OperatingSystem.IsWindows())
+                    {
+                        File.GetUnixFileMode(tempPath).ShouldBe(UnixFileMode.UserRead | UnixFileMode.UserWrite);
+                    }
+
+                    (await File.ReadAllBytesAsync(outputPath)).ShouldBe(originalBytes);
+                });
+
+            retained.ShouldBeTrue();
+            stagedTempPath.ShouldNotBeNull();
+            File.Exists(stagedTempPath).ShouldBeFalse();
+            Directory.GetFiles(directory).ShouldBe([outputPath]);
+            if (!OperatingSystem.IsWindows())
+            {
+                File.GetUnixFileMode(outputPath).ShouldBe(UnixFileMode.UserRead | UnixFileMode.UserWrite);
+            }
+
+            using JsonDocument updated = JsonDocument.Parse(await File.ReadAllTextAsync(outputPath));
+            JsonElement root = updated.RootElement;
+            root.GetProperty("passed").GetBoolean().ShouldBeFalse();
+            root.GetProperty("cases").GetArrayLength().ShouldBe(1);
+            root.GetProperty("failure").GetProperty("phase").GetString().ShouldBe("tenant-list-layout-768-none-ready");
+            root.GetProperty("failure").GetProperty("label").GetString().ShouldBe("qualification-timeout");
+            root.GetProperty("wrapperFailure").GetProperty("phase").GetString().ShouldBe("browser-run");
+            root.GetProperty("wrapperFailure").GetProperty("label").GetString().ShouldBe("qualification-timeout");
+            root.TryGetProperty("finishedUtc", out _).ShouldBeTrue();
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task RetainBrowserProgressFailureBeforeReplacementCleansTempFileAndPreservesOriginalBytes()
+    {
+        string directory = CreatePrivateTempDirectory();
+        string outputPath = Path.Combine(directory, "result.json");
+        try
+        {
+            string initialJson = JsonSerializer.Serialize(new
+            {
+                mode = "synthetic browser progress",
+                passed = false,
+                cases = new[] { new { name = "protected-route-1", passed = true } },
+                progress = new { phase = "tenant-list-layout-768-none-ready", completedCases = 1, elapsedMilliseconds = 2400 },
+            });
+            await File.WriteAllTextAsync(outputPath, initialJson);
+            byte[] originalBytes = await File.ReadAllBytesAsync(outputPath);
+
+            string? observedTempPath = null;
+            bool retained = await AuthenticatedTenantsUiRouteTests.RetainBrowserProgressAsync(
+                outputPath,
+                "browser-run",
+                "qualification-timeout",
+                tempPath =>
+                {
+                    observedTempPath = tempPath;
+                    File.Exists(tempPath).ShouldBeTrue();
+                    throw new IOException("Simulated pre-move interruption.");
+                });
+
+            retained.ShouldBeFalse();
+            observedTempPath.ShouldNotBeNull();
+            File.Exists(observedTempPath).ShouldBeFalse();
+            Directory.GetFiles(directory).ShouldBe([outputPath]);
+            (await File.ReadAllBytesAsync(outputPath)).ShouldBe(originalBytes);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task RetainBrowserProgressContainsUnauthorizedAccessAndPreservesOriginalBytes()
+    {
+        string directory = CreatePrivateTempDirectory();
+        string outputPath = Path.Combine(directory, "result.json");
+        try
+        {
+            string initialJson = JsonSerializer.Serialize(new
+            {
+                mode = "synthetic browser progress",
+                passed = false,
+                cases = new[] { new { name = "protected-route-1", passed = true } },
+                progress = new { phase = "tenant-list-layout-768-none-ready", completedCases = 1, elapsedMilliseconds = 2400 },
+            });
+            await File.WriteAllTextAsync(outputPath, initialJson);
+            byte[] originalBytes = await File.ReadAllBytesAsync(outputPath);
+
+            string? observedTempPath = null;
+            bool retained = await AuthenticatedTenantsUiRouteTests.RetainBrowserProgressAsync(
+                outputPath,
+                "browser-run",
+                "qualification-timeout",
+                tempPath =>
+                {
+                    observedTempPath = tempPath;
+                    throw new UnauthorizedAccessException("Simulated permission refusal before atomic move.");
+                });
+
+            retained.ShouldBeFalse();
+            observedTempPath.ShouldNotBeNull();
+            File.Exists(observedTempPath).ShouldBeFalse();
+            Directory.GetFiles(directory).ShouldBe([outputPath]);
+            (await File.ReadAllBytesAsync(outputPath)).ShouldBe(originalBytes);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task WithSafeEvidencePreservesIntactInProgressCheckpointWhenRetentionWriteFails()
+    {
+        string? artifact = null;
+        string progressJson = JsonSerializer.Serialize(new
+        {
+            mode = "synthetic browser progress",
+            passed = false,
+            cases = new[] { new { name = "protected-route-1", passed = true } },
+            progress = new { phase = "tenant-list-layout-768-none-ready", completedCases = 1, elapsedMilliseconds = 3200 },
+        });
+        try
+        {
+            await Should.ThrowAsync<InvalidOperationException>(() =>
+                AuthenticatedTenantsUiRouteTests.WithSafeEvidenceAsync(
+                    TimeSpan.FromSeconds(5),
+                    async (path, phase, _) =>
+                    {
+                        artifact = path;
+                        phase("browser-run");
+                        await File.WriteAllTextAsync(path, progressJson);
+                        throw new TimeoutException("private-exception-sentinel");
+                    },
+                    beforeRetainMoveAsync: _ => throw new IOException("Simulated interrupted retention write.")));
+
+            string persisted = await File.ReadAllTextAsync(artifact.ShouldNotBeNull());
+            persisted.ShouldBe(progressJson);
+            Directory.GetFiles(Path.GetDirectoryName(artifact)!).ShouldBe([artifact]);
+            using JsonDocument evidence = JsonDocument.Parse(persisted);
+            evidence.RootElement.GetProperty("cases").GetArrayLength().ShouldBe(1);
+            evidence.RootElement.GetProperty("progress").GetProperty("phase").GetString()
+                .ShouldBe("tenant-list-layout-768-none-ready");
+        }
+        finally
+        {
+            if (artifact is not null) Directory.Delete(Path.GetDirectoryName(artifact)!, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task WriteWrapperEvidenceStagesAtomicallyWithPrivateModeAndCleansTempFileOnFailure()
+    {
+        string directory = CreatePrivateTempDirectory();
+        string outputPath = Path.Combine(directory, "result.json");
+        try
+        {
+            string? stagedTempPath = null;
+            await AuthenticatedTenantsUiRouteTests.WriteWrapperEvidenceAsync(
+                outputPath,
+                "sign-in",
+                "qualification-failed",
+                passed: false,
+                beforeMoveAsync: tempPath =>
+                {
+                    stagedTempPath = tempPath;
+                    Path.GetDirectoryName(tempPath).ShouldBe(directory);
+                    tempPath.ShouldEndWith(".tmp");
+                    File.Exists(tempPath).ShouldBeTrue();
+                    File.Exists(outputPath).ShouldBeFalse();
+                    if (!OperatingSystem.IsWindows())
+                    {
+                        File.GetUnixFileMode(tempPath).ShouldBe(UnixFileMode.UserRead | UnixFileMode.UserWrite);
+                    }
+
+                    return Task.CompletedTask;
+                });
+
+            stagedTempPath.ShouldNotBeNull();
+            File.Exists(stagedTempPath).ShouldBeFalse();
+            Directory.GetFiles(directory).ShouldBe([outputPath]);
+            if (!OperatingSystem.IsWindows())
+            {
+                File.GetUnixFileMode(outputPath).ShouldBe(UnixFileMode.UserRead | UnixFileMode.UserWrite);
+            }
+
+            byte[] persistedBytes = await File.ReadAllBytesAsync(outputPath);
+            string? failedTempPath = null;
+            await Should.ThrowAsync<IOException>(() => AuthenticatedTenantsUiRouteTests.WriteWrapperEvidenceAsync(
+                outputPath,
+                "browser-run",
+                "qualification-timeout",
+                passed: false,
+                beforeMoveAsync: tempPath =>
+                {
+                    failedTempPath = tempPath;
+                    throw new IOException("Simulated interrupted wrapper evidence write.");
+                }));
+
+            failedTempPath.ShouldNotBeNull();
+            File.Exists(failedTempPath).ShouldBeFalse();
+            Directory.GetFiles(directory).ShouldBe([outputPath]);
+            (await File.ReadAllBytesAsync(outputPath)).ShouldBe(persistedBytes);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    private static string CreatePrivateTempDirectory()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), $"tenants-evidence-atomic-{Guid.NewGuid():N}");
+        if (OperatingSystem.IsWindows())
+        {
+            Directory.CreateDirectory(directory);
+        }
+        else
+        {
+            Directory.CreateDirectory(directory, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        }
+
+        return directory;
+    }
 }

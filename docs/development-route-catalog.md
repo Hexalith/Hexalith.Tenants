@@ -3,7 +3,12 @@
 This source profile uses the selected EventStore SDK's compiled schema 3 catalog
 and complete activation binding v2. Its source prerequisite is pinned by
 `references/Hexalith.EventStore`; a source result does not qualify a released
-package floor.
+package floor. Activate it explicitly in run mode by setting
+`TENANTS_SOURCE_CATALOG_PROFILE=true` (matched case-insensitively through
+AppHost configuration, via environment variable or command-line argument). When
+`TENANTS_SOURCE_CATALOG_PROFILE` is unset or `false`, an ordinary source AppHost
+run does not create the development routing catalog even if
+`Tenants:DevelopmentRouteCatalog` custody settings are configured.
 
 The selected authority peers are the Gateway (`eventstore`), Admin.Server
 (`eventstore-admin`), Tenants domain service (`tenants`), and generated REST host
@@ -17,21 +22,27 @@ authority cohort. The six Tenants REST reads use Dapr; Tenants.UI command and
 status calls retain direct Gateway HTTPS. The optional `sample` pub/sub consumer
 is omitted by default in this source profile. Set `TENANTS_SOURCE_CATALOG_INCLUDE_SAMPLE=true`
 to retain it for background-delivery qualification, with projection workers enabled;
-ordinary AppHost runs also include it. Sample remains a pub/sub consumer outside the
-four-host owner cohort. The Sample-enabled Aha test checks the real committed owner
-identities before proving persisted access revocation from delivered tenant events.
-Optional Memories REST traffic is not qualified by this focused profile; an
-undeclared workload path remains refused rather than receiving an inferred grant.
+ordinary AppHost runs also include it. When `TENANTS_SOURCE_CATALOG_PROFILE=true`
+is active, set `TENANTS_SOURCE_WORKER_BACKED_RESPONSES_ENABLED=true` (also matched
+case-insensitively through AppHost configuration) to enable
+`EventStore__Projections__WorkerBackedResponsesEnabled=true` on the Gateway.
+Sample remains a pub/sub consumer outside the four-host owner cohort. The
+Sample-enabled Aha test checks the real committed owner identities before proving
+persisted access revocation from delivered tenant events. Optional Memories REST
+traffic is not qualified by this focused profile; an undeclared workload path
+remains refused rather than receiving an inferred grant.
 
 ## Retained backend and key custody
 
-A source AppHost run requires the `Tenants:DevelopmentRouteCatalog` section to
-bind `DevelopmentRouteCatalogCompositionOptions`: `CustodyDirectory`,
+A source AppHost run with `TENANTS_SOURCE_CATALOG_PROFILE=true` requires the
+`Tenants:DevelopmentRouteCatalog` section to bind
+`DevelopmentRouteCatalogCompositionOptions`: `CustodyDirectory`,
 `AuthorityComponentName`, `AuthorityStateKey`, `ActiveDigestKeyGeneration`,
 `DigestKeys`, and `SecretMapGeneration`. Keep the custody directory and key ring
 private and retained together with the actual business backend. An empty routing
 cell does not establish that the business backend is new. Missing custody inputs
-refuse startup; this profile never silently replaces persistent digest keys.
+refuse startup when `TENANTS_SOURCE_CATALOG_PROFILE=true` is enabled; this
+profile never silently replaces persistent digest keys.
 
 For an existing backend, supply its existing ring and retained predecessor
 custody. Provision new material only together with an independently established
@@ -90,12 +101,21 @@ The current default package selection is public stable EventStore `5.6.0` with
 McpCli.Abstractions `3.0.0`. Tenant-access recovery requires its snapshot-budget
 API. Catalog archive admission retains the exact canonical-scope cohorts
 `4.0.0`, `4.0.1`, `4.0.2`, `4.0.3`, `4.0.4`, `4.1.0`, `4.2.0`, `5.0.1`, `5.1.0`, `5.1.1`, `5.2.0`, `5.3.0`, `5.3.1`, `5.4.0`, `5.5.1`, `5.5.2` and `5.6.0`.
-Ordinary release preparation uses the `5.6.0`/`3.0.0` default. Current package production requires
-EventStore `5.3.0`, `5.3.1`, `5.4.0`, `5.5.1`, `5.5.2` or `5.6.0`, including packing without a build; older archive
-cohorts remain verification inputs and cannot produce current Tenants packages.
-The retained finite compatibility set is `3.129.0`, `3.129.1`, `3.130.0`, `3.130.1`,
+Ordinary release preparation uses the `5.6.0`/`3.0.0` default. Current package
+production (`ValidateCanonicalBoundaryPackageCohort`) requires exact 3-part
+canonical SemVer literals for EventStore (`5.3.0`, `5.3.1`, `5.4.0`, `5.5.1`,
+`5.5.2`, or `5.6.0`) and McpCli.Abstractions (`3.0.0`), including packing
+without a build; `.0` fourth-revision aliases (such as `5.3.0.0` or `5.6.0.0`)
+and `+metadata` suffixes (such as `5.6.0+sha`) are refused at the canonical
+package boundary, aligning with `Directory.Build.props`,
+`HexalithMcpCliVersion != '3.0.0'`, and `Hexalith.Builds`
+`ValidateHexalithEventStoreReferences`. Older archive cohorts remain
+verification inputs and cannot produce current Tenants packages. The retained
+finite compatibility set is `3.129.0`, `3.129.1`, `3.130.0`, `3.130.1`,
 `3.130.2`, `3.131.0`, `3.132.0`, `3.132.1`, `3.132.2` and `3.133.0`;
-zero fourth revisions and build metadata normalize to the same stable cohort.
+catalog SDK selection and historical archive admission
+(`ValidateCatalogSdkSelection` and `ValidatePublishedCatalogSdk`) continue to
+normalize zero fourth revisions and build metadata to the same stable cohort.
 Catalog qualification refuses prereleases, nonzero fourth revisions, unknown
 versions and mixed SDK cohorts. The legacy build floor can still accept
 `3.128.x` selections without catalog enrollment. Explicit `3.128.4`

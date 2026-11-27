@@ -428,6 +428,80 @@ class ReleaseArtifactVerificationTests(unittest.TestCase):
                          self.fixture.ids[:1])
         self.assertFalse((evidence / "verified.json").exists())
 
+    def test_zero_poll_slow_signature_verification_still_probes_and_verifies_remaining_packages(self):
+        self.fixture.environment["HEXALITH_RELEASE_NUGET_WAIT_SECONDS"] = "0"
+        for package_id in self.fixture.ids:
+            self.nuget_archive(package_id)
+        clock = self.fixture.set_monotonic_clock(0)
+        self.fixture.destinations["signature_verifier_clock_advance_us"] = {self.fixture.ids[0]: 6_000_000}
+        self.fixture.save()
+        self.run_verifier()
+        self.assertEqual(json.loads(clock.read_text())["now"], 6_000_000)
+        calls = self.fixture.calls()
+        curl_calls = [call for call in calls if call[0] == "curl"]
+        self.assertEqual(len(curl_calls), 5)
+        self.assertTrue(all(call[call.index("--max-time") + 1] == "1.000000" for call in curl_calls))
+        verify_calls = [call for call in calls if call[:4] == ["dotnet", "nuget", "verify", "--all"]]
+        self.assertEqual(len(verify_calls), 5)
+        evidence = self.fixture.root / ".hexalith/release-evidence/1.2.3/destinations"
+        self.assertEqual([line.split()[1] for line in (evidence / "nuget-sha256").read_text().splitlines()],
+                         self.fixture.ids)
+        observations = (evidence / "nuget-readiness").read_text().splitlines()
+        self.assertEqual(len(observations), 5)
+        self.assertTrue(all(line.startswith("200 ") for line in observations))
+        self.assertTrue((evidence / "verified.json").is_file())
+
+    def test_zero_poll_slow_signature_verification_still_probes_absent_later_package_boundedly(self):
+        self.fixture.environment["HEXALITH_RELEASE_NUGET_WAIT_SECONDS"] = "0"
+        signed_first = self.fixture.ids[0]
+        missing_later = self.fixture.ids[1]
+        self.nuget_archive(signed_first)
+        self.fixture.destinations["packages"].remove(missing_later)
+        # Sequence: pkg0 start, pkg0 v3, (+6s during verify), pkg1 start, pkg1 v3, pkg1 v2 (+350ms).
+        clock = self.fixture.set_monotonic_clock([0, 0, 0, 0, 350_000])
+        self.fixture.destinations["signature_verifier_clock_advance_us"] = {signed_first: 6_000_000}
+        self.fixture.save()
+        result = self.run_verifier(False)
+        self.assertIn(f"NuGet package {missing_later} was not ready within 0 seconds", result.stderr)
+        self.assertEqual(json.loads(clock.read_text()), [])
+        calls = self.fixture.calls()
+        evidence = self.fixture.root / ".hexalith/release-evidence/1.2.3/destinations"
+        self.assertIn(["dotnet", "nuget", "verify", "--all",
+                       str(evidence / "nuget" / (signed_first + ".1.2.3.nupkg"))], calls)
+        curl_calls = [call for call in calls if call[0] == "curl"]
+        self.assertEqual(len(curl_calls), 3)
+        timeouts = [float(call[call.index("--max-time") + 1]) for call in curl_calls]
+        self.assertEqual(timeouts[:2], [1.0, 1.0])
+        self.assertGreater(timeouts[2], 0)
+        self.assertLess(timeouts[2], 1.0)
+        self.assertAlmostEqual(timeouts[2], 0.65, places=6)
+        observations = (evidence / "nuget-readiness").read_text().splitlines()
+        self.assertEqual(observations, [
+            f"200 {signed_first} https://api.nuget.org/v3-flatcontainer/{signed_first.lower()}/1.2.3/{signed_first.lower()}.1.2.3.nupkg",
+            f"404 {missing_later} https://api.nuget.org/v3-flatcontainer/{missing_later.lower()}/1.2.3/{missing_later.lower()}.1.2.3.nupkg",
+            f"404 {missing_later} https://www.nuget.org/api/v2/package/{missing_later}/1.2.3",
+        ])
+        self.assertEqual([line.split()[1] for line in (evidence / "nuget-sha256").read_text().splitlines()],
+                         [signed_first])
+        self.assertFalse((evidence / "verified.json").exists())
+
+    def test_positive_wait_budget_still_counts_signature_verification_across_cohort(self):
+        self.fixture.environment["HEXALITH_RELEASE_NUGET_WAIT_SECONDS"] = "5"
+        signed_first = self.fixture.ids[0]
+        self.nuget_archive(signed_first)
+        clock = self.fixture.set_monotonic_clock(0)
+        self.fixture.destinations["signature_verifier_clock_advance_us"] = {signed_first: 6_000_000}
+        self.fixture.save()
+        result = self.run_verifier(False)
+        self.assertIn(f"NuGet package {self.fixture.ids[1]} was not ready within 5 seconds", result.stderr)
+        self.assertEqual(json.loads(clock.read_text())["now"], 6_000_000)
+        curl_calls = [call for call in self.fixture.calls() if call[0] == "curl"]
+        self.assertEqual(len(curl_calls), 1)
+        evidence = self.fixture.root / ".hexalith/release-evidence/1.2.3/destinations"
+        self.assertEqual([line.split()[1] for line in (evidence / "nuget-sha256").read_text().splitlines()],
+                         [signed_first])
+        self.assertFalse((evidence / "verified.json").exists())
+
     def test_live_oci_digest_provenance_and_platform_drift_are_rejected(self):
         for key, value in (("oci_generation", 1), ("oci_mutation", "label"), ("oci_mutation", "platform"),
                            ("oci_mutation", "negotiation"), ("oci_source_sha", "b" * 40)):

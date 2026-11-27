@@ -24,9 +24,9 @@ internal static class TenantsDevelopmentRoutingCatalog
         // bound command proof, never a human submission of an internal operation.
         domain.WithEnvironment("Tenants__BootstrapBoundWorkloadEnabled", "true");
         gateway.WithEnvironment("Authentication__BoundCommand__AllowedDomains__tenants", "global-administrators");
-        if (string.Equals(Environment.GetEnvironmentVariable("TENANTS_SOURCE_CATALOG_PROFILE"), "true", StringComparison.Ordinal))
+        if (string.Equals(builder.Configuration["TENANTS_SOURCE_CATALOG_PROFILE"], "true", StringComparison.OrdinalIgnoreCase))
         {
-            if (string.Equals(Environment.GetEnvironmentVariable("TENANTS_SOURCE_WORKER_BACKED_RESPONSES_ENABLED"), "true", StringComparison.Ordinal))
+            if (string.Equals(builder.Configuration["TENANTS_SOURCE_WORKER_BACKED_RESPONSES_ENABLED"], "true", StringComparison.OrdinalIgnoreCase))
             {
                 gateway.WithEnvironment("EventStore__Projections__WorkerBackedResponsesEnabled", "true");
             }

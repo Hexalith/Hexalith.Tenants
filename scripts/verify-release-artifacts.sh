@@ -84,18 +84,22 @@ wait_seconds=$((10#$wait_seconds))
 wait_interval=$((10#$wait_interval))
 : > "$evidence_directory/nuget-sha256"
 : > "$evidence_directory/nuget-readiness"
-now="$(recovery_monotonic_microseconds)" || recovery_fail 'Monotonic NuGet readiness clock failed.'
-# One cohort budget covers all five packages, their retries and both endpoints.
-# Zero disables polling and retains a one-second immediate probe per package.
-cohort_deadline=$((now + (wait_seconds > 0 ? wait_seconds : 5) * 1000000))
+cohort_deadline=''
+if [ "$wait_seconds" -gt 0 ]; then
+  now="$(recovery_monotonic_microseconds)" || recovery_fail 'Monotonic NuGet readiness clock failed.'
+  # One cohort budget covers all five packages, their retries and both endpoints.
+  cohort_deadline=$((now + wait_seconds * 1000000))
+fi
 verified_package_count=0
 while IFS= read -r package_id; do
   downloaded="$evidence_directory/nuget/${package_id}.${version}.nupkg"
-  deadline="$cohort_deadline"
-  if [ "$wait_seconds" -eq 0 ]; then
+  if [ "$wait_seconds" -gt 0 ]; then
+    deadline="$cohort_deadline"
+  else
+    # Zero disables polling and retains a one-second immediate probe per package,
+    # independent of per-package payload or signature verification time.
     now="$(recovery_monotonic_microseconds)" || recovery_fail 'Monotonic NuGet readiness clock failed.'
-    immediate_deadline=$((now + 1000000))
-    [ "$deadline" -le "$immediate_deadline" ] || deadline="$immediate_deadline"
+    deadline=$((now + 1000000))
   fi
   while true; do
     recovery_download_nuget "$package_id" "$version" "$downloaded" "$evidence_directory/nuget-readiness" "$deadline"
@@ -105,9 +109,10 @@ while IFS= read -r package_id; do
       404|409|425|429|5??|transport-failure|deadline-exhausted) ;;
       *) recovery_fail "NuGet package $package_id returned unexpected status $status." ;;
     esac
+    [ "$wait_seconds" -gt 0 ] || recovery_fail "NuGet package $package_id was not ready within ${wait_seconds} seconds."
     now="$(recovery_monotonic_microseconds)" || recovery_fail 'Monotonic NuGet readiness clock failed.'
     remaining=$((deadline - now))
-    [ "$wait_seconds" -gt 0 ] && [ "$remaining" -ge 1000 ] || recovery_fail "NuGet package $package_id was not ready within ${wait_seconds} seconds."
+    [ "$remaining" -ge 1000 ] || recovery_fail "NuGet package $package_id was not ready within ${wait_seconds} seconds."
     pause=$((wait_interval * 1000000))
     [ "$pause" -le "$remaining" ] || pause="$remaining"
     printf -v pause '%d.%06d' "$((pause / 1000000))" "$((pause % 1000000))"

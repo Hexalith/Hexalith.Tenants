@@ -20,7 +20,7 @@ SOURCE_SHA = "a" * 40
 
 # Installed only in each temporary test directory. No live destination is reachable.
 CLIENT = r'''
-import base64, json, os, pathlib, sys
+import base64, json, os, pathlib, re, sys
 kind = pathlib.Path(sys.argv[0]).name
 args = sys.argv[1:]
 root = pathlib.Path(os.environ["RECOVERY_FIXTURE"])
@@ -146,6 +146,18 @@ elif kind == "dotnet":
         (directory / (package["id"] + "." + version + ".nupkg")).write_bytes(raw)
     elif args[:3] == ["nuget", "verify", "--all"]:
         if len(args) != 4 or not pathlib.Path(args[3]).is_file(): fail()
+        package_id = re.sub(r"\.[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?\.nupkg$", "", pathlib.Path(args[3]).name)
+        advances = state.get("signature_verifier_clock_advance_us", {})
+        advance = advances.get(package_id, 0) if isinstance(advances, dict) else int(advances)
+        if advance:
+            clock_path = root / "monotonic-clock.json"
+            if not clock_path.is_file(): fail()
+            clock = json.loads(clock_path.read_text())
+            if isinstance(clock, dict):
+                clock["now"] += advance
+            else:
+                clock = [value + advance for value in clock]
+            clock_path.write_text(json.dumps(clock))
         print("native signature verifier fixture")
         sys.exit(state.get("signature_verifier_exit", 0))
     elif args[:2] == ["nuget", "push"]:
@@ -222,13 +234,16 @@ class PartialReleaseRecoveryTests(unittest.TestCase):
     def set_monotonic_clock(self, values):
         """Control only the private monotonic-nanosecond seam in child Python."""
         clock = self.root / "monotonic-clock.json"
-        clock.write_text(json.dumps(values))
+        initial = {"now": values} if isinstance(values, int) and not isinstance(values, bool) else values
+        clock.write_text(json.dumps(initial))
         with (self.root / "sitecustomize.py").open("a") as setup:
             setup.write(
                 "import json, time\nfrom pathlib import Path\n"
                 f"_clock = Path({str(clock)!r})\n"
                 "def _monotonic_ns():\n"
                 "    values = json.loads(_clock.read_text())\n"
+                "    if isinstance(values, dict):\n"
+                "        return values['now'] * 1000\n"
                 "    value = values.pop(0)\n"
                 "    _clock.write_text(json.dumps(values))\n"
                 "    return value * 1000\n"

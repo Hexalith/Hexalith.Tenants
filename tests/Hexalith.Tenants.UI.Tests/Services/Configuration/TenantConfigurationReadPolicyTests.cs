@@ -1,3 +1,5 @@
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Security.Claims;
 using System.Text;
 
@@ -1557,6 +1559,348 @@ public sealed class TenantConfigurationReadPolicyTests
         evidence.Subject.ShouldBeNull();
     }
 
+    [Fact]
+    public async Task Resolver_observes_late_fault_on_canceled_uncooperative_authentication_provider_without_unobserved_task_exception()
+    {
+        string marker = $"late-auth-state-fault-{Guid.NewGuid():N}";
+        int unobserved = 0;
+        EventHandler<UnobservedTaskExceptionEventArgs> handler = (_, args) =>
+        {
+            if (args.Exception.ToString().Contains(marker, StringComparison.Ordinal))
+            {
+                _ = Interlocked.Exchange(ref unobserved, 1);
+                args.SetObserved();
+            }
+        };
+
+        TaskScheduler.UnobservedTaskException += handler;
+        try
+        {
+            WeakReference weakTask = await RunCanceledLateFaultAuthenticationStateAsync(marker);
+            // Yield so the helper's async MoveNext frame unwinds completely before GC runs.
+            await Task.Yield();
+            for (int iteration = 0; iteration < 3; iteration++)
+            {
+                GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true, compacting: true);
+                GC.WaitForPendingFinalizers();
+            }
+
+            weakTask.IsAlive.ShouldBeFalse();
+            Volatile.Read(ref unobserved).ShouldBe(0);
+        }
+        finally
+        {
+            TaskScheduler.UnobservedTaskException -= handler;
+        }
+    }
+
+    [Theory]
+    [InlineData("circuit-lookup", "oom")]
+    [InlineData("circuit-lookup", "access-violation")]
+    [InlineData("circuit-lookup", "aggregate")]
+    [InlineData("circuit-lookup", "ioe-wrapped")]
+    [InlineData("circuit-lookup", "oce-wrapped")]
+    [InlineData("provider-sync", "oom")]
+    [InlineData("provider-sync", "access-violation")]
+    [InlineData("provider-sync", "aggregate")]
+    [InlineData("provider-sync", "ioe-wrapped")]
+    [InlineData("provider-sync", "oce-wrapped")]
+    [InlineData("provider-async", "oom")]
+    [InlineData("provider-async", "access-violation")]
+    [InlineData("provider-async", "aggregate")]
+    [InlineData("provider-async", "ioe-wrapped")]
+    [InlineData("provider-async", "oce-wrapped")]
+    [InlineData("user-context", "oom")]
+    [InlineData("user-context", "access-violation")]
+    [InlineData("user-context", "aggregate")]
+    [InlineData("user-context", "ioe-wrapped")]
+    [InlineData("user-context", "oce-wrapped")]
+    public async Task Resolver_propagates_fatal_exceptions_across_lookup_provider_and_user_context(
+        string seam,
+        string fatalKind)
+    {
+        Exception expected = CreateFatalException(fatalKind);
+        TenantConfigurationPrincipalResolver resolver = CreateSeamResolver(
+            seam,
+            expected,
+            out AuthenticationStateProvider? provider);
+
+        Exception? observed = null;
+        try
+        {
+            _ = await resolver.ResolveAsync();
+        }
+        catch (Exception exception)
+        {
+            observed = exception;
+        }
+
+        observed.ShouldBeSameAs(expected);
+        if (provider is not null)
+        {
+            AssertNoAuthenticationStateChangedSubscribers(provider);
+        }
+    }
+
+    [Theory]
+    [InlineData("circuit-lookup", "object-disposed")]
+    [InlineData("circuit-lookup", "invalid-operation")]
+    [InlineData("circuit-lookup", "non-caller-oce")]
+    [InlineData("provider-sync", "object-disposed")]
+    [InlineData("provider-sync", "invalid-operation")]
+    [InlineData("provider-sync", "non-caller-oce")]
+    [InlineData("provider-async", "object-disposed")]
+    [InlineData("provider-async", "invalid-operation")]
+    [InlineData("provider-async", "non-caller-oce")]
+    [InlineData("user-context", "object-disposed")]
+    [InlineData("user-context", "invalid-operation")]
+    [InlineData("user-context", "non-caller-oce")]
+    public async Task Resolver_contains_non_fatal_exceptions_as_indeterminate_across_lookup_provider_and_user_context(
+        string seam,
+        string failureKind)
+    {
+        Exception failure = CreateNonFatalException(failureKind);
+        TenantConfigurationPrincipalResolver resolver = CreateSeamResolver(
+            seam,
+            failure,
+            out AuthenticationStateProvider? provider);
+
+        TenantConfigurationPrincipalEvidence evidence = await resolver.ResolveAsync();
+
+        evidence.State.ShouldBe(TenantConfigurationPrincipalEvidenceState.Indeterminate);
+        evidence.Subject.ShouldBeNull();
+        if (provider is not null)
+        {
+            AssertNoAuthenticationStateChangedSubscribers(provider);
+        }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Resolver_propagates_already_completed_fatal_authentication_task_over_caller_cancellation(
+        bool canceledWrapper)
+    {
+        using var cancellation = new CancellationTokenSource();
+        Exception expected;
+        Task<AuthenticationState> completedFatalTask;
+        if (canceledWrapper)
+        {
+            expected = new OperationCanceledException(
+                "fatal cancellation wrapper",
+                new OutOfMemoryException("original fatal"));
+            async Task<AuthenticationState> CreateCanceledFatalTaskAsync()
+            {
+                await Task.CompletedTask;
+                throw expected;
+            }
+
+            completedFatalTask = CreateCanceledFatalTaskAsync();
+            completedFatalTask.IsCanceled.ShouldBeTrue();
+            completedFatalTask.Exception.ShouldBeNull();
+        }
+        else
+        {
+            expected = new InvalidOperationException(
+                "fatal wrapper",
+                new OutOfMemoryException("original fatal"));
+            completedFatalTask = Task.FromException<AuthenticationState>(expected);
+        }
+
+        var provider = new DelegateAuthenticationStateProvider(() =>
+        {
+            cancellation.Cancel();
+            return completedFatalTask;
+        });
+        TenantConfigurationPrincipalResolver resolver = Resolver(circuitProvider: provider);
+
+        Exception? observed = null;
+        try
+        {
+            _ = await resolver.ResolveAsync(cancellation.Token);
+        }
+        catch (Exception exception)
+        {
+            observed = exception;
+        }
+
+        observed.ShouldBeSameAs(expected);
+        AssertNoAuthenticationStateChangedSubscribers(provider);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Resolver_propagates_multi_exception_faulted_authentication_task_containing_fatal_exception(
+        bool cancelCaller)
+    {
+        using var cancellation = new CancellationTokenSource();
+        var completion = new TaskCompletionSource<AuthenticationState>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var fatal = new OutOfMemoryException("hidden fatal");
+        completion.SetException([new InvalidOperationException("leading non-fatal"), fatal]);
+        var provider = new DelegateAuthenticationStateProvider(() =>
+        {
+            if (cancelCaller)
+            {
+                cancellation.Cancel();
+            }
+
+            return completion.Task;
+        });
+        TenantConfigurationPrincipalResolver resolver = Resolver(circuitProvider: provider);
+
+        AggregateException observed = await Should.ThrowAsync<AggregateException>(async () =>
+            await resolver.ResolveAsync(cancellation.Token));
+
+        observed.InnerExceptions.ShouldContain(fatal);
+        AssertNoAuthenticationStateChangedSubscribers(provider);
+    }
+
+    [Theory]
+    [InlineData("circuit-lookup", "oom")]
+    [InlineData("circuit-lookup", "ioe-wrapped")]
+    [InlineData("circuit-lookup", "oce-wrapped")]
+    [InlineData("user-context", "oom")]
+    [InlineData("user-context", "ioe-wrapped")]
+    [InlineData("user-context", "oce-wrapped")]
+    public async Task Resolver_propagates_fatal_exceptions_when_caller_cancels_during_lookup_or_user_context(
+        string seam,
+        string fatalKind)
+    {
+        using var cancellation = new CancellationTokenSource();
+        Exception expected = CreateFatalException(fatalKind);
+        TenantConfigurationPrincipalResolver resolver = CreateSeamResolver(
+            seam,
+            expected,
+            out AuthenticationStateProvider? provider,
+            beforeThrow: cancellation.Cancel);
+
+        Exception? observed = null;
+        try
+        {
+            _ = await resolver.ResolveAsync(cancellation.Token);
+        }
+        catch (Exception exception)
+        {
+            observed = exception;
+        }
+
+        cancellation.IsCancellationRequested.ShouldBeTrue();
+        observed.ShouldBeSameAs(expected);
+        if (provider is not null)
+        {
+            AssertNoAuthenticationStateChangedSubscribers(provider);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static async Task<WeakReference> RunCanceledLateFaultAuthenticationStateAsync(string marker)
+    {
+        // Synchronous continuations ensure the abandoned GetAuthenticationStateAsync task executes
+        // its OnlyOnFaulted observation continuation inline before this frame exits for GC.
+        PendingAuthenticationStateProvider? provider = new(TaskCreationOptions.None);
+        CircuitServicesAccessor circuit = new();
+        ServiceProvider? serviceProvider = new ServiceCollection()
+            .AddSingleton<AuthenticationStateProvider>(provider)
+            .BuildServiceProvider();
+        circuit.Services = serviceProvider;
+        try
+        {
+            IUserContextAccessor userContext = Substitute.For<IUserContextAccessor>();
+            var resolver = new TenantConfigurationPrincipalResolver(circuit, userContext);
+            using var cancellation = new CancellationTokenSource();
+            Task<TenantConfigurationPrincipalEvidence>? resolution = resolver
+                .ResolveAsync(cancellation.Token)
+                .AsTask();
+            await provider.Entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+            cancellation.Cancel();
+
+            _ = await Should.ThrowAsync<OperationCanceledException>(
+                resolution.WaitAsync(TimeSpan.FromSeconds(5)));
+            AssertNoAuthenticationStateChangedSubscribers(provider);
+
+            var weakTask = new WeakReference(provider.PendingTask);
+            provider.SetException(new InvalidOperationException(marker, new OutOfMemoryException(marker)));
+
+            // Clear lifted async state-machine fields so this Task<WeakReference> box cannot root the abandoned task.
+            resolution = null;
+            return weakTask;
+        }
+        finally
+        {
+            circuit.Services = null;
+            serviceProvider?.Dispose();
+            serviceProvider = null;
+            provider = null;
+        }
+    }
+
+    private static TenantConfigurationPrincipalResolver CreateSeamResolver(
+        string seam,
+        Exception exception,
+        out AuthenticationStateProvider? provider,
+        Action? beforeThrow = null)
+    {
+        switch (seam)
+        {
+            case "circuit-lookup":
+                provider = null;
+                return Resolver(publishedCircuitServices: new ThrowingServiceProvider(exception, beforeThrow));
+            case "provider-sync":
+                provider = new FaultingAuthenticationStateProvider(exception, throwSynchronously: true);
+                return Resolver(circuitProvider: provider);
+            case "provider-async":
+                provider = new FaultingAuthenticationStateProvider(exception);
+                return Resolver(circuitProvider: provider);
+            case "user-context":
+                provider = new StubAuthenticationStateProvider(Principal(
+                    new Claim("sub", "operator.alpha"),
+                    new Claim("eventstore:tenant", "system"),
+                    new Claim("global_admin", "true")));
+                return Resolver(
+                    circuitProvider: provider,
+                    userContextAccessor: new ThrowingUserContextAccessor(exception, beforeThrow));
+            default:
+                throw new ArgumentOutOfRangeException(nameof(seam), seam, null);
+        }
+    }
+
+    private static Exception CreateFatalException(string fatalKind)
+        => fatalKind switch
+        {
+            "oom" => new OutOfMemoryException("fatal out of memory"),
+            "access-violation" => new AccessViolationException("fatal access violation"),
+            "aggregate" => new AggregateException(
+                new InvalidOperationException("non-fatal sibling"),
+                new OutOfMemoryException("fatal aggregate inner")),
+            "ioe-wrapped" => new InvalidOperationException(
+                "fatal wrapper",
+                new OutOfMemoryException("fatal inner")),
+            "oce-wrapped" => new OperationCanceledException(
+                "fatal cancellation wrapper",
+                new AccessViolationException("fatal cancel inner")),
+            _ => throw new ArgumentOutOfRangeException(nameof(fatalKind), fatalKind, null),
+        };
+
+    private static Exception CreateNonFatalException(string failureKind)
+        => failureKind switch
+        {
+            "object-disposed" => new ObjectDisposedException("circuit scope"),
+            "invalid-operation" => new InvalidOperationException("unsafe non-fatal detail"),
+            "non-caller-oce" => new OperationCanceledException("unrelated provider cancellation"),
+            _ => throw new ArgumentOutOfRangeException(nameof(failureKind), failureKind, null),
+        };
+
+    private static void AssertNoAuthenticationStateChangedSubscribers(AuthenticationStateProvider provider)
+    {
+        FieldInfo? field = typeof(AuthenticationStateProvider).GetField(
+            nameof(AuthenticationStateProvider.AuthenticationStateChanged),
+            BindingFlags.Instance | BindingFlags.NonPublic);
+        field.ShouldNotBeNull();
+        field.GetValue(provider).ShouldBeNull();
+    }
+
     private static TenantConfigurationPrincipalResolver Resolver(
         ClaimsPrincipal? circuitPrincipal = null,
         AuthenticationStateProvider? circuitProvider = null,
@@ -1566,7 +1910,8 @@ public sealed class TenantConfigurationReadPolicyTests
         bool requestInScope = false,
         ClaimsPrincipal? requestPrincipal = null,
         bool supplyUserContext = true,
-        string? userContextSubject = null)
+        string? userContextSubject = null,
+        IUserContextAccessor? userContextAccessor = null)
     {
         CircuitServicesAccessor circuit = new();
         if (publishedCircuitServices is not null)
@@ -1594,10 +1939,13 @@ public sealed class TenantConfigurationReadPolicyTests
             httpContextAccessor = new HttpContextAccessor { HttpContext = httpContext };
         }
 
-        IUserContextAccessor userContext = Substitute.For<IUserContextAccessor>();
-        userContext.UserId.Returns(supplyUserContext
-            ? userContextSubject ?? SubjectFrom(circuitPrincipal) ?? SubjectFrom(injectedPrincipal) ?? SubjectFrom(requestPrincipal)
-            : null);
+        IUserContextAccessor userContext = userContextAccessor ?? Substitute.For<IUserContextAccessor>();
+        if (userContextAccessor is null)
+        {
+            userContext.UserId.Returns(supplyUserContext
+                ? userContextSubject ?? SubjectFrom(circuitPrincipal) ?? SubjectFrom(injectedPrincipal) ?? SubjectFrom(requestPrincipal)
+                : null);
+        }
 
         return new TenantConfigurationPrincipalResolver(
             circuit,
@@ -1665,24 +2013,36 @@ public sealed class TenantConfigurationReadPolicyTests
             => Task.FromResult(new AuthenticationState(principal));
     }
 
-    private sealed class FaultingAuthenticationStateProvider(Exception exception) : AuthenticationStateProvider
+    private sealed class FaultingAuthenticationStateProvider(
+        Exception exception,
+        bool throwSynchronously = false) : AuthenticationStateProvider
     {
         public override Task<AuthenticationState> GetAuthenticationStateAsync()
-            => Task.FromException<AuthenticationState>(exception);
+            => throwSynchronously
+                ? throw exception
+                : Task.FromException<AuthenticationState>(exception);
     }
 
-    private sealed class ThrowingServiceProvider(Exception exception) : IServiceProvider
+    private sealed class ThrowingServiceProvider(
+        Exception exception,
+        Action? beforeThrow = null) : IServiceProvider
     {
-        public object? GetService(Type serviceType) => throw exception;
+        public object? GetService(Type serviceType)
+        {
+            beforeThrow?.Invoke();
+            throw exception;
+        }
     }
 
-    private sealed class PendingAuthenticationStateProvider : AuthenticationStateProvider
+    private sealed class PendingAuthenticationStateProvider(
+        TaskCreationOptions completionOptions = TaskCreationOptions.RunContinuationsAsynchronously) : AuthenticationStateProvider
     {
-        private readonly TaskCompletionSource<AuthenticationState> _completion =
-            new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource<AuthenticationState> _completion = new(completionOptions);
 
         public TaskCompletionSource Entered { get; } =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public Task<AuthenticationState> PendingTask => _completion.Task;
 
         public void CompleteAfterChange(ClaimsPrincipal stale)
         {
@@ -1690,12 +2050,14 @@ public sealed class TenantConfigurationReadPolicyTests
             _completion.TrySetResult(new AuthenticationState(stale));
         }
 
+        public void SetException(Exception exception)
+            => _completion.SetException(exception);
+
         public override Task<AuthenticationState> GetAuthenticationStateAsync()
         {
             Entered.TrySetResult();
             return _completion.Task;
         }
-
     }
 
     private sealed class SameSubjectRevokingAuthenticationStateProvider(

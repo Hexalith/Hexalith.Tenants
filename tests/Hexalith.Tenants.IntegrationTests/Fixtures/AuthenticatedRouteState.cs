@@ -25,6 +25,15 @@ internal sealed record AuthenticatedRouteState(string TenantId, string TargetUse
 {
     internal const string CallerId = "11111111-1111-1111-1111-111111111111";
 
+    /// <summary>Maximum number of tenant index pages admitted when building a live corpus read token.</summary>
+    internal const int MaxCorpusPages = 10;
+
+    /// <summary>Maximum number of distinct tenant identifiers admitted into a live corpus read token.</summary>
+    internal const int MaxCorpusTenants = 100;
+
+    /// <summary>Maximum encoded character length admitted for a minted live corpus read JWT.</summary>
+    internal const int MaxEncodedTokenLength = 8_192;
+
     /// <summary>Gets the committed sequence, event type and target for the isolated audit prefix.</summary>
     internal IReadOnlyList<(long Sequence, string EventType, string Target)> SeededAuditEvents { get; init; } = [];
 
@@ -117,6 +126,7 @@ internal sealed record AuthenticatedRouteState(string TenantId, string TargetUse
         var exactIds = new HashSet<string>(StringComparer.Ordinal);
         var cursors = new HashSet<string>(StringComparer.Ordinal);
         bool currentSeedFound = false;
+        int pageCount = 0;
         string? cursor = null;
         do
         {
@@ -124,6 +134,7 @@ internal sealed record AuthenticatedRouteState(string TenantId, string TargetUse
             var response = await readPage(new ListTenantsQuery { Cursor = cursor, PageSize = 100 }, cancellationToken)
                 .WaitAsync(cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
+            pageCount++;
             if (response is null || response.FailureKind != TenantsRestQueryFailureKind.None
                 || response.StatusCode != (int)HttpStatusCode.OK || response.Payload is not { } page
                 || page.Items is null || page.Items.Count > 100 || (page.HasMore && page.Items.Count == 0))
@@ -150,6 +161,11 @@ internal sealed record AuthenticatedRouteState(string TenantId, string TargetUse
                 }
 
                 exactIds.Add(item.TenantId);
+                if (exactIds.Count > MaxCorpusTenants)
+                {
+                    throw new InvalidOperationException(refusal);
+                }
+
                 if (string.Equals(item.TenantId, TenantId, StringComparison.Ordinal))
                 {
                     if (!string.Equals(item.Name, Persisted.Name, StringComparison.Ordinal) || item.Status != Persisted.Status)
@@ -163,7 +179,9 @@ internal sealed record AuthenticatedRouteState(string TenantId, string TargetUse
 
             if (page.HasMore)
             {
-                if (string.IsNullOrWhiteSpace(page.Cursor) || !cursors.Add(page.Cursor))
+                if (pageCount >= MaxCorpusPages
+                    || string.IsNullOrWhiteSpace(page.Cursor)
+                    || !cursors.Add(page.Cursor))
                 {
                     throw new InvalidOperationException(refusal);
                 }
@@ -188,7 +206,13 @@ internal sealed record AuthenticatedRouteState(string TenantId, string TargetUse
             throw new InvalidOperationException(refusal);
         }
 
-        return AspireTopologyTests.CreateDemoJwt(exactIds, readOnly: true);
+        string corpusToken = AspireTopologyTests.CreateDemoJwt(exactIds, readOnly: true);
+        if (corpusToken.Length > MaxEncodedTokenLength)
+        {
+            throw new InvalidOperationException(refusal);
+        }
+
+        return corpusToken;
     }
 
     /// <summary>Waits for the real list index and returns the page cursor containing the seeded tenant.</summary>

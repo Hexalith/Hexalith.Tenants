@@ -1,0 +1,211 @@
+{
+  "formatVersion": 1,
+  "package": {
+    "id": "Hexalith.Tenants.Contracts",
+    "version": "0.0.0-refresh-tenant-access"
+  },
+  "operation": "tenants.refresh-tenant-access",
+  "kind": "command",
+  "prerequisites": [
+    {
+      "operation": "tenants.create-tenant",
+      "kind": "command",
+      "payload": {
+        "TenantId": "vector-refresh",
+        "Name": "Vector Refresh",
+        "Description": "Created for RefreshTenantAccess conformance vector"
+      },
+      "envelope": {
+        "tenant": "platform:tenants"
+      },
+      "expectedGateway": {
+        "method": "POST",
+        "path": "/api/v1/commands",
+        "body": {
+          "messageId": "<generated>",
+          "tenant": "platform:tenants",
+          "domain": "tenants",
+          "aggregateId": "vector-refresh",
+          "commandType": "create-tenant",
+          "payload": {
+            "TenantId": "vector-refresh",
+            "Name": "Vector Refresh",
+            "Description": "Created for RefreshTenantAccess conformance vector"
+          },
+          "correlationId": "<generated>"
+        },
+        "maskGenerated": [
+          "/messageId",
+          "/correlationId"
+        ]
+      },
+      "scriptedResponse": {
+        "statusCode": 202,
+        "body": {},
+        "echoRequestFields": [
+          "correlationId",
+          "messageId"
+        ]
+      },
+      "assertions": [
+        {
+          "path": "/operation",
+          "operator": "equals",
+          "value": "tenants.create-tenant"
+        },
+        {
+          "path": "/status",
+          "operator": "equals",
+          "value": "accepted"
+        },
+        {
+          "path": "/tenant",
+          "operator": "equals",
+          "value": "platform:tenants"
+        },
+        {
+          "path": "/aggregateId",
+          "operator": "equals",
+          "value": "vector-refresh"
+        }
+      ]
+    }
+  ],
+  "invocation": {
+    "operation": "tenants.refresh-tenant-access",
+    "kind": "command",
+    "payload": {
+      "TenantId": "vector-refresh"
+    },
+    "envelope": {
+      "tenant": "platform:tenants",
+      "idempotencyKey": "01JAT0V8M4XQ4K3W5Z6Y7B8C9R"
+    },
+    "expectedGateway": {
+      "method": "POST",
+      "path": "/api/v1/commands",
+      "body": {
+        "messageId": "<generated>",
+        "tenant": "platform:tenants",
+        "domain": "tenants",
+        "aggregateId": "vector-refresh",
+        "commandType": "refresh-tenant-access",
+        "payload": {
+          "TenantId": "vector-refresh"
+        },
+        "correlationId": "<generated>",
+        "idempotencyKey": "01JAT0V8M4XQ4K3W5Z6Y7B8C9R"
+      },
+      "maskGenerated": [
+        "/messageId",
+        "/correlationId"
+      ]
+    },
+    "scriptedResponse": {
+      "statusCode": 202,
+      "body": {},
+      "echoRequestFields": [
+        "correlationId",
+        "messageId"
+      ]
+    },
+    "assertions": [
+      {
+        "path": "/operation",
+        "operator": "equals",
+        "value": "tenants.refresh-tenant-access"
+      },
+      {
+        "path": "/status",
+        "operator": "equals",
+        "value": "accepted"
+      },
+      {
+        "path": "/tenant",
+        "operator": "equals",
+        "value": "platform:tenants"
+      },
+      {
+        "path": "/aggregateId",
+        "operator": "equals",
+        "value": "vector-refresh"
+      },
+      {
+        "path": "/idempotencyKey",
+        "operator": "equals",
+        "value": "01JAT0V8M4XQ4K3W5Z6Y7B8C9R"
+      }
+    ]
+  },
+  "postconditions": [
+    {
+      "operation": "tenants.get-tenant",
+      "kind": "query",
+      "payload": {
+        "TenantId": "vector-refresh"
+      },
+      "envelope": {
+        "tenant": "vector-refresh"
+      },
+      "expectedGateway": {
+        "method": "POST",
+        "path": "/api/v1/queries",
+        "body": {
+          "tenant": "vector-refresh",
+          "domain": "tenants",
+          "aggregateId": "vector-refresh",
+          "queryType": "get-tenant",
+          "projectionType": "tenants",
+          "payload": {
+            "TenantId": "vector-refresh"
+          }
+        },
+        "maskGenerated": []
+      },
+      "scriptedResponse": {
+        "statusCode": 200,
+        "body": {
+          "correlationId": "01JAT0V8M4XQ4K3W5Z6Y7B8C9D",
+          "success": true,
+          "payload": {
+            "tenantId": "vector-refresh",
+            "name": "Vector Refresh",
+            "description": "Created for RefreshTenantAccess conformance vector",
+            "status": "Active",
+            "members": [],
+            "configuration": {},
+            "createdAt": "2026-10-19T08:00:00+00:00"
+          }
+        },
+        "echoRequestFields": []
+      },
+      "assertions": [
+        {
+          "path": "/operation",
+          "operator": "equals",
+          "value": "tenants.get-tenant"
+        },
+        {
+          "path": "/tenant",
+          "operator": "equals",
+          "value": "vector-refresh"
+        },
+        {
+          "path": "/document/tenantId",
+          "operator": "equals",
+          "value": "vector-refresh"
+        },
+        {
+          "path": "/document/name",
+          "operator": "equals",
+          "value": "Vector Refresh"
+        },
+        {
+          "path": "/document/status",
+          "operator": "equals",
+          "value": "Active"
+        }
+      ]
+    }
+  ]
+}

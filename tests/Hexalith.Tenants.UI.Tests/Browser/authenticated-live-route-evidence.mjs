@@ -50,3 +50,106 @@ export function createLiveRouteCheckpoint(output, evidence, now = () => performa
         await rename(temporary, output);
     };
 }
+
+export const DEFAULT_FAILURE_DIAGNOSTIC_TIMEOUT_MS = 5_000;
+const MAX_TIMER_DELAY_MS = 2_147_483_647;
+
+function resolveDiagnosticTimeoutMs(options) {
+    const raw = options && typeof options === 'object' ? options.timeoutMs : undefined;
+    return typeof raw === 'number' && Number.isFinite(raw) && raw > 0 && raw <= MAX_TIMER_DELAY_MS
+        ? raw
+        : DEFAULT_FAILURE_DIAGNOSTIC_TIMEOUT_MS;
+}
+
+function isValidDiagnosticObject(value) {
+    return Boolean(
+        value
+        && typeof value === 'object'
+        && !Array.isArray(value)
+        && !(value instanceof Error)
+        && Object.prototype.toString.call(value) !== '[object Error]',
+    );
+}
+
+// Failure diagnostics run after an assertion or timeout already failed. Bound every capture
+// with a finite deadline, clear its timer on settlement, and absorb any late rejection so
+// a wedged renderer cannot hang exit or trigger an unhandledRejection.
+export function captureFailureDiagnostic(capture, options = {}) {
+    const resolvedOptions = options && typeof options === 'object' ? options : {};
+    const timeoutMs = resolveDiagnosticTimeoutMs(resolvedOptions);
+    const setTimer = typeof resolvedOptions.setTimer === 'function' ? resolvedOptions.setTimer : setTimeout;
+    const clearTimer = typeof resolvedOptions.clearTimer === 'function' ? resolvedOptions.clearTimer : clearTimeout;
+
+    let capturePromise;
+    try {
+        capturePromise = Promise.resolve(capture());
+    } catch {
+        return Promise.resolve({ available: false });
+    }
+
+    const safeCapture = capturePromise.then(
+        value => (isValidDiagnosticObject(value) ? value : { available: false }),
+        () => ({ available: false }),
+    );
+
+    return new Promise(resolve => {
+        let settled = false;
+        let timerId;
+        let hasTimer = false;
+        const finish = value => {
+            if (settled) return;
+            settled = true;
+            if (hasTimer) {
+                hasTimer = false;
+                try { clearTimer(timerId); } catch { /* Best-effort timer cleanup. */ }
+            }
+            resolve(value);
+        };
+
+        let createdTimerId;
+        try {
+            createdTimerId = setTimer(() => {
+                hasTimer = false;
+                finish({ available: false });
+            }, timeoutMs);
+        } catch {
+            finish({ available: false });
+            return;
+        }
+
+        if (!settled) {
+            timerId = createdTimerId;
+            hasTimer = true;
+        }
+
+        safeCapture.then(finish);
+    });
+}
+
+// Bound failure-path screenshots to the diagnostic deadline and swallow capture errors so
+// screenshot failures never hang or clobber the primary failure label.
+export function captureFailureScreenshot(page, path, diagnosticOptions) {
+    const timeoutMs = resolveDiagnosticTimeoutMs(diagnosticOptions);
+    return captureFailureDiagnostic(
+        async () => {
+            await page.screenshot({ path, timeout: timeoutMs });
+            return { available: true };
+        },
+        diagnosticOptions,
+    );
+}
+
+// Record optional focus and readiness diagnostics in the outer failure handler without
+// allowing a wedged renderer to block checkpoint persistence or exit.
+export async function recordFailureDiagnostics(
+    evidence,
+    { phase, checkpoint, captureFocus, captureReadiness, diagnosticOptions } = {},
+) {
+    if (captureFocus) {
+        evidence.focus = await captureFailureDiagnostic(captureFocus, diagnosticOptions);
+        if (checkpoint) await checkpoint(phase);
+    }
+    if (captureReadiness) {
+        evidence.readiness = await captureFailureDiagnostic(captureReadiness, diagnosticOptions);
+    }
+}

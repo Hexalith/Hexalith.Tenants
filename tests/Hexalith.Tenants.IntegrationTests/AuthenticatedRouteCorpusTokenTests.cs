@@ -230,6 +230,131 @@ public sealed class AuthenticatedRouteCorpusTokenTests
         TenantGrants(state.Token).ShouldBe([state.TenantId]);
     }
 
+    [Fact]
+    public async Task ExactlyMaxCorpusPagesSucceedsAndExceedingStopsWithoutExtraPageFetch()
+    {
+        AuthenticatedRouteState state = CreateState();
+        int passReads = 0;
+        string token = await state.CreateCorpusReadTokenAsync(
+            (_, _) =>
+            {
+                passReads++;
+                bool hasMore = passReads < AuthenticatedRouteState.MaxCorpusPages;
+                TenantSummary item = passReads == AuthenticatedRouteState.MaxCorpusPages
+                    ? Seed(state)
+                    : new($"page-tenant-{passReads:D2}", "Bounded page row", TenantStatus.Active);
+                return Task.FromResult(Page([item], hasMore ? $"cursor-{passReads}" : null, hasMore));
+            },
+            TestContext.Current.CancellationToken);
+
+        passReads.ShouldBe(AuthenticatedRouteState.MaxCorpusPages);
+        TenantGrants(token).Length.ShouldBe(AuthenticatedRouteState.MaxCorpusPages);
+
+        int overflowReads = 0;
+        InvalidOperationException refusal = await Should.ThrowAsync<InvalidOperationException>(() => state.CreateCorpusReadTokenAsync(
+            (_, _) =>
+            {
+                overflowReads++;
+                overflowReads.ShouldBeLessThanOrEqualTo(AuthenticatedRouteState.MaxCorpusPages);
+                TenantSummary item = overflowReads == 1
+                    ? Seed(state)
+                    : new($"overflow-page-tenant-{overflowReads:D2}", "Bounded page row", TenantStatus.Active);
+                return Task.FromResult(Page([item], $"cursor-overflow-{overflowReads}", hasMore: true));
+            },
+            TestContext.Current.CancellationToken));
+
+        refusal.Message.ShouldBe("Live corpus read credentials require a complete valid index containing the current seed.");
+        overflowReads.ShouldBe(AuthenticatedRouteState.MaxCorpusPages);
+        TenantGrants(state.Token).ShouldBe([state.TenantId]);
+    }
+
+    [Fact]
+    public async Task ExactlyMaxCorpusTenantsSucceedsAndExceedingStopsWithoutExtraPageFetch()
+    {
+        AuthenticatedRouteState state = CreateState();
+        TenantSummary[] pageOne = [Seed(state), .. Enumerable.Range(1, AuthenticatedRouteState.MaxCorpusTenants - 1)
+            .Select(i => new TenantSummary($"t-{i:D3}", "Bounded tenant", TenantStatus.Active))];
+        int passReads = 0;
+        string token = await state.CreateCorpusReadTokenAsync(
+            (_, _) =>
+            {
+                passReads++;
+                return Task.FromResult(passReads == 1
+                    ? Page(pageOne, "cursor-dup-page", hasMore: true)
+                    : Page([Seed(state)]));
+            },
+            TestContext.Current.CancellationToken);
+
+        passReads.ShouldBe(2);
+        TenantGrants(token).Length.ShouldBe(AuthenticatedRouteState.MaxCorpusTenants);
+        token.Length.ShouldBeLessThanOrEqualTo(AuthenticatedRouteState.MaxEncodedTokenLength);
+
+        int overflowReads = 0;
+        InvalidOperationException refusal = await Should.ThrowAsync<InvalidOperationException>(() => state.CreateCorpusReadTokenAsync(
+            (_, _) =>
+            {
+                overflowReads++;
+                overflowReads.ShouldBeLessThanOrEqualTo(2);
+                return Task.FromResult(overflowReads == 1
+                    ? Page(pageOne, "cursor-overflow-tenant", hasMore: true)
+                    : Page([new("t-overflow-101", "Extra tenant", TenantStatus.Active)], "cursor-unreachable", hasMore: true));
+            },
+            TestContext.Current.CancellationToken));
+
+        refusal.Message.ShouldBe("Live corpus read credentials require a complete valid index containing the current seed.");
+        overflowReads.ShouldBe(2);
+        TenantGrants(state.Token).ShouldBe([state.TenantId]);
+    }
+
+    [Fact]
+    public async Task EncodedTokenWithinBoundSucceedsAndExceedingMaxEncodedTokenLengthRefusesWithoutLeaking()
+    {
+        AuthenticatedRouteState state = CreateState();
+        static string LongTenantId(int index) => $"t-{index:D2}-{new string('a', 59)}";
+
+        List<TenantSummary> boundedItems = [Seed(state)];
+        int nextIndex = 1;
+        while (boundedItems.Count < AuthenticatedRouteState.MaxCorpusTenants - 1)
+        {
+            TenantSummary candidate = new(LongTenantId(nextIndex), "Long bounded tenant", TenantStatus.Active);
+            int candidateLength = AspireTopologyTests.CreateDemoJwt(
+                boundedItems.Select(static item => item.TenantId).Append(candidate.TenantId),
+                readOnly: true).Length;
+            if (candidateLength > AuthenticatedRouteState.MaxEncodedTokenLength)
+            {
+                break;
+            }
+
+            boundedItems.Add(candidate);
+            nextIndex++;
+        }
+
+        string boundedToken = await state.CreateCorpusReadTokenAsync(
+            (_, _) => Task.FromResult(Page(boundedItems)),
+            TestContext.Current.CancellationToken);
+
+        boundedToken.Length.ShouldBeInRange(
+            AuthenticatedRouteState.MaxEncodedTokenLength - 100,
+            AuthenticatedRouteState.MaxEncodedTokenLength);
+        TenantGrants(boundedToken).Length.ShouldBe(boundedItems.Count);
+
+        List<TenantSummary> oversizedItems = [.. boundedItems, new(LongTenantId(nextIndex), "Long oversized tenant", TenantStatus.Active)];
+        oversizedItems.Count.ShouldBeLessThanOrEqualTo(AuthenticatedRouteState.MaxCorpusTenants);
+        string rawCandidateJwt = AspireTopologyTests.CreateDemoJwt(oversizedItems.Select(static item => item.TenantId), readOnly: true);
+        rawCandidateJwt.Length.ShouldBeInRange(
+            AuthenticatedRouteState.MaxEncodedTokenLength + 1,
+            AuthenticatedRouteState.MaxEncodedTokenLength + 100);
+
+        InvalidOperationException refusal = await Should.ThrowAsync<InvalidOperationException>(() => state.CreateCorpusReadTokenAsync(
+            (_, _) => Task.FromResult(Page(oversizedItems)),
+            TestContext.Current.CancellationToken));
+
+        refusal.Message.ShouldBe("Live corpus read credentials require a complete valid index containing the current seed.");
+        refusal.Message.ShouldNotContain(rawCandidateJwt);
+        refusal.Message.ShouldNotContain(LongTenantId(1));
+        TenantGrants(state.Token).ShouldBe([state.TenantId]);
+    }
+
     private static AuthenticatedRouteState CreateState()
     {
         const string tenantId = "zz-synthetic-seed";
